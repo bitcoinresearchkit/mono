@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 
 use brk_cohort::ByAddrType;
 use brk_error::Result;
-use brk_store::{AnyStore, Kind, Mode, Store};
+use brk_store::{AnyStore, Kind, Mode, Store, StoreTask};
 use brk_types::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Height, OutPoint, OutputType,
     TxIndex, TxOutIndex, TxidPrefix, TypeIndex, Unit, Version, Vout,
@@ -174,30 +174,25 @@ impl Stores {
 
     pub fn commit(&mut self, height: Height) -> Result<()> {
         let i = Instant::now();
+        self.ingest_and_persist()?;
         self.par_iter_any_mut()
-            .try_for_each(|store| store.commit(height))?;
+            .try_for_each(|store| store.export_meta_if_needed(height))?;
         debug!("Stores committed in {:?}", i.elapsed());
-
-        let i = Instant::now();
-        self.db.persist(PersistMode::SyncData)?;
-        debug!("Stores persisted in {:?}", i.elapsed());
 
         Ok(())
     }
 
-    /// Takes all pending puts/dels from every store and returns closures
-    /// that can ingest them on a background thread.
-    #[allow(clippy::type_complexity)]
-    pub fn take_all_pending_ingests(
-        &mut self,
-        height: Height,
-    ) -> Result<Vec<Box<dyn FnOnce() -> Result<()> + Send>>> {
+    /// Takes all pending puts/dels and returns one ordered background commit.
+    pub fn take_pending_commit(&mut self, height: Height) -> Result<StoreTask> {
         let h = height;
-        let mut tasks = Vec::new();
+        let mut ingests = Vec::new();
+        let mut checkpoints = Vec::new();
 
         macro_rules! take {
             ($store:expr) => {
-                tasks.extend($store.take_pending_ingest(h)?);
+                let (ingest, checkpoint) = $store.take_pending_ingest_parts(h)?;
+                ingests.extend(ingest);
+                checkpoints.push(checkpoint);
             };
         }
 
@@ -217,7 +212,25 @@ impl Stores {
             take!(store);
         }
 
-        Ok(tasks)
+        let db = self.db.clone();
+
+        Ok(Box::new(move || {
+            if !ingests.is_empty() {
+                for ingest in ingests {
+                    ingest()?;
+                }
+                db.persist(PersistMode::SyncData)?;
+            }
+            for checkpoint in checkpoints {
+                checkpoint()?;
+            }
+            Ok(())
+        }))
+    }
+
+    /// Compatibility wrapper returning the ordered commit as a single task.
+    pub fn take_all_pending_ingests(&mut self, height: Height) -> Result<Vec<StoreTask>> {
+        Ok(vec![self.take_pending_commit(height)?])
     }
 
     /// Rewrites reverse-key entries below the lowered bound. In-flight
@@ -241,8 +254,19 @@ impl Stores {
 
         let rollback_height = starting_lengths.height.decremented().unwrap_or_default();
         self.par_iter_any_mut()
-            .try_for_each(|store| store.export_meta(rollback_height))?;
-        self.commit(rollback_height)?;
+            .try_for_each(|store| store.export_meta_sync(rollback_height))?;
+        self.ingest_and_persist()?;
+
+        Ok(())
+    }
+
+    fn ingest_and_persist(&mut self) -> Result<()> {
+        self.par_iter_any_mut()
+            .try_for_each(|store| store.ingest_pending())?;
+
+        let i = Instant::now();
+        self.db.persist(PersistMode::SyncData)?;
+        debug!("Stores persisted in {:?}", i.elapsed());
 
         Ok(())
     }
@@ -402,5 +426,53 @@ impl Stores {
                 .get_mut_unwrap(addr_type)
                 .remove(AddrIndexTxIndex::from((addr_index, tx_index)));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{fs, process};
+
+    use super::*;
+
+    #[test]
+    fn pending_commit_persists_data_and_all_checkpoints() -> Result<()> {
+        let path = std::env::temp_dir().join(format!(
+            "brk-indexer-empty-store-checkpoints-{}",
+            process::id()
+        ));
+        let _ = fs::remove_dir_all(&path);
+
+        let height = Height::new(42);
+        let key = BlockHashPrefix::from(7_u64);
+        let mut stores = Stores::forced_import(&path, Version::ZERO)?;
+        stores.blockhash_prefix_to_height.insert(key, height);
+        let mut commits = stores.take_all_pending_ingests(height)?;
+        assert_eq!(commits.len(), 1);
+        commits.pop().unwrap()()?;
+
+        assert_eq!(stores.next_height(), height.incremented());
+        assert_eq!(
+            stores
+                .blockhash_prefix_to_height
+                .get(&key)?
+                .map(|value| *value),
+            Some(height)
+        );
+        drop(stores);
+
+        let stores = Stores::forced_import(&path, Version::ZERO)?;
+        assert_eq!(stores.next_height(), height.incremented());
+        assert_eq!(
+            stores
+                .blockhash_prefix_to_height
+                .get(&key)?
+                .map(|value| *value),
+            Some(height)
+        );
+        drop(stores);
+        fs::remove_dir_all(path)?;
+
+        Ok(())
     }
 }

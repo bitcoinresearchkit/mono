@@ -5,7 +5,7 @@ use std::{borrow::Cow, fmt::Debug, fs, hash::Hash, mem, ops::Range, path::Path};
 use brk_error::Result;
 use brk_types::{Height, Version};
 use byteview::ByteView;
-use fjall::{Database, Keyspace, KeyspaceCreateOptions, config::*};
+use fjall::{Database, Keyspace, KeyspaceCreateOptions, PersistMode, config::*};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod any;
@@ -22,6 +22,8 @@ pub use mode::*;
 
 const MAJOR_FJALL_VERSION: Version = Version::new(3);
 
+pub type StoreTask = Box<dyn FnOnce() -> Result<()> + Send>;
+
 pub fn open_database(path: &Path) -> fjall::Result<Database> {
     Database::builder(path.join("fjall"))
         .cache_size(3 * 1024 * 1024 * 1024)
@@ -31,6 +33,7 @@ pub fn open_database(path: &Path) -> fjall::Result<Database> {
 
 #[derive(Clone)]
 pub struct Store<K, V> {
+    database: Database,
     meta: StoreMeta,
     name: &'static str,
     keyspace: Keyspace,
@@ -97,6 +100,7 @@ where
         }
 
         Ok(Self {
+            database: db.clone(),
             meta,
             name: Box::leak(Box::new(name.to_string())),
             keyspace,
@@ -199,32 +203,71 @@ where
         }
     }
 
-    /// Takes buffered puts/dels and returns a closure that ingests them into the keyspace.
-    /// The store is left with empty buffers, ready for the next batch.
-    #[allow(clippy::type_complexity)]
-    pub fn take_pending_ingest(
-        &mut self,
-        height: Height,
-    ) -> Result<Option<Box<dyn FnOnce() -> Result<()> + Send>>>
+    /// Takes buffered puts/dels and returns a durable background commit.
+    pub fn take_pending_ingest(&mut self, height: Height) -> Result<Option<StoreTask>>
     where
         K: Send + 'static,
         V: Send + 'static,
         for<'a> ByteView: From<&'a K> + From<&'a V>,
     {
-        self.export_meta_if_needed(height)?;
+        let (ingest, checkpoint) = self.take_pending_ingest_parts(height)?;
+        let Some(ingest) = ingest else {
+            checkpoint()?;
+            return Ok(None);
+        };
+        let database = self.database.clone();
 
+        Ok(Some(Box::new(move || {
+            ingest()?;
+            database.persist(PersistMode::SyncData)?;
+            checkpoint()
+        })))
+    }
+
+    /// Takes buffered puts/dels and returns separate ingest and checkpoint tasks.
+    ///
+    /// The indexer uses this to persist one batch across all stores before
+    /// publishing any of their checkpoints.
+    #[doc(hidden)]
+    #[allow(clippy::type_complexity)]
+    pub fn take_pending_ingest_parts(
+        &mut self,
+        height: Height,
+    ) -> Result<(Option<StoreTask>, StoreTask)>
+    where
+        K: Send + 'static,
+        V: Send + 'static,
+        for<'a> ByteView: From<&'a K> + From<&'a V>,
+    {
         let puts = mem::take(&mut self.puts);
         let dels = mem::take(&mut self.dels);
 
-        if puts.is_empty() && dels.is_empty() {
-            return Ok(None);
-        }
+        let meta = self.meta.clone();
+        let checkpoint = Box::new(move || {
+            if meta.needs(height) {
+                meta.export(height)?;
+            }
+            Ok(())
+        });
 
-        let keyspace = self.keyspace.clone();
+        let ingest = if puts.is_empty() && dels.is_empty() {
+            None
+        } else {
+            let keyspace = self.keyspace.clone();
+            Some(Box::new(move || Self::ingest(&keyspace, puts.iter(), dels.iter())) as StoreTask)
+        };
 
-        Ok(Some(Box::new(move || {
-            Self::ingest(&keyspace, puts.iter(), dels.iter())
-        })))
+        Ok((ingest, checkpoint))
+    }
+
+    /// Ingests buffered writes, persists them, then publishes their height.
+    pub fn commit(&mut self, height: Height) -> Result<()>
+    where
+        for<'a> ByteView: From<&'a K> + From<&'a V>,
+    {
+        self.ingest_pending()?;
+        self.database.persist(PersistMode::SyncData)?;
+        self.export_meta_if_needed(height)
     }
 
     #[inline]
@@ -286,6 +329,27 @@ where
         Ok(())
     }
 
+    fn ingest_pending(&mut self) -> Result<()>
+    where
+        for<'a> ByteView: From<&'a K> + From<&'a V>,
+    {
+        let puts = mem::take(&mut self.puts);
+        let dels = mem::take(&mut self.dels);
+
+        if puts.is_empty() && dels.is_empty() {
+            return Ok(());
+        }
+
+        Self::ingest(&self.keyspace, puts.iter(), dels.iter())?;
+
+        if !self.caches.is_empty() {
+            self.caches.pop();
+            self.caches.insert(0, puts);
+        }
+
+        Ok(())
+    }
+
     fn ingest<'a>(
         keyspace: &Keyspace,
         puts: impl Iterator<Item = (&'a K, &'a V)>,
@@ -335,8 +399,17 @@ where
         self.export_meta(height)
     }
 
+    fn export_meta_sync(&mut self, height: Height) -> Result<()> {
+        self.meta.export_sync(height)?;
+        Ok(())
+    }
+
     fn export_meta_if_needed(&mut self, height: Height) -> Result<()> {
         self.export_meta_if_needed(height)
+    }
+
+    fn ingest_pending(&mut self) -> Result<()> {
+        self.ingest_pending()
     }
 
     fn name(&self) -> &'static str {
@@ -360,21 +433,116 @@ where
     }
 
     fn commit(&mut self, height: Height) -> Result<()> {
-        self.export_meta_if_needed(height)?;
+        self.commit(height)
+    }
+}
 
-        let puts = mem::take(&mut self.puts);
-        let dels = mem::take(&mut self.dels);
+#[cfg(test)]
+mod tests {
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+        process,
+    };
 
-        if puts.is_empty() && dels.is_empty() {
-            return Ok(());
+    use brk_types::Unit;
+
+    use super::*;
+
+    struct TestDir(PathBuf);
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let path = std::env::temp_dir().join(format!("brk-store-{name}-{}", process::id()));
+            let _ = fs::remove_dir_all(&path);
+            Self(path)
         }
+    }
 
-        Self::ingest(&self.keyspace, puts.iter(), dels.iter())?;
-
-        if !self.caches.is_empty() {
-            self.caches.pop();
-            self.caches.insert(0, puts);
+    impl AsRef<Path> for TestDir {
+        fn as_ref(&self) -> &Path {
+            &self.0
         }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn import_test_store(db: &Database, path: &Path) -> Result<Store<Height, Unit>> {
+        Store::import(db, path, "test", Version::ZERO, Mode::Any, Kind::Random)
+    }
+
+    #[test]
+    fn dropped_pending_ingest_does_not_advance_checkpoint() -> Result<()> {
+        let path = TestDir::new("dropped-ingest");
+        let height = Height::new(42);
+        let key = Height::new(7);
+
+        let db = open_database(path.as_ref())?;
+        let mut store = import_test_store(&db, path.as_ref())?;
+        store.insert(key, Unit);
+
+        let ingest = store.take_pending_ingest(height)?;
+        assert!(store.needs(height));
+        drop(ingest);
+        drop(store);
+        drop(db);
+
+        let db = open_database(path.as_ref())?;
+        let store = import_test_store(&db, path.as_ref())?;
+        assert!(store.needs(height));
+        assert!(store.get(&key)?.is_none());
+
+        Ok(())
+    }
+
+    #[test]
+    fn successful_pending_ingest_advances_checkpoint() -> Result<()> {
+        let path = TestDir::new("successful-ingest");
+        let height = Height::new(42);
+        let key = Height::new(7);
+
+        let db = open_database(path.as_ref())?;
+        let mut store = import_test_store(&db, path.as_ref())?;
+        store.insert(key, Unit);
+
+        let ingest = store.take_pending_ingest(height)?;
+        ingest.unwrap()()?;
+
+        assert!(!store.needs(height));
+        assert!(store.get(&key)?.is_some());
+        drop(store);
+        drop(db);
+
+        let db = open_database(path.as_ref())?;
+        let store = import_test_store(&db, path.as_ref())?;
+        assert!(!store.needs(height));
+        assert!(store.get(&key)?.is_some());
+
+        Ok(())
+    }
+
+    #[test]
+    fn failed_checkpoint_write_keeps_old_height() -> Result<()> {
+        let path = TestDir::new("failed-checkpoint");
+        let height = Height::new(42);
+        let key = Height::new(7);
+
+        let db = open_database(path.as_ref())?;
+        let mut store = import_test_store(&db, path.as_ref())?;
+        store.insert(key, Unit);
+
+        let (ingest, checkpoint) = store.take_pending_ingest_parts(height)?;
+        ingest.unwrap()()?;
+        db.persist(PersistMode::SyncData)?;
+        fs::remove_dir_all(path.as_ref().join("meta/test"))?;
+
+        assert!(checkpoint().is_err());
+        assert!(store.needs(height));
+        assert!(store.get(&key)?.is_some());
 
         Ok(())
     }
