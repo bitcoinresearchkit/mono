@@ -12,7 +12,7 @@ pub struct AddrStats {
     #[serde(rename = "address")]
     pub addr: Addr,
 
-    /// Address type (p2pkh, p2sh, v0_p2wpkh, v0_p2wsh, v1_p2tr, etc.)
+    /// BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
     pub addr_type: OutputType,
 
     /// Statistics for confirmed transactions on the blockchain

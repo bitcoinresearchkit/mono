@@ -825,12 +825,13 @@ function _validateHashPrefixNibbles(nibbles) {
 function _addressPayloadLengths(addrType) {
   switch (addrType) {
     case "p2a": return [2];
-    case "p2pk": return [33, 65];
+    case "p2pk33": return [33];
+    case "p2pk65": return [65];
     case "p2pkh":
     case "p2sh":
-    case "v0_p2wpkh": return [20];
-    case "v0_p2wsh":
-    case "v1_p2tr": return [32];
+    case "p2wpkh": return [20];
+    case "p2wsh":
+    case "p2tr": return [32];
     default:
       throw new Error(`Unsupported address type for address payload hash-prefix: ${addrType}`);
   }

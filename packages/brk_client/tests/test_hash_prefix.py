@@ -42,7 +42,22 @@ def test_address_payload_hash_prefix_match_validation():
         "addresses": [],
     }
 
+    for addr_type, length in (("p2pk33", 33), ("p2pk65", 65)):
+        payload = bytes(range(length))
+        assert client.get_address_payload_hash_prefix_matches(addr_type, payload, 8) == {
+            "addr_type": addr_type,
+            "prefix": address_payload_hash_prefix(payload, 8),
+            "truncated": False,
+            "addresses": [],
+        }
+
     with pytest.raises(ValueError, match="p2pkh address payload length 20 bytes"):
         client.get_address_payload_hash_prefix_matches("p2pkh", b"\x01\x02", 8)
+    with pytest.raises(ValueError, match="p2pk33 address payload length 33 bytes"):
+        client.get_address_payload_hash_prefix_matches("p2pk33", bytes(65), 8)
+    with pytest.raises(ValueError, match="p2pk65 address payload length 65 bytes"):
+        client.get_address_payload_hash_prefix_matches("p2pk65", bytes(33), 8)
     with pytest.raises(ValueError, match="Unsupported address type"):
-        client.get_address_payload_hash_prefix_matches("op_return", b"\x01\x02", 8)
+        client.get_address_payload_hash_prefix_matches("p2pk", bytes(33), 8)
+    with pytest.raises(ValueError, match="Unsupported address type"):
+        client.get_address_payload_hash_prefix_matches("opreturn", b"\x01\x02", 8)

@@ -64,7 +64,7 @@
  *
  * @typedef {Object} AddrStats
  * @property {Addr} address - Bitcoin address string
- * @property {OutputType} addrType - Address type (p2pkh, p2sh, v0_p2wpkh, v0_p2wsh, v1_p2tr, etc.)
+ * @property {OutputType} addrType - BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
  * @property {AddrChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddrMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
  */
@@ -837,7 +837,7 @@ ancestors and no descendants (matches mempool.space).
 /**
  * Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
  *
- * @typedef {("p2pk"|"p2pk"|"p2pkh"|"multisig"|"p2sh"|"op_return"|"v0_p2wpkh"|"v0_p2wsh"|"v1_p2tr"|"p2a"|"empty"|"unknown")} OutputType
+ * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2ms"|"p2sh"|"opreturn"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a"|"empty"|"unknown")} OutputType
  */
 /** @typedef {TypeIndex} P2AAddrIndex */
 /** @typedef {U8x2} P2ABytes */
@@ -2270,12 +2270,13 @@ function _validateHashPrefixNibbles(nibbles) {
 function _addressPayloadLengths(addrType) {
   switch (addrType) {
     case "p2a": return [2];
-    case "p2pk": return [33, 65];
+    case "p2pk33": return [33];
+    case "p2pk65": return [65];
     case "p2pkh":
     case "p2sh":
-    case "v0_p2wpkh": return [20];
-    case "v0_p2wsh":
-    case "v1_p2tr": return [32];
+    case "p2wpkh": return [20];
+    case "p2wsh":
+    case "p2tr": return [32];
     default:
       throw new Error(`Unsupported address type for address payload hash-prefix: ${addrType}`);
   }

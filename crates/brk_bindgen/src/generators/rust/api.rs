@@ -148,23 +148,6 @@ fn generate_get_method(output: &mut String, endpoint: &Endpoint) {
         "get_text"
     };
 
-    if endpoint.path == "/api/address/hash-prefix/{addr_type}/{prefix}" {
-        writeln!(
-            output,
-            "        let addr_type = address_payload_type_path(addr_type)?;"
-        )
-        .unwrap();
-        writeln!(
-            output,
-            "        self.base.{}(&format!(\"{}\"{}))",
-            fetch_method, path, index_arg
-        )
-        .unwrap();
-        writeln!(output, "    }}").unwrap();
-        writeln!(output).unwrap();
-        return;
-    }
-
     if endpoint.query_params.is_empty() {
         writeln!(
             output,

@@ -72,7 +72,6 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
             return Err(BrkError { message: format!("Unsupported address type for address payload hash-prefix: {addr_type:?}") });
         },
     };
-    let addr_type = address_payload_type_path(addr_type)?;
 
     if !expected.contains(&payload.len()) {
         let joined = expected
@@ -86,18 +85,16 @@ fn validate_address_payload_for_type(addr_type: OutputType, payload: &[u8]) -> R
     Ok(())
 }
 
-fn address_payload_type_path(addr_type: OutputType) -> Result<&'static str> {
-    match addr_type {
-        OutputType::P2A => Ok("p2a"),
-        OutputType::P2PK33 | OutputType::P2PK65 => Ok("p2pk"),
-        OutputType::P2PKH => Ok("p2pkh"),
-        OutputType::P2SH => Ok("p2sh"),
-        OutputType::P2WPKH => Ok("v0_p2wpkh"),
-        OutputType::P2WSH => Ok("v0_p2wsh"),
-        OutputType::P2TR => Ok("v1_p2tr"),
-        OutputType::P2MS | OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => {
-            Err(BrkError { message: format!("Unsupported address type for address payload hash-prefix: {addr_type:?}") })
-        },
+#[cfg(test)]
+mod address_payload_tests {
+    use super::*;
+
+    #[test]
+    fn p2pk_payload_lengths_are_distinct() {
+        assert!(validate_address_payload_for_type(OutputType::P2PK33, &[0; 33]).is_ok());
+        assert!(validate_address_payload_for_type(OutputType::P2PK65, &[0; 65]).is_ok());
+        assert!(validate_address_payload_for_type(OutputType::P2PK33, &[0; 65]).is_err());
+        assert!(validate_address_payload_for_type(OutputType::P2PK65, &[0; 33]).is_err());
     }
 }
 
@@ -9992,7 +9989,6 @@ impl BrkClient {
     ///
     /// Endpoint: `GET /api/address/hash-prefix/{addr_type}/{prefix}`
     pub fn get_address_hash_prefix_matches(&self, addr_type: OutputType, prefix: &str) -> Result<AddrHashPrefixMatches> {
-        let addr_type = address_payload_type_path(addr_type)?;
         self.base.get_json(&format!("/api/address/hash-prefix/{addr_type}/{prefix}"))
     }
 

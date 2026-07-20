@@ -24,11 +24,35 @@ assert.deepEqual(
   client.getAddressPayloadHashPrefixMatches("p2pkh", Uint8Array.from({ length: 20 }, (_, i) => i), 8),
   { addrType: "p2pkh", prefix: "c3327ecb", truncated: false, addresses: [] },
 );
+for (const [addrType, length] of [["p2pk33", 33], ["p2pk65", 65]]) {
+  const payload = Uint8Array.from({ length }, (_, i) => i);
+  assert.deepEqual(
+    client.getAddressPayloadHashPrefixMatches(addrType, payload, 8),
+    {
+      addrType,
+      prefix: addressPayloadHashPrefix(payload, 8),
+      truncated: false,
+      addresses: [],
+    },
+  );
+}
 assert.throws(
   () => client.getAddressPayloadHashPrefixMatches("p2pkh", Uint8Array.of(1, 2), 8),
   /p2pkh address payload length 20 bytes/,
 );
 assert.throws(
-  () => client.getAddressPayloadHashPrefixMatches("op_return", Uint8Array.of(1, 2), 8),
+  () => client.getAddressPayloadHashPrefixMatches("p2pk33", new Uint8Array(65), 8),
+  /p2pk33 address payload length 33 bytes/,
+);
+assert.throws(
+  () => client.getAddressPayloadHashPrefixMatches("p2pk65", new Uint8Array(33), 8),
+  /p2pk65 address payload length 65 bytes/,
+);
+assert.throws(
+  () => client.getAddressPayloadHashPrefixMatches("p2pk", new Uint8Array(33), 8),
+  /Unsupported address type/,
+);
+assert.throws(
+  () => client.getAddressPayloadHashPrefixMatches("opreturn", Uint8Array.of(1, 2), 8),
   /Unsupported address type/,
 );

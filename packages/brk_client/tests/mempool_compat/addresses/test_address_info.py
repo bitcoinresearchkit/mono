@@ -8,8 +8,8 @@ from _lib import assert_same_structure, show
 
 
 KNOWN_ADDR_TYPES = {
-    "p2pk", "p2pkh", "p2sh", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr",
-    "multisig", "op_return", "p2a", "empty", "unknown",
+    "p2pk33", "p2pk65", "p2pkh", "p2sh", "p2wpkh", "p2wsh", "p2tr",
+    "p2ms", "opreturn", "p2a", "empty", "unknown",
 }
 
 # Static fixtures: stable addresses with known shapes.
@@ -124,7 +124,7 @@ def test_address_invalid(brk):
 def test_address_pubkey_as_address(brk):
     """Brk-only: hex-encoded pubkey is accepted as a P2PK address."""
     b = brk.get_address(SATOSHI_GENESIS_PUBKEY)
-    assert b["addr_type"] == "p2pk", f"expected p2pk, got {b['addr_type']!r}"
+    assert b["addr_type"] == "p2pk65", f"expected p2pk65, got {b['addr_type']!r}"
     assert b["chain_stats"]["funded_txo_count"] >= 1, (
         f"genesis pubkey must have at least one funded output, got "
         f"{b['chain_stats']['funded_txo_count']}"

@@ -1,8 +1,3 @@
-#![allow(
-    unreachable_patterns,
-    reason = "P2PK65 and P2PK33 both serialize as 'p2pk'"
-)]
-
 use bitcoin::{AddressType, ScriptBuf, opcodes::all::OP_PUSHBYTES_2};
 use brk_error::Error;
 use schemars::JsonSchema;
@@ -31,12 +26,26 @@ use crate::AddrBytes;
 #[repr(u8)]
 /// Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
 pub enum OutputType {
-    #[serde(rename = "p2pk")]
-    #[strum(serialize = "p2pk")]
     P2PK65,
-    #[serde(rename = "p2pk")]
-    #[strum(serialize = "p2pk")]
     P2PK33,
+    P2PKH,
+    P2MS,
+    P2SH,
+    OpReturn,
+    P2WPKH,
+    P2WSH,
+    P2TR,
+    P2A,
+    Empty,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Copy, Display, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Hash)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+/// Output type names used by Esplora and mempool.space.
+pub enum OutputTypeNormalized {
+    P2PK,
     P2PKH,
     #[serde(rename = "multisig")]
     #[strum(serialize = "multisig")]
@@ -115,6 +124,22 @@ impl OutputType {
 
     pub fn is_unspendable(&self) -> bool {
         !self.is_spendable()
+    }
+
+    pub const fn normalized(self) -> OutputTypeNormalized {
+        match self {
+            Self::P2PK65 | Self::P2PK33 => OutputTypeNormalized::P2PK,
+            Self::P2PKH => OutputTypeNormalized::P2PKH,
+            Self::P2MS => OutputTypeNormalized::P2MS,
+            Self::P2SH => OutputTypeNormalized::P2SH,
+            Self::OpReturn => OutputTypeNormalized::OpReturn,
+            Self::P2WPKH => OutputTypeNormalized::P2WPKH,
+            Self::P2WSH => OutputTypeNormalized::P2WSH,
+            Self::P2TR => OutputTypeNormalized::P2TR,
+            Self::P2A => OutputTypeNormalized::P2A,
+            Self::Empty => OutputTypeNormalized::Empty,
+            Self::Unknown => OutputTypeNormalized::Unknown,
+        }
     }
 
     /// Whether the address type's public key is revealed at funding time
@@ -278,3 +303,101 @@ impl Pco for OutputType {
 }
 
 impl TransparentPco<u8> for OutputType {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn native_and_normalized_names_are_distinct() {
+        let cases = [
+            (
+                OutputType::P2PK65,
+                "p2pk65",
+                OutputTypeNormalized::P2PK,
+                "p2pk",
+            ),
+            (
+                OutputType::P2PK33,
+                "p2pk33",
+                OutputTypeNormalized::P2PK,
+                "p2pk",
+            ),
+            (
+                OutputType::P2PKH,
+                "p2pkh",
+                OutputTypeNormalized::P2PKH,
+                "p2pkh",
+            ),
+            (
+                OutputType::P2MS,
+                "p2ms",
+                OutputTypeNormalized::P2MS,
+                "multisig",
+            ),
+            (OutputType::P2SH, "p2sh", OutputTypeNormalized::P2SH, "p2sh"),
+            (
+                OutputType::OpReturn,
+                "opreturn",
+                OutputTypeNormalized::OpReturn,
+                "op_return",
+            ),
+            (
+                OutputType::P2WPKH,
+                "p2wpkh",
+                OutputTypeNormalized::P2WPKH,
+                "v0_p2wpkh",
+            ),
+            (
+                OutputType::P2WSH,
+                "p2wsh",
+                OutputTypeNormalized::P2WSH,
+                "v0_p2wsh",
+            ),
+            (
+                OutputType::P2TR,
+                "p2tr",
+                OutputTypeNormalized::P2TR,
+                "v1_p2tr",
+            ),
+            (OutputType::P2A, "p2a", OutputTypeNormalized::P2A, "p2a"),
+            (
+                OutputType::Empty,
+                "empty",
+                OutputTypeNormalized::Empty,
+                "empty",
+            ),
+            (
+                OutputType::Unknown,
+                "unknown",
+                OutputTypeNormalized::Unknown,
+                "unknown",
+            ),
+        ];
+
+        for (native, native_name, normalized, normalized_name) in cases {
+            assert_eq!(native.to_string(), native_name);
+            assert_eq!(native.normalized(), normalized);
+            assert_eq!(
+                serde_json::to_string(&native).unwrap(),
+                format!(r#""{native_name}""#)
+            );
+            assert_eq!(
+                serde_json::from_str::<OutputType>(&format!(r#""{native_name}""#)).unwrap(),
+                native
+            );
+            assert_eq!(normalized.to_string(), normalized_name);
+            assert_eq!(
+                serde_json::to_string(&normalized).unwrap(),
+                format!(r#""{normalized_name}""#)
+            );
+            assert_eq!(
+                serde_json::from_str::<OutputTypeNormalized>(&format!(r#""{normalized_name}""#))
+                    .unwrap(),
+                normalized
+            );
+        }
+
+        assert!(serde_json::from_str::<OutputType>(r#""p2pk""#).is_err());
+    }
+}

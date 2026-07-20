@@ -242,11 +242,13 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
 def _address_payload_lengths(addr_type: OutputType) -> Tuple[int, ...]:
     if addr_type == "p2a":
         return (2,)
-    if addr_type == "p2pk":
-        return (33, 65)
-    if addr_type in ("p2pkh", "p2sh", "v0_p2wpkh"):
+    if addr_type == "p2pk33":
+        return (33,)
+    if addr_type == "p2pk65":
+        return (65,)
+    if addr_type in ("p2pkh", "p2sh", "p2wpkh"):
         return (20,)
-    if addr_type in ("v0_p2wsh", "v1_p2tr"):
+    if addr_type in ("p2wsh", "p2tr"):
         return (32,)
     raise ValueError(f"Unsupported address type for address payload hash-prefix: {addr_type}")
 
