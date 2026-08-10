@@ -8,9 +8,11 @@ pub use brk_traversable_derive::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AggFold, AnyExportableVec, AnyVec, BytesVec, BytesVecValue, CachedVec, CompressionStrategy,
-    DeltaOp, EagerVec, Formattable, LazyAggVec, LazyDeltaVec, LazyVec, RawStrategy,
-    ReadOnlyCompressedVec, ReadOnlyRawVec, StoredVec, TypedVec, VecIndex, VecValue,
+    AggFold, AnyExportableVec, AnyVec, BytesVec, BytesVecValue, CachedVec, ColumnId, ColumnarVec,
+    CompressionStrategy, DeltaOp, EagerVec, Formattable, LazyAggVec, LazyColumnSumVec,
+    LazyColumnVec, LazyColumnarVec, LazyDeltaVec, LazyVec, RawStrategy, ReadOnlyColumnarVec,
+    ReadOnlyCompressedVec, ReadOnlyRawVec, ReadableColumnarVec, StoredVec, TypedVec, VecIndex,
+    VecValue,
 };
 
 pub trait Traversable {
@@ -135,6 +137,52 @@ where
     }
 }
 
+impl<V, C> Traversable for ColumnarVec<V, C>
+where
+    V: StoredVec,
+    C: ColumnId,
+    C::Row<V::T>: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<V::I, C::Row<V::T>, _>(self)
+    }
+}
+
+impl<V, C> Traversable for ReadOnlyColumnarVec<V, C>
+where
+    V: StoredVec,
+    C: ColumnId,
+    C::Row<V::T>: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<V::I, C::Row<V::T>, _>(self)
+    }
+}
+
+impl<S, T, C> Traversable for LazyColumnarVec<S, T, C>
+where
+    C: ColumnId,
+    S: ReadableColumnarVec<C>,
+    T: VecValue,
+    C::Row<T>: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<S::I, C::Row<T>, _>(self)
+    }
+}
+
 // Read-only compressed vec (PcoVec::ReadOnly, LZ4Vec::ReadOnly, ZstdVec::ReadOnly)
 impl<I, T, S> Traversable for ReadOnlyCompressedVec<I, T, S>
 where
@@ -214,6 +262,36 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<I, T, _>(self)
+    }
+}
+
+impl<S, C> Traversable for LazyColumnVec<S, C>
+where
+    C: ColumnId,
+    S: ReadableColumnarVec<C>,
+    S::T: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<S::I, S::T, _>(self)
+    }
+}
+
+impl<S, C> Traversable for LazyColumnSumVec<S, C>
+where
+    C: ColumnId,
+    S: ReadableColumnarVec<C>,
+    S::T: Formattable + Serialize + JsonSchema + std::ops::AddAssign,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<S::I, S::T, _>(self)
     }
 }
 

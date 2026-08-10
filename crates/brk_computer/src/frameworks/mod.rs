@@ -59,6 +59,11 @@ pub(crate) struct WeightedCohortState {
 
 impl WeightedCohortState {
     #[inline]
+    pub(crate) fn split_supply(total: Sats, weight: StoredF64) -> (Sats, Sats) {
+        (weight * total, (StoredF64::from(1.0) - weight) * total)
+    }
+
+    #[inline]
     pub(crate) fn add(
         &mut self,
         total_supply: Sats,
@@ -66,9 +71,10 @@ impl WeightedCohortState {
         total_cap: Cents,
         weight: StoredF64,
     ) -> WeightedCohortContribution {
+        let (weighted_supply, complement_supply) = Self::split_supply(total_supply, weight);
         let contribution = WeightedCohortContribution {
-            weighted_supply: weight * total_supply,
-            complement_supply: (StoredF64::from(1.0) - weight) * total_supply,
+            weighted_supply,
+            complement_supply,
             weighted_cap: if total_supply.is_zero() {
                 Cents::ZERO
             } else {
@@ -96,18 +102,18 @@ impl WeightedCohortState {
         self.supply_in_loss.merge(other.supply_in_loss);
         self
     }
-}
 
-#[inline]
-pub(crate) fn realized_price(cap: Cents, supply: Sats) -> Cents {
-    if unlikely(cap.is_nan()) {
-        return Cents::NAN;
+    #[inline]
+    pub(crate) fn realized_price(&self) -> Cents {
+        if unlikely(self.weighted_cap.is_nan()) {
+            return Cents::NAN;
+        }
+
+        (self.weighted_cap.as_u128() * Sats::ONE_BTC_U128)
+            .checked_div(self.weighted_supply.as_u128())
+            .map(Cents::from)
+            .unwrap_or(Cents::ZERO)
     }
-
-    (cap.as_u128() * Sats::ONE_BTC_U128)
-        .checked_div(supply.as_u128())
-        .map(Cents::from)
-        .unwrap_or(Cents::ZERO)
 }
 
 #[cfg(test)]
@@ -122,10 +128,7 @@ mod tests {
 
         assert_eq!(contribution.weighted_cap, Cents::ZERO);
         assert_eq!(state.weighted_cap, Cents::ZERO);
-        assert_eq!(
-            realized_price(state.weighted_cap, state.weighted_supply),
-            Cents::ZERO
-        );
+        assert_eq!(state.realized_price(), Cents::ZERO);
     }
 
     #[test]
@@ -140,6 +143,6 @@ mod tests {
         );
 
         assert!(state.weighted_cap.is_nan());
-        assert!(realized_price(state.weighted_cap, state.weighted_supply).is_nan());
+        assert!(state.realized_price().is_nan());
     }
 }

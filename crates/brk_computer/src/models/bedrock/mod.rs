@@ -5,17 +5,15 @@ mod vecs;
 
 use std::path::PathBuf;
 
-use brk_cohort::{AGE_RANGE_NAMES, UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
+use brk_cohort::{AgeRangeId, UTXO_ALL_NAME};
 use brk_error::Result;
 use brk_types::{Cohort, Date, Day1, UrpdRaw, UrpdWeight};
-use vecdb::{ReadableVec, StorageMode};
+use vecdb::{ColumnId, ReadableVec, StorageMode};
 
 use self::compute::resolve_age_value;
 use crate::Computer;
 
 pub use vecs::Vecs;
-
-pub(crate) const STORED_URPD_COHORTS: [brk_cohort::CohortName; 3] = UTXO_AGGREGATE_NAMES;
 
 pub(crate) fn weighted_urpd_name(weight: UrpdWeight, cohort: &str) -> String {
     debug_assert!(weight.is_weighted());
@@ -57,20 +55,18 @@ impl<M: StorageMode> Computer<M> {
         weight: UrpdWeight,
     ) -> Option<f64> {
         let cohort_id = cohort.strip_prefix("utxos_")?;
-        let age = AGE_RANGE_NAMES
+        let age = AgeRangeId::ALL
             .iter()
-            .position(|name| name.id == cohort_id)?;
+            .copied()
+            .find(|age| age.name().id == cohort_id)?;
 
         if weight == UrpdWeight::Raw {
             return Some(1.0);
         }
 
-        let supply = self
-            .distribution
-            .utxo_cohorts
-            .age_range
-            .iter()
-            .nth(age)?
+        let supplies = &self.distribution.utxo_cohorts.age_range;
+        let supply = age
+            .select(supplies)
             .metrics
             .supply
             .total
@@ -82,13 +78,20 @@ impl<M: StorageMode> Computer<M> {
         match weight {
             UrpdWeight::Raw => Some(1.0),
             UrpdWeight::Cointime => {
-                let cohort = self.frameworks.cointime.age_range.iter().nth(age)?;
-                resolve_age_value(cohort.wakefulness.day1.collect_one(day).flatten(), supply)
+                let cohort = age.select(&self.frameworks.cointime.age_range.activity.wakefulness);
+                resolve_age_value(cohort.day1.collect_one(day).flatten(), supply)
                     .map(|value| value.clamp(0.0, 1.0))
             }
             UrpdWeight::Coinflow => {
-                let cohort = self.frameworks.coinflow.age_range.iter().nth(age)?;
-                resolve_age_value(cohort.mobility.day1.0.collect_one(day).flatten(), supply)
+                let cohort = age.select(
+                    &self
+                        .frameworks
+                        .coinflow
+                        .age_range
+                        .spending_exposure
+                        .mobility,
+                );
+                resolve_age_value(cohort.day1.0.collect_one(day).flatten(), supply)
                     .map(|value| value.clamp(0.0, 1.0))
             }
         }

@@ -1,11 +1,16 @@
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use brk_types::{StoredBool, TxIndex, Version};
+use vecdb::{
+    ColumnarVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone, ReadableColumnarVec,
+};
 
-use super::{CountVecs, Vecs};
+use super::{CountVecs, CpfpFlags, CpfpRoleId, Vecs};
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, PerBlockCumulativeRolling, PerTxDistribution, Windows},
+    internal::{
+        CachedWindowStartVec, ColumnarPerBlockCumulativeRolling,
+        LazyColumnPerBlockCumulativeRolling, PerTxDistribution, Windows,
+    },
 };
 
 /// Bump this when fee/feerate aggregation logic changes (e.g., skip coinbase, skip zero-fee).
@@ -19,23 +24,43 @@ impl Vecs {
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let v = version + VERSION;
+        let count_source = ColumnarPerBlockCumulativeRolling::forced_import(
+            db,
+            "cpfp_count_cumulative",
+            version,
+            |_| (),
+        )?;
+        let counts = count_source.cumulative.read_only_clone();
+        let count = CountVecs {
+            cpfp_parent: LazyColumnPerBlockCumulativeRolling::new(
+                "cpfp_parent_count",
+                version,
+                &counts,
+                CpfpRoleId::Parent,
+                indexes,
+                cached_starts,
+            ),
+            cpfp_child: LazyColumnPerBlockCumulativeRolling::new(
+                "cpfp_child_count",
+                version,
+                &counts,
+                CpfpRoleId::Child,
+                indexes,
+                cached_starts,
+            ),
+            source: count_source,
+        };
+
+        let cpfp_flags_source =
+            EagerVec::<ColumnarVec<PcoVec<TxIndex, StoredBool>, CpfpRoleId>>::forced_import(
+                db,
+                "cpfp_flags",
+                version,
+            )?;
+        let flags = cpfp_flags_source.read_only_clone();
+
         Ok(Self {
-            count: CountVecs {
-                cpfp_parent: PerBlockCumulativeRolling::forced_import(
-                    db,
-                    "cpfp_parent_count",
-                    version,
-                    indexes,
-                    cached_starts,
-                )?,
-                cpfp_child: PerBlockCumulativeRolling::forced_import(
-                    db,
-                    "cpfp_child_count",
-                    version,
-                    indexes,
-                    cached_starts,
-                )?,
-            },
+            count,
             input_value: EagerVec::forced_import(db, "input_value", version)?,
             output_value: EagerVec::forced_import(db, "output_value", version)?,
             fee: PerTxDistribution::forced_import(db, "fee", v, indexes)?,
@@ -46,8 +71,11 @@ impl Vecs {
                 v,
                 indexes,
             )?,
-            is_cpfp_parent: EagerVec::forced_import(db, "is_cpfp_parent", version)?,
-            is_cpfp_child: EagerVec::forced_import(db, "is_cpfp_child", version)?,
+            cpfp_flags: CpfpFlags {
+                is_cpfp_parent: flags.column("is_cpfp_parent", version, CpfpRoleId::Parent),
+                is_cpfp_child: flags.column("is_cpfp_child", version, CpfpRoleId::Child),
+            },
+            cpfp_flags_source,
         })
     }
 }

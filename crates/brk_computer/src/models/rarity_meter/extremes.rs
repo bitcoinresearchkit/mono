@@ -4,27 +4,105 @@ use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Dollars, Height, PartsPerMillion32, StoredF32, StoredU8, Version};
+use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, Exit, ReadableVec, Rw, StorageMode, VecIndex, WritableVec,
+    AnyStoredVec, AnyVec, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode, VecIndex,
+    VecValue, WritableVec,
 };
 
 use crate::{
     indexes,
     internal::{
-        NumericValue, PerBlock, PercentPerBlock,
+        ColumnarPerBlock, LazyColumnPerBlock, NumericValue, PerBlock, PercentPerBlock,
         algo::{ExactOrderStats, FenwickTree},
         db_utils::validate_any_computed_version_or_reset,
     },
 };
 
-const VERSION: Version = Version::new(6);
+const VERSION: Version = Version::new(7);
 const MIN_HISTORY_BLOCKS: usize = 210_000;
 const WRITE_INTERVAL: usize = 10_000;
 /// Above this many missing outputs, coordinate compression is faster than
 /// applying exact live updates one at a time.
 const BULK_BACKFILL_THRESHOLD: usize = 10_000;
 const BANDS: [(f64, u8); 3] = [(0.00025, 3), (0.0005, 2), (0.001, 1)];
+
+const THRESHOLD_COUNT: usize = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ExtremeThresholdId {
+    Pct0_1,
+    Pct0_05,
+    Pct0_025,
+}
+
+const EXTREME_THRESHOLD_IDS: [ExtremeThresholdId; THRESHOLD_COUNT] = [
+    ExtremeThresholdId::Pct0_1,
+    ExtremeThresholdId::Pct0_05,
+    ExtremeThresholdId::Pct0_025,
+];
+
+impl ExtremeThresholdId {
+    fn series<T>(mut create: impl FnMut(Self) -> T) -> ThresholdVecs<T> {
+        ThresholdVecs {
+            threshold_pct0_1: create(Self::Pct0_1),
+            threshold_pct0_05: create(Self::Pct0_05),
+            threshold_pct0_025: create(Self::Pct0_025),
+        }
+    }
+}
+
+impl ColumnId for ExtremeThresholdId {
+    type Row<T>
+        = [T; THRESHOLD_COUNT]
+    where
+        T: VecValue;
+
+    const VERSION: Version = Version::ONE;
+    const ALL: &'static [Self] = &EXTREME_THRESHOLD_IDS;
+
+    #[inline]
+    fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+        &row[self.index()]
+    }
+
+    #[inline]
+    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+        &mut row[self.index()]
+    }
+
+    #[inline]
+    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    where
+        T: VecValue,
+        F: FnMut(Self) -> T,
+    {
+        std::array::from_fn(|index| create(EXTREME_THRESHOLD_IDS[index]))
+    }
+
+    #[inline]
+    fn map<T, U, F>(row: Self::Row<T>, create: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(T) -> U,
+    {
+        row.map(create)
+    }
+}
+
+#[derive(Clone, Traversable)]
+pub struct ThresholdVecs<T> {
+    pub threshold_pct0_1: T,
+    pub threshold_pct0_05: T,
+    pub threshold_pct0_025: T,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WindowKind {
@@ -61,14 +139,20 @@ const SELLER_EXHAUSTION: Config = Config {
 ///
 /// `tail` is the current observation's top- or bottom-tail share, the three
 /// `threshold` fields are the highlight boundaries, and `rank` is 0 through 3.
-#[derive(Traversable)]
+#[derive(Deref, DerefMut, Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema,
 {
-    pub threshold_pct0_1: PerBlock<T, M>,
-    pub threshold_pct0_05: PerBlock<T, M>,
-    pub threshold_pct0_025: PerBlock<T, M>,
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    pub thresholds: ColumnarPerBlock<
+        T,
+        ExtremeThresholdId,
+        ThresholdVecs<LazyColumnPerBlock<T, ExtremeThresholdId>>,
+        M,
+    >,
     pub tail: PercentPerBlock<PartsPerMillion32, M>,
     pub rank: PerBlock<StoredU8, M>,
 
@@ -86,25 +170,24 @@ where
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
+        let thresholds = ColumnarPerBlock::forced_import(
+            db,
+            &format!("{name}_thresholds"),
+            version,
+            |source| {
+                ExtremeThresholdId::series(|threshold| {
+                    let series_name = match threshold {
+                        ExtremeThresholdId::Pct0_1 => format!("{name}_threshold_pct0_1"),
+                        ExtremeThresholdId::Pct0_05 => format!("{name}_threshold_pct0_05"),
+                        ExtremeThresholdId::Pct0_025 => format!("{name}_threshold"),
+                    };
+                    LazyColumnPerBlock::new(&series_name, version, source, threshold, indexes)
+                })
+            },
+        )?;
+
         Ok(Self {
-            threshold_pct0_1: PerBlock::forced_import(
-                db,
-                &format!("{name}_threshold_pct0_1"),
-                version,
-                indexes,
-            )?,
-            threshold_pct0_05: PerBlock::forced_import(
-                db,
-                &format!("{name}_threshold_pct0_05"),
-                version,
-                indexes,
-            )?,
-            threshold_pct0_025: PerBlock::forced_import(
-                db,
-                &format!("{name}_threshold"),
-                version,
-                indexes,
-            )?,
+            thresholds,
             tail: PercentPerBlock::forced_import(db, &format!("{name}_tail"), version, indexes)?,
             rank: PerBlock::forced_import(db, &format!("{name}_rank"), version, indexes)?,
             history: LiveHistory::new(),
@@ -120,9 +203,7 @@ where
     ) -> Result<()> {
         let dependency_version = source.version();
         for output in [
-            &mut self.threshold_pct0_1.height as &mut dyn AnyStoredVec,
-            &mut self.threshold_pct0_05.height,
-            &mut self.threshold_pct0_025.height,
+            &mut self.thresholds.height as &mut dyn AnyStoredVec,
             &mut self.tail.ppm.height,
             &mut self.rank.height,
         ] {
@@ -131,9 +212,7 @@ where
 
         let source_end = source.len();
         let start = [
-            self.threshold_pct0_1.height.len(),
-            self.threshold_pct0_05.height.len(),
-            self.threshold_pct0_025.height.len(),
+            self.thresholds.height.len(),
             self.tail.ppm.height.len(),
             self.rank.height.len(),
             indexer.safe_lengths().height.to_usize(),
@@ -143,15 +222,7 @@ where
         .min()
         .unwrap_or_default();
 
-        self.threshold_pct0_1
-            .height
-            .any_truncate_if_needed_at(start)?;
-        self.threshold_pct0_05
-            .height
-            .any_truncate_if_needed_at(start)?;
-        self.threshold_pct0_025
-            .height
-            .any_truncate_if_needed_at(start)?;
+        self.thresholds.height.any_truncate_if_needed_at(start)?;
         self.tail.ppm.height.any_truncate_if_needed_at(start)?;
         self.rank.height.any_truncate_if_needed_at(start)?;
 
@@ -257,15 +328,12 @@ where
     }
 
     fn push_state(&mut self, state: EventState) {
-        self.threshold_pct0_1
-            .height
-            .push(T::from(state.thresholds.pct0_1));
-        self.threshold_pct0_05
-            .height
-            .push(T::from(state.thresholds.pct0_05));
-        self.threshold_pct0_025
-            .height
-            .push(T::from(state.thresholds.pct0_025));
+        self.thresholds
+            .push(ExtremeThresholdId::from_fn(|threshold| match threshold {
+                ExtremeThresholdId::Pct0_1 => T::from(state.thresholds.pct0_1),
+                ExtremeThresholdId::Pct0_05 => T::from(state.thresholds.pct0_05),
+                ExtremeThresholdId::Pct0_025 => T::from(state.thresholds.pct0_025),
+            }));
         self.tail
             .ppm
             .height
@@ -281,9 +349,7 @@ where
     ) -> Result<()> {
         if (height_index + 1).is_multiple_of(WRITE_INTERVAL) || height_index + 1 == source_end {
             let _lock = exit.lock();
-            self.threshold_pct0_1.height.write()?;
-            self.threshold_pct0_05.height.write()?;
-            self.threshold_pct0_025.height.write()?;
+            self.thresholds.write()?;
             self.tail.ppm.height.write()?;
             self.rank.height.write()?;
         }
@@ -640,6 +706,15 @@ fn bucket(coordinates: &[f64], value: f64) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn threshold_columns_match_public_fields() {
+        assert_eq!(ExtremeThresholdId::ALL, EXTREME_THRESHOLD_IDS);
+        let fields = ExtremeThresholdId::series(|threshold| threshold);
+        assert_eq!(fields.threshold_pct0_1, ExtremeThresholdId::Pct0_1);
+        assert_eq!(fields.threshold_pct0_05, ExtremeThresholdId::Pct0_05);
+        assert_eq!(fields.threshold_pct0_025, ExtremeThresholdId::Pct0_025);
+    }
 
     fn history(values: &[f64], config: Config) -> LiveHistory {
         let mut history = LiveHistory::new();

@@ -66,7 +66,6 @@ where
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct Resolutions<T>(
-    #[allow(clippy::type_complexity)]
     pub  PerResolution<
         LazyAggVec<Minute10, Option<T>, Height, Height, T>,
         LazyAggVec<Minute30, Option<T>, Height, Height, T>,

@@ -2,16 +2,16 @@ use brk_error::Result;
 use brk_indexer::Lengths;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF64, Version};
-use vecdb::{Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{BinaryTransform, Exit, ReadableVec, Rw, StorageMode};
 
 use crate::{
     distribution::metrics::ImportConfig,
-    internal::{PerBlockCumulativeRolling, RatioCents64, RollingWindows},
+    internal::{ColumnarRollingWindows, PerBlockCumulativeRolling, RatioCents64},
 };
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
-    pub ratio: RollingWindows<StoredF64, M>,
+    pub ratio: ColumnarRollingWindows<StoredF64, M>,
     pub transfer_volume: PerBlockCumulativeRolling<Cents, M>,
     pub value_destroyed: PerBlockCumulativeRolling<Cents, M>,
 }
@@ -48,20 +48,15 @@ impl AdjustedSopr {
             exit,
         )?;
 
-        for ((sopr, tv), vd) in self
-            .ratio
-            .as_mut_array()
-            .into_iter()
-            .zip(self.transfer_volume.sum.as_array())
-            .zip(self.value_destroyed.sum.as_array())
-        {
-            sopr.compute_binary::<Cents, Cents, RatioCents64>(
-                starting_lengths.height,
-                &tv.height,
-                &vd.height,
-                exit,
-            )?;
-        }
+        self.ratio.compute_columns2(
+            starting_lengths.height,
+            |window| &window.select(&self.transfer_volume.sum).height,
+            |window| &window.select(&self.value_destroyed.sum).height,
+            |_, transfer_volume, value_destroyed| {
+                RatioCents64::apply(transfer_volume, value_destroyed)
+            },
+            exit,
+        )?;
 
         Ok(())
     }

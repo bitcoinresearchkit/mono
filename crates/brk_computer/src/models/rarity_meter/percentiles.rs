@@ -1,6 +1,167 @@
-use brk_types::StoredF32;
+use brk_traversable::Traversable;
+use brk_types::{RarityPercentileId, StoredF32};
 
 use crate::internal::algo::FenwickTree;
+
+pub(crate) const BOUNDARY_PERCENTILE_IDS: [RarityPercentileId; 10] = [
+    RarityPercentileId::Pct0_1,
+    RarityPercentileId::Pct0_5,
+    RarityPercentileId::Pct1,
+    RarityPercentileId::Pct2,
+    RarityPercentileId::Pct5,
+    RarityPercentileId::Pct95,
+    RarityPercentileId::Pct98,
+    RarityPercentileId::Pct99,
+    RarityPercentileId::Pct99_5,
+    RarityPercentileId::Pct99_9,
+];
+
+pub(crate) const fn boundary_index(id: RarityPercentileId) -> Option<usize> {
+    use RarityPercentileId::*;
+
+    match id {
+        Pct0_1 => Some(0),
+        Pct0_5 => Some(1),
+        Pct1 => Some(2),
+        Pct2 => Some(3),
+        Pct5 => Some(4),
+        Pct95 => Some(5),
+        Pct98 => Some(6),
+        Pct99 => Some(7),
+        Pct99_5 => Some(8),
+        Pct99_9 => Some(9),
+        _ => None,
+    }
+}
+
+pub(crate) const fn is_lower_boundary(id: RarityPercentileId) -> bool {
+    matches!(
+        id,
+        RarityPercentileId::Pct0_1
+            | RarityPercentileId::Pct0_5
+            | RarityPercentileId::Pct1
+            | RarityPercentileId::Pct2
+            | RarityPercentileId::Pct5
+    )
+}
+
+#[derive(Clone, Traversable)]
+pub struct RarityPercentiles<T> {
+    pub pct0_1: T,
+    pub pct0_5: T,
+    pub pct1: T,
+    pub pct2: T,
+    pub pct5: T,
+    pub pct10: T,
+    pub pct20: T,
+    pub pct30: T,
+    pub pct40: T,
+    pub pct50: T,
+    pub pct60: T,
+    pub pct70: T,
+    pub pct80: T,
+    pub pct90: T,
+    pub pct95: T,
+    pub pct98: T,
+    pub pct99: T,
+    pub pct99_5: T,
+    pub pct99_9: T,
+}
+
+impl<T> RarityPercentiles<T> {
+    pub(crate) fn from_fn(mut f: impl FnMut(RarityPercentileId) -> T) -> Self {
+        use RarityPercentileId::*;
+
+        Self {
+            pct0_1: f(Pct0_1),
+            pct0_5: f(Pct0_5),
+            pct1: f(Pct1),
+            pct2: f(Pct2),
+            pct5: f(Pct5),
+            pct10: f(Pct10),
+            pct20: f(Pct20),
+            pct30: f(Pct30),
+            pct40: f(Pct40),
+            pct50: f(Pct50),
+            pct60: f(Pct60),
+            pct70: f(Pct70),
+            pct80: f(Pct80),
+            pct90: f(Pct90),
+            pct95: f(Pct95),
+            pct98: f(Pct98),
+            pct99: f(Pct99),
+            pct99_5: f(Pct99_5),
+            pct99_9: f(Pct99_9),
+        }
+    }
+
+    pub(crate) fn get(&self, id: RarityPercentileId) -> &T {
+        use RarityPercentileId::*;
+
+        match id {
+            Pct0_1 => &self.pct0_1,
+            Pct0_5 => &self.pct0_5,
+            Pct1 => &self.pct1,
+            Pct2 => &self.pct2,
+            Pct5 => &self.pct5,
+            Pct10 => &self.pct10,
+            Pct20 => &self.pct20,
+            Pct30 => &self.pct30,
+            Pct40 => &self.pct40,
+            Pct50 => &self.pct50,
+            Pct60 => &self.pct60,
+            Pct70 => &self.pct70,
+            Pct80 => &self.pct80,
+            Pct90 => &self.pct90,
+            Pct95 => &self.pct95,
+            Pct98 => &self.pct98,
+            Pct99 => &self.pct99,
+            Pct99_5 => &self.pct99_5,
+            Pct99_9 => &self.pct99_9,
+        }
+    }
+
+    pub(crate) fn boundary_refs(&self) -> [&T; 10] {
+        BOUNDARY_PERCENTILE_IDS.map(|id| self.get(id))
+    }
+}
+
+pub(crate) const fn suffix(id: RarityPercentileId) -> &'static str {
+    use RarityPercentileId::*;
+
+    match id {
+        Pct0_1 => "pct0_1",
+        Pct0_5 => "pct0_5",
+        Pct1 => "pct1",
+        Pct2 => "pct2",
+        Pct5 => "pct5",
+        Pct10 => "pct10",
+        Pct20 => "pct20",
+        Pct30 => "pct30",
+        Pct40 => "pct40",
+        Pct50 => "pct50",
+        Pct60 => "pct60",
+        Pct70 => "pct70",
+        Pct80 => "pct80",
+        Pct90 => "pct90",
+        Pct95 => "pct95",
+        Pct98 => "pct98",
+        Pct99 => "pct99",
+        Pct99_5 => "pct99_5",
+        Pct99_9 => "pct99_9",
+    }
+}
+
+pub(crate) const fn price_suffix(id: RarityPercentileId) -> &'static str {
+    use RarityPercentileId::*;
+
+    match id {
+        Pct1 => "pct01",
+        Pct2 => "pct02",
+        Pct5 => "pct05",
+        _ => suffix(id),
+    }
+}
 
 /// First block included in the Rarity Meter distribution.
 pub const START_HEIGHT: usize = 210_000;
@@ -110,6 +271,24 @@ impl BlockDecayPercentiles {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn schema_preserves_existing_names_and_boundaries() {
+        use RarityPercentileId::*;
+
+        let percentiles = RarityPercentiles::from_fn(suffix);
+        assert_eq!(percentiles.pct0_1, "pct0_1");
+        assert_eq!(percentiles.pct50, "pct50");
+        assert_eq!(percentiles.pct99_9, "pct99_9");
+        assert_eq!(price_suffix(Pct1), "pct01");
+        assert_eq!(price_suffix(Pct2), "pct02");
+        assert_eq!(price_suffix(Pct5), "pct05");
+
+        for (index, id) in BOUNDARY_PERCENTILE_IDS.into_iter().enumerate() {
+            assert_eq!(boundary_index(id), Some(index));
+        }
+        assert!(boundary_index(Pct50).is_none());
+    }
 
     fn quantile(percentiles: &BlockDecayPercentiles, q: f64) -> f64 {
         let mut out = [0.0; 8];

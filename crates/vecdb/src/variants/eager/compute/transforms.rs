@@ -1,6 +1,8 @@
+use std::ops::Range;
+
 use crate::{
-    AnyVec, BinaryTransform, Cursor, Exit, ReadableVec, Result, StoredVec, VecIndex, VecValue,
-    Version, WritableVec,
+    AnyStoredVec, AnyVec, BinaryTransform, Cursor, Error, Exit, ReadableVec, Result, StoredVec,
+    VecIndex, VecValue, Version, WritableVec,
 };
 
 use super::super::EagerVec;
@@ -9,6 +11,51 @@ impl<V> EagerVec<V>
 where
     V: StoredVec,
 {
+    /// Computes a fixed output range from source data prepared in bounded batches.
+    /// The callback must append exactly one value for every index in its range.
+    pub fn compute_batched_to<F>(
+        &mut self,
+        max_from: V::I,
+        to: usize,
+        version: Version,
+        batch_size: usize,
+        mut compute: F,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        F: FnMut(&mut Self, Range<usize>) -> Result<()>,
+    {
+        if batch_size == 0 {
+            return Err(Error::InvalidArgument(
+                "EagerVec batch size must be greater than zero",
+            ));
+        }
+
+        self.validate_computed_version_or_reset(version)?;
+        self.truncate_if_needed(max_from)?;
+
+        while self.len() < to {
+            let from = self.len();
+            let end = from.saturating_add(batch_size).min(to);
+            compute(self, from..end)?;
+            if self.len() != end {
+                return Err(Error::InvalidArgument(
+                    "EagerVec batch callback must append one value per index",
+                ));
+            }
+
+            let _lock = exit.lock();
+            self.write()?;
+        }
+
+        if self.is_dirty() {
+            let _lock = exit.lock();
+            self.write()?;
+        }
+
+        Ok(())
+    }
+
     pub fn compute_to<F>(
         &mut self,
         max_from: V::I,
@@ -102,6 +149,24 @@ where
         max_from: V::I,
         other1: &impl ReadableVec<V::I, A>,
         other2: &impl ReadableVec<V::I, B>,
+        t: F,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        B: VecValue,
+        F: FnMut((V::I, A, B, &Self)) -> (V::I, V::T),
+    {
+        let batch_size = self.batch_capacity();
+        self.compute_transform2_batched(max_from, other1, other2, batch_size, t, exit)
+    }
+
+    pub fn compute_transform2_batched<A, B, F>(
+        &mut self,
+        max_from: V::I,
+        other1: &impl ReadableVec<V::I, A>,
+        other2: &impl ReadableVec<V::I, B>,
+        batch_size: usize,
         mut t: F,
         exit: &Exit,
     ) -> Result<()>
@@ -110,29 +175,25 @@ where
         B: VecValue,
         F: FnMut((V::I, A, B, &Self)) -> (V::I, V::T),
     {
-        self.compute_init(
-            other1.version() + other2.version(),
+        let source_end = other1.len().min(other2.len());
+        self.compute_batched_to(
             max_from,
-            exit,
-            |this| {
-                let skip = this.len();
-                let source_end = other1.len().min(other2.len());
-                let end = this.batch_end(source_end);
-                if skip >= end {
-                    return Ok(());
-                }
-
-                let batch2 = other2.collect_range_at(skip, end);
+            source_end,
+            other1.version() + other2.version(),
+            batch_size,
+            |this, range| {
+                let batch2 = other2.collect_range_at(range.start, range.end);
                 let mut iter2 = batch2.into_iter();
-                let mut i = skip;
+                let mut i = range.start;
 
-                other1.try_fold_range_at(skip, end, (), |(), b: A| {
+                other1.try_fold_range_at(range.start, range.end, (), |(), b: A| {
                     let (idx, v) = t((V::I::from(i), b, iter2.next().unwrap(), &*this));
                     i += 1;
                     this.debug_checked_push(idx, v);
                     Ok(())
                 })
             },
+            exit,
         )
     }
 

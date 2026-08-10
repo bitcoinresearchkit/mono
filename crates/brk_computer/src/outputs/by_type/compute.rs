@@ -1,6 +1,8 @@
+use brk_cohort::OutputTypeId;
 use brk_error::{OptionData, Result};
 use brk_indexer::Indexer;
-use vecdb::{AnyVec, Exit, ReadableVec, VecIndex};
+use brk_types::{StoredU16, StoredU64};
+use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};
 
 use super::Vecs;
 use crate::internal::{CoinbasePolicy, walk_blocks};
@@ -18,13 +20,15 @@ impl Vecs {
 
         self.output_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
+        self.output_count.clear();
         self.tx_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
 
         let skip = self
             .output_count
-            .min_stateful_len()
-            .min(self.tx_count.min_stateful_len());
+            .height
+            .len()
+            .min(self.tx_count.cumulative.len());
 
         let first_tx_index = &indexer.vecs().transactions.first_tx_index;
         let end = first_tx_index.len();
@@ -65,8 +69,15 @@ impl Vecs {
                     Ok(())
                 },
                 |agg| {
-                    self.output_count.push_block(&agg.entries_per_type);
-                    self.tx_count.push_block(&agg.txs_per_type);
+                    self.output_count.push(OutputTypeId::from_fn(|column| {
+                        let value = agg.entries_per_type[column.output_type() as usize];
+                        debug_assert!(u16::try_from(value).is_ok());
+                        StoredU16::new(value as u16)
+                    }));
+                    self.tx_count.push_block(OutputTypeId::from_fn(|column| {
+                        StoredU64::from(agg.txs_per_type[column.output_type() as usize])
+                    }));
+
                     height += 1;
                     if height.is_multiple_of(WRITE_INTERVAL) {
                         let _lock = exit.lock();

@@ -7,9 +7,10 @@ use std::{
 
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, ColumnId, ColumnarSumVec, ColumnarVec, Database, ImportOptions,
-    ImportableVec, LazyColumnarVec, PrintableIndex, ReadableColumnarVec, ReadableVec, Result,
-    Stamp, StoredVec, UnaryTransform, VecIndex, VecValue, Version, WritableVec,
+    AnyStoredVec, AnyVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportOptions,
+    ImportableVec, LazyColumnSumVec, LazyColumnarVec, PrintableIndex, ReadableColumnarVec,
+    ReadableVec, Result, Stamp, StoredVec, UnaryTransform, VecIndex, VecValue, Version,
+    WritableVec,
 };
 
 const COLUMNS: usize = 3;
@@ -145,7 +146,8 @@ fn bytes_columnar_roundtrip_and_projection() -> Result<()> {
     vec.write()?;
     assert_eq!(vec.region_names().len(), 1);
 
-    let second = vec.column(TestColumn::Second);
+    let second = vec.column("second", Version::ONE, TestColumn::Second);
+    assert!(second.region_names().is_empty());
     assert_eq!(second.collect_one_at(2_345), Some(row(2_345)[1]));
     assert_eq!(second.collect_range_at(4_990, 5_000).len(), 10);
     drop(second);
@@ -156,7 +158,8 @@ fn bytes_columnar_roundtrip_and_projection() -> Result<()> {
     assert_eq!(vec.collect_one_at(0), Some(row(0)));
     assert_eq!(vec.collect_one_at(4_999), Some(row(4_999)));
     assert_eq!(
-        vec.column(TestColumn::Third).collect_one_at(4_321),
+        vec.column("third", Version::ONE, TestColumn::Third)
+            .collect_one_at(4_321),
         Some(row(4_321)[2])
     );
 
@@ -175,6 +178,66 @@ fn bytes_columnar_roundtrip_and_projection() -> Result<()> {
 }
 
 #[test]
+fn eager_columnar_collect_last_tracks_persisted_and_pending_rows() -> Result<()> {
+    type V = EagerVec<ColumnarVec<BytesVec<usize, u64>, TestColumn>>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = V::forced_import(&db, "collect_last", Version::ONE)?;
+
+    vec.push(row(1));
+    vec.write()?;
+    assert_eq!(vec.collect_last(), Some(row(1)));
+
+    vec.push(row(2));
+    assert_eq!(vec.collect_last(), Some(row(2)));
+
+    Ok(())
+}
+
+#[test]
+fn eager_columnar_computes_and_persists_rows() -> Result<()> {
+    type Source = BytesVec<usize, u64>;
+    type Target = EagerVec<ColumnarVec<BytesVec<usize, u64>, TestColumn>>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut source1 = Source::forced_import(&db, "eager_columnar_source_1", Version::ONE)?;
+    let mut source2 = Source::forced_import(&db, "eager_columnar_source_2", Version::ONE)?;
+    for value in 0..5_000_u64 {
+        source1.push(value);
+        source2.push(value + 10_000);
+    }
+    source1.write()?;
+    source2.write()?;
+
+    let mut target = Target::forced_import(&db, "eager_columnar_target", Version::ONE)?;
+    target.compute_transform2_batched(
+        0,
+        &source1,
+        &source2,
+        777,
+        |(index, value1, value2, ..)| (index, [value1, value2, value1 + value2]),
+        &Exit::new(),
+    )?;
+
+    assert_eq!(target.len(), 5_000);
+    assert_eq!(target.collect_one_at(4_321), Some([4_321, 14_321, 18_642]));
+    assert_eq!(
+        target
+            .read_only_clone()
+            .column("eager_columnar_second", Version::ONE, TestColumn::Second)
+            .collect_one_at(4_321),
+        Some(14_321)
+    );
+    drop(target);
+
+    let target = Target::import(&db, "eager_columnar_target", Version::ONE)?;
+    assert_eq!(target.collect_one_at(4_999), Some([4_999, 14_999, 19_998]));
+    Ok(())
+}
+
+#[test]
 fn projection_is_isolated_from_pushed_rows_until_write() -> Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
@@ -185,7 +248,7 @@ fn projection_is_isolated_from_pushed_rows_until_write() -> Result<()> {
         vec.push(row(index));
     }
     vec.write()?;
-    let projection = vec.column(TestColumn::Second);
+    let projection = vec.column("second", Version::ONE, TestColumn::Second);
     let sum = vec.sum_columns(
         "projection_isolation_sum",
         Version::ONE,
@@ -230,7 +293,8 @@ fn lazy_columnar_transform_preserves_rows_and_columns() -> Result<()> {
             Some(row(index).map(|value| value * 2))
         );
         assert_eq!(
-            lazy.column(TestColumn::Second).collect_one_at(index),
+            lazy.column("second", Version::ONE, TestColumn::Second)
+                .collect_one_at(index),
             Some(row(index)[1] * 2)
         );
     }
@@ -244,7 +308,7 @@ fn lazy_columnar_transform_preserves_rows_and_columns() -> Result<()> {
             .collect::<Vec<_>>()
     );
     assert_eq!(
-        lazy.column(TestColumn::Second)
+        lazy.column("second", Version::ONE, TestColumn::Second)
             .fold_range_at(from, to, 0, u64::wrapping_add),
         (from..to)
             .map(|index| row(index)[1] * 2)
@@ -271,23 +335,30 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> Result<()> {
         [TestColumn::Third, TestColumn::First],
     );
     let source = vec.read_only_clone();
-    let reordered_sum = ColumnarSumVec::new(
+    let reordered_sum = LazyColumnSumVec::new(
         "reordered_sum",
         Version::ONE,
         source.clone(),
         [TestColumn::First, TestColumn::Third],
     );
     assert_eq!(stored_sum.version(), reordered_sum.version());
-    let different_sum = ColumnarSumVec::new(
-        "different_sum",
+    let same_length_sum = LazyColumnSumVec::new(
+        "same_length_sum",
         Version::ONE,
         source.clone(),
         [TestColumn::First, TestColumn::Second],
     );
-    assert_ne!(stored_sum.version(), different_sum.version());
+    assert_eq!(stored_sum.version(), same_length_sum.version());
+    let shorter_sum = LazyColumnSumVec::new(
+        "shorter_sum",
+        Version::ONE,
+        source.clone(),
+        [TestColumn::First],
+    );
+    assert_ne!(stored_sum.version(), shorter_sum.version());
 
     assert!(
-        catch_unwind(AssertUnwindSafe(|| ColumnarSumVec::new(
+        catch_unwind(AssertUnwindSafe(|| LazyColumnSumVec::new(
             "empty_sum",
             Version::ONE,
             source.clone(),
@@ -296,7 +367,7 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> Result<()> {
         .is_err()
     );
     assert!(
-        catch_unwind(AssertUnwindSafe(|| ColumnarSumVec::new(
+        catch_unwind(AssertUnwindSafe(|| LazyColumnSumVec::new(
             "duplicate_sum",
             Version::ONE,
             source.clone(),
@@ -419,15 +490,12 @@ fn projected_try_fold_stops_at_the_first_error() -> Result<()> {
     vec.write()?;
 
     let mut seen = 0;
-    let result = vec.column(TestColumn::First).try_fold_range_at(
-        0,
-        5_000,
-        (),
-        |(), _| -> std::result::Result<(), ()> {
+    let result = vec
+        .column("first", Version::ONE, TestColumn::First)
+        .try_fold_range_at(0, 5_000, (), |(), _| -> std::result::Result<(), ()> {
             seen += 1;
             if seen == 17 { Err(()) } else { Ok(()) }
-        },
-    );
+        });
     assert_eq!(result, Err(()));
     assert_eq!(seen, 17);
     Ok(())
@@ -506,7 +574,7 @@ fn pco_columnar_roundtrip_reads_only_selected_stream() -> Result<()> {
     let vec = V::import(&db, "pco_matrix", Version::ONE)?;
     assert_eq!(vec.collect_one_at(9_999), Some(row(9_999)));
     assert_eq!(
-        vec.column(TestColumn::Second)
+        vec.column("second", Version::ONE, TestColumn::Second)
             .collect_range_at(9_990, 10_000),
         (9_990..10_000)
             .map(|index| row(index)[1])
@@ -517,7 +585,7 @@ fn pco_columnar_roundtrip_reads_only_selected_stream() -> Result<()> {
 
 #[cfg(feature = "pco")]
 #[test]
-fn pco_repeated_small_writes_keep_partial_pages_raw() -> Result<()> {
+fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> Result<()> {
     use vecdb::PcoVec;
 
     type V = ColumnarVec<PcoVec<usize, u64>, TestColumn>;
@@ -539,6 +607,8 @@ fn pco_repeated_small_writes_keep_partial_pages_raw() -> Result<()> {
         .chunks_exact(16)
         .map(|bytes| u32::from_le_bytes(bytes[12..16].try_into().unwrap()))
         .collect::<Vec<_>>();
+    // Completed column pages are compressed; only the final physical tail page
+    // is required to remain raw while the logical row block is incomplete.
     let completed_pages = vec.len() / U64S_PER_PAGE * COLUMNS;
     for &values in &pages[..completed_pages] {
         assert_eq!(values & (1 << 31), 0);
@@ -559,7 +629,7 @@ fn concurrent_projection_reads_survive_incremental_writes() -> Result<()> {
         vec.push(row(index));
     }
     vec.write()?;
-    let projection = Arc::new(vec.column(TestColumn::Third));
+    let projection = Arc::new(vec.column("third", Version::ONE, TestColumn::Third));
     let readers = (0..4)
         .map(|_| {
             let projection = Arc::clone(&projection);
@@ -622,7 +692,8 @@ where
     let vec = ColumnarVec::<V, TestColumn>::import(&db, "backend", Version::ONE)?;
     assert_eq!(vec.collect_one_at(4_199), Some(row(4_199)));
     assert_eq!(
-        vec.column(TestColumn::First).collect_one_at(3_123),
+        vec.column("first", Version::ONE, TestColumn::First)
+            .collect_one_at(3_123),
         Some(row(3_123)[0])
     );
     Ok(())

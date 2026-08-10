@@ -1,4 +1,4 @@
-use brk_cohort::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRange};
+use brk_cohort::{AGE_BOUNDARIES, AGE_RANGE_IDS, AgeRange};
 use brk_types::{CostBasisSnapshot, ONE_HOUR_IN_SEC, Sats, Timestamp};
 use vecdb::{Rw, unlikely};
 
@@ -35,17 +35,18 @@ impl UTXOCohorts<Rw> {
             return AgeRange::default();
         }
 
-        let mut matured = [Sats::ZERO; AGE_RANGE_COUNT];
-
-        // Get age_range cohort states (indexed 0..AGE_RANGE_COUNT)
-        // Cohort i covers hours [BOUNDARIES[i-1], BOUNDARIES[i])
-        // Cohort 0 covers [0, 1) hours
-        // The final cohort covers [15*365*24, infinity) hours
-        let mut age_cohorts: Vec<_> = self.age_range.iter_mut().map(|v| &mut v.state).collect();
-        let cached = &mut self.caches.tick_tock_cached_positions;
+        let mut matured = AgeRange::default();
+        let Self {
+            age_range, caches, ..
+        } = self;
+        let cached = &mut caches.tick_tock_cached_positions;
 
         // For each boundary (in hours), find blocks that just crossed it
-        for (boundary_idx, &boundary_hours) in AGE_BOUNDARIES.iter().enumerate() {
+        for (boundary_idx, (&boundary_hours, adjacent)) in AGE_BOUNDARIES
+            .iter()
+            .zip(AGE_RANGE_IDS.windows(2))
+            .enumerate()
+        {
             let boundary_seconds = (boundary_hours as u32) * ONE_HOUR_IN_SEC;
 
             // Blocks crossing boundary B have timestamps in (prev - B*HOUR, curr - B*HOUR]
@@ -81,18 +82,21 @@ impl UTXOCohorts<Rw> {
                 .map_or(chain_state.len(), |pos| start_idx + pos);
 
             // Move supply from younger cohort to older cohort
+            let younger = adjacent[0];
+            let older = adjacent[1];
+            let matured_sats = younger.select_mut(&mut matured);
             for block_state in &chain_state[start_idx..end_idx] {
                 let snapshot = CostBasisSnapshot::from_utxo(block_state.price, &block_state.supply);
-                if let Some(state) = age_cohorts[boundary_idx].as_mut() {
+                if let Some(state) = younger.select_mut(age_range).state.as_mut() {
                     state.decrement_snapshot(&snapshot);
                 }
-                if let Some(state) = age_cohorts[boundary_idx + 1].as_mut() {
+                if let Some(state) = older.select_mut(age_range).state.as_mut() {
                     state.increment_snapshot(&snapshot);
                 }
-                matured[boundary_idx] += block_state.supply.value;
+                *matured_sats += block_state.supply.value;
             }
         }
 
-        AgeRange::from_array(matured)
+        matured
     }
 }

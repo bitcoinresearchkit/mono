@@ -1,36 +1,48 @@
-use brk_cohort::AgeRange;
+use brk_cohort::{AgeRange, AgeRangeId};
 use brk_traversable::Traversable;
-use brk_types::StoredF64;
-use derive_more::{Deref, DerefMut};
+use brk_types::{Sats, StoredF64};
 use vecdb::{Rw, StorageMode};
 
-use crate::internal::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling, SpotValuePerBlock};
+use crate::internal::{
+    ColumnarPerBlock, ColumnarPerBlockCumulativeRolling, LazyColumnPerBlock,
+    LazyColumnPerBlockCumulativeRolling, LazyColumnSpotValuePerBlock, LazyPerBlock,
+};
 
-#[derive(Traversable)]
-pub struct ActivityVecs<M: StorageMode = Rw> {
-    pub wakefulness: PerBlock<StoredF64, M>,
-    pub dormancy: LazyPerBlock<StoredF64>,
-    pub wakefulness_to_dormancy: LazyPerBlock<StoredF64>,
+#[derive(Clone, Traversable)]
+pub struct ActivitySeries {
+    pub wakefulness: AgeRange<LazyColumnPerBlock<StoredF64, AgeRangeId>>,
+    pub dormancy: AgeRange<LazyPerBlock<StoredF64>>,
+    pub wakefulness_to_dormancy: AgeRange<LazyPerBlock<StoredF64>>,
 }
 
 #[derive(Traversable)]
-pub struct SupplyVecs<M: StorageMode = Rw> {
-    pub awake: SpotValuePerBlock<M>,
-    pub dormant: SpotValuePerBlock<M>,
+pub struct SupplyVecs<T> {
+    pub awake: T,
+    pub dormant: T,
 }
 
-#[derive(Deref, DerefMut, Traversable)]
-pub struct CohortVecs<M: StorageMode = Rw> {
-    pub coindays_created: PerBlockCumulativeRolling<StoredF64, M>,
-    pub coindays_consumed: PerBlockCumulativeRolling<StoredF64, M>,
-    pub coindays_stored: PerBlockCumulativeRolling<StoredF64, M>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub activity: ActivityVecs<M>,
-    pub supply: SupplyVecs<M>,
+#[derive(Traversable)]
+pub struct Vecs<M: StorageMode = Rw> {
+    pub coindays_created: ColumnarPerBlockCumulativeRolling<
+        StoredF64,
+        AgeRangeId,
+        AgeRange<LazyColumnPerBlockCumulativeRolling<StoredF64, AgeRangeId>>,
+        M,
+    >,
+    pub coindays_consumed: ColumnarPerBlockCumulativeRolling<
+        StoredF64,
+        AgeRangeId,
+        AgeRange<LazyColumnPerBlockCumulativeRolling<StoredF64, AgeRangeId>>,
+        M,
+    >,
+    pub coindays_stored: ColumnarPerBlockCumulativeRolling<
+        StoredF64,
+        AgeRangeId,
+        AgeRange<LazyColumnPerBlockCumulativeRolling<StoredF64, AgeRangeId>>,
+        M,
+    >,
+    pub activity: ColumnarPerBlock<StoredF64, AgeRangeId, ActivitySeries, M>,
+    pub supply: SupplyVecs<
+        ColumnarPerBlock<Sats, AgeRangeId, AgeRange<LazyColumnSpotValuePerBlock<AgeRangeId>>, M>,
+    >,
 }
-
-#[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
-pub struct Vecs<M: StorageMode = Rw>(pub AgeRange<CohortVecs<M>>);

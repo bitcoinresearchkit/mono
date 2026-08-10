@@ -3,4 +3,4 @@ mod compute;
 mod import;
 mod vecs;
 
-pub use vecs::{CountVecs, Vecs};
+pub use vecs::{CountVecs, Flags, PatternId, Vecs};

@@ -1,11 +1,16 @@
-use std::{cmp::Reverse, collections::BinaryHeap, path::Path};
+use std::{
+    cmp::Reverse,
+    collections::{BTreeMap, BinaryHeap},
+    path::Path,
+};
 
 use brk_cohort::{
-    AGE_RANGE_NAMES, CohortContext, Filtered, PROFITABILITY_RANGE_COUNT, TERM_NAMES, UTXO_ALL_NAME,
+    AgeRangeId, CohortContext, Filtered, PROFITABILITY_RANGE_COUNT, TERM_NAMES, UTXO_ALL_NAME,
 };
 use brk_error::Result;
 use brk_types::{Cents, CentsCompact, Date, Dollars, PartsPerMillion32, Sats, UrpdRaw};
 use rayon::prelude::*;
+use vecdb::ColumnId;
 
 use crate::distribution::metrics::{CostBasis, ProfitabilityMetrics};
 
@@ -45,20 +50,16 @@ impl UTXOCohorts {
     /// consumers can avoid writing and immediately rereading the current day.
     pub(crate) fn age_range_urpd_entries(
         &self,
-    ) -> impl Iterator<Item = (usize, bool, CentsCompact, Sats)> + '_ {
-        let sth_filter = &self.sth.metrics.filter;
-        self.age_range
-            .iter()
-            .enumerate()
-            .flat_map(move |(age, cohort)| {
-                let is_sth = sth_filter.includes(cohort.filter());
-                cohort.state.iter().flat_map(move |state| {
-                    state
-                        .cost_basis_map()
-                        .iter()
-                        .map(move |(&price, &sats)| (age, is_sth, rounded_urpd_price(price), sats))
-                })
+    ) -> impl Iterator<Item = (AgeRangeId, CentsCompact, Sats)> + '_ {
+        AgeRangeId::ALL.iter().copied().flat_map(move |id| {
+            let cohort = id.select(&self.age_range);
+            cohort.state.iter().flat_map(move |state| {
+                state
+                    .cost_basis_map()
+                    .iter()
+                    .map(move |(&price, &sats)| (id, rounded_urpd_price(price), sats))
             })
+        })
     }
 
     /// Push all Fenwick-derived per-block results: percentiles, density, profitability.
@@ -82,12 +83,12 @@ impl UTXOCohorts {
     fn write_disk_distributions(&mut self, date: Date, states_path: &Path) -> Result<()> {
         let sth_filter = self.sth.metrics.filter.clone();
 
-        self.age_range
+        AgeRangeId::ALL
             .iter()
-            .zip(AGE_RANGE_NAMES.iter())
+            .map(|&id| (id, id.select(&self.age_range)))
             .collect::<Vec<_>>()
             .into_par_iter()
-            .try_for_each(|(sub, name)| -> Result<()> {
+            .try_for_each(|(id, sub)| -> Result<()> {
                 let Some(state) = sub.state.as_ref() else {
                     return Ok(());
                 };
@@ -102,7 +103,7 @@ impl UTXOCohorts {
                         merged.push((rounded, sats));
                     }
                 }
-                let full = CohortContext::Utxo.prefixed(name.id);
+                let full = CohortContext::Utxo.prefixed(id.name().id);
                 UrpdRaw::write(states_path, &full, date, merged.into_iter())
             })?;
 
@@ -173,15 +174,12 @@ fn push_profitability(
     buckets: &[ProfitabilityRangeResult; PROFITABILITY_RANGE_COUNT],
     metrics: &mut ProfitabilityMetrics,
 ) {
-    for (i, bucket) in metrics.range.as_array_mut().into_iter().enumerate() {
-        let r = &buckets[i];
-        bucket.push(
-            Sats::from(r.all_sats),
-            Sats::from(r.sth_sats),
-            raw_usd_to_dollars(r.all_usd),
-            raw_usd_to_dollars(r.sth_usd),
-        );
-    }
+    metrics.push_ranges(
+        (*buckets).map(|range| Sats::from(range.all_sats)),
+        (*buckets).map(|range| Sats::from(range.sth_sats)),
+        (*buckets).map(|range| raw_usd_to_dollars(range.all_usd)),
+        (*buckets).map(|range| raw_usd_to_dollars(range.sth_usd)),
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -243,7 +241,7 @@ impl MergeTarget {
 /// K-way merge via BinaryHeap over BTreeMap iterators.
 /// Only builds merged distribution for disk writes.
 fn merge_k_way(
-    maps: &[(&std::collections::BTreeMap<CentsCompact, Sats>, bool)],
+    maps: &[(&BTreeMap<CentsCompact, Sats>, bool)],
     targets: &mut AllSthLth<MergeTarget>,
 ) {
     let mut iters: Vec<_> = maps

@@ -1,21 +1,20 @@
 //! Generic `all` + per-`OutputType` container (12 output types, including
 //! op_return).
 
-use brk_cohort::{ByAddrType, ByType, Filter};
-use brk_error::Result;
+use brk_cohort::{ByAddrType, ByType, Filter, OutputTypeId};
 use brk_traversable::Traversable;
-use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, PartsPerMillion32, StoredU16, StoredU64, Version};
 use vecdb::{
-    AnyStoredVec, AnyVec, CachedBoxedVec, CachedReadableVec, Database, ReadableCloneableVec,
-    ReadableVec, TypedVec, WritableVec,
+    CachedBoxedVec, CachedReadableVec, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec,
+    ReadableVec, TypedVec,
 };
 
 use crate::{
     indexes,
     internal::{
-        CachedBlockCountReader, CachedCountPerBlockCumulativeRolling, CachedWindowStartVec,
-        LazyPerBlockCumulativeRolling, LazyPercentCumulativeRolling, PerBlockCumulativeRolling,
-        RatioU64, Windows,
+        CachedBlockCountReader, CachedWindowStartVec, LazyColumnCountPerBlockCumulativeRolling,
+        LazyColumnPerBlockCumulativeRolling, LazyPerBlockCumulativeRolling,
+        LazyPercentCumulativeRolling, RatioU64, Windows,
     },
 };
 
@@ -25,7 +24,7 @@ pub(super) fn identity(_: Height, value: StoredU64) -> StoredU64 {
 
 /// `all` aggregate plus per-`OutputType` breakdown across all 12 output
 /// types (spendable + op_return).
-#[derive(Traversable)]
+#[derive(Clone, Traversable)]
 pub struct WithOutputTypes<V> {
     pub all: LazyPerBlockCumulativeRolling<StoredU64>,
     #[traversable(skip)]
@@ -65,20 +64,6 @@ impl<V> WithOutputTypes<V> {
         }
     }
 
-    fn min_stateful_len_with(&self, len: impl Fn(&V) -> usize) -> usize {
-        self.by_type.iter().map(len).min().unwrap()
-    }
-
-    fn try_for_each_type_mut(&mut self, mut apply: impl FnMut(&mut V) -> Result<()>) -> Result<()> {
-        self.by_type.iter_mut().try_for_each(&mut apply)
-    }
-
-    fn push_block_with(&mut self, per_type: &[u64; 12], mut push: impl FnMut(&mut V, StoredU64)) {
-        for (output_type, vec) in self.by_type.iter_typed_mut() {
-            push(vec, StoredU64::from(per_type[output_type as usize]));
-        }
-    }
-
     pub(crate) fn lazy_share(
         &self,
         name: &str,
@@ -102,16 +87,16 @@ impl<V> WithOutputTypes<V> {
     }
 }
 
-impl WithOutputTypes<CachedCountPerBlockCumulativeRolling> {
-    pub(crate) fn forced_import_counts<S>(
-        db: &Database,
+impl WithOutputTypes<LazyColumnCountPerBlockCumulativeRolling> {
+    pub(crate) fn from_columnar_count_source<S>(
         all_name: &str,
         per_type_name: impl Fn(&str) -> String,
         version: Version,
         all: (S, fn(Height, StoredU64) -> StoredU64),
+        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredU16>, OutputTypeId>,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
-    ) -> Result<Self>
+    ) -> Self
     where
         S: TypedVec<I = Height, T = StoredU64>
             + ReadableVec<Height, StoredU64>
@@ -119,36 +104,20 @@ impl WithOutputTypes<CachedCountPerBlockCumulativeRolling> {
             + Clone
             + 'static,
     {
-        let by_type = ByType::try_new(|_, name| {
-            CachedCountPerBlockCumulativeRolling::forced_import(
-                db,
-                &per_type_name(name),
-                version,
-                indexes,
-                cached_starts,
-            )
-        })?;
-        Ok(Self::new(
-            all_name,
-            version,
-            all,
-            by_type,
-            indexes,
-            cached_starts,
-        ))
-    }
-
-    pub(crate) fn min_stateful_len(&self) -> usize {
-        self.min_stateful_len_with(|vec| vec.min_stateful_len())
-    }
-
-    pub(crate) fn cached_addr_type_counts(&self) -> ByAddrType<CachedBlockCountReader> {
-        ByAddrType::new(|filter| {
+        let by_type = ByType::new(|filter, name| {
             let Filter::Type(output_type) = filter else {
                 unreachable!()
             };
-            self.by_type.get(output_type).cached_cumulative()
-        })
+            LazyColumnCountPerBlockCumulativeRolling::new(
+                &per_type_name(name),
+                version,
+                source,
+                OutputTypeId::from_output_type(output_type),
+                indexes,
+                cached_starts,
+            )
+        });
+        Self::new(all_name, version, all, by_type, indexes, cached_starts)
     }
 
     pub(crate) fn lazy_shares(
@@ -173,38 +142,30 @@ impl WithOutputTypes<CachedCountPerBlockCumulativeRolling> {
         })
     }
 
-    pub(crate) fn write(&mut self) -> Result<()> {
-        self.try_for_each_type_mut(|vec| vec.write())
+    pub(crate) fn cached_addr_type_counts(&self) -> ByAddrType<CachedBlockCountReader> {
+        ByAddrType::new(|filter| {
+            let Filter::Type(output_type) = filter else {
+                unreachable!()
+            };
+            self.by_type.get(output_type).cached_cumulative()
+        })
     }
 
-    pub(crate) fn validate_and_truncate(
-        &mut self,
-        dependency_version: Version,
-        at_height: Height,
-    ) -> Result<()> {
-        self.try_for_each_type_mut(|vec| vec.validate_and_truncate(dependency_version, at_height))
-    }
-
-    pub(crate) fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-        self.try_for_each_type_mut(|vec| vec.truncate_if_needed_at(len))
-    }
-
-    #[inline]
-    pub(crate) fn push_block(&mut self, per_type: &[u64; 12]) {
-        self.push_block_with(per_type, |vec, value| vec.push_block(value));
+    pub(crate) fn clear(&self) {
+        self.by_type.iter().for_each(|count| count.clear());
     }
 }
 
-impl WithOutputTypes<PerBlockCumulativeRolling<StoredU64>> {
-    pub(crate) fn forced_import<S>(
-        db: &Database,
+impl WithOutputTypes<LazyColumnPerBlockCumulativeRolling<StoredU64, OutputTypeId>> {
+    pub(crate) fn from_columnar_source<S>(
         all_name: &str,
         per_type_name: impl Fn(&str) -> String,
         version: Version,
         all: (S, fn(Height, StoredU64) -> StoredU64),
+        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, OutputTypeId>,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
-    ) -> Result<Self>
+    ) -> Self
     where
         S: TypedVec<I = Height, T = StoredU64>
             + ReadableVec<Height, StoredU64>
@@ -212,27 +173,20 @@ impl WithOutputTypes<PerBlockCumulativeRolling<StoredU64>> {
             + Clone
             + 'static,
     {
-        let by_type = ByType::try_new(|_, name| {
-            PerBlockCumulativeRolling::forced_import(
-                db,
+        let by_type = ByType::new(|filter, name| {
+            let Filter::Type(output_type) = filter else {
+                unreachable!()
+            };
+            LazyColumnPerBlockCumulativeRolling::new(
                 &per_type_name(name),
                 version,
+                source,
+                OutputTypeId::from_output_type(output_type),
                 indexes,
                 cached_starts,
             )
-        })?;
-        Ok(Self::new(
-            all_name,
-            version,
-            all,
-            by_type,
-            indexes,
-            cached_starts,
-        ))
-    }
-
-    pub(crate) fn min_stateful_len(&self) -> usize {
-        self.min_stateful_len_with(|vec| vec.cumulative.height.len())
+        });
+        Self::new(all_name, version, all, by_type, indexes, cached_starts)
     }
 
     pub(crate) fn lazy_shares(
@@ -254,34 +208,5 @@ impl WithOutputTypes<PerBlockCumulativeRolling<StoredU64>> {
                 indexes,
             )
         })
-    }
-
-    pub(crate) fn write(&mut self) -> Result<()> {
-        self.try_for_each_type_mut(|vec| {
-            vec.cumulative.height.write()?;
-            Ok(())
-        })
-    }
-
-    pub(crate) fn validate_and_truncate(
-        &mut self,
-        dependency_version: Version,
-        at_height: Height,
-    ) -> Result<()> {
-        self.try_for_each_type_mut(|vec| {
-            Ok(vec
-                .cumulative
-                .height
-                .validate_and_truncate(dependency_version, at_height)?)
-        })
-    }
-
-    pub(crate) fn truncate_if_needed_at(&mut self, len: usize) -> Result<()> {
-        self.try_for_each_type_mut(|vec| Ok(vec.cumulative.height.truncate_if_needed_at(len)?))
-    }
-
-    #[inline]
-    pub(crate) fn push_block(&mut self, per_type: &[u64; 12]) {
-        self.push_block_with(per_type, |vec, value| vec.push_block(value));
     }
 }

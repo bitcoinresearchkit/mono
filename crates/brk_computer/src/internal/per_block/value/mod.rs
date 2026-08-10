@@ -1,6 +1,7 @@
 mod base;
 mod cached;
 mod cached_full;
+mod columnar;
 mod cumulative;
 mod cumulative_rolling;
 mod lazy;
@@ -11,11 +12,11 @@ mod lazy_rolling_sum;
 mod lazy_spot;
 mod rolling_distribution;
 mod spot;
-mod spot_with_deltas;
 
 pub use base::*;
 pub use cached::*;
 pub use cached_full::*;
+pub use columnar::*;
 pub use cumulative::*;
 pub use cumulative_rolling::*;
 pub use lazy::*;
@@ -26,4 +27,3 @@ pub use lazy_rolling_sum::*;
 pub use lazy_spot::*;
 pub use rolling_distribution::*;
 pub use spot::*;
-pub use spot_with_deltas::*;

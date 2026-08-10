@@ -1,18 +1,73 @@
 use brk_error::Result;
-use brk_traversable::{Traversable, TreeNode};
+use brk_traversable::Traversable;
 use brk_types::{Cents, Version};
-use vecdb::{AnyExportableVec, Database, ReadOnlyClone, Ro, Rw, StorageMode, WritableVec};
+pub use brk_types::{PERCENTILES, PERCENTILES_LEN, PercentileId};
+use derive_more::{Deref, DerefMut};
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::indexes;
-use crate::internal::{PerBlock, Price};
+use crate::internal::{ColumnarPerBlock, LazyColumnPerBlock, Price};
 
-pub const PERCENTILES: [u8; 19] = [
-    5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95,
-];
-pub const PERCENTILES_LEN: usize = PERCENTILES.len();
+#[derive(Clone, Traversable)]
+pub struct PercentilePrices<T> {
+    pub pct05: T,
+    pub pct10: T,
+    pub pct15: T,
+    pub pct20: T,
+    pub pct25: T,
+    pub pct30: T,
+    pub pct35: T,
+    pub pct40: T,
+    pub pct45: T,
+    pub pct50: T,
+    pub pct55: T,
+    pub pct60: T,
+    pub pct65: T,
+    pub pct70: T,
+    pub pct75: T,
+    pub pct80: T,
+    pub pct85: T,
+    pub pct90: T,
+    pub pct95: T,
+}
 
+impl<T> PercentilePrices<T> {
+    fn from_fn(mut f: impl FnMut(PercentileId) -> T) -> Self {
+        Self {
+            pct05: f(PercentileId::Pct05),
+            pct10: f(PercentileId::Pct10),
+            pct15: f(PercentileId::Pct15),
+            pct20: f(PercentileId::Pct20),
+            pct25: f(PercentileId::Pct25),
+            pct30: f(PercentileId::Pct30),
+            pct35: f(PercentileId::Pct35),
+            pct40: f(PercentileId::Pct40),
+            pct45: f(PercentileId::Pct45),
+            pct50: f(PercentileId::Pct50),
+            pct55: f(PercentileId::Pct55),
+            pct60: f(PercentileId::Pct60),
+            pct65: f(PercentileId::Pct65),
+            pct70: f(PercentileId::Pct70),
+            pct75: f(PercentileId::Pct75),
+            pct80: f(PercentileId::Pct80),
+            pct85: f(PercentileId::Pct85),
+            pct90: f(PercentileId::Pct90),
+            pct95: f(PercentileId::Pct95),
+        }
+    }
+}
+
+#[derive(Deref, DerefMut, Traversable)]
 pub struct PercentilesVecs<M: StorageMode = Rw> {
-    pub vecs: [Price<PerBlock<Cents, M>>; PERCENTILES_LEN],
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    pub prices: ColumnarPerBlock<
+        Cents,
+        PercentileId,
+        PercentilePrices<Price<LazyColumnPerBlock<Cents, PercentileId>>>,
+        M,
+    >,
 }
 
 const VERSION: Version = Version::ONE;
@@ -24,64 +79,36 @@ impl PercentilesVecs {
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
-        let vecs = PERCENTILES
-            .into_iter()
-            .map(|p| {
-                let series_name = format!("{prefix}_pct{p:02}");
-                Price::forced_import(db, &series_name, version + VERSION, indexes)
-            })
-            .collect::<Result<Vec<_>>>()?
-            .try_into()
-            .ok()
-            .expect("PERCENTILES length mismatch");
+        let version = version + VERSION;
+        let prices = ColumnarPerBlock::<Cents, PercentileId, _>::forced_import(
+            db,
+            &format!("{prefix}_cents"),
+            version,
+            |source| {
+                PercentilePrices::from_fn(|id| {
+                    Price::from_columnar_source(
+                        &format!("{prefix}_pct{:02}", id.percentile()),
+                        version,
+                        source,
+                        id,
+                        indexes,
+                    )
+                })
+            },
+        )?;
 
-        Ok(Self { vecs })
+        Ok(Self { prices })
     }
 
     /// Push percentile prices (in cents).
     #[inline(always)]
     pub(crate) fn push(&mut self, percentile_prices: &[Cents; PERCENTILES_LEN]) {
-        for (i, v) in self.vecs.iter_mut().enumerate() {
-            v.cents.height.push(percentile_prices[i]);
-        }
+        self.prices.push(*percentile_prices);
     }
 
     /// Validate computed versions or reset if mismatched.
     pub(crate) fn validate_computed_version_or_reset(&mut self, version: Version) -> Result<()> {
-        for vec in self.vecs.iter_mut() {
-            vec.cents
-                .height
-                .validate_computed_version_or_reset(version)?;
-        }
+        self.prices.validate_computed_version_or_reset(version)?;
         Ok(())
-    }
-}
-
-impl ReadOnlyClone for PercentilesVecs {
-    type ReadOnly = PercentilesVecs<Ro>;
-
-    fn read_only_clone(&self) -> Self::ReadOnly {
-        PercentilesVecs {
-            vecs: self.vecs.each_ref().map(|v| v.read_only_clone()),
-        }
-    }
-}
-
-impl<M: StorageMode> Traversable for PercentilesVecs<M>
-where
-    Price<PerBlock<Cents, M>>: Traversable,
-{
-    fn to_tree_node(&self) -> TreeNode {
-        TreeNode::Branch(
-            PERCENTILES
-                .iter()
-                .zip(self.vecs.iter())
-                .map(|(p, v)| (format!("pct{p:02}"), v.to_tree_node()))
-                .collect(),
-        )
-    }
-
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.vecs.iter().flat_map(|p| p.iter_any_exportable())
     }
 }

@@ -434,9 +434,7 @@ pub(crate) fn process_blocks(
         // Update Fenwick tree from pending deltas (must happen before push_cohort_states drains pending)
         vecs.utxo_cohorts.update_fenwick_from_pending();
 
-        let activity_totals = state.activity.totals();
-        let active_addr_count =
-            activity_totals.sending + activity_totals.receiving - activity_totals.bidirectional;
+        let active_addr_count = state.activity.active();
         vecs.addrs.push_height(&state, active_addr_count);
 
         let is_last_of_day = is_last_of_day[offset];

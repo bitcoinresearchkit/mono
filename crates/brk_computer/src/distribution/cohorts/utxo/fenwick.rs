@@ -1,7 +1,11 @@
+use std::collections::BTreeMap;
+
 use brk_cohort::{
-    AGE_RANGE_COUNT, Filter, PROFITABILITY_RANGE_COUNT, compute_profitability_boundaries,
+    AGE_RANGE_COUNT, AgeRangeId, Filter, PROFITABILITY_RANGE_COUNT,
+    compute_profitability_boundaries,
 };
 use brk_types::{Cents, CentsCompact, PartsPerMillion32, Sats};
+use vecdb::ColumnId;
 
 use crate::{
     distribution::state::PendingDelta,
@@ -123,18 +127,14 @@ impl CostBasisFenwick {
     }
 
     /// Pre-compute `is_sth` lookup from the STH filter and age-range filters.
-    pub(super) fn compute_is_sth<'a>(
-        &mut self,
-        sth_filter: &Filter,
-        age_range_filters: impl Iterator<Item = &'a Filter>,
-    ) {
-        for (i, f) in age_range_filters.enumerate() {
-            self.is_sth[i] = sth_filter.includes(f);
+    pub(super) fn compute_is_sth(&mut self, sth_filter: &Filter) {
+        for id in AgeRangeId::ALL {
+            self.is_sth[id.index()] = sth_filter.includes(id.filter());
         }
     }
 
-    pub(super) fn is_sth_at(&self, age_range_idx: usize) -> bool {
-        self.is_sth[age_range_idx]
+    pub(super) fn is_sth(&self, id: AgeRangeId) -> bool {
+        self.is_sth[id.index()]
     }
 
     /// Apply a net delta from a pending map entry.
@@ -158,7 +158,7 @@ impl CostBasisFenwick {
     /// Bulk-initialize from age-range maps.
     pub(super) fn bulk_init<'a>(
         &mut self,
-        maps: impl Iterator<Item = (&'a std::collections::BTreeMap<CentsCompact, Sats>, bool)>,
+        maps: impl Iterator<Item = (&'a BTreeMap<CentsCompact, Sats>, bool)>,
     ) {
         self.tree.reset();
         self.totals = CostBasisNode::default();

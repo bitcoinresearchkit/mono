@@ -23,7 +23,7 @@ impl NewAddrCountVecs {
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         Self(WithAddrTypes {
-            all: LazyPerBlockCumulativeRolling::from_source(
+            all: LazyPerBlockCumulativeRolling::from_lazy_source(
                 "new_addr_count",
                 version,
                 &total.all,
@@ -31,7 +31,7 @@ impl NewAddrCountVecs {
                 indexes,
             ),
             by_addr_type: total.by_addr_type.map_with_name(|name, total| {
-                LazyPerBlockCumulativeRolling::from_source(
+                LazyPerBlockCumulativeRolling::from_column_source(
                     &format!("{name}_new_addr_count"),
                     version,
                     total,

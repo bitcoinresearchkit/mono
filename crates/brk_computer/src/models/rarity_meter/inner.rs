@@ -1,40 +1,35 @@
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, StoredI8, Version};
-use vecdb::{AnyVec, Database, EagerVec, Exit, PcoVec, ReadableVec, Rw, StorageMode, WritableVec};
+use brk_types::{Cents, Height, RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8, Version};
+use vecdb::{AnyVec, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{
     indexes,
-    internal::{PerBlock, Price},
+    internal::{ColumnarPerBlock, LazyColumnPerBlock, PerBlock, Price},
 };
 
-use super::Component;
+use super::{
+    COMPUTE_BATCH_SIZE, Component,
+    percentiles::{
+        BOUNDARY_PERCENTILE_IDS, RarityPercentiles, boundary_index, is_lower_boundary, price_suffix,
+    },
+};
 
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
-    pub pct0_1: Price<PerBlock<Cents, M>>,
-    pub pct0_5: Price<PerBlock<Cents, M>>,
-    pub pct1: Price<PerBlock<Cents, M>>,
-    pub pct2: Price<PerBlock<Cents, M>>,
-    pub pct5: Price<PerBlock<Cents, M>>,
-    pub pct10: Price<PerBlock<Cents, M>>,
-    pub pct20: Price<PerBlock<Cents, M>>,
-    pub pct30: Price<PerBlock<Cents, M>>,
-    pub pct40: Price<PerBlock<Cents, M>>,
-    pub pct50: Price<PerBlock<Cents, M>>,
-    pub pct60: Price<PerBlock<Cents, M>>,
-    pub pct70: Price<PerBlock<Cents, M>>,
-    pub pct80: Price<PerBlock<Cents, M>>,
-    pub pct90: Price<PerBlock<Cents, M>>,
-    pub pct95: Price<PerBlock<Cents, M>>,
-    pub pct98: Price<PerBlock<Cents, M>>,
-    pub pct99: Price<PerBlock<Cents, M>>,
-    pub pct99_5: Price<PerBlock<Cents, M>>,
-    pub pct99_9: Price<PerBlock<Cents, M>>,
+    #[traversable(flatten)]
+    pub prices: ColumnarPerBlock<
+        Cents,
+        RarityPercentileId,
+        RarityPercentiles<Price<LazyColumnPerBlock<Cents, RarityPercentileId>>>,
+        M,
+    >,
     pub index: PerBlock<StoredI8, M>,
     pub score: PerBlock<StoredI8, M>,
 }
+
+const VERSION: Version = Version::ONE;
 
 impl RarityMeterInner {
     pub(crate) fn forced_import(
@@ -43,26 +38,26 @@ impl RarityMeterInner {
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
+        let version = version + VERSION;
+        let prices = ColumnarPerBlock::<Cents, RarityPercentileId, _>::forced_import(
+            db,
+            &format!("{prefix}_percentiles_cents"),
+            version,
+            |source| {
+                RarityPercentiles::from_fn(|id| {
+                    Price::from_columnar_source(
+                        &format!("{prefix}_{}", price_suffix(id)),
+                        version,
+                        source,
+                        id,
+                        indexes,
+                    )
+                })
+            },
+        )?;
+
         Ok(Self {
-            pct0_1: Price::forced_import(db, &format!("{prefix}_pct0_1"), version, indexes)?,
-            pct0_5: Price::forced_import(db, &format!("{prefix}_pct0_5"), version, indexes)?,
-            pct1: Price::forced_import(db, &format!("{prefix}_pct01"), version, indexes)?,
-            pct2: Price::forced_import(db, &format!("{prefix}_pct02"), version, indexes)?,
-            pct5: Price::forced_import(db, &format!("{prefix}_pct05"), version, indexes)?,
-            pct10: Price::forced_import(db, &format!("{prefix}_pct10"), version, indexes)?,
-            pct20: Price::forced_import(db, &format!("{prefix}_pct20"), version, indexes)?,
-            pct30: Price::forced_import(db, &format!("{prefix}_pct30"), version, indexes)?,
-            pct40: Price::forced_import(db, &format!("{prefix}_pct40"), version, indexes)?,
-            pct50: Price::forced_import(db, &format!("{prefix}_pct50"), version, indexes)?,
-            pct60: Price::forced_import(db, &format!("{prefix}_pct60"), version, indexes)?,
-            pct70: Price::forced_import(db, &format!("{prefix}_pct70"), version, indexes)?,
-            pct80: Price::forced_import(db, &format!("{prefix}_pct80"), version, indexes)?,
-            pct90: Price::forced_import(db, &format!("{prefix}_pct90"), version, indexes)?,
-            pct95: Price::forced_import(db, &format!("{prefix}_pct95"), version, indexes)?,
-            pct98: Price::forced_import(db, &format!("{prefix}_pct98"), version, indexes)?,
-            pct99: Price::forced_import(db, &format!("{prefix}_pct99"), version, indexes)?,
-            pct99_5: Price::forced_import(db, &format!("{prefix}_pct99_5"), version, indexes)?,
-            pct99_9: Price::forced_import(db, &format!("{prefix}_pct99_9"), version, indexes)?,
+            prices,
             index: PerBlock::forced_import(db, &format!("{prefix}_index"), version, indexes)?,
             score: PerBlock::forced_import(db, &format!("{prefix}_score"), version, indexes)?,
         })
@@ -76,142 +71,38 @@ impl RarityMeterInner {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let gather = |f: fn(&Component) -> &_| -> Vec<_> {
-            components.iter().map(|component| f(component)).collect()
-        };
+        let dependency_version = components
+            .iter()
+            .map(|component| component.boundary_version())
+            .sum();
+        let source_end = components
+            .iter()
+            .map(|component| component.boundary_len())
+            .min()
+            .unwrap_or_default();
 
-        // Lower percentiles: max across all models (tightest lower bound)
-        self.pct0_1.cents.height.compute_max_of_others(
+        self.prices.height.compute_batched_to(
             starting_height,
-            &gather(|component| &component.pct0_1.price.cents.height),
-            exit,
-        )?;
-        self.pct0_5.cents.height.compute_max_of_others(
-            starting_height,
-            &gather(|component| &component.pct0_5.price.cents.height),
-            exit,
-        )?;
-        self.pct1.cents.height.compute_max_of_others(
-            starting_height,
-            &gather(|component| &component.pct1.price.cents.height),
-            exit,
-        )?;
-        self.pct2.cents.height.compute_max_of_others(
-            starting_height,
-            &gather(|component| &component.pct2.price.cents.height),
-            exit,
-        )?;
-        self.pct5.cents.height.compute_max_of_others(
-            starting_height,
-            &gather(|component| &component.pct5.price.cents.height),
-            exit,
-        )?;
+            source_end,
+            dependency_version,
+            COMPUTE_BATCH_SIZE,
+            |cents, range| {
+                let component_prices: Vec<_> = components
+                    .iter()
+                    .map(|component| component.collect_boundary_prices(range.start, range.end))
+                    .collect();
 
-        // Upper percentiles: min across all models (tightest upper bound)
-        self.pct95.cents.height.compute_min_of_others(
-            starting_height,
-            &gather(|component| &component.pct95.price.cents.height),
-            exit,
-        )?;
-        self.pct98.cents.height.compute_min_of_others(
-            starting_height,
-            &gather(|component| &component.pct98.price.cents.height),
-            exit,
-        )?;
-        self.pct99.cents.height.compute_min_of_others(
-            starting_height,
-            &gather(|component| &component.pct99.price.cents.height),
-            exit,
-        )?;
-        self.pct99_5.cents.height.compute_min_of_others(
-            starting_height,
-            &gather(|component| &component.pct99_5.price.cents.height),
-            exit,
-        )?;
-        self.pct99_9.cents.height.compute_min_of_others(
-            starting_height,
-            &gather(|component| &component.pct99_9.price.cents.height),
-            exit,
-        )?;
+                for offset in 0..range.len() {
+                    cents.push(combine_percentiles(&component_prices, offset));
+                }
 
-        compute_inner_percentile(
-            &mut self.pct10.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            10,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct20.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            20,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct30.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            30,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct40.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            40,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct50.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            50,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct60.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            60,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct70.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            70,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct80.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            80,
-            exit,
-        )?;
-        compute_inner_percentile(
-            &mut self.pct90.cents.height,
-            starting_height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            90,
+                Ok(())
+            },
             exit,
         )?;
 
         self.compute_index(spot, indexer, exit)?;
-
-        self.compute_score(components, spot, indexer, exit)?;
-
-        Ok(())
+        self.compute_score(components, spot, indexer, exit)
     }
 
     fn compute_index(
@@ -221,45 +112,32 @@ impl RarityMeterInner {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let bands = [
-            &self.pct0_1.cents.height,
-            &self.pct0_5.cents.height,
-            &self.pct1.cents.height,
-            &self.pct2.cents.height,
-            &self.pct5.cents.height,
-            &self.pct95.cents.height,
-            &self.pct98.cents.height,
-            &self.pct99.cents.height,
-            &self.pct99_5.cents.height,
-            &self.pct99_9.cents.height,
-        ];
+        let bands = self.prices.boundary_refs().map(|price| &price.cents.height);
+        let source_end = bands
+            .iter()
+            .map(|band| band.len())
+            .min()
+            .unwrap_or_default()
+            .min(spot.len());
 
-        let dep_version: Version =
-            bands.iter().map(|b| b.version()).sum::<Version>() + spot.version();
+        self.index.height.compute_batched_to(
+            starting_height,
+            source_end,
+            self.prices.height.version() + spot.version(),
+            COMPUTE_BATCH_SIZE,
+            |index, range| {
+                let spot = spot.collect_range_at(range.start, range.end);
+                let bands = bands
+                    .each_ref()
+                    .map(|band| band.collect_range_at(range.start, range.end));
+                for (offset, price) in spot.into_iter().enumerate() {
+                    index.push(StoredI8::new(score_at(price, &bands, offset)));
+                }
 
-        self.index
-            .height
-            .validate_computed_version_or_reset(dep_version)?;
-        self.index.height.truncate_if_needed(starting_height)?;
-
-        self.index.height.repeat_until_complete(exit, |vec| {
-            let skip = vec.len();
-            let source_end = bands.iter().map(|b| b.len()).min().unwrap().min(spot.len());
-            let end = vec.batch_end(source_end);
-
-            if skip >= end {
-                return Ok(());
-            }
-
-            let spot_batch = spot.collect_range_at(skip, end);
-            let b: [Vec<Cents>; 10] = bands.each_ref().map(|v| v.collect_range_at(skip, end));
-
-            for (j, price) in spot_batch.into_iter().enumerate() {
-                vec.push(StoredI8::new(score_at(price, &b, j)));
-            }
-
-            Ok(())
-        })?;
+                Ok(())
+            },
+            exit,
+        )?;
 
         Ok(())
     }
@@ -272,180 +150,81 @@ impl RarityMeterInner {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let dep_version: Version = components
+        let dependency_version = components
             .iter()
-            .map(|component| {
-                component.pct0_1.price.cents.height.version()
-                    + component.pct0_5.price.cents.height.version()
-                    + component.pct1.price.cents.height.version()
-                    + component.pct2.price.cents.height.version()
-                    + component.pct5.price.cents.height.version()
-                    + component.pct95.price.cents.height.version()
-                    + component.pct98.price.cents.height.version()
-                    + component.pct99.price.cents.height.version()
-                    + component.pct99_5.price.cents.height.version()
-                    + component.pct99_9.price.cents.height.version()
-            })
+            .map(|component| component.boundary_version())
             .sum::<Version>()
             + spot.version();
+        let source_end = components
+            .iter()
+            .map(|component| component.boundary_len())
+            .min()
+            .unwrap_or_default()
+            .min(spot.len());
 
-        self.score
-            .height
-            .validate_computed_version_or_reset(dep_version)?;
-        self.score.height.truncate_if_needed(starting_height)?;
-
-        self.score.height.repeat_until_complete(exit, |vec| {
-            let skip = vec.len();
-            let source_end = components
-                .iter()
-                .flat_map(|component| {
-                    [
-                        component.pct0_1.price.cents.height.len(),
-                        component.pct0_5.price.cents.height.len(),
-                        component.pct1.price.cents.height.len(),
-                        component.pct2.price.cents.height.len(),
-                        component.pct5.price.cents.height.len(),
-                        component.pct95.price.cents.height.len(),
-                        component.pct98.price.cents.height.len(),
-                        component.pct99.price.cents.height.len(),
-                        component.pct99_5.price.cents.height.len(),
-                        component.pct99_9.price.cents.height.len(),
-                    ]
-                })
-                .min()
-                .unwrap()
-                .min(spot.len());
-            let end = vec.batch_end(source_end);
-
-            if skip >= end {
-                return Ok(());
-            }
-
-            let spot_batch = spot.collect_range_at(skip, end);
-
-            let bands: Vec<[Vec<Cents>; 10]> = components
-                .iter()
-                .map(|component| {
-                    [
-                        component
-                            .pct0_1
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct0_5
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct1
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct2
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct5
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct95
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct98
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct99
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct99_5
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                        component
-                            .pct99_9
-                            .price
-                            .cents
-                            .height
-                            .collect_range_at(skip, end),
-                    ]
-                })
-                .collect();
-
-            for (j, price) in spot_batch.into_iter().enumerate() {
-                let mut total: i8 = 0;
-
-                for component in &bands {
-                    total += score_at(price, component, j);
+        self.score.height.compute_batched_to(
+            starting_height,
+            source_end,
+            dependency_version,
+            COMPUTE_BATCH_SIZE,
+            |score, range| {
+                let spot = spot.collect_range_at(range.start, range.end);
+                let component_prices: Vec<_> = components
+                    .iter()
+                    .map(|component| component.collect_boundary_prices(range.start, range.end))
+                    .collect();
+                for (offset, price) in spot.into_iter().enumerate() {
+                    let value = component_prices
+                        .iter()
+                        .map(|bands| score_at(price, bands, offset))
+                        .sum();
+                    score.push(StoredI8::new(value));
                 }
 
-                vec.push(StoredI8::new(total));
-            }
-
-            Ok(())
-        })?;
+                Ok(())
+            },
+            exit,
+        )?;
 
         Ok(())
     }
 }
 
-fn compute_inner_percentile(
-    out: &mut EagerVec<PcoVec<Height, Cents>>,
-    max_from: Height,
-    lower: &EagerVec<PcoVec<Height, Cents>>,
-    upper: &EagerVec<PcoVec<Height, Cents>>,
-    percentile: u8,
-    exit: &Exit,
-) -> Result<()> {
-    debug_assert!((5..=95).contains(&percentile));
-    let position = (f64::from(percentile) - 5.0) / 90.0;
-
-    out.validate_and_truncate(lower.version() + upper.version(), max_from)?;
-
-    out.repeat_until_complete(exit, |vec| {
-        let skip = vec.len();
-        let source_end = lower.len().min(upper.len());
-        let end = vec.batch_end(source_end);
-        if skip >= end {
-            return Ok(());
+fn combine_percentiles(
+    component_prices: &[[Vec<Cents>; 10]],
+    offset: usize,
+) -> [Cents; RARITY_PERCENTILES_LEN] {
+    let boundary_values = BOUNDARY_PERCENTILE_IDS.map(|id| {
+        let index = boundary_index(id).expect("boundary percentile");
+        let values = component_prices
+            .iter()
+            .map(|component| component[index][offset]);
+        if is_lower_boundary(id) {
+            values.max().expect("rarity meter component")
+        } else {
+            values.min().expect("rarity meter component")
         }
+    });
+    let lower = boundary_values[boundary_index(RarityPercentileId::Pct5).unwrap()];
+    let upper = boundary_values[boundary_index(RarityPercentileId::Pct95).unwrap()];
 
-        let lower_batch = lower.collect_range_at(skip, end);
-        let upper_batch = upper.collect_range_at(skip, end);
-        for j in 0..(end - skip) {
-            let lower = f64::from(lower_batch[j]);
-            let upper = f64::from(upper_batch[j]);
-            let value = if lower > 0.0 && upper > 0.0 {
-                (lower.ln() + position * (upper.ln() - lower.ln())).exp()
-            } else {
-                lower + position * (upper - lower)
-            };
-            vec.push(Cents::from(value.round()));
-        }
+    RarityPercentileId::from_fn(|id| {
+        boundary_index(id)
+            .map(|index| boundary_values[index])
+            .unwrap_or_else(|| interpolate(lower, upper, id.percentile()))
+    })
+}
 
-        Ok(())
-    })?;
-
-    Ok(())
+fn interpolate(lower: Cents, upper: Cents, percentile: f64) -> Cents {
+    let position = (percentile - 0.05) / 0.90;
+    let lower = f64::from(lower);
+    let upper = f64::from(upper);
+    let value = if lower > 0.0 && upper > 0.0 {
+        (lower.ln() + position * (upper.ln() - lower.ln())).exp()
+    } else {
+        lower + position * (upper - lower)
+    };
+    Cents::from(value.round())
 }
 
 fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
@@ -453,4 +232,33 @@ fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
     let upper = bands[5..].iter().filter(|band| price > band[index]).count() as i8;
 
     upper - lower
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn bands(values: [u64; 10]) -> [Vec<Cents>; 10] {
+        values.map(|value| vec![Cents::from(value)])
+    }
+
+    #[test]
+    fn combines_tightest_boundaries_and_interpolates_inner_percentiles() {
+        use RarityPercentileId::*;
+
+        let components = [
+            bands([10, 20, 30, 40, 50, 500, 600, 700, 800, 900]),
+            bands([15, 25, 35, 45, 55, 450, 550, 650, 750, 850]),
+        ];
+        let row = combine_percentiles(&components, 0);
+
+        assert_eq!(*Pct0_1.get(&row), Cents::from(15_u64));
+        assert_eq!(*Pct5.get(&row), Cents::from(55_u64));
+        assert_eq!(*Pct95.get(&row), Cents::from(450_u64));
+        assert_eq!(*Pct99_9.get(&row), Cents::from(850_u64));
+        assert_eq!(
+            *Pct50.get(&row),
+            interpolate(Cents::from(55_u64), Cents::from(450_u64), 0.5)
+        );
+    }
 }

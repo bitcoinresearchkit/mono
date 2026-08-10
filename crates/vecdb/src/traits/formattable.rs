@@ -70,6 +70,35 @@ impl Formattable for bool {
     }
 }
 
+impl<T: Formattable, const N: usize> Formattable for [T; N] {
+    fn write_to(&self, buf: &mut Vec<u8>) {
+        buf.push(b'[');
+        for (index, value) in self.iter().enumerate() {
+            if index > 0 {
+                buf.push(b',');
+            }
+            value.fmt_json(buf);
+        }
+        buf.push(b']');
+    }
+
+    fn fmt_csv(&self, output: &mut String) -> fmt::Result {
+        let mut json = Vec::new();
+        self.write_to(&mut json);
+        let json = std::str::from_utf8(&json).map_err(|_| fmt::Error)?;
+
+        output.push('"');
+        for character in json.chars() {
+            if character == '"' {
+                output.push('"');
+            }
+            output.push(character);
+        }
+        output.push('"');
+        Ok(())
+    }
+}
+
 impl<T: Formattable> Formattable for Option<T> {
     #[inline]
     fn write_to(&self, buf: &mut Vec<u8>) {
@@ -92,5 +121,22 @@ impl<T: Formattable> Formattable for Option<T> {
             Some(v) => v.fmt_json(buf),
             None => buf.extend_from_slice(b"null"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Formattable;
+
+    #[test]
+    fn arrays_format_as_json_and_one_csv_cell() {
+        let values = [1_u16, 2, 3];
+        let mut json = Vec::new();
+        values.fmt_json(&mut json);
+        assert_eq!(json, b"[1,2,3]");
+
+        let mut csv = String::new();
+        values.fmt_csv(&mut csv).unwrap();
+        assert_eq!(csv, "\"[1,2,3]\"");
     }
 }

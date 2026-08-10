@@ -8,6 +8,8 @@ use crate::{
     AnyVec, CheckedSub, Error, Exit, ReadableVec, Result, StoredVec, VecIndex, VecValue, Version,
     WritableVec,
 };
+#[cfg(feature = "pco")]
+use crate::{ColumnId, ColumnarVec, PcoVec, PcoVecValue};
 
 use super::super::EagerVec;
 
@@ -1172,5 +1174,207 @@ where
             |(i, ratio, sma, sd, ..)| (i, (ratio - sma) / sd),
             exit,
         )
+    }
+}
+
+#[cfg(feature = "pco")]
+impl<I, T, C> EagerVec<ColumnarVec<PcoVec<I, T>, C>>
+where
+    I: VecIndex,
+    T: PcoVecValue,
+    C: ColumnId,
+{
+    /// Computes one rolling EMA per column from a shared value source.
+    pub fn compute_rolling_ema_columns<'a, A, W>(
+        &mut self,
+        max_from: I,
+        window_starts: impl Fn(C) -> &'a W,
+        values: &impl ReadableVec<I, A>,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        W: ReadableVec<I, I> + 'a,
+        f64: From<A> + From<T>,
+        T: From<f64> + Default,
+    {
+        let window_starts: Vec<_> = C::ALL.iter().map(|&column| window_starts(column)).collect();
+        let dependency_version = Version::new(2)
+            + values.version()
+            + window_starts
+                .iter()
+                .map(|window_starts| window_starts.version())
+                .sum();
+        let source_len = window_starts
+            .iter()
+            .map(|window_starts| window_starts.len())
+            .chain(std::iter::once(values.len()))
+            .min()
+            .unwrap_or_default();
+
+        self.compute_init(dependency_version, max_from, exit, |this| {
+            let start = this.len();
+            let end = this.batch_end(source_len);
+            if start >= end {
+                return Ok(());
+            }
+
+            let mut previous = if start > 0 {
+                C::map(this.collect_one_at(start - 1).unwrap(), f64::from)
+            } else {
+                C::from_fn(|_| 0.0_f64)
+            };
+            let window_start_batches: Vec<_> = window_starts
+                .iter()
+                .map(|window_starts| window_starts.collect_range_at(start, end))
+                .collect();
+            let values = values.collect_range_at(start, end);
+
+            for (offset, value) in values.into_iter().enumerate() {
+                let index = start + offset;
+                let value = f64::from(value);
+                this.push(C::from_fn(|column| {
+                    let window_start = window_start_batches[column.index()][offset].to_usize();
+                    let span = (index - window_start + 1) as f64;
+                    let alpha = 2.0 / (span + 1.0);
+                    let previous = column.get_mut(&mut previous);
+                    *previous = alpha * value + (1.0 - alpha) * *previous;
+                    T::from(*previous)
+                }));
+            }
+
+            Ok(())
+        })
+    }
+}
+
+#[cfg(all(test, feature = "pco"))]
+mod columnar_tests {
+    use crate::{
+        AnyStoredVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec,
+        PcoVec, ReadableVec, VecValue, Version, WritableVec,
+    };
+
+    use super::*;
+
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    enum Column {
+        Short,
+        Long,
+    }
+
+    impl ColumnId for Column {
+        type Row<T>
+            = [T; 2]
+        where
+            T: VecValue;
+
+        const VERSION: Version = Version::ONE;
+        const ALL: &'static [Self] = &[Self::Short, Self::Long];
+
+        fn index(self) -> usize {
+            self as usize
+        }
+
+        fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+            &row[self.index()]
+        }
+
+        fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+            &mut row[self.index()]
+        }
+
+        fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+        where
+            T: VecValue,
+            F: FnMut(Self) -> T,
+        {
+            [create(Self::Short), create(Self::Long)]
+        }
+
+        fn map<T, U, F>(row: Self::Row<T>, mut create: F) -> Self::Row<U>
+        where
+            T: VecValue,
+            U: VecValue,
+            F: FnMut(T) -> U,
+        {
+            let [short, long] = row;
+            [create(short), create(long)]
+        }
+    }
+
+    #[test]
+    fn columnar_ema_matches_individual_emas() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "vecdb-columnar-ema-{}-{suffix}",
+            std::process::id()
+        ));
+        let db = Database::open(&path).unwrap();
+
+        let mut values: EagerVec<PcoVec<usize, f64>> =
+            EagerVec::forced_import(&db, "values", Version::ONE).unwrap();
+        let mut short_starts: EagerVec<BytesVec<usize, usize>> =
+            EagerVec::forced_import(&db, "short_starts", Version::ONE).unwrap();
+        let mut long_starts: EagerVec<BytesVec<usize, usize>> =
+            EagerVec::forced_import(&db, "long_starts", Version::ONE).unwrap();
+
+        for value in [100.0, 110.0, 90.0, 120.0, 80.0, 130.0] {
+            values.push(value);
+        }
+        for start in [0, 0, 1, 2, 3, 4] {
+            short_starts.push(start);
+        }
+        for start in [0, 0, 0, 0, 0, 0] {
+            long_starts.push(start);
+        }
+        values.write().unwrap();
+        short_starts.write().unwrap();
+        long_starts.write().unwrap();
+
+        let exit = Exit::new();
+        let mut short: EagerVec<PcoVec<usize, f64>> =
+            EagerVec::forced_import(&db, "short", Version::ONE).unwrap();
+        let mut long: EagerVec<PcoVec<usize, f64>> =
+            EagerVec::forced_import(&db, "long", Version::ONE).unwrap();
+        short
+            .compute_rolling_ema(0, &short_starts, &values, &exit)
+            .unwrap();
+        long.compute_rolling_ema(0, &long_starts, &values, &exit)
+            .unwrap();
+
+        let mut columnar: EagerVec<ColumnarVec<PcoVec<usize, f64>, Column>> =
+            EagerVec::forced_import(&db, "columnar", Version::ONE).unwrap();
+        columnar
+            .compute_rolling_ema_columns(
+                0,
+                |column| match column {
+                    Column::Short => &short_starts,
+                    Column::Long => &long_starts,
+                },
+                &values,
+                &exit,
+            )
+            .unwrap();
+
+        let expected: Vec<_> = short
+            .collect_range_at(0, values.len())
+            .into_iter()
+            .zip(long.collect_range_at(0, values.len()))
+            .map(|(short, long)| [short, long])
+            .collect();
+        assert_eq!(columnar.collect_range_at(0, values.len()), expected);
+
+        drop(columnar);
+        drop(long);
+        drop(short);
+        drop(long_starts);
+        drop(short_starts);
+        drop(values);
+        drop(db);
+        std::fs::remove_dir_all(path).unwrap();
     }
 }

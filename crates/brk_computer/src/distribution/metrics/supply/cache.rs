@@ -1,7 +1,7 @@
 use brk_types::{Height, Sats};
 use vecdb::{
-    CachedBoxedVec, CachedReadableVec, CachedVec, EagerVec, PcoVec, PcodecStrategy, ReadOnlyClone,
-    ReadOnlyCompressedVec,
+    CachedBoxedVec, CachedReadableVec, CachedVec, ReadableBoxedVec, ReadableCloneableVec,
+    ReadableVec, TypedVec,
 };
 
 /// Pinned in-memory snapshot of the all-cohort supply.
@@ -10,18 +10,33 @@ use vecdb::{
 /// global cache budget because evicting it would make each lazy read hit disk.
 #[derive(Clone)]
 pub(crate) struct AllSupplyCache {
-    cache: CachedVec<ReadOnlyCompressedVec<Height, Sats, PcodecStrategy<Sats>>>,
+    cache: CachedBoxedVec<Height, Sats>,
+    source: ReadableBoxedVec<Height, Sats>,
 }
 
 impl AllSupplyCache {
-    pub(crate) fn new(source: &EagerVec<PcoVec<Height, Sats>>) -> Self {
-        Self {
-            cache: CachedVec::wrap(source.read_only_clone()),
-        }
+    pub(crate) fn new<V>(source: V) -> Self
+    where
+        V: TypedVec<I = Height, T = Sats>
+            + ReadableVec<Height, Sats>
+            + Clone
+            + Send
+            + Sync
+            + 'static,
+    {
+        let cache = CachedVec::wrap(source);
+        let source = ReadableCloneableVec::read_only_boxed_clone(&cache);
+        let cache = cache.cached_boxed_clone();
+
+        Self { cache, source }
     }
 
     pub(crate) fn cached_boxed_clone(&self) -> CachedBoxedVec<Height, Sats> {
         self.cache.cached_boxed_clone()
+    }
+
+    pub(crate) fn readable_boxed_clone(&self) -> ReadableBoxedVec<Height, Sats> {
+        self.source.read_only_boxed_clone()
     }
 
     pub(crate) fn clear(&self) {
@@ -32,7 +47,7 @@ impl AllSupplyCache {
 #[cfg(test)]
 mod tests {
     use brk_types::Version;
-    use vecdb::{AnyStoredVec, Database, ImportableVec, WritableVec};
+    use vecdb::{AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone, WritableVec};
 
     use super::*;
 
@@ -54,7 +69,7 @@ mod tests {
         source.push(Sats::new(20));
         source.write().unwrap();
 
-        let cache = AllSupplyCache::new(&source);
+        let cache = AllSupplyCache::new(source.read_only_clone());
         let reader = cache.cached_boxed_clone();
         assert_eq!(&*reader.cached(), &[Sats::new(10), Sats::new(20)]);
 

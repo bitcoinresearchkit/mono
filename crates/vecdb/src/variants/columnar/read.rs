@@ -1,8 +1,8 @@
-use crate::{AnyVec, READ_CHUNK_SIZE, ReadableVec, StoredVec, VecIndex, VecValue};
+use crate::{AnyVec, READ_CHUNK_SIZE, ReadableVec, StoredVec, VecIndex, VecValue, Version};
 
 use super::{
-    ColumnId, ColumnarVec, ColumnarVecColumn, ReadOnlyColumnarVec, ReadableColumnarVec,
-    rows_per_block, schema::validate_column,
+    ColumnId, ColumnarVec, LazyColumnVec, ReadOnlyColumnarVec, ReadableColumnarVec, rows_per_block,
+    schema::validate_column,
 };
 
 /// Reads matrix rows from a flat page-blocked scalar vector.
@@ -123,6 +123,17 @@ where
     V: StoredVec,
     C: ColumnId,
 {
+    #[inline(always)]
+    fn collect_one_at(&self, index: usize) -> Option<C::Row<V::T>> {
+        if index >= self.stored_rows {
+            return self.pushed.get(index - self.stored_rows).cloned();
+        }
+
+        let mut row = Vec::with_capacity(1);
+        read_rows::<V::I, V::T, V, C>(&self.vec, self.flat_rows(), index, index + 1, &mut row);
+        row.pop()
+    }
+
     fn cursor_chunk_size(&self) -> usize {
         Self::ROWS_PER_BLOCK * READ_CHUNK_SIZE.div_ceil(Self::ROWS_PER_BLOCK)
     }
@@ -216,14 +227,19 @@ where
     }
 }
 
-impl<S, C> ColumnarVecColumn<S, C>
+impl<S, C> LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
-    pub(super) fn new(source: S, column: C) -> Self {
+    pub(super) fn new(name: &str, version: Version, source: S, column: C) -> Self {
         validate_column(column);
-        Self { source, column }
+        Self {
+            name: name.into(),
+            base_version: version,
+            source,
+            column,
+        }
     }
 }
 
@@ -289,7 +305,7 @@ where
     Ok(acc.expect("column fold accumulator"))
 }
 
-impl<S, C> ReadableVec<S::I, S::T> for ColumnarVecColumn<S, C>
+impl<S, C> ReadableVec<S::I, S::T> for LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
@@ -345,7 +361,7 @@ where
     let from = from.min(vec.len());
     let to = to.min(vec.len());
     let chunk = vec.cursor_chunk_size().max(1);
-    let mut buf = Vec::with_capacity(chunk);
+    let mut buf = Vec::with_capacity(chunk.min(to.saturating_sub(from)));
     let mut at = from;
     while at < to {
         let end = (at + chunk).min(to);
@@ -375,7 +391,7 @@ where
     let from = from.min(vec.len());
     let to = to.min(vec.len());
     let chunk = vec.cursor_chunk_size().max(1);
-    let mut buf = Vec::with_capacity(chunk);
+    let mut buf = Vec::with_capacity(chunk.min(to.saturating_sub(from)));
     let mut at = from;
     while at < to {
         let end = (at + chunk).min(to);

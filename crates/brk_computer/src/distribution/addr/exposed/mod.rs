@@ -88,12 +88,21 @@ impl ExposedAddrVecs {
             .min(self.supply.min_stateful_len())
     }
 
+    pub(crate) fn par_iter_stateful_height_mut(
+        &mut self,
+    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        self.count
+            .par_iter_height_mut()
+            .chain(self.supply.par_iter_height_mut())
+    }
+
     pub(crate) fn par_iter_height_mut(
         &mut self,
     ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.count
             .par_iter_height_mut()
             .chain(self.supply.par_iter_height_mut())
+            .chain(rayon::iter::once(self.supply_share.stored_mut()))
     }
 
     pub(crate) fn reset_height(&mut self) -> Result<()> {
@@ -115,7 +124,6 @@ impl ExposedAddrVecs {
         type_supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,
         exit: &Exit,
     ) -> Result<()> {
-        self.count.compute_rest(starting_lengths, exit)?;
         self.supply_share.compute_rest(
             starting_lengths.height,
             &self.supply,

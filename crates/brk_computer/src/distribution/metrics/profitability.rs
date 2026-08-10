@@ -1,256 +1,159 @@
-use brk_cohort::{Loss, Profit, ProfitabilityRange};
+use brk_cohort::{
+    Loss, PROFITABILITY_RANGE_COUNT, Profit, ProfitabilityId, ProfitabilityRange, ProfitabilityRow,
+};
 use brk_error::Result;
 use brk_indexer::Lengths;
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Height, PartsPerMillionSigned32, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, CachedBoxedVec, Database, Exit, Rw, StorageMode, WritableVec};
+use vecdb::{
+    AnyStoredVec, AnyVec, CachedBoxedVec, ColumnId, ColumnarVec, Database, EagerVec, Exit,
+    ImportableVec, PcoVec, ReadOnlyClone, ReadOnlyColumnarVec, Rw, StorageMode, WritableVec,
+};
 
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, PerBlock, RatioPerBlock, SpotValuePerBlock,
-        SpotValuePerBlockWithDeltas, Windows,
+        CachedWindowStartVec, LazyColumnPerBlock, LazyColumnRatioPerBlock,
+        LazyColumnSpotValuePerBlock, LazyColumnSpotValuePerBlockWithDeltas, Windows,
     },
     price,
 };
 
-#[derive(Traversable)]
+#[derive(Clone, Traversable)]
 pub struct WithSth<All, Sth = All> {
     pub all: All,
     pub sth: Sth,
 }
 
-#[derive(Traversable)]
-pub struct ProfitabilityBucket<M: StorageMode = Rw> {
-    pub supply: WithSth<SpotValuePerBlockWithDeltas<M>, SpotValuePerBlock<M>>,
-    pub realized_cap: WithSth<PerBlock<Dollars, M>>,
-    pub unrealized_pnl: WithSth<PerBlock<Dollars, M>>,
-    pub nupl: RatioPerBlock<PartsPerMillionSigned32, M>,
+#[derive(Clone, Traversable)]
+pub struct ProfitabilityBucket {
+    pub supply: WithSth<
+        LazyColumnSpotValuePerBlockWithDeltas<ProfitabilityId>,
+        LazyColumnSpotValuePerBlock<ProfitabilityId>,
+    >,
+    pub realized_cap: WithSth<
+        LazyColumnPerBlock<Dollars, ProfitabilityId>,
+        LazyColumnPerBlock<Dollars, ProfitabilityId>,
+    >,
+    pub unrealized_pnl: WithSth<
+        LazyColumnPerBlock<Dollars, ProfitabilityId>,
+        LazyColumnPerBlock<Dollars, ProfitabilityId>,
+    >,
+    pub nupl: LazyColumnRatioPerBlock<PartsPerMillionSigned32, ProfitabilityId>,
 }
 
-impl<M: StorageMode> ProfitabilityBucket<M> {
-    fn min_len(&self) -> usize {
-        self.supply
-            .all
-            .sats
-            .height
-            .len()
-            .min(self.realized_cap.all.height.len())
-    }
+struct ProfitabilitySources {
+    all_supply_sats: ReadOnlyColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>,
+    sth_supply_sats: ReadOnlyColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>,
+    all_realized_cap: ReadOnlyColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>,
+    sth_realized_cap: ReadOnlyColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>,
+    all_unrealized_pnl: ReadOnlyColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>,
+    sth_unrealized_pnl: ReadOnlyColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>,
+    nupl: ReadOnlyColumnarVec<PcoVec<Height, PartsPerMillionSigned32>, ProfitabilityId>,
 }
 
 impl ProfitabilityBucket {
-    fn forced_import(
-        db: &Database,
+    fn new(
         name: &str,
         version: Version,
+        column: ProfitabilityId,
+        sources: &ProfitabilitySources,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
-        Ok(Self {
+    ) -> Self {
+        Self {
             supply: WithSth {
-                all: SpotValuePerBlockWithDeltas::forced_import(
-                    db,
+                all: LazyColumnSpotValuePerBlockWithDeltas::new(
                     &format!("{name}_supply"),
                     version,
+                    &sources.all_supply_sats,
+                    column,
                     indexes,
                     cached_starts,
                     spot_price,
-                )?,
-                sth: SpotValuePerBlock::forced_import(
-                    db,
+                ),
+                sth: LazyColumnSpotValuePerBlock::new(
                     &format!("{name}_sth_supply"),
                     version,
+                    &sources.sth_supply_sats,
+                    column,
                     indexes,
                     spot_price,
-                )?,
+                ),
             },
             realized_cap: WithSth {
-                all: PerBlock::forced_import(
-                    db,
+                all: LazyColumnPerBlock::new(
                     &format!("{name}_realized_cap"),
                     version,
+                    &sources.all_realized_cap,
+                    column,
                     indexes,
-                )?,
-                sth: PerBlock::forced_import(
-                    db,
+                ),
+                sth: LazyColumnPerBlock::new(
                     &format!("{name}_sth_realized_cap"),
                     version,
+                    &sources.sth_realized_cap,
+                    column,
                     indexes,
-                )?,
+                ),
             },
             unrealized_pnl: WithSth {
-                all: PerBlock::forced_import(
-                    db,
+                all: LazyColumnPerBlock::new(
                     &format!("{name}_unrealized_pnl"),
                     version,
+                    &sources.all_unrealized_pnl,
+                    column,
                     indexes,
-                )?,
-                sth: PerBlock::forced_import(
-                    db,
+                ),
+                sth: LazyColumnPerBlock::new(
                     &format!("{name}_sth_unrealized_pnl"),
                     version,
+                    &sources.sth_unrealized_pnl,
+                    column,
                     indexes,
-                )?,
+                ),
             },
-            nupl: RatioPerBlock::forced_import_ppm(
-                db,
+            nupl: LazyColumnRatioPerBlock::new(
                 &format!("{name}_nupl"),
-                version + Version::ONE,
+                version + Version::new(4),
+                &sources.nupl,
+                column,
                 indexes,
-            )?,
-        })
-    }
-
-    #[inline(always)]
-    pub(crate) fn push(
-        &mut self,
-        supply: Sats,
-        sth_supply: Sats,
-        realized_cap: Dollars,
-        sth_realized_cap: Dollars,
-    ) {
-        self.supply.all.sats.height.push(supply);
-        self.supply.sth.sats.height.push(sth_supply);
-        self.realized_cap.all.height.push(realized_cap);
-        self.realized_cap.sth.height.push(sth_realized_cap);
-    }
-
-    pub(crate) fn compute(
-        &mut self,
-        prices: &price::Vecs,
-        starting_lengths: &Lengths,
-        is_profit: bool,
-        exit: &Exit,
-    ) -> Result<()> {
-        let max_from = starting_lengths.height;
-
-        self.unrealized_pnl.all.height.compute_transform3(
-            max_from,
-            &prices.spot.cents.height,
-            &self.realized_cap.all.height,
-            &self.supply.all.sats.height,
-            |(i, spot, cap, supply, ..)| {
-                let mv = f64::from(Dollars::from(spot)) * f64::from(Bitcoin::from(supply));
-                let rc = f64::from(cap);
-                let pnl = if is_profit { mv - rc } else { rc - mv }.max(0.0);
-                (i, Dollars::from(pnl))
-            },
-            exit,
-        )?;
-        self.unrealized_pnl.sth.height.compute_transform3(
-            max_from,
-            &prices.spot.cents.height,
-            &self.realized_cap.sth.height,
-            &self.supply.sth.sats.height,
-            |(i, spot, cap, supply, ..)| {
-                let mv = f64::from(Dollars::from(spot)) * f64::from(Bitcoin::from(supply));
-                let rc = f64::from(cap);
-                let pnl = if is_profit { mv - rc } else { rc - mv }.max(0.0);
-                (i, Dollars::from(pnl))
-            },
-            exit,
-        )?;
-
-        self.nupl.ppm.height.compute_transform3(
-            max_from,
-            &prices.spot.cents.height,
-            &self.realized_cap.all.height,
-            &self.supply.all.sats.height,
-            |(i, spot, cap_dollars, supply_sats, ..)| {
-                let p = spot.as_u128();
-                let supply = supply_sats.as_u128();
-                if p == 0 || supply == 0 {
-                    (i, PartsPerMillionSigned32::ZERO)
-                } else {
-                    let rp = Cents::from(cap_dollars).as_u128() * Sats::ONE_BTC_U128 / supply;
-                    let ratio = (p as f64 - rp as f64) / p as f64;
-                    (i, PartsPerMillionSigned32::from(ratio))
-                }
-            },
-            exit,
-        )?;
-
-        Ok(())
-    }
-
-    pub(crate) fn compute_from_ranges(
-        &mut self,
-        prices: &price::Vecs,
-        starting_lengths: &Lengths,
-        is_profit: bool,
-        sources: &[&ProfitabilityBucket],
-        exit: &Exit,
-    ) -> Result<()> {
-        let max_from = starting_lengths.height;
-
-        self.supply.all.sats.height.compute_sum_of_others(
-            max_from,
-            &sources
-                .iter()
-                .map(|s| &s.supply.all.sats.height)
-                .collect::<Vec<_>>(),
-            exit,
-        )?;
-        self.supply.sth.sats.height.compute_sum_of_others(
-            max_from,
-            &sources
-                .iter()
-                .map(|s| &s.supply.sth.sats.height)
-                .collect::<Vec<_>>(),
-            exit,
-        )?;
-        self.realized_cap.all.height.compute_sum_of_others(
-            max_from,
-            &sources
-                .iter()
-                .map(|s| &s.realized_cap.all.height)
-                .collect::<Vec<_>>(),
-            exit,
-        )?;
-        self.realized_cap.sth.height.compute_sum_of_others(
-            max_from,
-            &sources
-                .iter()
-                .map(|s| &s.realized_cap.sth.height)
-                .collect::<Vec<_>>(),
-            exit,
-        )?;
-
-        self.compute(prices, starting_lengths, is_profit, exit)
-    }
-
-    pub(crate) fn collect_all_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        vec![
-            &mut self.supply.all.inner.sats.height as &mut dyn AnyStoredVec,
-            &mut self.supply.sth.sats.height,
-            &mut self.realized_cap.all.height,
-            &mut self.realized_cap.sth.height,
-            &mut self.unrealized_pnl.all.height,
-            &mut self.unrealized_pnl.sth.height,
-            &mut self.nupl.ppm.height,
-        ]
+            ),
+        }
     }
 }
 
 /// All profitability metrics: 25 ranges + 14 profit thresholds + 9 loss thresholds.
 #[derive(Traversable)]
 pub struct ProfitabilityMetrics<M: StorageMode = Rw> {
-    pub range: ProfitabilityRange<ProfitabilityBucket<M>>,
-    pub profit: Profit<ProfitabilityBucket<M>>,
-    pub loss: Loss<ProfitabilityBucket<M>>,
+    pub range: ProfitabilityRange<ProfitabilityBucket>,
+    pub profit: Profit<ProfitabilityBucket>,
+    pub loss: Loss<ProfitabilityBucket>,
+    pub all_supply_sats: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>>>,
+    pub sth_supply_sats: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>>>,
+    pub all_realized_cap:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>>,
+    pub sth_realized_cap:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>>,
+    pub all_unrealized_pnl:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>>,
+    pub sth_unrealized_pnl:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>>,
+    pub nupl:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, PartsPerMillionSigned32>, ProfitabilityId>>>,
 }
 
 impl<M: StorageMode> ProfitabilityMetrics<M> {
-    pub fn iter(&self) -> impl Iterator<Item = &ProfitabilityBucket<M>> {
+    pub fn iter(&self) -> impl Iterator<Item = &ProfitabilityBucket> {
         self.range
             .iter()
             .chain(self.profit.iter())
             .chain(self.loss.iter())
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ProfitabilityBucket<M>> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut ProfitabilityBucket> {
         self.range
             .iter_mut()
             .chain(self.profit.iter_mut())
@@ -258,7 +161,7 @@ impl<M: StorageMode> ProfitabilityMetrics<M> {
     }
 
     pub(crate) fn min_stateful_len(&self) -> usize {
-        self.range.iter().map(|b| b.min_len()).min().unwrap_or(0)
+        self.all_supply_sats.len().min(self.all_realized_cap.len())
     }
 }
 
@@ -270,46 +173,129 @@ impl ProfitabilityMetrics {
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let range = ProfitabilityRange::try_new(|name| {
-            ProfitabilityBucket::forced_import(
+        let source_version = version + Version::TWO;
+        let all_supply_sats =
+            EagerVec::<ColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>>::forced_import(
                 db,
+                "profitability_all_supply_sats",
+                source_version,
+            )?;
+        let sth_supply_sats =
+            EagerVec::<ColumnarVec<PcoVec<Height, Sats>, ProfitabilityId>>::forced_import(
+                db,
+                "profitability_sth_supply_sats",
+                source_version,
+            )?;
+        let all_realized_cap =
+            EagerVec::<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>::forced_import(
+                db,
+                "profitability_all_realized_cap",
+                source_version,
+            )?;
+        let sth_realized_cap =
+            EagerVec::<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>::forced_import(
+                db,
+                "profitability_sth_realized_cap",
+                source_version,
+            )?;
+        let all_unrealized_pnl =
+            EagerVec::<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>::forced_import(
+                db,
+                "profitability_all_unrealized_pnl",
+                source_version,
+            )?;
+        let sth_unrealized_pnl =
+            EagerVec::<ColumnarVec<PcoVec<Height, Dollars>, ProfitabilityId>>::forced_import(
+                db,
+                "profitability_sth_unrealized_pnl",
+                source_version,
+            )?;
+        let nupl = EagerVec::<ColumnarVec<
+            PcoVec<Height, PartsPerMillionSigned32>,
+            ProfitabilityId,
+        >>::forced_import(
+            db,
+            "profitability_nupl_ppm",
+            source_version + Version::new(4),
+        )?;
+
+        let sources = ProfitabilitySources {
+            all_supply_sats: all_supply_sats.read_only_clone(),
+            sth_supply_sats: sth_supply_sats.read_only_clone(),
+            all_realized_cap: all_realized_cap.read_only_clone(),
+            sth_realized_cap: sth_realized_cap.read_only_clone(),
+            all_unrealized_pnl: all_unrealized_pnl.read_only_clone(),
+            sth_unrealized_pnl: sth_unrealized_pnl.read_only_clone(),
+            nupl: nupl.read_only_clone(),
+        };
+
+        let range = ProfitabilityId::range_series(|column, name| {
+            ProfitabilityBucket::new(
                 name,
                 version,
+                column,
+                &sources,
                 indexes,
                 cached_starts,
                 spot_price,
             )
-        })?;
+        });
 
         let aggregate_version = version + Version::TWO;
-
-        let profit = Profit::try_new(|name| {
-            ProfitabilityBucket::forced_import(
-                db,
+        let profit = ProfitabilityId::profit_series(|column, name| {
+            ProfitabilityBucket::new(
                 name,
                 aggregate_version,
+                column,
+                &sources,
                 indexes,
                 cached_starts,
                 spot_price,
             )
-        })?;
+        });
 
-        let loss = Loss::try_new(|name| {
-            ProfitabilityBucket::forced_import(
-                db,
+        let loss = ProfitabilityId::loss_series(|column, name| {
+            ProfitabilityBucket::new(
                 name,
                 aggregate_version,
+                column,
+                &sources,
                 indexes,
                 cached_starts,
                 spot_price,
             )
-        })?;
+        });
 
         Ok(Self {
             range,
             profit,
             loss,
+            all_supply_sats,
+            sth_supply_sats,
+            all_realized_cap,
+            sth_realized_cap,
+            all_unrealized_pnl,
+            sth_unrealized_pnl,
+            nupl,
         })
+    }
+
+    #[inline(always)]
+    pub(crate) fn push_ranges(
+        &mut self,
+        all_supply_sats: [Sats; PROFITABILITY_RANGE_COUNT],
+        sth_supply_sats: [Sats; PROFITABILITY_RANGE_COUNT],
+        all_realized_cap: [Dollars; PROFITABILITY_RANGE_COUNT],
+        sth_realized_cap: [Dollars; PROFITABILITY_RANGE_COUNT],
+    ) {
+        self.all_supply_sats
+            .push(ProfitabilityRow::from_ranges(all_supply_sats));
+        self.sth_supply_sats
+            .push(ProfitabilityRow::from_ranges(sth_supply_sats));
+        self.all_realized_cap
+            .push(ProfitabilityRow::from_ranges(all_realized_cap));
+        self.sth_realized_cap
+            .push(ProfitabilityRow::from_ranges(sth_realized_cap));
     }
 
     pub(crate) fn compute(
@@ -318,27 +304,143 @@ impl ProfitabilityMetrics {
         starting_lengths: &Lengths,
         exit: &Exit,
     ) -> Result<()> {
-        for (is_profit, bucket) in self.range.iter_mut_with_is_profit() {
-            bucket.compute(prices, starting_lengths, is_profit, exit)?;
-        }
+        let Self {
+            all_supply_sats,
+            sth_supply_sats,
+            all_realized_cap,
+            sth_realized_cap,
+            all_unrealized_pnl,
+            sth_unrealized_pnl,
+            nupl,
+            ..
+        } = self;
+        let max_from = starting_lengths.height;
 
-        let range_arr = self.range.as_array();
-
-        for (threshold, sources) in self.profit.iter_mut_with_growing_prefix(&range_arr) {
-            threshold.compute_from_ranges(prices, starting_lengths, true, sources, exit)?;
-        }
-        for (threshold, sources) in self.loss.iter_mut_with_growing_suffix(&range_arr) {
-            threshold.compute_from_ranges(prices, starting_lengths, false, sources, exit)?;
-        }
+        all_unrealized_pnl.compute_transform3(
+            max_from,
+            &prices.spot.cents.height,
+            all_realized_cap,
+            all_supply_sats,
+            |(height, spot, cap, supply, ..)| (height, unrealized_pnl_row(spot, cap, supply)),
+            exit,
+        )?;
+        sth_unrealized_pnl.compute_transform3(
+            max_from,
+            &prices.spot.cents.height,
+            sth_realized_cap,
+            sth_supply_sats,
+            |(height, spot, cap, supply, ..)| (height, unrealized_pnl_row(spot, cap, supply)),
+            exit,
+        )?;
+        nupl.compute_transform3(
+            max_from,
+            &prices.spot.cents.height,
+            all_realized_cap,
+            all_supply_sats,
+            |(height, spot, cap, supply, ..)| (height, nupl_row(spot, cap, supply)),
+            exit,
+        )?;
 
         Ok(())
     }
 
-    pub(crate) fn collect_all_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = Vec::new();
-        for bucket in self.iter_mut() {
-            vecs.extend(bucket.collect_all_vecs_mut());
+    pub(crate) fn collect_all_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 7] {
+        [
+            &mut self.all_supply_sats as &mut dyn AnyStoredVec,
+            &mut self.sth_supply_sats,
+            &mut self.all_realized_cap,
+            &mut self.sth_realized_cap,
+            &mut self.all_unrealized_pnl,
+            &mut self.sth_unrealized_pnl,
+            &mut self.nupl,
+        ]
+    }
+}
+
+fn unrealized_pnl_row(
+    spot: Cents,
+    cap: ProfitabilityRow<Dollars>,
+    supply: ProfitabilityRow<Sats>,
+) -> ProfitabilityRow<Dollars> {
+    ProfitabilityId::from_fn(|column| {
+        let market_value =
+            f64::from(Dollars::from(spot)) * f64::from(Bitcoin::from(*column.get(&supply)));
+        let realized_cap = f64::from(*column.get(&cap));
+        let pnl = if column.is_profit() {
+            market_value - realized_cap
+        } else {
+            realized_cap - market_value
         }
-        vecs
+        .max(0.0);
+        Dollars::from(pnl)
+    })
+}
+
+fn nupl_row(
+    spot: Cents,
+    cap: ProfitabilityRow<Dollars>,
+    supply: ProfitabilityRow<Sats>,
+) -> ProfitabilityRow<PartsPerMillionSigned32> {
+    ProfitabilityId::from_fn(|column| {
+        let spot = spot.as_u128();
+        let supply = column.get(&supply).as_u128();
+        if spot == 0 || supply == 0 {
+            PartsPerMillionSigned32::ZERO
+        } else {
+            let realized_price =
+                Cents::from(*column.get(&cap)).as_u128() * Sats::ONE_BTC_U128 / supply;
+            PartsPerMillionSigned32::from((spot as f64 - realized_price as f64) / spot as f64)
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use brk_cohort::PROFIT_COUNT;
+
+    #[test]
+    fn expanded_profitability_thresholds_match_prefix_and_suffix_sums() {
+        let ranges = std::array::from_fn(|index| Sats::from(index as u64 + 1));
+        let row = ProfitabilityRow::from_ranges(ranges);
+        let sum = |values: &[Sats]| {
+            values
+                .iter()
+                .copied()
+                .fold(Sats::default(), |total, value| total + value)
+        };
+
+        for (threshold, &column) in ProfitabilityId::profit_ids().iter().enumerate() {
+            assert_eq!(
+                *column.get(&row),
+                sum(&ranges[..PROFIT_COUNT + 1 - threshold])
+            );
+        }
+        for (threshold, &column) in ProfitabilityId::loss_ids().iter().enumerate() {
+            assert_eq!(
+                *column.get(&row),
+                sum(&ranges[PROFIT_COUNT + 1 + threshold..])
+            );
+        }
+    }
+
+    #[test]
+    fn derived_rows_preserve_profit_and_loss_polarity() {
+        let supply = ProfitabilityId::from_fn(|_| Sats::ONE_BTC);
+        let cap = ProfitabilityId::from_fn(|column| {
+            Dollars::from(if column.is_profit() { 1.0 } else { 3.0 })
+        });
+        let spot = Cents::from(200_u64);
+
+        let pnl = unrealized_pnl_row(spot, cap.clone(), supply.clone());
+        let nupl = nupl_row(spot, cap, supply);
+
+        for column in ProfitabilityId::ALL {
+            assert_eq!(*column.get(&pnl), Dollars::from(1.0));
+            assert_eq!(
+                *column.get(&nupl),
+                PartsPerMillionSigned32::from(if column.is_profit() { 0.5 } else { -0.5 })
+            );
+        }
     }
 }

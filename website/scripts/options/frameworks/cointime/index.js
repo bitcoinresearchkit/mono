@@ -35,7 +35,19 @@ export function createCointimeSection() {
   const { all } = cohorts.utxo;
   const cointimeAgeRanges = ageRanges.map(({ key, ...range }) => ({
     ...range,
-    tree: cointime.ageRange[key],
+    tree: {
+      coindaysCreated: cointime.ageRange.coindaysCreated[key],
+      coindaysConsumed: cointime.ageRange.coindaysConsumed[key],
+      coindaysStored: cointime.ageRange.coindaysStored[key],
+      wakefulness: cointime.ageRange.activity.wakefulness[key],
+      dormancy: cointime.ageRange.activity.dormancy[key],
+      wakefulnessToDormancy:
+        cointime.ageRange.activity.wakefulnessToDormancy[key],
+      supply: {
+        awake: cointime.ageRange.supply.awake[key],
+        dormant: cointime.ageRange.supply.dormant[key],
+      },
+    },
   }));
   const awakeCohorts = [
     { name: "All", color: colors.awake, tree: cointime },

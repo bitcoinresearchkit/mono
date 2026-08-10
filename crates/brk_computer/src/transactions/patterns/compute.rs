@@ -1,9 +1,9 @@
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{Sats, StoredBool, StoredU64, TxInIndex, TxIndex};
-use vecdb::{AnyStoredVec, AnyVec, Exit, PcoVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, PcoVec, ReadableVec, VecIndex, WritableVec};
 
-use super::{Vecs, coinjoin::Candidate};
+use super::{PatternId, Vecs, coinjoin::Candidate};
 use crate::indexes;
 
 const WRITE_INTERVAL: usize = 10_000;
@@ -32,38 +32,23 @@ impl Vecs {
             + features.has_inscription.version()
             + indexes.height.tx_index_count.version();
 
-        for vec in [
-            &mut self.is_coinjoin,
-            &mut self.is_consolidation,
-            &mut self.is_batch_payout,
-        ] {
-            vec.validate_computed_version_or_reset(version)?;
-        }
-        for vec in [
-            &mut self.count.coinjoin,
-            &mut self.count.consolidation,
-            &mut self.count.batch_payout,
-        ] {
-            vec.validate_computed_version_or_reset(version)?;
-        }
+        self.flags_source
+            .validate_computed_version_or_reset(version)?;
+        self.count
+            .cumulative
+            .validate_computed_version_or_reset(version)?;
 
         let starting_lengths = indexer.safe_lengths();
         let target_tx = indexes.tx_index.input_count.len();
         let target_height = indexes.height.tx_index_count.len();
         let tx_len = self
-            .is_coinjoin
+            .flags_source
             .len()
-            .min(self.is_consolidation.len())
-            .min(self.is_batch_payout.len())
             .min(starting_lengths.tx_index.to_usize());
         let count_len = self
             .count
-            .coinjoin
             .cumulative
-            .height
             .len()
-            .min(self.count.consolidation.cumulative.height.len())
-            .min(self.count.batch_payout.cumulative.height.len())
             .min(starting_lengths.height.to_usize());
         let start_height = count_len.min(next_height(indexes, tx_len, target_tx, target_height));
         if start_height >= target_height {
@@ -72,16 +57,8 @@ impl Vecs {
 
         let first_tx = &indexer.vecs().transactions.first_tx_index;
         let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
-        self.is_coinjoin.truncate_if_needed_at(start_tx)?;
-        self.is_consolidation.truncate_if_needed_at(start_tx)?;
-        self.is_batch_payout.truncate_if_needed_at(start_tx)?;
-        self.count.coinjoin.truncate_if_needed_at(start_height)?;
-        self.count
-            .consolidation
-            .truncate_if_needed_at(start_height)?;
-        self.count
-            .batch_payout
-            .truncate_if_needed_at(start_height)?;
+        self.flags_source.truncate_if_needed_at(start_tx)?;
+        self.count.truncate_if_needed_at(start_height)?;
 
         let first_txin = indexer
             .vecs()
@@ -171,20 +148,19 @@ impl Vecs {
                 coinjoin_count += coinjoin as u64;
                 consolidation_count += consolidation as u64;
                 batch_payout_count += batch_payout as u64;
-                self.is_coinjoin.push(StoredBool::from(coinjoin));
-                self.is_consolidation.push(StoredBool::from(consolidation));
-                self.is_batch_payout.push(StoredBool::from(batch_payout));
+                self.flags_source.push([
+                    StoredBool::from(coinjoin),
+                    StoredBool::from(consolidation),
+                    StoredBool::from(batch_payout),
+                ]);
             }
 
             self.count
-                .coinjoin
-                .push_block(StoredU64::from(coinjoin_count));
-            self.count
-                .consolidation
-                .push_block(StoredU64::from(consolidation_count));
-            self.count
-                .batch_payout
-                .push_block(StoredU64::from(batch_payout_count));
+                .push_block(PatternId::from_fn(|pattern| match pattern {
+                    PatternId::Coinjoin => StoredU64::from(coinjoin_count),
+                    PatternId::Consolidation => StoredU64::from(consolidation_count),
+                    PatternId::BatchPayout => StoredU64::from(batch_payout_count),
+                }));
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
                 let _lock = exit.lock();
@@ -199,12 +175,8 @@ impl Vecs {
     }
 
     fn write(&mut self) -> Result<()> {
-        self.is_coinjoin.write()?;
-        self.is_consolidation.write()?;
-        self.is_batch_payout.write()?;
-        self.count.coinjoin.write()?;
-        self.count.consolidation.write()?;
-        self.count.batch_payout.write()?;
+        self.flags_source.write()?;
+        self.count.write()?;
         Ok(())
     }
 }

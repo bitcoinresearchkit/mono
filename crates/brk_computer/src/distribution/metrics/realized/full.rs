@@ -6,15 +6,18 @@ use brk_types::{
     PartsPerMillion64, PartsPerMillionSigned64, StoredF64, Version,
 };
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, AnyVec, BytesVec, Exit, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{
+    AnyStoredVec, AnyVec, BinaryTransform, BytesVec, Exit, ReadableVec, Rw, StorageMode,
+    WritableVec,
+};
 
 use crate::{
     distribution::AllChainCache,
     distribution::state::{CohortState, CostBasisData, RealizedState, WithCapital},
     internal::{
+        ColumnarPercentRollingWindows, ColumnarRollingWindows, ColumnarRollingWindowsFrom1w,
         FiatPerBlockCumulativeWithSums, LazyPercentPerBlock, PercentPerBlock,
-        PercentRollingWindows, PriceWithRatioPerBlock, RatioCents, RatioCents64,
-        RatioCentsSignedCents, RollingWindows, RollingWindowsFrom1w,
+        PriceWithRatioPerBlock, RatioCents, RatioCents64, RatioCentsSignedCents,
         ValuePerBlockCumulativeRolling,
     },
     price,
@@ -35,7 +38,7 @@ pub struct RealizedNetPnl<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct RealizedSopr<M: StorageMode = Rw> {
     #[traversable(rename = "ratio")]
-    pub ratio_extended: RollingWindowsFrom1w<StoredF64, M>,
+    pub ratio_extended: ColumnarRollingWindowsFrom1w<StoredF64, M>,
 }
 
 #[derive(Traversable)]
@@ -61,13 +64,13 @@ pub struct RealizedFull<M: StorageMode = Rw> {
     #[traversable(wrap = "cap", rename = "to_own_mcap")]
     pub cap_to_own_mcap: LazyPercentPerBlock<PartsPerMillion32>,
     pub gross_pnl: FiatPerBlockCumulativeWithSums<Cents, M>,
-    pub sell_side_risk_ratio: PercentRollingWindows<PartsPerMillion32, M>,
+    pub sell_side_risk_ratio: ColumnarPercentRollingWindows<PartsPerMillion32, M>,
     pub net_pnl: RealizedNetPnl<M>,
     pub sopr: RealizedSopr<M>,
     pub peak_regret: RealizedPeakRegret<M>,
     pub capitalized: RealizedCapitalized<M>,
 
-    pub profit_to_loss_ratio: RollingWindows<StoredF64, M>,
+    pub profit_to_loss_ratio: ColumnarRollingWindows<StoredF64, M>,
 
     #[traversable(hidden)]
     cap_raw: M::Stored<BytesVec<Height, CentsSats>>,
@@ -246,21 +249,22 @@ impl RealizedFull {
         )?;
 
         // SOPR ratios from lazy rolling sums (1w, 1m, 1y)
-        for ((sopr, vc), vd) in self
-            .sopr
-            .ratio_extended
-            .as_mut_array()
-            .into_iter()
-            .zip(activity_transfer_volume.sum.0.as_array()[1..].iter())
-            .zip(self.core.sopr.value_destroyed.sum.as_array()[1..].iter())
-        {
-            sopr.compute_binary::<Cents, Cents, RatioCents64>(
-                starting_lengths.height,
-                &vc.cents.height,
-                &vd.height,
-                exit,
-            )?;
-        }
+        self.sopr.ratio_extended.compute_columns2(
+            starting_lengths.height,
+            |window| {
+                &window
+                    .select_full(&activity_transfer_volume.sum.0)
+                    .cents
+                    .height
+            },
+            |window| {
+                &window
+                    .select_full(&self.core.sopr.value_destroyed.sum)
+                    .height
+            },
+            |_, value_created, value_destroyed| RatioCents64::apply(value_created, value_destroyed),
+            exit,
+        )?;
 
         // Gross PnL
         self.gross_pnl.compute_from_cumulative_pair(
@@ -281,35 +285,24 @@ impl RealizedFull {
                 exit,
             )?;
         // Sell-side risk ratios
-        for (ssrr, rv) in self
-            .sell_side_risk_ratio
-            .as_mut_array()
-            .into_iter()
-            .zip(self.gross_pnl.sum.as_array())
-        {
-            ssrr.compute_binary::<Cents, Cents, RatioCents<PartsPerMillion32>>(
-                starting_lengths.height,
-                &rv.cents.height,
-                &self.core.minimal.cap.cents.height,
-                exit,
-            )?;
-        }
+        self.sell_side_risk_ratio.compute_columns2(
+            starting_lengths.height,
+            |window| &window.select(&self.gross_pnl.sum).cents.height,
+            |_| &self.core.minimal.cap.cents.height,
+            |_, realized_value, realized_cap| {
+                RatioCents::<PartsPerMillion32>::apply(realized_value, realized_cap)
+            },
+            exit,
+        )?;
 
         // Realized profit to loss ratios
-        for ((ratio, profit), loss) in self
-            .profit_to_loss_ratio
-            .as_mut_array()
-            .into_iter()
-            .zip(self.core.minimal.profit.sum.as_array())
-            .zip(self.core.minimal.loss.sum.as_array())
-        {
-            ratio.compute_binary::<Cents, Cents, RatioCents64>(
-                starting_lengths.height,
-                &profit.cents.height,
-                &loss.cents.height,
-                exit,
-            )?;
-        }
+        self.profit_to_loss_ratio.compute_columns2(
+            starting_lengths.height,
+            |window| &window.select(&self.core.minimal.profit.sum).cents.height,
+            |window| &window.select(&self.core.minimal.loss.sum).cents.height,
+            |_, profit, loss| RatioCents64::apply(profit, loss),
+            exit,
+        )?;
 
         Ok(())
     }

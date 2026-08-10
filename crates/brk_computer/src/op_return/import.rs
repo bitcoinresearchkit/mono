@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_types::{Height, Sats, StoredU64, Version};
 use vecdb::CachedBoxedVec;
 
-use super::{ByKind, Policy, Total, Vecs, vecs::BreakdownImporter};
+use super::{Vecs, breakdown::BreakdownVecs, total::Total};
 use crate::{
     indexes,
     internal::{
@@ -32,18 +32,30 @@ impl Vecs {
             &block_size,
             &chain_fees,
         )?;
+        let columnar_version = version + Version::ONE;
         let total_data = total.cached_data_bytes();
-        let breakdowns = BreakdownImporter::new(
+        let by_kind = BreakdownVecs::forced_import(
             &db,
-            version,
+            "op_return_cumulative_by_kind",
+            "op_return",
+            columnar_version,
             indexes,
             cached_starts,
             &total_data,
             &block_size,
             &chain_fees,
-        );
-        let by_kind = ByKind::try_new(|_, name| breakdowns.import(&format!("op_return_{name}")))?;
-        let policy = Policy::forced_import(&breakdowns)?;
+        )?;
+        let policy = BreakdownVecs::forced_import(
+            &db,
+            "op_return_cumulative_policy",
+            "op_return_policy",
+            columnar_version,
+            indexes,
+            cached_starts,
+            &total_data,
+            &block_size,
+            &chain_fees,
+        )?;
 
         let this = Self {
             db,

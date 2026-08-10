@@ -1,15 +1,23 @@
-use brk_cohort::{AgeRange, CohortContext, TERM_NAMES};
+use brk_cohort::{AgeRangeId, CohortContext, TERM_NAMES};
 use brk_error::Result;
 use brk_types::{Cents, Height, StoredF64, Version};
-use vecdb::{CachedBoxedVec, Database, ReadableCloneableVec, UnaryTransform};
-
-use super::{AggregateVecs, CohortVecs, HorizonVecs, Horizons, Split, Vecs, mobility};
-use crate::{
-    indexes,
-    internal::{FiatPerBlock, LazyPerBlock, PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock},
+use vecdb::{
+    CachedBoxedVec, Database, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec, UnaryTransform,
 };
 
-const VERSION: Version = Version::TWO;
+use super::{
+    AgeRangeVecs, AggregateVecs, HorizonVecs, Horizons, SpendingExposureSeries, Split, Vecs,
+    mobility,
+};
+use crate::{
+    indexes,
+    internal::{
+        ColumnarPerBlock, FiatPerBlock, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
+        LazyPerBlock, PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock,
+    },
+};
+
+const VERSION: Version = Version::new(4);
 
 struct ExposureToMobility;
 
@@ -20,46 +28,35 @@ impl UnaryTransform<StoredF64, StoredF64> for ExposureToMobility {
     }
 }
 
-fn import_split<T>(mut import: impl FnMut(&str) -> Result<T>) -> Result<Split<T>> {
-    Ok(Split {
-        mobile: import("mobile")?,
-        immobile: import("immobile")?,
-    })
-}
-
-impl CohortVecs {
-    fn forced_import(
-        db: &vecdb::Database,
-        name: &str,
+impl SpendingExposureSeries {
+    fn new(
         version: Version,
+        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, AgeRangeId>,
         indexes: &indexes::Vecs,
-        spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
-        let spending_rate =
-            PerBlock::forced_import(db, &format!("{name}_spending_rate"), version, indexes)?;
-        let spending_exposure =
-            PerBlock::forced_import(db, &format!("{name}_spending_exposure"), version, indexes)?;
-        let mobility = LazyPerBlock::from_computed::<ExposureToMobility>(
-            &format!("{name}_mobility"),
-            version,
-            spending_exposure.height.read_only_boxed_clone(),
-            &spending_exposure,
-        );
+    ) -> Self {
+        let age_range = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            LazyColumnPerBlock::new(
+                &format!("{name}_spending_exposure"),
+                version,
+                source,
+                column,
+                indexes,
+            )
+        });
+        let mobility = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            let exposure = column.select(&age_range);
+            LazyPerBlock::from_resolutions::<ExposureToMobility>(
+                &format!("{name}_mobility"),
+                version,
+                exposure.height.read_only_boxed_clone(),
+                &exposure.resolutions,
+            )
+        });
 
-        Ok(Self {
-            spending_rate,
-            spending_exposure,
+        Self {
+            age_range,
             mobility,
-            supply: import_split(|side| {
-                SpotValuePerBlock::forced_import(
-                    db,
-                    &format!("{name}_{side}_supply"),
-                    version,
-                    indexes,
-                    spot_price,
-                )
-            })?,
-        })
+        }
     }
 }
 
@@ -78,7 +75,7 @@ impl AggregateVecs {
         };
 
         Ok(Self {
-            supply: import_split(|side| {
+            supply: Split::try_from_fn(|side| {
                 SpotValuePerBlock::forced_import(
                     db,
                     &format!("{prefix}{side}_supply"),
@@ -130,12 +127,54 @@ impl Vecs {
         let version = parent_version + VERSION;
         let aggregate_version = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();
+        let spending_rate = ColumnarPerBlock::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_spending_rate"),
+            version,
+            |source| {
+                AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                    LazyColumnPerBlock::new(
+                        &format!("{name}_spending_rate"),
+                        version,
+                        source,
+                        column,
+                        indexes,
+                    )
+                })
+            },
+        )?;
+        let spending_exposure = ColumnarPerBlock::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_spending_exposure"),
+            version,
+            |source| SpendingExposureSeries::new(version, source, indexes),
+        )?;
+        let supply = Split::try_from_fn(|side| {
+            ColumnarPerBlock::forced_import(
+                db,
+                &CohortContext::Utxo.prefixed(&format!("age_range_{side}_supply_sats")),
+                version,
+                |source| {
+                    AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                        LazyColumnSpotValuePerBlock::new(
+                            &format!("{name}_{side}_supply"),
+                            version,
+                            source,
+                            column,
+                            indexes,
+                            &spot_price,
+                        )
+                    })
+                },
+            )
+        })?;
 
         let this = Self {
-            age_range: AgeRange::try_new(|_, name| {
-                let name = CohortContext::Utxo.prefixed(name);
-                CohortVecs::forced_import(db, &name, version, indexes, &spot_price)
-            })?,
+            age_range: AgeRangeVecs {
+                spending_rate,
+                spending_exposure,
+                supply,
+            },
             all: AggregateVecs::forced_import(db, "", version, indexes, &spot_price)?,
             sth: AggregateVecs::forced_import(
                 db,

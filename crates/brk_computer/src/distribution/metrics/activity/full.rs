@@ -5,7 +5,7 @@ use brk_types::{StoredF32, StoredF64, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Exit, Rw, StorageMode};
 
-use crate::internal::{Identity, LazyPerBlock, PerBlock, Windows};
+use crate::internal::{ColumnarRollingWindows, Identity, LazyPerBlock};
 
 use crate::{
     distribution::{
@@ -26,7 +26,7 @@ pub struct ActivityFull<M: StorageMode = Rw> {
 
     pub coinyears_destroyed: LazyPerBlock<StoredF64, StoredF64>,
 
-    pub dormancy: Windows<PerBlock<StoredF32, M>>,
+    pub dormancy: ColumnarRollingWindows<StoredF32, M>,
 }
 
 impl ActivityFull {
@@ -41,14 +41,12 @@ impl ActivityFull {
             cfg.indexes,
         );
 
-        let dormancy = Windows::try_from_fn(|suffix| {
-            PerBlock::forced_import(
-                cfg.db,
-                &cfg.name(&format!("dormancy_{suffix}")),
-                cfg.version + v1,
-                cfg.indexes,
-            )
-        })?;
+        let dormancy = ColumnarRollingWindows::forced_import(
+            cfg.db,
+            &cfg.name("dormancy"),
+            cfg.version + v1,
+            cfg.indexes,
+        )?;
 
         Ok(Self {
             inner,
@@ -71,9 +69,7 @@ impl ActivityFull {
 
     pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.inner.collect_vecs_mut();
-        for d in self.dormancy.as_mut_array() {
-            vecs.push(&mut d.height);
-        }
+        vecs.push(self.dormancy.stored_mut());
         vecs
     }
 
@@ -96,28 +92,25 @@ impl ActivityFull {
         self.inner
             .compute_rest_part1(prices, starting_lengths, exit)?;
 
-        for ((dormancy, cdd_sum), tv_sum) in self
-            .dormancy
-            .as_mut_array()
-            .into_iter()
-            .zip(self.inner.coindays_destroyed.sum.as_array())
-            .zip(self.inner.minimal.transfer_volume.sum.0.as_array())
-        {
-            dormancy.height.compute_transform2(
-                starting_lengths.height,
-                &cdd_sum.height,
-                &tv_sum.btc.height,
-                |(i, rolling_cdd, rolling_btc, ..)| {
-                    let btc = f64::from(rolling_btc);
-                    if btc == 0.0 {
-                        (i, StoredF32::from(0.0f32))
-                    } else {
-                        (i, StoredF32::from((f64::from(rolling_cdd) / btc) as f32))
-                    }
-                },
-                exit,
-            )?;
-        }
+        let Self {
+            inner, dormancy, ..
+        } = self;
+        let cdd_sums = &inner.coindays_destroyed.sum;
+        let transfer_volume_sums = &inner.minimal.transfer_volume.sum.0;
+        dormancy.compute_columns2(
+            starting_lengths.height,
+            |window| &window.select(cdd_sums).height,
+            |window| &window.select(transfer_volume_sums).btc.height,
+            |_, rolling_cdd, rolling_btc| {
+                let btc = f64::from(rolling_btc);
+                if btc == 0.0 {
+                    StoredF32::from(0.0f32)
+                } else {
+                    StoredF32::from((f64::from(rolling_cdd) / btc) as f32)
+                }
+            },
+            exit,
+        )?;
 
         Ok(())
     }

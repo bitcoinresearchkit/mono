@@ -78,22 +78,6 @@ where
         self.last_cumulative = Some((len + 1, cumulative));
     }
 
-    pub(crate) fn compute_cumulative<S>(
-        &mut self,
-        max_from: Height,
-        source: &impl ReadableVec<Height, S>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        S: VecValue + Into<T>,
-        T: Copy,
-    {
-        Ok(self
-            .cumulative
-            .height
-            .compute_cumulative(max_from, source, exit)?)
-    }
-
     pub(crate) fn compute_cumulative_transformed<S>(
         &mut self,
         max_from: Height,

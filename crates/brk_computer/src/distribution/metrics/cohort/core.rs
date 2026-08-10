@@ -26,12 +26,20 @@ pub struct CoreCohortMetrics<M: StorageMode = Rw> {
 
 impl CoreCohortMetrics {
     pub(crate) fn forced_import(cfg: &ImportConfig, all_supply: &AllSupplyCache) -> Result<Self> {
+        let supply = SupplyCore::forced_import(cfg, all_supply)?;
+        Self::forced_import_with_supply(cfg, supply)
+    }
+
+    pub(crate) fn forced_import_with_supply(
+        cfg: &ImportConfig,
+        supply: SupplyCore,
+    ) -> Result<Self> {
         let realized = RealizedCore::forced_import(cfg)?;
         let unrealized = UnrealizedCore::forced_import(cfg, &realized.price.ppm)?;
 
         Ok(Self {
             filter: cfg.filter.clone(),
-            supply: Box::new(SupplyCore::forced_import(cfg, all_supply)?),
+            supply: Box::new(supply),
             outputs: Box::new(OutputsBase::forced_import(cfg)?),
             activity: Box::new(ActivityCore::forced_import(cfg)?),
             realized: Box::new(realized),

@@ -30,6 +30,10 @@ impl CachedBlockCountReader {
         }
     }
 
+    pub(crate) fn clear(&self) {
+        self.block.clear();
+    }
+
     pub fn cumulative_at(&self, index: usize) -> Option<StoredU64> {
         let (block, checkpoints) = self.snapshot();
         (index < block.len())

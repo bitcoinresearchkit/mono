@@ -4,8 +4,120 @@ use brk_traversable::Traversable;
 use brk_types::OutputType;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Serialize;
+use vecdb::{ColumnId, VecValue, Version};
 
 use super::{CohortName, Filter};
+
+pub const SPENDABLE_TYPE_COUNT: usize = 11;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum SpendableTypeId {
+    P2PK65,
+    P2PK33,
+    P2PKH,
+    P2MS,
+    P2SH,
+    P2WPKH,
+    P2WSH,
+    P2TR,
+    P2A,
+    Unknown,
+    Empty,
+}
+
+pub const SPENDABLE_TYPE_IDS: [SpendableTypeId; SPENDABLE_TYPE_COUNT] = [
+    SpendableTypeId::P2PK65,
+    SpendableTypeId::P2PK33,
+    SpendableTypeId::P2PKH,
+    SpendableTypeId::P2MS,
+    SpendableTypeId::P2SH,
+    SpendableTypeId::P2WPKH,
+    SpendableTypeId::P2WSH,
+    SpendableTypeId::P2TR,
+    SpendableTypeId::P2A,
+    SpendableTypeId::Unknown,
+    SpendableTypeId::Empty,
+];
+
+impl SpendableTypeId {
+    pub const fn from_output_type(value: OutputType) -> Option<Self> {
+        match value {
+            OutputType::P2PK65 => Some(Self::P2PK65),
+            OutputType::P2PK33 => Some(Self::P2PK33),
+            OutputType::P2PKH => Some(Self::P2PKH),
+            OutputType::P2MS => Some(Self::P2MS),
+            OutputType::P2SH => Some(Self::P2SH),
+            OutputType::P2WPKH => Some(Self::P2WPKH),
+            OutputType::P2WSH => Some(Self::P2WSH),
+            OutputType::P2TR => Some(Self::P2TR),
+            OutputType::P2A => Some(Self::P2A),
+            OutputType::Unknown => Some(Self::Unknown),
+            OutputType::Empty => Some(Self::Empty),
+            OutputType::OpReturn => None,
+        }
+    }
+
+    pub const fn output_type(self) -> OutputType {
+        match self {
+            Self::P2PK65 => OutputType::P2PK65,
+            Self::P2PK33 => OutputType::P2PK33,
+            Self::P2PKH => OutputType::P2PKH,
+            Self::P2MS => OutputType::P2MS,
+            Self::P2SH => OutputType::P2SH,
+            Self::P2WPKH => OutputType::P2WPKH,
+            Self::P2WSH => OutputType::P2WSH,
+            Self::P2TR => OutputType::P2TR,
+            Self::P2A => OutputType::P2A,
+            Self::Unknown => OutputType::Unknown,
+            Self::Empty => OutputType::Empty,
+        }
+    }
+}
+
+impl ColumnId for SpendableTypeId {
+    type Row<T>
+        = [T; SPENDABLE_TYPE_COUNT]
+    where
+        T: VecValue;
+
+    const VERSION: Version = Version::ONE;
+    const ALL: &'static [Self] = &SPENDABLE_TYPE_IDS;
+
+    #[inline]
+    fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+        &row[self as usize]
+    }
+
+    #[inline]
+    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+        &mut row[self as usize]
+    }
+
+    #[inline]
+    fn from_fn<T, F>(mut f: F) -> Self::Row<T>
+    where
+        T: VecValue,
+        F: FnMut(Self) -> T,
+    {
+        std::array::from_fn(|index| f(SPENDABLE_TYPE_IDS[index]))
+    }
+
+    #[inline]
+    fn map<T, U, F>(row: Self::Row<T>, f: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(T) -> U,
+    {
+        row.map(f)
+    }
+}
 
 /// Spendable type values
 pub const SPENDABLE_TYPE_VALUES: SpendableType<OutputType> = SpendableType {
@@ -277,5 +389,30 @@ where
         self.p2a += rhs.p2a;
         self.unknown += rhs.unknown;
         self.empty += rhs.empty;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn column_ids_match_spendable_type_order() {
+        let output_types: Vec<_> = SPENDABLE_TYPE_VALUES.iter().copied().collect();
+        let column_output_types: Vec<_> = SpendableTypeId::ALL
+            .iter()
+            .map(|column| column.output_type())
+            .collect();
+
+        assert_eq!(column_output_types, output_types);
+        assert_eq!(
+            SpendableTypeId::from_output_type(OutputType::OpReturn),
+            None
+        );
+
+        let row = SpendableTypeId::from_fn(|column| column.index());
+        for column in SpendableTypeId::ALL {
+            assert_eq!(*column.get(&row), column.index());
+        }
     }
 }

@@ -90,7 +90,7 @@ tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 tower-http = { version = "0.7.0", features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "normalize-path", "timeout", "trace"] }
 tower-layer = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
-ureq = { version = "3.3.0", features = ["json"] }
+ureq = { version = "3.4.0", features = ["json"] }
 vecdb = { path = "crates/vecdb", version = "0.11.2", features = ["derive", "serde_json", "pco", "schemars"] }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.11.2" }
 

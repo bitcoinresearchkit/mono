@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 
-use brk_types::{Cents, CentsSigned, Dollars, Sats, StoredF32, StoredU64};
+use brk_types::{Bytes, Cents, CentsSigned, Dollars, Sats, StoredF32, StoredU64};
 use vecdb::{BinaryTransform, unlikely};
 
-use crate::internal::FixedRatio;
+use crate::internal::{FixedRatio, NumericValue};
 
 pub struct RatioU64<P>(PhantomData<P>);
 
@@ -12,6 +12,20 @@ impl<P: FixedRatio> BinaryTransform<StoredU64, StoredU64, P> for RatioU64<P> {
     fn apply(numerator: StoredU64, denominator: StoredU64) -> P {
         if *denominator > 0 {
             P::from(*numerator as f64 / *denominator as f64)
+        } else {
+            P::default()
+        }
+    }
+}
+
+pub struct RatioBytes<P>(PhantomData<P>);
+
+impl<P: FixedRatio, D: NumericValue> BinaryTransform<Bytes, D, P> for RatioBytes<P> {
+    #[inline(always)]
+    fn apply(numerator: Bytes, denominator: D) -> P {
+        let denominator: f64 = denominator.into();
+        if denominator > 0.0 {
+            P::from(f64::from(numerator) / denominator)
         } else {
             P::default()
         }

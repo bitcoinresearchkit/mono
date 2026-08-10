@@ -80,23 +80,27 @@ where
     }
 }
 
-/// Owned scalar projection of one columnar source.
-pub struct ColumnarVecColumn<S, C>
+/// Lazy scalar projection of one columnar source.
+pub struct LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
+    name: Arc<str>,
+    base_version: Version,
     source: S,
     column: C,
 }
 
-impl<S, C> Clone for ColumnarVecColumn<S, C>
+impl<S, C> Clone for LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
     fn clone(&self) -> Self {
         Self {
+            name: Arc::clone(&self.name),
+            base_version: self.base_version,
             source: self.source.clone(),
             column: self.column,
         }
@@ -178,19 +182,24 @@ where
 
     /// Returns an owned read-only view of one persisted scalar column.
     /// Uncommitted rows become visible to the view after `write()`.
-    pub fn column(&self, column: C) -> ColumnarVecColumn<ReadOnlyColumnarVec<V, C>, C> {
-        self.read_only_clone().column(column)
+    pub fn column(
+        &self,
+        name: &str,
+        version: Version,
+        column: C,
+    ) -> LazyColumnVec<ReadOnlyColumnarVec<V, C>, C> {
+        self.read_only_clone().column(name, version, column)
     }
 
     /// Returns a lazy sum of selected persisted columns.
     /// Uncommitted rows become visible to the view after `write()`.
-    pub fn sum_columns<const M: usize>(
+    pub fn sum_columns(
         &self,
         name: &str,
         version: Version,
-        columns: [C; M],
-    ) -> ColumnarSumVec<ReadOnlyColumnarVec<V, C>, C> {
-        ColumnarSumVec::new(name, version, self.read_only_clone(), columns)
+        columns: impl IntoIterator<Item = C>,
+    ) -> LazyColumnSumVec<ReadOnlyColumnarVec<V, C>, C> {
+        LazyColumnSumVec::new(name, version, self.read_only_clone(), columns)
     }
 
     pub fn reserve_pushed(&mut self, additional: usize) {

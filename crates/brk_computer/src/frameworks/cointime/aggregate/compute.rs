@@ -1,13 +1,13 @@
-use brk_cohort::{AGE_RANGE_COUNT, AGE_RANGE_FILTERS, ByTerm, TERM_FILTERS};
+use brk_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId, ByTerm, TERM_FILTERS};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{Cents, Height, Sats, StoredF64, Version};
-use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, WritableVec};
 
 use super::{AllCohortVecs, StoredCohortVecs, Vecs};
 use crate::{
     distribution,
-    frameworks::{WeightedCohortState, realized_price},
+    frameworks::WeightedCohortState,
     internal::{PerBlock, db_utils::validate_any_computed_version_or_reset},
 };
 
@@ -25,30 +25,38 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let source_cohorts: Vec<_> = distribution.utxo_cohorts.age_range.iter().collect();
-        let supplies: Vec<_> = source_cohorts
-            .iter()
-            .map(|cohort| &cohort.metrics.supply.total.sats.height)
-            .collect();
-        let loss_supplies: Vec<_> = source_cohorts
-            .iter()
-            .map(|cohort| &cohort.metrics.supply.in_loss.sats.height)
-            .collect();
-        let realized_caps: Vec<_> = source_cohorts
-            .iter()
-            .map(|cohort| &cohort.metrics.realized.cap.cents.height)
-            .collect();
-        let weights: Vec<_> = age_range
-            .iter()
-            .map(|cohort| &cohort.wakefulness.height)
-            .collect();
+        let supplies = AgeRange::from_fn(|id| {
+            &id.select(&distribution.utxo_cohorts.age_range)
+                .metrics
+                .supply
+                .total
+                .sats
+                .height
+        });
+        let loss_supplies = AgeRange::from_fn(|id| {
+            &id.select(&distribution.utxo_cohorts.age_range)
+                .metrics
+                .supply
+                .in_loss
+                .sats
+                .height
+        });
+        let realized_caps = AgeRange::from_fn(|id| {
+            &id.select(&distribution.utxo_cohorts.age_range)
+                .metrics
+                .realized
+                .cap
+                .cents
+                .height
+        });
+        let weights = &age_range.activity.height;
 
         self.compute_primary(
             starting_height,
             &supplies,
             &loss_supplies,
             &realized_caps,
-            &weights,
+            weights,
             all_supply_in_loss_share,
             exit,
         )
@@ -58,29 +66,24 @@ impl Vecs {
     fn compute_primary<S, C, W>(
         &mut self,
         starting_height: Height,
-        supplies: &[&S],
-        loss_supplies: &[&S],
-        realized_caps: &[&C],
-        weights: &[&W],
+        supplies: &AgeRange<&S>,
+        loss_supplies: &AgeRange<&S>,
+        realized_caps: &AgeRange<&C>,
+        weights: &W,
         all_supply_in_loss_share: &mut PerBlock<StoredF64>,
         exit: &Exit,
     ) -> Result<()>
     where
         S: ReadableVec<Height, Sats>,
         C: ReadableVec<Height, Cents>,
-        W: ReadableVec<Height, StoredF64>,
+        W: ReadableVec<Height, [StoredF64; AGE_RANGE_COUNT]>,
     {
-        debug_assert_eq!(supplies.len(), AGE_RANGE_COUNT);
-        debug_assert_eq!(loss_supplies.len(), AGE_RANGE_COUNT);
-        debug_assert_eq!(realized_caps.len(), AGE_RANGE_COUNT);
-        debug_assert_eq!(weights.len(), AGE_RANGE_COUNT);
-
         let source_version: Version = supplies
             .iter()
             .map(|vec| vec.version())
             .chain(loss_supplies.iter().map(|vec| vec.version()))
             .chain(realized_caps.iter().map(|vec| vec.version()))
-            .chain(weights.iter().map(|vec| vec.version()))
+            .chain(std::iter::once(weights.version()))
             .sum();
 
         for vec in self.primary_vecs_mut() {
@@ -91,7 +94,6 @@ impl Vecs {
 
         let start = self
             .primary_vecs_mut()
-            .into_iter()
             .map(|vec| vec.len())
             .chain(std::iter::once(all_supply_in_loss_share.len()))
             .min()
@@ -108,47 +110,39 @@ impl Vecs {
             .map(|vec| vec.len())
             .chain(loss_supplies.iter().map(|vec| vec.len()))
             .chain(realized_caps.iter().map(|vec| vec.len()))
-            .chain(weights.iter().map(|vec| vec.len()))
+            .chain(std::iter::once(weights.len()))
             .min()
             .unwrap_or_default();
-
-        let mut age_filters = AGE_RANGE_FILTERS.iter();
-        let is_sth: [bool; AGE_RANGE_COUNT] =
-            std::array::from_fn(|_| TERM_FILTERS.short.includes(age_filters.next().unwrap()));
 
         let mut chunk_start = start;
         while chunk_start < source_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
-            let supply_batches: Vec<_> = supplies
-                .iter()
-                .map(|vec| vec.collect_range_at(chunk_start, chunk_end))
-                .collect();
-            let loss_batches: Vec<_> = loss_supplies
-                .iter()
-                .map(|vec| vec.collect_range_at(chunk_start, chunk_end))
-                .collect();
-            let cap_batches: Vec<_> = realized_caps
-                .iter()
-                .map(|vec| vec.collect_range_at(chunk_start, chunk_end))
-                .collect();
-            let weight_batches: Vec<_> = weights
-                .iter()
-                .map(|vec| vec.collect_range_at(chunk_start, chunk_end))
-                .collect();
+            let supply_batches = AgeRange::from_fn(|id| {
+                id.select(supplies).collect_range_at(chunk_start, chunk_end)
+            });
+            let loss_batches = AgeRange::from_fn(|id| {
+                id.select(loss_supplies)
+                    .collect_range_at(chunk_start, chunk_end)
+            });
+            let cap_batches = AgeRange::from_fn(|id| {
+                id.select(realized_caps)
+                    .collect_range_at(chunk_start, chunk_end)
+            });
+            let weight_batch = weights.collect_range_at(chunk_start, chunk_end);
 
-            for offset in 0..(chunk_end - chunk_start) {
+            for (offset, weights) in weight_batch.iter().enumerate() {
                 let mut terms = ByTerm::<WeightedCohortState>::default();
-                for age in 0..AGE_RANGE_COUNT {
-                    let term = if is_sth[age] {
+                for &id in AgeRangeId::ALL {
+                    let term = if TERM_FILTERS.short.includes(id.filter()) {
                         &mut terms.short
                     } else {
                         &mut terms.long
                     };
                     term.add(
-                        supply_batches[age][offset],
-                        loss_batches[age][offset],
-                        cap_batches[age][offset],
-                        weight_batches[age][offset],
+                        id.select(&supply_batches)[offset],
+                        id.select(&loss_batches)[offset],
+                        id.select(&cap_batches)[offset],
+                        *id.get(weights),
                     );
                 }
                 let all = terms.short.merged(terms.long);
@@ -171,12 +165,12 @@ impl Vecs {
         Ok(())
     }
 
-    fn primary_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = Vec::with_capacity(ALL_PRIMARY_VEC_COUNT + 2 * STORED_PRIMARY_VEC_COUNT);
-        vecs.extend(self.all.primary_vecs_mut());
-        vecs.extend(self.sth.primary_vecs_mut());
-        vecs.extend(self.lth.primary_vecs_mut());
-        vecs
+    fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.all
+            .primary_vecs_mut()
+            .into_iter()
+            .chain(self.sth.primary_vecs_mut())
+            .chain(self.lth.primary_vecs_mut())
     }
 }
 
@@ -189,11 +183,7 @@ impl AllCohortVecs {
             .height
             .push(state.complement_supply);
         self.awake.cap.cents.height.push(state.weighted_cap);
-        self.awake
-            .price
-            .cents
-            .height
-            .push(realized_price(state.weighted_cap, state.weighted_supply));
+        self.awake.price.cents.height.push(state.realized_price());
     }
 
     fn primary_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; ALL_PRIMARY_VEC_COUNT] {
@@ -219,11 +209,7 @@ impl StoredCohortVecs {
             .height
             .push(state.supply_in_loss.value());
         self.awake.cap.cents.height.push(state.weighted_cap);
-        self.awake
-            .price
-            .cents
-            .height
-            .push(realized_price(state.weighted_cap, state.weighted_supply));
+        self.awake.price.cents.height.push(state.realized_price());
     }
 
     fn primary_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; STORED_PRIMARY_VEC_COUNT] {

@@ -1,13 +1,16 @@
-use brk_cohort::ByAddrType;
+use brk_cohort::{AddrTypeId, ByAddrType};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
-use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{
+    AnyStoredVec, BinaryTransform, Database, Exit, ReadOnlyClone, ReadableVec, Rw, StorageMode,
+    WritableVec,
+};
 
 use crate::{
     distribution::metrics::AllSupplyCache,
     indexes,
-    internal::{LazyPercentPerBlock, PercentPerBlock, RatioSats},
+    internal::{ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioSats},
 };
 
 use super::vecs::AddrSupplyVecs;
@@ -20,7 +23,9 @@ use super::vecs::AddrSupplyVecs;
 pub struct AddrSupplyShareVecs<M: StorageMode = Rw> {
     pub all: LazyPercentPerBlock<PartsPerMillion32>,
     #[traversable(flatten)]
-    pub by_addr_type: ByAddrType<PercentPerBlock<PartsPerMillion32, M>>,
+    pub by_addr_type: ByAddrType<LazyColumnPercentPerBlock<PartsPerMillion32, AddrTypeId>>,
+    #[traversable(hidden)]
+    ppm: ColumnarPerBlock<PartsPerMillion32, AddrTypeId, (), M>,
 }
 
 impl AddrSupplyShareVecs {
@@ -40,18 +45,33 @@ impl AddrSupplyShareVecs {
             all_supply.cached_boxed_clone(),
             indexes,
         );
-        let by_addr_type = ByAddrType::new_with_name(|type_name| {
-            PercentPerBlock::forced_import(db, &format!("{type_name}_{name}"), version, indexes)
-        })?;
+        let ppm =
+            ColumnarPerBlock::forced_import(db, &format!("{name}_ppm_by_type"), version, |_| ())?;
+        let source = ppm.height.read_only_clone();
+        let by_addr_type = AddrTypeId::series(|column, type_name| {
+            LazyColumnPercentPerBlock::new(
+                &format!("{type_name}_{name}"),
+                version,
+                &source,
+                column,
+                indexes,
+            )
+        });
 
-        Ok(Self { all, by_addr_type })
+        Ok(Self {
+            all,
+            by_addr_type,
+            ppm,
+        })
     }
 
     pub(crate) fn reset_height(&mut self) -> Result<()> {
-        for share in self.by_addr_type.values_mut() {
-            share.ppm.height.reset()?;
-        }
+        self.ppm.height.reset()?;
         Ok(())
+    }
+
+    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+        self.ppm.stored_mut()
     }
 
     pub(crate) fn compute_rest(
@@ -61,18 +81,12 @@ impl AddrSupplyShareVecs {
         type_supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,
         exit: &Exit,
     ) -> Result<()> {
-        for ((_, share), ((_, cat), (_, denom))) in self
-            .by_addr_type
-            .iter_mut()
-            .zip(supply.by_addr_type.iter().zip(type_supply_sats.iter()))
-        {
-            share.compute_binary::<Sats, Sats, RatioSats<PartsPerMillion32>>(
-                max_from,
-                &cat.sats.height,
-                *denom,
-                exit,
-            )?;
-        }
-        Ok(())
+        self.ppm.compute_matrix_columns2(
+            max_from,
+            &supply.height,
+            |column| *column.select(type_supply_sats),
+            |_, category, total| RatioSats::<PartsPerMillion32>::apply(category, total),
+            exit,
+        )
     }
 }

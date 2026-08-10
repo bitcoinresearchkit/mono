@@ -1,11 +1,16 @@
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::{Database, EagerVec, ImportableVec};
+use brk_types::{StoredBool, TxIndex, Version};
+use vecdb::{
+    ColumnarVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone, ReadableColumnarVec,
+};
 
-use super::{CountVecs, Vecs};
+use super::{CountVecs, Flags, PatternId, Vecs};
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, PerBlockCumulativeRolling, Windows},
+    internal::{
+        CachedWindowStartVec, ColumnarPerBlockCumulativeRolling,
+        LazyColumnPerBlockCumulativeRolling, Windows,
+    },
 };
 
 impl Vecs {
@@ -15,33 +20,61 @@ impl Vecs {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
+        let count_source = ColumnarPerBlockCumulativeRolling::forced_import(
+            db,
+            "transaction_pattern_count_cumulative",
+            version,
+            |_| (),
+        )?;
+        let counts = count_source.cumulative.read_only_clone();
+        let count = CountVecs {
+            coinjoin: LazyColumnPerBlockCumulativeRolling::new(
+                "coinjoin_count",
+                version,
+                &counts,
+                PatternId::Coinjoin,
+                indexes,
+                cached_starts,
+            ),
+            consolidation: LazyColumnPerBlockCumulativeRolling::new(
+                "consolidation_count",
+                version,
+                &counts,
+                PatternId::Consolidation,
+                indexes,
+                cached_starts,
+            ),
+            batch_payout: LazyColumnPerBlockCumulativeRolling::new(
+                "batch_payout_count",
+                version,
+                &counts,
+                PatternId::BatchPayout,
+                indexes,
+                cached_starts,
+            ),
+            source: count_source,
+        };
+
+        let flags_source =
+            EagerVec::<ColumnarVec<PcoVec<TxIndex, StoredBool>, PatternId>>::forced_import(
+                db,
+                "transaction_pattern_flags",
+                version,
+            )?;
+        let flags = flags_source.read_only_clone();
+
         Ok(Self {
-            count: CountVecs {
-                coinjoin: PerBlockCumulativeRolling::forced_import(
-                    db,
-                    "coinjoin_count",
+            count,
+            flags: Flags {
+                is_coinjoin: flags.column("is_coinjoin", version, PatternId::Coinjoin),
+                is_consolidation: flags.column(
+                    "is_consolidation",
                     version,
-                    indexes,
-                    cached_starts,
-                )?,
-                consolidation: PerBlockCumulativeRolling::forced_import(
-                    db,
-                    "consolidation_count",
-                    version,
-                    indexes,
-                    cached_starts,
-                )?,
-                batch_payout: PerBlockCumulativeRolling::forced_import(
-                    db,
-                    "batch_payout_count",
-                    version,
-                    indexes,
-                    cached_starts,
-                )?,
+                    PatternId::Consolidation,
+                ),
+                is_batch_payout: flags.column("is_batch_payout", version, PatternId::BatchPayout),
             },
-            is_coinjoin: EagerVec::forced_import(db, "is_coinjoin", version)?,
-            is_consolidation: EagerVec::forced_import(db, "is_consolidation", version)?,
-            is_batch_payout: EagerVec::forced_import(db, "is_batch_payout", version)?,
+            flags_source,
         })
     }
 }

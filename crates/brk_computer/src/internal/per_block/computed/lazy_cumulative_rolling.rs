@@ -3,13 +3,13 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
+use vecdb::{ColumnId, ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
 
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, Identity, LazyPerBlock, LazyPreviousDeltaVec,
-        LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight, NumericValue, PerBlock, Windows,
+        CachedWindowStartVec, Identity, LazyColumnPerBlock, LazyPerBlock, LazyPreviousDeltaVec,
+        LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight, NumericValue, Windows,
     },
 };
 
@@ -99,18 +99,34 @@ where
         Self::from_cumulative(name, version, cumulative, cached_starts, indexes)
     }
 
-    pub(crate) fn from_source(
+    pub(crate) fn from_lazy_source(
         name: &str,
         version: Version,
-        source: &PerBlock<T>,
+        source: &LazyPerBlock<T>,
         cached_starts: &Windows<&CachedWindowStartVec>,
         indexes: &indexes::Vecs,
     ) -> Self {
-        let cumulative = LazyPerBlock::from_computed::<Identity<T>>(
+        let cumulative = LazyPerBlock::from_lazy::<Identity<T>, T>(
+            &format!("{name}_cumulative"),
+            version,
+            source,
+        );
+
+        Self::from_cumulative(name, version, cumulative, cached_starts, indexes)
+    }
+
+    pub(crate) fn from_column_source<C: ColumnId>(
+        name: &str,
+        version: Version,
+        source: &LazyColumnPerBlock<T, C>,
+        cached_starts: &Windows<&CachedWindowStartVec>,
+        indexes: &indexes::Vecs,
+    ) -> Self {
+        let cumulative = LazyPerBlock::from_resolutions::<Identity<T>>(
             &format!("{name}_cumulative"),
             version,
             source.height.read_only_boxed_clone(),
-            source,
+            &source.resolutions,
         );
 
         Self::from_cumulative(name, version, cumulative, cached_starts, indexes)

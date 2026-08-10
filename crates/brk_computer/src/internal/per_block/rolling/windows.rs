@@ -15,7 +15,8 @@ use crate::{
     blocks::lookback::LazyWindowStartVec,
     indexes,
     internal::{
-        ComputedVecValue, NumericValue, PerBlock, RollingWindow24h, Windows, WindowsFrom1w,
+        ColumnarPerBlock, ComputedVecValue, LazyColumnPerBlock, NumericValue, PerBlock,
+        RollingWindow24h, WindowFrom1wId, WindowId, Windows, WindowsFrom1w,
     },
 };
 
@@ -48,6 +49,44 @@ where
     }
 }
 
+/// Four named rolling-window views backed by one columnar source.
+#[derive(Deref, DerefMut, Traversable)]
+#[traversable(transparent)]
+pub struct ColumnarRollingWindows<T, M: StorageMode = Rw>(
+    pub ColumnarPerBlock<T, WindowId, Windows<LazyColumnPerBlock<T, WindowId>>, M>,
+)
+where
+    T: NumericValue + JsonSchema;
+
+impl<T> ColumnarRollingWindows<T>
+where
+    T: NumericValue + JsonSchema,
+{
+    pub(crate) fn forced_import(
+        db: &Database,
+        name: &str,
+        version: Version,
+        indexes: &indexes::Vecs,
+    ) -> Result<Self> {
+        Ok(Self(ColumnarPerBlock::forced_import(
+            db,
+            name,
+            version,
+            |source| {
+                WindowId::series(|window| {
+                    LazyColumnPerBlock::new(
+                        &format!("{name}_{}", window.suffix()),
+                        version,
+                        source,
+                        window,
+                        indexes,
+                    )
+                })
+            },
+        )?))
+    }
+}
+
 /// Single 24h rolling window backed by PerBlock (1 stored vec).
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
@@ -71,14 +110,16 @@ where
     }
 }
 
-/// Extended rolling windows: 1w + 1m + 1y (3 stored vecs).
+/// The 1w, 1m, and 1y views backed by one columnar source.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct RollingWindowsFrom1w<T, M: StorageMode = Rw>(pub WindowsFrom1w<PerBlock<T, M>>)
+pub struct ColumnarRollingWindowsFrom1w<T, M: StorageMode = Rw>(
+    pub ColumnarPerBlock<T, WindowFrom1wId, WindowsFrom1w<LazyColumnPerBlock<T, WindowFrom1wId>>, M>,
+)
 where
-    T: ComputedVecValue + PartialOrd + JsonSchema;
+    T: NumericValue + JsonSchema;
 
-impl<T> RollingWindowsFrom1w<T>
+impl<T> ColumnarRollingWindowsFrom1w<T>
 where
     T: NumericValue + JsonSchema,
 {
@@ -88,8 +129,21 @@ where
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
-        Ok(Self(WindowsFrom1w::try_from_fn(|suffix| {
-            PerBlock::forced_import(db, &format!("{name}_{suffix}"), version, indexes)
-        })?))
+        Ok(Self(ColumnarPerBlock::forced_import(
+            db,
+            name,
+            version,
+            |source| {
+                WindowFrom1wId::series(|window| {
+                    LazyColumnPerBlock::new(
+                        &format!("{name}_{}", window.suffix()),
+                        version,
+                        source,
+                        window,
+                        indexes,
+                    )
+                })
+            },
+        )?))
     }
 }

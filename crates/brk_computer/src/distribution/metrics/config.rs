@@ -9,11 +9,12 @@ use vecdb::{BytesVec, BytesVecValue, CachedBoxedVec, Database, ImportableVec};
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, FiatPerBlock, FiatPerBlockCumulativeWithSums, FiatType, NumericValue,
-        PerBlock, PerBlockCumulativeRolling, PercentPerBlock, PercentRollingWindows, Price,
+        CachedWindowStartVec, ColumnarPercentRollingWindows, ColumnarRollingWindows,
+        ColumnarRollingWindowsFrom1w, FiatPerBlock, FiatPerBlockCumulativeWithSums, FiatType,
+        NumericValue, PerBlock, PerBlockCumulativeRolling, PercentPerBlock, Price,
         PriceWithRatioPerBlock, RatioPerBlock, RollingWindow24hPerBlock, RollingWindows,
-        RollingWindowsFrom1w, SpotValuePerBlock, ValuePerBlock, ValuePerBlockCumulative,
-        ValuePerBlockCumulativeRolling, Windows,
+        SpotValuePerBlock, ValuePerBlock, ValuePerBlockCumulative, ValuePerBlockCumulativeRolling,
+        Windows,
     },
 };
 
@@ -43,7 +44,7 @@ impl_config_import!(
     PercentPerBlock<PartsPerMillion32>,
     PercentPerBlock<PartsPerMillionSigned32>,
     PercentPerBlock<PartsPerMillionSigned64>,
-    PercentRollingWindows<PartsPerMillion32>,
+    ColumnarPercentRollingWindows<PartsPerMillion32>,
     Price<PerBlock<Cents>>,
 );
 
@@ -96,6 +97,11 @@ impl<T: NumericValue + JsonSchema> ConfigImport for RollingWindows<T> {
         Self::forced_import(cfg.db, &cfg.name(suffix), cfg.version + offset, cfg.indexes)
     }
 }
+impl<T: NumericValue + JsonSchema> ConfigImport for ColumnarRollingWindows<T> {
+    fn config_import(cfg: &ImportConfig, suffix: &str, offset: Version) -> Result<Self> {
+        Self::forced_import(cfg.db, &cfg.name(suffix), cfg.version + offset, cfg.indexes)
+    }
+}
 impl<T: NumericValue + JsonSchema> ConfigImport for RollingWindow24hPerBlock<T> {
     fn config_import(cfg: &ImportConfig, suffix: &str, offset: Version) -> Result<Self> {
         Self::forced_import(cfg.db, &cfg.name(suffix), cfg.version + offset, cfg.indexes)
@@ -123,7 +129,7 @@ impl<C: FiatType> ConfigImport for FiatPerBlockCumulativeWithSums<C> {
         )
     }
 }
-impl<T: NumericValue + JsonSchema> ConfigImport for RollingWindowsFrom1w<T> {
+impl<T: NumericValue + JsonSchema> ConfigImport for ColumnarRollingWindowsFrom1w<T> {
     fn config_import(cfg: &ImportConfig, suffix: &str, offset: Version) -> Result<Self> {
         Self::forced_import(cfg.db, &cfg.name(suffix), cfg.version + offset, cfg.indexes)
     }

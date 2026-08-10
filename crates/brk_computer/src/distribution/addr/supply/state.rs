@@ -1,7 +1,7 @@
-use brk_cohort::ByAddrType;
+use brk_cohort::{AddrTypeId, ByAddrType};
 use brk_types::{Height, OutputType, Sats};
 use derive_more::{Deref, DerefMut};
-use vecdb::ReadableVec;
+use vecdb::{ColumnId, ReadableVec};
 
 use super::vecs::AddrSupplyVecs;
 
@@ -12,8 +12,8 @@ pub struct AddrTypeToSupply(ByAddrType<Sats>);
 
 impl AddrTypeToSupply {
     #[inline]
-    pub(crate) fn sum(&self) -> Sats {
-        self.0.values().copied().sum()
+    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<Sats> {
+        AddrTypeId::from_fn(|column| *column.select(&self.0))
     }
 
     /// Apply a signed `after - before` delta to the slot for `output_type`.

@@ -10,6 +10,7 @@ where
     T: VecValue,
 {
     fn cached(&self) -> Arc<[T]>;
+    fn clear(&self);
     fn cached_boxed_clone(&self) -> CachedBoxedVec<I, T>;
 }
 
@@ -33,6 +34,10 @@ where
 {
     fn cached(&self) -> Arc<[T]> {
         self.cached()
+    }
+
+    fn clear(&self) {
+        CachedVec::clear(self);
     }
 
     fn cached_boxed_clone(&self) -> CachedBoxedVec<I, T> {

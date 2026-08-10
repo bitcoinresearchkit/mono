@@ -5,11 +5,11 @@ use crate::{AnyVec, ReadOnlyClone, ReadableVec, TypedVec, Version, short_type_na
 use super::{
     ColumnId, ReadableColumnarVec,
     read::{fold_readable, try_fold_readable},
-    schema::{selection_version, validate_column},
+    schema::validate_column,
 };
 
 /// Lazy scalar sum of selected columns from any readable columnar source.
-pub struct ColumnarSumVec<S, C>
+pub struct LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
@@ -18,10 +18,9 @@ where
     base_version: Version,
     source: S,
     columns: Box<[C]>,
-    selection_version: Version,
 }
 
-impl<S, C> Clone for ColumnarSumVec<S, C>
+impl<S, C> Clone for LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
@@ -32,46 +31,51 @@ where
             base_version: self.base_version,
             source: self.source.clone(),
             columns: self.columns.clone(),
-            selection_version: self.selection_version,
         }
     }
 }
 
-impl<S, C> ColumnarSumVec<S, C>
+impl<S, C> LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
-    /// Creates a lazy sum from a non-empty array of distinct column IDs.
-    pub fn new<const M: usize>(name: &str, version: Version, source: S, columns: [C; M]) -> Self {
-        assert!(M > 0, "ColumnarSumVec requires at least one column");
-        let mut columns = columns.to_vec();
+    /// Creates a lazy sum from non-empty, distinct column IDs.
+    pub fn new(
+        name: &str,
+        version: Version,
+        source: S,
+        columns: impl IntoIterator<Item = C>,
+    ) -> Self {
+        let mut columns: Vec<_> = columns.into_iter().collect();
+        assert!(
+            !columns.is_empty(),
+            "LazyColumnSumVec requires at least one column"
+        );
         for &column in &columns {
             validate_column(column);
         }
         columns.sort_unstable_by_key(|column| column.index());
         assert!(
             columns.windows(2).all(|pair| pair[0] != pair[1]),
-            "ColumnarSumVec cannot sum the same column twice",
+            "LazyColumnSumVec cannot sum the same column twice",
         );
-        let selection_version = selection_version(2, &columns);
         Self {
             name: Arc::from(name),
             base_version: version,
             source,
             columns: columns.into_boxed_slice(),
-            selection_version,
         }
     }
 }
 
-impl<S, C> AnyVec for ColumnarSumVec<S, C>
+impl<S, C> AnyVec for LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
     fn version(&self) -> Version {
-        self.base_version + self.source.version() + self.selection_version
+        self.base_version + self.source.version() + Version::from(self.columns.len())
     }
 
     fn name(&self) -> &str {
@@ -99,7 +103,7 @@ where
     }
 }
 
-impl<S, C> TypedVec for ColumnarSumVec<S, C>
+impl<S, C> TypedVec for LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
@@ -108,7 +112,7 @@ where
     type T = S::T;
 }
 
-impl<S, C> ReadableVec<S::I, S::T> for ColumnarSumVec<S, C>
+impl<S, C> ReadableVec<S::I, S::T> for LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
@@ -165,7 +169,7 @@ where
     }
 }
 
-impl<S, C> ReadOnlyClone for ColumnarSumVec<S, C>
+impl<S, C> ReadOnlyClone for LazyColumnSumVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,

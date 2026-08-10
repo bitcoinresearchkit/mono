@@ -1,11 +1,14 @@
+use brk_cohort::OutputTypeId;
 use brk_error::Result;
-use brk_types::Version;
+use brk_types::{StoredU16, StoredU64, Version};
 use vecdb::Database;
 
 use super::{CachedSpendableOutputCount, Vecs, WithOutputTypes, with_output_types::identity};
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, Windows},
+    internal::{
+        CachedWindowStartVec, ColumnarPerBlock, ColumnarPerBlockCumulativeRolling, Windows,
+    },
 };
 
 impl Vecs {
@@ -15,34 +18,50 @@ impl Vecs {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let output_count_source = indexes.output_count_source();
-        let output_count = WithOutputTypes::forced_import_counts(
+        let columnar_version = version + Version::ONE;
+        let all_output_count = indexes.output_count_source();
+        let output_count = ColumnarPerBlock::<StoredU16, OutputTypeId, _>::forced_import(
             db,
-            "output_count_bis",
-            |t| format!("{t}_output_count"),
-            version,
-            (output_count_source, identity),
-            indexes,
-            cached_starts,
+            "output_count_by_type",
+            columnar_version,
+            |source| {
+                WithOutputTypes::from_columnar_count_source(
+                    "output_count_bis",
+                    |t| format!("{t}_output_count"),
+                    columnar_version,
+                    (all_output_count, identity),
+                    source,
+                    indexes,
+                    cached_starts,
+                )
+            },
         )?;
         let output_share = output_count.lazy_shares(
-            version,
+            columnar_version,
             |name| format!("{name}_output_share"),
             cached_starts,
             indexes,
         );
-        let transaction_count_source = indexes.transaction_count_source();
-        let tx_count = WithOutputTypes::forced_import(
-            db,
-            "tx_count_bis",
-            |t| format!("tx_count_with_{t}_output"),
-            version,
-            (transaction_count_source, identity),
-            indexes,
-            cached_starts,
-        )?;
+        let all_tx_count = indexes.transaction_count_source();
+        let tx_count =
+            ColumnarPerBlockCumulativeRolling::<StoredU64, OutputTypeId, _>::forced_import(
+                db,
+                "tx_count_with_output_by_type_cumulative",
+                columnar_version,
+                |source| {
+                    WithOutputTypes::from_columnar_source(
+                        "tx_count_bis",
+                        |t| format!("tx_count_with_{t}_output"),
+                        columnar_version,
+                        (all_tx_count, identity),
+                        source,
+                        indexes,
+                        cached_starts,
+                    )
+                },
+            )?;
         let tx_share = tx_count.lazy_shares(
-            version,
+            columnar_version,
             |name| format!("tx_share_with_{name}_output"),
             cached_starts,
             indexes,

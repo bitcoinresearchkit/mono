@@ -2,4 +2,4 @@ mod compute;
 mod import;
 mod vecs;
 
-pub use vecs::Vecs;
+pub use vecs::{Vecs, VersionId};

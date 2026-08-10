@@ -20,7 +20,6 @@ use super::lazy_ohlc::LazyOhlcVec;
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(merge)]
 pub struct LazyOhlcCentsVecs(
-    #[allow(clippy::type_complexity)]
     pub  PerResolution<
         LazyOhlcVec<Minute10>,
         LazyOhlcVec<Minute30>,
@@ -119,7 +118,6 @@ where
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(merge)]
 pub struct LazyOhlcVecs<T, S>(
-    #[allow(clippy::type_complexity)]
     pub  PerResolution<
         LazyVec<Minute10, T, Minute10, S>,
         LazyVec<Minute30, T, Minute30, S>,

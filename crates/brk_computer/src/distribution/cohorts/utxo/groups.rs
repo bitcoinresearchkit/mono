@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use brk_cohort::{
-    AGE_RANGE_COUNT, AgeRange, AmountRange, ByEntry, ByEpoch, Class, CohortContext, Filter,
-    Filtered, OverAge, OverAmount, SpendableType, Term, UnderAge, UnderAmount,
+    AGE_RANGE_COUNT, AgeRange, AgeRangeId, AmountRange, ByEntry, ByEpoch, Class, CohortContext,
+    Filter, OverAge, OverAmount, SpendableType, Term, UnderAge, UnderAmount,
 };
 use brk_error::Result;
 use brk_indexer::Lengths;
@@ -10,7 +10,8 @@ use brk_traversable::Traversable;
 use brk_types::{Cents, CentsSquaredSats, Height, Sats, Version};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, AnyVec, CachedBoxedVec, Database, Exit, ReadOnlyClone, Rw, StorageMode,
+    AnyStoredVec, AnyVec, BinaryTransform, CachedBoxedVec, ColumnId, ColumnarVec, Database,
+    EagerVec, Exit, ImportableVec, PcoVec, ReadOnlyClone, ReadableVec, Rw, StorageMode,
     WritableVec,
 };
 
@@ -18,15 +19,17 @@ use crate::{
     distribution::{
         AllChainCache, DynCohortVecs,
         metrics::{
-            AllCohortMetrics, AllSupplyCache, BasicCohortMetrics, CohortMetricsBase,
-            CoreCohortMetrics, ExtendedAdjustedCohortMetrics, ExtendedCohortMetrics, ImportConfig,
-            MinimalCohortMetrics, ProfitabilityMetrics, RealizedFullAccum, SupplyCore,
-            TypeCohortMetrics,
+            AgeRangeSupplySources, AllCohortMetrics, AllSupplyCache, BasicCohortMetrics,
+            CohortMetricsBase, CoreCohortMetrics, ExtendedAdjustedCohortMetrics,
+            ExtendedCohortMetrics, ImportConfig, MinimalCohortMetrics, ProfitabilityMetrics,
+            RealizedFullAccum, TypeCohortMetrics,
         },
         state::UTXOCohortState,
     },
     indexes,
-    internal::{CachedWindowStartVec, ValuePerBlockCumulativeRolling, Windows},
+    internal::{
+        CachedWindowStartVec, LazyColumnValuePerBlockCumulativeRolling, SatsToCents, Windows,
+    },
     price,
 };
 
@@ -52,7 +55,12 @@ pub struct UTXOCohorts<M: StorageMode = Rw> {
     #[traversable(rename = "type")]
     pub type_: SpendableType<UTXOCohortVecs<TypeCohortMetrics<M>>>,
     pub profitability: ProfitabilityMetrics<M>,
-    pub matured: AgeRange<ValuePerBlockCumulativeRolling<M>>,
+    #[traversable(skip)]
+    age_range_supply: AgeRangeSupplySources<M>,
+    pub matured: AgeRange<LazyColumnValuePerBlockCumulativeRolling<AgeRangeId>>,
+    pub cumulative_matured_sats: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Sats>, AgeRangeId>>>,
+    pub cumulative_matured_cents:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, Cents>, AgeRangeId>>>,
     #[traversable(skip)]
     all_supply_cache: AllSupplyCache,
     #[traversable(skip)]
@@ -68,6 +76,10 @@ pub(crate) struct UTXOCohortsTransientState {
     /// from last known position (typically O(1) per boundary).
     pub(super) tick_tock_cached_positions: [usize; AGE_RANGE_COUNT - 1],
 }
+
+const MATURED_VERSION: Version = Version::new(4);
+const AGE_RANGE_SUPPLY_VERSION: Version = Version::ONE;
+const WRITE_INTERVAL: usize = 10_000;
 
 impl UTXOCohorts<Rw> {
     /// Separate cohorts currently total 74:
@@ -85,8 +97,9 @@ impl UTXOCohorts<Rw> {
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let v = version + VERSION;
+        let prefix = CohortContext::Utxo.prefix();
 
-        // Phase 1: Import "all" supply first so it can be referenced by all cohorts' relative metrics.
+        // Phase 1: Import the age-range supply source and its cached all-column view.
         let all_full_name = CohortContext::Utxo.full_name(&Filter::All, "");
         let all_cfg = ImportConfig {
             db,
@@ -97,33 +110,31 @@ impl UTXOCohorts<Rw> {
             cached_starts,
             spot_price,
         };
-        let all_supply = SupplyCore::forced_import_all(&all_cfg)?;
-        let all_supply_cache = AllSupplyCache::new(&all_supply.total.sats.height);
+        let age_range_supply =
+            AgeRangeSupplySources::forced_import(db, prefix, v + AGE_RANGE_SUPPLY_VERSION)?;
+        let (all_supply, all_supply_cache) = age_range_supply.all(&all_cfg);
         let all_chain_cache = AllChainCache::new(&all_supply_cache, spot_price);
 
         // Phase 2: Import separate (stateful) cohorts.
-
-        // Helper for separate cohorts with BasicCohortMetrics + full state
-        let basic_separate =
-            |f: Filter, name: &'static str| -> Result<UTXOCohortVecs<BasicCohortMetrics>> {
-                let full_name = CohortContext::Utxo.full_name(&f, name);
-                let cfg = ImportConfig {
-                    db,
-                    filter: &f,
-                    full_name: &full_name,
-                    version: v,
-                    indexes,
-                    cached_starts,
-                    spot_price,
-                };
-                let state = Some(Box::new(UTXOCohortState::new(states_path, &full_name)));
-                Ok(UTXOCohortVecs::new(
-                    state,
-                    BasicCohortMetrics::forced_import(&cfg, &all_supply_cache)?,
-                ))
+        let age_range = AgeRange::try_from_fn(|id| {
+            let filter = id.filter().clone();
+            let full_name = CohortContext::Utxo.full_name(&filter, id.name().id);
+            let cfg = ImportConfig {
+                db,
+                filter: &filter,
+                full_name: &full_name,
+                version: v,
+                indexes,
+                cached_starts,
+                spot_price,
             };
-
-        let age_range = AgeRange::try_new(&basic_separate)?;
+            let state = Some(Box::new(UTXOCohortState::new(states_path, &full_name)));
+            let supply = age_range_supply.column(&cfg, id, &all_supply_cache);
+            Ok::<_, brk_error::Error>(UTXOCohortVecs::new(
+                state,
+                BasicCohortMetrics::forced_import(&cfg, supply)?,
+            ))
+        })?;
 
         let core_separate =
             |f: Filter, name: &'static str| -> Result<UTXOCohortVecs<CoreCohortMetrics>> {
@@ -221,7 +232,7 @@ impl UTXOCohorts<Rw> {
                 None,
                 ExtendedAdjustedCohortMetrics::forced_import(
                     &cfg,
-                    &all_supply_cache,
+                    age_range_supply.filtered(&cfg, &f, &all_supply_cache),
                     &all_chain_cache,
                 )?,
             )
@@ -242,7 +253,11 @@ impl UTXOCohorts<Rw> {
             };
             UTXOCohortVecs::new(
                 None,
-                ExtendedCohortMetrics::forced_import(&cfg, &all_supply_cache, &all_chain_cache)?,
+                ExtendedCohortMetrics::forced_import(
+                    &cfg,
+                    age_range_supply.filtered(&cfg, &f, &all_supply_cache),
+                    &all_chain_cache,
+                )?,
             )
         };
 
@@ -259,9 +274,10 @@ impl UTXOCohorts<Rw> {
                     cached_starts,
                     spot_price,
                 };
+                let supply = age_range_supply.filtered(&cfg, &f, &all_supply_cache);
                 Ok(UTXOCohortVecs::new(
                     None,
-                    CoreCohortMetrics::forced_import(&cfg, &all_supply_cache)?,
+                    CoreCohortMetrics::forced_import_with_supply(&cfg, supply)?,
                 ))
             };
 
@@ -292,18 +308,32 @@ impl UTXOCohorts<Rw> {
         let under_amount = UnderAmount::try_new(&minimal_no_state)?;
         let over_amount = OverAmount::try_new(&minimal_no_state)?;
 
-        let prefix = CohortContext::Utxo.prefix();
-        let matured = AgeRange::try_new(&|_f: Filter,
-                                          name: &'static str|
-         -> Result<ValuePerBlockCumulativeRolling> {
-            ValuePerBlockCumulativeRolling::forced_import(
+        let matured_version = v + MATURED_VERSION;
+        let matured_sats =
+            EagerVec::<ColumnarVec<PcoVec<Height, Sats>, AgeRangeId>>::forced_import(
                 db,
-                &format!("{prefix}_{name}_matured_supply"),
-                v,
+                &format!("{prefix}_age_range_matured_supply_cumulative_sats"),
+                matured_version,
+            )?;
+        let matured_cents =
+            EagerVec::<ColumnarVec<PcoVec<Height, Cents>, AgeRangeId>>::forced_import(
+                db,
+                &format!("{prefix}_age_range_matured_supply_cumulative_cents"),
+                matured_version,
+            )?;
+        let matured_sats_ref = matured_sats.read_only_clone();
+        let matured_cents_ref = matured_cents.read_only_clone();
+        let matured = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            LazyColumnValuePerBlockCumulativeRolling::new(
+                &format!("{name}_matured_supply"),
+                matured_version,
+                &matured_sats_ref,
+                &matured_cents_ref,
+                column,
                 indexes,
                 cached_starts,
             )
-        })?;
+        });
 
         Ok(Self {
             all,
@@ -320,7 +350,10 @@ impl UTXOCohorts<Rw> {
             under_amount,
             over_amount,
             profitability,
+            age_range_supply,
             matured,
+            cumulative_matured_sats: matured_sats,
+            cumulative_matured_cents: matured_cents,
             all_supply_cache,
             caches: UTXOCohortsTransientState::default(),
         })
@@ -348,20 +381,18 @@ impl UTXOCohorts<Rw> {
             age_range,
             ..
         } = self;
-        caches
-            .fenwick
-            .compute_is_sth(&sth.metrics.filter, age_range.iter().map(|v| v.filter()));
+        caches.fenwick.compute_is_sth(&sth.metrics.filter);
 
-        let maps: Vec<_> = age_range
+        let maps: Vec<_> = AgeRangeId::ALL
             .iter()
-            .enumerate()
-            .filter_map(|(i, sub)| {
+            .filter_map(|&id| {
+                let sub = id.select(age_range);
                 let state = sub.state.as_ref()?;
                 let map = state.cost_basis_map();
                 if map.is_empty() {
                     return None;
                 }
-                Some((map, caches.fenwick.is_sth_at(i)))
+                Some((map, caches.fenwick.is_sth(id)))
             })
             .collect();
         caches.fenwick.bulk_init(maps.into_iter());
@@ -377,9 +408,10 @@ impl UTXOCohorts<Rw> {
         let Self {
             caches, age_range, ..
         } = self;
-        for (i, sub) in age_range.iter().enumerate() {
+        for &id in AgeRangeId::ALL {
+            let sub = id.select(age_range);
             if let Some(state) = sub.state.as_ref() {
-                let is_sth = caches.fenwick.is_sth_at(i);
+                let is_sth = caches.fenwick.is_sth(id);
                 state.for_each_cost_basis_pending(|&price, delta| {
                     caches.fenwick.apply_delta(price, delta, is_sth);
                 });
@@ -390,9 +422,49 @@ impl UTXOCohorts<Rw> {
     /// Push maturation sats to the matured vecs for the given height.
     #[inline(always)]
     pub(crate) fn push_maturation(&mut self, matured: &AgeRange<Sats>) {
-        for (v, &sats) in self.matured.iter_mut().zip(matured.iter()) {
-            v.push_block_sats(sats);
+        let mut cumulative = self
+            .cumulative_matured_sats
+            .collect_last()
+            .unwrap_or_default();
+        for column in AgeRangeId::ALL {
+            *column.get_mut(&mut cumulative) += *column.select(matured);
         }
+        self.cumulative_matured_sats.push(cumulative);
+    }
+
+    fn compute_matured_cents(
+        &mut self,
+        starting_height: Height,
+        prices: &price::Vecs,
+        exit: &Exit,
+    ) -> Result<()> {
+        let cumulative_sats = self.cumulative_matured_sats.read_only_clone();
+        let mut previous_sats = None;
+
+        self.cumulative_matured_cents.compute_transform2_batched(
+            starting_height,
+            &cumulative_sats,
+            &prices.spot.cents.height,
+            WRITE_INTERVAL,
+            |(height, current_sats, price, target)| {
+                let prior_sats = previous_sats.replace(current_sats).unwrap_or_else(|| {
+                    height
+                        .decremented()
+                        .and_then(|height| cumulative_sats.collect_one(height))
+                        .unwrap_or_default()
+                });
+                let mut current_cents = target.collect_last().unwrap_or_default();
+
+                for column in AgeRangeId::ALL {
+                    let block_sats = *column.get(&current_sats) - *column.get(&prior_sats);
+                    *column.get_mut(&mut current_cents) += SatsToCents::apply(block_sats, price);
+                }
+
+                (height, current_cents)
+            },
+            exit,
+        )?;
+        Ok(())
     }
 
     pub(crate) fn par_iter_separate_mut(
@@ -574,10 +646,8 @@ impl UTXOCohorts<Rw> {
                 .try_for_each(|v| v.compute_rest_part1(prices, starting_lengths, exit))?;
         }
 
-        // Compute matured cumulative + cents from sats × price
-        self.matured
-            .par_iter_mut()
-            .try_for_each(|v| v.compute_rest(starting_lengths.height, prices, exit))?;
+        // Compute matured cumulative cents from the cumulative sats matrix × price.
+        self.compute_matured_cents(starting_lengths.height, prices, exit)?;
 
         // Compute profitability supply cents and realized price
         self.profitability.compute(prices, starting_lengths, exit)?;
@@ -751,11 +821,9 @@ impl UTXOCohorts<Rw> {
             vecs.extend(v.metrics.collect_all_vecs_mut());
         }
         vecs.extend(self.profitability.collect_all_vecs_mut());
-        for v in self.matured.iter_mut() {
-            let inner = &mut v.inner;
-            vecs.push(&mut inner.cumulative.sats.height);
-            vecs.push(&mut inner.cumulative.cents.height);
-        }
+        vecs.extend(self.age_range_supply.stored_vecs_mut());
+        vecs.push(&mut self.cumulative_matured_sats);
+        vecs.push(&mut self.cumulative_matured_cents);
         vecs.into_par_iter()
     }
 
@@ -768,13 +836,12 @@ impl UTXOCohorts<Rw> {
     pub(crate) fn min_stateful_len(&self) -> Height {
         self.iter_separate()
             .map(|v| Height::from(v.min_stateful_len()))
-            .chain(
-                self.matured
-                    .iter()
-                    .map(|v| Height::from(v.cumulative.sats.height.len())),
-            )
+            .chain(std::iter::once(Height::from(
+                self.cumulative_matured_sats.len(),
+            )))
             .min()
             .unwrap_or_default()
+            .min(Height::from(self.age_range_supply.len()))
             .min(Height::from(self.profitability.min_stateful_len()))
             .min(Height::from(self.all.min_stateful_len()))
             .min(Height::from(self.sth.min_stateful_len()))
@@ -828,6 +895,7 @@ impl UTXOCohorts<Rw> {
             sth,
             lth,
             age_range,
+            age_range_supply,
             ..
         } = self;
 
@@ -841,11 +909,19 @@ impl UTXOCohorts<Rw> {
         let mut sth_ccap = (0u128, 0u128);
         let mut lth_ccap = (0u128, 0u128);
 
-        for ar in age_range.iter_mut() {
+        let mut total_supply = AgeRangeId::from_fn(|_| Sats::ZERO);
+        let mut supply_in_profit = AgeRangeId::from_fn(|_| Sats::ZERO);
+        let mut supply_in_loss = AgeRangeId::from_fn(|_| Sats::ZERO);
+
+        for &id in AgeRangeId::ALL {
+            let ar = id.select_mut(age_range);
             if let Some(state) = ar.state.as_mut() {
                 all_acc.add(&state.realized);
 
                 let u = state.compute_unrealized_state(height_price);
+                *id.get_mut(&mut total_supply) = state.supply.value;
+                *id.get_mut(&mut supply_in_profit) = u.supply_in_profit;
+                *id.get_mut(&mut supply_in_loss) = u.supply_in_loss;
                 all_ccap.0 += u.capitalized_cap_in_profit_raw;
                 all_ccap.1 += u.capitalized_cap_in_loss_raw;
 
@@ -860,6 +936,8 @@ impl UTXOCohorts<Rw> {
                 }
             }
         }
+
+        age_range_supply.push(total_supply, supply_in_profit, supply_in_loss);
 
         let all_capitalized_price = all.metrics.realized.push_accum(&all_acc);
         sth.metrics.realized.push_accum(&sth_acc);

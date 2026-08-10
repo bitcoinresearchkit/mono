@@ -8,7 +8,6 @@ use crate::internal::{FixedRatio, Percent};
 /// Fully lazy lightweight percent container with no derived resolutions.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-#[allow(clippy::type_complexity)]
 pub struct LazyPercentVec<B: FixedRatio, S: VecValue>(
     pub Percent<LazyVec<Height, B, Height, S>, LazyVec<Height, StoredF32, Height, B>>,
 );

@@ -13,6 +13,7 @@ brk_types = { workspace = true }
 brk_traversable = { workspace = true }
 vecdb = { workspace = true }
 rayon = { workspace = true }
+schemars = { workspace = true }
 serde = { workspace = true }
 
 [package.metadata.cargo-machete]

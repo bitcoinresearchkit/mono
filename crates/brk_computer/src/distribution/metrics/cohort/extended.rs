@@ -9,8 +9,8 @@ use vecdb::{Exit, Rw, StorageMode};
 use crate::{
     distribution::AllChainCache,
     distribution::metrics::{
-        ActivityFull, AllSupplyCache, CohortMetricsBase, CostBasis, ImportConfig, OutputsBase,
-        RealizedFull, RelativeWithExtended, SupplyCore, UnrealizedFull,
+        ActivityFull, CohortMetricsBase, CostBasis, ImportConfig, OutputsBase, RealizedFull,
+        RelativeWithExtended, SupplyCore, UnrealizedFull,
     },
     price,
 };
@@ -69,10 +69,9 @@ impl CohortMetricsBase for ExtendedCohortMetrics {
 impl ExtendedCohortMetrics {
     pub(crate) fn forced_import(
         cfg: &ImportConfig,
-        all_supply: &AllSupplyCache,
+        supply: SupplyCore,
         all_chain: &AllChainCache,
     ) -> Result<Self> {
-        let supply = SupplyCore::forced_import(cfg, all_supply)?;
         let realized = RealizedFull::forced_import(cfg, all_chain)?;
         let unrealized = UnrealizedFull::forced_import(cfg, &realized.price.ppm)?;
 

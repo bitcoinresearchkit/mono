@@ -71,11 +71,8 @@ fn compressed_vec_uses_index_initial_capacity() -> vecdb::Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
 
-    let vec = vecdb::PcoVec::<CapacityIndex, u32>::forced_import(
-        &db,
-        "compressed_values",
-        Version::ONE,
-    )?;
+    let vec =
+        vecdb::PcoVec::<CapacityIndex, u32>::forced_import(&db, "compressed_values", Version::ONE)?;
     let expected = (HEADER_OFFSET + 10_000 * size_of::<u32>()).next_multiple_of(PAGE_SIZE);
     assert_eq!(vec.region().meta().len(), HEADER_OFFSET);
     assert_eq!(vec.region().meta().reserved(), expected);

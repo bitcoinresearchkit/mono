@@ -1,7 +1,7 @@
-use brk_cohort::ByAddrType;
-use brk_types::Height;
+use brk_cohort::{AddrTypeId, ByAddrType};
+use brk_types::{Height, StoredU64};
 use derive_more::{Deref, DerefMut};
-use vecdb::ReadableVec;
+use vecdb::{ColumnId, ReadableVec};
 
 use super::AddrCountsVecs;
 
@@ -12,9 +12,8 @@ use super::AddrCountsVecs;
 pub struct AddrTypeToAddrCount(ByAddrType<u64>);
 
 impl AddrTypeToAddrCount {
-    #[inline]
-    pub(crate) fn sum(&self) -> u64 {
-        self.0.values().sum()
+    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
+        AddrTypeId::from_fn(|id| StoredU64::from(*id.select(&self.0)))
     }
 }
 

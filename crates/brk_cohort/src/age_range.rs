@@ -6,7 +6,7 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::Serialize;
 use vecdb::{ColumnId, VecValue, Version};
 
-use super::{CohortName, Filter, TimeFilter};
+use super::{CohortContext, CohortName, Filter, TimeFilter};
 
 // Age boundary constants in hours
 pub const HOURS_1H: usize = 1;
@@ -164,6 +164,120 @@ impl ColumnId for AgeRangeId {
     }
 }
 
+impl AgeRangeId {
+    #[inline]
+    pub fn bounds(self) -> &'static Range<usize> {
+        self.select(&AGE_RANGE_BOUNDS)
+    }
+
+    #[inline]
+    pub fn filter(self) -> &'static Filter {
+        self.select(&AGE_RANGE_FILTERS)
+    }
+
+    #[inline]
+    pub fn name(self) -> &'static CohortName {
+        self.select(&AGE_RANGE_NAMES)
+    }
+
+    pub fn select<T>(self, values: &AgeRange<T>) -> &T {
+        match self {
+            Self::Under1H => &values.under_1h,
+            Self::From1HTo1D => &values._1h_to_1d,
+            Self::From1DTo1W => &values._1d_to_1w,
+            Self::From1WTo1M => &values._1w_to_1m,
+            Self::From1MTo2M => &values._1m_to_2m,
+            Self::From2MTo3M => &values._2m_to_3m,
+            Self::From3MTo4M => &values._3m_to_4m,
+            Self::From4MTo5M => &values._4m_to_5m,
+            Self::From5MTo6M => &values._5m_to_6m,
+            Self::From6MTo9M => &values._6m_to_9m,
+            Self::From9MTo1Y => &values._9m_to_1y,
+            Self::From1YTo18M => &values._1y_to_18m,
+            Self::From18MTo2Y => &values._18m_to_2y,
+            Self::From2YTo3Y => &values._2y_to_3y,
+            Self::From3YTo4Y => &values._3y_to_4y,
+            Self::From4YTo5Y => &values._4y_to_5y,
+            Self::From5YTo6Y => &values._5y_to_6y,
+            Self::From6YTo7Y => &values._6y_to_7y,
+            Self::From7YTo8Y => &values._7y_to_8y,
+            Self::From8YTo10Y => &values._8y_to_10y,
+            Self::From10YTo12Y => &values._10y_to_12y,
+            Self::From12YTo15Y => &values._12y_to_15y,
+            Self::Over15Y => &values.over_15y,
+        }
+    }
+
+    pub fn select_mut<T>(self, values: &mut AgeRange<T>) -> &mut T {
+        match self {
+            Self::Under1H => &mut values.under_1h,
+            Self::From1HTo1D => &mut values._1h_to_1d,
+            Self::From1DTo1W => &mut values._1d_to_1w,
+            Self::From1WTo1M => &mut values._1w_to_1m,
+            Self::From1MTo2M => &mut values._1m_to_2m,
+            Self::From2MTo3M => &mut values._2m_to_3m,
+            Self::From3MTo4M => &mut values._3m_to_4m,
+            Self::From4MTo5M => &mut values._4m_to_5m,
+            Self::From5MTo6M => &mut values._5m_to_6m,
+            Self::From6MTo9M => &mut values._6m_to_9m,
+            Self::From9MTo1Y => &mut values._9m_to_1y,
+            Self::From1YTo18M => &mut values._1y_to_18m,
+            Self::From18MTo2Y => &mut values._18m_to_2y,
+            Self::From2YTo3Y => &mut values._2y_to_3y,
+            Self::From3YTo4Y => &mut values._3y_to_4y,
+            Self::From4YTo5Y => &mut values._4y_to_5y,
+            Self::From5YTo6Y => &mut values._5y_to_6y,
+            Self::From6YTo7Y => &mut values._6y_to_7y,
+            Self::From7YTo8Y => &mut values._7y_to_8y,
+            Self::From8YTo10Y => &mut values._8y_to_10y,
+            Self::From10YTo12Y => &mut values._10y_to_12y,
+            Self::From12YTo15Y => &mut values._12y_to_15y,
+            Self::Over15Y => &mut values.over_15y,
+        }
+    }
+
+    pub fn series<T>(
+        context: CohortContext,
+        mut create: impl FnMut(Self, &str) -> T,
+    ) -> AgeRange<T> {
+        AgeRange::from_fn(|column| {
+            let name = context.prefixed(column.name().id);
+            create(column, &name)
+        })
+    }
+}
+
+impl From<Age> for AgeRangeId {
+    #[inline]
+    fn from(age: Age) -> Self {
+        match age.hours() {
+            0..HOURS_1H => Self::Under1H,
+            HOURS_1H..HOURS_1D => Self::From1HTo1D,
+            HOURS_1D..HOURS_1W => Self::From1DTo1W,
+            HOURS_1W..HOURS_1M => Self::From1WTo1M,
+            HOURS_1M..HOURS_2M => Self::From1MTo2M,
+            HOURS_2M..HOURS_3M => Self::From2MTo3M,
+            HOURS_3M..HOURS_4M => Self::From3MTo4M,
+            HOURS_4M..HOURS_5M => Self::From4MTo5M,
+            HOURS_5M..HOURS_6M => Self::From5MTo6M,
+            HOURS_6M..HOURS_9M => Self::From6MTo9M,
+            HOURS_9M..HOURS_1Y => Self::From9MTo1Y,
+            HOURS_1Y..HOURS_18M => Self::From1YTo18M,
+            HOURS_18M..HOURS_2Y => Self::From18MTo2Y,
+            HOURS_2Y..HOURS_3Y => Self::From2YTo3Y,
+            HOURS_3Y..HOURS_4Y => Self::From3YTo4Y,
+            HOURS_4Y..HOURS_5Y => Self::From4YTo5Y,
+            HOURS_5Y..HOURS_6Y => Self::From5YTo6Y,
+            HOURS_6Y..HOURS_7Y => Self::From6YTo7Y,
+            HOURS_7Y..HOURS_8Y => Self::From7YTo8Y,
+            HOURS_8Y..HOURS_10Y => Self::From8YTo10Y,
+            HOURS_10Y..HOURS_12Y => Self::From10YTo12Y,
+            HOURS_12Y..HOURS_15Y => Self::From12YTo15Y,
+            _ => Self::Over15Y,
+        }
+    }
+}
+
 /// Age boundaries in hours. Defines the cohort ranges:
 /// [0, 1h), [1h, 1d), [1d, 1w), [1w, 1m), ..., [15y, ∞)
 pub const AGE_BOUNDARIES: [usize; AGE_RANGE_COUNT - 1] = [
@@ -253,12 +367,6 @@ pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
     over_15y: CohortName::new("over_15y_old", "15y+", "15+ Years Old"),
 };
 
-impl AgeRange<CohortName> {
-    pub const fn names() -> &'static Self {
-        &AGE_RANGE_NAMES
-    }
-}
-
 #[derive(Default, Clone, Traversable, Serialize)]
 pub struct AgeRange<T> {
     pub under_1h: T,
@@ -287,183 +395,86 @@ pub struct AgeRange<T> {
 }
 
 impl<T> AgeRange<T> {
+    pub fn from_fn(mut create: impl FnMut(AgeRangeId) -> T) -> Self {
+        Self {
+            under_1h: create(AgeRangeId::Under1H),
+            _1h_to_1d: create(AgeRangeId::From1HTo1D),
+            _1d_to_1w: create(AgeRangeId::From1DTo1W),
+            _1w_to_1m: create(AgeRangeId::From1WTo1M),
+            _1m_to_2m: create(AgeRangeId::From1MTo2M),
+            _2m_to_3m: create(AgeRangeId::From2MTo3M),
+            _3m_to_4m: create(AgeRangeId::From3MTo4M),
+            _4m_to_5m: create(AgeRangeId::From4MTo5M),
+            _5m_to_6m: create(AgeRangeId::From5MTo6M),
+            _6m_to_9m: create(AgeRangeId::From6MTo9M),
+            _9m_to_1y: create(AgeRangeId::From9MTo1Y),
+            _1y_to_18m: create(AgeRangeId::From1YTo18M),
+            _18m_to_2y: create(AgeRangeId::From18MTo2Y),
+            _2y_to_3y: create(AgeRangeId::From2YTo3Y),
+            _3y_to_4y: create(AgeRangeId::From3YTo4Y),
+            _4y_to_5y: create(AgeRangeId::From4YTo5Y),
+            _5y_to_6y: create(AgeRangeId::From5YTo6Y),
+            _6y_to_7y: create(AgeRangeId::From6YTo7Y),
+            _7y_to_8y: create(AgeRangeId::From7YTo8Y),
+            _8y_to_10y: create(AgeRangeId::From8YTo10Y),
+            _10y_to_12y: create(AgeRangeId::From10YTo12Y),
+            _12y_to_15y: create(AgeRangeId::From12YTo15Y),
+            over_15y: create(AgeRangeId::Over15Y),
+        }
+    }
+
+    pub fn try_from_fn<E>(mut create: impl FnMut(AgeRangeId) -> Result<T, E>) -> Result<Self, E> {
+        Ok(Self {
+            under_1h: create(AgeRangeId::Under1H)?,
+            _1h_to_1d: create(AgeRangeId::From1HTo1D)?,
+            _1d_to_1w: create(AgeRangeId::From1DTo1W)?,
+            _1w_to_1m: create(AgeRangeId::From1WTo1M)?,
+            _1m_to_2m: create(AgeRangeId::From1MTo2M)?,
+            _2m_to_3m: create(AgeRangeId::From2MTo3M)?,
+            _3m_to_4m: create(AgeRangeId::From3MTo4M)?,
+            _4m_to_5m: create(AgeRangeId::From4MTo5M)?,
+            _5m_to_6m: create(AgeRangeId::From5MTo6M)?,
+            _6m_to_9m: create(AgeRangeId::From6MTo9M)?,
+            _9m_to_1y: create(AgeRangeId::From9MTo1Y)?,
+            _1y_to_18m: create(AgeRangeId::From1YTo18M)?,
+            _18m_to_2y: create(AgeRangeId::From18MTo2Y)?,
+            _2y_to_3y: create(AgeRangeId::From2YTo3Y)?,
+            _3y_to_4y: create(AgeRangeId::From3YTo4Y)?,
+            _4y_to_5y: create(AgeRangeId::From4YTo5Y)?,
+            _5y_to_6y: create(AgeRangeId::From5YTo6Y)?,
+            _6y_to_7y: create(AgeRangeId::From6YTo7Y)?,
+            _7y_to_8y: create(AgeRangeId::From7YTo8Y)?,
+            _8y_to_10y: create(AgeRangeId::From8YTo10Y)?,
+            _10y_to_12y: create(AgeRangeId::From10YTo12Y)?,
+            _12y_to_15y: create(AgeRangeId::From12YTo15Y)?,
+            over_15y: create(AgeRangeId::Over15Y)?,
+        })
+    }
+
     /// Get mutable reference by Age. O(1).
     #[inline]
     pub fn get_mut(&mut self, age: Age) -> &mut T {
-        match age.hours() {
-            0..HOURS_1H => &mut self.under_1h,
-            HOURS_1H..HOURS_1D => &mut self._1h_to_1d,
-            HOURS_1D..HOURS_1W => &mut self._1d_to_1w,
-            HOURS_1W..HOURS_1M => &mut self._1w_to_1m,
-            HOURS_1M..HOURS_2M => &mut self._1m_to_2m,
-            HOURS_2M..HOURS_3M => &mut self._2m_to_3m,
-            HOURS_3M..HOURS_4M => &mut self._3m_to_4m,
-            HOURS_4M..HOURS_5M => &mut self._4m_to_5m,
-            HOURS_5M..HOURS_6M => &mut self._5m_to_6m,
-            HOURS_6M..HOURS_9M => &mut self._6m_to_9m,
-            HOURS_9M..HOURS_1Y => &mut self._9m_to_1y,
-            HOURS_1Y..HOURS_18M => &mut self._1y_to_18m,
-            HOURS_18M..HOURS_2Y => &mut self._18m_to_2y,
-            HOURS_2Y..HOURS_3Y => &mut self._2y_to_3y,
-            HOURS_3Y..HOURS_4Y => &mut self._3y_to_4y,
-            HOURS_4Y..HOURS_5Y => &mut self._4y_to_5y,
-            HOURS_5Y..HOURS_6Y => &mut self._5y_to_6y,
-            HOURS_6Y..HOURS_7Y => &mut self._6y_to_7y,
-            HOURS_7Y..HOURS_8Y => &mut self._7y_to_8y,
-            HOURS_8Y..HOURS_10Y => &mut self._8y_to_10y,
-            HOURS_10Y..HOURS_12Y => &mut self._10y_to_12y,
-            HOURS_12Y..HOURS_15Y => &mut self._12y_to_15y,
-            _ => &mut self.over_15y,
-        }
+        AgeRangeId::from(age).select_mut(self)
     }
 
     /// Get reference by Age. O(1).
     #[inline]
     pub fn get(&self, age: Age) -> &T {
-        match age.hours() {
-            0..HOURS_1H => &self.under_1h,
-            HOURS_1H..HOURS_1D => &self._1h_to_1d,
-            HOURS_1D..HOURS_1W => &self._1d_to_1w,
-            HOURS_1W..HOURS_1M => &self._1w_to_1m,
-            HOURS_1M..HOURS_2M => &self._1m_to_2m,
-            HOURS_2M..HOURS_3M => &self._2m_to_3m,
-            HOURS_3M..HOURS_4M => &self._3m_to_4m,
-            HOURS_4M..HOURS_5M => &self._4m_to_5m,
-            HOURS_5M..HOURS_6M => &self._5m_to_6m,
-            HOURS_6M..HOURS_9M => &self._6m_to_9m,
-            HOURS_9M..HOURS_1Y => &self._9m_to_1y,
-            HOURS_1Y..HOURS_18M => &self._1y_to_18m,
-            HOURS_18M..HOURS_2Y => &self._18m_to_2y,
-            HOURS_2Y..HOURS_3Y => &self._2y_to_3y,
-            HOURS_3Y..HOURS_4Y => &self._3y_to_4y,
-            HOURS_4Y..HOURS_5Y => &self._4y_to_5y,
-            HOURS_5Y..HOURS_6Y => &self._5y_to_6y,
-            HOURS_6Y..HOURS_7Y => &self._6y_to_7y,
-            HOURS_7Y..HOURS_8Y => &self._7y_to_8y,
-            HOURS_8Y..HOURS_10Y => &self._8y_to_10y,
-            HOURS_10Y..HOURS_12Y => &self._10y_to_12y,
-            HOURS_12Y..HOURS_15Y => &self._12y_to_15y,
-            _ => &self.over_15y,
-        }
-    }
-
-    pub fn from_array(arr: [T; AGE_RANGE_COUNT]) -> Self {
-        let [
-            a0,
-            a1,
-            a2,
-            a3,
-            a4,
-            a5,
-            a6,
-            a7,
-            a8,
-            a9,
-            a10,
-            a11,
-            a12,
-            a13,
-            a14,
-            a15,
-            a16,
-            a17,
-            a18,
-            a19,
-            a20,
-            a21,
-            a22,
-        ] = arr;
-        Self {
-            under_1h: a0,
-            _1h_to_1d: a1,
-            _1d_to_1w: a2,
-            _1w_to_1m: a3,
-            _1m_to_2m: a4,
-            _2m_to_3m: a5,
-            _3m_to_4m: a6,
-            _4m_to_5m: a7,
-            _5m_to_6m: a8,
-            _6m_to_9m: a9,
-            _9m_to_1y: a10,
-            _1y_to_18m: a11,
-            _18m_to_2y: a12,
-            _2y_to_3y: a13,
-            _3y_to_4y: a14,
-            _4y_to_5y: a15,
-            _5y_to_6y: a16,
-            _6y_to_7y: a17,
-            _7y_to_8y: a18,
-            _8y_to_10y: a19,
-            _10y_to_12y: a20,
-            _12y_to_15y: a21,
-            over_15y: a22,
-        }
+        AgeRangeId::from(age).select(self)
     }
 
     pub fn new<F>(mut create: F) -> Self
     where
         F: FnMut(Filter, &'static str) -> T,
     {
-        let f = AGE_RANGE_FILTERS;
-        let n = AGE_RANGE_NAMES;
-        Self {
-            under_1h: create(f.under_1h.clone(), n.under_1h.id),
-            _1h_to_1d: create(f._1h_to_1d.clone(), n._1h_to_1d.id),
-            _1d_to_1w: create(f._1d_to_1w.clone(), n._1d_to_1w.id),
-            _1w_to_1m: create(f._1w_to_1m.clone(), n._1w_to_1m.id),
-            _1m_to_2m: create(f._1m_to_2m.clone(), n._1m_to_2m.id),
-            _2m_to_3m: create(f._2m_to_3m.clone(), n._2m_to_3m.id),
-            _3m_to_4m: create(f._3m_to_4m.clone(), n._3m_to_4m.id),
-            _4m_to_5m: create(f._4m_to_5m.clone(), n._4m_to_5m.id),
-            _5m_to_6m: create(f._5m_to_6m.clone(), n._5m_to_6m.id),
-            _6m_to_9m: create(f._6m_to_9m.clone(), n._6m_to_9m.id),
-            _9m_to_1y: create(f._9m_to_1y.clone(), n._9m_to_1y.id),
-            _1y_to_18m: create(f._1y_to_18m.clone(), n._1y_to_18m.id),
-            _18m_to_2y: create(f._18m_to_2y.clone(), n._18m_to_2y.id),
-            _2y_to_3y: create(f._2y_to_3y.clone(), n._2y_to_3y.id),
-            _3y_to_4y: create(f._3y_to_4y.clone(), n._3y_to_4y.id),
-            _4y_to_5y: create(f._4y_to_5y.clone(), n._4y_to_5y.id),
-            _5y_to_6y: create(f._5y_to_6y.clone(), n._5y_to_6y.id),
-            _6y_to_7y: create(f._6y_to_7y.clone(), n._6y_to_7y.id),
-            _7y_to_8y: create(f._7y_to_8y.clone(), n._7y_to_8y.id),
-            _8y_to_10y: create(f._8y_to_10y.clone(), n._8y_to_10y.id),
-            _10y_to_12y: create(f._10y_to_12y.clone(), n._10y_to_12y.id),
-            _12y_to_15y: create(f._12y_to_15y.clone(), n._12y_to_15y.id),
-            over_15y: create(f.over_15y.clone(), n.over_15y.id),
-        }
+        Self::from_fn(|id| create(id.filter().clone(), id.name().id))
     }
 
     pub fn try_new<F, E>(mut create: F) -> Result<Self, E>
     where
         F: FnMut(Filter, &'static str) -> Result<T, E>,
     {
-        let f = AGE_RANGE_FILTERS;
-        let n = AGE_RANGE_NAMES;
-        Ok(Self {
-            under_1h: create(f.under_1h.clone(), n.under_1h.id)?,
-            _1h_to_1d: create(f._1h_to_1d.clone(), n._1h_to_1d.id)?,
-            _1d_to_1w: create(f._1d_to_1w.clone(), n._1d_to_1w.id)?,
-            _1w_to_1m: create(f._1w_to_1m.clone(), n._1w_to_1m.id)?,
-            _1m_to_2m: create(f._1m_to_2m.clone(), n._1m_to_2m.id)?,
-            _2m_to_3m: create(f._2m_to_3m.clone(), n._2m_to_3m.id)?,
-            _3m_to_4m: create(f._3m_to_4m.clone(), n._3m_to_4m.id)?,
-            _4m_to_5m: create(f._4m_to_5m.clone(), n._4m_to_5m.id)?,
-            _5m_to_6m: create(f._5m_to_6m.clone(), n._5m_to_6m.id)?,
-            _6m_to_9m: create(f._6m_to_9m.clone(), n._6m_to_9m.id)?,
-            _9m_to_1y: create(f._9m_to_1y.clone(), n._9m_to_1y.id)?,
-            _1y_to_18m: create(f._1y_to_18m.clone(), n._1y_to_18m.id)?,
-            _18m_to_2y: create(f._18m_to_2y.clone(), n._18m_to_2y.id)?,
-            _2y_to_3y: create(f._2y_to_3y.clone(), n._2y_to_3y.id)?,
-            _3y_to_4y: create(f._3y_to_4y.clone(), n._3y_to_4y.id)?,
-            _4y_to_5y: create(f._4y_to_5y.clone(), n._4y_to_5y.id)?,
-            _5y_to_6y: create(f._5y_to_6y.clone(), n._5y_to_6y.id)?,
-            _6y_to_7y: create(f._6y_to_7y.clone(), n._6y_to_7y.id)?,
-            _7y_to_8y: create(f._7y_to_8y.clone(), n._7y_to_8y.id)?,
-            _8y_to_10y: create(f._8y_to_10y.clone(), n._8y_to_10y.id)?,
-            _10y_to_12y: create(f._10y_to_12y.clone(), n._10y_to_12y.id)?,
-            _12y_to_15y: create(f._12y_to_15y.clone(), n._12y_to_15y.id)?,
-            over_15y: create(f.over_15y.clone(), n.over_15y.id)?,
-        })
+        Self::try_from_fn(|id| create(id.filter().clone(), id.name().id))
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {
@@ -559,6 +570,8 @@ impl<T> AgeRange<T> {
 
 #[cfg(test)]
 mod tests {
+    use brk_types::Timestamp;
+
     use super::*;
 
     #[test]
@@ -600,6 +613,29 @@ mod tests {
     }
 
     #[test]
+    fn column_ids_select_named_fields_and_metadata() {
+        let mut named = AgeRange::from_fn(|column| column.index());
+        for &column in &AGE_RANGE_IDS {
+            assert_eq!(*column.select(&named), column.index());
+            *column.select_mut(&mut named) += AGE_RANGE_COUNT;
+            assert_eq!(*column.select(&named), column.index() + AGE_RANGE_COUNT);
+            assert_eq!(column.bounds(), column.select(&AGE_RANGE_BOUNDS));
+            assert_eq!(column.filter(), column.select(&AGE_RANGE_FILTERS));
+            assert_eq!(column.name().id, column.select(&AGE_RANGE_NAMES).id);
+        }
+
+        let series = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            (column, name.to_owned())
+        });
+        for (((column, name), expected_column), expected_name) in
+            series.iter().zip(AGE_RANGE_IDS).zip(AGE_RANGE_NAMES.iter())
+        {
+            assert_eq!(*column, expected_column);
+            assert_eq!(name, &CohortContext::Utxo.prefixed(expected_name.id));
+        }
+    }
+
+    #[test]
     fn split_range_names_and_boundaries_match() {
         assert_eq!(HOURS_9M, HOURS_6M + HOURS_3M);
         assert_eq!(HOURS_18M, HOURS_1Y + HOURS_6M);
@@ -610,14 +646,34 @@ mod tests {
     }
 
     #[test]
+    fn classifier_matches_every_typed_range_boundary() {
+        for &id in &AGE_RANGE_IDS {
+            let bounds = id.bounds();
+            let at_start = Age::new(
+                Timestamp::new((bounds.start * 60 * 60) as u32),
+                Timestamp::ZERO,
+            );
+            assert_eq!(AgeRangeId::from(at_start), id);
+
+            if bounds.end != usize::MAX {
+                let before_end = Age::new(
+                    Timestamp::new(((bounds.end - 1) * 60 * 60) as u32),
+                    Timestamp::ZERO,
+                );
+                assert_eq!(AgeRangeId::from(before_end), id);
+            }
+        }
+    }
+
+    #[test]
     fn eighteen_month_classifier_stays_anchored_to_one_year_plus_six_months() {
         let age_at_540_days = Age::new(
-            brk_types::Timestamp::new((HOURS_6M * 3 * 60 * 60) as u32),
-            brk_types::Timestamp::ZERO,
+            Timestamp::new((HOURS_6M * 3 * 60 * 60) as u32),
+            Timestamp::ZERO,
         );
         let age_at_18m = Age::new(
-            brk_types::Timestamp::new((HOURS_18M * 60 * 60) as u32),
-            brk_types::Timestamp::ZERO,
+            Timestamp::new((HOURS_18M * 60 * 60) as u32),
+            Timestamp::ZERO,
         );
 
         assert_eq!(AGE_RANGE_NAMES.get(age_at_540_days).id, "1y_to_18m_old");

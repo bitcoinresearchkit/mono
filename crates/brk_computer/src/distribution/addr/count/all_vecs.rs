@@ -1,12 +1,14 @@
+use brk_cohort::AddrTypeId;
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{StoredU64, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{Database, Rw, StorageMode};
+use rayon::prelude::*;
+use vecdb::{AnyStoredVec, AnyVec, Database, Rw, StorageMode, WritableVec};
 
 use crate::{
     indexes,
-    internal::{PerBlock, WithAddrTypes},
+    internal::{ColumnarPerBlock, LazyColumnPerBlock, LazyPerBlock, WithAddrTypes},
 };
 
 use super::AddrTypeToAddrCount;
@@ -16,7 +18,13 @@ use super::AddrTypeToAddrCount;
 /// funded/total pairs used by exposed, reused, and respent.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct AddrCountsVecs<M: StorageMode = Rw>(
-    #[traversable(flatten)] pub WithAddrTypes<PerBlock<StoredU64, M>>,
+    #[traversable(flatten)]
+    pub  ColumnarPerBlock<
+        StoredU64,
+        AddrTypeId,
+        WithAddrTypes<LazyColumnPerBlock<StoredU64, AddrTypeId>, LazyPerBlock<StoredU64>>,
+        M,
+    >,
 );
 
 impl AddrCountsVecs {
@@ -26,13 +34,31 @@ impl AddrCountsVecs {
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
-        Ok(Self(WithAddrTypes::<PerBlock<StoredU64>>::forced_import(
-            db, name, version, indexes,
+        Ok(Self(ColumnarPerBlock::forced_import(
+            db,
+            &format!("{name}_by_type"),
+            version,
+            |source| WithAddrTypes::from_columnar_source(name, version, source, indexes),
         )?))
+    }
+
+    pub(crate) fn min_stateful_len(&self) -> usize {
+        self.height.len()
+    }
+
+    pub(crate) fn par_iter_height_mut(
+        &mut self,
+    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        rayon::iter::once(&mut self.height as &mut dyn AnyStoredVec)
+    }
+
+    pub(crate) fn reset_height(&mut self) -> Result<()> {
+        self.height.reset()?;
+        Ok(())
     }
 
     #[inline(always)]
     pub(crate) fn push_counts(&mut self, counts: &AddrTypeToAddrCount) {
-        self.push_height(counts.sum(), counts.values().copied());
+        self.push(counts.row());
     }
 }

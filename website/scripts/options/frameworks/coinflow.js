@@ -66,7 +66,15 @@ export function createCoinflowSection() {
   const { coinflow } = brk.series.frameworks;
   const ranges = ageRanges.map(({ key, ...range }) => ({
     ...range,
-    tree: coinflow.ageRange[key],
+    tree: {
+      spendingRate: coinflow.ageRange.spendingRate[key],
+      spendingExposure: coinflow.ageRange.spendingExposure[key],
+      mobility: coinflow.ageRange.spendingExposure.mobility[key],
+      supply: {
+        mobile: coinflow.ageRange.supply.mobile[key],
+        immobile: coinflow.ageRange.supply.immobile[key],
+      },
+    },
   }));
   const terms = [
     { name: "STH", color: colors.term.short, tree: coinflow.sth },

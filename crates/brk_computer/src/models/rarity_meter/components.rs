@@ -1,52 +1,42 @@
 use brk_error::Result;
 use brk_indexer::{Indexer, Lengths};
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, PartsPerMillion32, StoredF32, Version};
+use brk_types::{
+    Cents, Height, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
+    RarityPercentileId, StoredF32, Version,
+};
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, EagerVec, Exit, PcoVec, ReadableVec, Rw, StorageMode, VecIndex,
-    WritableVec,
+    AnyVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec, PcoVec, ReadOnlyClone,
+    ReadableVec, Rw, StorageMode, WritableVec,
 };
 
 use crate::{
     distribution,
     frameworks::{coinflow, cointime},
     indexes,
-    internal::{LazyPerBlock, Price, RatioPerBlock},
+    internal::{LazyColumnRatioPerBlock, LazyPerBlock, Price},
 };
 
 use super::{
+    COMPUTE_BATCH_SIZE,
     cached_component_price::CachedComponentPrice,
-    percentiles::{BlockDecayPercentiles, START_HEIGHT},
+    percentiles::{BlockDecayPercentiles, RarityPercentiles, START_HEIGHT, suffix},
 };
 
-#[derive(Traversable)]
-pub struct Band<M: StorageMode = Rw> {
+#[derive(Clone, Traversable)]
+pub struct Band {
     #[traversable(flatten)]
-    pub ratio: RatioPerBlock<PartsPerMillion32, M>,
+    pub ratio: LazyColumnRatioPerBlock<PartsPerMillion32, RarityPercentileId>,
     pub price: Price<LazyPerBlock<Cents>>,
 }
 
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
-    pub pct0_1: Band<M>,
-    pub pct0_5: Band<M>,
-    pub pct1: Band<M>,
-    pub pct2: Band<M>,
-    pub pct5: Band<M>,
-    pub pct10: Band<M>,
-    pub pct20: Band<M>,
-    pub pct30: Band<M>,
-    pub pct40: Band<M>,
-    pub pct50: Band<M>,
-    pub pct60: Band<M>,
-    pub pct70: Band<M>,
-    pub pct80: Band<M>,
-    pub pct90: Band<M>,
-    pub pct95: Band<M>,
-    pub pct98: Band<M>,
-    pub pct99: Band<M>,
-    pub pct99_5: Band<M>,
-    pub pct99_9: Band<M>,
+    #[traversable(flatten)]
+    pub bands: RarityPercentiles<Band>,
+
+    pub ratios:
+        M::Stored<EagerVec<ColumnarVec<PcoVec<Height, PartsPerMillion32>, RarityPercentileId>>>,
 
     #[traversable(skip)]
     block_decay_pct: BlockDecayPercentiles,
@@ -55,7 +45,7 @@ pub struct Component<M: StorageMode = Rw> {
     cached_price: CachedComponentPrice,
 }
 
-const VERSION: Version = Version::new(10);
+const VERSION: Version = Version::new(11);
 
 impl Component {
     fn forced_import(
@@ -67,51 +57,31 @@ impl Component {
     ) -> Result<Self> {
         let version = version + VERSION;
         let cached_price = CachedComponentPrice::new(name, version, price_source);
-
-        macro_rules! import_ratio {
-            ($suffix:expr) => {
-                RatioPerBlock::forced_import_ppm(
-                    db,
-                    &format!("{name}_{}", $suffix),
-                    version,
-                    indexes,
-                )?
-            };
-        }
-
-        macro_rules! import_band {
-            ($pct:expr) => {{
-                let ratio = import_ratio!(concat!("ratio_", $pct));
-                let price = cached_price.price_for_ratio(
-                    &format!("{name}_{}", $pct),
-                    version,
-                    &ratio.ppm.height,
-                    indexes,
-                );
-                Band { ratio, price }
-            }};
-        }
+        let ratios = EagerVec::<
+            ColumnarVec<PcoVec<Height, PartsPerMillion32>, RarityPercentileId>,
+        >::forced_import(db, &format!("{name}_ratios_ppm"), version)?;
+        let source = ratios.read_only_clone();
+        let bands = RarityPercentiles::from_fn(|id| {
+            let suffix = suffix(id);
+            let ratio = LazyColumnRatioPerBlock::new(
+                &format!("{name}_ratio_{suffix}"),
+                version,
+                &source,
+                id,
+                indexes,
+            );
+            let price = cached_price.price_for_ratio(
+                &format!("{name}_{suffix}"),
+                version,
+                &ratio.ppm.height,
+                indexes,
+            );
+            Band { ratio, price }
+        });
 
         Ok(Self {
-            pct0_1: import_band!("pct0_1"),
-            pct0_5: import_band!("pct0_5"),
-            pct1: import_band!("pct1"),
-            pct2: import_band!("pct2"),
-            pct5: import_band!("pct5"),
-            pct10: import_band!("pct10"),
-            pct20: import_band!("pct20"),
-            pct30: import_band!("pct30"),
-            pct40: import_band!("pct40"),
-            pct50: import_band!("pct50"),
-            pct60: import_band!("pct60"),
-            pct70: import_band!("pct70"),
-            pct80: import_band!("pct80"),
-            pct90: import_band!("pct90"),
-            pct95: import_band!("pct95"),
-            pct98: import_band!("pct98"),
-            pct99: import_band!("pct99"),
-            pct99_5: import_band!("pct99_5"),
-            pct99_9: import_band!("pct99_9"),
+            bands,
+            ratios,
             block_decay_pct: BlockDecayPercentiles::default(),
             cached_price,
         })
@@ -126,111 +96,64 @@ impl Component {
         self.cached_price
             .clear_if_recomputed_from(starting_lengths.height);
 
-        let ratio_version = ratio_source.version();
-
-        self.mut_pct_vecs().try_for_each(|vec| -> Result<()> {
-            vec.validate_computed_version_or_reset(ratio_version)?;
-            Ok(())
-        })?;
-
-        let starting_height = self
-            .mut_pct_vecs()
-            .map(|vec| Height::from(vec.len()))
-            .min()
-            .unwrap()
-            .min(starting_lengths.height);
-
-        let start = starting_height.to_usize();
-        let ratio_len = ratio_source.len();
-
-        if ratio_len > start {
-            let expected_len = start.saturating_sub(START_HEIGHT);
-            if self.block_decay_pct.len() != expected_len {
-                self.block_decay_pct.reset();
-                if start > START_HEIGHT {
-                    let historical = ratio_source.collect_range_at(START_HEIGHT, start);
-                    self.block_decay_pct.add_bulk(START_HEIGHT, &historical);
+        let block_decay_pct = &mut self.block_decay_pct;
+        self.ratios.compute_batched_to(
+            starting_lengths.height,
+            ratio_source.len(),
+            ratio_source.version(),
+            COMPUTE_BATCH_SIZE,
+            |ratios, range| {
+                let expected_len = range.start.saturating_sub(START_HEIGHT);
+                if block_decay_pct.len() != expected_len {
+                    block_decay_pct.reset();
+                    if range.start > START_HEIGHT {
+                        let historical = ratio_source.collect_range_at(START_HEIGHT, range.start);
+                        block_decay_pct.add_bulk(START_HEIGHT, &historical);
+                    }
                 }
-            }
 
-            let new_ratios = ratio_source.collect_range_at(start, ratio_len);
-            let mut pct_vecs: [&mut EagerVec<PcoVec<Height, PartsPerMillion32>>; 19] = [
-                &mut self.pct0_1.ratio.ppm.height,
-                &mut self.pct0_5.ratio.ppm.height,
-                &mut self.pct1.ratio.ppm.height,
-                &mut self.pct2.ratio.ppm.height,
-                &mut self.pct5.ratio.ppm.height,
-                &mut self.pct10.ratio.ppm.height,
-                &mut self.pct20.ratio.ppm.height,
-                &mut self.pct30.ratio.ppm.height,
-                &mut self.pct40.ratio.ppm.height,
-                &mut self.pct50.ratio.ppm.height,
-                &mut self.pct60.ratio.ppm.height,
-                &mut self.pct70.ratio.ppm.height,
-                &mut self.pct80.ratio.ppm.height,
-                &mut self.pct90.ratio.ppm.height,
-                &mut self.pct95.ratio.ppm.height,
-                &mut self.pct98.ratio.ppm.height,
-                &mut self.pct99.ratio.ppm.height,
-                &mut self.pct99_5.ratio.ppm.height,
-                &mut self.pct99_9.ratio.ppm.height,
-            ];
-            const PCTS: [f64; 19] = [
-                0.001, 0.005, 0.01, 0.02, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50, 0.60, 0.70, 0.80,
-                0.90, 0.95, 0.98, 0.99, 0.995, 0.999,
-            ];
-            let mut out = [0.0; 19];
-
-            for vec in &mut pct_vecs {
-                vec.truncate_if_needed_at(start)?;
-            }
-
-            for (offset, &ratio) in new_ratios.iter().enumerate() {
-                let height = start + offset;
-                if height >= START_HEIGHT {
-                    self.block_decay_pct.add(height, *ratio);
+                let new_ratios = ratio_source.collect_range_at(range.start, range.end);
+                let mut out = [0.0; RARITY_PERCENTILES_LEN];
+                for (offset, &ratio) in new_ratios.iter().enumerate() {
+                    let height = range.start + offset;
+                    if height >= START_HEIGHT {
+                        block_decay_pct.add(height, *ratio);
+                    }
+                    block_decay_pct.quantiles(&RARITY_PERCENTILES, &mut out);
+                    ratios.push(RarityPercentileId::from_fn(|id| {
+                        PartsPerMillion32::from(out[id.index()])
+                    }));
                 }
-                self.block_decay_pct.quantiles(&PCTS, &mut out);
-                for (vec, &value) in pct_vecs.iter_mut().zip(&out) {
-                    vec.push(PartsPerMillion32::from(value));
-                }
-            }
-        }
 
-        {
-            let _lock = exit.lock();
-            self.mut_pct_vecs()
-                .try_for_each(|vec| vec.write().map(|_| ()))?;
-        }
+                Ok(())
+            },
+            exit,
+        )?;
 
         Ok(())
     }
 
-    fn mut_pct_vecs(
-        &mut self,
-    ) -> impl Iterator<Item = &mut EagerVec<PcoVec<Height, PartsPerMillion32>>> {
-        [
-            &mut self.pct0_1.ratio.ppm.height,
-            &mut self.pct0_5.ratio.ppm.height,
-            &mut self.pct1.ratio.ppm.height,
-            &mut self.pct2.ratio.ppm.height,
-            &mut self.pct5.ratio.ppm.height,
-            &mut self.pct10.ratio.ppm.height,
-            &mut self.pct20.ratio.ppm.height,
-            &mut self.pct30.ratio.ppm.height,
-            &mut self.pct40.ratio.ppm.height,
-            &mut self.pct50.ratio.ppm.height,
-            &mut self.pct60.ratio.ppm.height,
-            &mut self.pct70.ratio.ppm.height,
-            &mut self.pct80.ratio.ppm.height,
-            &mut self.pct90.ratio.ppm.height,
-            &mut self.pct95.ratio.ppm.height,
-            &mut self.pct98.ratio.ppm.height,
-            &mut self.pct99.ratio.ppm.height,
-            &mut self.pct99_5.ratio.ppm.height,
-            &mut self.pct99_9.ratio.ppm.height,
-        ]
-        .into_iter()
+    pub(super) fn boundary_version(&self) -> Version {
+        self.bands
+            .boundary_refs()
+            .into_iter()
+            .map(|band| band.price.cents.height.version())
+            .sum()
+    }
+
+    pub(super) fn boundary_len(&self) -> usize {
+        self.bands
+            .boundary_refs()
+            .into_iter()
+            .map(|band| band.price.cents.height.len())
+            .min()
+            .unwrap_or_default()
+    }
+
+    pub(super) fn collect_boundary_prices(&self, start: usize, end: usize) -> [Vec<Cents>; 10] {
+        self.bands
+            .boundary_refs()
+            .map(|band| band.price.cents.height.collect_range_at(start, end))
     }
 }
 

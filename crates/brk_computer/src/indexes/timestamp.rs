@@ -28,7 +28,6 @@ pub struct Timestamps<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    #[allow(clippy::type_complexity)]
     pub resolutions: PerResolution<
         LazyVec<Minute10, Timestamp, Minute10, Height>,
         LazyVec<Minute30, Timestamp, Minute30, Height>,

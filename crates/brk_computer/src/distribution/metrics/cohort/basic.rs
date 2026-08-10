@@ -6,8 +6,8 @@ use vecdb::{AnyStoredVec, Exit, Rw, StorageMode};
 
 use crate::{
     distribution::metrics::{
-        ActivityCore, AllSupplyCache, CohortMetricsBase, ImportConfig, OutputsBase, RealizedCore,
-        SupplyCore, UnrealizedCore,
+        ActivityCore, CohortMetricsBase, ImportConfig, OutputsBase, RealizedCore, SupplyCore,
+        UnrealizedCore,
     },
     price,
 };
@@ -43,8 +43,7 @@ impl CohortMetricsBase for BasicCohortMetrics {
 }
 
 impl BasicCohortMetrics {
-    pub(crate) fn forced_import(cfg: &ImportConfig, all_supply: &AllSupplyCache) -> Result<Self> {
-        let supply = SupplyCore::forced_import(cfg, all_supply)?;
+    pub(crate) fn forced_import(cfg: &ImportConfig, supply: SupplyCore) -> Result<Self> {
         let realized = RealizedCore::forced_import(cfg)?;
         let unrealized = UnrealizedCore::forced_import(cfg, &realized.price.ppm)?;
 

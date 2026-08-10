@@ -1,110 +1,59 @@
-use brk_cohort::{AgeRange, CohortContext};
+use brk_cohort::{AgeRangeId, CohortContext};
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
-use vecdb::{CachedBoxedVec, Database, ReadableCloneableVec};
+use brk_types::{Cents, Height, StoredF64, Version};
+use vecdb::{CachedBoxedVec, Database, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec};
 
-use super::{ActivityVecs, CohortVecs, SupplyVecs, Vecs};
+use super::{ActivitySeries, SupplyVecs, Vecs};
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, LazyPerBlock, OddsF64, OneMinusF64, PerBlock,
-        PerBlockCumulativeRolling, SpotValuePerBlock, Windows,
+        CachedWindowStartVec, ColumnarPerBlock, ColumnarPerBlockCumulativeRolling,
+        LazyColumnPerBlock, LazyColumnPerBlockCumulativeRolling, LazyColumnSpotValuePerBlock,
+        LazyPerBlock, OddsF64, OneMinusF64, Windows,
     },
 };
 
-const VERSION: Version = Version::ONE;
+const VERSION: Version = Version::TWO;
 
-impl ActivityVecs {
-    fn forced_import(
-        db: &Database,
-        name: &str,
+impl ActivitySeries {
+    fn new(
         version: Version,
+        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, AgeRangeId>,
         indexes: &indexes::Vecs,
-    ) -> Result<Self> {
-        let wakefulness =
-            PerBlock::forced_import(db, &format!("{name}_wakefulness"), version, indexes)?;
-        let dormancy = LazyPerBlock::from_computed::<OneMinusF64>(
-            &format!("{name}_dormancy"),
-            version,
-            wakefulness.height.read_only_boxed_clone(),
-            &wakefulness,
-        );
-        let wakefulness_to_dormancy = LazyPerBlock::from_computed::<OddsF64>(
-            &format!("{name}_wakefulness_to_dormancy"),
-            version,
-            wakefulness.height.read_only_boxed_clone(),
-            &wakefulness,
-        );
+    ) -> Self {
+        let wakefulness = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            LazyColumnPerBlock::new(
+                &format!("{name}_wakefulness"),
+                version,
+                source,
+                column,
+                indexes,
+            )
+        });
+        let dormancy = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            let wakefulness = column.select(&wakefulness);
+            LazyPerBlock::from_resolutions::<OneMinusF64>(
+                &format!("{name}_dormancy"),
+                version,
+                wakefulness.height.read_only_boxed_clone(),
+                &wakefulness.resolutions,
+            )
+        });
+        let wakefulness_to_dormancy = AgeRangeId::series(CohortContext::Utxo, |column, name| {
+            let wakefulness = column.select(&wakefulness);
+            LazyPerBlock::from_resolutions::<OddsF64>(
+                &format!("{name}_wakefulness_to_dormancy"),
+                version,
+                wakefulness.height.read_only_boxed_clone(),
+                &wakefulness.resolutions,
+            )
+        });
 
-        Ok(Self {
+        Self {
             wakefulness,
             dormancy,
             wakefulness_to_dormancy,
-        })
-    }
-}
-
-impl SupplyVecs {
-    fn forced_import(
-        db: &Database,
-        name: &str,
-        version: Version,
-        indexes: &indexes::Vecs,
-        spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
-        Ok(Self {
-            awake: SpotValuePerBlock::forced_import(
-                db,
-                &format!("{name}_awake_supply"),
-                version,
-                indexes,
-                spot_price,
-            )?,
-            dormant: SpotValuePerBlock::forced_import(
-                db,
-                &format!("{name}_dormant_supply"),
-                version,
-                indexes,
-                spot_price,
-            )?,
-        })
-    }
-}
-
-impl CohortVecs {
-    fn forced_import(
-        db: &Database,
-        name: &str,
-        version: Version,
-        indexes: &indexes::Vecs,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
-        Ok(Self {
-            coindays_created: PerBlockCumulativeRolling::forced_import(
-                db,
-                &format!("{name}_coindays_created"),
-                version,
-                indexes,
-                cached_starts,
-            )?,
-            coindays_consumed: PerBlockCumulativeRolling::forced_import(
-                db,
-                &format!("{name}_coindays_consumed"),
-                version,
-                indexes,
-                cached_starts,
-            )?,
-            coindays_stored: PerBlockCumulativeRolling::forced_import(
-                db,
-                &format!("{name}_coindays_stored"),
-                version,
-                indexes,
-                cached_starts,
-            )?,
-            activity: ActivityVecs::forced_import(db, name, version, indexes)?,
-            supply: SupplyVecs::forced_import(db, name, version, indexes, spot_price)?,
-        })
+        }
     }
 }
 
@@ -117,10 +66,93 @@ impl Vecs {
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
+        let coindays_created = ColumnarPerBlockCumulativeRolling::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_coindays_created_cumulative"),
+            version,
+            |source| {
+                AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                    LazyColumnPerBlockCumulativeRolling::new(
+                        &format!("{name}_coindays_created"),
+                        version,
+                        source,
+                        column,
+                        indexes,
+                        cached_starts,
+                    )
+                })
+            },
+        )?;
+        let coindays_consumed = ColumnarPerBlockCumulativeRolling::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_coindays_consumed_cumulative"),
+            version,
+            |source| {
+                AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                    LazyColumnPerBlockCumulativeRolling::new(
+                        &format!("{name}_coindays_consumed"),
+                        version,
+                        source,
+                        column,
+                        indexes,
+                        cached_starts,
+                    )
+                })
+            },
+        )?;
+        let coindays_stored = ColumnarPerBlockCumulativeRolling::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_coindays_stored_cumulative"),
+            version,
+            |source| {
+                AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                    LazyColumnPerBlockCumulativeRolling::new(
+                        &format!("{name}_coindays_stored"),
+                        version,
+                        source,
+                        column,
+                        indexes,
+                        cached_starts,
+                    )
+                })
+            },
+        )?;
+        let activity = ColumnarPerBlock::forced_import(
+            db,
+            &CohortContext::Utxo.prefixed("age_range_wakefulness"),
+            version,
+            |source| ActivitySeries::new(version, source, indexes),
+        )?;
+        let import_supply = |side: &str| {
+            ColumnarPerBlock::forced_import(
+                db,
+                &CohortContext::Utxo.prefixed(&format!("age_range_{side}_supply_sats")),
+                version,
+                |source| {
+                    AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                        LazyColumnSpotValuePerBlock::new(
+                            &format!("{name}_{side}_supply"),
+                            version,
+                            source,
+                            column,
+                            indexes,
+                            spot_price,
+                        )
+                    })
+                },
+            )
+        };
+        let supply = SupplyVecs {
+            awake: import_supply("awake")?,
+            dormant: import_supply("dormant")?,
+        };
 
-        Ok(Self(AgeRange::try_new(|_, name| {
-            let name = CohortContext::Utxo.prefixed(name);
-            CohortVecs::forced_import(db, &name, version, indexes, cached_starts, spot_price)
-        })?))
+        Ok(Self {
+            coindays_created,
+            coindays_consumed,
+            coindays_stored,
+            activity,
+            supply,
+        })
     }
 }

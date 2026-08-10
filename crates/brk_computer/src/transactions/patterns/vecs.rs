@@ -1,26 +1,125 @@
 use brk_traversable::Traversable;
-use brk_types::{StoredBool, StoredU64, TxIndex};
-use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
+use brk_types::{StoredBool, StoredU64, TxIndex, Version};
+use derive_more::{Deref, DerefMut};
+use vecdb::{
+    ColumnId, ColumnarVec, EagerVec, LazyColumnVec, PcoVec, ReadOnlyColumnarVec, Rw, StorageMode,
+    VecValue,
+};
 
-use crate::internal::PerBlockCumulativeRolling;
+use crate::internal::{ColumnarPerBlockCumulativeRolling, LazyColumnPerBlockCumulativeRolling};
+
+const PATTERN_COUNT: usize = 3;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PatternId {
+    Coinjoin,
+    Consolidation,
+    BatchPayout,
+}
+
+const PATTERN_IDS: [PatternId; PATTERN_COUNT] = [
+    PatternId::Coinjoin,
+    PatternId::Consolidation,
+    PatternId::BatchPayout,
+];
+
+impl ColumnId for PatternId {
+    type Row<T>
+        = [T; PATTERN_COUNT]
+    where
+        T: VecValue;
+
+    const VERSION: Version = Version::ONE;
+    const ALL: &'static [Self] = &PATTERN_IDS;
+
+    #[inline]
+    fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+        &row[self.index()]
+    }
+
+    #[inline]
+    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+        &mut row[self.index()]
+    }
+
+    #[inline]
+    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    where
+        T: VecValue,
+        F: FnMut(Self) -> T,
+    {
+        std::array::from_fn(|index| create(PATTERN_IDS[index]))
+    }
+
+    #[inline]
+    fn map<T, U, F>(row: Self::Row<T>, create: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(T) -> U,
+    {
+        row.map(create)
+    }
+}
+
+#[derive(Clone, Traversable)]
+pub struct Flags<V> {
+    pub is_coinjoin: V,
+    pub is_consolidation: V,
+    pub is_batch_payout: V,
+}
 
 /// Transaction counts by detected structural pattern.
 ///
 /// These are heuristic classifications of transactions, not protocol labels.
-#[derive(Traversable)]
+#[derive(Deref, DerefMut, Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {
     /// CoinJoin candidates with repeated output values and no address reuse.
-    pub coinjoin: PerBlockCumulativeRolling<StoredU64, M>,
+    pub coinjoin: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
     /// Transactions with at least five times as many inputs as outputs.
-    pub consolidation: PerBlockCumulativeRolling<StoredU64, M>,
+    pub consolidation: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
     /// Non-coinbase transactions with at least five times as many outputs as inputs.
-    pub batch_payout: PerBlockCumulativeRolling<StoredU64, M>,
+    pub batch_payout: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
+    #[deref]
+    #[deref_mut]
+    #[traversable(hidden)]
+    pub source: ColumnarPerBlockCumulativeRolling<StoredU64, PatternId, (), M>,
 }
 
-#[derive(Traversable)]
+#[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub count: CountVecs<M>,
-    pub is_coinjoin: M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>,
-    pub is_consolidation: M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>,
-    pub is_batch_payout: M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>,
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    pub flags: Flags<
+        LazyColumnVec<ReadOnlyColumnarVec<PcoVec<TxIndex, StoredBool>, PatternId>, PatternId>,
+    >,
+    #[traversable(hidden)]
+    pub flags_source: M::Stored<EagerVec<ColumnarVec<PcoVec<TxIndex, StoredBool>, PatternId>>>,
+}
+
+#[cfg(test)]
+mod tests {
+    use vecdb::ColumnId;
+
+    use super::{PATTERN_IDS, PatternId};
+
+    #[test]
+    fn pattern_columns_match_public_field_order() {
+        assert_eq!(PatternId::ALL, PATTERN_IDS);
+        assert_eq!(
+            PatternId::from_fn(|pattern| pattern),
+            [
+                PatternId::Coinjoin,
+                PatternId::Consolidation,
+                PatternId::BatchPayout,
+            ]
+        );
+    }
 }

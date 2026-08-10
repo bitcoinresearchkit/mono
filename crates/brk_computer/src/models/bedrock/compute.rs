@@ -1,20 +1,30 @@
-use std::{cmp::Ordering, collections::BTreeMap, fs, path::Path};
+use std::{
+    cmp::Ordering,
+    collections::BTreeMap,
+    fs,
+    io::{Error, ErrorKind},
+    path::Path,
+};
 
-use brk_cohort::{AGE_RANGE_FILTERS, AGE_RANGE_NAMES, CohortContext, TERM_FILTERS, UTXO_ALL_NAME};
+use brk_cohort::{
+    AgeRange, AgeRangeId, ByTerm, CohortContext, TERM_FILTERS, TERM_NAMES, UTXO_ALL_NAME,
+};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{Cents, CentsCompact, Date, Day1, Sats, StoredF64, UrpdRaw, UrpdWeight, Version};
-use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecValue, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
 
 use super::{
-    STORED_URPD_COHORTS,
-    vecs::{Levels, MODE_COUNT, MODE_NAMES, ModeVecs, Percentiles, Vecs},
+    vecs::{
+        LEVEL_IDS, Levels, LossPercentileId, ModeId, ModeVecs, Modes, Percentiles, PriceBandId,
+        PriceBands, Vecs, WeightedModeId, WeightedModes,
+    },
     weighted_urpd_name,
 };
 use crate::{
     distribution,
     frameworks::{
-        coinflow::{self, AGE_COHORT_COUNT, AgeBand, HORIZON_COUNT, HORIZON_DAYS, age_bounds_days},
+        coinflow::{self, AgeBand, HORIZON_COUNT, HORIZON_DAYS, age_bounds_days},
         cointime,
     },
     indexes,
@@ -23,39 +33,65 @@ use crate::{
 
 const MIN_CALIBRATION_DAYS: usize = 365;
 const WRITE_INTERVAL_DAYS: usize = 100;
-const PERCENTILE_COUNT: usize = 5;
-const LEVEL_COUNT: usize = 9;
-const WEIGHTED_MODE_COUNT: usize = MODE_COUNT - 1;
-const STORED_WEIGHT_COUNT: usize = UrpdWeight::WEIGHTED.len();
-const PERCENTILES: [f64; PERCENTILE_COUNT] = [0.95, 0.98, 0.99, 0.995, 0.999];
-const LEVEL_PERCENTILES: [f64; LEVEL_COUNT] = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+const PERCENTILES: Percentiles<f64> = Percentiles {
+    pct95: 0.95,
+    pct98: 0.98,
+    pct99: 0.99,
+    pct99_5: 0.995,
+    pct99_9: 0.999,
+};
+const LEVEL_PERCENTILES: Levels<f64> = Levels {
+    pct10: 0.1,
+    pct20: 0.2,
+    pct30: 0.3,
+    pct40: 0.4,
+    pct50: 0.5,
+    pct60: 0.6,
+    pct70: 0.7,
+    pct80: 0.8,
+    pct90: 0.9,
+};
 const WEIGHTED_URPD_VERSION: Version = Version::TWO;
 const WEIGHTED_URPD_VERSION_FILE: &str = "bedrock_urpd.version";
 
-const RAW_MODE: usize = 0;
-const COINTIME_MODE: usize = 1;
-const COINFLOW_MODE: usize = 2;
-const COINFLOW_HORIZON_START: usize = 3;
-const STH_TERM: usize = 0;
-const LTH_TERM: usize = 1;
-const TERM_COUNT: usize = 2;
+type Thresholds = Modes<Option<Percentiles<f64>>>;
+type ModeWeights = Modes<Option<AgeRange<f64>>>;
+type WeightedUrpdNames = AggregateCohorts<StoredWeights<String>>;
 
-type Thresholds = [Option<[f64; PERCENTILE_COUNT]>; MODE_COUNT];
-type ModeWeights = [Option<[f64; AGE_COHORT_COUNT]>; MODE_COUNT];
-type AllWeightedUrpds = [UrpdRaw; WEIGHTED_MODE_COUNT];
-type TermWeightedUrpds = [[UrpdRaw; STORED_WEIGHT_COUNT]; TERM_COUNT];
-type WeightedUrpdNames = [[String; STORED_WEIGHT_COUNT]; STORED_URPD_COHORTS.len()];
+#[derive(Default)]
+struct StoredWeights<T> {
+    cointime: T,
+    coinflow: T,
+}
+
+impl<T> StoredWeights<T> {
+    fn from_fn(mut create: impl FnMut(UrpdWeight) -> T) -> Self {
+        Self {
+            cointime: create(UrpdWeight::Cointime),
+            coinflow: create(UrpdWeight::Coinflow),
+        }
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &T> {
+        [&self.cointime, &self.coinflow].into_iter()
+    }
+}
+
+struct AggregateCohorts<T> {
+    all: T,
+    term: ByTerm<T>,
+}
 
 struct WeightedMasses {
-    all: [f64; WEIGHTED_MODE_COUNT],
-    terms: [[f64; STORED_WEIGHT_COUNT]; TERM_COUNT],
+    all: WeightedModes<f64>,
+    term: ByTerm<StoredWeights<f64>>,
 }
 
 impl Default for WeightedMasses {
     fn default() -> Self {
         Self {
-            all: [0.0; WEIGHTED_MODE_COUNT],
-            terms: [[0.0; STORED_WEIGHT_COUNT]; TERM_COUNT],
+            all: WeightedModes::from_fn(|_| 0.0),
+            term: ByTerm::default(),
         }
     }
 }
@@ -64,48 +100,52 @@ type WeightedUrpd = BTreeMap<CentsCompact, WeightedMasses>;
 
 struct DayUrpds {
     raw: UrpdRaw,
-    all: AllWeightedUrpds,
-    terms: TermWeightedUrpds,
+    all: WeightedModes<UrpdRaw>,
+    term: ByTerm<StoredWeights<UrpdRaw>>,
 }
 
 impl DayUrpds {
-    fn mode(&self, mode: usize) -> &UrpdRaw {
-        if mode == RAW_MODE {
-            &self.raw
-        } else {
-            &self.all[mode - 1]
+    fn mode(&self, mode: ModeId) -> &UrpdRaw {
+        match mode {
+            ModeId::Raw => &self.raw,
+            _ => self.all.select(mode.weighted().expect("weighted mode")),
         }
     }
 }
 
+struct ModeResult {
+    loss_threshold: Percentiles<StoredF64>,
+    prices: PriceBands<Cents>,
+}
+
 struct DayResult {
-    loss_threshold: [[StoredF64; PERCENTILE_COUNT]; MODE_COUNT],
-    floor: [[Cents; PERCENTILE_COUNT]; MODE_COUNT],
-    level: [[Cents; LEVEL_COUNT]; MODE_COUNT],
+    by_mode: Modes<ModeResult>,
 }
 
 impl DayResult {
     fn from_thresholds(thresholds: &Thresholds) -> Self {
         Self {
-            loss_threshold: thresholds.map(|thresholds| {
-                thresholds
-                    .map(|values| values.map(StoredF64::from))
-                    .unwrap_or([StoredF64::NAN; PERCENTILE_COUNT])
+            by_mode: Modes::from_fn(|mode| ModeResult {
+                loss_threshold: match thresholds.select(mode) {
+                    Some(values) => Percentiles::from_fn(|percentile| {
+                        StoredF64::from(*percentile.select(values))
+                    }),
+                    None => Percentiles::from_fn(|_| StoredF64::NAN),
+                },
+                prices: PriceBands::from_fn(|_| Cents::NAN),
             }),
-            floor: [[Cents::NAN; PERCENTILE_COUNT]; MODE_COUNT],
-            level: [[Cents::NAN; LEVEL_COUNT]; MODE_COUNT],
         }
     }
 }
 
 struct Calibration {
-    histories: [Vec<f64>; MODE_COUNT],
+    histories: Modes<Vec<f64>>,
 }
 
 impl Calibration {
     fn from_sources<T, U>(
         raw: &impl ReadableVec<Day1, Option<T>>,
-        weighted: &[&impl ReadableVec<Day1, Option<U>>],
+        weighted: &WeightedModes<&impl ReadableVec<Day1, Option<U>>>,
         end: usize,
     ) -> Self
     where
@@ -113,28 +153,30 @@ impl Calibration {
         U: VecValue,
         f64: From<T> + From<U>,
     {
-        let mut histories = std::array::from_fn(|_| Vec::new());
-        histories[RAW_MODE] = collect_loss_history(raw, end);
-        for (history, source) in histories[1..].iter_mut().zip(weighted) {
-            *history = collect_loss_history(*source, end);
+        let mut histories = Modes::from_fn(|_| Vec::new());
+        histories.raw = collect_loss_history(raw, end);
+        for id in WeightedModeId::ALL {
+            let source = weighted.select(id);
+            *histories.select_mut(id.mode()) = collect_loss_history(*source, end);
         }
         Self { histories }
     }
 
-    fn thresholds(&self, current: &[Option<f64>; MODE_COUNT]) -> Thresholds {
-        std::array::from_fn(|mode| {
-            (current[mode].is_some() && self.histories[mode].len() >= MIN_CALIBRATION_DAYS).then(
-                || {
-                    PERCENTILES.map(|percentile| {
-                        quantile(&self.histories[mode], percentile).expect("non-empty history")
-                    })
-                },
-            )
+    fn thresholds(&self, current: &Modes<Option<f64>>) -> Thresholds {
+        Modes::from_fn(|mode| {
+            let history = self.histories.select(mode);
+            (current.select(mode).is_some() && history.len() >= MIN_CALIBRATION_DAYS).then(|| {
+                Percentiles::from_fn(|percentile| {
+                    quantile(history, *percentile.select(&PERCENTILES)).expect("non-empty history")
+                })
+            })
         })
     }
 
-    fn observe(&mut self, shares: [Option<f64>; MODE_COUNT]) {
-        for (history, share) in self.histories.iter_mut().zip(shares) {
+    fn observe(&mut self, shares: Modes<Option<f64>>) {
+        for mode in ModeId::ALL {
+            let history = self.histories.select_mut(mode);
+            let share = *shares.select(mode);
             if let Some(share) = share {
                 insert_sorted(history, share.clamp(0.0, 1.0));
             }
@@ -142,79 +184,17 @@ impl Calibration {
     }
 }
 
-impl<T> Percentiles<T> {
-    fn as_mut_array(&mut self) -> [&mut T; PERCENTILE_COUNT] {
-        [
-            &mut self.pct95,
-            &mut self.pct98,
-            &mut self.pct99,
-            &mut self.pct99_5,
-            &mut self.pct99_9,
-        ]
-    }
-}
-
-impl<T> Levels<T> {
-    fn as_mut_array(&mut self) -> [&mut T; LEVEL_COUNT] {
-        [
-            &mut self.pct10,
-            &mut self.pct20,
-            &mut self.pct30,
-            &mut self.pct40,
-            &mut self.pct50,
-            &mut self.pct60,
-            &mut self.pct70,
-            &mut self.pct80,
-            &mut self.pct90,
-        ]
-    }
-}
-
 impl ModeVecs {
-    fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs: Vec<&mut dyn AnyStoredVec> =
-            Vec::with_capacity(2 * PERCENTILE_COUNT + LEVEL_COUNT);
-        vecs.extend(
-            self.loss_threshold
-                .as_mut_array()
-                .into_iter()
-                .map(|vec| &mut vec.day1 as &mut dyn AnyStoredVec),
-        );
-        vecs.extend(
-            self.floor
-                .as_mut_array()
-                .into_iter()
-                .map(|vec| &mut vec.cents.day1 as &mut dyn AnyStoredVec),
-        );
-        vecs.extend(
-            self.level
-                .as_mut_array()
-                .into_iter()
-                .map(|vec| &mut vec.cents.day1 as &mut dyn AnyStoredVec),
-        );
-        vecs
+    fn stored_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 2] {
+        [self.loss_threshold.stored_mut(), self.prices.stored_mut()]
     }
 
-    fn push(
-        &mut self,
-        loss_threshold: [StoredF64; PERCENTILE_COUNT],
-        floor: [Cents; PERCENTILE_COUNT],
-        level: [Cents; LEVEL_COUNT],
-    ) {
-        for (vec, value) in self
-            .loss_threshold
-            .as_mut_array()
-            .into_iter()
-            .zip(loss_threshold)
-        {
-            vec.day1.push(value);
-        }
-        for (vec, value) in self.floor.as_mut_array().into_iter().zip(floor) {
-            vec.cents.day1.push(value);
-        }
-        for (vec, value) in self.level.as_mut_array().into_iter().zip(level) {
-            vec.cents.day1.push(value);
-        }
+    fn push(&mut self, result: &ModeResult) {
+        self.loss_threshold.push(LossPercentileId::from_fn(|id| {
+            *id.select(&result.loss_threshold)
+        }));
+        self.prices
+            .push(PriceBandId::from_fn(|id| *id.select(&result.prices)));
     }
 }
 
@@ -228,27 +208,23 @@ impl Vecs {
         coinflow: &coinflow::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let cointime_wakefulness: Vec<_> = cointime
-            .age_range
-            .iter()
-            .map(|cohort| &cohort.wakefulness.day1)
-            .collect();
-        let age_supplies: Vec<_> = distribution
-            .utxo_cohorts
-            .age_range
-            .iter()
-            .map(|cohort| &cohort.metrics.supply.total.sats.day1)
-            .collect();
-        let coinflow_mobility: Vec<_> = coinflow
-            .age_range
-            .iter()
-            .map(|cohort| &cohort.mobility.day1.0)
-            .collect();
-        let coinflow_spending_rate: Vec<_> = coinflow
-            .age_range
-            .iter()
-            .map(|cohort| &cohort.spending_rate.day1)
-            .collect();
+        let cointime_wakefulness =
+            AgeRange::from_fn(|id| &id.select(&cointime.age_range.activity.wakefulness).day1);
+        let age_supplies = AgeRange::from_fn(|id| {
+            &id.select(&distribution.utxo_cohorts.age_range)
+                .metrics
+                .supply
+                .total
+                .sats
+                .day1
+        });
+        let coinflow_mobility = AgeRange::from_fn(|id| {
+            &id.select(&coinflow.age_range.spending_exposure.mobility)
+                .day1
+                .0
+        });
+        let coinflow_spending_rate =
+            AgeRange::from_fn(|id| &id.select(&coinflow.age_range.spending_rate).day1);
         let raw_loss_share = &distribution
             .utxo_cohorts
             .all
@@ -257,20 +233,17 @@ impl Vecs {
             .supply_in_loss_share
             .ppm
             .day1;
-        let weighted_loss_shares: Vec<_> = [
-            &cointime.supply.active_supply_in_loss_share.day1,
-            &coinflow.all.supply_in_loss_share.day1,
-        ]
-        .into_iter()
-        .chain(
-            coinflow
-                .all
-                .horizon
-                .iter()
-                .map(|horizon| &horizon.supply_in_loss_share.day1),
-        )
-        .collect();
-        debug_assert_eq!(weighted_loss_shares.len(), MODE_COUNT - 1);
+        let weighted_loss_shares = WeightedModes {
+            cointime: &cointime.supply.active_supply_in_loss_share.day1,
+            coinflow: &coinflow.all.supply_in_loss_share.day1,
+            coinflow_8y: &coinflow.all.horizon._8y.supply_in_loss_share.day1,
+            coinflow_4y: &coinflow.all.horizon._4y.supply_in_loss_share.day1,
+            coinflow_2y: &coinflow.all.horizon._2y.supply_in_loss_share.day1,
+            coinflow_1y: &coinflow.all.horizon._1y.supply_in_loss_share.day1,
+            coinflow_6m: &coinflow.all.horizon._6m.supply_in_loss_share.day1,
+            coinflow_3m: &coinflow.all.horizon._3m.supply_in_loss_share.day1,
+            coinflow_1m: &coinflow.all.horizon._1m.supply_in_loss_share.day1,
+        };
         let weighted_urpd_names = weighted_urpd_names();
 
         let weighted_urpd_source_version: Version = std::iter::once(WEIGHTED_URPD_VERSION)
@@ -374,12 +347,10 @@ impl Vecs {
             }
             calibration.observe(loss_shares);
 
-            for (mode, output) in self.modes.as_mut_array().into_iter().enumerate() {
-                output.push(
-                    result.loss_threshold[mode],
-                    result.floor[mode],
-                    result.level[mode],
-                );
+            for mode in ModeId::ALL {
+                let output = self.modes.select_mut(mode);
+                let mode_result = result.by_mode.select(mode);
+                output.push(mode_result);
             }
 
             if (day_index + 1).is_multiple_of(WRITE_INTERVAL_DAYS) || day_index + 1 == source_end {
@@ -400,17 +371,12 @@ impl Vecs {
         Ok(())
     }
 
-    fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = Vec::with_capacity(MODE_COUNT * (2 * PERCENTILE_COUNT + LEVEL_COUNT));
-        for mode in self.modes.as_mut_array() {
-            vecs.extend(mode.stored_vecs_mut());
-        }
-        vecs
+    fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.modes.iter_mut().flat_map(ModeVecs::stored_vecs_mut)
     }
 
     fn minimum_len(&mut self) -> usize {
         self.stored_vecs_mut()
-            .into_iter()
             .map(|vec| vec.len())
             .min()
             .unwrap_or_default()
@@ -447,18 +413,19 @@ where
 
 fn collect_loss_shares<T, U>(
     raw: &impl ReadableVec<Day1, Option<T>>,
-    weighted: &[&impl ReadableVec<Day1, Option<U>>],
+    weighted: &WeightedModes<&impl ReadableVec<Day1, Option<U>>>,
     day: Day1,
-) -> [Option<f64>; MODE_COUNT]
+) -> Modes<Option<f64>>
 where
     T: VecValue,
     U: VecValue,
     f64: From<T> + From<U>,
 {
-    let mut shares = [None; MODE_COUNT];
-    shares[RAW_MODE] = collect_loss_share(raw, day);
-    for (share, source) in shares[1..].iter_mut().zip(weighted) {
-        *share = collect_loss_share(*source, day);
+    let mut shares = Modes::from_fn(|_| None);
+    shares.raw = collect_loss_share(raw, day);
+    for id in WeightedModeId::ALL {
+        let source = weighted.select(id);
+        *shares.select_mut(id.mode()) = collect_loss_share(*source, day);
     }
     shares
 }
@@ -478,24 +445,27 @@ fn recompute_day(indexer: &Indexer, indexes: &indexes::Vecs) -> Option<Day1> {
 
 fn mode_weights(
     day: Day1,
-    age_supplies: &[&impl ReadableVec<Day1, Option<Sats>>],
-    cointime_wakefulness: &[&impl ReadableVec<Day1, Option<StoredF64>>],
-    coinflow_mobility: &[&impl ReadableVec<Day1, Option<StoredF64>>],
-    coinflow_spending_rate: &[&impl ReadableVec<Day1, Option<StoredF64>>],
-    bounds: &[AgeBand; AGE_COHORT_COUNT],
+    age_supplies: &AgeRange<&impl ReadableVec<Day1, Option<Sats>>>,
+    cointime_wakefulness: &AgeRange<&impl ReadableVec<Day1, Option<StoredF64>>>,
+    coinflow_mobility: &AgeRange<&impl ReadableVec<Day1, Option<StoredF64>>>,
+    coinflow_spending_rate: &AgeRange<&impl ReadableVec<Day1, Option<StoredF64>>>,
+    bounds: &AgeRange<AgeBand>,
 ) -> ModeWeights {
-    debug_assert_eq!(COINFLOW_HORIZON_START + HORIZON_COUNT, MODE_COUNT);
-    let mut weights = [None; MODE_COUNT];
-    weights[RAW_MODE] = Some([1.0; AGE_COHORT_COUNT]);
-    weights[COINTIME_MODE] = collect_age_values(cointime_wakefulness, age_supplies, day)
-        .map(|values| values.map(|v| v.clamp(0.0, 1.0)));
-    weights[COINFLOW_MODE] = collect_age_values(coinflow_mobility, age_supplies, day)
-        .map(|values| values.map(|v| v.clamp(0.0, 1.0)));
+    debug_assert_eq!(WeightedModeId::COINFLOW_HORIZONS.len(), HORIZON_COUNT);
+    let mut weights = Modes::from_fn(|_| None);
+    weights.raw = Some(AgeRange::from_fn(|_| 1.0));
+    weights.cointime = collect_age_values(cointime_wakefulness, age_supplies, day)
+        .map(|values| AgeRange::from_fn(|id| (*id.select(&values)).clamp(0.0, 1.0)));
+    weights.coinflow = collect_age_values(coinflow_mobility, age_supplies, day)
+        .map(|values| AgeRange::from_fn(|id| (*id.select(&values)).clamp(0.0, 1.0)));
 
     if let Some(hazards) = collect_age_values(coinflow_spending_rate, age_supplies, day) {
-        let hazards = hazards.map(|value| value.max(0.0));
-        for (offset, horizon) in HORIZON_DAYS.iter().copied().enumerate() {
-            weights[COINFLOW_HORIZON_START + offset] = Some(std::array::from_fn(|age| {
+        let hazards = AgeRange::from_fn(|id| (*id.select(&hazards)).max(0.0));
+        for (id, horizon) in WeightedModeId::COINFLOW_HORIZONS
+            .into_iter()
+            .zip(HORIZON_DAYS.iter().copied())
+        {
+            *weights.select_mut(id.mode()) = Some(AgeRange::from_fn(|age| {
                 coinflow::horizon_mobility(&hazards, age, horizon, bounds)
             }));
         }
@@ -504,22 +474,19 @@ fn mode_weights(
 }
 
 fn collect_age_values<T>(
-    sources: &[&impl ReadableVec<Day1, Option<T>>],
-    supplies: &[&impl ReadableVec<Day1, Option<Sats>>],
+    sources: &AgeRange<&impl ReadableVec<Day1, Option<T>>>,
+    supplies: &AgeRange<&impl ReadableVec<Day1, Option<Sats>>>,
     day: Day1,
-) -> Option<[f64; AGE_COHORT_COUNT]>
+) -> Option<AgeRange<f64>>
 where
     T: VecValue,
     f64: From<T>,
 {
-    if sources.len() != AGE_COHORT_COUNT || supplies.len() != AGE_COHORT_COUNT {
-        return None;
-    }
-
-    let mut values = [0.0; AGE_COHORT_COUNT];
-    for ((value, source), supply) in values.iter_mut().zip(sources).zip(supplies) {
-        let supply = supply.collect_one(day).flatten()?;
-        *value = resolve_age_value(source.collect_one(day).flatten(), supply)?;
+    let mut values = AgeRange::default();
+    for &id in AgeRangeId::ALL {
+        let supply = id.select(supplies).collect_one(day).flatten()?;
+        *id.select_mut(&mut values) =
+            resolve_age_value(id.select(sources).collect_one(day).flatten(), supply)?;
     }
     Some(values)
 }
@@ -544,11 +511,15 @@ fn read_weighted_urpd_version(states_path: &Path) -> Result<Option<Version>> {
 }
 
 fn reset_weighted_urpds(states_path: &Path, weighted_names: &WeightedUrpdNames) -> Result<()> {
-    for name in weighted_names.iter().flatten() {
+    for name in weighted_names
+        .all
+        .iter()
+        .chain(weighted_names.term.iter().flat_map(StoredWeights::iter))
+    {
         remove_urpd_dir(states_path, name)?;
     }
-    for mode in &MODE_NAMES[COINFLOW_HORIZON_START..] {
-        remove_urpd_dir(states_path, &format!("bedrock_{mode}"))?;
+    for id in WeightedModeId::COINFLOW_HORIZONS {
+        remove_urpd_dir(states_path, &format!("bedrock_{}", id.mode().name()))?;
     }
     Ok(())
 }
@@ -557,8 +528,8 @@ fn remove_urpd_dir(states_path: &Path, name: &str) -> Result<()> {
     let path = UrpdRaw::dir(states_path, name);
     match fs::remove_dir_all(&path) {
         Ok(()) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(std::io::Error::new(
+        Err(error) if error.kind() == ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(Error::new(
             error.kind(),
             format!("Cannot reset URPD '{}': {error}", path.display()),
         )
@@ -574,21 +545,13 @@ fn read_day_urpds(
     let raw = UrpdRaw::read(distribution_states_path, UTXO_ALL_NAME.id, date)?;
     let mut weighted = WeightedUrpd::new();
 
-    for (age, (name, filter)) in AGE_RANGE_NAMES
-        .iter()
-        .zip(AGE_RANGE_FILTERS.iter())
-        .enumerate()
-    {
-        let cohort = CohortContext::Utxo.prefixed(name.id);
+    for &age in AgeRangeId::ALL {
+        let cohort = CohortContext::Utxo.prefixed(age.name().id);
         let source = UrpdRaw::read(distribution_states_path, &cohort, date)?;
-        let term = if TERM_FILTERS.short.includes(filter) {
-            STH_TERM
-        } else {
-            LTH_TERM
-        };
+        let is_short = TERM_FILTERS.short.includes(age.filter());
 
         for (price, sats) in source.map {
-            add_weighted_entry(&mut weighted, price, sats, age, term, weights);
+            add_weighted_entry(&mut weighted, price, sats, age, is_short, weights);
         }
     }
 
@@ -600,16 +563,16 @@ fn build_current_day_urpds(utxos: &distribution::UTXOCohorts, weights: &ModeWeig
 }
 
 fn build_urpds_from_age_entries(
-    entries: impl IntoIterator<Item = (usize, bool, CentsCompact, Sats)>,
+    entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
     weights: &ModeWeights,
 ) -> DayUrpds {
     let mut raw = UrpdRaw::default();
     let mut weighted = WeightedUrpd::new();
 
-    for (age, is_sth, price, sats) in entries {
+    for (age, price, sats) in entries {
         *raw.map.entry(price).or_default() += sats;
-        let term = if is_sth { STH_TERM } else { LTH_TERM };
-        add_weighted_entry(&mut weighted, price, sats, age, term, weights);
+        let is_short = TERM_FILTERS.short.includes(age.filter());
+        add_weighted_entry(&mut weighted, price, sats, age, is_short, weights);
     }
 
     finalize_day_urpds(raw, weighted)
@@ -619,46 +582,64 @@ fn add_weighted_entry(
     weighted: &mut WeightedUrpd,
     price: CentsCompact,
     sats: Sats,
-    age: usize,
-    term: usize,
+    age: AgeRangeId,
+    is_short: bool,
     weights: &ModeWeights,
 ) {
     let mass = u64::from(sats) as f64;
     let bucket = weighted.entry(price).or_default();
-    for (mode, (all, weights)) in bucket.all.iter_mut().zip(&weights[1..]).enumerate() {
-        if let Some(weights) = weights {
-            let weighted_mass = mass * weights[age];
-            *all += weighted_mass;
-            if mode < STORED_WEIGHT_COUNT {
-                bucket.terms[term][mode] += weighted_mass;
+    for id in WeightedModeId::ALL {
+        let mode = id.mode();
+        if let Some(mode_weights) = weights.select(mode) {
+            let weighted_mass = mass * *age.select(mode_weights);
+            *bucket.all.select_mut(id) += weighted_mass;
+            let term = if is_short {
+                &mut bucket.term.short
+            } else {
+                &mut bucket.term.long
+            };
+            match mode {
+                ModeId::Cointime => term.cointime += weighted_mass,
+                ModeId::Coinflow => term.coinflow += weighted_mass,
+                _ => {}
             }
         }
     }
 }
 
 fn finalize_day_urpds(raw: UrpdRaw, weighted: WeightedUrpd) -> DayUrpds {
-    let mut all: AllWeightedUrpds = std::array::from_fn(|_| UrpdRaw::default());
-    let mut terms: TermWeightedUrpds =
-        std::array::from_fn(|_| std::array::from_fn(|_| UrpdRaw::default()));
+    let mut all = WeightedModes::from_fn(|_| UrpdRaw::default());
+    let mut term = ByTerm::<StoredWeights<UrpdRaw>>::default();
 
     for (price, masses) in weighted {
-        for (distribution, mass) in all.iter_mut().zip(masses.all) {
-            let sats = floor_weighted_sats(mass);
+        for id in WeightedModeId::ALL {
+            let distribution = all.select_mut(id);
+            let sats = floor_weighted_sats(*masses.all.select(id));
             if sats != Sats::ZERO {
                 distribution.map.insert(price, sats);
             }
         }
-        for (distributions, masses) in terms.iter_mut().zip(masses.terms) {
-            for (distribution, mass) in distributions.iter_mut().zip(masses) {
-                let sats = floor_weighted_sats(mass);
-                if sats != Sats::ZERO {
-                    distribution.map.insert(price, sats);
-                }
-            }
-        }
+        insert_stored_weighted_masses(price, &mut term.short, &masses.term.short);
+        insert_stored_weighted_masses(price, &mut term.long, &masses.term.long);
     }
 
-    DayUrpds { raw, all, terms }
+    DayUrpds { raw, all, term }
+}
+
+fn insert_stored_weighted_masses(
+    price: CentsCompact,
+    distributions: &mut StoredWeights<UrpdRaw>,
+    masses: &StoredWeights<f64>,
+) {
+    insert_weighted_mass(price, &mut distributions.cointime, masses.cointime);
+    insert_weighted_mass(price, &mut distributions.coinflow, masses.coinflow);
+}
+
+fn insert_weighted_mass(price: CentsCompact, distribution: &mut UrpdRaw, mass: f64) {
+    let sats = floor_weighted_sats(mass);
+    if sats != Sats::ZERO {
+        distribution.map.insert(price, sats);
+    }
 }
 
 fn floor_weighted_sats(mass: f64) -> Sats {
@@ -672,37 +653,69 @@ fn write_weighted_day_urpds(
     date: Date,
     urpds: &DayUrpds,
 ) -> Result<()> {
-    let distributions = [
-        &urpds.all[..STORED_WEIGHT_COUNT],
-        &urpds.terms[STH_TERM],
-        &urpds.terms[LTH_TERM],
-    ];
-    for (names, distributions) in weighted_names.iter().zip(distributions) {
-        for (name, distribution) in names.iter().zip(distributions) {
-            UrpdRaw::write(
-                models_states_path,
-                name,
-                date,
-                distribution.map.iter().map(|(&price, &sats)| (price, sats)),
-            )?;
-        }
-    }
-    Ok(())
+    write_stored_weights(
+        models_states_path,
+        &weighted_names.all,
+        date,
+        &urpds.all.cointime,
+        &urpds.all.coinflow,
+    )?;
+    write_stored_weights(
+        models_states_path,
+        &weighted_names.term.short,
+        date,
+        &urpds.term.short.cointime,
+        &urpds.term.short.coinflow,
+    )?;
+    write_stored_weights(
+        models_states_path,
+        &weighted_names.term.long,
+        date,
+        &urpds.term.long.cointime,
+        &urpds.term.long.coinflow,
+    )
+}
+
+fn write_stored_weights(
+    models_states_path: &Path,
+    names: &StoredWeights<String>,
+    date: Date,
+    cointime: &UrpdRaw,
+    coinflow: &UrpdRaw,
+) -> Result<()> {
+    write_weighted_urpd(models_states_path, &names.cointime, date, cointime)?;
+    write_weighted_urpd(models_states_path, &names.coinflow, date, coinflow)
+}
+
+fn write_weighted_urpd(
+    models_states_path: &Path,
+    name: &str,
+    date: Date,
+    distribution: &UrpdRaw,
+) -> Result<()> {
+    UrpdRaw::write(
+        models_states_path,
+        name,
+        date,
+        distribution.map.iter().map(|(&price, &sats)| (price, sats)),
+    )
 }
 
 fn weighted_urpd_names() -> WeightedUrpdNames {
-    std::array::from_fn(|cohort| {
-        std::array::from_fn(|mode| {
-            weighted_urpd_name(UrpdWeight::WEIGHTED[mode], STORED_URPD_COHORTS[cohort].id)
-        })
-    })
+    AggregateCohorts {
+        all: StoredWeights::from_fn(|weight| weighted_urpd_name(weight, UTXO_ALL_NAME.id)),
+        term: ByTerm {
+            short: StoredWeights::from_fn(|weight| weighted_urpd_name(weight, TERM_NAMES.short.id)),
+            long: StoredWeights::from_fn(|weight| weighted_urpd_name(weight, TERM_NAMES.long.id)),
+        },
+    }
 }
 
 fn evaluate_day(urpds: &DayUrpds, thresholds: &Thresholds, result: &mut DayResult) {
-    for mode in 0..MODE_COUNT {
+    for mode in ModeId::ALL {
         let urpd = urpds.mode(mode);
         let denominator = urpd.map.values().copied().map(u64::from).sum::<u64>();
-        let Some(thresholds) = thresholds[mode] else {
+        let Some(thresholds) = thresholds.select(mode) else {
             continue;
         };
         if denominator == 0
@@ -715,15 +728,16 @@ fn evaluate_day(urpds: &DayUrpds, thresholds: &Thresholds, result: &mut DayResul
         }
 
         let mut remaining_loss = denominator;
-        let mut floors = [Cents::NAN; PERCENTILE_COUNT];
+        let mut floors = Percentiles::from_fn(|_| Cents::NAN);
         let mut p95_floor = None;
         for (price, sats) in &urpd.map {
             remaining_loss -= u64::from(*sats);
             let remaining_share = remaining_loss as f64 / denominator as f64;
-            for percentile in 0..PERCENTILE_COUNT {
-                if floors[percentile].is_nan() && remaining_share <= thresholds[percentile] {
-                    floors[percentile] = Cents::from(*price);
-                    if percentile == 0 {
+            for &percentile in LossPercentileId::ALL {
+                let floor = percentile.select_mut(&mut floors);
+                if floor.is_nan() && remaining_share <= *percentile.select(thresholds) {
+                    *floor = Cents::from(*price);
+                    if percentile == LossPercentileId::Pct95 {
                         p95_floor = Some(*price);
                     }
                 }
@@ -732,15 +746,16 @@ fn evaluate_day(urpds: &DayUrpds, thresholds: &Thresholds, result: &mut DayResul
                 break;
             }
         }
-        result.floor[mode] = floors;
+        let mode_result = result.by_mode.select_mut(mode);
+        mode_result.prices.floor = floors;
         if let Some(p95_floor) = p95_floor {
-            result.level[mode] = conditional_levels(urpd, p95_floor);
+            mode_result.prices.level = conditional_levels(urpd, p95_floor);
         }
     }
 }
 
-fn conditional_levels(urpd: &UrpdRaw, lower: CentsCompact) -> [Cents; LEVEL_COUNT] {
-    let mut levels = [Cents::NAN; LEVEL_COUNT];
+fn conditional_levels(urpd: &UrpdRaw, lower: CentsCompact) -> Levels<Cents> {
+    let mut levels = Levels::from_fn(|_| Cents::NAN);
     let total = urpd
         .map
         .range(lower..)
@@ -751,20 +766,20 @@ fn conditional_levels(urpd: &UrpdRaw, lower: CentsCompact) -> [Cents; LEVEL_COUN
     }
 
     let mut cumulative = 0_u64;
-    let mut percentile = 0;
+    let mut percentiles = LEVEL_IDS.iter().copied().peekable();
     for (price, sats) in urpd.map.range(lower..) {
         let sats = u64::from(*sats);
         if sats == 0 {
             continue;
         }
         cumulative += sats;
-        while percentile < LEVEL_COUNT
-            && cumulative as f64 >= total as f64 * LEVEL_PERCENTILES[percentile]
+        while let Some(percentile) = percentiles.peek().copied()
+            && cumulative as f64 >= total as f64 * *percentile.select(&LEVEL_PERCENTILES)
         {
-            levels[percentile] = Cents::from(*price);
-            percentile += 1;
+            *percentile.select_mut(&mut levels) = Cents::from(*price);
+            percentiles.next();
         }
-        if percentile == LEVEL_COUNT {
+        if percentiles.peek().is_none() {
             break;
         }
     }
@@ -800,8 +815,11 @@ mod tests {
             .collect::<BTreeMap<_, _>>();
         DayUrpds {
             raw: UrpdRaw { map: map.clone() },
-            all: std::array::from_fn(|_| UrpdRaw { map: map.clone() }),
-            terms: std::array::from_fn(|_| std::array::from_fn(|_| UrpdRaw { map: map.clone() })),
+            all: WeightedModes::from_fn(|_| UrpdRaw { map: map.clone() }),
+            term: ByTerm {
+                short: StoredWeights::from_fn(|_| UrpdRaw { map: map.clone() }),
+                long: StoredWeights::from_fn(|_| UrpdRaw { map: map.clone() }),
+            },
         }
     }
 
@@ -835,38 +853,39 @@ mod tests {
     fn daily_loss_share_calibrates_the_floor() {
         let urpds = repeated_day_urpds([(100, 50), (200, 50)]);
         let mut calibration = Calibration {
-            histories: std::array::from_fn(|_| vec![0.5; MIN_CALIBRATION_DAYS]),
+            histories: Modes::from_fn(|_| vec![0.5; MIN_CALIBRATION_DAYS]),
         };
-        let shares = [Some(0.5); MODE_COUNT];
+        let shares = Modes::from_fn(|_| Some(0.5));
         let thresholds = calibration.thresholds(&shares);
         let mut result = DayResult::from_thresholds(&thresholds);
         evaluate_day(&urpds, &thresholds, &mut result);
         calibration.observe(shares);
+        let result = &result.by_mode.coinflow;
 
         assert_eq!(
-            result.loss_threshold[COINFLOW_MODE],
-            [StoredF64::from(0.5); PERCENTILE_COUNT]
+            result.loss_threshold,
+            Percentiles::from_fn(|_| StoredF64::from(0.5))
         );
         assert_eq!(
-            result.floor[COINFLOW_MODE],
-            [Cents::new(100); PERCENTILE_COUNT]
+            result.prices.floor,
+            Percentiles::from_fn(|_| Cents::new(100))
         );
         assert_eq!(
-            result.level[COINFLOW_MODE],
-            [
-                Cents::new(100),
-                Cents::new(100),
-                Cents::new(100),
-                Cents::new(100),
-                Cents::new(100),
-                Cents::new(200),
-                Cents::new(200),
-                Cents::new(200),
-                Cents::new(200),
-            ]
+            result.prices.level,
+            Levels {
+                pct10: Cents::new(100),
+                pct20: Cents::new(100),
+                pct30: Cents::new(100),
+                pct40: Cents::new(100),
+                pct50: Cents::new(100),
+                pct60: Cents::new(200),
+                pct70: Cents::new(200),
+                pct80: Cents::new(200),
+                pct90: Cents::new(200),
+            }
         );
         assert_eq!(
-            calibration.histories[COINFLOW_MODE].len(),
+            calibration.histories.coinflow.len(),
             MIN_CALIBRATION_DAYS + 1
         );
     }
@@ -875,33 +894,31 @@ mod tests {
     fn zero_cost_distribution_stays_missing() {
         let urpds = repeated_day_urpds([(0, 100)]);
         let mut calibration = Calibration {
-            histories: std::array::from_fn(|_| vec![0.5; MIN_CALIBRATION_DAYS]),
+            histories: Modes::from_fn(|_| vec![0.5; MIN_CALIBRATION_DAYS]),
         };
-        let shares = [Some(1.0); MODE_COUNT];
+        let shares = Modes::from_fn(|_| Some(1.0));
         let thresholds = calibration.thresholds(&shares);
         let mut result = DayResult::from_thresholds(&thresholds);
         evaluate_day(&urpds, &thresholds, &mut result);
         calibration.observe(shares);
+        let result = &result.by_mode.raw;
 
-        assert_eq!(result.loss_threshold[RAW_MODE][0], StoredF64::from(0.5));
-        assert!(result.floor[RAW_MODE][0].is_nan());
-        assert_eq!(
-            calibration.histories[RAW_MODE].len(),
-            MIN_CALIBRATION_DAYS + 1
-        );
+        assert_eq!(result.loss_threshold.pct95, StoredF64::from(0.5));
+        assert!(result.prices.floor.pct95.is_nan());
+        assert_eq!(calibration.histories.raw.len(), MIN_CALIBRATION_DAYS + 1);
     }
 
     #[test]
     fn missing_framework_share_does_not_update_history() {
         let mut calibration = Calibration {
-            histories: std::array::from_fn(|_| Vec::new()),
+            histories: Modes::from_fn(|_| Vec::new()),
         };
-        let shares = [None; MODE_COUNT];
+        let shares = Modes::from_fn(|_| None);
         let thresholds = calibration.thresholds(&shares);
         calibration.observe(shares);
 
-        assert_eq!(thresholds, [None; MODE_COUNT]);
-        assert!(calibration.histories[RAW_MODE].is_empty());
+        assert!(thresholds.iter().all(Option::is_none));
+        assert!(calibration.histories.raw.is_empty());
     }
 
     #[test]
@@ -913,18 +930,24 @@ mod tests {
         let weighted = BTreeMap::from([(
             CentsCompact::new(100),
             WeightedMasses {
-                all: [summed_mass; WEIGHTED_MODE_COUNT],
-                terms: [[0.6; STORED_WEIGHT_COUNT]; TERM_COUNT],
+                all: WeightedModes::from_fn(|_| summed_mass),
+                term: ByTerm {
+                    short: StoredWeights::from_fn(|_| 0.6),
+                    long: StoredWeights::from_fn(|_| 0.6),
+                },
             },
         )]);
         let urpds = finalize_day_urpds(UrpdRaw::default(), weighted);
 
         assert_eq!(
-            urpds.all[COINTIME_MODE - 1].map[&CentsCompact::new(100)],
+            urpds.all.cointime.map[&CentsCompact::new(100)],
             Sats::from(1_u64)
         );
         assert!(
-            !urpds.terms[STH_TERM][COINTIME_MODE - 1]
+            !urpds
+                .term
+                .short
+                .cointime
                 .map
                 .contains_key(&CentsCompact::new(100))
         );
@@ -932,26 +955,20 @@ mod tests {
 
     #[test]
     fn current_day_entries_build_raw_and_weighted_urpds() {
-        let weights: ModeWeights = std::array::from_fn(|_| Some([0.5; AGE_COHORT_COUNT]));
+        let weights = Modes::from_fn(|_| Some(AgeRange::from_fn(|_| 0.5)));
         let price = CentsCompact::new(100);
         let urpds = build_urpds_from_age_entries(
             [
-                (0, true, price, Sats::from(3_u64)),
-                (1, false, price, Sats::from(5_u64)),
+                (AgeRangeId::Under1H, price, Sats::from(3_u64)),
+                (AgeRangeId::From5MTo6M, price, Sats::from(5_u64)),
             ],
             &weights,
         );
 
         assert_eq!(urpds.raw.map[&price], Sats::from(8_u64));
-        assert_eq!(urpds.all[COINTIME_MODE - 1].map[&price], Sats::from(4_u64));
-        assert_eq!(
-            urpds.terms[STH_TERM][COINTIME_MODE - 1].map[&price],
-            Sats::from(1_u64)
-        );
-        assert_eq!(
-            urpds.terms[LTH_TERM][COINTIME_MODE - 1].map[&price],
-            Sats::from(2_u64)
-        );
+        assert_eq!(urpds.all.cointime.map[&price], Sats::from(4_u64));
+        assert_eq!(urpds.term.short.cointime.map[&price], Sats::from(1_u64));
+        assert_eq!(urpds.term.long.cointime.map[&price], Sats::from(2_u64));
     }
 
     #[test]
@@ -963,10 +980,10 @@ mod tests {
         let date = Date::new(2026, 8, 4);
         let names = weighted_urpd_names();
         let expected = repeated_day_urpds([(100, 21), (200, 34)]);
-        assert_eq!(names[0][0], "bedrock_cointime");
-        assert_eq!(names[0][1], "bedrock_coinflow");
-        assert_eq!(names[1][0], "bedrock_cointime_sth");
-        assert_eq!(names[2][1], "bedrock_coinflow_lth");
+        assert_eq!(names.all.cointime, "bedrock_cointime");
+        assert_eq!(names.all.coinflow, "bedrock_coinflow");
+        assert_eq!(names.term.short.cointime, "bedrock_cointime_sth");
+        assert_eq!(names.term.long.coinflow, "bedrock_coinflow_lth");
 
         UrpdRaw::write(
             &distribution_states,
@@ -977,20 +994,18 @@ mod tests {
         .unwrap();
         write_weighted_day_urpds(&models_states, &names, date, &expected).unwrap();
 
-        for (cohort, names) in names.iter().enumerate() {
-            let expected_distributions: &[UrpdRaw] = match cohort {
-                0 => &expected.all[..STORED_WEIGHT_COUNT],
-                1 => &expected.terms[STH_TERM],
-                2 => &expected.terms[LTH_TERM],
-                _ => unreachable!(),
-            };
-            for (name, expected) in names.iter().zip(expected_distributions) {
-                assert_eq!(
-                    UrpdRaw::read(&models_states, name, date).unwrap().map,
-                    expected.map
-                );
-            }
-        }
+        let assert_stored = |name: &str, expected: &UrpdRaw| {
+            assert_eq!(
+                UrpdRaw::read(&models_states, name, date).unwrap().map,
+                expected.map
+            );
+        };
+        assert_stored(&names.all.cointime, &expected.all.cointime);
+        assert_stored(&names.all.coinflow, &expected.all.coinflow);
+        assert_stored(&names.term.short.cointime, &expected.term.short.cointime);
+        assert_stored(&names.term.short.coinflow, &expected.term.short.coinflow);
+        assert_stored(&names.term.long.cointime, &expected.term.long.cointime);
+        assert_stored(&names.term.long.coinflow, &expected.term.long.coinflow);
         assert!(!UrpdRaw::path(&models_states, "bedrock_raw", date).exists());
         assert!(!UrpdRaw::path(&models_states, "bedrock_coinflow_8y", date).exists());
 
@@ -1006,8 +1021,9 @@ mod tests {
         assert!(!UrpdRaw::path(&models_states, "bedrock_coinflow_8y", date).exists());
         assert!(
             names
+                .all
                 .iter()
-                .flatten()
+                .chain(names.term.iter().flat_map(StoredWeights::iter))
                 .all(|name| !UrpdRaw::path(&models_states, name, date).exists())
         );
 

@@ -1,10 +1,12 @@
-use brk_cohort::AgeRange;
+use brk_cohort::{AgeRange, AgeRangeId};
 use brk_traversable::Traversable;
-use brk_types::{Cents, StoredF64};
+use brk_types::{Cents, Sats, StoredF64};
+use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 
 use crate::internal::{
-    FiatPerBlock, LazyPerBlock, PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock,
+    ColumnarPerBlock, FiatPerBlock, LazyColumnPerBlock, LazyColumnSpotValuePerBlock, LazyPerBlock,
+    PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock,
 };
 
 #[derive(Clone, Copy, Traversable)]
@@ -108,12 +110,36 @@ pub struct Split<T> {
     pub immobile: T,
 }
 
+impl<T> Split<T> {
+    pub(crate) fn try_from_fn<E>(mut create: impl FnMut(&str) -> Result<T, E>) -> Result<Self, E> {
+        Ok(Self {
+            mobile: create("mobile")?,
+            immobile: create("immobile")?,
+        })
+    }
+}
+
+#[derive(Clone, Deref, DerefMut, Traversable)]
+pub struct SpendingExposureSeries {
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    pub age_range: AgeRange<LazyColumnPerBlock<StoredF64, AgeRangeId>>,
+    pub mobility: AgeRange<LazyPerBlock<StoredF64>>,
+}
+
 #[derive(Traversable)]
-pub struct CohortVecs<M: StorageMode = Rw> {
-    pub spending_rate: PerBlock<StoredF64, M>,
-    pub spending_exposure: PerBlock<StoredF64, M>,
-    pub mobility: LazyPerBlock<StoredF64>,
-    pub supply: Split<SpotValuePerBlock<M>>,
+pub struct AgeRangeVecs<M: StorageMode = Rw> {
+    pub spending_rate: ColumnarPerBlock<
+        StoredF64,
+        AgeRangeId,
+        AgeRange<LazyColumnPerBlock<StoredF64, AgeRangeId>>,
+        M,
+    >,
+    pub spending_exposure: ColumnarPerBlock<StoredF64, AgeRangeId, SpendingExposureSeries, M>,
+    pub supply: Split<
+        ColumnarPerBlock<Sats, AgeRangeId, AgeRange<LazyColumnSpotValuePerBlock<AgeRangeId>>, M>,
+    >,
 }
 
 #[derive(Traversable)]
@@ -128,7 +154,7 @@ pub struct AggregateVecs<M: StorageMode = Rw> {
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub age_range: AgeRange<CohortVecs<M>>,
+    pub age_range: AgeRangeVecs<M>,
     #[traversable(flatten)]
     pub all: AggregateVecs<M>,
     pub sth: AggregateVecs<M>,

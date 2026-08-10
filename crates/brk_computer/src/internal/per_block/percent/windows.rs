@@ -6,26 +6,38 @@ use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
     indexes,
-    internal::{FixedRatio, PercentPerBlock, Windows},
+    internal::{ColumnarPerBlock, FixedRatio, LazyColumnPercentPerBlock, WindowId, Windows},
 };
 
-/// 4 rolling window vecs (24h, 1w, 1m, 1y), each storing fixed-point values
-/// with lazy ratio and percent float views.
+/// Four named fixed-point percentage views backed by one columnar source.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct PercentRollingWindows<B: FixedRatio, M: StorageMode = Rw>(
-    pub Windows<PercentPerBlock<B, M>>,
+pub struct ColumnarPercentRollingWindows<B: FixedRatio, M: StorageMode = Rw>(
+    pub ColumnarPerBlock<B, WindowId, Windows<LazyColumnPercentPerBlock<B, WindowId>>, M>,
 );
 
-impl<B: FixedRatio> PercentRollingWindows<B> {
+impl<B: FixedRatio> ColumnarPercentRollingWindows<B> {
     pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &indexes::Vecs,
     ) -> Result<Self> {
-        Ok(Self(Windows::try_from_fn(|suffix| {
-            PercentPerBlock::forced_import(db, &format!("{name}_{suffix}"), version, indexes)
-        })?))
+        Ok(Self(ColumnarPerBlock::forced_import(
+            db,
+            &format!("{name}_{}", B::SUFFIX),
+            version,
+            |source| {
+                WindowId::series(|window| {
+                    LazyColumnPercentPerBlock::new(
+                        &format!("{name}_{}", window.suffix()),
+                        version,
+                        source,
+                        window,
+                        indexes,
+                    )
+                })
+            },
+        )?))
     }
 }

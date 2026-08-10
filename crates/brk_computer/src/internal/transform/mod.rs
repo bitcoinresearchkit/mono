@@ -21,7 +21,7 @@ pub use derived::{
 };
 pub use fixed_ratio::{FixedToPercent, FixedToRatio};
 pub use ratio::{
-    RatioCents, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars, RatioDiffF32,
+    RatioBytes, RatioCents, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars, RatioDiffF32,
     RatioDollars, RatioSats, RatioU64,
 };
 pub use specialized::{

@@ -1,4 +1,96 @@
 use brk_traversable::Traversable;
+use brk_types::Version;
+use vecdb::{ColumnId, VecValue};
+
+const WINDOW_COUNT: usize = 4;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum WindowId {
+    Day1,
+    Week1,
+    Month1,
+    Year1,
+}
+
+const WINDOW_IDS: [WindowId; WINDOW_COUNT] = [
+    WindowId::Day1,
+    WindowId::Week1,
+    WindowId::Month1,
+    WindowId::Year1,
+];
+
+impl WindowId {
+    pub const fn suffix(self) -> &'static str {
+        match self {
+            Self::Day1 => "24h",
+            Self::Week1 => "1w",
+            Self::Month1 => "1m",
+            Self::Year1 => "1y",
+        }
+    }
+
+    pub fn series<T>(mut create: impl FnMut(Self) -> T) -> Windows<T> {
+        Windows {
+            _24h: create(Self::Day1),
+            _1w: create(Self::Week1),
+            _1m: create(Self::Month1),
+            _1y: create(Self::Year1),
+        }
+    }
+
+    pub fn select<T>(self, windows: &Windows<T>) -> &T {
+        match self {
+            Self::Day1 => &windows._24h,
+            Self::Week1 => &windows._1w,
+            Self::Month1 => &windows._1m,
+            Self::Year1 => &windows._1y,
+        }
+    }
+}
+
+impl ColumnId for WindowId {
+    type Row<T>
+        = [T; WINDOW_COUNT]
+    where
+        T: VecValue;
+
+    const VERSION: Version = Version::ONE;
+    const ALL: &'static [Self] = &WINDOW_IDS;
+
+    #[inline]
+    fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+        &row[self.index()]
+    }
+
+    #[inline]
+    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+        &mut row[self.index()]
+    }
+
+    #[inline]
+    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    where
+        T: VecValue,
+        F: FnMut(Self) -> T,
+    {
+        std::array::from_fn(|index| create(WINDOW_IDS[index]))
+    }
+
+    #[inline]
+    fn map<T, U, F>(row: Self::Row<T>, create: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(T) -> U,
+    {
+        row.map(create)
+    }
+}
 
 #[derive(Clone, Copy, Traversable)]
 pub struct Windows<A> {
@@ -77,5 +169,23 @@ impl<A, B> Windows<(A, B)> {
                 _1y: self._1y.1,
             },
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vecdb::ColumnId;
+
+    use super::{WINDOW_IDS, WindowId};
+
+    #[test]
+    fn window_columns_match_named_fields() {
+        assert_eq!(WindowId::ALL, WINDOW_IDS);
+
+        let windows = WindowId::series(|window| window);
+        assert_eq!(windows._24h, WindowId::Day1);
+        assert_eq!(windows._1w, WindowId::Week1);
+        assert_eq!(windows._1m, WindowId::Month1);
+        assert_eq!(windows._1y, WindowId::Year1);
     }
 }

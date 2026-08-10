@@ -1,43 +1,88 @@
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_types::{OpReturnKind, Sats, VSize};
-use vecdb::{AnyVec, Exit, ReadableVec, VecIndex};
+use brk_types::{Bytes, OP_RETURN_KIND_COUNT, OpReturnKind, OpReturnPolicyId, Sats, VSize};
+use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};
 
-use super::{Vecs, vecs::Totals};
+use super::{Vecs, breakdown::BlockMetrics, policy::Policy};
 use crate::transactions;
 
-const KIND_COUNT: usize = OpReturnKind::Unknown as usize + 1;
-const OLD_STANDARD_MAX_POST_OP_RETURN_BYTES: u64 = 82;
+const OLD_STANDARD_MAX_POST_OP_RETURN_BYTES: Bytes = Bytes::new(82);
 const WRITE_INTERVAL: usize = 10_000;
-
-#[derive(Clone, Copy, Default)]
-struct PolicyTotals {
-    pre_v30_standard: Totals,
-    pre_v30_nonstandard: Totals,
-    oversized: Totals,
-    multiple: Totals,
-}
+const _: () = assert!(OP_RETURN_KIND_COUNT <= u32::BITS as usize);
 
 #[derive(Clone, Copy, Default)]
 struct Carrier {
     kinds: u32,
     output_count: u64,
-    data_bytes: u64,
+    data_bytes: Bytes,
     oversized_output_count: u64,
-    oversized_data_bytes: u64,
+    oversized_data_bytes: Bytes,
     vsize: VSize,
     fees: Sats,
 }
 
 impl Carrier {
-    fn add_output(&mut self, kind: OpReturnKind, data_bytes: u64) {
-        self.kinds |= kind_bit(kind);
+    fn add_output(&mut self, kind: OpReturnKind, data_bytes: Bytes) {
+        self.kinds |= Self::kind_bit(kind);
         self.output_count += 1;
         self.data_bytes += data_bytes;
         if data_bytes > OLD_STANDARD_MAX_POST_OP_RETURN_BYTES {
             self.oversized_output_count += 1;
             self.oversized_data_bytes += data_bytes;
         }
+    }
+
+    fn finalize_into(
+        self,
+        total: &mut BlockMetrics,
+        by_kind: &mut [BlockMetrics; OP_RETURN_KIND_COUNT],
+        policy: &mut Policy<BlockMetrics>,
+    ) {
+        if self.output_count == 0 {
+            return;
+        }
+
+        total.add_carrier(self);
+        let mut kinds = self.kinds;
+        while kinds != 0 {
+            let kind_index = kinds.trailing_zeros() as usize;
+            by_kind[kind_index].add_carrier(self);
+            kinds &= kinds - 1;
+        }
+
+        if self.oversized_output_count > 0 {
+            policy.oversized.output_count += self.oversized_output_count;
+            policy.oversized.data_bytes += self.oversized_data_bytes;
+            policy.oversized.add_carrier(self);
+        }
+
+        if self.output_count > 1 {
+            policy.multiple.output_count += self.output_count;
+            policy.multiple.data_bytes += self.data_bytes;
+            policy.multiple.add_carrier(self);
+        }
+
+        if self.oversized_output_count > 0 || self.output_count > 1 {
+            policy.pre_v30_nonstandard.output_count += self.output_count;
+            policy.pre_v30_nonstandard.data_bytes += self.data_bytes;
+            policy.pre_v30_nonstandard.add_carrier(self);
+        } else {
+            policy.pre_v30_standard.output_count += self.output_count;
+            policy.pre_v30_standard.data_bytes += self.data_bytes;
+            policy.pre_v30_standard.add_carrier(self);
+        }
+    }
+
+    const fn kind_bit(kind: OpReturnKind) -> u32 {
+        1_u32 << kind as u8
+    }
+}
+
+impl BlockMetrics {
+    fn add_carrier(&mut self, carrier: Carrier) {
+        self.tx_count += 1;
+        self.tx_vsize += carrier.vsize;
+        self.fees += carrier.fees;
     }
 }
 
@@ -88,20 +133,20 @@ impl Vecs {
                 kind_cursor.advance(start - kind_cursor.position());
                 post_op_return_bytes.advance(start - post_op_return_bytes.position());
 
-                let mut total = Totals::default();
-                let mut by_kind = [Totals::default(); KIND_COUNT];
-                let mut policy = PolicyTotals::default();
+                let mut total = BlockMetrics::default();
+                let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
+                let mut policy = Policy::default();
                 let mut current_tx = None;
                 let mut carrier = Carrier::default();
 
                 for _ in start..block_end {
                     let tx_index = tx_cursor.next().unwrap();
                     let kind = kind_cursor.next().unwrap();
-                    let bytes = u32::from(post_op_return_bytes.next().unwrap()) as u64;
-                    let kind_index = kind as usize;
+                    let bytes = Bytes::from(u32::from(post_op_return_bytes.next().unwrap()));
+                    let kind_index = kind.index();
 
                     if current_tx != Some(tx_index) {
-                        finalize_transaction(&mut total, &mut by_kind, &mut policy, carrier);
+                        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
                         current_tx = Some(tx_index);
                         carrier = Carrier::default();
 
@@ -118,18 +163,12 @@ impl Vecs {
                     carrier.add_output(kind, bytes);
                 }
 
-                finalize_transaction(&mut total, &mut by_kind, &mut policy, carrier);
+                carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
 
                 self.total.push(total);
-                for (kind, metrics) in self.by_kind.iter_typed_mut() {
-                    metrics.push(by_kind[kind as usize]);
-                }
-                self.policy.pre_v30_standard.push(policy.pre_v30_standard);
+                self.by_kind.push(by_kind);
                 self.policy
-                    .pre_v30_nonstandard
-                    .push(policy.pre_v30_nonstandard);
-                self.policy.oversized.push(policy.oversized);
-                self.policy.multiple.push(policy.multiple);
+                    .push(OpReturnPolicyId::from_fn(|id| *policy.get(id)));
 
                 if (height + 1).is_multiple_of(WRITE_INTERVAL) {
                     let _lock = exit.lock();
@@ -151,82 +190,31 @@ impl Vecs {
     }
 }
 
-fn finalize_transaction(
-    total: &mut Totals,
-    by_kind: &mut [Totals; KIND_COUNT],
-    policy: &mut PolicyTotals,
-    carrier: Carrier,
-) {
-    if carrier.output_count == 0 {
-        return;
-    }
-
-    add_carrier(total, carrier);
-    let mut kinds = carrier.kinds;
-    while kinds != 0 {
-        let kind_index = kinds.trailing_zeros() as usize;
-        add_carrier(&mut by_kind[kind_index], carrier);
-        kinds &= kinds - 1;
-    }
-
-    if carrier.oversized_output_count > 0 {
-        policy.oversized.output_count += carrier.oversized_output_count;
-        policy.oversized.data_bytes += carrier.oversized_data_bytes;
-        add_carrier(&mut policy.oversized, carrier);
-    }
-
-    if carrier.output_count > 1 {
-        policy.multiple.output_count += carrier.output_count;
-        policy.multiple.data_bytes += carrier.data_bytes;
-        add_carrier(&mut policy.multiple, carrier);
-    }
-
-    if carrier.oversized_output_count > 0 || carrier.output_count > 1 {
-        policy.pre_v30_nonstandard.output_count += carrier.output_count;
-        policy.pre_v30_nonstandard.data_bytes += carrier.data_bytes;
-        add_carrier(&mut policy.pre_v30_nonstandard, carrier);
-    } else {
-        policy.pre_v30_standard.output_count += carrier.output_count;
-        policy.pre_v30_standard.data_bytes += carrier.data_bytes;
-        add_carrier(&mut policy.pre_v30_standard, carrier);
-    }
-}
-
-fn add_carrier(metrics: &mut Totals, carrier: Carrier) {
-    metrics.tx_count += 1;
-    metrics.tx_vsize += carrier.vsize;
-    metrics.fees += carrier.fees;
-}
-
-const fn kind_bit(kind: OpReturnKind) -> u32 {
-    1_u32 << kind as u8
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn multiple_kinds_count_one_total_carrier() {
-        let mut total = Totals::default();
-        let mut by_kind = [Totals::default(); KIND_COUNT];
-        let mut policy = PolicyTotals::default();
+        let mut total = BlockMetrics::default();
+        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
+        let mut policy = Policy::default();
         let mut carrier = Carrier {
             vsize: VSize::new(100),
             fees: Sats::new(500),
             ..Carrier::default()
         };
-        carrier.add_output(OpReturnKind::Runes, 15);
-        carrier.add_output(OpReturnKind::Omni, 15);
+        carrier.add_output(OpReturnKind::Runes, Bytes::new(15));
+        carrier.add_output(OpReturnKind::Omni, Bytes::new(15));
 
-        finalize_transaction(&mut total, &mut by_kind, &mut policy, carrier);
+        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
 
         assert_eq!(total.tx_count, 1);
-        assert_eq!(by_kind[OpReturnKind::Runes as usize].tx_count, 1);
-        assert_eq!(by_kind[OpReturnKind::Omni as usize].tx_count, 1);
+        assert_eq!(by_kind[OpReturnKind::Runes.index()].tx_count, 1);
+        assert_eq!(by_kind[OpReturnKind::Omni.index()].tx_count, 1);
         assert_eq!(total.fees, Sats::new(500));
-        assert_eq!(by_kind[OpReturnKind::Runes as usize].fees, Sats::new(500));
-        assert_eq!(by_kind[OpReturnKind::Omni as usize].fees, Sats::new(500));
+        assert_eq!(by_kind[OpReturnKind::Runes.index()].fees, Sats::new(500));
+        assert_eq!(by_kind[OpReturnKind::Omni.index()].fees, Sats::new(500));
         assert_eq!(policy.multiple.fees, Sats::new(500));
         assert_eq!(policy.pre_v30_nonstandard.fees, Sats::new(500));
         assert_eq!(policy.multiple.output_count, 2);
@@ -237,16 +225,16 @@ mod tests {
 
     #[test]
     fn oversized_output_marks_pre_v30_nonstandard_once() {
-        let mut total = Totals::default();
-        let mut by_kind = [Totals::default(); KIND_COUNT];
-        let mut policy = PolicyTotals::default();
+        let mut total = BlockMetrics::default();
+        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
+        let mut policy = Policy::default();
         let mut carrier = Carrier {
             vsize: VSize::new(120),
             ..Carrier::default()
         };
-        carrier.add_output(OpReturnKind::Unknown, 83);
+        carrier.add_output(OpReturnKind::Unknown, Bytes::new(83));
 
-        finalize_transaction(&mut total, &mut by_kind, &mut policy, carrier);
+        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
 
         assert_eq!(policy.oversized.output_count, 1);
         assert_eq!(policy.oversized.tx_vsize, VSize::new(120));
@@ -257,19 +245,19 @@ mod tests {
 
     #[test]
     fn standard_output_is_recorded_directly() {
-        let mut total = Totals::default();
-        let mut by_kind = [Totals::default(); KIND_COUNT];
-        let mut policy = PolicyTotals::default();
+        let mut total = BlockMetrics::default();
+        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
+        let mut policy = Policy::default();
         let mut carrier = Carrier {
             vsize: VSize::new(100),
             ..Carrier::default()
         };
-        carrier.add_output(OpReturnKind::Runes, 15);
+        carrier.add_output(OpReturnKind::Runes, Bytes::new(15));
 
-        finalize_transaction(&mut total, &mut by_kind, &mut policy, carrier);
+        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
 
         assert_eq!(policy.pre_v30_standard.output_count, 1);
-        assert_eq!(policy.pre_v30_standard.data_bytes, 15);
+        assert_eq!(policy.pre_v30_standard.data_bytes, Bytes::new(15));
         assert_eq!(policy.pre_v30_standard.tx_count, 1);
         assert_eq!(policy.pre_v30_standard.tx_vsize, VSize::new(100));
         assert_eq!(policy.pre_v30_nonstandard.tx_count, 0);

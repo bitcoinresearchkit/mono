@@ -5,10 +5,12 @@ use brk_types::{
     TxIndex, VSize, linearize,
 };
 use smallvec::SmallVec;
-use vecdb::{AnyStoredVec, AnyVec, Exit, PcoVec, ReadableVec, VecIndex, WritableVec, unlikely};
+use vecdb::{
+    AnyStoredVec, AnyVec, ColumnId, Exit, PcoVec, ReadableVec, VecIndex, WritableVec, unlikely,
+};
 
 use super::super::size;
-use super::Vecs;
+use super::{CpfpRoleId, Vecs};
 use crate::indexes;
 
 impl Vecs {
@@ -88,15 +90,10 @@ impl Vecs {
         self.effective_fee_rate
             .tx_index
             .validate_computed_version_or_reset(dep_version)?;
-        self.is_cpfp_parent
-            .validate_computed_version_or_reset(dep_version)?;
-        self.is_cpfp_child
+        self.cpfp_flags_source
             .validate_computed_version_or_reset(dep_version)?;
         self.count
-            .cpfp_parent
-            .validate_computed_version_or_reset(dep_version)?;
-        self.count
-            .cpfp_child
+            .cumulative
             .validate_computed_version_or_reset(dep_version)?;
 
         let target = self
@@ -110,8 +107,7 @@ impl Vecs {
             .len()
             .min(self.fee_rate.len())
             .min(self.effective_fee_rate.tx_index.len())
-            .min(self.is_cpfp_parent.len())
-            .min(self.is_cpfp_child.len())
+            .min(self.cpfp_flags_source.len())
             .min(starting_lengths.tx_index.to_usize());
         let max_height = indexer
             .vecs()
@@ -128,14 +124,7 @@ impl Vecs {
                 .unwrap()
                 .to_usize()
         };
-        let count_len = self
-            .count
-            .cpfp_parent
-            .cumulative
-            .height
-            .len()
-            .min(self.count.cpfp_child.cumulative.height.len())
-            .min(max_height);
+        let count_len = self.count.cumulative.len().min(max_height);
         let start_height = count_len.min(next_height);
         if start_height >= max_height {
             return Ok(());
@@ -155,12 +144,9 @@ impl Vecs {
         self.effective_fee_rate
             .tx_index
             .truncate_if_needed(TxIndex::from(start_tx))?;
-        self.is_cpfp_parent
+        self.cpfp_flags_source
             .truncate_if_needed(TxIndex::from(start_tx))?;
-        self.is_cpfp_child
-            .truncate_if_needed(TxIndex::from(start_tx))?;
-        self.count.cpfp_parent.truncate_if_needed_at(start_height)?;
-        self.count.cpfp_child.truncate_if_needed_at(start_height)?;
+        self.count.truncate_if_needed_at(start_height)?;
 
         let mut tx_count = indexes.height.tx_index_count.cursor();
         let mut next_block_input = indexer.vecs().inputs.first_txin_index.cursor();
@@ -240,25 +226,22 @@ impl Vecs {
                 parent_count += is_parent as u64;
                 child_count += is_child as u64;
                 self.effective_fee_rate.tx_index.push(effective);
-                self.is_cpfp_parent.push(StoredBool::from(is_parent));
-                self.is_cpfp_child.push(StoredBool::from(is_child));
+                self.cpfp_flags_source
+                    .push([StoredBool::from(is_parent), StoredBool::from(is_child)]);
             }
             self.count
-                .cpfp_parent
-                .push_block(StoredU64::from(parent_count));
-            self.count
-                .cpfp_child
-                .push_block(StoredU64::from(child_count));
+                .push_block(CpfpRoleId::from_fn(|role| match role {
+                    CpfpRoleId::Parent => StoredU64::from(parent_count),
+                    CpfpRoleId::Child => StoredU64::from(child_count),
+                }));
 
             if h % 1_000 == 0 {
                 let _lock = exit.lock();
                 self.fee.tx_index.write()?;
                 self.fee_rate.write()?;
                 self.effective_fee_rate.tx_index.write()?;
-                self.is_cpfp_parent.write()?;
-                self.is_cpfp_child.write()?;
-                self.count.cpfp_parent.write()?;
-                self.count.cpfp_child.write()?;
+                self.cpfp_flags_source.write()?;
+                self.count.write()?;
             }
 
             first_tx += n;
@@ -268,10 +251,8 @@ impl Vecs {
         self.fee.tx_index.write()?;
         self.fee_rate.write()?;
         self.effective_fee_rate.tx_index.write()?;
-        self.is_cpfp_parent.write()?;
-        self.is_cpfp_child.write()?;
-        self.count.cpfp_parent.write()?;
-        self.count.cpfp_child.write()?;
+        self.cpfp_flags_source.write()?;
+        self.count.write()?;
 
         Ok(())
     }

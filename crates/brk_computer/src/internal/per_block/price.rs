@@ -6,11 +6,14 @@
 
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Dollars, SatsFract, Version};
+use brk_types::{Cents, Dollars, Height, SatsFract, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, ReadableCloneableVec, ReadableVec, TypedVec, UnaryTransform};
+use vecdb::{
+    ColumnId, Database, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec, ReadableVec, TypedVec,
+    UnaryTransform,
+};
 
-use super::{LazyPerBlock, PerBlock};
+use super::{LazyColumnPerBlock, LazyPerBlock, PerBlock};
 use crate::{
     indexes,
     internal::{CentsUnsignedToDollars, ComputedVecValue, DollarsToSatsFract},
@@ -45,6 +48,35 @@ impl Price<PerBlock<Cents>> {
             &usd,
         );
         Ok(Self { usd, cents, sats })
+    }
+}
+
+impl<C> Price<LazyColumnPerBlock<Cents, C>>
+where
+    C: ColumnId,
+{
+    pub(crate) fn from_columnar_source(
+        name: &str,
+        version: Version,
+        source: &ReadOnlyColumnarVec<PcoVec<Height, Cents>, C>,
+        column: C,
+        indexes: &indexes::Vecs,
+    ) -> Self {
+        let cents =
+            LazyColumnPerBlock::new(&format!("{name}_cents"), version, source, column, indexes);
+        let usd = LazyPerBlock::from_resolutions::<CentsUnsignedToDollars>(
+            name,
+            version,
+            cents.height.read_only_boxed_clone(),
+            &cents.resolutions,
+        );
+        let sats = LazyPerBlock::from_lazy::<DollarsToSatsFract, Cents>(
+            &format!("{name}_sats"),
+            version,
+            &usd,
+        );
+
+        Self { usd, cents, sats }
     }
 }
 

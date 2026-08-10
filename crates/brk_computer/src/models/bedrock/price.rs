@@ -1,32 +1,35 @@
-//! Bedrock-local price wrapper for metrics whose stored source is indexed by day.
-//!
-//! This mirrors the per-block `Price` conversion chain while preserving Bedrock's
-//! custom daily repeat/last-day views: cents are stored, USD is derived from cents,
-//! and sats are derived from USD.
-
 use brk_traversable::Traversable;
-use brk_types::{Cents, Dollars, SatsFract, Version};
-use vecdb::{ReadableCloneableVec, Rw, StorageMode};
+use brk_types::{Cents, Day1, Dollars, SatsFract, Version};
+use vecdb::{ColumnId, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec};
 
 use crate::internal::{
-    CentsUnsignedToDollars, DailyMappings, DailyMetric, DollarsToSatsFract, LazyDailyMetric,
+    CentsUnsignedToDollars, DailyMappings, DollarsToSatsFract, LazyColumnDailyMetric,
+    LazyDailyMetric,
 };
 
-#[derive(Traversable)]
-pub struct Price<M: StorageMode = Rw> {
+#[derive(Clone, Traversable)]
+pub struct LazyColumnPrice<C>
+where
+    C: ColumnId,
+{
     pub usd: LazyDailyMetric<Dollars, Cents>,
-    pub cents: DailyMetric<Cents, M>,
+    pub cents: LazyColumnDailyMetric<Cents, C>,
     pub sats: LazyDailyMetric<SatsFract, Dollars>,
 }
 
-impl Price {
-    pub(crate) fn forced_import(
-        db: &vecdb::Database,
+impl<C> LazyColumnPrice<C>
+where
+    C: ColumnId,
+{
+    pub(crate) fn new(
         name: &str,
         version: Version,
+        source: &ReadOnlyColumnarVec<PcoVec<Day1, Cents>, C>,
+        column: C,
         mappings: &DailyMappings,
-    ) -> brk_error::Result<Self> {
-        let cents = DailyMetric::forced_import(db, &format!("{name}_cents"), version, mappings)?;
+    ) -> Self {
+        let cents =
+            LazyColumnDailyMetric::new(&format!("{name}_cents"), version, source, column, mappings);
         let usd = LazyDailyMetric::from_source::<CentsUnsignedToDollars>(
             name,
             version,
@@ -40,6 +43,6 @@ impl Price {
             mappings,
         );
 
-        Ok(Self { usd, cents, sats })
+        Self { usd, cents, sats }
     }
 }

@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use crate::{Error, ReadableVec, Result, VecIndex, VecValue, Version};
 
-use super::{ColumnarSumVec, ColumnarVecColumn};
+use super::{LazyColumnSumVec, LazyColumnVec};
 
 /// Typed description of a fixed column set and its logical row representation.
 pub trait ColumnId: Copy + Debug + Eq + Ord + Send + Sync + 'static {
@@ -49,23 +49,23 @@ where
     where
         F: FnMut(C, usize, &[Self::T]);
 
-    fn column(&self, column: C) -> ColumnarVecColumn<Self, C>
+    fn column(&self, name: &str, version: Version, column: C) -> LazyColumnVec<Self, C>
     where
         Self: Sized,
     {
-        ColumnarVecColumn::new(self.clone(), column)
+        LazyColumnVec::new(name, version, self.clone(), column)
     }
 
-    fn sum_columns<const M: usize>(
+    fn sum_columns(
         &self,
         name: &str,
         version: Version,
-        columns: [C; M],
-    ) -> ColumnarSumVec<Self, C>
+        columns: impl IntoIterator<Item = C>,
+    ) -> LazyColumnSumVec<Self, C>
     where
         Self: Sized,
     {
-        ColumnarSumVec::new(name, version, self.clone(), columns)
+        LazyColumnSumVec::new(name, version, self.clone(), columns)
     }
 }
 
@@ -92,14 +92,4 @@ pub(super) fn validate_column<C: ColumnId>(column: C) {
         Some(&column),
         "invalid column ID at physical index {index}",
     );
-}
-
-pub(super) fn selection_version<C: ColumnId>(kind: u32, columns: &[C]) -> Version {
-    let mut hash = 2_166_136_261_u32 ^ kind;
-    for column in columns {
-        let index = column.index() as u64 + 1;
-        hash ^= index as u32 ^ (index >> 32) as u32;
-        hash = hash.wrapping_mul(16_777_619);
-    }
-    Version::new(kind * 1_000_000 + hash % 1_000_000 + 1)
 }

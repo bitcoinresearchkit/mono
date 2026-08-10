@@ -1,6 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use brk_cohort::{ByAddrType, EntryPrice, Filter};
+use brk_cohort::{AddrTypeId, EntryPrice};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
@@ -65,6 +65,7 @@ impl AddrMetricsVecs {
         self.funded.reset_height()?;
         self.empty.reset_height()?;
         self.activity.reset_height()?;
+        self.total.reset_height()?;
         self.reused.reset_height()?;
         self.respent.reset_height()?;
         self.exposed.reset_height()?;
@@ -91,9 +92,9 @@ impl AddrMetricsVecs {
             .par_iter_height_mut()
             .chain(self.empty.par_iter_height_mut())
             .chain(self.activity.par_iter_height_mut())
-            .chain(self.reused.par_iter_height_mut())
-            .chain(self.respent.par_iter_height_mut())
-            .chain(self.exposed.par_iter_height_mut())
+            .chain(self.reused.par_iter_stateful_height_mut())
+            .chain(self.respent.par_iter_stateful_height_mut())
+            .chain(self.exposed.par_iter_stateful_height_mut())
     }
 
     /// All height-indexed vecs including derived (`avg_amount`). Used for
@@ -105,6 +106,7 @@ impl AddrMetricsVecs {
             .par_iter_height_mut()
             .chain(self.empty.par_iter_height_mut())
             .chain(self.activity.par_iter_height_mut())
+            .chain(self.total.par_iter_height_mut())
             .chain(self.reused.par_iter_height_mut())
             .chain(self.respent.par_iter_height_mut())
             .chain(self.exposed.par_iter_height_mut())
@@ -660,15 +662,17 @@ impl Vecs {
             r2?;
         }
 
-        // 6b. Compute address count sum (by addr_type -> all)
-        self.addrs.funded.compute_rest(&starting_lengths, exit)?;
-        self.addrs.empty.compute_rest(&starting_lengths, exit)?;
+        // 6b. Compute address metrics derived from stored per-type sources.
         let t = &self.utxo_cohorts.type_;
-        let type_supply_sats = ByAddrType::new(|filter| {
-            let Filter::Type(ot) = filter else {
-                unreachable!()
-            };
-            &t.get(ot).metrics.supply.total.sats.height
+        let type_supply_sats = AddrTypeId::series(|column, _| {
+            &t.get(column.output_type()).metrics.supply.total.sats.height
+        });
+        let type_utxo_counts = AddrTypeId::series(|column, _| {
+            &t.get(column.output_type())
+                .metrics
+                .outputs
+                .unspent_count
+                .height
         });
         self.addrs
             .reused
@@ -680,23 +684,15 @@ impl Vecs {
             .exposed
             .compute_rest(&starting_lengths, &type_supply_sats, exit)?;
 
-        // Average amount (supply / utxo_count, supply / funded_addr_count) for `all` and per addr type.
-        for ((ot, avg), (_, funded)) in self
-            .addrs
-            .avg_amount
-            .by_addr_type
-            .iter_mut()
-            .zip(self.addrs.funded.by_addr_type.iter())
-        {
-            let type_m = &t.get(ot).metrics;
-            avg.compute(
-                &type_m.supply.total.sats.height,
-                &type_m.outputs.unspent_count.height,
-                &funded.height,
-                starting_lengths.height,
-                exit,
-            )?;
-        }
+        let type_funded_addr_counts =
+            AddrTypeId::series(|column, _| &column.select(&self.addrs.funded.by_addr_type).height);
+        self.addrs.avg_amount.compute(
+            &type_supply_sats,
+            &type_utxo_counts,
+            &type_funded_addr_counts,
+            starting_lengths.height,
+            exit,
+        )?;
 
         // 6c. Compute total_addr_count = addr_count + empty_addr_count
         self.addrs.total.compute(

@@ -1,5 +1,7 @@
-use brk_cohort::ByAddrType;
+use brk_cohort::{AddrTypeId, ByAddrType};
+use brk_types::StoredU64;
 use derive_more::{Deref, DerefMut};
+use vecdb::ColumnId;
 
 /// Per-block running counter of address-reuse events, per address type. Shared
 /// across reused (receive-based) and respent (spend-based) flavors, and
@@ -16,6 +18,11 @@ impl AddrTypeToAddrEventCount {
     #[inline]
     pub(crate) fn sum(&self) -> u64 {
         self.0.values().sum()
+    }
+
+    #[inline]
+    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
+        AddrTypeId::from_fn(|column| StoredU64::from(*column.select(&self.0)))
     }
 
     #[inline]

@@ -54,9 +54,15 @@ where
     /// Ensures `pushed_len * SIZE_OF_T >= MAX_CACHE_SIZE` so `batch_limit_reached()` fires.
     #[inline]
     pub fn batch_end(&self, max_end: usize) -> usize {
+        self.len()
+            .saturating_add(self.batch_capacity())
+            .min(max_end)
+    }
+
+    #[inline]
+    fn batch_capacity(&self) -> usize {
         let size = size_of::<V::T>().max(1);
-        let cap = MAX_CACHE_SIZE.div_ceil(size);
-        (self.len() + cap).min(max_end)
+        MAX_CACHE_SIZE.div_ceil(size)
     }
 
     /// Helper that repeatedly calls a compute function until it completes.

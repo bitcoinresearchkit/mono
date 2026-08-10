@@ -1,12 +1,16 @@
+use brk_cohort::AddrTypeId;
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{CachedBoxedVec, Database, Rw, StorageMode};
+use rayon::prelude::*;
+use vecdb::{AnyStoredVec, AnyVec, CachedBoxedVec, Database, Rw, StorageMode, WritableVec};
 
 use crate::{
     indexes,
-    internal::{SpotValuePerBlock, WithAddrTypes},
+    internal::{
+        ColumnarPerBlock, LazyColumnSpotValuePerBlock, LazySpotValuePerBlock, WithAddrTypes,
+    },
 };
 
 use super::AddrTypeToSupply;
@@ -17,7 +21,13 @@ use super::AddrTypeToSupply;
 /// sats × spot price.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct AddrSupplyVecs<M: StorageMode = Rw>(
-    #[traversable(flatten)] pub WithAddrTypes<SpotValuePerBlock<M>>,
+    #[traversable(flatten)]
+    pub  ColumnarPerBlock<
+        Sats,
+        AddrTypeId,
+        WithAddrTypes<LazyColumnSpotValuePerBlock<AddrTypeId>, LazySpotValuePerBlock>,
+        M,
+    >,
 );
 
 impl AddrSupplyVecs {
@@ -28,17 +38,36 @@ impl AddrSupplyVecs {
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        Ok(Self(WithAddrTypes::<SpotValuePerBlock>::forced_import(
+        let name = format!("{name}_addr_supply");
+        Ok(Self(ColumnarPerBlock::forced_import(
             db,
-            &format!("{name}_addr_supply"),
+            &format!("{name}_sats_by_type"),
             version,
-            indexes,
-            spot_price,
+            |source| {
+                WithAddrTypes::from_columnar_spot_value_source(
+                    &name, version, source, indexes, spot_price,
+                )
+            },
         )?))
+    }
+
+    pub(crate) fn min_stateful_len(&self) -> usize {
+        self.height.len()
+    }
+
+    pub(crate) fn par_iter_height_mut(
+        &mut self,
+    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+        rayon::iter::once(self.stored_mut())
+    }
+
+    pub(crate) fn reset_height(&mut self) -> Result<()> {
+        self.height.reset()?;
+        Ok(())
     }
 
     #[inline(always)]
     pub(crate) fn push_supply(&mut self, supply: &AddrTypeToSupply) {
-        self.push_height(supply.sum(), supply.values().copied());
+        self.push(supply.row());
     }
 }

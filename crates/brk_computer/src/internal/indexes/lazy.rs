@@ -12,7 +12,6 @@ use crate::internal::{ComputedVecValue, PerResolution};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyIndexes<T, S>(
-    #[allow(clippy::type_complexity)]
     pub  PerResolution<
         LazyVec<Minute10, T, Minute10, S>,
         LazyVec<Minute30, T, Minute30, S>,

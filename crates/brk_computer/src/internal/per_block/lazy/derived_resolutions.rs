@@ -17,7 +17,6 @@ use super::{LazyTransformLast, MapOption};
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct DerivedResolutions<T, S1T = T>(
-    #[allow(clippy::type_complexity)]
     pub  PerResolution<
         LazyTransformLast<Minute10, Option<T>, Option<S1T>>,
         LazyTransformLast<Minute30, Option<T>, Option<S1T>>,

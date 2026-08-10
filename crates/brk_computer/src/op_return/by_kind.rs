@@ -3,38 +3,24 @@ use brk_types::OpReturnKind;
 
 macro_rules! define_by_kind {
     ($($field:ident => $kind:ident),+ $(,)?) => {
-        #[derive(Traversable)]
+        #[derive(Clone, Traversable)]
         pub struct ByKind<T> {
             $(pub $field: T),+
         }
 
         impl<T> ByKind<T> {
-            pub fn try_new<E>(
-                mut create: impl FnMut(OpReturnKind, &'static str) -> Result<T, E>,
-            ) -> Result<Self, E> {
-                Ok(Self {
-                    $($field: create(OpReturnKind::$kind, stringify!($field))?),+
-                })
+            pub fn new(mut create: impl FnMut(OpReturnKind, &'static str) -> T) -> Self {
+                Self {
+                    $($field: create(OpReturnKind::$kind, stringify!($field))),+
+                }
             }
 
             pub fn iter(&self) -> impl Iterator<Item = &T> {
                 [$( &self.$field ),+].into_iter()
             }
 
-            pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
-                let Self { $($field),+ } = self;
-                [$($field),+].into_iter()
-            }
-
             pub fn iter_typed(&self) -> impl Iterator<Item = (OpReturnKind, &T)> {
                 [$( (OpReturnKind::$kind, &self.$field) ),+].into_iter()
-            }
-
-            pub fn iter_typed_mut(
-                &mut self,
-            ) -> impl Iterator<Item = (OpReturnKind, &mut T)> {
-                let Self { $($field),+ } = self;
-                [$( (OpReturnKind::$kind, $field) ),+].into_iter()
             }
         }
     };
@@ -68,16 +54,13 @@ define_by_kind! {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
-
     use brk_types::OpReturnKind;
 
     use super::ByKind;
 
     #[test]
     fn covers_every_kind_in_discriminant_order() {
-        let by_kind =
-            ByKind::try_new(|kind, _| Ok::<_, Infallible>(kind)).expect("infallible constructor");
+        let by_kind = ByKind::new(|kind, _| kind);
         let kinds: Vec<_> = by_kind.iter_typed().collect();
 
         assert_eq!(kinds.len(), OpReturnKind::Unknown as usize + 1);

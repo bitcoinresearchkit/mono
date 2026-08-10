@@ -89,6 +89,8 @@ impl CostBasis {
             .len()
             .min(self.max.cents.height.len())
             .min(self.supply_density.ppm.height.len())
+            .min(self.per_coin.prices.height.len())
+            .min(self.per_dollar.prices.height.len())
     }
 
     #[inline(always)]
@@ -130,18 +132,8 @@ impl CostBasis {
             &mut self.max.cents.height,
             &mut self.supply_density.ppm.height,
         ];
-        vecs.extend(
-            self.per_coin
-                .vecs
-                .iter_mut()
-                .map(|v| &mut v.cents.height as &mut dyn AnyStoredVec),
-        );
-        vecs.extend(
-            self.per_dollar
-                .vecs
-                .iter_mut()
-                .map(|v| &mut v.cents.height as &mut dyn AnyStoredVec),
-        );
+        vecs.push(self.per_coin.prices.stored_mut());
+        vecs.push(self.per_dollar.prices.stored_mut());
         vecs
     }
 

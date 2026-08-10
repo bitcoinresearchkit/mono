@@ -8,10 +8,7 @@ use crate::{
     short_type_name,
 };
 
-use super::{
-    ColumnId, ColumnarVec, ColumnarVecColumn, ReadOnlyColumnarVec, ReadableColumnarVec,
-    schema::selection_version,
-};
+use super::{ColumnId, ColumnarVec, LazyColumnVec, ReadOnlyColumnarVec, ReadableColumnarVec};
 
 impl<V, C> ImportableVec for ColumnarVec<V, C>
 where
@@ -103,17 +100,17 @@ where
     }
 }
 
-impl<S, C> AnyVec for ColumnarVecColumn<S, C>
+impl<S, C> AnyVec for LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,
 {
     fn version(&self) -> Version {
-        self.source.version() + selection_version(1, &[self.column])
+        self.base_version + self.source.version() + Version::ONE
     }
 
     fn name(&self) -> &str {
-        self.source.name()
+        &self.name
     }
 
     fn len(&self) -> usize {
@@ -133,7 +130,7 @@ where
     }
 
     fn region_names(&self) -> Vec<String> {
-        self.source.region_names()
+        Vec::new()
     }
 }
 
@@ -155,7 +152,7 @@ where
     type T = C::Row<V::T>;
 }
 
-impl<S, C> TypedVec for ColumnarVecColumn<S, C>
+impl<S, C> TypedVec for LazyColumnVec<S, C>
 where
     C: ColumnId,
     S: ReadableColumnarVec<C>,

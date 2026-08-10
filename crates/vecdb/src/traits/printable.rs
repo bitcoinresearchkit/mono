@@ -27,6 +27,14 @@ pub fn short_type_name<T: 'static>() -> &'static str {
 /// Also unwraps `Option<T>` to just `T` since Option is a serialization
 /// concern (null in JSON) not a type identity.
 fn shorten_type_name(full: &str) -> String {
+    if let Some(inner) = full
+        .strip_prefix('[')
+        .and_then(|value| value.strip_suffix(']'))
+        && let Some((element, len)) = inner.rsplit_once(';')
+    {
+        return format!("[{}; {}]", shorten_type_name(element.trim()), len.trim());
+    }
+
     let generic_start = full.find('<');
 
     let (base, generics) = match generic_start {
@@ -53,6 +61,19 @@ fn shorten_type_name(full: &str) -> String {
             format!("{}<{}>", short_base, shortened_params)
         }
         None => short_base.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shorten_type_name;
+
+    #[test]
+    fn shortens_array_element_paths_without_dropping_brackets() {
+        assert_eq!(
+            shorten_type_name("[some::module::Value; 23]"),
+            "[Value; 23]"
+        );
     }
 }
 

@@ -1,9 +1,8 @@
 use brk_error::Result;
-use brk_indexer::Lengths;
 use brk_traversable::Traversable;
 use brk_types::Version;
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, Database, Exit, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::indexes;
 
@@ -69,11 +68,5 @@ impl AddrCountFundedTotalVecs {
     ) {
         self.funded.push_counts(funded);
         self.total.push_counts(total);
-    }
-
-    pub(crate) fn compute_rest(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
-        self.funded.compute_rest(starting_lengths, exit)?;
-        self.total.compute_rest(starting_lengths, exit)?;
-        Ok(())
     }
 }

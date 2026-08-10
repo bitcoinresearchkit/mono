@@ -30,6 +30,7 @@ pub struct RarityMeter<M: StorageMode = Rw> {
 }
 
 const VERSION: Version = Version::new(7);
+const COMPUTE_BATCH_SIZE: usize = 100_000;
 
 impl RarityMeter {
     pub(crate) fn forced_import(

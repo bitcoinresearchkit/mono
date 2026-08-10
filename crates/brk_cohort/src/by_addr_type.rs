@@ -4,6 +4,7 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::OutputType;
 use rayon::prelude::*;
+use vecdb::{ColumnId, VecValue, Version};
 
 use super::Filter;
 
@@ -15,6 +16,116 @@ pub const P2WPKH: &str = "p2wpkh";
 pub const P2WSH: &str = "p2wsh";
 pub const P2TR: &str = "p2tr";
 pub const P2A: &str = "p2a";
+
+pub const ADDR_TYPE_COUNT: usize = 8;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(u8)]
+pub enum AddrTypeId {
+    P2PK65,
+    P2PK33,
+    P2PKH,
+    P2SH,
+    P2WPKH,
+    P2WSH,
+    P2TR,
+    P2A,
+}
+
+pub const ADDR_TYPE_IDS: [AddrTypeId; ADDR_TYPE_COUNT] = [
+    AddrTypeId::P2PK65,
+    AddrTypeId::P2PK33,
+    AddrTypeId::P2PKH,
+    AddrTypeId::P2SH,
+    AddrTypeId::P2WPKH,
+    AddrTypeId::P2WSH,
+    AddrTypeId::P2TR,
+    AddrTypeId::P2A,
+];
+
+impl ColumnId for AddrTypeId {
+    type Row<T>
+        = [T; ADDR_TYPE_COUNT]
+    where
+        T: VecValue;
+
+    const VERSION: Version = Version::ONE;
+    const ALL: &'static [Self] = &ADDR_TYPE_IDS;
+
+    #[inline]
+    fn index(self) -> usize {
+        self as usize
+    }
+
+    #[inline]
+    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
+        &row[self.index()]
+    }
+
+    #[inline]
+    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
+        &mut row[self.index()]
+    }
+
+    #[inline]
+    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    where
+        T: VecValue,
+        F: FnMut(Self) -> T,
+    {
+        std::array::from_fn(|index| create(ADDR_TYPE_IDS[index]))
+    }
+
+    #[inline]
+    fn map<T, U, F>(row: Self::Row<T>, create: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(T) -> U,
+    {
+        row.map(create)
+    }
+}
+
+impl AddrTypeId {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::P2PK65 => P2PK65,
+            Self::P2PK33 => P2PK33,
+            Self::P2PKH => P2PKH,
+            Self::P2SH => P2SH,
+            Self::P2WPKH => P2WPKH,
+            Self::P2WSH => P2WSH,
+            Self::P2TR => P2TR,
+            Self::P2A => P2A,
+        }
+    }
+
+    pub const fn output_type(self) -> OutputType {
+        match self {
+            Self::P2PK65 => OutputType::P2PK65,
+            Self::P2PK33 => OutputType::P2PK33,
+            Self::P2PKH => OutputType::P2PKH,
+            Self::P2SH => OutputType::P2SH,
+            Self::P2WPKH => OutputType::P2WPKH,
+            Self::P2WSH => OutputType::P2WSH,
+            Self::P2TR => OutputType::P2TR,
+            Self::P2A => OutputType::P2A,
+        }
+    }
+
+    pub fn select<T>(self, values: &ByAddrType<T>) -> &T {
+        values.get_unwrap(self.output_type())
+    }
+
+    pub fn select_mut<T>(self, values: &mut ByAddrType<T>) -> &mut T {
+        values.get_mut_unwrap(self.output_type())
+    }
+
+    pub fn series<T>(mut create: impl FnMut(Self, &'static str) -> T) -> ByAddrType<T> {
+        ByAddrType::from_fn(|id| create(id, id.name()))
+    }
+}
 
 #[derive(Default, Clone, Debug, Traversable)]
 pub struct ByAddrType<T> {
@@ -29,36 +140,44 @@ pub struct ByAddrType<T> {
 }
 
 impl<T> ByAddrType<T> {
+    pub fn from_fn(mut create: impl FnMut(AddrTypeId) -> T) -> Self {
+        Self {
+            p2pk65: create(AddrTypeId::P2PK65),
+            p2pk33: create(AddrTypeId::P2PK33),
+            p2pkh: create(AddrTypeId::P2PKH),
+            p2sh: create(AddrTypeId::P2SH),
+            p2wpkh: create(AddrTypeId::P2WPKH),
+            p2wsh: create(AddrTypeId::P2WSH),
+            p2tr: create(AddrTypeId::P2TR),
+            p2a: create(AddrTypeId::P2A),
+        }
+    }
+
+    pub fn try_from_fn<E>(mut create: impl FnMut(AddrTypeId) -> Result<T, E>) -> Result<Self, E> {
+        Ok(Self {
+            p2pk65: create(AddrTypeId::P2PK65)?,
+            p2pk33: create(AddrTypeId::P2PK33)?,
+            p2pkh: create(AddrTypeId::P2PKH)?,
+            p2sh: create(AddrTypeId::P2SH)?,
+            p2wpkh: create(AddrTypeId::P2WPKH)?,
+            p2wsh: create(AddrTypeId::P2WSH)?,
+            p2tr: create(AddrTypeId::P2TR)?,
+            p2a: create(AddrTypeId::P2A)?,
+        })
+    }
+
     pub fn new<F>(mut create: F) -> Self
     where
         F: FnMut(Filter) -> T,
     {
-        Self {
-            p2pk65: create(Filter::Type(OutputType::P2PK65)),
-            p2pk33: create(Filter::Type(OutputType::P2PK33)),
-            p2pkh: create(Filter::Type(OutputType::P2PKH)),
-            p2sh: create(Filter::Type(OutputType::P2SH)),
-            p2wpkh: create(Filter::Type(OutputType::P2WPKH)),
-            p2wsh: create(Filter::Type(OutputType::P2WSH)),
-            p2tr: create(Filter::Type(OutputType::P2TR)),
-            p2a: create(Filter::Type(OutputType::P2A)),
-        }
+        Self::from_fn(|id| create(Filter::Type(id.output_type())))
     }
 
     pub fn new_with_name<F>(f: F) -> Result<Self>
     where
         F: Fn(&'static str) -> Result<T>,
     {
-        Ok(Self {
-            p2pk65: f(P2PK65)?,
-            p2pk33: f(P2PK33)?,
-            p2pkh: f(P2PKH)?,
-            p2sh: f(P2SH)?,
-            p2wpkh: f(P2WPKH)?,
-            p2wsh: f(P2WSH)?,
-            p2tr: f(P2TR)?,
-            p2a: f(P2A)?,
-        })
+        Self::try_from_fn(|id| f(id.name()))
     }
 
     pub fn map_with_name<U>(&self, f: impl Fn(&'static str, &T) -> U) -> ByAddrType<U> {
@@ -78,16 +197,7 @@ impl<T> ByAddrType<T> {
     where
         F: Fn(usize) -> Result<T>,
     {
-        Ok(Self {
-            p2pk65: f(0)?,
-            p2pk33: f(1)?,
-            p2pkh: f(2)?,
-            p2sh: f(3)?,
-            p2wpkh: f(4)?,
-            p2wsh: f(5)?,
-            p2tr: f(6)?,
-            p2a: f(7)?,
-        })
+        Self::try_from_fn(|id| f(id as usize))
     }
 
     #[inline]
@@ -286,40 +396,26 @@ impl<T> ByAddrType<Option<T>> {
     }
 }
 
-/// Zip one ByAddrType with a function, producing a new ByAddrType.
-pub fn zip_by_addr_type<S, R, F>(source: &ByAddrType<S>, f: F) -> Result<ByAddrType<R>>
-where
-    F: Fn(&'static str, &S) -> Result<R>,
-{
-    Ok(ByAddrType {
-        p2pk65: f(P2PK65, &source.p2pk65)?,
-        p2pk33: f(P2PK33, &source.p2pk33)?,
-        p2pkh: f(P2PKH, &source.p2pkh)?,
-        p2sh: f(P2SH, &source.p2sh)?,
-        p2wpkh: f(P2WPKH, &source.p2wpkh)?,
-        p2wsh: f(P2WSH, &source.p2wsh)?,
-        p2tr: f(P2TR, &source.p2tr)?,
-        p2a: f(P2A, &source.p2a)?,
-    })
-}
+#[cfg(test)]
+mod tests {
+    use vecdb::ColumnId;
 
-/// Zip two ByAddrTypes with a function, producing a new ByAddrType.
-pub fn zip2_by_addr_type<S1, S2, R, F>(
-    a: &ByAddrType<S1>,
-    b: &ByAddrType<S2>,
-    f: F,
-) -> Result<ByAddrType<R>>
-where
-    F: Fn(&'static str, &S1, &S2) -> Result<R>,
-{
-    Ok(ByAddrType {
-        p2pk65: f(P2PK65, &a.p2pk65, &b.p2pk65)?,
-        p2pk33: f(P2PK33, &a.p2pk33, &b.p2pk33)?,
-        p2pkh: f(P2PKH, &a.p2pkh, &b.p2pkh)?,
-        p2sh: f(P2SH, &a.p2sh, &b.p2sh)?,
-        p2wpkh: f(P2WPKH, &a.p2wpkh, &b.p2wpkh)?,
-        p2wsh: f(P2WSH, &a.p2wsh, &b.p2wsh)?,
-        p2tr: f(P2TR, &a.p2tr, &b.p2tr)?,
-        p2a: f(P2A, &a.p2a, &b.p2a)?,
-    })
+    use super::{ADDR_TYPE_IDS, AddrTypeId};
+
+    #[test]
+    fn column_order_matches_named_series() {
+        assert_eq!(AddrTypeId::ALL, ADDR_TYPE_IDS);
+
+        let series = AddrTypeId::series(|column, _| column);
+        assert!(series.values().copied().eq(ADDR_TYPE_IDS));
+    }
+
+    #[test]
+    fn row_order_matches_column_indexes() {
+        let row = AddrTypeId::from_fn(|column| column.index());
+
+        for column in ADDR_TYPE_IDS {
+            assert_eq!(*column.get(&row), column.index());
+        }
+    }
 }

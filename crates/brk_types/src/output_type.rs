@@ -78,6 +78,8 @@ pub enum OutputTypeNormalized {
 }
 
 impl OutputType {
+    pub const COUNT: usize = Self::Unknown as usize + 1;
+
     pub const ADDR_TYPES: [Self; 8] = [
         Self::P2PK65,
         Self::P2PK33,

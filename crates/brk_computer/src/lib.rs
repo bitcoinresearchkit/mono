@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(clippy::type_complexity)]
 
 use std::{fs, path::Path, thread, time::Instant};
 

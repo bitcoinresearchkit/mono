@@ -1,11 +1,14 @@
+use brk_cohort::SpendableTypeId;
 use brk_error::Result;
-use brk_types::{Height, StoredU64, Version};
+use brk_types::{Height, StoredU16, StoredU64, Version};
 use vecdb::Database;
 
 use super::{Vecs, WithInputTypes};
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, Windows},
+    internal::{
+        CachedWindowStartVec, ColumnarPerBlock, ColumnarPerBlockCumulativeRolling, Windows,
+    },
 };
 
 fn identity(_: Height, value: StoredU64) -> StoredU64 {
@@ -23,34 +26,50 @@ impl Vecs {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let input_count_source = indexes.input_count_source();
-        let input_count = WithInputTypes::forced_import_counts(
+        let columnar_version = version + Version::ONE;
+        let all_input_count = indexes.input_count_source();
+        let input_count = ColumnarPerBlock::<StoredU16, SpendableTypeId, _>::forced_import(
             db,
-            "input_count_bis",
-            |t| format!("{t}_prevout_count"),
-            version,
-            (input_count_source, identity),
-            indexes,
-            cached_starts,
+            "prevout_count_by_type",
+            columnar_version,
+            |source| {
+                WithInputTypes::from_columnar_count_source(
+                    "input_count_bis",
+                    |t| format!("{t}_prevout_count"),
+                    columnar_version,
+                    (all_input_count, identity),
+                    source,
+                    indexes,
+                    cached_starts,
+                )
+            },
         )?;
         let input_share = input_count.lazy_shares(
-            version,
+            columnar_version,
             |name| format!("{name}_prevout_share"),
             cached_starts,
             indexes,
         );
         let transaction_count_source = indexes.transaction_count_source();
-        let tx_count = WithInputTypes::forced_import(
-            db,
-            "non_coinbase_tx_count",
-            |t| format!("tx_count_with_{t}_prevout"),
-            version,
-            (transaction_count_source, without_coinbase),
-            indexes,
-            cached_starts,
-        )?;
+        let tx_count =
+            ColumnarPerBlockCumulativeRolling::<StoredU64, SpendableTypeId, _>::forced_import(
+                db,
+                "tx_count_with_prevout_by_type_cumulative",
+                columnar_version,
+                |source| {
+                    WithInputTypes::from_columnar_source(
+                        "non_coinbase_tx_count",
+                        |t| format!("tx_count_with_{t}_prevout"),
+                        columnar_version,
+                        (transaction_count_source, without_coinbase),
+                        source,
+                        indexes,
+                        cached_starts,
+                    )
+                },
+            )?;
         let tx_share = tx_count.lazy_shares(
-            version,
+            columnar_version,
             |name| format!("tx_share_with_{name}_prevout"),
             cached_starts,
             indexes,
