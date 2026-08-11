@@ -1,0 +1,44 @@
+use brk_cohort::UTXOGroups;
+use brk_error::Result;
+use brk_traversable::Traversable;
+use brk_types::{Cents, Height, Version};
+use vecdb::{CachedBoxedVec, Database, Rw, StorageMode};
+
+use crate::{
+    distribution::metrics::{ExactUTXOColumnarMetric, utxo_metric_name},
+    indexes,
+    internal::LazyPriceWithRatioPerBlock,
+};
+
+#[derive(Traversable)]
+pub struct RealizedPriceByCohort<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub cohorts: UTXOGroups<LazyPriceWithRatioPerBlock>,
+    #[traversable(flatten)]
+    pub matrices: ExactUTXOColumnarMetric<Cents, M>,
+}
+
+impl RealizedPriceByCohort {
+    pub(super) fn forced_import(
+        db: &Database,
+        version: Version,
+        indexes: &indexes::Vecs,
+        spot_price: &CachedBoxedVec<Height, Cents>,
+    ) -> Result<Self> {
+        let version = version + Version::ONE;
+        let matrices = ExactUTXOColumnarMetric::forced_import(db, "realized_price_cents", version)?;
+        let cohorts = UTXOGroups::new(|filter, cohort_name| {
+            let name = utxo_metric_name(&filter, cohort_name, "realized_price");
+            LazyPriceWithRatioPerBlock::from_boxed_height_source(
+                &name,
+                version,
+                matrices
+                    .source(&filter, &format!("{name}_cents"), version)
+                    .expect("realized-price cohort source"),
+                indexes,
+                spot_price,
+            )
+        });
+        Ok(Self { cohorts, matrices })
+    }
+}

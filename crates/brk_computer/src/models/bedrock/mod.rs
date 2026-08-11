@@ -1,7 +1,20 @@
 mod compute;
 mod import;
+mod levels;
+mod mode_vecs;
+mod modes;
+mod percentiles;
 mod price;
+mod price_bands;
 mod vecs;
+mod weighted;
+
+pub(super) use levels::Levels;
+pub(super) use mode_vecs::ModeVecs;
+pub(super) use modes::Modes;
+pub(super) use percentiles::Percentiles;
+pub(super) use price_bands::PriceBands;
+pub(super) use weighted::WeightedModes;
 
 use std::path::PathBuf;
 
@@ -64,16 +77,8 @@ impl<M: StorageMode> Computer<M> {
             return Some(1.0);
         }
 
-        let supplies = &self.distribution.utxo_cohorts.age_range;
-        let supply = age
-            .select(supplies)
-            .metrics
-            .supply
-            .total
-            .sats
-            .day1
-            .collect_one(day)
-            .flatten()?;
+        let supplies = &self.distribution.cohorts.supply.total.cohorts.age.range;
+        let supply = age.select(supplies).sats.day1.collect_one(day).flatten()?;
 
         match weight {
             UrpdWeight::Raw => Some(1.0),

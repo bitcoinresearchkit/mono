@@ -42,8 +42,7 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let all_metrics = &distribution.utxo_cohorts.all.metrics;
-        let circulating_supply = &all_metrics.supply.total.sats.height;
+        let circulating_supply = &distribution.cohorts.supply.total.cohorts.all.sats.height;
 
         self.coinblocks_created.compute_cumulative_transformed(
             starting_height,

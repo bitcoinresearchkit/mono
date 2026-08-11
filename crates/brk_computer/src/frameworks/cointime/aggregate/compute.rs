@@ -1,10 +1,10 @@
-use brk_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId, ByTerm, TERM_FILTERS};
+use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{Cents, Height, Sats, StoredF64, Version};
 use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, WritableVec};
 
-use super::{AllCohortVecs, StoredCohortVecs, Vecs};
+use super::{Sources, Vecs};
 use crate::{
     distribution,
     frameworks::WeightedCohortState,
@@ -12,8 +12,6 @@ use crate::{
 };
 
 const WRITE_INTERVAL: usize = 10_000;
-const ALL_PRIMARY_VEC_COUNT: usize = 4;
-const STORED_PRIMARY_VEC_COUNT: usize = 5;
 
 impl Vecs {
     pub(crate) fn compute(
@@ -26,26 +24,17 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .total
+            &id.select(&distribution.cohorts.supply.total.cohorts.age.range)
                 .sats
                 .height
         });
         let loss_supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .in_loss
+            &id.select(&distribution.cohorts.supply.in_loss.cohorts.age.range)
                 .sats
                 .height
         });
         let realized_caps = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .realized
-                .cap
+            &id.select(&distribution.cohorts.realized.cap.cohorts.age.range)
                 .cents
                 .height
         });
@@ -63,11 +52,11 @@ impl Vecs {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn compute_primary<S, C, W>(
+    fn compute_primary<S, L, C, W>(
         &mut self,
         starting_height: Height,
         supplies: &AgeRange<&S>,
-        loss_supplies: &AgeRange<&S>,
+        loss_supplies: &AgeRange<&L>,
         realized_caps: &AgeRange<&C>,
         weights: &W,
         all_supply_in_loss_share: &mut PerBlock<StoredF64>,
@@ -75,16 +64,18 @@ impl Vecs {
     ) -> Result<()>
     where
         S: ReadableVec<Height, Sats>,
+        L: ReadableVec<Height, Sats>,
         C: ReadableVec<Height, Cents>,
-        W: ReadableVec<Height, [StoredF64; AGE_RANGE_COUNT]>,
+        W: ReadableVec<Height, AgeRange<StoredF64>>,
     {
-        let source_version: Version = supplies
-            .iter()
-            .map(|vec| vec.version())
-            .chain(loss_supplies.iter().map(|vec| vec.version()))
-            .chain(realized_caps.iter().map(|vec| vec.version()))
-            .chain(std::iter::once(weights.version()))
-            .sum();
+        let source_version = Version::combine_all(
+            supplies
+                .iter()
+                .map(|vec| vec.version())
+                .chain(loss_supplies.iter().map(|vec| vec.version()))
+                .chain(realized_caps.iter().map(|vec| vec.version()))
+                .chain(std::iter::once(weights.version())),
+        );
 
         for vec in self.primary_vecs_mut() {
             validate_any_computed_version_or_reset(vec, source_version)?;
@@ -147,9 +138,7 @@ impl Vecs {
                 }
                 let all = terms.short.merged(terms.long);
                 all_supply_in_loss_share.push(all.supply_in_loss.value());
-                self.all.push(all);
-                self.sth.push(terms.short);
-                self.lth.push(terms.long);
+                self.sources.push(terms, all);
             }
 
             {
@@ -166,59 +155,42 @@ impl Vecs {
     }
 
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.all
-            .primary_vecs_mut()
-            .into_iter()
-            .chain(self.sth.primary_vecs_mut())
-            .chain(self.lth.primary_vecs_mut())
+        self.sources.primary_vecs_mut().into_iter()
     }
 }
 
-impl AllCohortVecs {
-    fn push(&mut self, state: WeightedCohortState) {
-        self.awake.supply.sats.height.push(state.weighted_supply);
-        self.dormant
-            .supply
-            .sats
-            .height
-            .push(state.complement_supply);
-        self.awake.cap.cents.height.push(state.weighted_cap);
-        self.awake.price.cents.height.push(state.realized_price());
+impl Sources {
+    fn push(&mut self, terms: ByTerm<WeightedCohortState>, all: WeightedCohortState) {
+        self.awake_supply.push(ByTerm {
+            short: terms.short.weighted_supply,
+            long: terms.long.weighted_supply,
+        });
+        self.dormant_supply.push(ByTerm {
+            short: terms.short.complement_supply,
+            long: terms.long.complement_supply,
+        });
+        self.awake_cap.push(ByTerm {
+            short: terms.short.weighted_cap,
+            long: terms.long.weighted_cap,
+        });
+        self.awake_price.push(UTXOAggregate {
+            all: all.realized_price(),
+            sth: terms.short.realized_price(),
+            lth: terms.long.realized_price(),
+        });
+        self.supply_in_loss_share.push(ByTerm {
+            short: terms.short.supply_in_loss.value(),
+            long: terms.long.supply_in_loss.value(),
+        });
     }
 
-    fn primary_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; ALL_PRIMARY_VEC_COUNT] {
+    fn primary_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 5] {
         [
-            &mut self.awake.supply.sats.height,
-            &mut self.dormant.supply.sats.height,
-            &mut self.awake.cap.cents.height,
-            &mut self.awake.price.cents.height,
-        ]
-    }
-}
-
-impl StoredCohortVecs {
-    fn push(&mut self, state: WeightedCohortState) {
-        self.awake.supply.sats.height.push(state.weighted_supply);
-        self.dormant
-            .supply
-            .sats
-            .height
-            .push(state.complement_supply);
-        self.awake
-            .supply_in_loss_share
-            .height
-            .push(state.supply_in_loss.value());
-        self.awake.cap.cents.height.push(state.weighted_cap);
-        self.awake.price.cents.height.push(state.realized_price());
-    }
-
-    fn primary_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; STORED_PRIMARY_VEC_COUNT] {
-        [
-            &mut self.awake.supply.sats.height,
-            &mut self.dormant.supply.sats.height,
-            &mut self.awake.supply_in_loss_share.height,
-            &mut self.awake.cap.cents.height,
-            &mut self.awake.price.cents.height,
+            &mut self.awake_supply,
+            &mut self.dormant_supply,
+            &mut self.awake_cap,
+            &mut self.awake_price,
+            &mut self.supply_in_loss_share,
         ]
     }
 }

@@ -75,7 +75,12 @@ where
     S: ReadableColumnarVec<C>,
 {
     fn version(&self) -> Version {
-        self.base_version + self.source.version() + Version::from(self.columns.len())
+        self.columns.iter().fold(
+            self.base_version
+                .combine(self.source.version())
+                .combine(Version::from(self.columns.len())),
+            |version, column| version.combine(Version::from(column.index() + 1)),
+        )
     }
 
     fn name(&self) -> &str {

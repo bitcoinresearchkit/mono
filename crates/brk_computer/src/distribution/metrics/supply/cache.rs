@@ -1,8 +1,5 @@
 use brk_types::{Height, Sats};
-use vecdb::{
-    CachedBoxedVec, CachedReadableVec, CachedVec, ReadableBoxedVec, ReadableCloneableVec,
-    ReadableVec, TypedVec,
-};
+use vecdb::{CachedBoxedVec, CachedReadableVec, CachedVec, ReadableVec, TypedVec};
 
 /// Pinned in-memory snapshot of the all-cohort supply.
 ///
@@ -11,7 +8,6 @@ use vecdb::{
 #[derive(Clone)]
 pub(crate) struct AllSupplyCache {
     cache: CachedBoxedVec<Height, Sats>,
-    source: ReadableBoxedVec<Height, Sats>,
 }
 
 impl AllSupplyCache {
@@ -25,18 +21,13 @@ impl AllSupplyCache {
             + 'static,
     {
         let cache = CachedVec::wrap(source);
-        let source = ReadableCloneableVec::read_only_boxed_clone(&cache);
         let cache = cache.cached_boxed_clone();
 
-        Self { cache, source }
+        Self { cache }
     }
 
     pub(crate) fn cached_boxed_clone(&self) -> CachedBoxedVec<Height, Sats> {
         self.cache.cached_boxed_clone()
-    }
-
-    pub(crate) fn readable_boxed_clone(&self) -> ReadableBoxedVec<Height, Sats> {
-        self.source.read_only_boxed_clone()
     }
 
     pub(crate) fn clear(&self) {
@@ -47,7 +38,9 @@ impl AllSupplyCache {
 #[cfg(test)]
 mod tests {
     use brk_types::Version;
-    use vecdb::{AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone, WritableVec};
+    use vecdb::{
+        AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone, WritableVec,
+    };
 
     use super::*;
 

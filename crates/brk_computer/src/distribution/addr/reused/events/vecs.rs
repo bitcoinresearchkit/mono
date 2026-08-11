@@ -59,43 +59,12 @@ use super::state::AddrTypeToAddrEventCount;
 /// `active_reused_addr_share` is the per-block ratio
 /// `reused / active * 100` as a percentage in `[0, 100]` (or `0.0` for
 /// empty blocks). The denominator (distinct active addrs per block)
-/// lives on `ActivityCountVecs::active` (`addrs.activity.all.active`),
+/// lives at `addrs.activity.active.all`,
 /// derived from `sending + receiving - bidirectional`. Both fields
 /// expose lazy 24h/1w/1m/1y rolling *averages* of the per-block values.
 /// Sums and cumulatives of distinct-address counts would be misleading
 /// because the same address can appear in multiple blocks, so the
 /// cumulative count remains an internal source for the lazy views.
-#[derive(Clone, Traversable)]
-pub struct AddrEventShares {
-    pub all: LazyPercentCumulativeRolling<PartsPerMillion32>,
-    #[traversable(flatten)]
-    pub by_addr_type: ByAddrType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
-}
-
-impl AddrEventShares {
-    fn new(
-        name: &str,
-        version: Version,
-        indexes: &indexes::Vecs,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        all: LazyPercentCumulativeRolling<PartsPerMillion32>,
-        numerators: &ByAddrType<LazyColumnPerBlockCumulativeRolling<StoredU64, AddrTypeId>>,
-        denominators: &ByAddrType<CachedBlockCountReader>,
-    ) -> Self {
-        let by_addr_type = AddrTypeId::series(|column, type_name| {
-            LazyPercentCumulativeRolling::from_cached_block_count(
-                &format!("{type_name}_{name}"),
-                version,
-                &column.select(numerators).cumulative.height,
-                column.select(denominators).clone(),
-                cached_starts,
-                indexes,
-            )
-        });
-        Self { all, by_addr_type }
-    }
-}
-
 #[derive(Traversable)]
 pub struct AddrEventsVecs<M: StorageMode = Rw> {
     pub output_to_reused_addr_count: ColumnarPerBlockCumulativeRolling<
@@ -107,7 +76,7 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
         >,
         M,
     >,
-    pub output_to_reused_addr_share: AddrEventShares,
+    pub output_to_reused_addr_share: WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     pub spendable_output_to_reused_addr_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     pub input_from_reused_addr_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
@@ -118,12 +87,34 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
         >,
         M,
     >,
-    pub input_from_reused_addr_share: AddrEventShares,
+    pub input_from_reused_addr_share:
+        WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     pub active_reused_addr_count: CountPerBlockRollingAverage<M>,
     pub active_reused_addr_share: PerBlockRollingAverage<StoredF32, StoredF32, M>,
 }
 
 impl AddrEventsVecs {
+    fn event_shares(
+        name: &str,
+        version: Version,
+        indexes: &indexes::Vecs,
+        cached_starts: &Windows<&CachedWindowStartVec>,
+        all: LazyPercentCumulativeRolling<PartsPerMillion32>,
+        numerators: &ByAddrType<LazyColumnPerBlockCumulativeRolling<StoredU64, AddrTypeId>>,
+        denominators: &ByAddrType<CachedBlockCountReader>,
+    ) -> WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>> {
+        let by_addr_type = AddrTypeId::series(|column, type_name| {
+            LazyPercentCumulativeRolling::from_cached_block_count(
+                &format!("{type_name}_{name}"),
+                version,
+                &column.select(numerators).cumulative.height,
+                column.select(denominators).clone(),
+                cached_starts,
+                indexes,
+            )
+        });
+        WithAddrTypes { all, by_addr_type }
+    }
     pub(crate) fn forced_import(
         db: &Database,
         name: &str,
@@ -153,7 +144,7 @@ impl AddrEventsVecs {
         let output_to_reused_addr_count = import_count(&format!("output_to_{name}_addr_count"))?;
         let output_share_name = format!("output_to_{name}_addr_share");
         let output_denominators = outputs_by_type.output_count.cached_addr_type_counts();
-        let output_to_reused_addr_share = AddrEventShares::new(
+        let output_to_reused_addr_share = Self::event_shares(
             &output_share_name,
             version,
             indexes,
@@ -185,7 +176,7 @@ impl AddrEventsVecs {
         let input_from_reused_addr_count = import_count(&format!("input_from_{name}_addr_count"))?;
         let input_share_name = format!("input_from_{name}_addr_share");
         let input_denominators = inputs_by_type.input_count.cached_addr_type_counts();
-        let input_from_reused_addr_share = AddrEventShares::new(
+        let input_from_reused_addr_share = Self::event_shares(
             &input_share_name,
             version,
             indexes,
@@ -271,8 +262,8 @@ impl AddrEventsVecs {
             .push_block(StoredU32::from(active_reused_addr_count));
         // Stored as a percentage in [0, 100] to match the rest of the
         // codebase (Unit.percentage on the website expects 0..100). The
-        // `active_addr_count` denominator lives on `ActivityCountVecs`
-        // (`addrs.activity.all.active`), passed in here so we can
+        // `active_addr_count` denominator lives at
+        // `addrs.activity.active.all`, passed in here so we can
         // compute the per-block ratio inline.
         let share = if active_addr_count > 0 {
             100.0 * (active_reused_addr_count as f32 / active_addr_count as f32)

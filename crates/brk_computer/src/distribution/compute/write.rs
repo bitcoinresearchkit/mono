@@ -9,7 +9,7 @@ use vecdb::{AnyStoredVec, AnyVec, Stamp, VecIndex, WritableVec};
 use crate::distribution::{
     Vecs,
     block::{WithAddrDataSource, process_empty_addrs, process_funded_addrs},
-    state::BlockState,
+    state::{AddrStates, BlockState, UTXOStates},
 };
 
 use super::super::addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVecs};
@@ -52,6 +52,8 @@ pub(crate) fn process_addr_updates(
 /// Set `with_changes=true` near chain tip to enable rollback support.
 pub(crate) fn write(
     vecs: &mut Vecs,
+    utxo_states: &mut UTXOStates,
+    addr_states: &mut AddrStates,
     height: Height,
     chain_state: &[BlockState],
     min_supply_modified: Option<Height>,
@@ -84,14 +86,13 @@ pub(crate) fn write(
             ]
             .into_par_iter(),
         )
-        .chain(vecs.utxo_cohorts.par_iter_vecs_mut())
-        .chain(vecs.addr_cohorts.par_iter_vecs_mut())
+        .chain(vecs.cohorts.par_iter_vecs_mut())
         .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
 
     // Commit states after vec writes
     let cleanup = with_changes;
-    vecs.utxo_cohorts.commit_all_states(height, cleanup)?;
-    vecs.addr_cohorts.commit_all_states(height, cleanup)?;
+    utxo_states.write(height, cleanup)?;
+    addr_states.write(height, cleanup)?;
 
     info!("Wrote in {:?}", i.elapsed());
 

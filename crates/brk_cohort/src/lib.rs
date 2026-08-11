@@ -1,10 +1,15 @@
 #![doc = include_str!("../README.md")]
 
-mod addr;
+#[macro_use]
+mod column_id;
+
 mod age_range;
+mod amount;
+mod amount_bucket;
 mod amount_filter;
 mod amount_range;
 mod by_addr_type;
+mod by_age;
 mod by_any_addr;
 mod by_entry;
 mod by_epoch;
@@ -28,14 +33,20 @@ mod under_age;
 mod under_amount;
 mod unspendable_type;
 mod utxo;
+mod utxo_aggregate;
+mod utxo_all_and_sth;
+mod utxo_groups_without_amount;
+mod utxo_groups_without_amount_or_type;
 
 pub use brk_types::{Age, Term};
 
-pub use addr::*;
 pub use age_range::*;
+pub use amount::*;
+pub use amount_bucket::*;
 pub use amount_filter::*;
 pub use amount_range::*;
 pub use by_addr_type::*;
+pub use by_age::*;
 pub use by_any_addr::*;
 pub use by_entry::*;
 pub use by_epoch::*;
@@ -59,3 +70,7 @@ pub use under_age::*;
 pub use under_amount::*;
 pub use unspendable_type::*;
 pub use utxo::*;
+pub use utxo_aggregate::*;
+pub use utxo_all_and_sth::*;
+pub use utxo_groups_without_amount::*;
+pub use utxo_groups_without_amount_or_type::*;

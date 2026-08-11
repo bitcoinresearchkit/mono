@@ -12,7 +12,7 @@ use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp,
-    StorageMode, WritableVec,
+    StorageMode, VecIndex, WritableVec,
 };
 
 use super::super::AddrTypeToTypeIndexMap;
@@ -159,7 +159,7 @@ impl AnyAddrIndexesVecs {
 }
 
 /// Process updates for a single address type's BytesVec, merging two maps.
-fn process_single_type_merged<I: vecdb::VecIndex>(
+fn process_single_type_merged<I: VecIndex>(
     vec: &mut BytesVec<I, AnyAddrIndex>,
     map1: FxHashMap<TypeIndex, AnyAddrIndex>,
     map2: FxHashMap<TypeIndex, AnyAddrIndex>,

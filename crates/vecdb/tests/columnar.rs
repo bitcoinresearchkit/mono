@@ -67,6 +67,7 @@ macro_rules! column_ids {
 
 column_ids!(TestColumn, 3, Version::ONE, [First, Second, Third]);
 column_ids!(ChangedTestColumn, 3, Version::TWO, [First, Second, Third]);
+column_ids!(TwoColumn, 2, Version::TWO, [First, Second]);
 column_ids!(
     FiveColumn,
     5,
@@ -348,7 +349,7 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> Result<()> {
         source.clone(),
         [TestColumn::First, TestColumn::Second],
     );
-    assert_eq!(stored_sum.version(), same_length_sum.version());
+    assert_ne!(stored_sum.version(), same_length_sum.version());
     let shorter_sum = LazyColumnSumVec::new(
         "shorter_sum",
         Version::ONE,
@@ -456,6 +457,23 @@ fn column_count_is_part_of_storage_version() -> Result<()> {
     assert!(FiveColumns::import(&db, "column_count", Version::ONE).is_err());
     let vec = FiveColumns::forced_import(&db, "column_count", Version::ONE)?;
     assert!(vec.is_empty());
+    Ok(())
+}
+
+#[test]
+fn column_schema_and_count_cannot_cancel_each_other() -> Result<()> {
+    type ThreeColumns = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+    type TwoChangedColumns = ColumnarVec<BytesVec<usize, u64>, TwoColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = ThreeColumns::forced_import(&db, "schema_count_collision", Version::ONE)?;
+    vec.push(row(0));
+    vec.push(row(1));
+    vec.write()?;
+    drop(vec);
+
+    assert!(TwoChangedColumns::import(&db, "schema_count_collision", Version::ONE).is_err());
     Ok(())
 }
 
@@ -620,11 +638,25 @@ fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> Res
 
 #[test]
 fn concurrent_projection_reads_survive_incremental_writes() -> Result<()> {
-    type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+    run_concurrent_projection_reads::<BytesVec<usize, u64>>()
+}
+
+#[cfg(feature = "pco")]
+#[test]
+fn pco_concurrent_projection_reads_survive_incremental_writes() -> Result<()> {
+    run_concurrent_projection_reads::<vecdb::PcoVec<usize, u64>>()
+}
+
+fn run_concurrent_projection_reads<V>() -> Result<()>
+where
+    V: StoredVec<I = usize, T = u64> + 'static,
+    V::ReadOnly: Send + Sync,
+{
+    type C = TestColumn;
 
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;
-    let mut vec = V::forced_import(&db, "concurrent", Version::ONE)?;
+    let mut vec = ColumnarVec::<V, C>::forced_import(&db, "concurrent", Version::ONE)?;
     for index in 0..1_000 {
         vec.push(row(index));
     }

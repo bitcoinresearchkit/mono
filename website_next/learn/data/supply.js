@@ -14,12 +14,12 @@ export const supplyProfitabilitySeries = createCohortSeries([
     label: "In profit",
     color: colors.green,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.profit.all.supply.all.btc,
+      client.series.cohorts.utxo.profitability.supply.profit.all.all.btc,
   },
   {
     label: "In loss",
     color: colors.red,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.loss.all.supply.all.btc,
+      client.series.cohorts.utxo.profitability.supply.loss.all.all.btc,
   },
 ]);

@@ -60,36 +60,6 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
         )
     }
 
-    pub(crate) fn from_cumulative_ratio_with_denominator_transform<S, D, F>(
-        name: &str,
-        version: Version,
-        numerator: &(impl ReadableCloneableVec<Height, S> + 'static),
-        denominator: CachedBoxedVec<Height, D>,
-        denominator_transform: fn(Height, D) -> D,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
-        let source = numerator.read_only_boxed_clone();
-
-        Self(cached_starts.map_with_suffix(|suffix, cached_start| {
-            let full_name = format!("{name}_{suffix}");
-            let ratio = LazyRollingRatioVec::<S, D, B, F>::with_cached_transform(
-                &format!("{full_name}_{}_source", B::SUFFIX),
-                version,
-                source.clone(),
-                denominator.clone(),
-                cached_start.read_only_cached_boxed_clone(),
-                denominator_transform,
-            );
-            LazyPercentPerBlock::from_height_source(&full_name, version, ratio, indexes)
-        }))
-    }
-
     pub(crate) fn from_cumulative_ratio_with_cached_numerator<S, D, F>(
         name: &str,
         version: Version,

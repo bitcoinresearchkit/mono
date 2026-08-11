@@ -1,5 +1,5 @@
 use brk_traversable::Traversable;
-use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
+use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{DeltaSub, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
@@ -7,18 +7,10 @@ use crate::{
     indexes,
     internal::{
         CachedWindowStartVec, CentsUnsignedToDollars, DerivedResolutions, LazyPerBlock,
-        LazyRollingSumFromHeight, Resolutions, SatsToBitcoin, Windows,
+        LazyRollingSumAmountFromHeight, LazyRollingSumFromHeight, Resolutions, SatsToBitcoin,
+        Windows,
     },
 };
-
-/// Single window slot: lazy rolling sum for Amount (sats + btc + cents + usd).
-#[derive(Clone, Traversable)]
-pub struct LazyRollingSumAmountFromHeight {
-    pub btc: LazyPerBlock<Bitcoin, Sats>,
-    pub sats: LazyRollingSumFromHeight<Sats>,
-    pub usd: LazyPerBlock<Dollars, Cents>,
-    pub cents: LazyRollingSumFromHeight<Cents>,
-}
 
 /// Lazy rolling sums for all 4 windows, for Amount (sats + btc + cents + usd).
 #[derive(Clone, Deref, DerefMut, Traversable)]

@@ -3,11 +3,11 @@ use brk_indexer::{Indexer, Lengths};
 use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
 use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
 
-use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS};
+use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 
 use super::super::cointime;
 use super::{
-    AGE_COHORT_COUNT, AgeBand, AggregateVecs, Horizons, MINIMUM_DURATION_DAYS, Vecs,
+    AGE_COHORT_COUNT, AgeBand, AggregateSources, HorizonId, Horizons, MINIMUM_DURATION_DAYS, Vecs,
     age_bounds_days, horizon_mobility, mobility,
 };
 use crate::{
@@ -38,7 +38,7 @@ impl Default for AggregateState {
     fn default() -> Self {
         Self {
             weighted: WeightedCohortState::default(),
-            horizon_supply_in_loss: Horizons::from_fn(|_, _| WeightedRatio::default()),
+            horizon_supply_in_loss: HorizonId::from_fn(|_| WeightedRatio::default()),
         }
     }
 }
@@ -58,11 +58,9 @@ impl AggregateState {
             .add(total_supply, loss_supply, total_cap, mobility);
         let total = total_supply.as_u128() as f64;
         let loss = loss_supply.as_u128() as f64;
-        for (ratio, weights) in self
-            .horizon_supply_in_loss
-            .iter_mut()
-            .zip(horizon_mobilities.iter())
-        {
+        for horizon in HorizonId::ALL {
+            let ratio = horizon.select_mut(&mut self.horizon_supply_in_loss);
+            let weights = horizon.select(horizon_mobilities);
             ratio.add(loss, total, *age.select(weights));
         }
         contribution
@@ -70,12 +68,10 @@ impl AggregateState {
 
     fn merged(mut self, other: Self) -> Self {
         self.weighted = self.weighted.merged(other.weighted);
-        for (ratio, other) in self
-            .horizon_supply_in_loss
-            .iter_mut()
-            .zip(other.horizon_supply_in_loss.iter())
-        {
-            ratio.merge(*other);
+        for horizon in HorizonId::ALL {
+            horizon
+                .select_mut(&mut self.horizon_supply_in_loss)
+                .merge(*horizon.select(&other.horizon_supply_in_loss));
         }
         self
     }
@@ -93,35 +89,31 @@ impl Vecs {
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .activity
-                .transfer_volume
-                .cumulative
-                .sats
-                .height
+            &id.select(
+                &distribution
+                    .cohorts
+                    .activity
+                    .transfer_volume
+                    .cohorts
+                    .age
+                    .range,
+            )
+            .cumulative
+            .sats
+            .height
         });
         let supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .total
+            &id.select(&distribution.cohorts.supply.total.cohorts.age.range)
                 .sats
                 .height
         });
         let loss_supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .in_loss
+            &id.select(&distribution.cohorts.supply.in_loss.cohorts.age.range)
                 .sats
                 .height
         });
         let realized_caps = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .realized
-                .cap
+            &id.select(&distribution.cohorts.realized.cap.cohorts.age.range)
                 .cents
                 .height
         });
@@ -142,30 +134,33 @@ impl Vecs {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn compute_primary<T, D, S, C>(
+    fn compute_primary<T, D, V, S, L, C>(
         &mut self,
         starting_lengths: &Lengths,
         timestamps: &T,
-        transfer_volumes: &AgeRange<&S>,
+        transfer_volumes: &AgeRange<&V>,
         coindays_created: &D,
         supplies: &AgeRange<&S>,
-        loss_supplies: &AgeRange<&S>,
+        loss_supplies: &AgeRange<&L>,
         realized_caps: &AgeRange<&C>,
         exit: &Exit,
     ) -> Result<Height>
     where
         T: ReadableVec<Height, Timestamp>,
-        D: ReadableVec<Height, [StoredF64; AGE_COHORT_COUNT]>,
+        D: ReadableVec<Height, AgeRange<StoredF64>>,
+        V: ReadableVec<Height, Sats>,
         S: ReadableVec<Height, Sats>,
+        L: ReadableVec<Height, Sats>,
         C: ReadableVec<Height, Cents>,
     {
-        let source_version: Version = std::iter::once(timestamps.version())
-            .chain(transfer_volumes.iter().map(|vec| vec.version()))
-            .chain(std::iter::once(coindays_created.version()))
-            .chain(supplies.iter().map(|vec| vec.version()))
-            .chain(loss_supplies.iter().map(|vec| vec.version()))
-            .chain(realized_caps.iter().map(|vec| vec.version()))
-            .sum();
+        let source_version = Version::combine_all(
+            std::iter::once(timestamps.version())
+                .chain(transfer_volumes.iter().map(|vec| vec.version()))
+                .chain(std::iter::once(coindays_created.version()))
+                .chain(supplies.iter().map(|vec| vec.version()))
+                .chain(loss_supplies.iter().map(|vec| vec.version()))
+                .chain(realized_caps.iter().map(|vec| vec.version())),
+        );
 
         for vec in self.primary_vecs_mut() {
             validate_any_computed_version_or_reset(vec, source_version)?;
@@ -234,10 +229,10 @@ impl Vecs {
                     .max(MINIMUM_DURATION_DAYS);
                 let exposures = DecayFit::exposures(&hazards, network_age, &bounds);
                 let mobilities = AgeRange::from_fn(|id| mobility(*id.select(&exposures)));
-                let horizon_mobilities: Horizons<AgeRange<f64>> =
-                    Horizons::from_fn(|_, horizon| {
-                        AgeRange::from_fn(|age| horizon_mobility(&hazards, age, horizon, &bounds))
-                    });
+                let horizon_mobilities: Horizons<AgeRange<f64>> = HorizonId::from_fn(|horizon| {
+                    let horizon = horizon.days();
+                    AgeRange::from_fn(|age| horizon_mobility(&hazards, age, horizon, &bounds))
+                });
                 self.age_range.spending_rate.push(AgeRangeId::from_fn(|id| {
                     StoredF64::from(*id.select(&hazards))
                 }));
@@ -284,9 +279,8 @@ impl Vecs {
                     .immobile
                     .push(AgeRangeId::from_fn(|id| *id.select(&immobile_supply)));
 
-                self.all.push(terms.short.merged(terms.long));
-                self.sth.push(terms.short);
-                self.lth.push(terms.long);
+                let all = terms.short.merged(terms.long);
+                self.aggregate_sources.push(terms, all);
             }
 
             {
@@ -309,54 +303,63 @@ impl Vecs {
             self.age_range.supply.immobile.stored_mut(),
         ]
         .into_iter()
-        .chain(self.all.primary_vecs_mut())
-        .chain(self.sth.primary_vecs_mut())
-        .chain(self.lth.primary_vecs_mut())
+        .chain(self.aggregate_sources.primary_vecs_mut())
     }
 }
 
-impl AggregateVecs {
-    fn push(&mut self, state: AggregateState) {
-        self.supply
-            .mobile
-            .sats
-            .height
-            .push(state.weighted.weighted_supply);
-        self.supply
-            .immobile
-            .sats
-            .height
-            .push(state.weighted.complement_supply);
-        self.supply_in_loss_share
-            .height
-            .push(state.weighted.supply_in_loss.value());
-        for (output, ratio) in self
-            .horizon
-            .iter_mut()
-            .zip(state.horizon_supply_in_loss.iter())
-        {
-            output.supply_in_loss_share.height.push(ratio.value());
+impl AggregateSources {
+    fn push(&mut self, terms: ByTerm<AggregateState>, all: AggregateState) {
+        self.supply.mobile.push(ByTerm {
+            short: terms.short.weighted.weighted_supply,
+            long: terms.long.weighted.weighted_supply,
+        });
+        self.supply.immobile.push(ByTerm {
+            short: terms.short.weighted.complement_supply,
+            long: terms.long.weighted.complement_supply,
+        });
+        self.supply_in_loss_share.push(UTXOAggregate {
+            all: all.weighted.supply_in_loss.value(),
+            sth: terms.short.weighted.supply_in_loss.value(),
+            lth: terms.long.weighted.supply_in_loss.value(),
+        });
+        for horizon in HorizonId::ALL {
+            horizon.select_mut(&mut self.horizon).push(UTXOAggregate {
+                all: horizon.select(&all.horizon_supply_in_loss).value(),
+                sth: horizon.select(&terms.short.horizon_supply_in_loss).value(),
+                lth: horizon.select(&terms.long.horizon_supply_in_loss).value(),
+            });
         }
-        self.cap.cents.height.push(state.weighted.weighted_cap);
-        self.price
-            .cents
-            .height
-            .push(state.weighted.realized_price());
+        self.cap.push(ByTerm {
+            short: terms.short.weighted.weighted_cap,
+            long: terms.long.weighted.weighted_cap,
+        });
+        self.price.push(UTXOAggregate {
+            all: all.weighted.realized_price(),
+            sth: terms.short.weighted.realized_price(),
+            lth: terms.long.weighted.realized_price(),
+        });
     }
 
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        let Self {
+            supply,
+            supply_in_loss_share,
+            horizon,
+            cap,
+            price,
+        } = self;
         [
-            &mut self.supply.mobile.sats.height as &mut dyn AnyStoredVec,
-            &mut self.supply.immobile.sats.height,
-            &mut self.supply_in_loss_share.height,
-            &mut self.cap.cents.height,
-            &mut self.price.cents.height,
+            &mut supply.mobile as &mut dyn AnyStoredVec,
+            &mut supply.immobile,
+            supply_in_loss_share,
+            cap,
+            price,
         ]
         .into_iter()
         .chain(
-            self.horizon
+            horizon
                 .iter_mut()
-                .map(|horizon| &mut horizon.supply_in_loss_share.height as &mut dyn AnyStoredVec),
+                .map(|horizon| horizon as &mut dyn AnyStoredVec),
         )
     }
 }
@@ -580,7 +583,7 @@ mod tests {
 
     #[test]
     fn term_aggregates_merge_into_all() {
-        let horizons = Horizons::from_fn(|_, _| AgeRange::from_fn(|_| 0.25));
+        let horizons = HorizonId::from_fn(|_| AgeRange::from_fn(|_| 0.25));
         let mut direct = AggregateState::default();
         direct.add(
             Sats::from(100_u64),
@@ -632,12 +635,11 @@ mod tests {
             merged.weighted.supply_in_loss.value(),
             direct.weighted.supply_in_loss.value()
         );
-        for (merged, direct) in merged
-            .horizon_supply_in_loss
-            .iter()
-            .zip(direct.horizon_supply_in_loss.iter())
-        {
-            assert_eq!(merged.value(), direct.value());
+        for horizon in HorizonId::ALL {
+            assert_eq!(
+                horizon.select(&merged.horizon_supply_in_loss).value(),
+                horizon.select(&direct.horizon_supply_in_loss).value(),
+            );
         }
     }
 

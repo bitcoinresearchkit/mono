@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign};
 use brk_traversable::Traversable;
 use brk_types::OutputType;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{ColumnId, VecValue, Version};
 
@@ -41,6 +42,40 @@ pub const SPENDABLE_TYPE_IDS: [SpendableTypeId; SPENDABLE_TYPE_COUNT] = [
 ];
 
 impl SpendableTypeId {
+    #[inline]
+    pub fn select<T>(self, row: &SpendableType<T>) -> &T {
+        match self {
+            Self::P2PK65 => &row.p2pk65,
+            Self::P2PK33 => &row.p2pk33,
+            Self::P2PKH => &row.p2pkh,
+            Self::P2MS => &row.p2ms,
+            Self::P2SH => &row.p2sh,
+            Self::P2WPKH => &row.p2wpkh,
+            Self::P2WSH => &row.p2wsh,
+            Self::P2TR => &row.p2tr,
+            Self::P2A => &row.p2a,
+            Self::Unknown => &row.unknown,
+            Self::Empty => &row.empty,
+        }
+    }
+
+    #[inline]
+    pub fn select_mut<T>(self, row: &mut SpendableType<T>) -> &mut T {
+        match self {
+            Self::P2PK65 => &mut row.p2pk65,
+            Self::P2PK33 => &mut row.p2pk33,
+            Self::P2PKH => &mut row.p2pkh,
+            Self::P2MS => &mut row.p2ms,
+            Self::P2SH => &mut row.p2sh,
+            Self::P2WPKH => &mut row.p2wpkh,
+            Self::P2WSH => &mut row.p2wsh,
+            Self::P2TR => &mut row.p2tr,
+            Self::P2A => &mut row.p2a,
+            Self::Unknown => &mut row.unknown,
+            Self::Empty => &mut row.empty,
+        }
+    }
+
     pub const fn from_output_type(value: OutputType) -> Option<Self> {
         match value {
             OutputType::P2PK65 => Some(Self::P2PK65),
@@ -77,7 +112,7 @@ impl SpendableTypeId {
 
 impl ColumnId for SpendableTypeId {
     type Row<T>
-        = [T; SPENDABLE_TYPE_COUNT]
+        = SpendableType<T>
     where
         T: VecValue;
 
@@ -91,12 +126,12 @@ impl ColumnId for SpendableTypeId {
 
     #[inline]
     fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        &row[self as usize]
+        self.select(row)
     }
 
     #[inline]
     fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        &mut row[self as usize]
+        self.select_mut(row)
     }
 
     #[inline]
@@ -105,17 +140,29 @@ impl ColumnId for SpendableTypeId {
         T: VecValue,
         F: FnMut(Self) -> T,
     {
-        std::array::from_fn(|index| f(SPENDABLE_TYPE_IDS[index]))
+        SpendableType {
+            p2pk65: f(Self::P2PK65),
+            p2pk33: f(Self::P2PK33),
+            p2pkh: f(Self::P2PKH),
+            p2ms: f(Self::P2MS),
+            p2sh: f(Self::P2SH),
+            p2wpkh: f(Self::P2WPKH),
+            p2wsh: f(Self::P2WSH),
+            p2tr: f(Self::P2TR),
+            p2a: f(Self::P2A),
+            unknown: f(Self::Unknown),
+            empty: f(Self::Empty),
+        }
     }
 
     #[inline]
-    fn map<T, U, F>(row: Self::Row<T>, f: F) -> Self::Row<U>
+    fn map<T, U, F>(row: Self::Row<T>, mut f: F) -> Self::Row<U>
     where
         T: VecValue,
         U: VecValue,
         F: FnMut(T) -> U,
     {
-        row.map(f)
+        Self::from_fn(|column| f(column.get(&row).clone()))
     }
 }
 
@@ -164,7 +211,7 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
     empty: CohortName::new("empty_outputs", "Empty", "Empty Output"),
 };
 
-#[derive(Default, Clone, Debug, Traversable, Serialize)]
+#[derive(Default, Clone, Debug, Traversable, Serialize, JsonSchema)]
 pub struct SpendableType<T> {
     pub p2pk65: T,
     pub p2pk33: T,
@@ -178,6 +225,38 @@ pub struct SpendableType<T> {
     pub unknown: T,
     pub empty: T,
 }
+
+impl<T> SpendableType<T> {
+    pub fn from_fn(mut f: impl FnMut(SpendableTypeId) -> T) -> Self {
+        Self {
+            p2pk65: f(SpendableTypeId::P2PK65),
+            p2pk33: f(SpendableTypeId::P2PK33),
+            p2pkh: f(SpendableTypeId::P2PKH),
+            p2ms: f(SpendableTypeId::P2MS),
+            p2sh: f(SpendableTypeId::P2SH),
+            p2wpkh: f(SpendableTypeId::P2WPKH),
+            p2wsh: f(SpendableTypeId::P2WSH),
+            p2tr: f(SpendableTypeId::P2TR),
+            p2a: f(SpendableTypeId::P2A),
+            unknown: f(SpendableTypeId::Unknown),
+            empty: f(SpendableTypeId::Empty),
+        }
+    }
+}
+
+impl_column_row_formattable!(SpendableType {
+    p2pk65,
+    p2pk33,
+    p2pkh,
+    p2ms,
+    p2sh,
+    p2wpkh,
+    p2wsh,
+    p2tr,
+    p2a,
+    unknown,
+    empty,
+});
 
 impl SpendableType<CohortName> {
     pub const fn names() -> &'static Self {

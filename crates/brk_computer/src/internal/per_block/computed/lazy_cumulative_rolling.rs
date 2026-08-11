@@ -3,7 +3,7 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{ColumnId, ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
+use vecdb::{ColumnId, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
 
 use crate::{
     indexes,
@@ -90,6 +90,23 @@ where
         V: TypedVec<I = Height, T = T> + ReadableVec<Height, T> + Clone + 'static,
     {
         let cumulative = LazyPerBlock::from_uncached_height_source::<Identity<T>, _>(
+            &format!("{name}_cumulative"),
+            version,
+            source,
+            indexes,
+        );
+
+        Self::from_cumulative(name, version, cumulative, cached_starts, indexes)
+    }
+
+    pub(crate) fn from_boxed_cumulative_source(
+        name: &str,
+        version: Version,
+        source: ReadableBoxedVec<Height, T>,
+        cached_starts: &Windows<&CachedWindowStartVec>,
+        indexes: &indexes::Vecs,
+    ) -> Self {
+        let cumulative = LazyPerBlock::from_uncached_boxed_height_source::<Identity<T>>(
             &format!("{name}_cumulative"),
             version,
             source,

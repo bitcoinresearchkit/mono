@@ -1,3 +1,3 @@
-mod base;
+mod vecs;
 
-pub use base::{OutputsBase, OutputsUnspent};
+pub use vecs::OutputsVecs;

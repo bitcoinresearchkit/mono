@@ -46,23 +46,6 @@ impl ValuePerBlockCumulative {
         })
     }
 
-    #[inline(always)]
-    pub(crate) fn push_block_sats(&mut self, value: Sats) {
-        let len = self.cumulative.sats.height.len();
-        let mut cumulative = match self.last_cumulative_sats {
-            Some((cached_len, value)) if cached_len == len => value,
-            _ => self
-                .cumulative
-                .sats
-                .height
-                .collect_last()
-                .unwrap_or_default(),
-        };
-        cumulative += value;
-        self.cumulative.sats.height.push(cumulative);
-        self.last_cumulative_sats = Some((len + 1, cumulative));
-    }
-
     pub(crate) fn compute_from<S>(
         &mut self,
         max_from: Height,

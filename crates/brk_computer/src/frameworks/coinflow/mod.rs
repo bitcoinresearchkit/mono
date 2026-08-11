@@ -1,4 +1,5 @@
 mod compute;
+mod horizon;
 mod import;
 mod vecs;
 
@@ -6,12 +7,13 @@ use brk_cohort::{AgeRange, AgeRangeId};
 use vecdb::ColumnId;
 
 pub(crate) use brk_cohort::AGE_RANGE_COUNT as AGE_COHORT_COUNT;
-pub(crate) use vecs::HORIZON_DAYS;
+pub use horizon::{HorizonId, Horizons};
 pub use vecs::{
-    AgeRangeVecs, AggregateVecs, HorizonVecs, Horizons, SpendingExposureSeries, Split, Vecs,
+    AgeRangeVecs, AggregateSources, AggregateVecs, HorizonVecs, Mobility, MobilityId,
+    SpendingExposureSeries, Vecs,
 };
 
-pub(crate) const HORIZON_COUNT: usize = 7;
+pub(crate) const HORIZON_COUNT: usize = HorizonId::ALL.len();
 pub(crate) const HOURS_PER_DAY: f64 = 24.0;
 pub(crate) const MINIMUM_DURATION_DAYS: f64 = 1.0 / HOURS_PER_DAY;
 

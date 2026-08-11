@@ -1,7 +1,7 @@
 use std::{
     collections::{BTreeMap, btree_map::Entry},
     fs,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 use brk_error::{Error, Result};
@@ -9,232 +9,9 @@ use brk_types::{Cents, CentsCompact, CentsSats, CentsSquaredSats, Height, Sats, 
 use rustc_hash::FxHashMap;
 use vecdb::{Bytes, unlikely};
 
-use super::{Accumulate, CachedUnrealizedState, UnrealizedState};
-use crate::distribution::state::pending::{
-    PendingCapDelta, PendingCapitalizedCapRawDelta, PendingDelta,
-};
-
-/// Type alias for the price-to-sats map used in cost basis data.
-pub(super) type CostBasisMap = BTreeMap<CentsCompact, Sats>;
-
-const STATE_TO_KEEP: usize = 10;
-
-/// Common interface for cost basis tracking.
-///
-/// Implemented by `CostBasisRaw` (scalars only) and `CostBasisData` (full map + scalars).
-pub trait CostBasisOps: Send + Sync + 'static {
-    fn create(path: &Path, name: &str) -> Self;
-    fn import_at_or_before(&mut self, height: Height) -> Result<Height>;
-    fn cap_raw(&self) -> CentsSats;
-    fn capitalized_cap_raw(&self) -> CentsSquaredSats;
-    fn increment(
-        &mut self,
-        price: Cents,
-        sats: Sats,
-        price_sats: CentsSats,
-        capitalized_cap: CentsSquaredSats,
-    );
-    fn decrement(
-        &mut self,
-        price: Cents,
-        sats: Sats,
-        price_sats: CentsSats,
-        capitalized_cap: CentsSquaredSats,
-    );
-    fn apply_pending(&mut self);
-    fn init(&mut self);
-    fn clean(&mut self) -> Result<()>;
-    fn write(&mut self, height: Height, cleanup: bool) -> Result<()>;
-}
-
-// ─── CostBasisRaw ───────────────────────────────────────────────────────────
-
-#[derive(Clone, Default, Debug)]
-struct RawState {
-    cap_raw: CentsSats,
-}
-
-impl RawState {
-    fn serialize(&self) -> Vec<u8> {
-        self.cap_raw.to_bytes().to_vec()
-    }
-
-    fn deserialize(data: &[u8]) -> Result<Self> {
-        Ok(Self {
-            cap_raw: CentsSats::from_bytes(&data[0..16])?,
-        })
-    }
-}
-
-/// Lightweight cost basis tracking: only cap_raw scalar.
-/// No BTreeMap, no unrealized computation, no pending map.
-/// Used by cohorts that only need realized cap on restart (amount_range, address).
-#[derive(Clone, Debug)]
-pub struct CostBasisRaw {
-    pathbuf: PathBuf,
-    state: Option<RawState>,
-    pending_cap: PendingCapDelta,
-}
-
-impl CostBasisRaw {
-    #[inline]
-    pub(crate) fn increment_cap(&mut self, value: CentsSats) {
-        self.pending_cap.inc += value;
-    }
-
-    #[inline]
-    pub(crate) fn decrement_cap(&mut self, value: CentsSats) {
-        self.pending_cap.dec += value;
-    }
-
-    pub(super) fn path_state(&self, height: Height) -> PathBuf {
-        self.pathbuf.join(height.to_string())
-    }
-
-    pub(super) fn read_dir(
-        &self,
-        keep_only_before: Option<Height>,
-    ) -> Result<BTreeMap<Height, PathBuf>> {
-        if !self.pathbuf.exists() {
-            return Ok(BTreeMap::new());
-        }
-        Ok(fs::read_dir(&self.pathbuf)?
-            .filter_map(|entry| {
-                let path = entry.ok()?.path();
-                let name = path.file_name()?.to_str()?;
-                if let Ok(h) = name.parse::<u32>().map(Height::from) {
-                    if keep_only_before.is_none_or(|height| h < height) {
-                        Some((h, path))
-                    } else {
-                        let _ = fs::remove_file(path);
-                        None
-                    }
-                } else {
-                    None
-                }
-            })
-            .collect())
-    }
-
-    fn apply_pending_cap(&mut self) {
-        if self.pending_cap.is_zero() {
-            return;
-        }
-        let state = self.state.as_mut().unwrap();
-
-        state.cap_raw += self.pending_cap.inc;
-        if unlikely(state.cap_raw.inner() < self.pending_cap.dec.inner()) {
-            panic!(
-                "CostBasis cap_raw underflow!\n\
-                Path: {:?}\n\
-                Current cap_raw (after increments): {}\n\
-                Trying to decrement by: {}",
-                self.pathbuf, state.cap_raw, self.pending_cap.dec
-            );
-        }
-        state.cap_raw -= self.pending_cap.dec;
-
-        self.pending_cap = PendingCapDelta::default();
-    }
-
-    fn write_and_cleanup(&mut self, height: Height, cleanup: bool) -> Result<()> {
-        if cleanup {
-            let files = self.read_dir(Some(height))?;
-            for (_, path) in files
-                .iter()
-                .take(files.len().saturating_sub(STATE_TO_KEEP - 1))
-            {
-                fs::remove_file(path)?;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl CostBasisOps for CostBasisRaw {
-    fn create(path: &Path, name: &str) -> Self {
-        Self {
-            pathbuf: path.join(name).join("cost_basis"),
-            state: None,
-            pending_cap: PendingCapDelta::default(),
-        }
-    }
-
-    fn import_at_or_before(&mut self, height: Height) -> Result<Height> {
-        let files = self.read_dir(None)?;
-        let (&height, path) = files.range(..=height).next_back().ok_or(Error::NotFound(
-            "No cost basis state found at or before height".into(),
-        ))?;
-        let data = fs::read(path)?;
-        // Handle both formats: full (map + raw at end) and raw-only (16 bytes).
-        self.state = Some(if data.len() == 16 {
-            RawState::deserialize(&data)?
-        } else {
-            let (_, rest) = UrpdRaw::deserialize_with_rest(&data)?;
-            RawState::deserialize(rest)?
-        });
-        self.pending_cap = PendingCapDelta::default();
-        Ok(height)
-    }
-
-    fn cap_raw(&self) -> CentsSats {
-        debug_assert!(self.pending_cap.is_zero());
-        self.state.as_ref().unwrap().cap_raw
-    }
-
-    fn capitalized_cap_raw(&self) -> CentsSquaredSats {
-        CentsSquaredSats::ZERO
-    }
-
-    #[inline]
-    fn increment(
-        &mut self,
-        _price: Cents,
-        _sats: Sats,
-        price_sats: CentsSats,
-        _capitalized_cap: CentsSquaredSats,
-    ) {
-        self.increment_cap(price_sats);
-    }
-
-    #[inline]
-    fn decrement(
-        &mut self,
-        _price: Cents,
-        _sats: Sats,
-        price_sats: CentsSats,
-        _capitalized_cap: CentsSquaredSats,
-    ) {
-        self.decrement_cap(price_sats);
-    }
-
-    fn apply_pending(&mut self) {
-        self.apply_pending_cap();
-    }
-
-    fn init(&mut self) {
-        self.state.replace(RawState::default());
-        self.pending_cap = PendingCapDelta::default();
-    }
-
-    fn clean(&mut self) -> Result<()> {
-        let _ = fs::remove_dir_all(&self.pathbuf);
-        fs::create_dir_all(&self.pathbuf)?;
-        Ok(())
-    }
-
-    fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
-        self.apply_pending_cap();
-        self.write_and_cleanup(height, cleanup)?;
-        fs::write(
-            self.path_state(height),
-            self.state.as_ref().unwrap().serialize(),
-        )?;
-        Ok(())
-    }
-}
-
-// ─── CostBasisData ──────────────────────────────────────────────────────────
+use super::unrealized::CachedUnrealizedState;
+use super::{Accumulate, CostBasisOps, CostBasisRaw, UnrealizedState};
+use crate::distribution::state::pending::{PendingCapitalizedCapRawDelta, PendingDelta};
 
 /// Full cost basis tracking: BTreeMap distribution + raw scalars.
 /// Composes `CostBasisRaw` for scalar tracking, adds map, pending, and cache.
@@ -254,8 +31,8 @@ pub struct CostBasisData<S: Accumulate> {
 }
 
 impl<S: Accumulate> CostBasisData<S> {
-    pub(crate) fn map(&self) -> &CostBasisMap {
-        debug_assert!(self.pending.is_empty() && self.raw.pending_cap.is_zero());
+    pub(crate) fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
+        debug_assert!(self.pending.is_empty() && self.raw.has_no_pending_cap());
         &self.map.as_ref().unwrap().map
     }
 
@@ -300,7 +77,7 @@ impl<S: Accumulate> CostBasisData<S> {
                             Price: {}\n\
                             Current + increments: {}\n\
                             Trying to decrement by: {}",
-                            self.raw.pathbuf,
+                            self.raw.path(),
                             cents.to_dollars(),
                             e.get(),
                             dec
@@ -319,7 +96,7 @@ impl<S: Accumulate> CostBasisData<S> {
                             Price: {}\n\
                             Increment: {}\n\
                             Trying to decrement by: {}",
-                            self.raw.pathbuf,
+                            self.raw.path(),
                             cents.to_dollars(),
                             inc,
                             dec
@@ -360,14 +137,13 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
             rest.len()
         );
         self.map = Some(base);
-        self.raw.state = Some(RawState::deserialize(rest)?);
+        self.raw.import_state(rest)?;
         self.capitalized_cap_raw = if S::TRACK_CAPITAL {
             CentsSquaredSats::from_bytes(&rest[16..32])?
         } else {
             CentsSquaredSats::ZERO
         };
         self.pending.clear();
-        self.raw.pending_cap = PendingCapDelta::default();
         self.pending_capitalized_cap = PendingCapitalizedCapRawDelta::default();
         self.cache = None;
         Ok(height)
@@ -428,7 +204,7 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
                 Path: {:?}\n\
                 Current (after increments): {:?}\n\
                 Trying to decrement by: {:?}",
-                self.raw.pathbuf,
+                self.raw.path(),
                 self.capitalized_cap_raw,
                 self.pending_capitalized_cap.dec
             );
@@ -456,9 +232,8 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
         self.apply_pending();
         self.raw.write_and_cleanup(height, cleanup)?;
 
-        let raw_state = self.raw.state.as_ref().unwrap();
         let mut buffer = self.map.as_ref().unwrap().serialize()?;
-        buffer.extend(raw_state.cap_raw.to_bytes());
+        buffer.extend(self.raw.serialized_state());
         if S::TRACK_CAPITAL {
             buffer.extend(self.capitalized_cap_raw.to_bytes());
         }
@@ -472,6 +247,7 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
 mod tests {
     use std::{
         fs,
+        path::PathBuf,
         sync::atomic::{AtomicU64, Ordering},
     };
 

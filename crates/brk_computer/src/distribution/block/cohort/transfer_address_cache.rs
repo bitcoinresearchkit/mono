@@ -1,5 +1,5 @@
 use brk_cohort::ByAddrType;
-use brk_types::{Sats, TypeIndex};
+use brk_types::{OutputType, Sats, TypeIndex};
 use rustc_hash::FxHashSet;
 
 use crate::distribution::addr::AddrTypeToVec;
@@ -24,7 +24,7 @@ impl TransferAddressCache {
 
     pub(super) fn sets_for(
         &mut self,
-        output_type: brk_types::OutputType,
+        output_type: OutputType,
     ) -> (Option<&FxHashSet<TypeIndex>>, &mut FxHashSet<TypeIndex>) {
         (
             self.received.get(output_type),

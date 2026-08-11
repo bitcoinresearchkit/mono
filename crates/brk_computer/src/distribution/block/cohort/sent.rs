@@ -4,8 +4,8 @@ use brk_types::{Cents, Sats, TypeIndex};
 use vecdb::VecIndex;
 
 use crate::distribution::{
+    AddrStates,
     addr::{AddrMetricsState, AddrSendPreState, HeightToAddrTypeToVec},
-    cohorts::AddrCohorts,
 };
 
 use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
@@ -13,7 +13,7 @@ use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCac
 /// Process sent UTXOs for address cohort membership and empty-address transitions.
 pub(crate) fn process_sent(
     sent_data: HeightToAddrTypeToVec<(TypeIndex, Sats)>,
-    cohorts: &mut AddrCohorts,
+    cohorts: &mut AddrStates,
     lookup: &mut AddrLookup<'_>,
     current_price: Cents,
     state: &mut AddrMetricsState,
@@ -36,12 +36,7 @@ pub(crate) fn process_sent(
                 let will_be_empty = addr_data.has_1_utxos();
 
                 let prev_bucket = AmountBucket::from(prev_balance);
-                let cohort_state = cohorts
-                    .amount_range
-                    .get_mut_by_bucket(prev_bucket)
-                    .state
-                    .as_mut()
-                    .unwrap();
+                let cohort_state = cohorts.amount_range.get_mut_by_bucket(prev_bucket);
 
                 // Mutates addr_data.spent_txo_count (+= 1). on_send_applied reads the post-spend view.
                 cohort_state.send(addr_data, value, current_price, prev_price)?;
@@ -65,9 +60,6 @@ pub(crate) fn process_sent(
                     cohorts
                         .amount_range
                         .get_mut_by_bucket(new_bucket)
-                        .state
-                        .as_mut()
-                        .unwrap()
                         .add(addr_data);
                 }
             }

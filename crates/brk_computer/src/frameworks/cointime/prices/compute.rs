@@ -20,8 +20,7 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let all_metrics = &distribution.utxo_cohorts.all.metrics;
-        let realized_price = &all_metrics.realized.price.cents.height;
+        let realized_price = &distribution.cohorts.realized.price.cohorts.all.cents.height;
 
         self.vaulted.cents.height.compute_transform2(
             starting_lengths.height,

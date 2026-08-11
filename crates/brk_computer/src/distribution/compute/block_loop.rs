@@ -1,4 +1,4 @@
-use brk_cohort::{ByAddrType, EntryPrice};
+use brk_cohort::{ByAddrType, EntryPrice, Filter, Term};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{
@@ -10,7 +10,7 @@ use vecdb::{AnyVec, Exit, ReadableVec, VecIndex, unlikely};
 
 use crate::{
     distribution::{
-        addr::AddrMetricsState,
+        addr::{AddrMetricsState, FundedAddrCountsVecs},
         block::{
             AddrCache, TransferAddressCache, process_inputs, process_outputs, process_received,
             process_sent,
@@ -24,18 +24,21 @@ use crate::{
 use super::{
     super::{
         RangeMap,
-        cohorts::{AddrCohorts, DynCohortVecs, UTXOCohorts},
+        metrics::CohortMetrics,
+        state::{AddrStates, UTXOStates},
         vecs::Vecs,
     },
-    BIP30_DUPLICATE_HEIGHT_1, BIP30_DUPLICATE_HEIGHT_2, BIP30_ORIGINAL_HEIGHT_1,
+    AddrReaders, BIP30_DUPLICATE_HEIGHT_1, BIP30_DUPLICATE_HEIGHT_2, BIP30_ORIGINAL_HEIGHT_1,
     BIP30_ORIGINAL_HEIGHT_2, ComputeContext, FLUSH_INTERVAL, IndexToTxIndexBuf, PriceRangeMax,
-    TxInReaders, TxOutReaders, VecsReaders,
+    TxInReaders, TxOutReaders,
 };
 
 /// Process all blocks from starting_height to last_height.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn process_blocks(
     vecs: &mut Vecs,
+    utxo_states: &mut UTXOStates,
+    addr_states: &mut AddrStates,
     indexer: &Indexer,
     indexes: &indexes::Vecs,
     inputs: &inputs::Vecs,
@@ -101,9 +104,9 @@ pub(crate) fn process_blocks(
         })
         .collect();
 
-    debug!("creating VecsReaders");
-    let mut vr = VecsReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
-    debug!("VecsReaders created");
+    debug!("creating AddrReaders");
+    let mut vr = AddrReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
+    debug!("AddrReaders created");
 
     // Extend tx_index_to_height RangeMap with new entries (incremental, O(new_blocks))
     let target_len = indexer.vecs().transactions.first_tx_index.len();
@@ -201,15 +204,14 @@ pub(crate) fn process_blocks(
     debug!("AddrCache created, entering main loop");
 
     // Initialize Fenwick tree from imported BTreeMap state (one-time)
-    vecs.utxo_cohorts.init_fenwick_if_needed();
+    utxo_states.init_fenwick_if_needed(&Filter::Term(Term::Sth));
 
     // Pre-truncate all stored vecs to starting_height (one-time).
     // This eliminates per-push truncation checks inside the block loop.
     {
         let start = starting_height.to_usize();
-        vecs.utxo_cohorts
+        vecs.cohorts
             .par_iter_vecs_mut()
-            .chain(vecs.addr_cohorts.par_iter_vecs_mut())
             .chain(vecs.addrs.par_iter_height_mut())
             .chain(rayon::iter::once(vecs.coinblocks_destroyed.stored_mut()))
             .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
@@ -263,10 +265,7 @@ pub(crate) fn process_blocks(
 
         // Keep tick-tock concurrent with the block reads and address processing.
         let (matured, (outputs_result, inputs_result)) = rayon::join(
-            || {
-                vecs.utxo_cohorts
-                    .tick_tock_next_block(chain_state, timestamp)
-            },
+            || utxo_states.tick_tock_next_block(chain_state, timestamp),
             || {
                 // Collect both sides concurrently, then load their shared addresses once.
                 let (
@@ -389,7 +388,7 @@ pub(crate) fn process_blocks(
         }
 
         // Record maturation (sats crossing age boundaries)
-        vecs.utxo_cohorts.push_maturation(&matured);
+        vecs.cohorts.supply.push_maturation(&matured, block_price);
 
         transfer_addresses.prepare(&outputs_result.received_data);
 
@@ -397,11 +396,9 @@ pub(crate) fn process_blocks(
         let (_, addr_result) = rayon::join(
             || {
                 // UTXO cohorts receive/send
-                vecs.utxo_cohorts
-                    .receive(transacted, height, timestamp, block_price, entry);
+                utxo_states.receive(transacted, height, timestamp, block_price, entry);
                 if let Some(min_h) =
-                    vecs.utxo_cohorts
-                        .send(height_to_sent, chain_state, ctx.price_range_max)
+                    utxo_states.send(height_to_sent, chain_state, ctx.price_range_max)
                 {
                     min_supply_modified =
                         Some(min_supply_modified.map_or(min_h, |cur| cur.min(min_h)));
@@ -412,7 +409,7 @@ pub(crate) fn process_blocks(
 
                 process_received(
                     outputs_result.received_data,
-                    &mut vecs.addr_cohorts,
+                    addr_states,
                     &mut lookup,
                     block_price,
                     &mut state,
@@ -420,7 +417,7 @@ pub(crate) fn process_blocks(
 
                 process_sent(
                     inputs_result.sent_data,
-                    &mut vecs.addr_cohorts,
+                    addr_states,
                     &mut lookup,
                     block_price,
                     &mut state,
@@ -432,7 +429,7 @@ pub(crate) fn process_blocks(
         addr_result?;
 
         // Update Fenwick tree from pending deltas (must happen before push_cohort_states drains pending)
-        vecs.utxo_cohorts.update_fenwick_from_pending();
+        utxo_states.update_fenwick_from_pending();
 
         let active_addr_count = state.activity.active();
         vecs.addrs.push_height(&state, active_addr_count);
@@ -441,14 +438,20 @@ pub(crate) fn process_blocks(
         let date_opt = is_last_of_day.then(|| Date::from(timestamp));
 
         entry_anchor = push_cohort_states(
-            &mut vecs.utxo_cohorts,
-            &mut vecs.addr_cohorts,
+            &mut vecs.cohorts,
+            &mut vecs.addrs.funded,
+            utxo_states,
+            addr_states,
             height,
             block_price,
         );
 
-        vecs.utxo_cohorts
-            .push_aggregate_percentiles(block_price, date_opt, &vecs.states_path)?;
+        vecs.cohorts.push_aggregate_percentiles(
+            utxo_states,
+            block_price,
+            date_opt,
+            &vecs.states_path,
+        )?;
 
         // Periodic checkpoint flush
         if height != last_height
@@ -471,12 +474,20 @@ pub(crate) fn process_blocks(
             let _lock = exit.lock();
 
             // Write to disk (pure I/O) - no changes saved for periodic flushes
-            write(vecs, height, chain_state, min_supply_modified, false)?;
+            write(
+                vecs,
+                utxo_states,
+                addr_states,
+                height,
+                chain_state,
+                min_supply_modified,
+                false,
+            )?;
             min_supply_modified = None;
             vecs.flush()?;
 
             // Recreate readers
-            vr = VecsReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
+            vr = AddrReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
         }
     }
 
@@ -496,44 +507,43 @@ pub(crate) fn process_blocks(
     )?;
 
     // Write to disk (pure I/O) - save changes for rollback
-    write(vecs, last_height, chain_state, min_supply_modified, true)?;
+    write(
+        vecs,
+        utxo_states,
+        addr_states,
+        last_height,
+        chain_state,
+        min_supply_modified,
+        true,
+    )?;
 
     Ok(())
 }
 
 /// Push cohort states to height-indexed vectors, then reset per-block values.
 fn push_cohort_states(
-    utxo_cohorts: &mut UTXOCohorts,
-    addr_cohorts: &mut AddrCohorts,
+    cohorts: &mut CohortMetrics,
+    funded_addr_counts: &mut FundedAddrCountsVecs,
+    utxo_states: &mut UTXOStates,
+    addr_states: &mut AddrStates,
     height: Height,
     height_price: Cents,
 ) -> Cents {
-    // Phase 1: push + unrealized (no reset yet, states still needed for aggregation)
-    rayon::join(
-        || {
-            utxo_cohorts.par_iter_separate_mut().for_each(|v| {
-                v.push_state(height);
-                v.push_unrealized_state(height_price);
-            })
-        },
-        || {
-            addr_cohorts.par_iter_separate_mut().for_each(|v| {
-                v.push_state(height);
-                v.push_unrealized_state(height_price);
-            })
-        },
-    );
+    // Phase 1: finish state updates before metric-first sources read them.
+    utxo_states.apply_pending();
+    addr_states.push(cohorts, funded_addr_counts, height, height_price);
 
-    // Phase 2: aggregate age_range states → push to overlapping cohorts
-    let all_capitalized_price = utxo_cohorts.push_overlapping(height_price);
+    // Phase 2: push the typed supply matrices, then aggregate age-range states.
+    let unrealized_states = cohorts.push_supply_and_unrealized(utxo_states, height_price);
+    cohorts.push_outputs(utxo_states);
+    cohorts.push_activity(utxo_states, height_price);
+    cohorts.push_realized(utxo_states);
+    let all_capitalized_price =
+        cohorts.push_overlapping(utxo_states, height_price, &unrealized_states);
 
     // Phase 3: reset per-block values
-    utxo_cohorts
-        .iter_separate_mut()
-        .for_each(|v| v.reset_single_iteration_values());
-    addr_cohorts
-        .iter_separate_mut()
-        .for_each(|v| v.reset_single_iteration_values());
+    utxo_states.reset_block();
+    addr_states.reset_block();
 
     all_capitalized_price
 }

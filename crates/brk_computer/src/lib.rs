@@ -10,6 +10,8 @@ use brk_types::{Height, Version};
 use tracing::info;
 use vecdb::{AnyExportableVec, Exit, Ro, Rw, StorageMode};
 
+use distribution::UTXOStates;
+
 mod blocks;
 mod constants;
 mod distribution;
@@ -407,7 +409,7 @@ impl Computer {
 
         self.investing.invalidate_cache();
 
-        thread::scope(|scope| -> Result<()> {
+        let utxo_states = thread::scope(|scope| -> Result<UTXOStates> {
             let pools = scope.spawn(|| {
                 timed("Computed pools", || {
                     self.pools
@@ -415,7 +417,7 @@ impl Computer {
                 })
             });
 
-            timed("Computed distribution", || {
+            let utxo_states = timed("Computed distribution", || {
                 self.distribution.compute(
                     indexer,
                     &self.indexes,
@@ -428,7 +430,7 @@ impl Computer {
             })?;
 
             pools.join().unwrap()?;
-            Ok(())
+            Ok(utxo_states)
         })?;
 
         // Indicators doesn't depend on supply or either framework — run it in
@@ -469,6 +471,7 @@ impl Computer {
                     &self.indexes,
                     &self.price,
                     &self.distribution,
+                    &utxo_states,
                     &self.frameworks,
                     &self.market.moving_average,
                     exit,

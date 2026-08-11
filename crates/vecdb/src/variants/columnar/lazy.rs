@@ -66,7 +66,7 @@ where
     T: VecValue,
 {
     fn version(&self) -> Version {
-        self.base_version + self.source.version()
+        self.base_version.combine(self.source.version())
     }
 
     fn name(&self) -> &str {

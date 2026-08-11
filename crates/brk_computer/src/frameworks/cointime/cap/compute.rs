@@ -17,9 +17,8 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let all_metrics = &distribution.utxo_cohorts.all.metrics;
-        let realized_cap_cents = &all_metrics.realized.cap.cents.height;
-        let circulating_supply = &all_metrics.supply.total.btc.height;
+        let realized_cap_cents = &distribution.cohorts.realized.cap.cohorts.all.cents.height;
+        let circulating_supply = &distribution.cohorts.supply.total.cohorts.all.btc.height;
 
         self.investor.cents.height.compute_subtract(
             starting_lengths.height,

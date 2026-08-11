@@ -3,8 +3,8 @@ use brk_types::{Cents, Sats, TypeIndex};
 use rustc_hash::FxHashMap;
 
 use crate::distribution::{
+    AddrStates,
     addr::{AddrMetricsState, AddrReceivePreState, AddrTypeToVec},
-    cohorts::AddrCohorts,
 };
 
 use super::super::cache::{AddrLookup, TrackingStatus};
@@ -18,7 +18,7 @@ struct AggregatedReceive {
 
 pub(crate) fn process_received(
     received_data: AddrTypeToVec<(TypeIndex, Sats)>,
-    cohorts: &mut AddrCohorts,
+    cohorts: &mut AddrStates,
     lookup: &mut AddrLookup<'_>,
     price: Cents,
     state: &mut AddrMetricsState,
@@ -52,9 +52,6 @@ pub(crate) fn process_received(
                 cohorts
                     .amount_range
                     .get_mut_by_bucket(AmountBucket::from(recv.total_value))
-                    .state
-                    .as_mut()
-                    .unwrap()
                     .add(addr_data);
             } else {
                 let prev_balance = addr_data.balance();
@@ -63,12 +60,7 @@ pub(crate) fn process_received(
                 let new_bucket = AmountBucket::from(new_balance);
 
                 if let Some((old_bucket, new_bucket)) = prev_bucket.transition_to(new_bucket) {
-                    let cohort_state = cohorts
-                        .amount_range
-                        .get_mut_by_bucket(old_bucket)
-                        .state
-                        .as_mut()
-                        .unwrap();
+                    let cohort_state = cohorts.amount_range.get_mut_by_bucket(old_bucket);
 
                     if cohort_state.inner.supply.utxo_count < addr_data.utxo_count() as u64 {
                         panic!(
@@ -90,17 +82,11 @@ pub(crate) fn process_received(
                     cohorts
                         .amount_range
                         .get_mut_by_bucket(new_bucket)
-                        .state
-                        .as_mut()
-                        .unwrap()
                         .add(addr_data);
                 } else {
                     cohorts
                         .amount_range
                         .get_mut_by_bucket(new_bucket)
-                        .state
-                        .as_mut()
-                        .unwrap()
                         .receive_outputs(addr_data, recv.total_value, price, recv.output_count);
                 }
             }

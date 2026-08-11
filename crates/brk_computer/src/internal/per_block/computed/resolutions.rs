@@ -153,6 +153,15 @@ where
         )
     }
 
+    pub(crate) fn forced_import_uncached_boxed(
+        name: &str,
+        height_source: ReadableBoxedVec<Height, T>,
+        version: Version,
+        indexes: &indexes::Vecs,
+    ) -> Self {
+        Self::from_boxed_height_source(name, height_source, version, indexes)
+    }
+
     fn from_boxed_height_source(
         name: &str,
         height_source: ReadableBoxedVec<Height, T>,

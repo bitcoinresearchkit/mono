@@ -20,27 +20,34 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .total
+            &id.select(&distribution.cohorts.supply.total.cohorts.age.range)
                 .sats
                 .height
         });
         let transfer_volumes = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .activity
-                .transfer_volume
-                .block
-                .sats
+            &id.select(
+                &distribution
+                    .cohorts
+                    .activity
+                    .transfer_volume
+                    .cohorts
+                    .age
+                    .range,
+            )
+            .block
+            .sats
         });
         let coindays_destroyed = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .activity
-                .coindays_destroyed
-                .block
+            &id.select(
+                &distribution
+                    .cohorts
+                    .activity
+                    .coindays_destroyed
+                    .cohorts
+                    .age
+                    .range,
+            )
+            .block
         });
 
         self.compute_created(
@@ -69,9 +76,9 @@ impl Vecs {
         T: ReadableVec<Height, Timestamp>,
         S: ReadableVec<Height, Sats>,
     {
-        let version: Version = std::iter::once(timestamps.version())
-            .chain(supplies.iter().map(|vec| vec.version()))
-            .sum();
+        let version = Version::combine_all(
+            std::iter::once(timestamps.version()).chain(supplies.iter().map(|vec| vec.version())),
+        );
         let source_end = supplies
             .iter()
             .map(|vec| vec.len())
@@ -124,11 +131,12 @@ impl Vecs {
         V: ReadableVec<Height, Sats>,
         D: ReadableVec<Height, StoredF64>,
     {
-        let version: Version = transfer_volumes
-            .iter()
-            .map(|vec| vec.version())
-            .chain(source_coindays_destroyed.iter().map(|vec| vec.version()))
-            .sum();
+        let version = Version::combine_all(
+            transfer_volumes
+                .iter()
+                .map(|vec| vec.version())
+                .chain(source_coindays_destroyed.iter().map(|vec| vec.version())),
+        );
         let source_end = transfer_volumes
             .iter()
             .map(|vec| vec.len())
@@ -231,9 +239,9 @@ impl Vecs {
         S: ReadableVec<Height, Sats>,
     {
         let wakefulness = self.activity.height.read_only_clone();
-        let source_version: Version = std::iter::once(wakefulness.version())
-            .chain(supplies.iter().map(|vec| vec.version()))
-            .sum();
+        let source_version = Version::combine_all(
+            std::iter::once(wakefulness.version()).chain(supplies.iter().map(|vec| vec.version())),
+        );
         let supply = &mut self.supply;
         supply
             .awake

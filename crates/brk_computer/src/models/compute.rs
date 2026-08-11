@@ -3,7 +3,10 @@ use brk_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
-use crate::{distribution, frameworks, indexes, market, price};
+use crate::{
+    distribution::{self, UTXOStates},
+    frameworks, indexes, market, price,
+};
 
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
@@ -13,6 +16,7 @@ impl Vecs {
         indexes: &indexes::Vecs,
         prices: &price::Vecs,
         distribution: &distribution::Vecs,
+        utxo_states: &UTXOStates,
         frameworks: &frameworks::Vecs,
         moving_average: &market::MovingAverageVecs,
         exit: &Exit,
@@ -23,8 +27,8 @@ impl Vecs {
             indexer,
             indexes,
             distribution,
-            &frameworks.cointime,
-            &frameworks.coinflow,
+            utxo_states,
+            frameworks,
             exit,
         )?;
         self.capital_sentiment.compute(

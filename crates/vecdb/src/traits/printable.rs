@@ -64,19 +64,6 @@ fn shorten_type_name(full: &str) -> String {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::shorten_type_name;
-
-    #[test]
-    fn shortens_array_element_paths_without_dropping_brackets() {
-        assert_eq!(
-            shorten_type_name("[some::module::Value; 23]"),
-            "[Value; 23]"
-        );
-    }
-}
-
 /// Split generic parameters respecting nested angle brackets.
 /// `A, B<C, D>, E` -> ["A", "B<C, D>", "E"]
 fn split_generic_params(params: &str) -> Vec<&str> {
@@ -116,5 +103,18 @@ impl PrintableIndex for usize {
 
     fn to_possible_strings() -> &'static [&'static str] {
         &["usize"]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::shorten_type_name;
+
+    #[test]
+    fn shortens_array_element_paths_without_dropping_brackets() {
+        assert_eq!(
+            shorten_type_name("[some::module::Value; 23]"),
+            "[Value; 23]"
+        );
     }
 }

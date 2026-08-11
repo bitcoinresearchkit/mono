@@ -1,5 +1,6 @@
 use brk_traversable::Traversable;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{CohortName, Filter, Term};
@@ -22,11 +23,18 @@ pub const TERM_NAMES: ByTerm<CohortName> = ByTerm {
     long: CohortName::new("lth", "LTH", "Long Term Holders"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Copy, Traversable, Serialize, JsonSchema)]
 pub struct ByTerm<T> {
     pub short: T,
     pub long: T,
 }
+
+define_column_id!(
+    TermId for ByTerm, version = 1 {
+        Short => short,
+        Long => long,
+    }
+);
 
 impl ByTerm<CohortName> {
     pub const fn names() -> &'static Self {

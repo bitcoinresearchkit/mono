@@ -24,30 +24,27 @@ impl Vecs {
         let spot = &prices.spot.cents.height;
         let sma = &moving_average.sma._1y.cents.height;
         let all = &distribution
-            .utxo_cohorts
-            .all
-            .metrics
+            .cohorts
             .realized
-            .capitalized
-            .price
+            .capitalized_price
+            .series
+            .all
             .cents
             .height;
         let sth = &distribution
-            .utxo_cohorts
-            .sth
-            .metrics
+            .cohorts
             .realized
-            .capitalized
-            .price
+            .capitalized_price
+            .series
+            .sth
             .cents
             .height;
         let lth = &distribution
-            .utxo_cohorts
-            .lth
-            .metrics
+            .cohorts
             .realized
-            .capitalized
-            .price
+            .capitalized_price
+            .series
+            .lth
             .cents
             .height;
         let first_height = &indexes.day1.first_height;

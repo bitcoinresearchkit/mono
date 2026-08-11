@@ -5,8 +5,8 @@ use brk_cohort::{ByAddrType, Filter, SpendableType, SpendableTypeId};
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, StoredU16, StoredU64, Version};
 use vecdb::{
-    CachedBoxedVec, CachedReadableVec, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec,
-    ReadableVec, TypedVec,
+    CachedBoxedVec, CachedReadableVec, CachedVec, PcoVec, ReadOnlyColumnarVec,
+    ReadableCloneableVec, ReadableVec, TypedVec,
 };
 
 use crate::{
@@ -25,8 +25,6 @@ pub struct WithInputTypes<V> {
     pub all: LazyPerBlockCumulativeRolling<StoredU64>,
     #[traversable(skip)]
     cached_all: CachedBoxedVec<Height, StoredU64>,
-    #[traversable(skip)]
-    all_transform: fn(Height, StoredU64) -> StoredU64,
     #[traversable(flatten)]
     pub by_type: SpendableType<V>,
 }
@@ -47,18 +45,18 @@ impl<V> WithInputTypes<V> {
             + Clone
             + 'static,
     {
-        let cached_all = all_source.cached_boxed_clone();
-        Self {
-            all: LazyPerBlockCumulativeRolling::from_uncached_indexed_source(
-                all_name,
-                version,
-                &all_source,
-                all_transform,
-                cached_starts,
-                indexes,
-            ),
-            cached_all,
+        let all = LazyPerBlockCumulativeRolling::from_uncached_indexed_source(
+            all_name,
+            version,
+            &all_source,
             all_transform,
+            cached_starts,
+            indexes,
+        );
+        let cached_all = CachedVec::wrap(all.cumulative.height.clone()).cached_boxed_clone();
+        Self {
+            all,
+            cached_all,
             by_type,
         }
     }
@@ -71,7 +69,7 @@ impl<V> WithInputTypes<V> {
         cached_starts: &Windows<&CachedWindowStartVec>,
         indexes: &indexes::Vecs,
     ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
-        LazyPercentCumulativeRolling::from_cumulative_ratio_with_denominator_transform::<
+        LazyPercentCumulativeRolling::from_cumulative_ratio::<
             StoredU64,
             StoredU64,
             RatioU64<PartsPerMillion32>,
@@ -80,7 +78,6 @@ impl<V> WithInputTypes<V> {
             version,
             numerator,
             self.cached_all.clone(),
-            self.all_transform,
             cached_starts,
             indexes,
         )

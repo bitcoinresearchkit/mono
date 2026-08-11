@@ -1,5 +1,6 @@
 use brk_traversable::Traversable;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{CohortName, Filter};
@@ -36,11 +37,18 @@ pub const ENTRY_NAMES: ByEntry<CohortName> = ByEntry {
     premium: CohortName::new("rookie", "Rookie", "Rookie Coins"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ByEntry<T> {
     pub discount: T,
     pub premium: T,
 }
+
+define_column_id!(
+    EntryId for ByEntry, version = 1 {
+        Discount => discount,
+        Premium => premium,
+    }
+);
 
 impl ByEntry<CohortName> {
     pub const fn names() -> &'static Self {

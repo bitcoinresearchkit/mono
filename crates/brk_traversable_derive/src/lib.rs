@@ -131,6 +131,15 @@ fn is_box_type(ty: &Type) -> bool {
     )
 }
 
+fn is_phantom_data_type(ty: &Type) -> bool {
+    matches!(
+        ty,
+        Type::Path(type_path)
+        if type_path.path.segments.last()
+            .is_some_and(|segment| segment.ident == "PhantomData")
+    )
+}
+
 /// Extract the inner type from `Option<T>`, returning `Some(&T)`.
 fn extract_option_inner(ty: &Type) -> Option<&Type> {
     if let Type::Path(type_path) = ty
@@ -740,6 +749,9 @@ fn gen_roc_field_value(
     if is_field_skipped(field) {
         if is_option_type(&field.ty) {
             return quote! { None };
+        }
+        if is_phantom_data_type(&field.ty) {
+            return quote! { std::marker::PhantomData };
         }
         return quote! { #self_access.clone() };
     }

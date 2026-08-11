@@ -1,0 +1,74 @@
+use brk_cohort::{Amount, AmountRange, AmountRangeId, CohortContext, Filter};
+use brk_error::Result;
+use brk_traversable::Traversable;
+use brk_types::{Cents, Height, Sats, Version};
+use derive_more::{Deref, DerefMut};
+use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+
+use crate::internal::ColumnarValuePerBlockCumulativeRolling;
+
+#[derive(Deref, DerefMut, Traversable)]
+pub struct ColumnarAmountValue<S: Clone, M: StorageMode = Rw> {
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    pub series: Amount<S>,
+    pub values: ColumnarValuePerBlockCumulativeRolling<AmountRangeId, (), M>,
+}
+
+impl<S: Clone> ColumnarAmountValue<S> {
+    pub(crate) fn forced_import(
+        db: &Database,
+        matrix_name: &str,
+        context: CohortContext,
+        metric: &str,
+        version: Version,
+        mut build: impl FnMut(
+            &str,
+            ReadableBoxedVec<Height, Sats>,
+            ReadableBoxedVec<Height, Cents>,
+        ) -> S,
+    ) -> Result<Self> {
+        let values = ColumnarValuePerBlockCumulativeRolling::forced_import(
+            db,
+            matrix_name,
+            version,
+            |_, _| (),
+        )?;
+
+        let series = Amount::new(|filter, cohort_name| {
+            let amounts: Vec<_> = match AmountRangeId::matching(&filter) {
+                Some(amount) => vec![amount],
+                None => AmountRangeId::included_by(&filter).collect(),
+            };
+            let name = Self::metric_name(context, &filter, cohort_name, metric);
+            let (sats, cents) = values.sources(&format!("{name}_cumulative"), version, amounts);
+            build(&name, sats, cents)
+        });
+
+        Ok(Self { series, values })
+    }
+
+    fn metric_name(
+        context: CohortContext,
+        filter: &Filter,
+        cohort_name: &str,
+        metric: &str,
+    ) -> String {
+        let cohort = context.full_name(filter, cohort_name);
+        format!("{cohort}_{metric}")
+    }
+
+    #[inline(always)]
+    pub(crate) fn push_cumulative(&mut self, sats: &AmountRange<Sats>, cents: &AmountRange<Cents>) {
+        self.values.push_block(sats.clone(), cents.clone());
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.values.len()
+    }
+
+    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+        self.values.collect_vecs_mut()
+    }
+}

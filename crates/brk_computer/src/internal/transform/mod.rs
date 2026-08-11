@@ -12,9 +12,9 @@ pub use arithmetic::{
     WeightToVSize,
 };
 pub use currency::{
-    AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsSubtractToCentsSigned,
-    CentsTimesTenths, CentsUnsignedToDollars, CentsUnsignedToSats, DollarsToSatsFract,
-    NegCentsUnsignedToDollars, SatsSignedToBitcoin, SatsToBitcoin, SatsToCents,
+    AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,
+    CentsUnsignedToSats, DollarsToSatsFract, NegCentsUnsignedToDollars, SatsSignedToBitcoin,
+    SatsToBitcoin, SatsToCents, StoredU64ToCents, StoredU64ToSats,
 };
 pub use derived::{
     Cagr, Days1, Days7, Days30, Days365, DaysToYears, PriceTimesRatio, RatioCents64, TimesSqrt,

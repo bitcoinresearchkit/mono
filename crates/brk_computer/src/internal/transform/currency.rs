@@ -1,4 +1,6 @@
-use brk_types::{Bitcoin, Cents, CentsSigned, Dollars, Sats, SatsFract, SatsSigned, StoredF32};
+use brk_types::{
+    Bitcoin, Cents, CentsSigned, Dollars, Sats, SatsFract, SatsSigned, StoredF32, StoredU64,
+};
 use vecdb::{BinaryTransform, UnaryTransform, unlikely};
 
 pub struct SatsToBitcoin;
@@ -7,6 +9,24 @@ impl UnaryTransform<Sats, Bitcoin> for SatsToBitcoin {
     #[inline(always)]
     fn apply(sats: Sats) -> Bitcoin {
         Bitcoin::from(sats)
+    }
+}
+
+pub struct StoredU64ToSats;
+
+impl UnaryTransform<StoredU64, Sats> for StoredU64ToSats {
+    #[inline(always)]
+    fn apply(value: StoredU64) -> Sats {
+        Sats::new(value.into())
+    }
+}
+
+pub struct StoredU64ToCents;
+
+impl UnaryTransform<StoredU64, Cents> for StoredU64ToCents {
+    #[inline(always)]
+    fn apply(value: StoredU64) -> Cents {
+        Cents::new(value.into())
     }
 }
 
@@ -94,21 +114,6 @@ impl UnaryTransform<Cents, Sats> for CentsUnsignedToSats {
     }
 }
 
-pub struct CentsSubtractToCentsSigned;
-
-impl BinaryTransform<Cents, Cents, CentsSigned> for CentsSubtractToCentsSigned {
-    #[inline(always)]
-    fn apply(a: Cents, b: Cents) -> CentsSigned {
-        if unlikely(a.is_nan() || b.is_nan()) {
-            panic!("Cents::NAN cannot be converted to CentsSigned");
-        }
-        let difference = i128::from(a.inner()) - i128::from(b.inner());
-        CentsSigned::new(
-            i64::try_from(difference).expect("Cents subtraction overflowed CentsSigned"),
-        )
-    }
-}
-
 pub struct CentsTimesTenths<const V: u16>;
 
 impl<const V: u16> UnaryTransform<Cents, Cents> for CentsTimesTenths<V> {
@@ -145,11 +150,5 @@ mod tests {
     #[should_panic(expected = "Cents::NAN cannot be converted to whole Sats")]
     fn whole_sats_reject_nan() {
         CentsUnsignedToSats::apply(Cents::NAN);
-    }
-
-    #[test]
-    #[should_panic(expected = "Cents::NAN cannot be converted to CentsSigned")]
-    fn signed_cents_reject_nan() {
-        CentsSubtractToCentsSigned::apply(Cents::NAN, Cents::ZERO);
     }
 }

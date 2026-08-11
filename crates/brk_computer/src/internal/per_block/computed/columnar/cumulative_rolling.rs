@@ -100,7 +100,8 @@ where
         V: ReadableVec<Height, U> + 'a,
         U: VecValue + Into<T>,
     {
-        let dependency_version = C::ALL.iter().map(|&column| source(column).version()).sum();
+        let dependency_version =
+            Version::combine_all(C::ALL.iter().map(|&column| source(column).version()));
         let source_end = C::ALL
             .iter()
             .map(|&column| source(column).len())
@@ -144,6 +145,67 @@ where
         self.last_cumulative = last_cumulative
             .or_else(|| self.cumulative.collect_last())
             .map(|row| (len, row));
+        Ok(())
+    }
+
+    /// Computes one cumulative matrix from two scalar sources per column.
+    pub(crate) fn compute_columns2<'a, A, B, V1, V2>(
+        &mut self,
+        max_from: Height,
+        source1: impl Fn(C) -> &'a V1,
+        source2: impl Fn(C) -> &'a V2,
+        mut transform: impl FnMut(C, A, B) -> T,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        A: VecValue,
+        B: VecValue,
+        V1: ReadableVec<Height, A> + 'a,
+        V2: ReadableVec<Height, B> + 'a,
+    {
+        let dependency_version = Version::combine_all(
+            C::ALL
+                .iter()
+                .flat_map(|&column| [source1(column).version(), source2(column).version()]),
+        );
+        let source_end = C::ALL
+            .iter()
+            .flat_map(|&column| [source1(column).len(), source2(column).len()])
+            .min()
+            .unwrap_or_default();
+
+        self.cumulative
+            .validate_computed_version_or_reset(dependency_version)?;
+        self.cumulative.truncate_if_needed(max_from)?;
+        self.last_cumulative = None;
+        self.cumulative.repeat_until_complete(exit, |target| {
+            let start = target.len();
+            let end = target.batch_end(source_end);
+            if start >= end {
+                return Ok(());
+            }
+
+            let source1_batches: Vec<_> = C::ALL
+                .iter()
+                .map(|&column| source1(column).collect_range_at(start, end))
+                .collect();
+            let source2_batches: Vec<_> = C::ALL
+                .iter()
+                .map(|&column| source2(column).collect_range_at(start, end))
+                .collect();
+            for offset in 0..(end - start) {
+                target.push(C::from_fn(|column| {
+                    transform(
+                        column,
+                        source1_batches[column.index()][offset].clone(),
+                        source2_batches[column.index()][offset].clone(),
+                    )
+                }));
+            }
+
+            Ok(())
+        })?;
+
         Ok(())
     }
 }

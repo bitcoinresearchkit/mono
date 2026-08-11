@@ -37,30 +37,33 @@ impl Vecs {
         self.rhodl_ratio.ppm.height.compute_transform3(
             starting_lengths.height,
             &distribution
-                .utxo_cohorts
-                .age_range
+                .cohorts
+                .realized
+                .cap
+                .cohorts
+                .age
+                .range
                 ._1d_to_1w
-                .metrics
-                .realized
-                .cap
                 .usd
                 .height,
             &distribution
-                .utxo_cohorts
-                .age_range
+                .cohorts
+                .realized
+                .cap
+                .cohorts
+                .age
+                .range
                 ._1y_to_18m
-                .metrics
-                .realized
-                .cap
                 .usd
                 .height,
             &distribution
-                .utxo_cohorts
-                .age_range
-                ._18m_to_2y
-                .metrics
+                .cohorts
                 .realized
                 .cap
+                .cohorts
+                .age
+                .range
+                ._18m_to_2y
                 .usd
                 .height,
             |(i, young_cap, year1_cap, month18_cap, ..)| {
@@ -78,13 +81,13 @@ impl Vecs {
             exit,
         )?;
 
-        let all_metrics = &distribution.utxo_cohorts.all.metrics;
-        let supply_total_sats = &all_metrics.supply.total.sats.height;
+        let supply = &distribution.cohorts.supply;
+        let supply_total_sats = &supply.total.cohorts.all.sats.height;
 
         // Seller Exhaustion Constant: % supply_in_profit × 30d_volatility
         self.seller_exhaustion.height.compute_transform3(
             starting_lengths.height,
-            &all_metrics.supply.in_profit.sats.height,
+            &supply.in_profit.cohorts.all.sats.height,
             &market.volatility._1m.height,
             supply_total_sats,
             |(i, profit_sats, volatility, total_sats, ..)| {

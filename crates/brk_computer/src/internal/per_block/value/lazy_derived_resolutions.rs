@@ -1,8 +1,46 @@
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Sats, Version};
+use schemars::JsonSchema;
 use vecdb::UnaryTransform;
 
-use crate::internal::{DerivedResolutions, SpotValuePerBlock};
+use crate::internal::{ComputedVecValue, DerivedResolutions, Resolutions, SpotValueSource};
+
+pub(crate) trait ReadableResolutions<T>
+where
+    T: ComputedVecValue + JsonSchema,
+{
+    fn transformed<O, F>(&self, name: &str, version: Version) -> DerivedResolutions<O, T>
+    where
+        O: ComputedVecValue + JsonSchema,
+        F: UnaryTransform<T, O>;
+}
+
+impl<T> ReadableResolutions<T> for Resolutions<T>
+where
+    T: ComputedVecValue + JsonSchema + 'static,
+{
+    fn transformed<O, F>(&self, name: &str, version: Version) -> DerivedResolutions<O, T>
+    where
+        O: ComputedVecValue + JsonSchema,
+        F: UnaryTransform<T, O>,
+    {
+        DerivedResolutions::from_derived_computed::<F>(name, version, self)
+    }
+}
+
+impl<T, S> ReadableResolutions<T> for DerivedResolutions<T, S>
+where
+    T: ComputedVecValue + JsonSchema + 'static,
+    S: ComputedVecValue + JsonSchema,
+{
+    fn transformed<O, F>(&self, name: &str, version: Version) -> DerivedResolutions<O, T>
+    where
+        O: ComputedVecValue + JsonSchema,
+        F: UnaryTransform<T, O>,
+    {
+        DerivedResolutions::from_lazy::<F, S>(name, version, self)
+    }
+}
 
 #[derive(Clone, Traversable)]
 pub struct LazyValueDerivedResolutions {
@@ -20,7 +58,7 @@ impl LazyValueDerivedResolutions {
         DollarsTransform,
     >(
         name: &str,
-        source: &SpotValuePerBlock,
+        source: &impl SpotValueSource,
         version: Version,
     ) -> Self
     where
@@ -29,29 +67,21 @@ impl LazyValueDerivedResolutions {
         CentsTransform: UnaryTransform<Cents, Cents>,
         DollarsTransform: UnaryTransform<Dollars, Dollars>,
     {
-        let sats = DerivedResolutions::from_derived_computed::<SatsTransform>(
-            &format!("{name}_sats"),
-            version,
-            &source.sats.resolutions,
-        );
+        let sats = source
+            .sats_resolutions()
+            .transformed::<Sats, SatsTransform>(&format!("{name}_sats"), version);
 
-        let btc = DerivedResolutions::from_derived_computed::<BitcoinTransform>(
-            name,
-            version,
-            &source.sats.resolutions,
-        );
+        let btc = source
+            .sats_resolutions()
+            .transformed::<Bitcoin, BitcoinTransform>(name, version);
 
-        let cents = DerivedResolutions::from_lazy::<CentsTransform, Cents>(
-            &format!("{name}_cents"),
-            version,
-            &source.cents.resolutions,
-        );
+        let cents = source
+            .cents_resolutions()
+            .transformed::<Cents, CentsTransform>(&format!("{name}_cents"), version);
 
-        let usd = DerivedResolutions::from_lazy::<DollarsTransform, Cents>(
-            &format!("{name}_usd"),
-            version,
-            &source.usd.resolutions,
-        );
+        let usd = source
+            .usd_resolutions()
+            .transformed::<Dollars, DollarsTransform>(&format!("{name}_usd"), version);
 
         Self {
             btc,

@@ -6,7 +6,7 @@ use derive_more::{Deref, DerefMut};
 use vecdb::UnaryTransform;
 
 use crate::internal::{
-    Identity, LazyValue, LazyValueDerivedResolutions, SatsToBitcoin, SpotValuePerBlock,
+    Identity, LazyValue, LazyValueDerivedResolutions, SatsToBitcoin, SpotValueSource,
 };
 
 /// Lazy value wrapper with height + all derived last transforms.
@@ -22,7 +22,11 @@ pub struct LazyValuePerBlock {
 }
 
 impl LazyValuePerBlock {
-    pub(crate) fn spot_identity(name: &str, source: &SpotValuePerBlock, version: Version) -> Self {
+    pub(crate) fn spot_identity(
+        name: &str,
+        source: &impl SpotValueSource,
+        version: Version,
+    ) -> Self {
         Self::from_spot_block_source::<
             Identity<Sats>,
             SatsToBitcoin,
@@ -38,7 +42,7 @@ impl LazyValuePerBlock {
         DollarsTransform,
     >(
         name: &str,
-        source: &SpotValuePerBlock,
+        source: &impl SpotValueSource,
         version: Version,
     ) -> Self
     where

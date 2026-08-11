@@ -1,6 +1,7 @@
 use brk_traversable::Traversable;
 use brk_types::Sats;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{AmountFilter, CohortName, Filter};
@@ -70,7 +71,7 @@ pub const OVER_AMOUNT_FILTERS: OverAmount<Filter> = OverAmount {
     )),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct OverAmount<T> {
     pub _1sat: T,
     pub _10sats: T,
@@ -86,6 +87,24 @@ pub struct OverAmount<T> {
     pub _1k_btc: T,
     pub _10k_btc: T,
 }
+
+define_column_id!(
+    OverAmountId for OverAmount, version = 1 {
+        Over1Sat => _1sat,
+        Over10Sats => _10sats,
+        Over100Sats => _100sats,
+        Over1KSats => _1k_sats,
+        Over10KSats => _10k_sats,
+        Over100KSats => _100k_sats,
+        Over1MSats => _1m_sats,
+        Over10MSats => _10m_sats,
+        Over1Btc => _1btc,
+        Over10Btc => _10btc,
+        Over100Btc => _100btc,
+        Over1KBtc => _1k_btc,
+        Over10KBtc => _10k_btc,
+    }
+);
 
 impl OverAmount<CohortName> {
     pub const fn names() -> &'static Self {

@@ -1,11 +1,13 @@
-mod age_range;
-mod avg_amount;
 mod base;
+mod by_cohort;
 mod cache;
-mod core;
+mod sources;
+mod total;
+mod vecs;
 
-pub(crate) use age_range::AgeRangeSupplySources;
-pub use self::core::SupplyCore;
-pub use avg_amount::AvgAmountVecs;
-pub use base::SupplyBase;
+pub(super) use base::SupplyBase;
+pub use by_cohort::SupplyByCohort;
 pub(crate) use cache::AllSupplyCache;
+pub use sources::SupplySources;
+pub use total::SupplyTotal;
+pub use vecs::SupplyVecs;

@@ -66,7 +66,7 @@ export const stateSeries = createCohortSeries([
 
 export const balanceSeries = createCohortSeriesFromKeys(
   amountRanges,
-  (key) => (client) => client.series.cohorts.addr.amountRange[key].addrCount.base,
+  (key) => (client) => client.series.addrs.funded.balance.range[key].base,
 );
 
 export const typeSeries = createCohortSeriesFromKeys(

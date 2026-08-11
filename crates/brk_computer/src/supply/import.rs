@@ -30,10 +30,10 @@ impl Vecs {
         let db = open_db(parent, super::DB_NAME, 1_000_000)?;
 
         let version = parent_version + VERSION;
-        let supply_metrics = &sources.distribution().utxo_cohorts.all.metrics.supply;
+        let supply_metrics = &sources.distribution().cohorts.supply.total.cohorts.all;
 
         let circulating =
-            LazyValuePerBlock::spot_identity("circulating_supply", &supply_metrics.total, version);
+            LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
 
         let burned = burned::Vecs::forced_import(&db, version, indexes)?;
 
@@ -41,7 +41,7 @@ impl Vecs {
         let inflation_source = LazyWindowVec::<Height, Sats, PartsPerMillionSigned64>::new(
             "inflation_rate_ppm_source",
             inflation_version,
-            supply_metrics.total.sats.height.read_only_boxed_clone(),
+            supply_metrics.sats.height.read_only_boxed_clone(),
             cached_starts._1y.read_only_cached_boxed_clone(),
             false,
             |current, previous, _| {
@@ -68,8 +68,7 @@ impl Vecs {
         )?;
 
         // Market cap - lazy fiat (cents + usd) from distribution supply
-        let market_cap =
-            LazyFiatPerBlock::from_lazy("market_cap", version, &supply_metrics.total.cents);
+        let market_cap = LazyFiatPerBlock::from_lazy("market_cap", version, &supply_metrics.cents);
 
         // Market cap delta (change + rate across 4 windows)
         let market_cap_delta = LazyRollingDeltasFiatFromHeight::new(
@@ -83,11 +82,11 @@ impl Vecs {
         let growth_version = version + Version::new(3);
         let realized_cap = &sources
             .distribution()
-            .utxo_cohorts
-            .all
-            .metrics
+            .cohorts
             .realized
             .cap
+            .cohorts
+            .all
             .cents
             .height;
         let market_minus_realized_cap_growth_rate =

@@ -1,5 +1,5 @@
 use brk_traversable::Traversable;
-use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, StoredF32, Version};
+use brk_types::{Cents, Height, Sats, StoredF32, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{DeltaAvg, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
@@ -7,18 +7,9 @@ use crate::{
     indexes,
     internal::{
         AvgCentsToUsd, AvgSatsToBtc, CachedWindowStartVec, DerivedResolutions, LazyPerBlock,
-        LazyRollingAvgFromHeight, Resolutions, Windows,
+        LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight, Resolutions, Windows,
     },
 };
-
-/// Single window slot: lazy rolling average for Amount (sats + btc + cents + usd), all as f64.
-#[derive(Clone, Traversable)]
-pub struct LazyRollingAvgAmountFromHeight {
-    pub btc: LazyPerBlock<Bitcoin, StoredF32>,
-    pub sats: LazyRollingAvgFromHeight<Sats>,
-    pub usd: LazyPerBlock<Dollars, StoredF32>,
-    pub cents: LazyRollingAvgFromHeight<Cents>,
-}
 
 /// Lazy rolling averages for all 4 windows, for Amount (sats + btc + cents + usd), all as f64.
 #[derive(Clone, Deref, DerefMut, Traversable)]

@@ -3,6 +3,7 @@ use std::ops::Range;
 use brk_traversable::Traversable;
 use brk_types::Age;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{ColumnId, VecValue, Version};
 
@@ -122,7 +123,7 @@ pub const LTH_AGE_RANGE_IDS: [AgeRangeId; LTH_AGE_RANGE_COUNT] = [
 
 impl ColumnId for AgeRangeId {
     type Row<T>
-        = [T; AGE_RANGE_COUNT]
+        = AgeRange<T>
     where
         T: VecValue;
 
@@ -136,35 +137,49 @@ impl ColumnId for AgeRangeId {
 
     #[inline]
     fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        &row[self as usize]
+        self.select(row)
     }
 
     #[inline]
     fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        &mut row[self as usize]
+        self.select_mut(row)
     }
 
     #[inline]
-    fn from_fn<T, F>(mut f: F) -> Self::Row<T>
+    fn from_fn<T, F>(f: F) -> Self::Row<T>
     where
         T: VecValue,
         F: FnMut(Self) -> T,
     {
-        std::array::from_fn(|index| f(AGE_RANGE_IDS[index]))
+        AgeRange::from_fn(f)
     }
 
     #[inline]
-    fn map<T, U, F>(row: Self::Row<T>, f: F) -> Self::Row<U>
+    fn map<T, U, F>(row: Self::Row<T>, mut f: F) -> Self::Row<U>
     where
         T: VecValue,
         U: VecValue,
         F: FnMut(T) -> U,
     {
-        row.map(f)
+        AgeRange::from_fn(|column| f(column.get(&row).clone()))
     }
 }
 
 impl AgeRangeId {
+    pub fn matching(filter: &Filter) -> Option<Self> {
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|column| column.filter() == filter)
+    }
+
+    pub fn included_by(filter: &Filter) -> impl Iterator<Item = Self> + '_ {
+        Self::ALL
+            .iter()
+            .copied()
+            .filter(|column| filter.includes(column.filter()))
+    }
+
     #[inline]
     pub fn bounds(self) -> &'static Range<usize> {
         self.select(&AGE_RANGE_BOUNDS)
@@ -367,7 +382,7 @@ pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
     over_15y: CohortName::new("over_15y_old", "15y+", "15+ Years Old"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct AgeRange<T> {
     pub under_1h: T,
     pub _1h_to_1d: T,
@@ -393,6 +408,32 @@ pub struct AgeRange<T> {
     pub _12y_to_15y: T,
     pub over_15y: T,
 }
+
+impl_column_row_formattable!(AgeRange {
+    under_1h,
+    _1h_to_1d,
+    _1d_to_1w,
+    _1w_to_1m,
+    _1m_to_2m,
+    _2m_to_3m,
+    _3m_to_4m,
+    _4m_to_5m,
+    _5m_to_6m,
+    _6m_to_9m,
+    _9m_to_1y,
+    _1y_to_18m,
+    _18m_to_2y,
+    _2y_to_3y,
+    _3y_to_4y,
+    _4y_to_5y,
+    _5y_to_6y,
+    _6y_to_7y,
+    _7y_to_8y,
+    _8y_to_10y,
+    _10y_to_12y,
+    _12y_to_15y,
+    over_15y,
+});
 
 impl<T> AgeRange<T> {
     pub fn from_fn(mut create: impl FnMut(AgeRangeId) -> T) -> Self {

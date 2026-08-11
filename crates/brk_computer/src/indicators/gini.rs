@@ -12,16 +12,17 @@ pub(super) fn compute(
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
-    let amount_range = &distribution.utxo_cohorts.amount_range;
+    let supply = &distribution.cohorts.supply.total.cohorts.utxo_amount.range;
+    let count = &distribution
+        .cohorts
+        .outputs
+        .unspent_count
+        .cohorts
+        .utxo_amount
+        .range;
 
-    let supply_vecs: Vec<&_> = amount_range
-        .iter()
-        .map(|c| &c.metrics.supply.total.sats.height)
-        .collect();
-    let count_vecs: Vec<&_> = amount_range
-        .iter()
-        .map(|c| &c.metrics.outputs.unspent_count.height)
-        .collect();
+    let supply_vecs: Vec<&_> = supply.iter().map(|cohort| &cohort.sats.height).collect();
+    let count_vecs: Vec<&_> = count.iter().map(|cohort| &cohort.height).collect();
 
     if supply_vecs.is_empty() || supply_vecs.len() != count_vecs.len() {
         return Ok(());

@@ -1,12 +1,48 @@
 use std::path::PathBuf;
 
 use brk_traversable::Traversable;
-use brk_types::{Cents, StoredF64, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
-use vecdb::{ColumnId, Rw, StorageMode, VecValue};
+use vecdb::{ColumnId, Formattable, Rw, StorageMode, VecValue};
 
-use super::price::LazyColumnPrice;
-use crate::internal::{ColumnarDailyMetric, LazyColumnDailyMetric};
+pub(super) use super::{Levels, ModeVecs, Modes, Percentiles, PriceBands, WeightedModes};
+
+macro_rules! impl_named_row_formattable {
+    ($row:ident { $($field:ident),+ $(,)? }) => {
+        impl<T: Formattable> Formattable for $row<T> {
+            fn write_to(&self, output: &mut Vec<u8>) {
+                output.push(b'{');
+                let mut first = true;
+                $(
+                    if !first {
+                        output.push(b',');
+                    }
+                    first = false;
+                    output.extend_from_slice(concat!("\"", stringify!($field), "\":").as_bytes());
+                    self.$field.fmt_json(output);
+                )+
+                let _ = first;
+                output.push(b'}');
+            }
+
+            fn fmt_csv(&self, output: &mut String) -> std::fmt::Result {
+                let mut json = Vec::new();
+                self.write_to(&mut json);
+                let json = std::str::from_utf8(&json).map_err(|_| std::fmt::Error)?;
+
+                output.push('"');
+                for character in json.chars() {
+                    if character == '"' {
+                        output.push('"');
+                    }
+                    output.push(character);
+                }
+                output.push('"');
+                Ok(())
+            }
+        }
+    };
+}
 
 pub(crate) const MODE_COUNT: usize = 10;
 pub(crate) const PERCENTILE_COUNT: usize = 5;
@@ -175,7 +211,7 @@ const LOSS_PERCENTILE_IDS: [LossPercentileId; PERCENTILE_COUNT] = [
 
 impl ColumnId for LossPercentileId {
     type Row<T>
-        = [T; PERCENTILE_COUNT]
+        = Percentiles<T>
     where
         T: VecValue;
 
@@ -189,21 +225,21 @@ impl ColumnId for LossPercentileId {
 
     #[inline]
     fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        &row[self.index()]
+        self.select(row)
     }
 
     #[inline]
     fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        &mut row[self.index()]
+        self.select_mut(row)
     }
 
     #[inline]
-    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    fn from_fn<T, F>(create: F) -> Self::Row<T>
     where
         T: VecValue,
         F: FnMut(Self) -> T,
     {
-        std::array::from_fn(|index| create(LOSS_PERCENTILE_IDS[index]))
+        Percentiles::from_fn(create)
     }
 
     #[inline]
@@ -271,6 +307,25 @@ impl PriceBandId {
             Self::LevelPct70 => &values.level.pct70,
             Self::LevelPct80 => &values.level.pct80,
             Self::LevelPct90 => &values.level.pct90,
+        }
+    }
+
+    pub(super) fn select_mut<T>(self, values: &mut PriceBands<T>) -> &mut T {
+        match self {
+            Self::FloorPct95 => &mut values.floor.pct95,
+            Self::FloorPct98 => &mut values.floor.pct98,
+            Self::FloorPct99 => &mut values.floor.pct99,
+            Self::FloorPct99_5 => &mut values.floor.pct99_5,
+            Self::FloorPct99_9 => &mut values.floor.pct99_9,
+            Self::LevelPct10 => &mut values.level.pct10,
+            Self::LevelPct20 => &mut values.level.pct20,
+            Self::LevelPct30 => &mut values.level.pct30,
+            Self::LevelPct40 => &mut values.level.pct40,
+            Self::LevelPct50 => &mut values.level.pct50,
+            Self::LevelPct60 => &mut values.level.pct60,
+            Self::LevelPct70 => &mut values.level.pct70,
+            Self::LevelPct80 => &mut values.level.pct80,
+            Self::LevelPct90 => &mut values.level.pct90,
         }
     }
 }
@@ -364,7 +419,7 @@ pub(super) const LEVEL_IDS: [LevelId; LEVEL_COUNT] = [
 
 impl ColumnId for PriceBandId {
     type Row<T>
-        = [T; PRICE_BAND_COUNT]
+        = PriceBands<T>
     where
         T: VecValue;
 
@@ -378,21 +433,21 @@ impl ColumnId for PriceBandId {
 
     #[inline]
     fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        &row[self.index()]
+        self.select(row)
     }
 
     #[inline]
     fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        &mut row[self.index()]
+        self.select_mut(row)
     }
 
     #[inline]
-    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
+    fn from_fn<T, F>(create: F) -> Self::Row<T>
     where
         T: VecValue,
         F: FnMut(Self) -> T,
     {
-        std::array::from_fn(|index| create(PRICE_BAND_IDS[index]))
+        PriceBands::from_fn(create)
     }
 
     #[inline]
@@ -406,14 +461,13 @@ impl ColumnId for PriceBandId {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
-pub struct Percentiles<T> {
-    pub pct95: T,
-    pub pct98: T,
-    pub pct99: T,
-    pub pct99_5: T,
-    pub pct99_9: T,
-}
+impl_named_row_formattable!(Percentiles {
+    pct95,
+    pct98,
+    pct99,
+    pct99_5,
+    pct99_9,
+});
 
 impl<T> Percentiles<T> {
     pub(super) fn from_fn(mut create: impl FnMut(LossPercentileId) -> T) -> Self {
@@ -436,20 +490,29 @@ impl<T> Percentiles<T> {
         ]
         .into_iter()
     }
+
+    fn map<U>(self, mut map: impl FnMut(T) -> U) -> Percentiles<U> {
+        Percentiles {
+            pct95: map(self.pct95),
+            pct98: map(self.pct98),
+            pct99: map(self.pct99),
+            pct99_5: map(self.pct99_5),
+            pct99_9: map(self.pct99_9),
+        }
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
-pub struct Levels<T> {
-    pub pct10: T,
-    pub pct20: T,
-    pub pct30: T,
-    pub pct40: T,
-    pub pct50: T,
-    pub pct60: T,
-    pub pct70: T,
-    pub pct80: T,
-    pub pct90: T,
-}
+impl_named_row_formattable!(Levels {
+    pct10,
+    pct20,
+    pct30,
+    pct40,
+    pct50,
+    pct60,
+    pct70,
+    pct80,
+    pct90,
+});
 
 impl<T> Levels<T> {
     pub(super) fn from_fn(mut create: impl FnMut(LevelId) -> T) -> Self {
@@ -465,13 +528,23 @@ impl<T> Levels<T> {
             pct90: create(LevelId::Pct90),
         }
     }
+
+    fn map<U>(self, mut map: impl FnMut(T) -> U) -> Levels<U> {
+        Levels {
+            pct10: map(self.pct10),
+            pct20: map(self.pct20),
+            pct30: map(self.pct30),
+            pct40: map(self.pct40),
+            pct50: map(self.pct50),
+            pct60: map(self.pct60),
+            pct70: map(self.pct70),
+            pct80: map(self.pct80),
+            pct90: map(self.pct90),
+        }
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Traversable)]
-pub struct PriceBands<T> {
-    pub floor: Percentiles<T>,
-    pub level: Levels<T>,
-}
+impl_named_row_formattable!(PriceBands { floor, level });
 
 impl<T> PriceBands<T> {
     pub(super) fn from_fn(mut create: impl FnMut(PriceBandId) -> T) -> Self {
@@ -486,6 +559,13 @@ impl<T> PriceBands<T> {
             level: Levels::from_fn(|id| create(id.price_band())),
         }
     }
+
+    fn map<U>(self, mut map: impl FnMut(T) -> U) -> PriceBands<U> {
+        PriceBands {
+            floor: self.floor.map(&mut map),
+            level: self.level.map(map),
+        }
+    }
 }
 
 impl LossPercentileId {
@@ -498,34 +578,6 @@ impl PriceBandId {
     pub(super) fn series<T>(mut create: impl FnMut(Self) -> T) -> PriceBands<T> {
         PriceBands::from_fn(&mut create)
     }
-}
-
-#[derive(Deref, DerefMut, Traversable)]
-pub struct ModeVecs<M: StorageMode = Rw> {
-    pub loss_threshold: ColumnarDailyMetric<
-        StoredF64,
-        LossPercentileId,
-        Percentiles<LazyColumnDailyMetric<StoredF64, LossPercentileId>>,
-        M,
-    >,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub prices:
-        ColumnarDailyMetric<Cents, PriceBandId, PriceBands<LazyColumnPrice<PriceBandId>>, M>,
-}
-
-#[derive(Traversable)]
-pub struct WeightedModes<T> {
-    pub cointime: T,
-    pub coinflow: T,
-    pub coinflow_8y: T,
-    pub coinflow_4y: T,
-    pub coinflow_2y: T,
-    pub coinflow_1y: T,
-    pub coinflow_6m: T,
-    pub coinflow_3m: T,
-    pub coinflow_1m: T,
 }
 
 impl<T> WeightedModes<T> {
@@ -618,15 +670,6 @@ impl<T> WeightedModes<T> {
     }
 }
 
-#[derive(Deref, DerefMut, Traversable)]
-pub struct Modes<T> {
-    pub raw: T,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub weighted: WeightedModes<T>,
-}
-
 impl<T> Modes<T> {
     pub(super) fn from_fn(mut create: impl FnMut(ModeId) -> T) -> Self {
         Self {
@@ -687,41 +730,83 @@ mod tests {
     use vecdb::ColumnId;
 
     use super::{
-        LOSS_PERCENTILE_IDS, LossPercentileId, ModeId, Modes, PRICE_BAND_IDS, PriceBandId,
-        WeightedModeId,
+        LOSS_PERCENTILE_IDS, Levels, LossPercentileId, ModeId, Modes, PRICE_BAND_IDS, Percentiles,
+        PriceBandId, PriceBands, WeightedModeId,
     };
 
     #[test]
     fn bedrock_columns_match_public_band_order() {
         assert_eq!(LossPercentileId::ALL, LOSS_PERCENTILE_IDS);
+        let percentiles = LossPercentileId::from_fn(|percentile| percentile);
         assert_eq!(
-            LossPercentileId::from_fn(|percentile| percentile),
-            LOSS_PERCENTILE_IDS
+            percentiles,
+            Percentiles {
+                pct95: LossPercentileId::Pct95,
+                pct98: LossPercentileId::Pct98,
+                pct99: LossPercentileId::Pct99,
+                pct99_5: LossPercentileId::Pct99_5,
+                pct99_9: LossPercentileId::Pct99_9,
+            },
         );
         assert_eq!(PriceBandId::ALL, PRICE_BAND_IDS);
-        assert_eq!(PriceBandId::from_fn(|band| band), PRICE_BAND_IDS);
+        let bands = PriceBandId::from_fn(|band| band);
         assert_eq!(
-            LossPercentileId::from_fn(LossPercentileId::suffix),
-            ["pct95", "pct98", "pct99", "pct99_5", "pct99_9"]
+            bands,
+            PriceBands {
+                floor: Percentiles {
+                    pct95: PriceBandId::FloorPct95,
+                    pct98: PriceBandId::FloorPct98,
+                    pct99: PriceBandId::FloorPct99,
+                    pct99_5: PriceBandId::FloorPct99_5,
+                    pct99_9: PriceBandId::FloorPct99_9,
+                },
+                level: Levels {
+                    pct10: PriceBandId::LevelPct10,
+                    pct20: PriceBandId::LevelPct20,
+                    pct30: PriceBandId::LevelPct30,
+                    pct40: PriceBandId::LevelPct40,
+                    pct50: PriceBandId::LevelPct50,
+                    pct60: PriceBandId::LevelPct60,
+                    pct70: PriceBandId::LevelPct70,
+                    pct80: PriceBandId::LevelPct80,
+                    pct90: PriceBandId::LevelPct90,
+                },
+            },
         );
+        let suffixes = LossPercentileId::from_fn(LossPercentileId::suffix);
         assert_eq!(
-            PriceBandId::from_fn(PriceBandId::suffix),
-            [
-                "floor_pct95",
-                "floor_pct98",
-                "floor_pct99",
-                "floor_pct99_5",
-                "floor_pct99_9",
-                "level_pct10",
-                "level_pct20",
-                "level_pct30",
-                "level_pct40",
-                "level_pct50",
-                "level_pct60",
-                "level_pct70",
-                "level_pct80",
-                "level_pct90",
-            ]
+            suffixes,
+            Percentiles {
+                pct95: "pct95",
+                pct98: "pct98",
+                pct99: "pct99",
+                pct99_5: "pct99_5",
+                pct99_9: "pct99_9",
+            },
+        );
+        let suffixes = PriceBandId::from_fn(PriceBandId::suffix);
+        assert_eq!(
+            suffixes,
+            PriceBands {
+                floor: Percentiles {
+                    pct95: "floor_pct95",
+                    pct98: "floor_pct98",
+                    pct99: "floor_pct99",
+                    pct99_5: "floor_pct99_5",
+                    pct99_9: "floor_pct99_9",
+                },
+                level: Levels {
+                    pct10: "level_pct10",
+                    pct20: "level_pct20",
+                    pct30: "level_pct30",
+                    pct40: "level_pct40",
+                    pct50: "level_pct50",
+                    pct60: "level_pct60",
+                    pct70: "level_pct70",
+                    pct80: "level_pct80",
+                    pct90: "level_pct90",
+                },
+            },
         );
     }
 

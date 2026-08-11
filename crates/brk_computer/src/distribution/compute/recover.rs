@@ -3,117 +3,117 @@ use std::{cmp::Ordering, collections::BTreeSet};
 use brk_error::Result;
 use brk_types::Height;
 use tracing::{debug, warn};
-use vecdb::Stamp;
+use vecdb::{Result as VecdbResult, Stamp};
 
 use super::super::{
-    AddrsDataVecs,
-    addr::AnyAddrIndexesVecs,
-    cohorts::{AddrCohorts, UTXOCohorts},
+    AddrsDataVecs, AnyAddrIndexesVecs, Vecs,
+    state::{AddrStates, UTXOStates},
 };
 
 /// Result of state recovery.
-pub struct RecoveredState {
+pub(crate) struct RecoveredState {
     /// Height to start processing from. Zero means fresh start.
-    pub starting_height: Height,
+    pub(crate) starting_height: Height,
 }
 
-/// Perform state recovery for resuming from checkpoint.
-///
-/// Rolls back state vectors and imports cohort states.
-/// Validates that all rollbacks and imports are consistent.
-/// Returns Height::ZERO if any validation fails (triggers fresh start).
-pub(crate) fn recover_state(
-    height: Height,
-    chain_state_rollback: Option<vecdb::Result<Stamp>>,
-    any_addr_indexes: &mut AnyAddrIndexesVecs,
-    addrs_data: &mut AddrsDataVecs,
-    utxo_cohorts: &mut UTXOCohorts,
-    addr_cohorts: &mut AddrCohorts,
-) -> Result<RecoveredState> {
-    // `None`: clean resume, already at the checkpoint, nothing to undo.
-    // `Some`: reorg, undo state past the resume point.
-    let consistent_height = match chain_state_rollback {
-        None => height,
-        Some(chain_state_rollback) => {
-            let stamp = Stamp::from(height);
+impl Vecs {
+    /// Perform state recovery for resuming from checkpoint.
+    ///
+    /// Rolls back state vectors and imports cohort states.
+    /// Validates that all rollbacks and imports are consistent.
+    /// Returns Height::ZERO if any validation fails (triggers fresh start).
+    pub(crate) fn recover_state(
+        &mut self,
+        height: Height,
+        chain_state_rollback: Option<VecdbResult<Stamp>>,
+        utxo_states: &mut UTXOStates,
+        addr_states: &mut AddrStates,
+    ) -> Result<RecoveredState> {
+        // `None`: clean resume, already at the checkpoint, nothing to undo.
+        // `Some`: reorg, undo state past the resume point.
+        let consistent_height = match chain_state_rollback {
+            None => height,
+            Some(chain_state_rollback) => {
+                let stamp = Stamp::from(height);
 
-            // Rollback address state vectors
-            let addr_indexes_rollback = any_addr_indexes.rollback_before(stamp);
-            let addr_data_rollback = addrs_data.rollback_before(stamp);
+                // Rollback address state vectors
+                let addr_indexes_rollback = self.any_addr_indexes.rollback_before(stamp);
+                let addr_data_rollback = self.addrs_data.rollback_before(stamp);
 
-            // Verify rollback consistency - all must agree on the same height
-            let consistent_height = rollback_states(
-                chain_state_rollback,
-                addr_indexes_rollback,
-                addr_data_rollback,
+                // Verify rollback consistency - all must agree on the same height
+                let consistent_height = rollback_states(
+                    chain_state_rollback,
+                    addr_indexes_rollback,
+                    addr_data_rollback,
+                );
+
+                // If rollbacks are inconsistent, start fresh
+                if consistent_height.is_zero() {
+                    warn!("Rollback consistency check failed: inconsistent heights");
+                    return Ok(RecoveredState {
+                        starting_height: Height::ZERO,
+                    });
+                }
+
+                // Rollback can land at an earlier height (multi-block change file), which is fine.
+                // But if it lands AHEAD of target, that means rollback failed (missing change files).
+                if consistent_height > height {
+                    warn!(
+                        "Rollback failed: still at {} but target was {}, falling back to fresh start",
+                        consistent_height, height
+                    );
+                    return Ok(RecoveredState {
+                        starting_height: Height::ZERO,
+                    });
+                }
+
+                if consistent_height != height {
+                    debug!(
+                        "Rollback landed at {} instead of {}, will resume from there",
+                        consistent_height, height
+                    );
+                }
+
+                consistent_height
+            }
+        };
+
+        // Import UTXO cohort states - all must succeed
+        debug!(
+            "importing UTXO cohort states at height {}",
+            consistent_height
+        );
+        if !utxo_states.import(&self.cohorts, consistent_height)? {
+            warn!(
+                "UTXO cohort state import failed at height {}",
+                consistent_height
             );
-
-            // If rollbacks are inconsistent, start fresh
-            if consistent_height.is_zero() {
-                warn!("Rollback consistency check failed: inconsistent heights");
-                return Ok(RecoveredState {
-                    starting_height: Height::ZERO,
-                });
-            }
-
-            // Rollback can land at an earlier height (multi-block change file), which is fine.
-            // But if it lands AHEAD of target, that means rollback failed (missing change files).
-            if consistent_height > height {
-                warn!(
-                    "Rollback failed: still at {} but target was {}, falling back to fresh start",
-                    consistent_height, height
-                );
-                return Ok(RecoveredState {
-                    starting_height: Height::ZERO,
-                });
-            }
-
-            if consistent_height != height {
-                debug!(
-                    "Rollback landed at {} instead of {}, will resume from there",
-                    consistent_height, height
-                );
-            }
-
-            consistent_height
+            return Ok(RecoveredState {
+                starting_height: Height::ZERO,
+            });
         }
-    };
+        debug!("UTXO cohort states imported");
 
-    // Import UTXO cohort states - all must succeed
-    debug!(
-        "importing UTXO cohort states at height {}",
-        consistent_height
-    );
-    if !utxo_cohorts.import_separate_states(consistent_height) {
-        warn!(
-            "UTXO cohort state import failed at height {}",
+        // Import address cohort states - all must succeed
+        debug!(
+            "importing addr cohort states at height {}",
             consistent_height
         );
-        return Ok(RecoveredState {
-            starting_height: Height::ZERO,
-        });
-    }
-    debug!("UTXO cohort states imported");
+        if !addr_states.import(&self.cohorts, &self.addrs.funded, consistent_height)? {
+            warn!(
+                "Addr cohort state import failed at height {}",
+                consistent_height
+            );
+            return Ok(RecoveredState {
+                starting_height: Height::ZERO,
+            });
+        }
+        debug!("addr cohort states imported");
 
-    // Import address cohort states - all must succeed
-    debug!(
-        "importing addr cohort states at height {}",
-        consistent_height
-    );
-    if !addr_cohorts.import_separate_states(consistent_height) {
-        warn!(
-            "Addr cohort state import failed at height {}",
-            consistent_height
-        );
-        return Ok(RecoveredState {
-            starting_height: Height::ZERO,
-        });
+        Ok(RecoveredState {
+            starting_height: consistent_height,
+        })
     }
-    debug!("addr cohort states imported");
-
-    Ok(RecoveredState {
-        starting_height: consistent_height,
-    })
 }
 
 /// Reset all state for fresh start.
@@ -122,23 +122,16 @@ pub(crate) fn recover_state(
 pub(crate) fn reset_state(
     any_addr_indexes: &mut AnyAddrIndexesVecs,
     addrs_data: &mut AddrsDataVecs,
-    utxo_cohorts: &mut UTXOCohorts,
-    addr_cohorts: &mut AddrCohorts,
+    utxo_states: &mut UTXOStates,
+    addr_states: &mut AddrStates,
 ) -> Result<RecoveredState> {
     // Reset address state
     any_addr_indexes.reset()?;
     addrs_data.reset()?;
 
-    // Reset cohort state heights
-    utxo_cohorts.reset_separate_state_heights();
-    addr_cohorts.reset_separate_state_heights();
-
-    // Reset cost_basis_data for all cohorts
-    utxo_cohorts.reset_separate_cost_basis_data()?;
-    addr_cohorts.reset_separate_cost_basis_data()?;
-
-    // Reset in-memory caches (fenwick, tick_tock positions)
-    utxo_cohorts.reset_caches();
+    // Reset cohort state.
+    utxo_states.reset()?;
+    addr_states.reset()?;
 
     Ok(RecoveredState {
         starting_height: Height::ZERO,
@@ -175,7 +168,7 @@ pub enum StartMode {
 /// Returns the consistent starting height if ALL rollbacks succeed and agree,
 /// otherwise returns Height::ZERO (need fresh start).
 fn rollback_states(
-    chain_state_rollback: vecdb::Result<Stamp>,
+    chain_state_rollback: VecdbResult<Stamp>,
     addr_indexes_rollbacks: Result<Vec<Stamp>>,
     addr_data_rollbacks: Result<[Stamp; 2]>,
 ) -> Height {

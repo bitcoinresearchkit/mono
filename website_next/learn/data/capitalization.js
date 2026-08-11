@@ -35,13 +35,13 @@ export const marketCapProfitabilitySeries = createCohortSeries([
     label: "In profit",
     color: colors.green,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.profit.all.supply.all.usd,
+      client.series.cohorts.utxo.profitability.supply.profit.all.all.usd,
   },
   {
     label: "In loss",
     color: colors.red,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.loss.all.supply.all.usd,
+      client.series.cohorts.utxo.profitability.supply.loss.all.all.usd,
   },
 ]);
 
@@ -50,13 +50,13 @@ export const realizedCapProfitabilitySeries = createCohortSeries([
     label: "In profit",
     color: colors.green,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.profit.all.realizedCap.all,
+      client.series.cohorts.utxo.profitability.realizedCap.profit.all.all,
   },
   {
     label: "In loss",
     color: colors.red,
     metric: (client) =>
-      client.series.cohorts.utxo.profitability.loss.all.realizedCap.all,
+      client.series.cohorts.utxo.profitability.realizedCap.loss.all.all,
   },
 ]);
 

@@ -185,10 +185,9 @@ impl Components {
         cointime: &cointime::Vecs,
         coinflow: &coinflow::Vecs,
     ) -> Result<Self> {
-        let utxos = &distribution.utxo_cohorts;
-        let all = &utxos.all.metrics.realized;
-        let sth = &utxos.sth.metrics.realized;
-        let lth = &utxos.lth.metrics.realized;
+        let utxos = &distribution.cohorts;
+        let realized_price = &utxos.realized.price.cohorts;
+        let capitalized_price = &utxos.realized.capitalized_price.series;
 
         macro_rules! import {
             ($name:expr, $source:expr) => {
@@ -197,27 +196,21 @@ impl Components {
         }
 
         Ok(Self {
-            realized_price: import!("realized_price", all.price),
-            capitalized_price: import!("capitalized_price", all.capitalized.price),
-            sth_realized_price: import!("sth_realized_price", sth.price),
-            sth_capitalized_price: import!("sth_capitalized_price", sth.capitalized.price),
-            lth_realized_price: import!("lth_realized_price", lth.price),
-            lth_capitalized_price: import!("lth_capitalized_price", lth.capitalized.price),
-            over_6m_realized_price: import!(
-                "over_6m_realized_price",
-                utxos.over_age._6m.metrics.realized.price
-            ),
-            over_4m_realized_price: import!(
-                "over_4m_realized_price",
-                utxos.over_age._4m.metrics.realized.price
-            ),
+            realized_price: import!("realized_price", realized_price.all),
+            capitalized_price: import!("capitalized_price", capitalized_price.all),
+            sth_realized_price: import!("sth_realized_price", realized_price.term.short),
+            sth_capitalized_price: import!("sth_capitalized_price", capitalized_price.sth),
+            lth_realized_price: import!("lth_realized_price", realized_price.term.long),
+            lth_capitalized_price: import!("lth_capitalized_price", capitalized_price.lth),
+            over_6m_realized_price: import!("over_6m_realized_price", realized_price.age.over._6m),
+            over_4m_realized_price: import!("over_4m_realized_price", realized_price.age.over._4m),
             under_4m_realized_price: import!(
                 "under_4m_realized_price",
-                utxos.under_age._4m.metrics.realized.price
+                realized_price.age.under._4m
             ),
             under_6m_realized_price: import!(
                 "under_6m_realized_price",
-                utxos.under_age._6m.metrics.realized.price
+                realized_price.age.under._6m
             ),
             vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
             active_price: import!("active_price", cointime.prices.active),
@@ -239,10 +232,9 @@ impl Components {
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
-        let utxos = &distribution.utxo_cohorts;
-        let all = &utxos.all.metrics.realized;
-        let sth = &utxos.sth.metrics.realized;
-        let lth = &utxos.lth.metrics.realized;
+        let utxos = &distribution.cohorts;
+        let realized_price = &utxos.realized.price.cohorts;
+        let capitalized_price = &utxos.realized.capitalized_price.series;
 
         macro_rules! compute {
             ($component:ident, $source:expr) => {
@@ -251,28 +243,16 @@ impl Components {
             };
         }
 
-        compute!(realized_price, &all.price);
-        compute!(capitalized_price, &all.capitalized.price);
-        compute!(sth_realized_price, &sth.price);
-        compute!(sth_capitalized_price, &sth.capitalized.price);
-        compute!(lth_realized_price, &lth.price);
-        compute!(lth_capitalized_price, &lth.capitalized.price);
-        compute!(
-            over_6m_realized_price,
-            &utxos.over_age._6m.metrics.realized.price
-        );
-        compute!(
-            over_4m_realized_price,
-            &utxos.over_age._4m.metrics.realized.price
-        );
-        compute!(
-            under_4m_realized_price,
-            &utxos.under_age._4m.metrics.realized.price
-        );
-        compute!(
-            under_6m_realized_price,
-            &utxos.under_age._6m.metrics.realized.price
-        );
+        compute!(realized_price, &realized_price.all);
+        compute!(capitalized_price, &capitalized_price.all);
+        compute!(sth_realized_price, &realized_price.term.short);
+        compute!(sth_capitalized_price, &capitalized_price.sth);
+        compute!(lth_realized_price, &realized_price.term.long);
+        compute!(lth_capitalized_price, &capitalized_price.lth);
+        compute!(over_6m_realized_price, &realized_price.age.over._6m);
+        compute!(over_4m_realized_price, &realized_price.age.over._4m);
+        compute!(under_4m_realized_price, &realized_price.age.under._4m);
+        compute!(under_6m_realized_price, &realized_price.age.under._6m);
         compute!(vaulted_price, &cointime.prices.vaulted);
         compute!(active_price, &cointime.prices.active);
         compute!(true_market_mean_price, &cointime.prices.true_market_mean);

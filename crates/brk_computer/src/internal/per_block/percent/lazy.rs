@@ -47,31 +47,6 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         Self::from_height_source(name, version, source, indexes)
     }
 
-    pub(crate) fn from_cached_ratio_with_denominator_transform<S, D, F>(
-        name: &str,
-        version: Version,
-        numerator: &(impl ReadableCloneableVec<Height, S> + 'static),
-        denominator: CachedBoxedVec<Height, D>,
-        denominator_transform: fn(Height, D) -> D,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: NumericValue,
-        D: NumericValue,
-        F: BinaryTransform<S, D, B> + Send + Sync + 'static,
-    {
-        let source = LazyIndexedVec::new(
-            &format!("{name}_{}_source", B::SUFFIX),
-            version,
-            numerator.read_only_boxed_clone(),
-            denominator,
-            move |height, numerator, denominator| {
-                F::apply(numerator, denominator_transform(height, denominator))
-            },
-        );
-        Self::from_height_source(name, version, source, indexes)
-    }
-
     pub(crate) fn from_ratio_with_cached_numerator<S, D, F>(
         name: &str,
         version: Version,

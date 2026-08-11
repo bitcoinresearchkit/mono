@@ -1,6 +1,7 @@
 use brk_traversable::Traversable;
 use brk_types::{Timestamp, Year};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{CohortName, Filter};
@@ -71,7 +72,7 @@ pub const CLASS_NAMES: Class<CohortName> = Class {
     _2026: CohortName::new("class_2026", "2026", "Class 2026"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct Class<T> {
     pub _2009: T,
     pub _2010: T,
@@ -92,6 +93,29 @@ pub struct Class<T> {
     pub _2025: T,
     pub _2026: T,
 }
+
+define_column_id!(
+    ClassId for Class, version = 1 {
+        _2009 => _2009,
+        _2010 => _2010,
+        _2011 => _2011,
+        _2012 => _2012,
+        _2013 => _2013,
+        _2014 => _2014,
+        _2015 => _2015,
+        _2016 => _2016,
+        _2017 => _2017,
+        _2018 => _2018,
+        _2019 => _2019,
+        _2020 => _2020,
+        _2021 => _2021,
+        _2022 => _2022,
+        _2023 => _2023,
+        _2024 => _2024,
+        _2025 => _2025,
+        _2026 => _2026,
+    }
+);
 
 impl Class<CohortName> {
     pub const fn names() -> &'static Self {

@@ -16,7 +16,7 @@ use crate::{
     indexes,
     internal::{
         ColumnarPerBlock, ComputedVecValue, LazyColumnPerBlock, NumericValue, PerBlock,
-        RollingWindow24h, WindowFrom1wId, WindowId, Windows, WindowsFrom1w,
+        WindowFrom1wId, WindowId, Windows, WindowsFrom1w,
     },
 };
 
@@ -84,29 +84,6 @@ where
                 })
             },
         )?))
-    }
-}
-
-/// Single 24h rolling window backed by PerBlock (1 stored vec).
-#[derive(Deref, DerefMut, Traversable)]
-#[traversable(transparent)]
-pub struct RollingWindow24hPerBlock<T, M: StorageMode = Rw>(pub RollingWindow24h<PerBlock<T, M>>)
-where
-    T: ComputedVecValue + PartialOrd + JsonSchema;
-
-impl<T> RollingWindow24hPerBlock<T>
-where
-    T: NumericValue + JsonSchema,
-{
-    pub(crate) fn forced_import(
-        db: &Database,
-        name: &str,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
-        Ok(Self(RollingWindow24h {
-            _24h: PerBlock::forced_import(db, &format!("{name}_24h"), version, indexes)?,
-        }))
     }
 }
 

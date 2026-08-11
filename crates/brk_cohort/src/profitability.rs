@@ -1,43 +1,41 @@
 use std::{fmt, ops::AddAssign};
 
+use brk_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{ColumnId, Formattable, VecValue, Version};
 
 use crate::{
-    LOSS_COUNT, Loss, PROFIT_COUNT, PROFITABILITY_RANGE_COUNT, Profit, ProfitabilityRange,
+    LOSS_COUNT, Loss, LossId, PROFIT_COUNT, PROFITABILITY_RANGE_COUNT, Profit, ProfitId,
+    ProfitabilityRange, ProfitabilityRangeId,
 };
 
 pub const PROFITABILITY_COUNT: usize = PROFITABILITY_RANGE_COUNT + PROFIT_COUNT + LOSS_COUNT;
 
-#[derive(Debug, Clone, Serialize, JsonSchema)]
+#[derive(Debug, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ProfitabilityRow<T> {
-    pub range: [T; PROFITABILITY_RANGE_COUNT],
-    pub profit: [T; PROFIT_COUNT],
-    pub loss: [T; LOSS_COUNT],
+    pub range: ProfitabilityRange<T>,
+    pub profit: Profit<T>,
+    pub loss: Loss<T>,
 }
 
 impl<T> ProfitabilityRow<T>
 where
     T: AddAssign + Copy + Default,
 {
-    pub fn from_ranges(range: [T; PROFITABILITY_RANGE_COUNT]) -> Self {
-        let (profit_ranges, loss_ranges) = range.split_at(PROFIT_COUNT + 1);
-
-        let mut profit = [T::default(); PROFIT_COUNT];
-        let mut total = profit_ranges[0];
-        for (threshold, &value) in profit.iter_mut().rev().zip(&profit_ranges[1..]) {
+    pub fn from_ranges(range: ProfitabilityRange<T>) -> Self {
+        let mut profit = Profit::default();
+        let mut profit_ranges = range.iter().take(PROFIT_COUNT + 1);
+        let mut total = *profit_ranges.next().expect("profitability profit range");
+        for (threshold, &value) in profit.iter_mut().rev().zip(profit_ranges) {
             total += value;
             *threshold = total;
         }
 
-        let mut loss = [T::default(); LOSS_COUNT];
-        let mut total = loss_ranges[loss_ranges.len() - 1];
-        for (threshold, &value) in loss
-            .iter_mut()
-            .rev()
-            .zip(loss_ranges[..loss_ranges.len() - 1].iter().rev())
-        {
+        let mut loss = Loss::default();
+        let mut loss_ranges = range.iter().skip(PROFIT_COUNT + 1).rev();
+        let mut total = *loss_ranges.next().expect("profitability loss range");
+        for (threshold, &value) in loss.iter_mut().rev().zip(loss_ranges) {
             total += value;
             *threshold = total;
         }
@@ -53,11 +51,11 @@ where
 impl<T: Formattable> Formattable for ProfitabilityRow<T> {
     fn write_to(&self, buf: &mut Vec<u8>) {
         buf.extend_from_slice(b"{\"range\":");
-        self.range.write_to(buf);
+        write_array(self.range.iter(), buf);
         buf.extend_from_slice(b",\"profit\":");
-        self.profit.write_to(buf);
+        write_array(self.profit.iter(), buf);
         buf.extend_from_slice(b",\"loss\":");
-        self.loss.write_to(buf);
+        write_array(self.loss.iter(), buf);
         buf.push(b'}');
     }
 
@@ -76,6 +74,17 @@ impl<T: Formattable> Formattable for ProfitabilityRow<T> {
         output.push('"');
         Ok(())
     }
+}
+
+fn write_array<'a, T: Formattable + 'a>(values: impl Iterator<Item = &'a T>, buf: &mut Vec<u8>) {
+    buf.push(b'[');
+    for (index, value) in values.enumerate() {
+        if index > 0 {
+            buf.push(b',');
+        }
+        value.write_to(buf);
+    }
+    buf.push(b']');
 }
 
 /// Every profitability range and aggregate threshold in column storage order.
@@ -184,6 +193,14 @@ pub const PROFITABILITY_IDS: [ProfitabilityId; PROFITABILITY_COUNT] = [
 ];
 
 impl ProfitabilityId {
+    pub fn series<T>(mut create: impl FnMut(Self, &'static str) -> T) -> ProfitabilityRow<T> {
+        ProfitabilityRow {
+            range: Self::range_series(&mut create),
+            profit: Self::profit_series(&mut create),
+            loss: Self::loss_series(create),
+        }
+    }
+
     pub fn range_ids() -> &'static [Self] {
         &PROFITABILITY_IDS[..PROFITABILITY_RANGE_COUNT]
     }
@@ -194,6 +211,18 @@ impl ProfitabilityId {
 
     pub fn loss_ids() -> &'static [Self] {
         &PROFITABILITY_IDS[PROFITABILITY_RANGE_COUNT + PROFIT_COUNT..]
+    }
+
+    pub fn ranges(self) -> &'static [ProfitabilityRangeId] {
+        match self.group() {
+            ProfitabilityGroupId::Range(id) => &ProfitabilityRangeId::ALL[id.index()..=id.index()],
+            ProfitabilityGroupId::Profit(id) => {
+                &ProfitabilityRangeId::ALL[..PROFIT_COUNT + 1 - id.index()]
+            }
+            ProfitabilityGroupId::Loss(id) => {
+                &ProfitabilityRangeId::ALL[PROFIT_COUNT + 1 + id.index()..]
+            }
+        }
     }
 
     pub fn range_series<T>(
@@ -348,13 +377,84 @@ impl ProfitabilityId {
     }
 }
 
+enum ProfitabilityGroupId {
+    Range(ProfitabilityRangeId),
+    Profit(ProfitId),
+    Loss(LossId),
+}
+
+impl ProfitabilityId {
+    const fn group(self) -> ProfitabilityGroupId {
+        use ProfitabilityGroupId::{Loss, Profit, Range};
+
+        match self {
+            Self::RangeOver1000PctInProfit => Range(ProfitabilityRangeId::Over1000PctInProfit),
+            Self::Range500To1000PctInProfit => {
+                Range(ProfitabilityRangeId::From500PctTo1000PctInProfit)
+            }
+            Self::Range300To500PctInProfit => {
+                Range(ProfitabilityRangeId::From300PctTo500PctInProfit)
+            }
+            Self::Range200To300PctInProfit => {
+                Range(ProfitabilityRangeId::From200PctTo300PctInProfit)
+            }
+            Self::Range100To200PctInProfit => {
+                Range(ProfitabilityRangeId::From100PctTo200PctInProfit)
+            }
+            Self::Range90To100PctInProfit => Range(ProfitabilityRangeId::From90PctTo100PctInProfit),
+            Self::Range80To90PctInProfit => Range(ProfitabilityRangeId::From80PctTo90PctInProfit),
+            Self::Range70To80PctInProfit => Range(ProfitabilityRangeId::From70PctTo80PctInProfit),
+            Self::Range60To70PctInProfit => Range(ProfitabilityRangeId::From60PctTo70PctInProfit),
+            Self::Range50To60PctInProfit => Range(ProfitabilityRangeId::From50PctTo60PctInProfit),
+            Self::Range40To50PctInProfit => Range(ProfitabilityRangeId::From40PctTo50PctInProfit),
+            Self::Range30To40PctInProfit => Range(ProfitabilityRangeId::From30PctTo40PctInProfit),
+            Self::Range20To30PctInProfit => Range(ProfitabilityRangeId::From20PctTo30PctInProfit),
+            Self::Range10To20PctInProfit => Range(ProfitabilityRangeId::From10PctTo20PctInProfit),
+            Self::Range0To10PctInProfit => Range(ProfitabilityRangeId::From0PctTo10PctInProfit),
+            Self::Range0To10PctInLoss => Range(ProfitabilityRangeId::From0PctTo10PctInLoss),
+            Self::Range10To20PctInLoss => Range(ProfitabilityRangeId::From10PctTo20PctInLoss),
+            Self::Range20To30PctInLoss => Range(ProfitabilityRangeId::From20PctTo30PctInLoss),
+            Self::Range30To40PctInLoss => Range(ProfitabilityRangeId::From30PctTo40PctInLoss),
+            Self::Range40To50PctInLoss => Range(ProfitabilityRangeId::From40PctTo50PctInLoss),
+            Self::Range50To60PctInLoss => Range(ProfitabilityRangeId::From50PctTo60PctInLoss),
+            Self::Range60To70PctInLoss => Range(ProfitabilityRangeId::From60PctTo70PctInLoss),
+            Self::Range70To80PctInLoss => Range(ProfitabilityRangeId::From70PctTo80PctInLoss),
+            Self::Range80To90PctInLoss => Range(ProfitabilityRangeId::From80PctTo90PctInLoss),
+            Self::Range90To100PctInLoss => Range(ProfitabilityRangeId::From90PctTo100PctInLoss),
+            Self::Profit => Profit(ProfitId::All),
+            Self::ProfitOver10Pct => Profit(ProfitId::Over10Pct),
+            Self::ProfitOver20Pct => Profit(ProfitId::Over20Pct),
+            Self::ProfitOver30Pct => Profit(ProfitId::Over30Pct),
+            Self::ProfitOver40Pct => Profit(ProfitId::Over40Pct),
+            Self::ProfitOver50Pct => Profit(ProfitId::Over50Pct),
+            Self::ProfitOver60Pct => Profit(ProfitId::Over60Pct),
+            Self::ProfitOver70Pct => Profit(ProfitId::Over70Pct),
+            Self::ProfitOver80Pct => Profit(ProfitId::Over80Pct),
+            Self::ProfitOver90Pct => Profit(ProfitId::Over90Pct),
+            Self::ProfitOver100Pct => Profit(ProfitId::Over100Pct),
+            Self::ProfitOver200Pct => Profit(ProfitId::Over200Pct),
+            Self::ProfitOver300Pct => Profit(ProfitId::Over300Pct),
+            Self::ProfitOver500Pct => Profit(ProfitId::Over500Pct),
+            Self::Loss => Loss(LossId::All),
+            Self::LossOver10Pct => Loss(LossId::Over10Pct),
+            Self::LossOver20Pct => Loss(LossId::Over20Pct),
+            Self::LossOver30Pct => Loss(LossId::Over30Pct),
+            Self::LossOver40Pct => Loss(LossId::Over40Pct),
+            Self::LossOver50Pct => Loss(LossId::Over50Pct),
+            Self::LossOver60Pct => Loss(LossId::Over60Pct),
+            Self::LossOver70Pct => Loss(LossId::Over70Pct),
+            Self::LossOver80Pct => Loss(LossId::Over80Pct),
+        }
+    }
+}
+
 impl ColumnId for ProfitabilityId {
     type Row<T>
         = ProfitabilityRow<T>
     where
         T: VecValue;
 
-    const VERSION: Version = Version::ONE;
+    const VERSION: Version = Version::TWO;
     const ALL: &'static [Self] = &PROFITABILITY_IDS;
 
     #[inline]
@@ -364,25 +464,19 @@ impl ColumnId for ProfitabilityId {
 
     #[inline]
     fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        let index = self as usize;
-        if index < PROFITABILITY_RANGE_COUNT {
-            &row.range[index]
-        } else if index < PROFITABILITY_RANGE_COUNT + PROFIT_COUNT {
-            &row.profit[index - PROFITABILITY_RANGE_COUNT]
-        } else {
-            &row.loss[index - PROFITABILITY_RANGE_COUNT - PROFIT_COUNT]
+        match self.group() {
+            ProfitabilityGroupId::Range(id) => id.get(&row.range),
+            ProfitabilityGroupId::Profit(id) => id.get(&row.profit),
+            ProfitabilityGroupId::Loss(id) => id.get(&row.loss),
         }
     }
 
     #[inline]
     fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        let index = self as usize;
-        if index < PROFITABILITY_RANGE_COUNT {
-            &mut row.range[index]
-        } else if index < PROFITABILITY_RANGE_COUNT + PROFIT_COUNT {
-            &mut row.profit[index - PROFITABILITY_RANGE_COUNT]
-        } else {
-            &mut row.loss[index - PROFITABILITY_RANGE_COUNT - PROFIT_COUNT]
+        match self.group() {
+            ProfitabilityGroupId::Range(id) => id.get_mut(&mut row.range),
+            ProfitabilityGroupId::Profit(id) => id.get_mut(&mut row.profit),
+            ProfitabilityGroupId::Loss(id) => id.get_mut(&mut row.loss),
         }
     }
 
@@ -392,15 +486,7 @@ impl ColumnId for ProfitabilityId {
         T: VecValue,
         F: FnMut(Self) -> T,
     {
-        ProfitabilityRow {
-            range: std::array::from_fn(|index| f(PROFITABILITY_IDS[index])),
-            profit: std::array::from_fn(|index| {
-                f(PROFITABILITY_IDS[PROFITABILITY_RANGE_COUNT + index])
-            }),
-            loss: std::array::from_fn(|index| {
-                f(PROFITABILITY_IDS[PROFITABILITY_RANGE_COUNT + PROFIT_COUNT + index])
-            }),
-        }
+        Self::series(|id, _| f(id))
     }
 
     #[inline]
@@ -411,9 +497,9 @@ impl ColumnId for ProfitabilityId {
         F: FnMut(T) -> U,
     {
         ProfitabilityRow {
-            range: row.range.map(&mut f),
-            profit: row.profit.map(&mut f),
-            loss: row.loss.map(f),
+            range: ProfitabilityRangeId::map(row.range, &mut f),
+            profit: ProfitId::map(row.profit, &mut f),
+            loss: LossId::map(row.loss, f),
         }
     }
 }
@@ -456,24 +542,43 @@ mod tests {
 
     #[test]
     fn rows_expand_ranges_into_profit_prefixes_and_loss_suffixes() {
-        let ranges = std::array::from_fn(|index| index + 1);
-        let row = ProfitabilityRow::from_ranges(ranges);
+        let ranges = ProfitabilityRangeId::from_fn(|id| id.index() + 1);
+        let row = ProfitabilityRow::from_ranges(ranges.clone());
 
         assert_eq!(
-            row.profit[0],
-            ranges[..PROFIT_COUNT + 1].iter().copied().sum::<usize>()
-        );
-        assert_eq!(row.profit[PROFIT_COUNT - 1], ranges[0] + ranges[1]);
-        assert_eq!(
-            row.loss[0],
-            ranges[PROFIT_COUNT + 1..].iter().copied().sum::<usize>()
+            row.profit.all,
+            ranges.iter().take(PROFIT_COUNT + 1).copied().sum::<usize>()
         );
         assert_eq!(
-            row.loss[LOSS_COUNT - 1],
-            ranges[PROFITABILITY_RANGE_COUNT - 2..]
-                .iter()
-                .copied()
-                .sum::<usize>()
+            row.profit._500pct,
+            ranges.over_1000pct_in_profit + ranges._500pct_to_1000pct_in_profit
         );
+        assert_eq!(
+            row.loss.all,
+            ranges.iter().skip(PROFIT_COUNT + 1).copied().sum::<usize>()
+        );
+        assert_eq!(
+            row.loss._80pct,
+            ranges.iter().rev().take(2).copied().sum::<usize>()
+        );
+    }
+
+    #[test]
+    fn aggregate_ids_select_their_exact_ranges() {
+        for &id in ProfitabilityId::range_ids() {
+            assert_eq!(id.ranges().len(), 1);
+        }
+        for (threshold, &id) in ProfitabilityId::profit_ids().iter().enumerate() {
+            assert_eq!(
+                id.ranges(),
+                &ProfitabilityRangeId::ALL[..PROFIT_COUNT + 1 - threshold]
+            );
+        }
+        for (threshold, &id) in ProfitabilityId::loss_ids().iter().enumerate() {
+            assert_eq!(
+                id.ranges(),
+                &ProfitabilityRangeId::ALL[PROFIT_COUNT + 1 + threshold..]
+            );
+        }
     }
 }

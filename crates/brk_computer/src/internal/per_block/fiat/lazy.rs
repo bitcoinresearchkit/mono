@@ -1,7 +1,11 @@
 use brk_traversable::Traversable;
-use brk_types::{Dollars, Version};
+use brk_types::{Dollars, Height, Version};
+use vecdb::ReadableBoxedVec;
 
-use crate::internal::{FiatType, Identity, LazyPerBlock, NumericValue};
+use crate::{
+    indexes,
+    internal::{FiatType, Identity, LazyPerBlock, NumericValue},
+};
 
 /// Lazy fiat: both cents and usd are lazy views of a stored source.
 /// Zero extra stored vecs.
@@ -20,5 +24,23 @@ impl<C: FiatType> LazyFiatPerBlock<C> {
             LazyPerBlock::from_lazy::<Identity<C>, C>(&format!("{name}_cents"), version, source);
         let usd = LazyPerBlock::from_lazy::<C::ToDollars, C>(name, version, source);
         Self { usd, cents }
+    }
+
+    pub(crate) fn from_boxed_cents_source(
+        name: &str,
+        version: Version,
+        source: ReadableBoxedVec<Height, C>,
+        indexes: &indexes::Vecs,
+    ) -> Self
+    where
+        C: NumericValue,
+    {
+        let source = LazyPerBlock::from_uncached_boxed_height_source::<Identity<C>>(
+            &format!("{name}_cents"),
+            version,
+            source,
+            indexes,
+        );
+        Self::from_lazy(name, version, &source)
     }
 }

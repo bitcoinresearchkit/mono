@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 
 use crate::distribution::{
     addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVecs},
-    compute::VecsReaders,
+    compute::AddrReaders,
 };
 
 use super::super::cohort::{WithAddrDataSource, update_tx_counts};
@@ -52,7 +52,7 @@ impl BlockAddress {
     fn load(
         self,
         first_addr_indexes: &ByAddrType<TypeIndex>,
-        vr: &VecsReaders,
+        vr: &AddrReaders,
         any_addr_indexes: &AnyAddrIndexesVecs,
         addrs_data: &AddrsDataVecs,
     ) -> WithAddrDataSource<FundedAddrData> {
@@ -124,7 +124,7 @@ impl AddrCache {
         &mut self,
         addresses: impl Iterator<Item = (OutputType, TypeIndex)>,
         first_addr_indexes: &ByAddrType<TypeIndex>,
-        vr: &VecsReaders,
+        vr: &AddrReaders,
         any_addr_indexes: &AnyAddrIndexesVecs,
         addrs_data: &AddrsDataVecs,
     ) {

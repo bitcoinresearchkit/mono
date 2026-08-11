@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use brk_types::{EmptyAddrData, EmptyAddrIndex, FundedAddrData, FundedAddrIndex};
 
 /// Address data wrapped with its source location for flush operations.
@@ -14,7 +16,7 @@ pub enum WithAddrDataSource<T> {
     FromEmpty(EmptyAddrIndex, T),
 }
 
-impl<T> std::ops::Deref for WithAddrDataSource<T> {
+impl<T> Deref for WithAddrDataSource<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -24,7 +26,7 @@ impl<T> std::ops::Deref for WithAddrDataSource<T> {
     }
 }
 
-impl<T> std::ops::DerefMut for WithAddrDataSource<T> {
+impl<T> DerefMut for WithAddrDataSource<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         match self {
             Self::New(v) | Self::FromFunded(_, v) | Self::FromEmpty(_, v) => v,

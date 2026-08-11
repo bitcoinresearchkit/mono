@@ -1,6 +1,7 @@
 use brk_traversable::Traversable;
 use brk_types::Sats;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{AmountFilter, CohortName, Filter};
@@ -56,7 +57,7 @@ pub const UNDER_AMOUNT_FILTERS: UnderAmount<Filter> = UnderAmount {
     _100k_btc: Filter::Amount(AmountFilter::LowerThan(UNDER_AMOUNT_THRESHOLDS._100k_btc)),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct UnderAmount<T> {
     pub _10sats: T,
     pub _100sats: T,
@@ -72,6 +73,24 @@ pub struct UnderAmount<T> {
     pub _10k_btc: T,
     pub _100k_btc: T,
 }
+
+define_column_id!(
+    UnderAmountId for UnderAmount, version = 1 {
+        Under10Sats => _10sats,
+        Under100Sats => _100sats,
+        Under1KSats => _1k_sats,
+        Under10KSats => _10k_sats,
+        Under100KSats => _100k_sats,
+        Under1MSats => _1m_sats,
+        Under10MSats => _10m_sats,
+        Under1Btc => _1btc,
+        Under10Btc => _10btc,
+        Under100Btc => _100btc,
+        Under1KBtc => _1k_btc,
+        Under10KBtc => _10k_btc,
+        Under100KBtc => _100k_btc,
+    }
+);
 
 impl UnderAmount<CohortName> {
     pub const fn names() -> &'static Self {

@@ -1,9 +1,10 @@
 use brk_traversable::Traversable;
 use brk_types::Cents;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::Serialize;
 
-use super::CohortName;
+use super::{CohortName, PROFIT_COUNT};
 
 /// Number of profitability range boundaries (24 boundaries → 25 buckets).
 pub const PROFITABILITY_BOUNDARY_COUNT: usize = 24;
@@ -220,7 +221,7 @@ impl ProfitabilityRange<CohortName> {
 ///
 /// During the k-way merge (ascending price order), the cursor starts at bucket 0
 /// (over_1000pct_in_profit, lowest cost basis) and advances as price crosses each boundary.
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ProfitabilityRange<T> {
     pub over_1000pct_in_profit: T,
     pub _500pct_to_1000pct_in_profit: T,
@@ -247,6 +248,42 @@ pub struct ProfitabilityRange<T> {
     pub _70pct_to_80pct_in_loss: T,
     pub _80pct_to_90pct_in_loss: T,
     pub _90pct_to_100pct_in_loss: T,
+}
+
+define_column_id!(
+    ProfitabilityRangeId for ProfitabilityRange, version = 1 {
+        Over1000PctInProfit => over_1000pct_in_profit,
+        From500PctTo1000PctInProfit => _500pct_to_1000pct_in_profit,
+        From300PctTo500PctInProfit => _300pct_to_500pct_in_profit,
+        From200PctTo300PctInProfit => _200pct_to_300pct_in_profit,
+        From100PctTo200PctInProfit => _100pct_to_200pct_in_profit,
+        From90PctTo100PctInProfit => _90pct_to_100pct_in_profit,
+        From80PctTo90PctInProfit => _80pct_to_90pct_in_profit,
+        From70PctTo80PctInProfit => _70pct_to_80pct_in_profit,
+        From60PctTo70PctInProfit => _60pct_to_70pct_in_profit,
+        From50PctTo60PctInProfit => _50pct_to_60pct_in_profit,
+        From40PctTo50PctInProfit => _40pct_to_50pct_in_profit,
+        From30PctTo40PctInProfit => _30pct_to_40pct_in_profit,
+        From20PctTo30PctInProfit => _20pct_to_30pct_in_profit,
+        From10PctTo20PctInProfit => _10pct_to_20pct_in_profit,
+        From0PctTo10PctInProfit => _0pct_to_10pct_in_profit,
+        From0PctTo10PctInLoss => _0pct_to_10pct_in_loss,
+        From10PctTo20PctInLoss => _10pct_to_20pct_in_loss,
+        From20PctTo30PctInLoss => _20pct_to_30pct_in_loss,
+        From30PctTo40PctInLoss => _30pct_to_40pct_in_loss,
+        From40PctTo50PctInLoss => _40pct_to_50pct_in_loss,
+        From50PctTo60PctInLoss => _50pct_to_60pct_in_loss,
+        From60PctTo70PctInLoss => _60pct_to_70pct_in_loss,
+        From70PctTo80PctInLoss => _70pct_to_80pct_in_loss,
+        From80PctTo90PctInLoss => _80pct_to_90pct_in_loss,
+        From90PctTo100PctInLoss => _90pct_to_100pct_in_loss,
+    }
+);
+
+impl ProfitabilityRangeId {
+    pub const fn is_profit(self) -> bool {
+        (self as usize) < PROFIT_COUNT + 1
+    }
 }
 
 /// Number of profitability range buckets.
@@ -321,7 +358,7 @@ impl<T> ProfitabilityRange<T> {
         })
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         [
             &self.over_1000pct_in_profit,
             &self._500pct_to_1000pct_in_profit,
@@ -352,12 +389,14 @@ impl<T> ProfitabilityRange<T> {
         .into_iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> + ExactSizeIterator {
         self.iter_mut_with_is_profit().map(|(_, v)| v)
     }
 
     /// Iterate mutably, yielding `(is_profit, &mut T)` for each range.
-    pub fn iter_mut_with_is_profit(&mut self) -> impl Iterator<Item = (bool, &mut T)> {
+    pub fn iter_mut_with_is_profit(
+        &mut self,
+    ) -> impl DoubleEndedIterator<Item = (bool, &mut T)> + ExactSizeIterator {
         [
             (true, &mut self.over_1000pct_in_profit),
             (true, &mut self._500pct_to_1000pct_in_profit),

@@ -90,7 +90,7 @@ export function buildCohortData() {
   const ageRange = ageRanges.map(({ key, ...range }) => ({
     ...range,
     tree: utxoCohorts.ageRange[key],
-    matured: utxoCohorts.matured[key],
+    matured: utxoCohorts.supply.matured[key],
   }));
 
   const epoch = entries(EPOCH_NAMES).map(([key, names], i, arr) => ({
@@ -117,7 +117,7 @@ export function buildCohortData() {
         title: `Addresses ${names.long}`,
         color: colors.at(i, arr.length),
         tree: cohort,
-        addressCount: cohort.addrCount,
+        addressCount: addrs.funded.balance.over[key],
       };
     },
   );
@@ -139,7 +139,7 @@ export function buildCohortData() {
         title: `Addresses ${names.long}`,
         color: colors.at(i, arr.length),
         tree: cohort,
-        addressCount: cohort.addrCount,
+        addressCount: addrs.funded.balance.under[key],
       };
     },
   );
@@ -161,7 +161,7 @@ export function buildCohortData() {
         title: `Addresses ${names.long}`,
         color: colors.at(i, arr.length),
         tree: cohort,
-        addressCount: cohort.addrCount,
+        addressCount: addrs.funded.balance.range[key],
       };
     },
   );
@@ -216,13 +216,19 @@ export function buildCohortData() {
     tree: utxoCohorts.entry[key],
   }));
 
-  const { range, profit, loss } = utxoCohorts.profitability;
+  const profitability = utxoCohorts.profitability;
+  const profitabilityPattern = (group, key) => ({
+    supply: profitability.supply[group][key],
+    realizedCap: profitability.realizedCap[group][key],
+    unrealizedPnl: profitability.unrealizedPnl[group][key],
+    nupl: profitability.nupl[group][key],
+  });
 
   const profitabilityRange = entries(PROFITABILITY_RANGE_NAMES).map(
     ([key, names], i, arr) => ({
       name: names.short,
       color: colors.at(i, arr.length),
-      pattern: range[key],
+      pattern: profitabilityPattern("range", key),
     }),
   );
 
@@ -230,14 +236,14 @@ export function buildCohortData() {
     ([key, names], i, arr) => ({
       name: names.short,
       color: colors.at(i, arr.length),
-      pattern: profit[key],
+      pattern: profitabilityPattern("profit", key),
     }),
   );
 
   const profitabilityLoss = entries(LOSS_NAMES).map(([key, names], i, arr) => ({
     name: names.short,
     color: colors.at(i, arr.length),
-    pattern: loss[key],
+    pattern: profitabilityPattern("loss", key),
   }));
 
   return {

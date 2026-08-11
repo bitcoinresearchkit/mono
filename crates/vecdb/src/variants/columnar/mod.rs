@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use parking_lot::RwLock;
 
@@ -7,20 +7,24 @@ use crate::{
     Version,
 };
 
+mod column;
 mod lazy;
 mod read;
+mod read_only;
 mod schema;
 mod sum;
 mod traits;
 
+pub use column::*;
 pub use lazy::*;
+pub use read_only::*;
 pub use schema::*;
 pub use sum::*;
 
 use read::read_rows;
 use schema::validate_schema;
 
-const VERSION: Version = Version::new(7);
+const VERSION: Version = Version::new(8);
 
 #[inline]
 pub(super) const fn rows_per_block<T>() -> usize {
@@ -51,60 +55,6 @@ where
     pushed: Vec<C::Row<V::T>>,
     visible_rows: SharedLen,
     gate: Arc<RwLock<()>>,
-}
-
-/// Lean read-only clone of a [`ColumnarVec`].
-pub struct ReadOnlyColumnarVec<V, C>
-where
-    V: StoredVec,
-    C: ColumnId,
-{
-    vec: V::ReadOnly,
-    visible_rows: SharedLen,
-    gate: Arc<RwLock<()>>,
-    columns: PhantomData<C>,
-}
-
-impl<V, C> Clone for ReadOnlyColumnarVec<V, C>
-where
-    V: StoredVec,
-    C: ColumnId,
-{
-    fn clone(&self) -> Self {
-        Self {
-            vec: self.vec.clone(),
-            visible_rows: self.visible_rows.clone(),
-            gate: Arc::clone(&self.gate),
-            columns: PhantomData,
-        }
-    }
-}
-
-/// Lazy scalar projection of one columnar source.
-pub struct LazyColumnVec<S, C>
-where
-    C: ColumnId,
-    S: ReadableColumnarVec<C>,
-{
-    name: Arc<str>,
-    base_version: Version,
-    source: S,
-    column: C,
-}
-
-impl<S, C> Clone for LazyColumnVec<S, C>
-where
-    C: ColumnId,
-    S: ReadableColumnarVec<C>,
-{
-    fn clone(&self) -> Self {
-        Self {
-            name: Arc::clone(&self.name),
-            base_version: self.base_version,
-            source: self.source.clone(),
-            column: self.column,
-        }
-    }
 }
 
 impl<V, C> ColumnarVec<V, C>
@@ -139,7 +89,11 @@ where
     fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
         Self::validate_layout()?;
         let columns = u32::try_from(Self::COLUMN_COUNT).map_err(|_| Error::Overflow)?;
-        options.version = options.version + VERSION + C::VERSION + Version::new(columns);
+        options.version = options
+            .version
+            .combine(VERSION)
+            .combine(C::VERSION)
+            .combine(Version::new(columns));
         options.initial_capacity = Some(
             options
                 .initial_capacity
@@ -176,7 +130,7 @@ where
             vec: self.vec.read_only_clone(),
             visible_rows: self.visible_rows.clone(),
             gate: Arc::clone(&self.gate),
-            columns: PhantomData,
+            columns: std::marker::PhantomData,
         }
     }
 

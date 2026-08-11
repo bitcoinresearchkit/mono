@@ -68,18 +68,18 @@ impl RarityMeter {
         exit: &Exit,
     ) -> Result<()> {
         let spot = &prices.spot.cents.height;
-        let all = &distribution.utxo_cohorts.all.metrics;
-        let realized = &all.realized;
+        let metrics = &distribution.cohorts;
+        let realized = &metrics.realized;
 
         self.components
             .compute(indexer, distribution, cointime, coinflow, exit)?;
         self.extremes.compute(
             indexer,
-            &all.supply.in_loss.btc.height,
-            &realized.profit.sum._24h.usd.height,
-            &realized.loss.sum._24h.usd.height,
-            &realized.peak_regret.value.sum._24h.usd.height,
-            &realized.sell_side_risk_ratio._24h.percent.height,
+            &metrics.supply.in_loss.cohorts.all.btc.height,
+            &realized.profit.cohorts.all.sum._24h.usd.height,
+            &realized.loss.cohorts.all.sum._24h.usd.height,
+            &realized.peak_regret.series.all.sum._24h.usd.height,
+            &realized.sell_side_risk_ratio.all._24h.percent.height,
             exit,
         )?;
 

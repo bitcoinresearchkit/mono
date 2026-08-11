@@ -1,4 +1,4 @@
-use brk_types::{Cents, Height, Sats, Version};
+use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, Version};
 use vecdb::{
     BinaryTransform, CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue,
 };
@@ -100,8 +100,8 @@ impl AllChainCache {
         version: Version,
         realized_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
         window_starts: CachedBoxedVec<Height, Height>,
-    ) -> impl TypedVec<I = Height, T = brk_types::PartsPerMillionSigned64>
-    + ReadableVec<Height, brk_types::PartsPerMillionSigned64>
+    ) -> impl TypedVec<I = Height, T = PartsPerMillionSigned64>
+    + ReadableVec<Height, PartsPerMillionSigned64>
     + Clone
     + 'static {
         let caps = self.with_market_cap(
@@ -125,7 +125,7 @@ impl AllChainCache {
                         (f64::from(current) - f64::from(previous)) / f64::from(previous)
                     }
                 };
-                brk_types::PartsPerMillionSigned64::from(
+                PartsPerMillionSigned64::from(
                     growth(current.market, previous.market)
                         - growth(current.realized, previous.realized),
                 )
@@ -137,7 +137,10 @@ impl AllChainCache {
 #[cfg(test)]
 mod tests {
     use brk_types::PartsPerMillionSigned64;
-    use vecdb::{AnyStoredVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec, WritableVec};
+    use vecdb::{
+        AnyStoredVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone,
+        WritableVec,
+    };
 
     use super::*;
 
@@ -179,7 +182,7 @@ mod tests {
         realized.write().unwrap();
         starts.write().unwrap();
 
-        let supply_cache = AllSupplyCache::new(&supply);
+        let supply_cache = AllSupplyCache::new(supply.read_only_clone());
         let price_cache = CachedVec::wrap(price);
         let cache = AllChainCache::new(&supply_cache, &price_cache.read_only_cached_boxed_clone());
 

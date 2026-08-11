@@ -22,10 +22,10 @@ use super::{
     weighted_urpd_name,
 };
 use crate::{
-    distribution,
+    distribution::{self, UTXOStates},
     frameworks::{
-        coinflow::{self, AgeBand, HORIZON_COUNT, HORIZON_DAYS, age_bounds_days},
-        cointime,
+        self,
+        coinflow::{AgeBand, HORIZON_COUNT, HorizonId, age_bounds_days, horizon_mobility},
     },
     indexes,
     internal::db_utils::validate_any_computed_version_or_reset,
@@ -145,7 +145,7 @@ struct Calibration {
 impl Calibration {
     fn from_sources<T, U>(
         raw: &impl ReadableVec<Day1, Option<T>>,
-        weighted: &WeightedModes<&impl ReadableVec<Day1, Option<U>>>,
+        weighted: &WeightedModes<&dyn ReadableVec<Day1, Option<U>>>,
         end: usize,
     ) -> Self
     where
@@ -204,19 +204,19 @@ impl Vecs {
         indexer: &Indexer,
         indexes: &indexes::Vecs,
         distribution: &distribution::Vecs,
-        cointime: &cointime::Vecs,
-        coinflow: &coinflow::Vecs,
+        utxo_states: &UTXOStates,
+        frameworks: &frameworks::Vecs,
         exit: &Exit,
     ) -> Result<()> {
+        let cointime = &frameworks.cointime;
+        let coinflow = &frameworks.coinflow;
         let cointime_wakefulness =
             AgeRange::from_fn(|id| &id.select(&cointime.age_range.activity.wakefulness).day1);
         let age_supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution.utxo_cohorts.age_range)
-                .metrics
-                .supply
-                .total
+            &id.select(&distribution.cohorts.supply.total.cohorts.age.range)
                 .sats
                 .day1
+                .0
         });
         let coinflow_mobility = AgeRange::from_fn(|id| {
             &id.select(&coinflow.age_range.spending_exposure.mobility)
@@ -226,24 +226,42 @@ impl Vecs {
         let coinflow_spending_rate =
             AgeRange::from_fn(|id| &id.select(&coinflow.age_range.spending_rate).day1);
         let raw_loss_share = &distribution
-            .utxo_cohorts
-            .all
-            .metrics
+            .cohorts
             .relative
+            .supply_profitability_shares
             .supply_in_loss_share
+            .all
             .ppm
-            .day1;
-        let weighted_loss_shares = WeightedModes {
-            cointime: &cointime.supply.active_supply_in_loss_share.day1,
-            coinflow: &coinflow.all.supply_in_loss_share.day1,
-            coinflow_8y: &coinflow.all.horizon._8y.supply_in_loss_share.day1,
-            coinflow_4y: &coinflow.all.horizon._4y.supply_in_loss_share.day1,
-            coinflow_2y: &coinflow.all.horizon._2y.supply_in_loss_share.day1,
-            coinflow_1y: &coinflow.all.horizon._1y.supply_in_loss_share.day1,
-            coinflow_6m: &coinflow.all.horizon._6m.supply_in_loss_share.day1,
-            coinflow_3m: &coinflow.all.horizon._3m.supply_in_loss_share.day1,
-            coinflow_1m: &coinflow.all.horizon._1m.supply_in_loss_share.day1,
-        };
+            .day1
+            .0;
+        let weighted_loss_shares =
+            WeightedModes::from_fn(|mode| -> &dyn ReadableVec<Day1, Option<StoredF64>> {
+                match mode {
+                    WeightedModeId::Cointime => &cointime.supply.active_supply_in_loss_share.day1,
+                    WeightedModeId::Coinflow => &coinflow.all.supply_in_loss_share.day1.0,
+                    WeightedModeId::Coinflow8Y => {
+                        &coinflow.all.horizon._8y.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow4Y => {
+                        &coinflow.all.horizon._4y.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow2Y => {
+                        &coinflow.all.horizon._2y.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow1Y => {
+                        &coinflow.all.horizon._1y.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow6M => {
+                        &coinflow.all.horizon._6m.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow3M => {
+                        &coinflow.all.horizon._3m.supply_in_loss_share.day1.0
+                    }
+                    WeightedModeId::Coinflow1M => {
+                        &coinflow.all.horizon._1m.supply_in_loss_share.day1.0
+                    }
+                }
+            });
         let weighted_urpd_names = weighted_urpd_names();
 
         let weighted_urpd_source_version: Version = std::iter::once(WEIGHTED_URPD_VERSION)
@@ -253,11 +271,12 @@ impl Vecs {
             .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
             .chain(coinflow_mobility.iter().map(|vec| vec.version()))
             .sum();
-        let source_version: Version = std::iter::once(weighted_urpd_source_version)
-            .chain(coinflow_spending_rate.iter().map(|vec| vec.version()))
-            .chain(std::iter::once(raw_loss_share.version()))
-            .chain(weighted_loss_shares.iter().map(|vec| vec.version()))
-            .sum();
+        let source_version = Version::combine_all(
+            std::iter::once(weighted_urpd_source_version)
+                .chain(coinflow_spending_rate.iter().map(|vec| vec.version()))
+                .chain(std::iter::once(raw_loss_share.version()))
+                .chain(weighted_loss_shares.iter().map(|vec| vec.version())),
+        );
 
         for vec in self.stored_vecs_mut() {
             validate_any_computed_version_or_reset(vec, source_version)?;
@@ -319,10 +338,7 @@ impl Vecs {
                     &bounds,
                 );
                 let urpds = if day_index + 1 == source_end {
-                    Some(build_current_day_urpds(
-                        &distribution.utxo_cohorts,
-                        &weights,
-                    ))
+                    Some(build_current_day_urpds(utxo_states, &weights))
                 } else if UrpdRaw::path(&distribution.states_path, UTXO_ALL_NAME.id, date)
                     .try_exists()?
                 {
@@ -383,23 +399,28 @@ impl Vecs {
     }
 }
 
-fn collect_loss_history<T>(source: &impl ReadableVec<Day1, Option<T>>, end: usize) -> Vec<f64>
+fn collect_loss_history<T>(
+    source: &(impl ReadableVec<Day1, Option<T>> + ?Sized),
+    end: usize,
+) -> Vec<f64>
 where
     T: VecValue,
     f64: From<T>,
 {
-    let mut history: Vec<_> = source
-        .collect_range_at(0, end)
-        .into_iter()
-        .flatten()
-        .map(f64::from)
-        .filter(|value| value.is_finite())
-        .collect();
+    let mut history = Vec::with_capacity(end);
+    source.for_each_range_dyn_at(0, end, &mut |value| {
+        if let Some(value) = value.map(f64::from).filter(|value| value.is_finite()) {
+            history.push(value);
+        }
+    });
     history.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal));
     history
 }
 
-fn collect_loss_share<T>(source: &impl ReadableVec<Day1, Option<T>>, day: Day1) -> Option<f64>
+fn collect_loss_share<T>(
+    source: &(impl ReadableVec<Day1, Option<T>> + ?Sized),
+    day: Day1,
+) -> Option<f64>
 where
     T: VecValue,
     f64: From<T>,
@@ -413,7 +434,7 @@ where
 
 fn collect_loss_shares<T, U>(
     raw: &impl ReadableVec<Day1, Option<T>>,
-    weighted: &WeightedModes<&impl ReadableVec<Day1, Option<U>>>,
+    weighted: &WeightedModes<&dyn ReadableVec<Day1, Option<U>>>,
     day: Day1,
 ) -> Modes<Option<f64>>
 where
@@ -463,10 +484,10 @@ fn mode_weights(
         let hazards = AgeRange::from_fn(|id| (*id.select(&hazards)).max(0.0));
         for (id, horizon) in WeightedModeId::COINFLOW_HORIZONS
             .into_iter()
-            .zip(HORIZON_DAYS.iter().copied())
+            .zip(HorizonId::ALL.into_iter().map(HorizonId::days))
         {
             *weights.select_mut(id.mode()) = Some(AgeRange::from_fn(|age| {
-                coinflow::horizon_mobility(&hazards, age, horizon, bounds)
+                horizon_mobility(&hazards, age, horizon, bounds)
             }));
         }
     }
@@ -558,7 +579,7 @@ fn read_day_urpds(
     Ok(finalize_day_urpds(raw, weighted))
 }
 
-fn build_current_day_urpds(utxos: &distribution::UTXOCohorts, weights: &ModeWeights) -> DayUrpds {
+fn build_current_day_urpds(utxos: &UTXOStates, weights: &ModeWeights) -> DayUrpds {
     build_urpds_from_age_entries(utxos.age_range_urpd_entries(), weights)
 }
 

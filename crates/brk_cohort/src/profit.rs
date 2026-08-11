@@ -1,5 +1,6 @@
 use brk_traversable::Traversable;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::CohortName;
@@ -50,7 +51,7 @@ impl Profit<CohortName> {
 /// 14 "at least X% profit" aggregate thresholds.
 ///
 /// Each is a prefix sum over the profitability ranges, from most profitable down.
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct Profit<T> {
     pub all: T,
     pub _10pct: T,
@@ -67,6 +68,25 @@ pub struct Profit<T> {
     pub _300pct: T,
     pub _500pct: T,
 }
+
+define_column_id!(
+    ProfitId for Profit, version = 1 {
+        All => all,
+        Over10Pct => _10pct,
+        Over20Pct => _20pct,
+        Over30Pct => _30pct,
+        Over40Pct => _40pct,
+        Over50Pct => _50pct,
+        Over60Pct => _60pct,
+        Over70Pct => _70pct,
+        Over80Pct => _80pct,
+        Over90Pct => _90pct,
+        Over100Pct => _100pct,
+        Over200Pct => _200pct,
+        Over300Pct => _300pct,
+        Over500Pct => _500pct,
+    }
+);
 
 impl<T> Profit<T> {
     pub fn new<F>(mut create: F) -> Self
@@ -115,7 +135,7 @@ impl<T> Profit<T> {
         })
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         [
             &self.all,
             &self._10pct,
@@ -135,7 +155,7 @@ impl<T> Profit<T> {
         .into_iter()
     }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
+    pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> + ExactSizeIterator {
         [
             &mut self.all,
             &mut self._10pct,

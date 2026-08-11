@@ -32,6 +32,15 @@ pub trait ColumnId: Copy + Debug + Eq + Ord + Send + Sync + 'static {
         T: VecValue,
         U: VecValue,
         F: FnMut(T) -> U;
+
+    fn map_ref<T, U, F>(row: &Self::Row<T>, mut f: F) -> Self::Row<U>
+    where
+        T: VecValue,
+        U: VecValue,
+        F: FnMut(&T) -> U,
+    {
+        Self::from_fn(|column| f(column.get(row)))
+    }
 }
 
 /// Read-only access to a source that preserves typed column boundaries.

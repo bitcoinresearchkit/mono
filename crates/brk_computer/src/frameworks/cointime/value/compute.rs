@@ -17,10 +17,9 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        let all_metrics = &distribution.utxo_cohorts.all.metrics;
         let coinblocks_destroyed = &distribution.coinblocks_destroyed;
-        let coindays_destroyed = &all_metrics.activity.coindays_destroyed;
-        let circulating_supply = &all_metrics.supply.total.btc.height;
+        let coindays_destroyed = &distribution.cohorts.activity.coindays_destroyed.cohorts.all;
+        let circulating_supply = &distribution.cohorts.supply.total.cohorts.all.btc.height;
 
         self.destroyed
             .cumulative

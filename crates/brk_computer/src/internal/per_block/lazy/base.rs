@@ -119,6 +119,32 @@ where
         }
     }
 
+    pub(crate) fn from_uncached_boxed_height_source<F: UnaryTransform<S1T, T>>(
+        name: &str,
+        version: Version,
+        height_source: ReadableBoxedVec<Height, S1T>,
+        indexes: &indexes::Vecs,
+    ) -> Self
+    where
+        S1T: NumericValue,
+    {
+        let resolutions = Resolutions::forced_import_uncached_boxed(
+            name,
+            height_source.clone(),
+            version,
+            indexes,
+        );
+
+        Self {
+            height: LazyVec::transformed::<F>(name, version, height_source),
+            resolutions: Box::new(DerivedResolutions::from_derived_computed::<F>(
+                name,
+                version,
+                &resolutions,
+            )),
+        }
+    }
+
     /// Create by unary-transforming a LazyPerBlock source (chaining lazy vecs).
     pub(crate) fn from_lazy<F, S2T>(
         name: &str,

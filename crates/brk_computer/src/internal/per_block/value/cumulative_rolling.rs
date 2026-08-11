@@ -1,8 +1,8 @@
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Height, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
-use vecdb::{Database, Exit, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
     indexes,
@@ -10,7 +10,6 @@ use crate::{
         CachedWindowStartVec, LazyRollingAvgsAmountFromHeight, LazyRollingSumsAmountFromHeight,
         ValuePerBlockCumulative, Windows,
     },
-    price,
 };
 
 #[derive(Deref, DerefMut, Traversable)]
@@ -58,14 +57,5 @@ impl ValuePerBlockCumulativeRolling {
             sum,
             average,
         })
-    }
-
-    pub(crate) fn compute_rest(
-        &mut self,
-        max_from: Height,
-        prices: &price::Vecs,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.inner.compute_cents(max_from, prices, exit)
     }
 }

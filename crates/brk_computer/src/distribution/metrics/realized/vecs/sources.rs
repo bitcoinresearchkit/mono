@@ -1,0 +1,19 @@
+use brk_types::{Cents, CentsSigned, PartsPerMillionSigned64};
+
+use crate::internal::{
+    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
+    LazyFiatPerBlockWithDeltas,
+};
+
+#[derive(Clone)]
+pub struct RealizedSources {
+    pub cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
+    pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
+        CentsSigned,
+        CentsSigned,
+        PartsPerMillionSigned64,
+    >,
+    pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
+}

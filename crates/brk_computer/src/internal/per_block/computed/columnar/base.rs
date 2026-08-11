@@ -82,10 +82,11 @@ where
         V1: ReadableVec<Height, A> + 'a,
         V2: ReadableVec<Height, B> + 'a,
     {
-        let dependency_version = C::ALL
-            .iter()
-            .flat_map(|&column| [source1(column).version(), source2(column).version()])
-            .sum();
+        let dependency_version = Version::combine_all(
+            C::ALL
+                .iter()
+                .flat_map(|&column| [source1(column).version(), source2(column).version()]),
+        );
         let source_end = C::ALL
             .iter()
             .flat_map(|&column| [source1(column).len(), source2(column).len()])
@@ -141,11 +142,12 @@ where
         V1: ReadableVec<Height, C::Row<A>>,
         V2: ReadableVec<Height, B> + 'a,
     {
-        let dependency_version = C::ALL
-            .iter()
-            .map(|&column| source2(column).version())
-            .sum::<Version>()
-            + source1.version();
+        let dependency_version = Version::combine_all(
+            C::ALL
+                .iter()
+                .map(|&column| source2(column).version())
+                .chain(std::iter::once(source1.version())),
+        );
         let source_end = C::ALL
             .iter()
             .map(|&column| source2(column).len())

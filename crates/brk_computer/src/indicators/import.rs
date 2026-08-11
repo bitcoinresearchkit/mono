@@ -52,11 +52,11 @@ impl Vecs {
             indexes,
         );
 
-        let all_activity = &distribution.utxo_cohorts.all.metrics.activity;
+        let activity = &distribution.cohorts.activity;
         let cdd_source = all_chain.with_supply(
             "coindays_destroyed_supply_adj_source",
             v,
-            &all_activity.coindays_destroyed.sum._24h.height,
+            &activity.coindays_destroyed.cohorts.all.sum._24h.height,
             |_, cdd, supply| Self::supply_adjusted(f64::from(cdd), supply),
         );
         let coindays_destroyed_supply_adj =
@@ -69,7 +69,7 @@ impl Vecs {
         let cyd_source = all_chain.with_supply(
             "coinyears_destroyed_supply_adj_source",
             v,
-            &all_activity.coinyears_destroyed.height,
+            &activity.coinyears_destroyed.all.height,
             |_, cyd, supply| Self::supply_adjusted(f64::from(cyd), supply),
         );
         let coinyears_destroyed_supply_adj =
@@ -79,7 +79,7 @@ impl Vecs {
                 cyd_source,
                 indexes,
             );
-        let dormancy_24h = &all_activity.dormancy._24h.height;
+        let dormancy_24h = &activity.dormancy.all._24h.height;
         let dormancy_supply_source = all_chain.with_supply(
             "dormancy_supply_adj_source",
             v,

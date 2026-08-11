@@ -1,23 +1,27 @@
-use brk_cohort::{AgeRangeId, CohortContext, TERM_NAMES};
+use std::ops::AddAssign;
+
+use brk_cohort::{AgeRangeId, CohortContext, TermId, UTXOAggregateId};
 use brk_error::Result;
 use brk_types::{Cents, Height, StoredF64, Version};
 use vecdb::{
-    CachedBoxedVec, Database, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec, UnaryTransform,
+    CachedBoxedVec, ColumnId, Database, ImportableVec, PcoVec, PcoVecValue, ReadOnlyClone,
+    ReadOnlyColumnarVec, ReadableBoxedVec, ReadableCloneableVec, ReadableColumnarVec,
+    UnaryTransform,
 };
 
 use super::{
-    AgeRangeVecs, AggregateVecs, HorizonVecs, Horizons, SpendingExposureSeries, Split, Vecs,
-    mobility,
+    AgeRangeVecs, AggregateSources, AggregateVecs, HorizonId, HorizonVecs, Mobility, MobilityId,
+    SpendingExposureSeries, Vecs, mobility,
 };
 use crate::{
     indexes,
     internal::{
-        ColumnarPerBlock, FiatPerBlock, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
-        LazyPerBlock, PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock,
+        ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
+        LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
     },
 };
 
-const VERSION: Version = Version::new(4);
+const VERSION: Version = Version::new(5);
 
 struct ExposureToMobility;
 
@@ -60,60 +64,169 @@ impl SpendingExposureSeries {
     }
 }
 
-impl AggregateVecs {
-    fn forced_import(
-        db: &Database,
+impl AggregateSources {
+    fn forced_import(db: &Database, version: Version) -> Result<Self> {
+        Ok(Self {
+            supply: MobilityId::try_from_fn(|side| {
+                ImportableVec::forced_import(
+                    db,
+                    &format!("coinflow_{}_supply_sats_by_term", side.name()),
+                    version,
+                )
+            })?,
+            supply_in_loss_share: ImportableVec::forced_import(
+                db,
+                "coinflow_supply_in_loss_share_by_aggregate",
+                version,
+            )?,
+            horizon: HorizonId::try_from_fn(|horizon| {
+                ImportableVec::forced_import(
+                    db,
+                    &format!(
+                        "coinflow_{}_supply_in_loss_share_by_aggregate",
+                        horizon.name()
+                    ),
+                    version,
+                )
+            })?,
+            cap: ImportableVec::forced_import(db, "coinflow_cap_cents_by_term", version)?,
+            price: ImportableVec::forced_import(db, "coinflow_price_cents_by_aggregate", version)?,
+        })
+    }
+
+    fn additive_source<T>(
+        source: &ReadOnlyColumnarVec<PcoVec<Height, T>, TermId>,
         name: &str,
         version: Version,
+        aggregate: UTXOAggregateId,
+    ) -> ReadableBoxedVec<Height, T>
+    where
+        T: PcoVecValue + AddAssign,
+    {
+        match aggregate.term() {
+            Some(term) => source.column(name, version, term).read_only_boxed_clone(),
+            None => source
+                .sum_columns(name, version, TermId::ALL.iter().copied())
+                .read_only_boxed_clone(),
+        }
+    }
+
+    fn exact_source<T>(
+        source: &ReadOnlyColumnarVec<PcoVec<Height, T>, UTXOAggregateId>,
+        name: &str,
+        version: Version,
+        aggregate: UTXOAggregateId,
+    ) -> ReadableBoxedVec<Height, T>
+    where
+        T: PcoVecValue,
+    {
+        source
+            .column(name, version, aggregate)
+            .read_only_boxed_clone()
+    }
+}
+
+impl AggregateVecs {
+    fn new(
+        aggregate: UTXOAggregateId,
+        version: Version,
+        sources: &AggregateSources,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
+    ) -> Self {
+        let name = aggregate.cohort_name().id;
         let prefix = if name.is_empty() {
             String::new()
         } else {
             format!("{name}_")
         };
-
-        Ok(Self {
-            supply: Split::try_from_fn(|side| {
-                SpotValuePerBlock::forced_import(
-                    db,
-                    &format!("{prefix}{side}_supply"),
+        let supply = Mobility {
+            mobile: LazySpotValuePerBlock::from_boxed_sats_source(
+                &format!("{prefix}mobile_supply"),
+                version,
+                AggregateSources::additive_source(
+                    &sources.supply.mobile.read_only_clone(),
+                    &format!("{prefix}mobile_supply_sats"),
                     version,
-                    indexes,
-                    spot_price,
-                )
-            })?,
-            supply_in_loss_share: PerBlock::forced_import(
-                db,
-                &format!("{prefix}coinflow_supply_in_loss_share"),
-                version,
-                indexes,
-            )?,
-            horizon: Horizons::try_from_fn(|horizon, _| -> Result<_> {
-                Ok(HorizonVecs {
-                    supply_in_loss_share: PerBlock::forced_import(
-                        db,
-                        &format!("{prefix}coinflow_{horizon}_supply_in_loss_share"),
-                        version,
-                        indexes,
-                    )?,
-                })
-            })?,
-            cap: FiatPerBlock::forced_import(
-                db,
-                &format!("{prefix}coinflow_cap"),
-                version,
-                indexes,
-            )?,
-            price: PriceWithRatioPerBlock::forced_import(
-                db,
-                &format!("{prefix}coinflow_price"),
-                version,
+                    aggregate,
+                ),
                 indexes,
                 spot_price,
-            )?,
-        })
+            ),
+            immobile: LazySpotValuePerBlock::from_boxed_sats_source(
+                &format!("{prefix}immobile_supply"),
+                version,
+                AggregateSources::additive_source(
+                    &sources.supply.immobile.read_only_clone(),
+                    &format!("{prefix}immobile_supply_sats"),
+                    version,
+                    aggregate,
+                ),
+                indexes,
+                spot_price,
+            ),
+        };
+        let supply_in_loss_share =
+            LazyPerBlock::from_uncached_boxed_height_source::<Identity<StoredF64>>(
+                &format!("{prefix}coinflow_supply_in_loss_share"),
+                version,
+                AggregateSources::exact_source(
+                    &sources.supply_in_loss_share.read_only_clone(),
+                    &format!("{prefix}coinflow_supply_in_loss_share"),
+                    version,
+                    aggregate,
+                ),
+                indexes,
+            );
+        let horizon = HorizonId::from_fn(|horizon| {
+            let name = format!("{prefix}coinflow_{}_supply_in_loss_share", horizon.name());
+            HorizonVecs {
+                supply_in_loss_share: LazyPerBlock::from_uncached_boxed_height_source::<
+                    Identity<StoredF64>,
+                >(
+                    &name,
+                    version,
+                    AggregateSources::exact_source(
+                        &horizon.select(&sources.horizon).read_only_clone(),
+                        &name,
+                        version,
+                        aggregate,
+                    ),
+                    indexes,
+                ),
+            }
+        });
+        let cap = LazyFiatPerBlock::from_boxed_cents_source(
+            &format!("{prefix}coinflow_cap"),
+            version,
+            AggregateSources::additive_source(
+                &sources.cap.read_only_clone(),
+                &format!("{prefix}coinflow_cap_cents"),
+                version,
+                aggregate,
+            ),
+            indexes,
+        );
+        let price = LazyPriceWithRatioPerBlock::from_boxed_height_source(
+            &format!("{prefix}coinflow_price"),
+            version,
+            AggregateSources::exact_source(
+                &sources.price.read_only_clone(),
+                &format!("{prefix}coinflow_price_cents"),
+                version,
+                aggregate,
+            ),
+            indexes,
+            spot_price,
+        );
+
+        Self {
+            supply,
+            supply_in_loss_share,
+            horizon,
+            cap,
+            price,
+        }
     }
 }
 
@@ -125,7 +238,6 @@ impl Vecs {
         prices: &crate::price::Vecs,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
-        let aggregate_version = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();
         let spending_rate = ColumnarPerBlock::forced_import(
             db,
@@ -149,7 +261,8 @@ impl Vecs {
             version,
             |source| SpendingExposureSeries::new(version, source, indexes),
         )?;
-        let supply = Split::try_from_fn(|side| {
+        let supply = MobilityId::try_from_fn(|side| {
+            let side = side.name();
             ColumnarPerBlock::forced_import(
                 db,
                 &CohortContext::Utxo.prefixed(&format!("age_range_{side}_supply_sats")),
@@ -169,29 +282,39 @@ impl Vecs {
             )
         })?;
 
-        let this = Self {
+        let aggregate_sources = AggregateSources::forced_import(db, version)?;
+        let all = AggregateVecs::new(
+            UTXOAggregateId::All,
+            version,
+            &aggregate_sources,
+            indexes,
+            &spot_price,
+        );
+        let sth = AggregateVecs::new(
+            UTXOAggregateId::Sth,
+            version,
+            &aggregate_sources,
+            indexes,
+            &spot_price,
+        );
+        let lth = AggregateVecs::new(
+            UTXOAggregateId::Lth,
+            version,
+            &aggregate_sources,
+            indexes,
+            &spot_price,
+        );
+
+        Ok(Self {
             age_range: AgeRangeVecs {
                 spending_rate,
                 spending_exposure,
                 supply,
             },
-            all: AggregateVecs::forced_import(db, "", version, indexes, &spot_price)?,
-            sth: AggregateVecs::forced_import(
-                db,
-                TERM_NAMES.short.id,
-                aggregate_version,
-                indexes,
-                &spot_price,
-            )?,
-            lth: AggregateVecs::forced_import(
-                db,
-                TERM_NAMES.long.id,
-                aggregate_version,
-                indexes,
-                &spot_price,
-            )?,
-        };
-
-        Ok(this)
+            all,
+            sth,
+            lth,
+            aggregate_sources,
+        })
     }
 }

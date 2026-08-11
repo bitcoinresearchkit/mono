@@ -1,25 +1,26 @@
 mod activity;
+mod avg_amount;
 mod count;
 mod data;
-mod delta;
 mod exposed;
 mod indexes;
-mod new_addr_count;
 mod reused;
 mod state;
 mod supply;
-mod total_addr_count;
 mod type_map;
+mod vecs;
 
 pub use activity::{AddrActivityVecs, AddrTypeToActivityCounts};
-pub use count::{AddrCountsVecs, AddrTypeToAddrCount};
+pub use avg_amount::AvgAmountVecs;
+pub use count::{
+    AddrCountsVecs, AddrTypeToAddrCount, DeltaVecs, FundedAddrCountsVecs, NewAddrCountVecs,
+    TotalAddrCountVecs,
+};
 pub use data::AddrsDataVecs;
-pub use delta::DeltaVecs;
 pub use exposed::{ExposedAddrState, ExposedAddrVecs};
 pub use indexes::AnyAddrIndexesVecs;
-pub use new_addr_count::NewAddrCountVecs;
 pub use reused::{ReusedAddrState, ReusedAddrVecs};
 pub use state::{AddrMetricsState, AddrReceivePreState, AddrSendPreState};
 pub use supply::AddrTypeToSupply;
-pub use total_addr_count::TotalAddrCountVecs;
 pub use type_map::{AddrTypeToTypeIndexMap, AddrTypeToVec, HeightToAddrTypeToVec};
+pub use vecs::AddrVecs;

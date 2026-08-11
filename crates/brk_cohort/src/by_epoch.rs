@@ -1,6 +1,7 @@
 use brk_traversable::Traversable;
 use brk_types::{Halving, Height};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{CohortName, Filter};
@@ -32,7 +33,7 @@ pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
     _4: CohortName::new("epoch_4", "4", "Epoch 4"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ByEpoch<T> {
     pub _0: T,
     pub _1: T,
@@ -40,6 +41,16 @@ pub struct ByEpoch<T> {
     pub _3: T,
     pub _4: T,
 }
+
+define_column_id!(
+    EpochId for ByEpoch, version = 1 {
+        _0 => _0,
+        _1 => _1,
+        _2 => _2,
+        _3 => _3,
+        _4 => _4,
+    }
+);
 
 impl ByEpoch<CohortName> {
     pub const fn names() -> &'static Self {

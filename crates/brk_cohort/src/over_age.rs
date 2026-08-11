@@ -1,5 +1,6 @@
 use brk_traversable::Traversable;
 use rayon::prelude::*;
+use schemars::JsonSchema;
 use serde::Serialize;
 
 use super::{
@@ -80,7 +81,7 @@ pub const OVER_AGE_NAMES: OverAge<CohortName> = OverAge {
     _12y: CohortName::new("over_12y_old", "12y+", "Over 12 Years Old"),
 };
 
-#[derive(Default, Clone, Traversable, Serialize)]
+#[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct OverAge<T> {
     pub _1d: T,
     pub _1w: T,
@@ -103,6 +104,31 @@ pub struct OverAge<T> {
     pub _10y: T,
     pub _12y: T,
 }
+
+define_column_id!(
+    OverAgeId for OverAge, version = 1 {
+        Over1D => _1d,
+        Over1W => _1w,
+        Over1M => _1m,
+        Over2M => _2m,
+        Over3M => _3m,
+        Over4M => _4m,
+        Over5M => _5m,
+        Over6M => _6m,
+        Over9M => _9m,
+        Over1Y => _1y,
+        Over18M => _18m,
+        Over2Y => _2y,
+        Over3Y => _3y,
+        Over4Y => _4y,
+        Over5Y => _5y,
+        Over6Y => _6y,
+        Over7Y => _7y,
+        Over8Y => _8y,
+        Over10Y => _10y,
+        Over12Y => _12y,
+    }
+);
 
 impl OverAge<CohortName> {
     pub const fn names() -> &'static Self {

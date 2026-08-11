@@ -1,83 +1,21 @@
 mod adjusted;
-mod core;
-mod full;
-mod minimal;
+mod adjusted_sopr_compute_source;
+mod aggregate_sources;
+mod aggregate_state;
+mod block_data;
+mod neg_loss;
+mod sopr_24h_input;
+mod sopr_vecs;
+mod totals;
+mod vecs;
 
-pub use self::core::RealizedCore;
-pub use adjusted::AdjustedSopr;
-pub use full::{RealizedFull, RealizedFullAccum};
-pub use minimal::{RealizedBase, RealizedMinimal};
-
-use brk_error::Result;
-use brk_indexer::Lengths;
-use vecdb::Exit;
-
-use crate::distribution::state::{CohortState, CostBasisData, RealizedState, WithCapital};
-
-pub trait RealizedLike: Send + Sync {
-    fn as_core(&self) -> &RealizedCore;
-    fn as_core_mut(&mut self) -> &mut RealizedCore;
-    fn min_stateful_len(&self) -> usize;
-    fn push_state(&mut self, state: &CohortState<RealizedState, CostBasisData<WithCapital>>);
-    fn compute_rest_part1(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()>;
-    fn compute_from_stateful(
-        &mut self,
-        starting_lengths: &Lengths,
-        others: &[&RealizedCore],
-        exit: &Exit,
-    ) -> Result<()>;
-}
-
-impl RealizedLike for RealizedCore {
-    fn as_core(&self) -> &RealizedCore {
-        self
-    }
-    fn as_core_mut(&mut self) -> &mut RealizedCore {
-        self
-    }
-    fn min_stateful_len(&self) -> usize {
-        self.min_stateful_len()
-    }
-    #[inline(always)]
-    fn push_state(&mut self, state: &CohortState<RealizedState, CostBasisData<WithCapital>>) {
-        self.push_state(state)
-    }
-    fn compute_rest_part1(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
-        self.compute_rest_part1(starting_lengths, exit)
-    }
-    fn compute_from_stateful(
-        &mut self,
-        starting_lengths: &Lengths,
-        others: &[&RealizedCore],
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute_from_stateful(starting_lengths, others, exit)
-    }
-}
-
-impl RealizedLike for RealizedFull {
-    fn as_core(&self) -> &RealizedCore {
-        &self.core
-    }
-    fn as_core_mut(&mut self) -> &mut RealizedCore {
-        &mut self.core
-    }
-    fn min_stateful_len(&self) -> usize {
-        self.min_stateful_len()
-    }
-    #[inline(always)]
-    fn push_state(&mut self, state: &CohortState<RealizedState, CostBasisData<WithCapital>>) {
-        self.push_state(state)
-    }
-    fn compute_rest_part1(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
-        self.compute_rest_part1(starting_lengths, exit)
-    }
-    fn compute_from_stateful(
-        &mut self,
-        starting_lengths: &Lengths,
-        others: &[&RealizedCore],
-        exit: &Exit,
-    ) -> Result<()> {
-        self.compute_from_stateful(starting_lengths, others, exit)
-    }
-}
+pub use adjusted::AdjustedSoprVecs;
+pub(crate) use adjusted_sopr_compute_source::AdjustedSoprComputeSource;
+pub(crate) use aggregate_sources::RealizedAggregateSources;
+pub use aggregate_state::RealizedAggregateState;
+pub(crate) use block_data::RealizedBlockData;
+pub use neg_loss::NegRealizedLoss;
+pub(crate) use sopr_24h_input::Sopr24hInput;
+pub use sopr_vecs::Sopr24hVecs;
+pub(crate) use totals::RealizedTotals;
+pub use vecs::{RealizedSources, RealizedVecs};

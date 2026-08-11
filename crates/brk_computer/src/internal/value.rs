@@ -1,8 +1,8 @@
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
-use vecdb::{LazyVec, ReadableCloneableVec, UnaryTransform, VecIndex};
+use vecdb::{LazyVec, UnaryTransform, VecIndex};
 
-use crate::internal::SpotValuePerBlock;
+use crate::internal::SpotValueSource;
 
 /// Fully lazy value type at height level.
 ///
@@ -23,7 +23,7 @@ impl LazyValue<Height> {
         DollarsTransform,
     >(
         name: &str,
-        source: &SpotValuePerBlock,
+        source: &impl SpotValueSource,
         version: Version,
     ) -> Self
     where
@@ -35,25 +35,21 @@ impl LazyValue<Height> {
         let sats = LazyVec::transformed::<SatsTransform>(
             &format!("{name}_sats"),
             version,
-            source.sats.height.read_only_boxed_clone(),
+            source.sats_height(),
         );
 
-        let btc = LazyVec::transformed::<BitcoinTransform>(
-            name,
-            version,
-            source.sats.height.read_only_boxed_clone(),
-        );
+        let btc = LazyVec::transformed::<BitcoinTransform>(name, version, source.sats_height());
 
         let cents = LazyVec::transformed::<CentsTransform>(
             &format!("{name}_cents"),
             version,
-            source.cents.height.read_only_boxed_clone(),
+            source.cents_height(),
         );
 
         let usd = LazyVec::transformed::<DollarsTransform>(
             &format!("{name}_usd"),
             version,
-            source.usd.height.read_only_boxed_clone(),
+            source.usd_height(),
         );
 
         Self {

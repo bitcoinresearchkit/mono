@@ -1,61 +1,151 @@
-use brk_cohort::TERM_NAMES;
+use std::ops::AddAssign;
+
+use brk_cohort::{TermId, UTXOAggregateId};
 use brk_error::Result;
 use brk_types::{Cents, Height, StoredF64, Version};
-use vecdb::{CachedBoxedVec, Database, ReadableCloneableVec};
+use vecdb::{
+    CachedBoxedVec, ColumnId, Database, ImportableVec, PcoVec, PcoVecValue, ReadOnlyClone,
+    ReadableBoxedVec, ReadableCloneableVec, ReadableColumnarVec,
+};
 
-use super::{AllAwakeVecs, AllCohortVecs, DormantVecs, StoredAwakeVecs, StoredCohortVecs, Vecs};
+use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};
 use crate::{
     indexes,
     internal::{
-        FiatPerBlock, Identity, LazyPerBlock, PerBlock, PriceWithRatioPerBlock, SpotValuePerBlock,
+        Identity, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
+        LazySpotValuePerBlock, PerBlock,
     },
 };
 
-struct CommonVecs<M: vecdb::StorageMode = vecdb::Rw> {
-    supply: SpotValuePerBlock<M>,
-    dormant_supply: SpotValuePerBlock<M>,
-    cap: FiatPerBlock<Cents, M>,
-    price: PriceWithRatioPerBlock<M>,
-}
+impl Sources {
+    fn forced_import(db: &Database, version: Version) -> Result<Self> {
+        Ok(Self {
+            awake_supply: ImportableVec::forced_import(
+                db,
+                "cointime_awake_supply_sats_by_term",
+                version,
+            )?,
+            dormant_supply: ImportableVec::forced_import(
+                db,
+                "cointime_dormant_supply_sats_by_term",
+                version,
+            )?,
+            awake_cap: ImportableVec::forced_import(
+                db,
+                "cointime_awake_cap_cents_by_term",
+                version,
+            )?,
+            awake_price: ImportableVec::forced_import(
+                db,
+                "cointime_awake_price_cents_by_aggregate",
+                version,
+            )?,
+            supply_in_loss_share: ImportableVec::forced_import(
+                db,
+                "cointime_awake_supply_in_loss_share_by_term",
+                version,
+            )?,
+        })
+    }
 
-impl CommonVecs {
-    fn forced_import(
-        db: &Database,
+    fn additive_source<T>(
+        source: &vecdb::ReadOnlyColumnarVec<PcoVec<Height, T>, TermId>,
         name: &str,
         version: Version,
+        aggregate: UTXOAggregateId,
+    ) -> ReadableBoxedVec<Height, T>
+    where
+        T: PcoVecValue + AddAssign,
+    {
+        match aggregate.term() {
+            Some(term) => source.column(name, version, term).read_only_boxed_clone(),
+            None => source
+                .sum_columns(name, version, TermId::ALL.iter().copied())
+                .read_only_boxed_clone(),
+        }
+    }
+}
+
+impl CohortVecs {
+    fn new(
+        aggregate: UTXOAggregateId,
+        version: Version,
+        sources: &Sources,
+        supply_in_loss_share: ReadableBoxedVec<Height, StoredF64>,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
+    ) -> Self {
+        let name = aggregate.cohort_name().id;
         let prefix = if name.is_empty() {
             String::new()
         } else {
             format!("{name}_")
         };
+        let awake_supply = Sources::additive_source(
+            &sources.awake_supply.read_only_clone(),
+            &format!("{prefix}awake_supply_sats"),
+            version,
+            aggregate,
+        );
+        let dormant_supply = Sources::additive_source(
+            &sources.dormant_supply.read_only_clone(),
+            &format!("{prefix}dormant_supply_sats"),
+            version,
+            aggregate,
+        );
+        let awake_cap = Sources::additive_source(
+            &sources.awake_cap.read_only_clone(),
+            &format!("{prefix}awake_cap_cents"),
+            version,
+            aggregate,
+        );
+        let awake_price = sources
+            .awake_price
+            .read_only_clone()
+            .column(&format!("{prefix}awake_price_cents"), version, aggregate)
+            .read_only_boxed_clone();
 
-        Ok(CommonVecs {
-            supply: SpotValuePerBlock::forced_import(
-                db,
-                &format!("{prefix}awake_supply"),
-                version,
-                indexes,
-                spot_price,
-            )?,
-            dormant_supply: SpotValuePerBlock::forced_import(
-                db,
-                &format!("{prefix}dormant_supply"),
-                version,
-                indexes,
-                spot_price,
-            )?,
-            cap: FiatPerBlock::forced_import(db, &format!("{prefix}awake_cap"), version, indexes)?,
-            price: PriceWithRatioPerBlock::forced_import(
-                db,
-                &format!("{prefix}awake_price"),
-                version,
-                indexes,
-                spot_price,
-            )?,
-        })
+        Self {
+            awake: AwakeVecs {
+                supply: LazySpotValuePerBlock::from_boxed_sats_source(
+                    &format!("{prefix}awake_supply"),
+                    version,
+                    awake_supply,
+                    indexes,
+                    spot_price,
+                ),
+                supply_in_loss_share: LazyPerBlock::from_uncached_boxed_height_source::<
+                    Identity<StoredF64>,
+                >(
+                    &format!("{prefix}awake_supply_in_loss_share"),
+                    version,
+                    supply_in_loss_share,
+                    indexes,
+                ),
+                cap: LazyFiatPerBlock::from_boxed_cents_source(
+                    &format!("{prefix}awake_cap"),
+                    version,
+                    awake_cap,
+                    indexes,
+                ),
+                price: LazyPriceWithRatioPerBlock::from_boxed_height_source(
+                    &format!("{prefix}awake_price"),
+                    version,
+                    awake_price,
+                    indexes,
+                    spot_price,
+                ),
+            },
+            dormant: DormantVecs {
+                supply: LazySpotValuePerBlock::from_boxed_sats_source(
+                    &format!("{prefix}dormant_supply"),
+                    version,
+                    dormant_supply,
+                    indexes,
+                    spot_price,
+                ),
+            },
+        }
     }
 }
 
@@ -67,60 +157,49 @@ impl Vecs {
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_supply_in_loss_share: &PerBlock<StoredF64>,
     ) -> Result<Self> {
-        let all_supply_in_loss_share = LazyPerBlock::from_computed::<Identity<StoredF64>>(
-            "awake_supply_in_loss_share",
-            version,
-            all_supply_in_loss_share.height.read_only_boxed_clone(),
-            all_supply_in_loss_share,
-        );
-        let stored = |name: &str| {
-            PerBlock::forced_import(
-                db,
+        let version = version + Version::ONE;
+        let sources = Sources::forced_import(db, version)?;
+        let all_loss_share = all_supply_in_loss_share.height.read_only_boxed_clone();
+        let term_loss_share = |aggregate: UTXOAggregateId| {
+            let name = aggregate.cohort_name().id;
+            debug_assert!(aggregate.term().is_some());
+            Sources::additive_source(
+                &sources.supply_in_loss_share.read_only_clone(),
                 &format!("{name}_awake_supply_in_loss_share"),
                 version,
-                indexes,
+                aggregate,
             )
         };
-        let all_common = CommonVecs::forced_import(db, "", version, indexes, spot_price)?;
-        let sth_common =
-            CommonVecs::forced_import(db, TERM_NAMES.short.id, version, indexes, spot_price)?;
-        let lth_common =
-            CommonVecs::forced_import(db, TERM_NAMES.long.id, version, indexes, spot_price)?;
+        let all = CohortVecs::new(
+            UTXOAggregateId::All,
+            version,
+            &sources,
+            all_loss_share,
+            indexes,
+            spot_price,
+        );
+        let sth = CohortVecs::new(
+            UTXOAggregateId::Sth,
+            version,
+            &sources,
+            term_loss_share(UTXOAggregateId::Sth),
+            indexes,
+            spot_price,
+        );
+        let lth = CohortVecs::new(
+            UTXOAggregateId::Lth,
+            version,
+            &sources,
+            term_loss_share(UTXOAggregateId::Lth),
+            indexes,
+            spot_price,
+        );
 
         Ok(Self {
-            all: AllCohortVecs {
-                awake: AllAwakeVecs {
-                    supply: all_common.supply,
-                    supply_in_loss_share: all_supply_in_loss_share,
-                    cap: all_common.cap,
-                    price: all_common.price,
-                },
-                dormant: DormantVecs {
-                    supply: all_common.dormant_supply,
-                },
-            },
-            sth: StoredCohortVecs {
-                awake: StoredAwakeVecs {
-                    supply: sth_common.supply,
-                    supply_in_loss_share: stored(TERM_NAMES.short.id)?,
-                    cap: sth_common.cap,
-                    price: sth_common.price,
-                },
-                dormant: DormantVecs {
-                    supply: sth_common.dormant_supply,
-                },
-            },
-            lth: StoredCohortVecs {
-                awake: StoredAwakeVecs {
-                    supply: lth_common.supply,
-                    supply_in_loss_share: stored(TERM_NAMES.long.id)?,
-                    cap: lth_common.cap,
-                    price: lth_common.price,
-                },
-                dormant: DormantVecs {
-                    supply: lth_common.dormant_supply,
-                },
-            },
+            all,
+            sth,
+            lth,
+            sources,
         })
     }
 }
