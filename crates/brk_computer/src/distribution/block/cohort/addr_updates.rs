@@ -5,7 +5,7 @@ use brk_types::{
 };
 use vecdb::AnyVec;
 
-use crate::distribution::{AddrTypeToTypeIndexMap, AddrsDataVecs};
+use crate::distribution::addr::{AddrTypeToTypeIndexMap, AddrsDataVecs};
 
 use super::with_source::WithAddrDataSource;
 
@@ -15,7 +15,7 @@ use super::with_source::WithAddrDataSource;
 /// - New funded address: push to funded storage
 /// - Updated funded address (was funded): update in place
 /// - Transition empty -> funded: delete from empty, push to funded
-pub(crate) fn process_funded_addrs(
+pub fn process_funded_addrs(
     addrs_data: &mut AddrsDataVecs,
     funded_updates: AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
 ) -> Result<AddrTypeToTypeIndexMap<AnyAddrIndex>> {
@@ -85,7 +85,7 @@ pub(crate) fn process_funded_addrs(
 /// - New empty address: push to empty storage
 /// - Updated empty address (was empty): update in place
 /// - Transition funded -> empty: delete from funded, push to empty
-pub(crate) fn process_empty_addrs(
+pub fn process_empty_addrs(
     addrs_data: &mut AddrsDataVecs,
     empty_updates: AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
 ) -> Result<AddrTypeToTypeIndexMap<AnyAddrIndex>> {

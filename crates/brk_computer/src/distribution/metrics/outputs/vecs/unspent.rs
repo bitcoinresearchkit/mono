@@ -24,7 +24,7 @@ pub struct UnspentOutputCount<M: StorageMode = Rw> {
 }
 
 impl UnspentOutputCount {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -69,7 +69,7 @@ impl UnspentOutputCount {
     }
 
     #[inline(always)]
-    pub(crate) fn push_addr_balance(&mut self, row: AmountRange<StoredU64>) {
+    pub fn push_addr_balance(&mut self, row: AmountRange<StoredU64>) {
         self.addr_balance.push(row);
     }
 }

@@ -13,12 +13,7 @@ use vecdb::ColumnId;
 use super::{COST_BASIS_PRICE_DIGITS, UTXOStates};
 
 impl UTXOStates {
-    pub(crate) fn write_urpds(
-        &self,
-        date: Date,
-        states_path: &Path,
-        sth_filter: &Filter,
-    ) -> Result<()> {
+    pub fn write_urpds(&self, date: Date, states_path: &Path, sth_filter: &Filter) -> Result<()> {
         AgeRangeId::ALL
             .iter()
             .map(|&id| (id, id.select(&self.age_range)))
@@ -68,7 +63,7 @@ impl UTXOStates {
         .try_for_each(|(name, merged)| UrpdRaw::write(states_path, name, date, merged.into_iter()))
     }
 
-    pub(crate) fn age_range_urpd_entries(
+    pub fn age_range_urpd_entries(
         &self,
     ) -> impl Iterator<Item = (AgeRangeId, CentsCompact, Sats)> + '_ {
         AgeRangeId::ALL.iter().copied().flat_map(move |id| {

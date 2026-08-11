@@ -23,7 +23,7 @@ pub struct AggregateFiatPerBlock<C: FiatType, M: StorageMode = Rw> {
 }
 
 impl<C: FiatType> AggregateFiatPerBlock<C> {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -55,15 +55,15 @@ impl<C: FiatType> AggregateFiatPerBlock<C> {
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, row: UTXOAggregate<C>) {
+    pub fn push(&mut self, row: UTXOAggregate<C>) {
         self.values.push(row);
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.values.height.len()
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.values.stored_mut()
     }
 }

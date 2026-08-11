@@ -14,7 +14,7 @@ pub struct TxOutReaders<'a> {
 }
 
 impl<'a> TxOutReaders<'a> {
-    pub(crate) fn new(indexer: &'a Indexer) -> Self {
+    pub fn new(indexer: &'a Indexer) -> Self {
         Self {
             indexer,
             values_buf: Vec::new(),
@@ -24,7 +24,7 @@ impl<'a> TxOutReaders<'a> {
         }
     }
 
-    pub(crate) fn collect_block_outputs(
+    pub fn collect_block_outputs(
         &mut self,
         first_txout_index: usize,
         output_count: usize,

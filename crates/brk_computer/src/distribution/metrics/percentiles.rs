@@ -11,7 +11,7 @@ use crate::distribution::{
 };
 
 impl CohortMetrics {
-    pub(crate) fn push_aggregate_percentiles(
+    pub fn push_aggregate_percentiles(
         &mut self,
         states: &UTXOStates,
         spot_price: Cents,

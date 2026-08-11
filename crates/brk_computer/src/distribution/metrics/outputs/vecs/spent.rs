@@ -19,7 +19,7 @@ pub struct SpentOutputCount<M: StorageMode = Rw> {
 }
 
 impl SpentOutputCount {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,

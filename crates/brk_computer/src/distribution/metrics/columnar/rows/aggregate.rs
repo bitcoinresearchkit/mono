@@ -1,7 +1,7 @@
 use brk_cohort::{OverAge, OverAmount, UTXOAggregate, UnderAge, UnderAmount};
 
 #[derive(Clone, Default)]
-pub(crate) struct UTXOAggregateRows<T> {
+pub struct UTXOAggregateRows<T> {
     pub aggregate: UTXOAggregate<T>,
     pub under_age: UnderAge<T>,
     pub over_age: OverAge<T>,
@@ -10,7 +10,7 @@ pub(crate) struct UTXOAggregateRows<T> {
 }
 
 impl<T> UTXOAggregateRows<T> {
-    pub(crate) fn map<U>(&self, mut map: impl FnMut(&T) -> U) -> UTXOAggregateRows<U> {
+    pub fn map<U>(&self, mut map: impl FnMut(&T) -> U) -> UTXOAggregateRows<U> {
         UTXOAggregateRows {
             aggregate: self.aggregate.map(&mut map),
             under_age: UnderAge::from_fn(|id| map(id.select(&self.under_age))),

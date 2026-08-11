@@ -5,10 +5,10 @@ use super::{Accumulate, UnrealizedState, accumulate::div_btc};
 /// Supply and unrealized profit/loss cache state without capital tracking.
 #[derive(Debug, Default, Clone)]
 pub struct WithoutCapital {
-    pub(crate) supply_in_profit: Sats,
-    pub(crate) supply_in_loss: Sats,
-    pub(crate) unrealized_profit: u128,
-    pub(crate) unrealized_loss: u128,
+    pub supply_in_profit: Sats,
+    pub supply_in_loss: Sats,
+    pub unrealized_profit: u128,
+    pub unrealized_loss: u128,
 }
 
 impl Accumulate for WithoutCapital {

@@ -2,7 +2,7 @@ use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::Database;
 
-use crate::{distribution::AllChainCache, indexes, internal::PerBlock, price};
+use crate::{distribution::AllChainSources, indexes, internal::PerBlock, price};
 
 use super::{
     ActivityVecs, AdjustedVecs, AgeRangeVecs, AggregateVecs, CapVecs, PricesVecs, ReserveRiskVecs,
@@ -19,7 +19,7 @@ impl Vecs {
         cached_starts: &Windows<&CachedWindowStartVec>,
         prices: &price::Vecs,
         subsidy_cents: &PerBlock<Cents>,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
     ) -> Result<Self> {
         let version = parent_version;
         let v1 = version + Version::ONE;

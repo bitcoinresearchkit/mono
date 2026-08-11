@@ -4,7 +4,7 @@ use vecdb::{CachedBoxedVec, Database};
 
 use super::{LazyBaseVecs, Vecs};
 use crate::{
-    distribution::AllChainCache,
+    distribution::AllChainSources,
     indexes,
     internal::{LazySpotValuePerBlock, PerBlock},
 };
@@ -17,7 +17,7 @@ impl LazyBaseVecs {
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         activity: &activity::Vecs,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
     ) -> Self {
         let vaulted = all_chain.with_supply(
             "vaulted_supply_sats_source",
@@ -58,7 +58,7 @@ impl Vecs {
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         activity: &activity::Vecs,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
     ) -> Result<Self> {
         Ok(Self {
             base: LazyBaseVecs::new(version, indexes, spot_price, activity, all_chain),

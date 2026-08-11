@@ -108,7 +108,7 @@ impl RealizedOps for CoreRealizedState {
 
 impl CoreRealizedState {
     #[inline(always)]
-    pub(super) fn cap_raw_u128(&self) -> u128 {
+    pub fn cap_raw_u128(&self) -> u128 {
         self.minimal.cap_raw().as_u128()
     }
 }

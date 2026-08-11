@@ -12,14 +12,14 @@ pub struct AddrTypeToSupply(ByAddrType<Sats>);
 
 impl AddrTypeToSupply {
     #[inline]
-    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<Sats> {
+    pub fn row(&self) -> <AddrTypeId as ColumnId>::Row<Sats> {
         AddrTypeId::from_fn(|column| *column.select(&self.0))
     }
 
     /// Apply a signed `after - before` delta to the slot for `output_type`.
     /// Sats is unsigned, so branch on sign.
     #[inline]
-    pub(crate) fn apply_delta(&mut self, output_type: OutputType, before: Sats, after: Sats) {
+    pub fn apply_delta(&mut self, output_type: OutputType, before: Sats, after: Sats) {
         let slot = self.get_mut_unwrap(output_type);
         if after >= before {
             *slot += after - before;

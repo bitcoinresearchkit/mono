@@ -16,7 +16,7 @@ pub struct NewAddrCountVecs(
 );
 
 impl NewAddrCountVecs {
-    pub(crate) fn new(
+    pub fn new(
         version: Version,
         total: &TotalAddrCountVecs,
         indexes: &indexes::Vecs,

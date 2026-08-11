@@ -3,8 +3,8 @@ use brk_types::{Cents, Sats, TypeIndex};
 use rustc_hash::FxHashMap;
 
 use crate::distribution::{
-    AddrStates,
     addr::{AddrMetricsState, AddrReceivePreState, AddrTypeToVec},
+    state::AddrStates,
 };
 
 use super::super::cache::{AddrLookup, TrackingStatus};
@@ -16,7 +16,7 @@ struct AggregatedReceive {
     output_count: u32,
 }
 
-pub(crate) fn process_received(
+pub fn process_received(
     received_data: AddrTypeToVec<(TypeIndex, Sats)>,
     cohorts: &mut AddrStates,
     lookup: &mut AddrLookup<'_>,

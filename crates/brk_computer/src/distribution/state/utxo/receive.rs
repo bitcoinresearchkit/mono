@@ -15,7 +15,7 @@ impl UTXOStates {
     /// - The immutable entry valuation cohort based on creation price versus anchor
     /// - The appropriate output type cohort (P2PKH, P2SH, etc.)
     /// - The appropriate amount range cohort based on value
-    pub(crate) fn receive(
+    pub fn receive(
         &mut self,
         received: Transacted,
         height: Height,

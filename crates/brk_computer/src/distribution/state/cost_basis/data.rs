@@ -31,20 +31,20 @@ pub struct CostBasisData<S: Accumulate> {
 }
 
 impl<S: Accumulate> CostBasisData<S> {
-    pub(crate) fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
+    pub fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
         debug_assert!(self.pending.is_empty() && self.raw.has_no_pending_cap());
         &self.map.as_ref().unwrap().map
     }
 
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.pending.is_empty() && self.map.as_ref().unwrap().map.is_empty()
     }
 
-    pub(crate) fn for_each_pending(&self, mut f: impl FnMut(&CentsCompact, &PendingDelta)) {
+    pub fn for_each_pending(&self, mut f: impl FnMut(&CentsCompact, &PendingDelta)) {
         self.pending.iter().for_each(|(k, v)| f(k, v));
     }
 
-    pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
+    pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         if self.is_empty() {
             return UnrealizedState::ZERO;
         }

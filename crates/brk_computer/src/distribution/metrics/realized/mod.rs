@@ -10,12 +10,12 @@ mod totals;
 mod vecs;
 
 pub use adjusted::AdjustedSoprVecs;
-pub(crate) use adjusted_sopr_compute_source::AdjustedSoprComputeSource;
-pub(crate) use aggregate_sources::RealizedAggregateSources;
+pub use adjusted_sopr_compute_source::AdjustedSoprComputeSource;
+pub use aggregate_sources::RealizedAggregateSources;
 pub use aggregate_state::RealizedAggregateState;
-pub(crate) use block_data::RealizedBlockData;
+pub use block_data::RealizedBlockData;
 pub use neg_loss::NegRealizedLoss;
-pub(crate) use sopr_24h_input::Sopr24hInput;
+pub use sopr_24h_input::Sopr24hInput;
 pub use sopr_vecs::Sopr24hVecs;
-pub(crate) use totals::RealizedTotals;
+pub use totals::RealizedTotals;
 pub use vecs::{RealizedSources, RealizedVecs};

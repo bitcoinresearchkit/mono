@@ -29,7 +29,7 @@ impl<T, S: Clone> ColumnarAmount<T, S>
 where
     T: PcoVecValue + AddAssign,
 {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         matrix_name: &str,
         context: CohortContext,
@@ -71,12 +71,12 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, row: AmountRange<T>) {
+    pub fn push(&mut self, row: AmountRange<T>) {
         self.matrix.push(row);
     }
 
     #[inline(always)]
-    pub(crate) fn push_cumulative(&mut self, delta: &AmountRange<T>)
+    pub fn push_cumulative(&mut self, delta: &AmountRange<T>)
     where
         T: AddAssign + Default,
     {
@@ -92,16 +92,16 @@ where
         self.last = Some((len + 1, cumulative));
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.matrix.len()
     }
 
-    pub(crate) fn reset(&mut self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         self.last = None;
         self.matrix.reset().map_err(Into::into)
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.last = None;
         &mut self.matrix
     }

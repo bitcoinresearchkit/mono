@@ -4,7 +4,7 @@ use vecdb::{CachedBoxedVec, Database, ReadableCloneableVec};
 
 use super::Vecs;
 use crate::{
-    distribution::AllChainCache,
+    distribution::AllChainSources,
     indexes,
     internal::{LazyPriceWithRatioPerBlock, PriceWithRatioPerBlock},
 };
@@ -15,7 +15,7 @@ impl Vecs {
         version: Version,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
         cointime_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
     ) -> Result<Self> {
         macro_rules! import {

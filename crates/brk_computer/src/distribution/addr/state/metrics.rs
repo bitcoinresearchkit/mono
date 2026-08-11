@@ -20,14 +20,14 @@ pub struct AddrMetricsState {
 
 impl AddrMetricsState {
     #[inline]
-    pub(crate) fn reset_per_block(&mut self) {
+    pub fn reset_per_block(&mut self) {
         self.activity.reset();
         self.reused.reset_per_block();
         self.respent.reset_per_block();
     }
 
     #[inline]
-    pub(crate) fn on_receive_applied(
+    pub fn on_receive_applied(
         &mut self,
         output_type: OutputType,
         status: TrackingStatus,
@@ -56,7 +56,7 @@ impl AddrMetricsState {
     }
 
     #[inline]
-    pub(crate) fn on_send_applied(
+    pub fn on_send_applied(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,

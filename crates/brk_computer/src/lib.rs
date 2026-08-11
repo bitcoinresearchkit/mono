@@ -203,7 +203,7 @@ impl Computer {
                 })
             })?;
 
-        let all_chain = distribution.all_chain_cache(&price);
+        let all_chain = distribution.all_chain_sources(&price);
 
         let (frameworks, indicators) = timed("Imported frameworks/indicators", || {
             thread::scope(|s| -> Result<_> {

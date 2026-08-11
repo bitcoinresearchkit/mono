@@ -5,7 +5,7 @@ use brk_types::{Bitcoin, Cents, PartsPerMillion64, Sats, StoredF32, Version};
 
 use super::Vecs;
 use crate::{
-    distribution::{self, AllChainCache},
+    distribution::{self, AllChainSources},
     indexes,
     internal::{
         Identity, LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock,
@@ -21,7 +21,7 @@ impl Vecs {
         parent_path: &Path,
         parent_version: Version,
         indexes: &indexes::Vecs,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
         mining: &mining::Vecs,
         distribution: &distribution::Vecs,
         transactions: &transactions::Vecs,

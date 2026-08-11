@@ -17,7 +17,7 @@ pub struct ColumnarAmountValue<S: Clone, M: StorageMode = Rw> {
 }
 
 impl<S: Clone> ColumnarAmountValue<S> {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         matrix_name: &str,
         context: CohortContext,
@@ -63,15 +63,15 @@ impl<S: Clone> ColumnarAmountValue<S> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_cumulative(&mut self, sats: &AmountRange<Sats>, cents: &AmountRange<Cents>) {
+    pub fn push_cumulative(&mut self, sats: &AmountRange<Sats>, cents: &AmountRange<Cents>) {
         self.values.push_block(sats.clone(), cents.clone());
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.values.len()
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.values.collect_vecs_mut()
     }
 }

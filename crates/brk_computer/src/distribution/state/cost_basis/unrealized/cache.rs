@@ -5,14 +5,14 @@ use brk_types::{Cents, CentsCompact, Sats};
 use super::{Accumulate, UnrealizedState};
 
 #[derive(Debug, Clone)]
-pub(crate) struct CachedUnrealizedState<S: Accumulate> {
+pub struct CachedUnrealizedState<S: Accumulate> {
     state: S,
     at_price: CentsCompact,
     cached_output: Option<UnrealizedState>,
 }
 
 impl<S: Accumulate> CachedUnrealizedState<S> {
-    pub(crate) fn compute_fresh(price: Cents, map: &BTreeMap<CentsCompact, Sats>) -> Self {
+    pub fn compute_fresh(price: Cents, map: &BTreeMap<CentsCompact, Sats>) -> Self {
         let price = price.into();
         let state = Self::compute_raw(price, map);
         Self {
@@ -22,11 +22,11 @@ impl<S: Accumulate> CachedUnrealizedState<S> {
         }
     }
 
-    pub(crate) fn current_state(&self) -> UnrealizedState {
+    pub fn current_state(&self) -> UnrealizedState {
         self.state.to_output()
     }
 
-    pub(crate) fn get_at_price(
+    pub fn get_at_price(
         &mut self,
         new_price: Cents,
         map: &BTreeMap<CentsCompact, Sats>,
@@ -42,7 +42,7 @@ impl<S: Accumulate> CachedUnrealizedState<S> {
         self.cached_output.insert(self.state.to_output()).clone()
     }
 
-    pub(crate) fn on_receive(&mut self, price: Cents, sats: Sats) {
+    pub fn on_receive(&mut self, price: Cents, sats: Sats) {
         self.cached_output = None;
         let price: CentsCompact = price.into();
         let sats_u128 = sats.as_u128();
@@ -61,7 +61,7 @@ impl<S: Accumulate> CachedUnrealizedState<S> {
         }
     }
 
-    pub(crate) fn on_send(&mut self, price: Cents, sats: Sats) {
+    pub fn on_send(&mut self, price: Cents, sats: Sats) {
         self.cached_output = None;
         let price: CentsCompact = price.into();
         let sats_u128 = sats.as_u128();

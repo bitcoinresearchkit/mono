@@ -36,7 +36,7 @@ pub struct AdjustedSoprVecs<M: StorageMode = Rw> {
 }
 
 impl AdjustedSoprVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -141,7 +141,7 @@ impl AdjustedSoprVecs {
             }
     }
 
-    pub(crate) fn compute<V1, V2>(
+    pub fn compute<V1, V2>(
         &mut self,
         max_from: Height,
         sources: &UTXOAllAndSth<AdjustedSoprComputeSource>,
@@ -210,7 +210,7 @@ impl AdjustedSoprVecs {
         Ok(())
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.transfer_volume
             .cumulative
             .len()
@@ -224,7 +224,7 @@ impl AdjustedSoprVecs {
             )
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = vec![
             self.transfer_volume.stored_mut(),
             self.value_destroyed.stored_mut(),

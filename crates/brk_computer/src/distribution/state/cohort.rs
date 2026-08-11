@@ -24,7 +24,7 @@ pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
 }
 
 impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
-    pub(crate) fn new(path: &Path, name: &str) -> Self {
+    pub fn new(path: &Path, name: &str) -> Self {
         Self {
             supply: SupplyState::default(),
             realized: R::default(),
@@ -35,28 +35,28 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub(crate) fn import_at_or_before(&mut self, height: Height) -> Result<Height> {
+    pub fn import_at_or_before(&mut self, height: Height) -> Result<Height> {
         self.cost_basis.import_at_or_before(height)
     }
 
     /// Restore realized cap from cost_basis after import.
-    pub(crate) fn restore_realized_cap(&mut self) {
+    pub fn restore_realized_cap(&mut self) {
         self.realized.set_cap_raw(self.cost_basis.cap_raw());
         self.realized
             .set_capitalized_cap_raw(self.cost_basis.capitalized_cap_raw());
     }
 
-    pub(crate) fn reset_cost_basis_data_if_needed(&mut self) -> Result<()> {
+    pub fn reset_cost_basis_data_if_needed(&mut self) -> Result<()> {
         self.cost_basis.clean()?;
         self.cost_basis.init();
         Ok(())
     }
 
-    pub(crate) fn apply_pending(&mut self) {
+    pub fn apply_pending(&mut self) {
         self.cost_basis.apply_pending();
     }
 
-    pub(crate) fn reset_single_iteration_values(&mut self) {
+    pub fn reset_single_iteration_values(&mut self) {
         self.sent = Sats::ZERO;
         self.spent_utxo_count = 0;
         if R::TRACK_ACTIVITY {
@@ -65,7 +65,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         self.realized.reset_single_iteration_values();
     }
 
-    pub(crate) fn increment_snapshot(&mut self, s: &CostBasisSnapshot) {
+    pub fn increment_snapshot(&mut self, s: &CostBasisSnapshot) {
         self.supply += &s.supply_state;
 
         if s.supply_state.value > Sats::ZERO {
@@ -80,7 +80,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub(crate) fn decrement_snapshot(&mut self, s: &CostBasisSnapshot) {
+    pub fn decrement_snapshot(&mut self, s: &CostBasisSnapshot) {
         self.supply -= &s.supply_state;
 
         if s.supply_state.value > Sats::ZERO {
@@ -95,17 +95,13 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub(crate) fn receive_utxo(&mut self, supply: &SupplyState, price: Cents) {
+    pub fn receive_utxo(&mut self, supply: &SupplyState, price: Cents) {
         self.receive_utxo_snapshot(supply, &CostBasisSnapshot::from_utxo(price, supply));
     }
 
     /// Like receive_utxo but takes a pre-computed snapshot to avoid redundant multiplication
     /// when the same supply/price is used across multiple cohorts.
-    pub(crate) fn receive_utxo_snapshot(
-        &mut self,
-        supply: &SupplyState,
-        snapshot: &CostBasisSnapshot,
-    ) {
+    pub fn receive_utxo_snapshot(&mut self, supply: &SupplyState, snapshot: &CostBasisSnapshot) {
         self.supply += supply;
 
         if supply.value > Sats::ZERO {
@@ -120,7 +116,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub(crate) fn send_utxo_precomputed(&mut self, supply: &SupplyState, pre: &SendPrecomputed) {
+    pub fn send_utxo_precomputed(&mut self, supply: &SupplyState, pre: &SendPrecomputed) {
         self.supply -= supply;
         self.sent += pre.sats;
         self.spent_utxo_count += supply.utxo_count;
@@ -144,7 +140,7 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         );
     }
 
-    pub(crate) fn send_utxo(
+    pub fn send_utxo(
         &mut self,
         supply: &SupplyState,
         current_price: Cents,
@@ -160,13 +156,13 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
         }
     }
 
-    pub(crate) fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
+    pub fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
         self.cost_basis.write(height, cleanup)
     }
 }
 
 impl CohortState<MinimalRealizedState, CostBasisRaw> {
-    pub(crate) fn increment_addr(&mut self, supply: &SupplyState, cap: CentsSats) {
+    pub fn increment_addr(&mut self, supply: &SupplyState, cap: CentsSats) {
         self.supply += supply;
 
         if supply.value.is_not_zero() {
@@ -175,7 +171,7 @@ impl CohortState<MinimalRealizedState, CostBasisRaw> {
         }
     }
 
-    pub(crate) fn decrement_addr(&mut self, supply: &SupplyState, cap: CentsSats) {
+    pub fn decrement_addr(&mut self, supply: &SupplyState, cap: CentsSats) {
         self.supply -= supply;
 
         if supply.value.is_not_zero() {
@@ -184,12 +180,7 @@ impl CohortState<MinimalRealizedState, CostBasisRaw> {
         }
     }
 
-    pub(crate) fn send_addr(
-        &mut self,
-        supply: &SupplyState,
-        current_price: Cents,
-        prev_ps: CentsSats,
-    ) {
+    pub fn send_addr(&mut self, supply: &SupplyState, current_price: Cents, prev_ps: CentsSats) {
         if supply.utxo_count == 0 {
             return;
         }
@@ -211,15 +202,15 @@ impl CohortState<MinimalRealizedState, CostBasisRaw> {
 
 /// Methods only available with CostBasisData (map + unrealized).
 impl<R: RealizedOps, S: Accumulate> CohortState<R, CostBasisData<S>> {
-    pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
+    pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         self.cost_basis.compute_unrealized_state(height_price)
     }
 
-    pub(crate) fn for_each_cost_basis_pending(&self, f: impl FnMut(&CentsCompact, &PendingDelta)) {
+    pub fn for_each_cost_basis_pending(&self, f: impl FnMut(&CentsCompact, &PendingDelta)) {
         self.cost_basis.for_each_pending(f);
     }
 
-    pub(crate) fn cost_basis_map(&self) -> &BTreeMap<CentsCompact, Sats> {
+    pub fn cost_basis_map(&self) -> &BTreeMap<CentsCompact, Sats> {
         self.cost_basis.map()
     }
 }

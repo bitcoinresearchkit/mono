@@ -21,7 +21,7 @@ impl ExposedAddrState {
     /// Apply exposed-addr updates for a received output, AFTER the receive
     /// has mutated `addr_data`. `pre` is the snapshot taken before the mutation.
     #[inline]
-    pub(crate) fn on_receive(
+    pub fn on_receive(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,
@@ -46,7 +46,7 @@ impl ExposedAddrState {
     /// Apply exposed-addr updates for a spent UTXO, AFTER the send has mutated
     /// `addr_data`. `pre` is the snapshot taken before the mutation.
     #[inline]
-    pub(crate) fn on_send(
+    pub fn on_send(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,

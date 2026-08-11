@@ -5,7 +5,7 @@ use brk_cohort::{
 use brk_error::Result;
 use brk_indexer::Lengths;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, StoredU64, Version};
+use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, CachedBoxedVec, ColumnId, Database, Exit, ReadOnlyClone, Rw, StorageMode,
@@ -13,11 +13,11 @@ use vecdb::{
 
 use crate::{
     distribution::{
-        AllChainCache,
+        AllChainSources,
         metrics::{
-            ActivityVecs, AdjustedSoprComputeSource, AllSupplyCache, CostBasisVecs, OutputsVecs,
-            ProfitabilityVecs, RealizedAggregateSources, RealizedAggregateState, RealizedVecs,
-            RelativeSource, RelativeVecs, Sopr24hInput, SupplyVecs, UTXORows, UnrealizedVecs,
+            ActivityVecs, AdjustedSoprComputeSource, CostBasisVecs, OutputsVecs, ProfitabilityVecs,
+            RealizedAggregateSources, RealizedAggregateState, RealizedVecs, RelativeSource,
+            RelativeVecs, Sopr24hInput, SupplyVecs, UTXORows, UnrealizedVecs,
         },
         state::{AddrCohortState, RealizedOps, UTXOStates, UnrealizedState},
     },
@@ -38,13 +38,11 @@ pub struct CohortMetrics<M: StorageMode = Rw> {
     pub cost_basis: Box<CostBasisVecs<M>>,
     pub relative: Box<RelativeVecs<M>>,
     pub profitability: Box<ProfitabilityVecs<M>>,
-    #[traversable(skip)]
-    all_supply_cache: AllSupplyCache,
 }
 
 impl CohortMetrics<Rw> {
     /// Import all cohort metrics from the database.
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -54,10 +52,14 @@ impl CohortMetrics<Rw> {
         let v = version + VERSION;
 
         // Phase 1: Import supply first so its shared sources can back every cohort view.
-        let (supply, all_supply_cache) =
-            SupplyVecs::forced_import(db, v, indexes, cached_starts, spot_price)?;
-        let supply = Box::new(supply);
-        let all_chain_cache = AllChainCache::new(&all_supply_cache, spot_price);
+        let supply = Box::new(SupplyVecs::forced_import(
+            db,
+            v,
+            indexes,
+            cached_starts,
+            spot_price,
+        )?);
+        let all_chain_sources = AllChainSources::new(supply.total.all_supply(), spot_price);
         let outputs = Box::new(OutputsVecs::forced_import(db, v, indexes, cached_starts)?);
         let activity = Box::new(ActivityVecs::forced_import(db, v, indexes, cached_starts)?);
         let realized = Box::new(RealizedVecs::forced_import(
@@ -66,7 +68,7 @@ impl CohortMetrics<Rw> {
             indexes,
             cached_starts,
             spot_price,
-            &all_chain_cache,
+            &all_chain_sources,
         )?);
         let unrealized = Box::new(UnrealizedVecs::forced_import(
             db,
@@ -103,7 +105,7 @@ impl CohortMetrics<Rw> {
             db,
             v,
             indexes,
-            &all_chain_cache,
+            &all_chain_sources,
             &relative_sources,
         )?);
 
@@ -116,17 +118,16 @@ impl CohortMetrics<Rw> {
             cost_basis,
             relative,
             profitability,
-            all_supply_cache,
         })
     }
 
     /// Reset in-memory caches that become stale after rollback.
-    pub(crate) fn reset_caches(&mut self) {
-        self.all_supply_cache.clear();
+    pub fn reset_caches(&mut self) {
+        self.supply.total.all_supply().clear();
     }
 
-    pub(crate) fn all_supply_cache(&self) -> &AllSupplyCache {
-        &self.all_supply_cache
+    pub fn all_supply(&self) -> &CachedBoxedVec<Height, Sats> {
+        self.supply.total.all_supply()
     }
 
     fn sopr_24h_inputs(&self) -> UTXOGroupsWithoutAmountOrType<Sopr24hInput> {
@@ -147,7 +148,7 @@ impl CohortMetrics<Rw> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_supply_and_unrealized(
+    pub fn push_supply_and_unrealized(
         &mut self,
         states: &mut UTXOStates,
         height_price: Cents,
@@ -209,7 +210,7 @@ impl CohortMetrics<Rw> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_outputs(&mut self, states: &UTXOStates) {
+    pub fn push_outputs(&mut self, states: &UTXOStates) {
         let outputs = &mut self.outputs;
         let UTXOStates {
             age_range,
@@ -235,7 +236,7 @@ impl CohortMetrics<Rw> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_activity(&mut self, states: &UTXOStates, height_price: Cents) {
+    pub fn push_activity(&mut self, states: &UTXOStates, height_price: Cents) {
         let activity = &mut self.activity;
         let UTXOStates {
             age_range,
@@ -277,7 +278,7 @@ impl CohortMetrics<Rw> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_realized(&mut self, states: &UTXOStates) {
+    pub fn push_realized(&mut self, states: &UTXOStates) {
         let realized = &mut self.realized;
         let UTXOStates {
             age_range,
@@ -301,7 +302,7 @@ impl CohortMetrics<Rw> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_addr_balance(
+    pub fn push_addr_balance(
         &mut self,
         states: &AmountRange<AddrCohortState>,
         height_price: Cents,
@@ -327,11 +328,7 @@ impl CohortMetrics<Rw> {
     }
 
     /// First phase of post-processing: compute index transforms.
-    pub(crate) fn compute_rest_part1(
-        &mut self,
-        starting_lengths: &Lengths,
-        exit: &Exit,
-    ) -> Result<()> {
+    pub fn compute_rest_part1(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
         self.activity
             .compute_dormancy(starting_lengths.height, exit)?;
 
@@ -339,11 +336,7 @@ impl CohortMetrics<Rw> {
     }
 
     /// Second phase of post-processing: compute derived ratios and relative metrics.
-    pub(crate) fn compute_rest_part2(
-        &mut self,
-        starting_lengths: &Lengths,
-        exit: &Exit,
-    ) -> Result<()> {
+    pub fn compute_rest_part2(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
         // Get under_1h value sources for adjusted computation (cloned to avoid borrow conflicts).
         let under_1h_value_created = self
             .activity
@@ -456,9 +449,7 @@ impl CohortMetrics<Rw> {
     }
 
     /// Returns a parallel iterator over all vecs for parallel writing.
-    pub(crate) fn par_iter_vecs_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_vecs_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         let mut vecs: Vec<&mut dyn AnyStoredVec> = Vec::with_capacity(128);
         vecs.extend(self.supply.collect_vecs_mut());
         vecs.extend(self.outputs.collect_vecs_mut());
@@ -471,7 +462,7 @@ impl CohortMetrics<Rw> {
         vecs.into_par_iter()
     }
 
-    pub(crate) fn min_stateful_len(&self) -> Height {
+    pub fn min_stateful_len(&self) -> Height {
         Height::from(self.supply.min_len())
             .min(Height::from(self.outputs.min_len()))
             .min(Height::from(self.activity.min_len()))
@@ -482,13 +473,13 @@ impl CohortMetrics<Rw> {
     }
 
     /// Validate computed versions for all cohorts.
-    pub(crate) fn validate_computed_versions(&mut self, base_version: Version) -> Result<()> {
+    pub fn validate_computed_versions(&mut self, base_version: Version) -> Result<()> {
         self.cost_basis.validate_computed_versions(base_version)
     }
 
     /// Aggregate realized fields from age-range states and push all/STH/LTH.
     /// Called during the block loop after separate cohorts' push_state but before reset.
-    pub(crate) fn push_overlapping(
+    pub fn push_overlapping(
         &mut self,
         states: &UTXOStates,
         height_price: Cents,

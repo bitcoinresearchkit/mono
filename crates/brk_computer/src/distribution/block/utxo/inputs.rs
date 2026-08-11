@@ -26,7 +26,7 @@ pub struct InputsResult {
 /// 4. Read value and type from the referenced output (random access via mmap)
 /// 5. Accumulate into height_to_sent map
 /// 6. Track address-specific data for address cohort processing
-pub(crate) fn process_inputs(
+pub fn process_inputs(
     txin_index_to_tx_index: &[TxIndex],
     txin_index_to_value: &[Sats],
     txin_index_to_output_type: &[OutputType],

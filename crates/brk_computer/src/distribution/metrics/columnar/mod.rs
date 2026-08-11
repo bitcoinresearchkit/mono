@@ -5,14 +5,14 @@ mod cumulative;
 mod exact;
 mod rows;
 
-pub(crate) use additive::{
+pub use additive::{
     UTXOColumnarMetric, UTXOColumnarMetricWithoutAmount, UTXOColumnarMetricWithoutAmountOrType,
 };
 pub use amount::ColumnarAmount;
 pub use amount_value::ColumnarAmountValue;
-pub(crate) use cumulative::{
+pub use cumulative::{
     CumulativeUTXOColumnarMetric, CumulativeUTXOColumnarMetricWithoutAmountOrType,
     CumulativeUTXOValueColumnarMetric, CumulativeUTXOValueColumnarMetricWithoutAmountOrType,
 };
-pub(crate) use exact::ExactUTXOColumnarMetric;
-pub(crate) use rows::{UTXOAggregateRows, UTXORows};
+pub use exact::ExactUTXOColumnarMetric;
+pub use rows::{UTXOAggregateRows, UTXORows};

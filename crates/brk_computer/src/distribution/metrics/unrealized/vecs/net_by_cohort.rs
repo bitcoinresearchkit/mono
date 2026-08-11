@@ -18,11 +18,7 @@ pub struct NetUnrealizedByCohort<M: StorageMode = Rw> {
 }
 
 impl NetUnrealizedByCohort {
-    pub(super) fn forced_import(
-        db: &Database,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
+    pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
         let metric = "net_unrealized_pnl";
         let matrices = UTXOColumnarMetricWithoutAmountOrType::forced_import(
             db,

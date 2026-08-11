@@ -26,7 +26,7 @@ pub struct AggregatePercentPerBlock<B: FixedRatio, M: StorageMode = Rw> {
 }
 
 impl<B: FixedRatio> AggregatePercentPerBlock<B> {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -50,7 +50,7 @@ impl<B: FixedRatio> AggregatePercentPerBlock<B> {
         Ok(Self { values })
     }
 
-    pub(crate) fn compute_columns2<'a, A, C, V1, V2>(
+    pub fn compute_columns2<'a, A, C, V1, V2>(
         &mut self,
         max_from: Height,
         source1: impl Fn(UTXOAggregateId) -> &'a V1,
@@ -68,7 +68,7 @@ impl<B: FixedRatio> AggregatePercentPerBlock<B> {
             .compute_columns2(max_from, source1, source2, transform, exit)
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.values.stored_mut()
     }
 }

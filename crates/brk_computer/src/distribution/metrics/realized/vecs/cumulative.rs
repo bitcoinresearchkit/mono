@@ -19,7 +19,7 @@ pub struct CumulativeRealizedByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeRealizedByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,

@@ -10,7 +10,7 @@ pub struct HeightToAddrTypeToVec<T>(FxHashMap<Height, AddrTypeToVec<T>>);
 
 impl<T> HeightToAddrTypeToVec<T> {
     /// Create with pre-allocated capacity for unique heights.
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         Self(FxHashMap::with_capacity_and_hasher(
             capacity,
             Default::default(),
@@ -20,7 +20,7 @@ impl<T> HeightToAddrTypeToVec<T> {
 
 impl<T> HeightToAddrTypeToVec<T> {
     /// Consume and iterate over (Height, AddrTypeToVec) pairs.
-    pub(crate) fn into_iter(self) -> impl Iterator<Item = (Height, AddrTypeToVec<T>)> {
+    pub fn into_iter(self) -> impl Iterator<Item = (Height, AddrTypeToVec<T>)> {
         self.0.into_iter()
     }
 }

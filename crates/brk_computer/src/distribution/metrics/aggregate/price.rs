@@ -26,7 +26,7 @@ pub struct AggregatePriceWithRatioPerBlock<M: StorageMode = Rw> {
 }
 
 impl AggregatePriceWithRatioPerBlock {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -54,15 +54,15 @@ impl AggregatePriceWithRatioPerBlock {
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, row: UTXOAggregate<Cents>) {
+    pub fn push(&mut self, row: UTXOAggregate<Cents>) {
         self.values.push(row);
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.values.height.len()
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.values.stored_mut()
     }
 }

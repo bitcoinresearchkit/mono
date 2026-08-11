@@ -4,6 +4,6 @@ mod side;
 mod vecs;
 
 pub use base::CostBasis;
-pub(crate) use block_data::CostBasisBlockData;
+pub use block_data::CostBasisBlockData;
 pub use side::CostBasisSide;
 pub use vecs::CostBasisVecs;

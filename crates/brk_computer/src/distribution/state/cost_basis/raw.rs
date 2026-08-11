@@ -41,33 +41,30 @@ pub struct CostBasisRaw {
 
 impl CostBasisRaw {
     #[inline]
-    pub(crate) fn increment_cap(&mut self, value: CentsSats) {
+    pub fn increment_cap(&mut self, value: CentsSats) {
         self.pending_cap.inc += value;
     }
 
     #[inline]
-    pub(crate) fn decrement_cap(&mut self, value: CentsSats) {
+    pub fn decrement_cap(&mut self, value: CentsSats) {
         self.pending_cap.dec += value;
     }
 
     #[inline]
-    pub(super) fn has_no_pending_cap(&self) -> bool {
+    pub fn has_no_pending_cap(&self) -> bool {
         self.pending_cap.is_zero()
     }
 
     #[inline]
-    pub(super) fn path(&self) -> &Path {
+    pub fn path(&self) -> &Path {
         &self.pathbuf
     }
 
-    pub(super) fn path_state(&self, height: Height) -> PathBuf {
+    pub fn path_state(&self, height: Height) -> PathBuf {
         self.pathbuf.join(height.to_string())
     }
 
-    pub(super) fn read_dir(
-        &self,
-        keep_only_before: Option<Height>,
-    ) -> Result<BTreeMap<Height, PathBuf>> {
+    pub fn read_dir(&self, keep_only_before: Option<Height>) -> Result<BTreeMap<Height, PathBuf>> {
         if !self.pathbuf.exists() {
             return Ok(BTreeMap::new());
         }
@@ -89,17 +86,17 @@ impl CostBasisRaw {
             .collect())
     }
 
-    pub(super) fn import_state(&mut self, data: &[u8]) -> Result<()> {
+    pub fn import_state(&mut self, data: &[u8]) -> Result<()> {
         self.state = Some(RawState::deserialize(data)?);
         self.pending_cap = PendingCapDelta::default();
         Ok(())
     }
 
-    pub(super) fn serialized_state(&self) -> Vec<u8> {
+    pub fn serialized_state(&self) -> Vec<u8> {
         self.state.as_ref().unwrap().serialize()
     }
 
-    pub(super) fn apply_pending_cap(&mut self) {
+    pub fn apply_pending_cap(&mut self) {
         if self.pending_cap.is_zero() {
             return;
         }
@@ -120,7 +117,7 @@ impl CostBasisRaw {
         self.pending_cap = PendingCapDelta::default();
     }
 
-    pub(super) fn write_and_cleanup(&mut self, height: Height, cleanup: bool) -> Result<()> {
+    pub fn write_and_cleanup(&mut self, height: Height, cleanup: bool) -> Result<()> {
         if cleanup {
             let files = self.read_dir(Some(height))?;
             for (_, path) in files

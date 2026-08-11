@@ -25,7 +25,7 @@ pub struct FundedAddrCountsVecs<M: StorageMode = Rw> {
 }
 
 impl FundedAddrCountsVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -53,31 +53,29 @@ impl FundedAddrCountsVecs {
         })
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.counts.min_stateful_len().min(self.balance.len())
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.counts
             .par_iter_height_mut()
             .chain(rayon::iter::once(self.balance.stored_mut()))
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.counts.reset_height()?;
         self.balance.reset()?;
         Ok(())
     }
 
     #[inline(always)]
-    pub(crate) fn push_counts(&mut self, counts: &AddrTypeToAddrCount) {
+    pub fn push_counts(&mut self, counts: &AddrTypeToAddrCount) {
         self.counts.push_counts(counts);
     }
 
     #[inline(always)]
-    pub(crate) fn push_balance(&mut self, counts: AmountRange<StoredU64>) {
+    pub fn push_balance(&mut self, counts: AmountRange<StoredU64>) {
         self.balance.push(counts);
     }
 }

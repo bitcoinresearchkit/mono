@@ -18,7 +18,7 @@ pub struct AddrCountFundedTotalVecs<M: StorageMode = Rw> {
 }
 
 impl AddrCountFundedTotalVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -40,32 +40,26 @@ impl AddrCountFundedTotalVecs {
         })
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.funded
             .min_stateful_len()
             .min(self.total.min_stateful_len())
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.funded
             .par_iter_height_mut()
             .chain(self.total.par_iter_height_mut())
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.funded.reset_height()?;
         self.total.reset_height()?;
         Ok(())
     }
 
     #[inline(always)]
-    pub(crate) fn push_counts(
-        &mut self,
-        funded: &AddrTypeToAddrCount,
-        total: &AddrTypeToAddrCount,
-    ) {
+    pub fn push_counts(&mut self, funded: &AddrTypeToAddrCount, total: &AddrTypeToAddrCount) {
         self.funded.push_counts(funded);
         self.total.push_counts(total);
     }

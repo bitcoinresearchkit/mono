@@ -13,7 +13,7 @@ use super::with_source::WithAddrDataSource;
 ///
 /// Addresses are looked up in funded_cache first, then empty_cache.
 /// NOTE: This should be called AFTER merging parallel-fetched address data into funded_cache.
-pub(crate) fn update_tx_counts(
+pub fn update_tx_counts(
     funded_cache: &mut AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
     empty_cache: &mut AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
     mut tx_index_vecs: AddrTypeToTypeIndexMap<SmallVec<[TxIndex; 4]>>,

@@ -115,7 +115,7 @@ impl AddrEventsVecs {
         });
         WithAddrTypes { all, by_addr_type }
     }
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -218,7 +218,7 @@ impl AddrEventsVecs {
         })
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.output_to_reused_addr_count
             .cumulative
             .len()
@@ -227,9 +227,7 @@ impl AddrEventsVecs {
             .min(self.active_reused_addr_share.block.len())
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         rayon::iter::once(self.output_to_reused_addr_count.stored_mut())
             .chain(rayon::iter::once(
                 self.input_from_reused_addr_count.stored_mut(),
@@ -240,7 +238,7 @@ impl AddrEventsVecs {
             ])
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.output_to_reused_addr_count.reset()?;
         self.input_from_reused_addr_count.reset()?;
         self.active_reused_addr_count.reset()?;
@@ -249,7 +247,7 @@ impl AddrEventsVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_height(
+    pub fn push_height(
         &mut self,
         uses: &AddrTypeToAddrEventCount,
         spends: &AddrTypeToAddrEventCount,
@@ -275,7 +273,7 @@ impl AddrEventsVecs {
             .push(StoredF32::from(share));
     }
 
-    pub(crate) fn compute_rest(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
+    pub fn compute_rest(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
         self.active_reused_addr_share
             .compute_rest(starting_lengths.height, exit)?;
         Ok(())

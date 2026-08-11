@@ -18,7 +18,7 @@ impl UTXOStates {
     /// `price_range_max` is used to compute the peak price during each UTXO's holding period
     /// for accurate peak regret calculation.
     /// Returns the minimum receive_height that was modified, if any.
-    pub(crate) fn send(
+    pub fn send(
         &mut self,
         height_to_sent: FxHashMap<Height, Transacted>,
         chain_state: &mut [BlockState],

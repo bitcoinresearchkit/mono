@@ -41,7 +41,7 @@ pub struct AddrActivityVecs<M: StorageMode = Rw> {
 }
 
 impl AddrActivityVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -129,7 +129,7 @@ impl AddrActivityVecs {
         })
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         [
             self.cumulative_reactivated.cumulative.len(),
             self.cumulative_sending.cumulative.len(),
@@ -142,9 +142,7 @@ impl AddrActivityVecs {
         .unwrap_or_default()
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         [
             self.cumulative_reactivated.stored_mut(),
             self.cumulative_sending.stored_mut(),
@@ -155,7 +153,7 @@ impl AddrActivityVecs {
         .into_par_iter()
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.cumulative_reactivated.reset()?;
         self.cumulative_sending.reset()?;
         self.cumulative_receiving.reset()?;
@@ -165,7 +163,7 @@ impl AddrActivityVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_height(&mut self, counts: &AddrTypeToActivityCounts) {
+    pub fn push_height(&mut self, counts: &AddrTypeToActivityCounts) {
         self.cumulative_reactivated
             .push_block(counts.row(|counts| counts.reactivated));
         self.cumulative_sending

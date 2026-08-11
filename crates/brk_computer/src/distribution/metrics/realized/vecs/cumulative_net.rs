@@ -25,7 +25,7 @@ pub struct CumulativeNetRealizedByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeNetRealizedByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,

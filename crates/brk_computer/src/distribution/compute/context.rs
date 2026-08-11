@@ -12,11 +12,11 @@ pub struct ComputeContext<'a> {
 }
 
 impl<'a> ComputeContext<'a> {
-    pub(crate) fn price_at(&self, height: Height) -> Cents {
+    pub fn price_at(&self, height: Height) -> Cents {
         self.height_to_price[height.to_usize()]
     }
 
-    pub(crate) fn timestamp_at(&self, height: Height) -> Timestamp {
+    pub fn timestamp_at(&self, height: Height) -> Timestamp {
         self.height_to_timestamp[height.to_usize()]
     }
 }

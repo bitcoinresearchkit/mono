@@ -28,7 +28,7 @@ pub struct AddrVecs<M: StorageMode = Rw> {
 }
 
 impl AddrVecs {
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.funded.reset_height()?;
         self.empty.reset_height()?;
         self.activity.reset_height()?;
@@ -40,7 +40,7 @@ impl AddrVecs {
         Ok(())
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.funded
             .min_stateful_len()
             .min(self.empty.min_stateful_len())
@@ -50,7 +50,7 @@ impl AddrVecs {
             .min(self.exposed.min_stateful_len())
     }
 
-    pub(crate) fn par_iter_stateful_height_mut(
+    pub fn par_iter_stateful_height_mut(
         &mut self,
     ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.funded
@@ -62,9 +62,7 @@ impl AddrVecs {
             .chain(self.exposed.par_iter_stateful_height_mut())
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.funded
             .par_iter_height_mut()
             .chain(self.empty.par_iter_height_mut())
@@ -77,7 +75,7 @@ impl AddrVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_height(&mut self, state: &AddrMetricsState, active_addr_count: u32) {
+    pub fn push_height(&mut self, state: &AddrMetricsState, active_addr_count: u32) {
         self.funded.push_counts(&state.funded);
         self.empty.push_counts(&state.empty);
         self.activity.push_height(&state.activity);

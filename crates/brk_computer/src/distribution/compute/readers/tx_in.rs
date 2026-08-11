@@ -1,8 +1,6 @@
 use brk_indexer::Indexer;
-use brk_types::{Height, OutPoint, OutputType, Sats, TxInIndex, TxIndex, TypeIndex};
+use brk_types::{Height, OutPoint, OutputType, RangeMap, Sats, TxInIndex, TxIndex, TypeIndex};
 use vecdb::{PcoVec, ReadableVec};
-
-use crate::distribution::RangeMap;
 
 /// Bulk txin reader with reusable buffers.
 pub struct TxInReaders<'a> {
@@ -17,7 +15,7 @@ pub struct TxInReaders<'a> {
 }
 
 impl<'a> TxInReaders<'a> {
-    pub(crate) fn new(
+    pub fn new(
         indexer: &'a Indexer,
         input_values: &'a PcoVec<TxInIndex, Sats>,
         tx_index_to_height: &'a mut RangeMap<TxIndex, Height>,
@@ -34,7 +32,7 @@ impl<'a> TxInReaders<'a> {
         }
     }
 
-    pub(crate) fn collect_block_inputs(
+    pub fn collect_block_inputs(
         &mut self,
         first_txin_index: usize,
         input_count: usize,

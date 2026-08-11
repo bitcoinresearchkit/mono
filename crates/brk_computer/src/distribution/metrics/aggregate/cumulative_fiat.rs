@@ -15,7 +15,7 @@ use crate::{
     indexes,
     internal::{
         CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, FiatType,
-        LazyFiatPerBlockCumulativeWithSums, Windows,
+        LazyFiatPerBlockCumulativeWithSums, Windows, cache_wrap,
     },
 };
 
@@ -33,7 +33,7 @@ pub struct AdditiveAggregateFiatPerBlockCumulativeWithSums<C: FiatType, M: Stora
 }
 
 impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -53,13 +53,12 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
                         metric,
                     );
                     let cumulative = match id {
-                        UTXOAggregateId::All => source
-                            .sum_columns(
-                                &format!("{name}_cumulative_cents"),
-                                version,
-                                TermId::ALL.iter().copied(),
-                            )
-                            .read_only_boxed_clone(),
+                        UTXOAggregateId::All => cache_wrap(source.sum_columns(
+                            &format!("{name}_cumulative_cents"),
+                            version,
+                            TermId::ALL.iter().copied(),
+                        ))
+                        .read_only_boxed_clone(),
                         UTXOAggregateId::Sth => source
                             .column(&format!("{name}_cumulative_cents"), version, TermId::Short)
                             .read_only_boxed_clone(),
@@ -81,18 +80,18 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
     }
 
     #[inline(always)]
-    pub(crate) fn push_block(&mut self, row: UTXOAggregate<C>) {
+    pub fn push_block(&mut self, row: UTXOAggregate<C>) {
         self.values.push_block(ByTerm {
             short: row.sth,
             long: row.lth,
         });
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.values.cumulative.len()
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.values.stored_mut()
     }
 }

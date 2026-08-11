@@ -12,7 +12,7 @@ use super::AddrCountsVecs;
 pub struct AddrTypeToAddrCount(ByAddrType<u64>);
 
 impl AddrTypeToAddrCount {
-    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
+    pub fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
         AddrTypeId::from_fn(|id| StoredU64::from(*id.select(&self.0)))
     }
 }

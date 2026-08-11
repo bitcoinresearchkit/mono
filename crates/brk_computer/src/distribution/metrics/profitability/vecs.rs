@@ -53,7 +53,7 @@ pub struct ProfitabilityVecs<M: StorageMode = Rw> {
 }
 
 impl<M: StorageMode> ProfitabilityVecs<M> {
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.supply
             .height
             .len()
@@ -64,7 +64,7 @@ impl<M: StorageMode> ProfitabilityVecs<M> {
 }
 
 impl ProfitabilityVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -168,7 +168,7 @@ impl ProfitabilityVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push(
+    pub fn push(
         &mut self,
         spot: Cents,
         supply: ByTerm<ProfitabilityRange<Sats>>,
@@ -185,7 +185,7 @@ impl ProfitabilityVecs {
         self.nupl.push(nupl);
     }
 
-    pub(crate) fn collect_all_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
+    pub fn collect_all_vecs_mut(&mut self) -> [&mut dyn AnyStoredVec; 4] {
         [
             self.supply.stored_mut(),
             self.realized_cap.stored_mut(),

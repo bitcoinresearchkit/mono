@@ -8,7 +8,9 @@ use vecdb::{
     VecValue,
 };
 
-use crate::internal::{ColumnarPerBlockCumulativeRolling, StoredU64ToCents, StoredU64ToSats};
+use crate::internal::{
+    ColumnarPerBlockCumulativeRolling, StoredU64ToCents, StoredU64ToSats, cache_wrap,
+};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ColumnarValuePerBlockCumulativeRolling<C, S: Clone, M: StorageMode = Rw>
@@ -78,6 +80,25 @@ where
         )
     }
 
+    pub fn budgeted_sources(
+        &self,
+        name: &str,
+        version: Version,
+        columns: impl IntoIterator<Item = C>,
+    ) -> (
+        ReadableBoxedVec<Height, Sats>,
+        ReadableBoxedVec<Height, Cents>,
+    ) {
+        Self::sources_from_inner(
+            &self.sats.cumulative.read_only_clone(),
+            &self.cents.cumulative.read_only_clone(),
+            name,
+            version,
+            columns,
+            true,
+        )
+    }
+
     pub(crate) fn sources_from(
         sats: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, C>,
         cents: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, C>,
@@ -88,18 +109,34 @@ where
         ReadableBoxedVec<Height, Sats>,
         ReadableBoxedVec<Height, Cents>,
     ) {
+        Self::sources_from_inner(sats, cents, name, version, columns, false)
+    }
+
+    fn sources_from_inner(
+        sats: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, C>,
+        cents: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, C>,
+        name: &str,
+        version: Version,
+        columns: impl IntoIterator<Item = C>,
+        budgeted: bool,
+    ) -> (
+        ReadableBoxedVec<Height, Sats>,
+        ReadableBoxedVec<Height, Cents>,
+    ) {
         let columns: Box<[_]> = columns.into_iter().collect();
         let sats = Self::typed_source::<StoredU64ToSats, Sats>(
             sats,
             &format!("{name}_sats"),
             version,
             &columns,
+            budgeted,
         );
         let cents = Self::typed_source::<StoredU64ToCents, Cents>(
             cents,
             &format!("{name}_cents"),
             version,
             &columns,
+            budgeted,
         );
         (sats, cents)
     }
@@ -109,6 +146,7 @@ where
         name: &str,
         version: Version,
         columns: &[C],
+        budgeted: bool,
     ) -> ReadableBoxedVec<Height, T>
     where
         F: UnaryTransform<StoredU64, T>,
@@ -123,7 +161,12 @@ where
                 .sum_columns(name, version, columns.iter().copied())
                 .read_only_boxed_clone()
         };
-        LazyVec::transformed::<F>(name, version, raw).read_only_boxed_clone()
+        let source = LazyVec::transformed::<F>(name, version, raw);
+        if budgeted {
+            cache_wrap(source).read_only_boxed_clone()
+        } else {
+            source.read_only_boxed_clone()
+        }
     }
 
     #[inline(always)]

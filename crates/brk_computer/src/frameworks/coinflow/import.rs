@@ -18,6 +18,7 @@ use crate::{
     internal::{
         ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
         LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
+        cache_wrap,
     },
 };
 
@@ -105,8 +106,7 @@ impl AggregateSources {
     {
         match aggregate.term() {
             Some(term) => source.column(name, version, term).read_only_boxed_clone(),
-            None => source
-                .sum_columns(name, version, TermId::ALL.iter().copied())
+            None => cache_wrap(source.sum_columns(name, version, TermId::ALL.iter().copied()))
                 .read_only_boxed_clone(),
         }
     }

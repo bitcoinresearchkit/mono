@@ -4,14 +4,14 @@ use brk_types::{Cents, Sats, TypeIndex};
 use vecdb::VecIndex;
 
 use crate::distribution::{
-    AddrStates,
     addr::{AddrMetricsState, AddrSendPreState, HeightToAddrTypeToVec},
+    state::AddrStates,
 };
 
 use super::{super::cache::AddrLookup, transfer_address_cache::TransferAddressCache};
 
 /// Process sent UTXOs for address cohort membership and empty-address transitions.
-pub(crate) fn process_sent(
+pub fn process_sent(
     sent_data: HeightToAddrTypeToVec<(TypeIndex, Sats)>,
     cohorts: &mut AddrStates,
     lookup: &mut AddrLookup<'_>,

@@ -10,16 +10,16 @@ use super::BlockActivityCounts;
 pub struct AddrTypeToActivityCounts(pub ByAddrType<BlockActivityCounts>);
 
 impl AddrTypeToActivityCounts {
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.0.values_mut().for_each(BlockActivityCounts::reset);
     }
 
-    pub(crate) fn active(&self) -> u32 {
+    pub fn active(&self) -> u32 {
         self.0.values().map(BlockActivityCounts::active).sum()
     }
 
     #[inline(always)]
-    pub(super) fn row(
+    pub fn row(
         &self,
         value: impl Fn(&BlockActivityCounts) -> u32,
     ) -> <AddrTypeId as ColumnId>::Row<StoredU64> {

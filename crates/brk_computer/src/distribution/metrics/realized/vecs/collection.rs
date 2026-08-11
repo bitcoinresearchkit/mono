@@ -15,7 +15,7 @@ use vecdb::{
 
 use crate::{
     distribution::{
-        AllChainCache,
+        AllChainSources,
         metrics::{
             AdditiveAggregateFiatPerBlockCumulativeWithSums, AdditiveUTXORawVec,
             AggregatePercentPerBlock, AggregatePriceWithRatioPerBlock, ColumnarAmount,
@@ -80,13 +80,13 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
 }
 
 impl RealizedVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
     ) -> Result<Self> {
         let aggregate_version = version + Version::ONE;
         let gross_pnl = AdditiveAggregateFiatPerBlockCumulativeWithSums::forced_import(
@@ -364,7 +364,7 @@ impl RealizedVecs {
         PartsPerMillion32::from(1.0 / f64::from(mvrv))
     }
 
-    pub(crate) fn sources(&self, filter: &Filter) -> Option<RealizedSources> {
+    pub fn sources(&self, filter: &Filter) -> Option<RealizedSources> {
         Some(RealizedSources {
             cap: self.cap.cohorts.get(filter)?.clone(),
             profit: self.profit.cohorts.get(filter)?.clone(),
@@ -375,7 +375,7 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_aggregate(&mut self, rows: &UTXOAggregate<RealizedAggregateState>) -> Cents {
+    pub fn push_aggregate(&mut self, rows: &UTXOAggregate<RealizedAggregateState>) -> Cents {
         let prices = rows.map(RealizedAggregateState::capitalized_price);
         self.gross_pnl
             .push_block(rows.map(RealizedAggregateState::gross_pnl));
@@ -388,7 +388,7 @@ impl RealizedVecs {
         prices.all
     }
 
-    pub(crate) fn compute_sopr(
+    pub fn compute_sopr(
         &mut self,
         max_from: Height,
         inputs: &UTXOGroupsWithoutAmountOrType<Sopr24hInput>,
@@ -397,7 +397,7 @@ impl RealizedVecs {
         self.sopr.compute(max_from, inputs, exit)
     }
 
-    pub(crate) fn compute_adjusted_sopr<V1, V2>(
+    pub fn compute_adjusted_sopr<V1, V2>(
         &mut self,
         max_from: Height,
         sources: &UTXOAllAndSth<AdjustedSoprComputeSource>,
@@ -418,7 +418,7 @@ impl RealizedVecs {
         )
     }
 
-    pub(crate) fn compute_aggregate_metrics(
+    pub fn compute_aggregate_metrics(
         &mut self,
         max_from: Height,
         sources: &UTXOAggregate<RealizedAggregateSources>,
@@ -502,7 +502,7 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, rows: &UTXORows<RealizedBlockData>) {
+    pub fn push(&mut self, rows: &UTXORows<RealizedBlockData>) {
         let aggregate_price = rows
             .map(RealizedBlockData::totals)
             .aggregate()
@@ -527,7 +527,7 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_addr_balance(
+    pub fn push_addr_balance(
         &mut self,
         cap: AmountRange<Cents>,
         profit: &AmountRange<Cents>,
@@ -538,7 +538,7 @@ impl RealizedVecs {
         self.addr_balance_loss.push_cumulative(loss);
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.cap
             .matrices
             .min_len()
@@ -579,7 +579,7 @@ impl RealizedVecs {
             .min(self.capitalized_cap_raw.len())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.cap.matrices.collect_vecs_mut();
         vecs.push(self.addr_balance_cap.stored_mut());
         vecs.extend(self.price.matrices.collect_vecs_mut());

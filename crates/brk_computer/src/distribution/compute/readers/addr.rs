@@ -22,7 +22,7 @@ pub struct AddrReaders {
 }
 
 impl AddrReaders {
-    pub(crate) fn new(any_addr_indexes: &AnyAddrIndexesVecs, addrs_data: &AddrsDataVecs) -> Self {
+    pub fn new(any_addr_indexes: &AnyAddrIndexesVecs, addrs_data: &AddrsDataVecs) -> Self {
         Self {
             p2a: any_addr_indexes.p2a.reader(),
             p2pk33: any_addr_indexes.p2pk33.reader(),
@@ -37,7 +37,7 @@ impl AddrReaders {
         }
     }
 
-    pub(crate) fn any_addr_index(
+    pub fn any_addr_index(
         &self,
         vecs: &AnyAddrIndexesVecs,
         addr_type: OutputType,
@@ -58,16 +58,12 @@ impl AddrReaders {
     }
 
     #[inline]
-    pub(crate) fn funded_data(
-        &self,
-        vecs: &AddrsDataVecs,
-        index: FundedAddrIndex,
-    ) -> FundedAddrData {
+    pub fn funded_data(&self, vecs: &AddrsDataVecs, index: FundedAddrIndex) -> FundedAddrData {
         vecs.funded.get_with_reader(index, &self.funded).unwrap()
     }
 
     #[inline]
-    pub(crate) fn empty_data(&self, vecs: &AddrsDataVecs, index: EmptyAddrIndex) -> EmptyAddrData {
+    pub fn empty_data(&self, vecs: &AddrsDataVecs, index: EmptyAddrIndex) -> EmptyAddrData {
         vecs.empty.get_with_reader(index, &self.empty).unwrap()
     }
 }

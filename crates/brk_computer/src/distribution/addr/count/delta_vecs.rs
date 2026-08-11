@@ -16,7 +16,7 @@ pub struct DeltaVecs(
 );
 
 impl DeltaVecs {
-    pub(crate) fn new(
+    pub fn new(
         version: Version,
         addr_count: &AddrCountsVecs,
         cached_starts: &Windows<&CachedWindowStartVec>,

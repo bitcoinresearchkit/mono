@@ -9,7 +9,7 @@ use vecdb::{
 };
 
 use crate::{
-    distribution::AllChainCache,
+    distribution::AllChainSources,
     indexes,
     internal::{
         ColumnarPerBlock, LazyColumnSpotValuePerBlock, LazySpotValuePerBlock, WithAddrTypes,
@@ -27,12 +27,12 @@ pub struct AvgAmountVecs<M: StorageMode = Rw> {
 }
 
 impl AvgAmountVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
         utxo_count: &(impl ReadableCloneableVec<Height, StoredU64> + 'static),
         funded_addr_count: &(impl ReadableCloneableVec<Height, StoredU64> + 'static),
     ) -> Result<Self> {
@@ -101,20 +101,18 @@ impl AvgAmountVecs {
         })
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         rayon::iter::once(self.utxo_source.stored_mut())
             .chain(rayon::iter::once(self.addr_source.stored_mut()))
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.utxo_source.height.reset()?;
         self.addr_source.height.reset()?;
         Ok(())
     }
 
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,
         utxo_count: &ByAddrType<&impl ReadableVec<Height, StoredU64>>,

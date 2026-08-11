@@ -18,7 +18,7 @@ impl UTXOStates {
     ///
     /// Returns how many sats matured OUT OF each cohort into the older adjacent one.
     /// `over_15y` is always zero since nothing ages out of the oldest cohort.
-    pub(crate) fn tick_tock_next_block(
+    pub fn tick_tock_next_block(
         &mut self,
         chain_state: &[BlockState],
         timestamp: Timestamp,

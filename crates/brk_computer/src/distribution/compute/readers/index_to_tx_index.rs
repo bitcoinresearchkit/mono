@@ -2,20 +2,20 @@ use brk_types::{StoredU64, TxIndex};
 use vecdb::{ReadableVec, VecIndex};
 
 /// Reusable buffers for a block's index-to-transaction-index mapping.
-pub(crate) struct IndexToTxIndexBuf {
+pub struct IndexToTxIndexBuf {
     counts: Vec<StoredU64>,
     result: Vec<TxIndex>,
 }
 
 impl IndexToTxIndexBuf {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             counts: Vec::new(),
             result: Vec::new(),
         }
     }
 
-    pub(crate) fn build(
+    pub fn build(
         &mut self,
         block_first_tx_index: TxIndex,
         block_tx_count: u64,

@@ -1,6 +1,6 @@
 use brk_types::{Age, Cents, CentsSats, CentsSquaredSats, Sats, SupplyState};
 
-pub(crate) struct SendPrecomputed {
+pub struct SendPrecomputed {
     pub sats: Sats,
     pub prev_price: Cents,
     pub age: Age,
@@ -11,7 +11,7 @@ pub(crate) struct SendPrecomputed {
 }
 
 impl SendPrecomputed {
-    pub(crate) fn new(
+    pub fn new(
         supply: &SupplyState,
         current_price: Cents,
         prev_price: Cents,

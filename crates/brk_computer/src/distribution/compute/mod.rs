@@ -5,11 +5,11 @@ mod readers;
 mod recover;
 mod write;
 
-pub(crate) use block_loop::process_blocks;
-pub(crate) use context::ComputeContext;
-pub(crate) use price_range_max::PriceRangeMax;
-pub(crate) use readers::{AddrReaders, IndexToTxIndexBuf, TxInReaders, TxOutData, TxOutReaders};
-pub(crate) use recover::{StartMode, determine_start_mode, reset_state};
+pub use block_loop::process_blocks;
+pub use context::ComputeContext;
+pub use price_range_max::PriceRangeMax;
+pub use readers::{AddrReaders, IndexToTxIndexBuf, TxInReaders, TxOutData, TxOutReaders};
+pub use recover::{StartMode, determine_start_mode, reset_state};
 
 /// Flush checkpoint interval (every N blocks).
 pub const FLUSH_INTERVAL: usize = 10_000;

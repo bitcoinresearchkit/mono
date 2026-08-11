@@ -14,17 +14,17 @@ pub struct MinimalRealizedState {
 
 impl MinimalRealizedState {
     #[inline]
-    pub(crate) fn increment_cap(&mut self, cap: CentsSats) {
+    pub fn increment_cap(&mut self, cap: CentsSats) {
         self.cap_raw += cap.as_u128();
     }
 
     #[inline]
-    pub(crate) fn decrement_cap(&mut self, cap: CentsSats) {
+    pub fn decrement_cap(&mut self, cap: CentsSats) {
         self.cap_raw -= cap.as_u128();
     }
 
     #[inline]
-    pub(crate) fn realize_spend(&mut self, current: CentsSats, previous: CentsSats) {
+    pub fn realize_spend(&mut self, current: CentsSats, previous: CentsSats) {
         match current.cmp(&previous) {
             Ordering::Greater => self.profit_raw += (current - previous).as_u128(),
             Ordering::Less => self.loss_raw += (previous - current).as_u128(),

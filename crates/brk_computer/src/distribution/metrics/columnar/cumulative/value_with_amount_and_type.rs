@@ -23,7 +23,7 @@ pub struct CumulativeUTXOValueColumnarMetric<M: StorageMode = Rw> {
 }
 
 impl CumulativeUTXOValueColumnarMetric {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
             age_range: Self::import(db, &format!("utxos_{name}_by_age_range"), version)?,
@@ -46,7 +46,7 @@ impl CumulativeUTXOValueColumnarMetric {
         ColumnarValuePerBlockCumulativeRolling::forced_import(db, name, version, |_, _| ())
     }
 
-    pub(crate) fn sources(
+    pub fn sources(
         &self,
         filter: &Filter,
         name: &str,
@@ -120,12 +120,12 @@ impl CumulativeUTXOValueColumnarMetric {
         ReadableBoxedVec<Height, Cents>,
     )> {
         let columns = CumulativeUTXOValueColumnarMetricWithoutAmountOrType::age_columns(filter)?;
-        Some(Self::matrix_sources(
-            &self.age_range,
-            name,
-            version,
-            columns,
-        ))
+        Some(if matches!(filter, Filter::All) {
+            self.age_range
+                .budgeted_sources(&format!("{name}_cumulative"), version, columns)
+        } else {
+            Self::matrix_sources(&self.age_range, name, version, columns)
+        })
     }
 
     fn matrix_sources<C>(
@@ -146,7 +146,7 @@ impl CumulativeUTXOValueColumnarMetric {
     }
 
     #[inline(always)]
-    pub(crate) fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
+    pub fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
         self.age_range.push_block(sats.age_range, cents.age_range);
         self.epoch.push_block(sats.epoch, cents.epoch);
         self.class.push_block(sats.class, cents.class);
@@ -156,7 +156,7 @@ impl CumulativeUTXOValueColumnarMetric {
         self.type_.push_block(sats.type_, cents.type_);
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.age_range
             .len()
             .min(self.epoch.len())
@@ -166,7 +166,7 @@ impl CumulativeUTXOValueColumnarMetric {
             .min(self.type_.len())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let Self {
             age_range,
             epoch,

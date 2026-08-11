@@ -22,7 +22,7 @@ pub struct AddrLookup<'a> {
 }
 
 impl<'a> AddrLookup<'a> {
-    pub(crate) fn get_or_create_for_receive(
+    pub fn get_or_create_for_receive(
         &mut self,
         output_type: OutputType,
         type_index: TypeIndex,
@@ -77,7 +77,7 @@ impl<'a> AddrLookup<'a> {
     }
 
     /// Get address data for a send operation (must exist in cache).
-    pub(crate) fn get_for_send(
+    pub fn get_for_send(
         &mut self,
         output_type: OutputType,
         type_index: TypeIndex,
@@ -90,7 +90,7 @@ impl<'a> AddrLookup<'a> {
     }
 
     /// Move address from funded to empty set.
-    pub(crate) fn move_to_empty(&mut self, output_type: OutputType, type_index: TypeIndex) {
+    pub fn move_to_empty(&mut self, output_type: OutputType, type_index: TypeIndex) {
         let data = self
             .funded
             .get_mut(output_type)

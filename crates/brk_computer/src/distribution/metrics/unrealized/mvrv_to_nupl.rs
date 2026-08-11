@@ -1,7 +1,7 @@
 use brk_types::{PartsPerMillion64, PartsPerMillionSigned32};
 use vecdb::UnaryTransform;
 
-pub(crate) struct MvrvToNupl;
+pub struct MvrvToNupl;
 
 impl UnaryTransform<PartsPerMillion64, PartsPerMillionSigned32> for MvrvToNupl {
     #[inline(always)]

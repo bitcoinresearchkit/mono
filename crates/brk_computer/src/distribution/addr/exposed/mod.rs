@@ -45,7 +45,7 @@ use super::{
     count::AddrCountFundedTotalVecs,
     supply::{AddrSupplyShareVecs, AddrSupplyVecs},
 };
-use crate::{distribution::metrics::AllSupplyCache, indexes};
+use crate::indexes;
 
 mod state;
 
@@ -62,12 +62,12 @@ pub struct ExposedAddrVecs<M: StorageMode = Rw> {
 }
 
 impl ExposedAddrVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
-        all_supply: &AllSupplyCache,
+        all_supply: &CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         let count = AddrCountFundedTotalVecs::forced_import(db, "exposed", version, indexes)?;
         let supply = AddrSupplyVecs::forced_import(db, "exposed", version, indexes, spot_price)?;
@@ -82,13 +82,13 @@ impl ExposedAddrVecs {
         })
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.count
             .min_stateful_len()
             .min(self.supply.min_stateful_len())
     }
 
-    pub(crate) fn par_iter_stateful_height_mut(
+    pub fn par_iter_stateful_height_mut(
         &mut self,
     ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.count
@@ -96,16 +96,14 @@ impl ExposedAddrVecs {
             .chain(self.supply.par_iter_height_mut())
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         self.count
             .par_iter_height_mut()
             .chain(self.supply.par_iter_height_mut())
             .chain(rayon::iter::once(self.supply_share.stored_mut()))
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.count.reset_height()?;
         self.supply.reset_height()?;
         self.supply_share.reset_height()?;
@@ -113,12 +111,12 @@ impl ExposedAddrVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_height(&mut self, state: &ExposedAddrState) {
+    pub fn push_height(&mut self, state: &ExposedAddrState) {
         self.count.push_counts(&state.funded, &state.total);
         self.supply.push_supply(&state.supply);
     }
 
-    pub(crate) fn compute_rest(
+    pub fn compute_rest(
         &mut self,
         starting_lengths: &Lengths,
         type_supply_sats: &ByAddrType<&impl ReadableVec<Height, Sats>>,

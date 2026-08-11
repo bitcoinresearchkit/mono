@@ -23,11 +23,11 @@ pub struct UTXOStates {
     pub entry: ByEntry<UTXOCohortState<CoreRealizedState, CostBasisData<WithoutCapital>>>,
     pub amount_range: AmountRange<UTXOCohortState<MinimalRealizedState, CostBasisRaw>>,
     pub type_: SpendableType<UTXOCohortState<MinimalRealizedState, CostBasisData<WithoutCapital>>>,
-    pub(super) transient: UTXOTransientState,
+    pub transient: UTXOTransientState,
 }
 
 impl UTXOStates {
-    pub(crate) fn new(path: &Path) -> Self {
+    pub fn new(path: &Path) -> Self {
         let name = |filter: &Filter, cohort: &str| CohortContext::Utxo.full_name(filter, cohort);
 
         Self {
@@ -51,7 +51,7 @@ impl UTXOStates {
         }
     }
 
-    pub(crate) fn reset(&mut self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         for state in self.age_range.iter_mut() {
             state.reset();
             state.reset_cost_basis_data_if_needed()?;
@@ -80,7 +80,7 @@ impl UTXOStates {
         Ok(())
     }
 
-    pub(crate) fn import(&mut self, metrics: &CohortMetrics, height: Height) -> Result<bool> {
+    pub fn import(&mut self, metrics: &CohortMetrics, height: Height) -> Result<bool> {
         for ((state, supply), unspent_count) in self
             .age_range
             .iter_mut()
@@ -185,7 +185,7 @@ impl UTXOStates {
         Ok(previous_height.incremented())
     }
 
-    pub(crate) fn apply_pending(&mut self) {
+    pub fn apply_pending(&mut self) {
         self.age_range
             .iter_mut()
             .for_each(|state| state.apply_pending());
@@ -203,7 +203,7 @@ impl UTXOStates {
             .for_each(|state| state.apply_pending());
     }
 
-    pub(crate) fn reset_block(&mut self) {
+    pub fn reset_block(&mut self) {
         self.age_range
             .iter_mut()
             .for_each(|state| state.reset_single_iteration_values());
@@ -224,7 +224,7 @@ impl UTXOStates {
             .for_each(|state| state.reset_single_iteration_values());
     }
 
-    pub(crate) fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
+    pub fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
         self.age_range
             .par_iter_mut()
             .try_for_each(|state| state.write(height, cleanup))?;
@@ -246,7 +246,7 @@ impl UTXOStates {
         Ok(())
     }
 
-    pub(crate) fn init_fenwick_if_needed(&mut self, sth_filter: &Filter) {
+    pub fn init_fenwick_if_needed(&mut self, sth_filter: &Filter) {
         if self.transient.fenwick.is_initialized() {
             return;
         }
@@ -262,7 +262,7 @@ impl UTXOStates {
         self.transient.fenwick.bulk_init(maps.into_iter());
     }
 
-    pub(crate) fn update_fenwick_from_pending(&mut self) {
+    pub fn update_fenwick_from_pending(&mut self) {
         if !self.transient.fenwick.is_initialized() {
             return;
         }
@@ -281,7 +281,7 @@ impl UTXOStates {
         }
     }
 
-    pub(crate) fn fenwick(&self) -> &CostBasisFenwick {
+    pub fn fenwick(&self) -> &CostBasisFenwick {
         &self.transient.fenwick
     }
 }

@@ -44,7 +44,7 @@ pub struct UnrealizedVecs<M: StorageMode = Rw> {
 }
 
 impl UnrealizedVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -137,14 +137,14 @@ impl UnrealizedVecs {
             }
     }
 
-    pub(crate) fn sources(&self, filter: &Filter) -> Option<UnrealizedSources> {
+    pub fn sources(&self, filter: &Filter) -> Option<UnrealizedSources> {
         Some(UnrealizedSources {
             profit: self.profit.cohorts.get(filter)?.clone(),
             loss: self.loss.cohorts.get(filter)?.clone(),
         })
     }
 
-    pub(crate) fn aggregate_sources(&self, filter: &Filter) -> Option<UnrealizedAggregateSources> {
+    pub fn aggregate_sources(&self, filter: &Filter) -> Option<UnrealizedAggregateSources> {
         Some(UnrealizedAggregateSources {
             gross_pnl: self.gross_pnl.series.get(filter)?.clone(),
             invested_capital_in_profit: self.invested_capital_in_profit.series.get(filter)?.clone(),
@@ -153,7 +153,7 @@ impl UnrealizedVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push(
+    pub fn push(
         &mut self,
         rows: &UTXORows<UnrealizedState>,
         spot: Cents,
@@ -185,7 +185,7 @@ impl UnrealizedVecs {
             .push(&rows.map(|row| row.capitalized_cap_in_loss_raw));
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.profit
             .matrices
             .min_len()
@@ -201,7 +201,7 @@ impl UnrealizedVecs {
             .min(self.capitalized_cap_in_loss_raw.len())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.profit.matrices.collect_vecs_mut();
         vecs.extend(self.loss.matrices.collect_vecs_mut());
         vecs.extend(self.net_pnl.matrices.collect_vecs_mut());

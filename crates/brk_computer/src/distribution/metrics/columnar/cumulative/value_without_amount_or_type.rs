@@ -20,7 +20,7 @@ pub struct CumulativeUTXOValueColumnarMetricWithoutAmountOrType<M: StorageMode =
 }
 
 impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
             age_range: Self::import(db, &format!("utxos_{name}_by_age_range"), version)?,
@@ -41,7 +41,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
         ColumnarValuePerBlockCumulativeRolling::forced_import(db, name, version, |_, _| ())
     }
 
-    pub(crate) fn sources(
+    pub fn sources(
         &self,
         filter: &Filter,
         name: &str,
@@ -54,7 +54,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
             .or_else(|| self.aggregate_sources(filter, name, version))
     }
 
-    pub(super) fn direct_sources(
+    pub fn direct_sources(
         &self,
         filter: &Filter,
         name: &str,
@@ -74,7 +74,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
         )
     }
 
-    pub(super) fn direct_sources_from(
+    pub fn direct_sources_from(
         age_range: &ColumnarValuePerBlockCumulativeRolling<AgeRangeId, ()>,
         epoch: &ColumnarValuePerBlockCumulativeRolling<EpochId, ()>,
         class: &ColumnarValuePerBlockCumulativeRolling<ClassId, ()>,
@@ -108,7 +108,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
         }
     }
 
-    pub(super) fn aggregate_sources(
+    pub fn aggregate_sources(
         &self,
         filter: &Filter,
         name: &str,
@@ -118,15 +118,15 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
         ReadableBoxedVec<Height, Cents>,
     )> {
         let columns = Self::age_columns(filter)?;
-        Some(Self::matrix_sources(
-            &self.age_range,
-            name,
-            version,
-            columns,
-        ))
+        Some(if matches!(filter, Filter::All) {
+            self.age_range
+                .budgeted_sources(&format!("{name}_cumulative"), version, columns)
+        } else {
+            Self::matrix_sources(&self.age_range, name, version, columns)
+        })
     }
 
-    pub(super) fn age_columns(filter: &Filter) -> Option<Vec<AgeRangeId>> {
+    pub fn age_columns(filter: &Filter) -> Option<Vec<AgeRangeId>> {
         Some(match filter {
             Filter::All => AgeRangeId::ALL.to_vec(),
             Filter::Term(term) => {
@@ -149,7 +149,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
         })
     }
 
-    pub(super) fn matrix_sources<C>(
+    pub fn matrix_sources<C>(
         matrix: &ColumnarValuePerBlockCumulativeRolling<C, ()>,
         name: &str,
         version: Version,
@@ -165,14 +165,14 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
     }
 
     #[inline(always)]
-    pub(crate) fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
+    pub fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
         self.age_range.push_block(sats.age_range, cents.age_range);
         self.epoch.push_block(sats.epoch, cents.epoch);
         self.class.push_block(sats.class, cents.class);
         self.entry.push_block(sats.entry, cents.entry);
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.age_range
             .len()
             .min(self.epoch.len())
@@ -180,7 +180,7 @@ impl CumulativeUTXOValueColumnarMetricWithoutAmountOrType {
             .min(self.entry.len())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let Self {
             age_range,
             epoch,

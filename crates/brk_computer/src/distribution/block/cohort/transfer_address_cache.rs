@@ -5,13 +5,13 @@ use rustc_hash::FxHashSet;
 use crate::distribution::addr::AddrTypeToVec;
 
 #[derive(Default)]
-pub(crate) struct TransferAddressCache {
+pub struct TransferAddressCache {
     received: ByAddrType<FxHashSet<TypeIndex>>,
     seen_senders: ByAddrType<FxHashSet<TypeIndex>>,
 }
 
 impl TransferAddressCache {
-    pub(crate) fn prepare(&mut self, received_data: &AddrTypeToVec<(TypeIndex, Sats)>) {
+    pub fn prepare(&mut self, received_data: &AddrTypeToVec<(TypeIndex, Sats)>) {
         self.received.values_mut().for_each(FxHashSet::clear);
         self.seen_senders.values_mut().for_each(FxHashSet::clear);
 
@@ -22,7 +22,7 @@ impl TransferAddressCache {
         }
     }
 
-    pub(super) fn sets_for(
+    pub fn sets_for(
         &mut self,
         output_type: OutputType,
     ) -> (Option<&FxHashSet<TypeIndex>>, &mut FxHashSet<TypeIndex>) {

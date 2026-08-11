@@ -27,7 +27,7 @@ impl<C> UnrealizedByCohort<C>
 where
     C: FiatType + PcoVecValue + AddAssign,
 {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,

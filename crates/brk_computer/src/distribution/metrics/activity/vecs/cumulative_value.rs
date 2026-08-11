@@ -19,7 +19,7 @@ pub struct CumulativeValueByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeValueByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -71,24 +71,20 @@ impl CumulativeValueByCohort {
     }
 
     #[inline(always)]
-    pub(super) fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
+    pub fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
         self.cumulative.push_block(sats, cents);
     }
 
     #[inline(always)]
-    pub(super) fn push_addr_balance(
-        &mut self,
-        sats: &AmountRange<Sats>,
-        cents: &AmountRange<Cents>,
-    ) {
+    pub fn push_addr_balance(&mut self, sats: &AmountRange<Sats>, cents: &AmountRange<Cents>) {
         self.addr_balance.push_cumulative(sats, cents);
     }
 
-    pub(super) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.cumulative.min_len().min(self.addr_balance.len())
     }
 
-    pub(super) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.cumulative.collect_vecs_mut();
         vecs.extend(self.addr_balance.collect_vecs_mut());
         vecs

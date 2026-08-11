@@ -105,17 +105,17 @@ impl RealizedOps for RealizedState {
 
 impl RealizedState {
     #[inline]
-    pub(crate) fn cap_raw(&self) -> CentsSats {
+    pub fn cap_raw(&self) -> CentsSats {
         CentsSats::new(self.core.cap_raw_u128())
     }
 
     #[inline]
-    pub(crate) fn capitalized_cap_raw(&self) -> CentsSquaredSats {
+    pub fn capitalized_cap_raw(&self) -> CentsSquaredSats {
         self.capitalized_cap_raw
     }
 
     #[inline]
-    pub(crate) fn peak_regret_raw(&self) -> u128 {
+    pub fn peak_regret_raw(&self) -> u128 {
         self.peak_regret_raw
     }
 }

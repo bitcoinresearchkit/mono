@@ -23,7 +23,7 @@ pub struct OutputsResult {
 /// 1. Read pre-collected value, output type, and type_index
 /// 2. Accumulate into Transacted by type and amount
 /// 3. Track address-specific data for address cohort processing
-pub(crate) fn process_outputs(
+pub fn process_outputs(
     txout_index_to_tx_index: &[TxIndex],
     txout_data_vec: &[TxOutData],
 ) -> OutputsResult {

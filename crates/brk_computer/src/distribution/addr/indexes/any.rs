@@ -29,7 +29,7 @@ macro_rules! define_any_addr_indexes_vecs {
 
         impl AnyAddrIndexesVecs {
             /// Import from database.
-            pub(crate) fn forced_import(db: &Database, version: Version) -> Result<Self> {
+            pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
                 Ok(Self {
                     $($field: BytesVec::forced_import_with(
                         ImportOptions::new(db, "any_addr_index", version)
@@ -39,7 +39,7 @@ macro_rules! define_any_addr_indexes_vecs {
             }
 
             /// Get minimum stamped height across all address types.
-            pub(crate) fn min_stamped_len(&self) -> Height {
+            pub fn min_stamped_len(&self) -> Height {
                 [$(Height::from(self.$field.stamp()).incremented()),*]
                     .into_iter()
                     .min()
@@ -47,18 +47,18 @@ macro_rules! define_any_addr_indexes_vecs {
             }
 
             /// Rollback all address types to before the given stamp.
-            pub(crate) fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
+            pub fn rollback_before(&mut self, stamp: Stamp) -> Result<Vec<Stamp>> {
                 Ok(vec![$(self.$field.rollback_before(stamp)?),*])
             }
 
             /// Reset all address types.
-            pub(crate) fn reset(&mut self) -> Result<()> {
+            pub fn reset(&mut self) -> Result<()> {
                 $(self.$field.reset()?;)*
                 Ok(())
             }
 
             /// Returns a parallel iterator over all vecs for parallel writing.
-            pub(crate) fn par_iter_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+            pub fn par_iter_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
                 vec![$(&mut self.$field as &mut dyn AnyStoredVec),*].into_par_iter()
             }
         }
@@ -94,7 +94,7 @@ impl AnyAddrIndexesVecs {
     /// Accepts two maps (e.g. from empty and funded processing) and merges per-thread.
     /// Updates existing entries and pushes new ones (sorted).
     /// Returns (update_count, push_count).
-    pub(crate) fn par_batch_update(
+    pub fn par_batch_update(
         &mut self,
         updates1: AddrTypeToTypeIndexMap<AnyAddrIndex>,
         updates2: AddrTypeToTypeIndexMap<AnyAddrIndex>,

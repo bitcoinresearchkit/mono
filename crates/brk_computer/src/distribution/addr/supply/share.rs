@@ -3,12 +3,11 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, Exit, ReadOnlyClone, ReadableVec, Rw, StorageMode,
-    WritableVec,
+    AnyStoredVec, BinaryTransform, CachedBoxedVec, Database, Exit, ReadOnlyClone, ReadableVec, Rw,
+    StorageMode, WritableVec,
 };
 
 use crate::{
-    distribution::metrics::AllSupplyCache,
     indexes,
     internal::{ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioSats},
 };
@@ -29,20 +28,20 @@ pub struct AddrSupplyShareVecs<M: StorageMode = Rw> {
 }
 
 impl AddrSupplyShareVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
         indexes: &indexes::Vecs,
         supply: &AddrSupplyVecs,
-        all_supply: &AllSupplyCache,
+        all_supply: &CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
         let name = format!("{name}_addr_supply_share");
         let all = LazyPercentPerBlock::from_cached_ratio::<Sats, Sats, RatioSats<PartsPerMillion32>>(
             &name,
             version,
             &supply.all.sats.height,
-            all_supply.cached_boxed_clone(),
+            all_supply.clone(),
             indexes,
         );
         let ppm =
@@ -65,16 +64,16 @@ impl AddrSupplyShareVecs {
         })
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.ppm.height.reset()?;
         Ok(())
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.ppm.stored_mut()
     }
 
-    pub(crate) fn compute_rest(
+    pub fn compute_rest(
         &mut self,
         max_from: Height,
         supply: &AddrSupplyVecs,

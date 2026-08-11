@@ -19,7 +19,7 @@ pub struct CoindaysDestroyedByCohort<M: StorageMode = Rw> {
 }
 
 impl CoindaysDestroyedByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,

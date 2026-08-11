@@ -15,6 +15,7 @@ use vecdb::{
 };
 
 use super::super::UTXORows;
+use crate::internal::cache_wrap;
 
 #[derive(Traversable)]
 pub struct UTXOColumnarMetricWithoutAmountOrType<T, M: StorageMode = Rw>
@@ -31,7 +32,7 @@ impl<T> UTXOColumnarMetricWithoutAmountOrType<T>
 where
     T: PcoVecValue + AddAssign,
 {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
             age_range_matrix: EagerVec::forced_import(
@@ -45,7 +46,7 @@ where
         })
     }
 
-    pub(crate) fn additive_source(
+    pub fn additive_source(
         &self,
         filter: &Filter,
         name: &str,
@@ -55,7 +56,7 @@ where
             .or_else(|| self.aggregate_source(filter, name, version))
     }
 
-    pub(super) fn direct_source(
+    pub fn direct_source(
         &self,
         filter: &Filter,
         name: &str,
@@ -72,7 +73,7 @@ where
         )
     }
 
-    pub(super) fn direct_source_from(
+    pub fn direct_source_from(
         age_range_matrix: &ReadOnlyColumnarVec<PcoVec<Height, T>, AgeRangeId>,
         epoch_matrix: &ReadOnlyColumnarVec<PcoVec<Height, T>, EpochId>,
         class_matrix: &ReadOnlyColumnarVec<PcoVec<Height, T>, ClassId>,
@@ -103,7 +104,7 @@ where
         }
     }
 
-    pub(super) fn aggregate_source(
+    pub fn aggregate_source(
         &self,
         filter: &Filter,
         name: &str,
@@ -117,14 +118,14 @@ where
         )
     }
 
-    pub(super) fn aggregate_source_from(
+    pub fn aggregate_source_from(
         age_range_matrix: &ReadOnlyColumnarVec<PcoVec<Height, T>, AgeRangeId>,
         filter: &Filter,
         name: &str,
         version: Version,
     ) -> Option<ReadableBoxedVec<Height, T>> {
         match filter {
-            Filter::All => Some(Self::sum(
+            Filter::All => Some(Self::budgeted_sum(
                 age_range_matrix,
                 name,
                 version,
@@ -165,7 +166,7 @@ where
         }
     }
 
-    pub(super) fn column<C>(
+    pub fn column<C>(
         source: &ReadOnlyColumnarVec<PcoVec<Height, T>, C>,
         name: &str,
         version: Version,
@@ -177,7 +178,7 @@ where
         source.column(name, version, column).read_only_boxed_clone()
     }
 
-    pub(super) fn sum<C>(
+    pub fn sum<C>(
         source: &ReadOnlyColumnarVec<PcoVec<Height, T>, C>,
         name: &str,
         version: Version,
@@ -191,7 +192,19 @@ where
             .read_only_boxed_clone()
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    fn budgeted_sum<C>(
+        source: &ReadOnlyColumnarVec<PcoVec<Height, T>, C>,
+        name: &str,
+        version: Version,
+        columns: impl IntoIterator<Item = C>,
+    ) -> ReadableBoxedVec<Height, T>
+    where
+        C: ColumnId,
+    {
+        cache_wrap(source.sum_columns(name, version, columns)).read_only_boxed_clone()
+    }
+
+    pub fn min_len(&self) -> usize {
         self.age_range_matrix
             .len()
             .min(self.epoch_matrix.len())
@@ -199,7 +212,7 @@ where
             .min(self.entry_matrix.len())
     }
 
-    pub(super) fn push_parts(
+    pub fn push_parts(
         &mut self,
         age_range: AgeRange<T>,
         epoch: ByEpoch<T>,
@@ -213,11 +226,11 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, rows: UTXORows<T>) {
+    pub fn push(&mut self, rows: UTXORows<T>) {
         self.push_parts(rows.age_range, rows.epoch, rows.class, rows.entry);
     }
 
-    pub(crate) fn collect_last(&self) -> Option<UTXORows<T>>
+    pub fn collect_last(&self) -> Option<UTXORows<T>>
     where
         T: Default,
     {
@@ -231,7 +244,7 @@ where
         })
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             &mut self.age_range_matrix,
             &mut self.epoch_matrix,

@@ -13,14 +13,14 @@ pub struct AddrsDataVecs<M: StorageMode = Rw> {
 
 impl AddrsDataVecs {
     /// Get minimum stamped height across funded and empty data.
-    pub(crate) fn min_stamped_len(&self) -> Height {
+    pub fn min_stamped_len(&self) -> Height {
         Height::from(self.funded.stamp())
             .incremented()
             .min(Height::from(self.empty.stamp()).incremented())
     }
 
     /// Rollback both funded and empty data to before the given stamp.
-    pub(crate) fn rollback_before(&mut self, stamp: Stamp) -> Result<[Stamp; 2]> {
+    pub fn rollback_before(&mut self, stamp: Stamp) -> Result<[Stamp; 2]> {
         Ok([
             self.funded.rollback_before(stamp)?,
             self.empty.rollback_before(stamp)?,
@@ -28,14 +28,14 @@ impl AddrsDataVecs {
     }
 
     /// Reset both funded and empty data.
-    pub(crate) fn reset(&mut self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         self.funded.reset()?;
         self.empty.reset()?;
         Ok(())
     }
 
     /// Returns a parallel iterator over all vecs for parallel writing.
-    pub(crate) fn par_iter_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         vec![
             &mut self.funded as &mut dyn AnyStoredVec,
             &mut self.empty as &mut dyn AnyStoredVec,

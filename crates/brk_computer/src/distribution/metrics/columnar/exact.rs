@@ -33,7 +33,7 @@ impl<T> ExactUTXOColumnarMetric<T>
 where
     T: PcoVecValue + AddAssign,
 {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let direct = UTXOColumnarMetric::forced_import(db, name, version)?;
         let version = version + Version::ONE;
 
@@ -67,7 +67,7 @@ where
         })
     }
 
-    pub(crate) fn source(
+    pub fn source(
         &self,
         filter: &Filter,
         name: &str,
@@ -127,7 +127,7 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, direct: UTXORows<T>, aggregates: UTXOAggregateRows<T>) {
+    pub fn push(&mut self, direct: UTXORows<T>, aggregates: UTXOAggregateRows<T>) {
         self.direct.push(direct);
         self.aggregate_matrix.push(aggregates.aggregate);
         self.under_age_matrix.push(aggregates.under_age);
@@ -136,7 +136,7 @@ where
         self.over_amount_matrix.push(aggregates.over_amount);
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.direct
             .min_len()
             .min(self.aggregate_matrix.len())
@@ -146,7 +146,7 @@ where
             .min(self.over_amount_matrix.len())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let Self {
             direct,
             aggregate_matrix,

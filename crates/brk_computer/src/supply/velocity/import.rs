@@ -3,7 +3,7 @@ use brk_types::{Cents, StoredF64, Version};
 
 use super::Vecs;
 use crate::{
-    distribution::AllChainCache,
+    distribution::AllChainSources,
     indexes,
     internal::{Identity, LazyPerBlock},
     transactions,
@@ -13,7 +13,7 @@ impl Vecs {
     pub(crate) fn forced_import(
         version: Version,
         indexes: &indexes::Vecs,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
         transactions: &transactions::Vecs,
     ) -> Result<Self> {
         let volume = &transactions.volume.transfer_volume.sum._1y;

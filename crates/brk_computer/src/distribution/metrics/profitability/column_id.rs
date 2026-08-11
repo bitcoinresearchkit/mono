@@ -7,6 +7,8 @@ use vecdb::{
     ReadableColumnarVec, VecValue,
 };
 
+use crate::internal::cache_wrap;
+
 const RANGE_COUNT: usize = ProfitabilityRangeId::ALL.len();
 const COLUMN_COUNT: usize = TermId::ALL.len() * RANGE_COUNT;
 
@@ -38,7 +40,7 @@ pub struct TermProfitabilityRangeId {
 }
 
 impl TermProfitabilityRangeId {
-    pub(super) fn source<T>(
+    pub fn source<T>(
         source: &ReadOnlyColumnarVec<PcoVec<Height, T>, Self>,
         name: &str,
         version: Version,
@@ -62,22 +64,25 @@ impl TermProfitabilityRangeId {
         }
 
         let selected_term = aggregate.term();
-        source
-            .sum_columns(
-                name,
-                version,
-                TermId::ALL
-                    .iter()
-                    .copied()
-                    .filter(move |&term| selected_term.is_none_or(|selected| selected == term))
-                    .flat_map(|term| {
-                        ranges
-                            .iter()
-                            .copied()
-                            .map(move |range| Self { term, range })
-                    }),
-            )
-            .read_only_boxed_clone()
+        let source = source.sum_columns(
+            name,
+            version,
+            TermId::ALL
+                .iter()
+                .copied()
+                .filter(move |&term| selected_term.is_none_or(|selected| selected == term))
+                .flat_map(|term| {
+                    ranges
+                        .iter()
+                        .copied()
+                        .map(move |range| Self { term, range })
+                }),
+        );
+        if aggregate == UTXOAggregateId::All {
+            cache_wrap(source).read_only_boxed_clone()
+        } else {
+            source.read_only_boxed_clone()
+        }
     }
 }
 

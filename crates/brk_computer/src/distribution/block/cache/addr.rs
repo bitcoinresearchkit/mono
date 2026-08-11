@@ -98,7 +98,7 @@ impl Default for AddrCache {
 }
 
 impl AddrCache {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             funded: AddrTypeToTypeIndexMap::default(),
             empty: AddrTypeToTypeIndexMap::default(),
@@ -109,7 +109,7 @@ impl AddrCache {
 
     /// Check if address is in cache (either funded or empty).
     #[inline]
-    pub(crate) fn contains(&self, addr_type: OutputType, type_index: TypeIndex) -> bool {
+    pub fn contains(&self, addr_type: OutputType, type_index: TypeIndex) -> bool {
         self.funded
             .get(addr_type)
             .is_some_and(|m| m.contains_key(&type_index))
@@ -120,7 +120,7 @@ impl AddrCache {
     }
 
     /// Load each address touched by the block once.
-    pub(crate) fn load_block_addresses(
+    pub fn load_block_addresses(
         &mut self,
         addresses: impl Iterator<Item = (OutputType, TypeIndex)>,
         first_addr_indexes: &ByAddrType<TypeIndex>,
@@ -171,7 +171,7 @@ impl AddrCache {
 
     /// Create an AddrLookup view into this cache.
     #[inline]
-    pub(crate) fn as_lookup(&mut self) -> AddrLookup<'_> {
+    pub fn as_lookup(&mut self) -> AddrLookup<'_> {
         AddrLookup {
             funded: &mut self.funded,
             empty: &mut self.empty,
@@ -179,7 +179,7 @@ impl AddrCache {
     }
 
     /// Update transaction counts for addresses.
-    pub(crate) fn update_tx_counts(
+    pub fn update_tx_counts(
         &mut self,
         tx_index_vecs: AddrTypeToTypeIndexMap<SmallVec<[TxIndex; 4]>>,
     ) {
@@ -187,7 +187,7 @@ impl AddrCache {
     }
 
     /// Take the cache contents for flushing, leaving empty caches.
-    pub(crate) fn take(
+    pub fn take(
         &mut self,
     ) -> (
         AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,

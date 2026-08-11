@@ -11,9 +11,9 @@ use super::super::{
 };
 
 /// Result of state recovery.
-pub(crate) struct RecoveredState {
+pub struct RecoveredState {
     /// Height to start processing from. Zero means fresh start.
-    pub(crate) starting_height: Height,
+    pub starting_height: Height,
 }
 
 impl Vecs {
@@ -22,7 +22,7 @@ impl Vecs {
     /// Rolls back state vectors and imports cohort states.
     /// Validates that all rollbacks and imports are consistent.
     /// Returns Height::ZERO if any validation fails (triggers fresh start).
-    pub(crate) fn recover_state(
+    pub fn recover_state(
         &mut self,
         height: Height,
         chain_state_rollback: Option<VecdbResult<Stamp>>,
@@ -119,7 +119,7 @@ impl Vecs {
 /// Reset all state for fresh start.
 ///
 /// Resets all state vectors and cohort states.
-pub(crate) fn reset_state(
+pub fn reset_state(
     any_addr_indexes: &mut AnyAddrIndexesVecs,
     addrs_data: &mut AddrsDataVecs,
     utxo_states: &mut UTXOStates,
@@ -142,7 +142,7 @@ pub(crate) fn reset_state(
 ///
 /// - `min_available`: minimum height we have data for across all stateful vecs
 /// - `resume_target`: the height we want to resume processing from
-pub(crate) fn determine_start_mode(min_available: Height, resume_target: Height) -> StartMode {
+pub fn determine_start_mode(min_available: Height, resume_target: Height) -> StartMode {
     // No data to resume from
     if resume_target.is_zero() {
         return StartMode::Fresh;

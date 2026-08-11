@@ -14,7 +14,7 @@ pub struct AddrCohortState {
 }
 
 impl AddrCohortState {
-    pub(crate) fn new(path: &Path, name: &str) -> Self {
+    pub fn new(path: &Path, name: &str) -> Self {
         Self {
             addr_count: 0,
             inner: CohortState::new(path, name),
@@ -22,7 +22,7 @@ impl AddrCohortState {
     }
 
     /// Reset state for fresh start.
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.addr_count = 0;
         self.inner.supply = SupplyState::default();
         self.inner.sent = Sats::ZERO;
@@ -31,7 +31,7 @@ impl AddrCohortState {
         self.inner.realized = MinimalRealizedState::default();
     }
 
-    pub(crate) fn send(
+    pub fn send(
         &mut self,
         addr_data: &mut FundedAddrData,
         value: Sats,
@@ -52,7 +52,7 @@ impl AddrCohortState {
         Ok(())
     }
 
-    pub(crate) fn receive_outputs(
+    pub fn receive_outputs(
         &mut self,
         addr_data: &mut FundedAddrData,
         value: Sats,
@@ -70,14 +70,14 @@ impl AddrCohortState {
         );
     }
 
-    pub(crate) fn add(&mut self, addr_data: &FundedAddrData) {
+    pub fn add(&mut self, addr_data: &FundedAddrData) {
         self.addr_count += 1;
         let supply = SupplyState::from(addr_data);
         self.inner
             .increment_addr(&supply, addr_data.realized_cap_raw);
     }
 
-    pub(crate) fn subtract(&mut self, addr_data: &FundedAddrData) {
+    pub fn subtract(&mut self, addr_data: &FundedAddrData) {
         let supply = SupplyState::from(addr_data);
 
         // Check for potential underflow before it happens

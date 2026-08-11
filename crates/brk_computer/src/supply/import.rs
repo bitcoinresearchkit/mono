@@ -1,10 +1,11 @@
 use std::path::Path;
 
 use brk_error::Result;
-use brk_types::{Height, PartsPerMillionSigned64, Sats, Version};
-use vecdb::ReadableCloneableVec;
+use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, Version};
+use vecdb::{CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec};
 
 use crate::{
+    distribution::AllChainSources,
     indexes,
     internal::{
         CachedWindowStartVec, Identity, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock,
@@ -92,7 +93,8 @@ impl Vecs {
         let market_minus_realized_cap_growth_rate =
             cached_starts.map_with_suffix(|suffix, starts| {
                 let name = format!("market_minus_realized_cap_growth_rate_{suffix}");
-                let source = sources.all_chain().market_minus_realized_cap_growth(
+                let source = Self::market_minus_realized_cap_growth(
+                    sources.all_chain(),
                     &format!("{name}_source"),
                     growth_version,
                     realized_cap,
@@ -125,5 +127,43 @@ impl Vecs {
         };
         finalize_db(&this.db, &this)?;
         Ok(this)
+    }
+
+    fn market_minus_realized_cap_growth(
+        all_chain: &AllChainSources,
+        name: &str,
+        version: Version,
+        realized_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
+        window_starts: CachedBoxedVec<Height, Height>,
+    ) -> impl TypedVec<I = Height, T = PartsPerMillionSigned64>
+    + ReadableVec<Height, PartsPerMillionSigned64>
+    + Clone
+    + 'static {
+        let caps = all_chain.with_market_cap(
+            &format!("{name}_caps"),
+            Version::ZERO,
+            realized_cap,
+            |_, realized, market| (realized, market),
+        );
+
+        LazyWindowVec::new(
+            name,
+            version,
+            caps.read_only_boxed_clone(),
+            window_starts,
+            false,
+            |current, previous, _| {
+                let growth = |current: Cents, previous: Cents| {
+                    if previous == Cents::ZERO {
+                        0.0
+                    } else {
+                        (f64::from(current) - f64::from(previous)) / f64::from(previous)
+                    }
+                };
+                PartsPerMillionSigned64::from(
+                    growth(current.1, previous.1) - growth(current.0, previous.0),
+                )
+            },
+        )
     }
 }

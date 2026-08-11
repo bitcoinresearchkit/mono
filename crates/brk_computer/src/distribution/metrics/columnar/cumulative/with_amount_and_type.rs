@@ -22,7 +22,7 @@ impl<T> CumulativeUTXOColumnarMetric<T>
 where
     T: PcoVecValue + AddAssign + Copy + Default,
 {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             matrices: UTXOColumnarMetric::forced_import(db, name, version)?,
             last: None,
@@ -30,7 +30,7 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push_block(&mut self, rows: UTXORows<T>) {
+    pub fn push_block(&mut self, rows: UTXORows<T>) {
         let len = self.matrices.min_len();
         let mut cumulative = match self.last.take() {
             Some((cached_len, row)) if cached_len == len => row,
@@ -41,11 +41,11 @@ where
         self.last = Some((len + 1, cumulative));
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.matrices.min_len()
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.last = None;
         self.matrices.collect_vecs_mut()
     }

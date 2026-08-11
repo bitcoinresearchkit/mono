@@ -1,7 +1,8 @@
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{
-    BinaryTransform, CachedBoxedVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec,
+    BinaryTransform, CachedBoxedVec, CachedReadableVec, CachedVec, LazyVec, ReadableBoxedVec,
+    ReadableCloneableVec, ReadableVec, TypedVec,
 };
 
 use crate::{
@@ -107,32 +108,35 @@ impl LazySpotValuePerBlock {
             source,
             indexes,
         );
-        let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
-        let cents_source = LazyIndexedVec::new(
-            &format!("{name}_cents_source"),
-            version,
-            sats.height.read_only_boxed_clone(),
-            spot_price.clone(),
-            |_, sats, spot| SatsToCents::apply(sats, spot),
+        Self::from_sats(name, version, sats, indexes, spot_price)
+    }
+
+    pub fn from_sats_source_with_pinned_height<V>(
+        name: &str,
+        version: Version,
+        source: V,
+        indexes: &indexes::Vecs,
+        spot_price: &CachedBoxedVec<Height, Cents>,
+    ) -> (Self, CachedBoxedVec<Height, Sats>)
+    where
+        V: TypedVec<I = Height, T = Sats> + ReadableVec<Height, Sats> + Clone + 'static,
+    {
+        let sats_name = format!("{name}_sats");
+        let height = LazyVec::transformed::<Identity<Sats>>(
+            &sats_name,
+            Version::ZERO,
+            source.read_only_boxed_clone(),
         );
-        let cents = LazyPerBlock::from_uncached_height_source::<Identity<Cents>, _>(
-            &format!("{name}_cents"),
-            version,
-            cents_source,
-            indexes,
-        );
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-            &format!("{name}_usd"),
-            version,
-            &cents,
+        let height = CachedVec::wrap(height);
+        let cache = height.cached_boxed_clone();
+        let sats = LazyPerBlock::from_uncached_height_source::<Identity<Sats>, _>(
+            &sats_name, version, height, indexes,
         );
 
-        Self {
-            btc,
-            sats,
-            usd,
-            cents,
-        }
+        (
+            Self::from_sats(name, version, sats, indexes, spot_price),
+            cache,
+        )
     }
 
     pub(crate) fn from_boxed_sats_source(
@@ -148,6 +152,16 @@ impl LazySpotValuePerBlock {
             source,
             indexes,
         );
+        Self::from_sats(name, version, sats, indexes, spot_price)
+    }
+
+    fn from_sats(
+        name: &str,
+        version: Version,
+        sats: LazyPerBlock<Sats>,
+        indexes: &indexes::Vecs,
+        spot_price: &CachedBoxedVec<Height, Cents>,
+    ) -> Self {
         let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
         let cents_source = LazyIndexedVec::new(
             &format!("{name}_cents_source"),

@@ -4,7 +4,7 @@ use crate::distribution::state::PercentileResult;
 use crate::internal::PERCENTILES_LEN;
 
 #[derive(Clone)]
-pub(crate) struct CostBasisBlockData {
+pub struct CostBasisBlockData {
     pub min: Cents,
     pub max: Cents,
     pub per_coin: [Cents; PERCENTILES_LEN],
@@ -14,7 +14,7 @@ pub(crate) struct CostBasisBlockData {
 
 impl CostBasisBlockData {
     #[inline(always)]
-    pub(crate) fn from_percentiles(
+    pub fn from_percentiles(
         percentiles: PercentileResult,
         supply_density: PartsPerMillion32,
     ) -> Self {

@@ -27,7 +27,7 @@ impl<T> Default for AddrTypeToTypeIndexMap<T> {
 
 impl<T> AddrTypeToTypeIndexMap<T> {
     /// Create with pre-allocated capacity per address type.
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         Self(ByAddrType {
             p2a: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
             p2pk33: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
@@ -41,30 +41,23 @@ impl<T> AddrTypeToTypeIndexMap<T> {
     }
 
     /// Insert a value for a specific address type and type_index.
-    pub(crate) fn insert_for_type(
-        &mut self,
-        addr_type: OutputType,
-        type_index: TypeIndex,
-        value: T,
-    ) {
+    pub fn insert_for_type(&mut self, addr_type: OutputType, type_index: TypeIndex, value: T) {
         self.get_mut(addr_type).unwrap().insert(type_index, value);
     }
 
     /// Consume and iterate over entries by address type.
     #[allow(clippy::should_implement_trait)]
-    pub(crate) fn into_iter(self) -> impl Iterator<Item = (OutputType, FxHashMap<TypeIndex, T>)> {
+    pub fn into_iter(self) -> impl Iterator<Item = (OutputType, FxHashMap<TypeIndex, T>)> {
         self.0.into_iter()
     }
 
     /// Consume and return the inner ByAddrType.
-    pub(crate) fn into_inner(self) -> ByAddrType<FxHashMap<TypeIndex, T>> {
+    pub fn into_inner(self) -> ByAddrType<FxHashMap<TypeIndex, T>> {
         self.0
     }
 
     /// Iterate mutably over entries by address type.
-    pub(crate) fn iter_mut(
-        &mut self,
-    ) -> impl Iterator<Item = (OutputType, &mut FxHashMap<TypeIndex, T>)> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (OutputType, &mut FxHashMap<TypeIndex, T>)> {
         self.0.iter_mut()
     }
 }
@@ -74,7 +67,7 @@ where
     T: Array,
 {
     /// Merge two maps of SmallVec values, concatenating vectors.
-    pub(crate) fn merge_vec(mut self, other: Self) -> Self {
+    pub fn merge_vec(mut self, other: Self) -> Self {
         for (addr_type, other_map) in other.0.into_iter() {
             let self_map = self.0.get_mut_unwrap(addr_type);
             for (type_index, mut other_vec) in other_map {

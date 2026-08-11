@@ -33,7 +33,7 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
 }
 
 impl ActivityVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
@@ -117,14 +117,14 @@ impl ActivityVecs {
         )
     }
 
-    pub(crate) fn sources(&self, filter: &Filter) -> Option<ActivitySources> {
+    pub fn sources(&self, filter: &Filter) -> Option<ActivitySources> {
         Some(ActivitySources {
             transfer_volume: self.transfer_volume.cohorts.get(filter)?.clone(),
         })
     }
 
     #[inline(always)]
-    pub(crate) fn push(
+    pub fn push(
         &mut self,
         height_price: Cents,
         transfer_volume: UTXORows<Sats>,
@@ -150,11 +150,7 @@ impl ActivityVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_addr_balance(
-        &mut self,
-        height_price: Cents,
-        transfer_volume: &AmountRange<Sats>,
-    ) {
+    pub fn push_addr_balance(&mut self, height_price: Cents, transfer_volume: &AmountRange<Sats>) {
         let cents = AmountRange::from_fn(|amount| {
             SatsToCents::apply(*amount.select(transfer_volume), height_price)
         });
@@ -162,7 +158,7 @@ impl ActivityVecs {
             .push_addr_balance(transfer_volume, &cents);
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.transfer_volume
             .min_len()
             .min(self.coindays_destroyed.cumulative.min_len())
@@ -177,7 +173,7 @@ impl ActivityVecs {
             )
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.transfer_volume.collect_vecs_mut();
         vecs.extend(self.coindays_destroyed.cumulative.collect_vecs_mut());
         vecs.extend(self.transfer_volume_in_profit.collect_vecs_mut());
@@ -186,7 +182,7 @@ impl ActivityVecs {
         vecs
     }
 
-    pub(crate) fn compute_dormancy(&mut self, max_from: Height, exit: &Exit) -> Result<()> {
+    pub fn compute_dormancy(&mut self, max_from: Height, exit: &Exit) -> Result<()> {
         for id in UTXOAggregateId::ALL {
             let filter = id.select(&UTXO_AGGREGATE_FILTERS);
             let coindays_destroyed = &self

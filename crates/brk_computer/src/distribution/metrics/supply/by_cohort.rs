@@ -19,7 +19,7 @@ pub struct SupplyByCohort<M: StorageMode = Rw> {
 }
 
 impl SupplyByCohort {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -41,20 +41,20 @@ impl SupplyByCohort {
         Ok(Self { cohorts, matrices })
     }
 
-    pub(crate) fn get(&self, filter: &Filter) -> Option<&LazySpotValuePerBlock> {
+    pub fn get(&self, filter: &Filter) -> Option<&LazySpotValuePerBlock> {
         self.cohorts.get(filter)
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.matrices.min_len()
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, rows: UTXORows<Sats>) {
+    pub fn push(&mut self, rows: UTXORows<Sats>) {
         self.matrices.push(rows);
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.matrices.collect_vecs_mut()
     }
 }

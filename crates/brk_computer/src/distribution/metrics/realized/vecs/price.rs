@@ -17,7 +17,7 @@ pub struct RealizedPriceByCohort<M: StorageMode = Rw> {
 }
 
 impl RealizedPriceByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,

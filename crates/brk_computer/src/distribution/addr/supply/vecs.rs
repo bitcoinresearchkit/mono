@@ -31,7 +31,7 @@ pub struct AddrSupplyVecs<M: StorageMode = Rw>(
 );
 
 impl AddrSupplyVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -51,23 +51,21 @@ impl AddrSupplyVecs {
         )?))
     }
 
-    pub(crate) fn min_stateful_len(&self) -> usize {
+    pub fn min_stateful_len(&self) -> usize {
         self.height.len()
     }
 
-    pub(crate) fn par_iter_height_mut(
-        &mut self,
-    ) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
+    pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {
         rayon::iter::once(self.stored_mut())
     }
 
-    pub(crate) fn reset_height(&mut self) -> Result<()> {
+    pub fn reset_height(&mut self) -> Result<()> {
         self.height.reset()?;
         Ok(())
     }
 
     #[inline(always)]
-    pub(crate) fn push_supply(&mut self, supply: &AddrTypeToSupply) {
+    pub fn push_supply(&mut self, supply: &AddrTypeToSupply) {
         self.push(supply.row());
     }
 }

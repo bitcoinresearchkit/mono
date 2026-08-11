@@ -14,11 +14,7 @@ use super::AddrCountsVecs;
 pub struct TotalAddrCountVecs<M: StorageMode = Rw>(#[traversable(flatten)] pub AddrCountsVecs<M>);
 
 impl TotalAddrCountVecs {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
+    pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
         Ok(Self(AddrCountsVecs::forced_import(
             db,
             "total_addr_count",
@@ -28,7 +24,7 @@ impl TotalAddrCountVecs {
     }
 
     /// Eagerly compute total = addr_count + empty_addr_count.
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         max_from: Height,
         addr_count: &AddrCountsVecs,

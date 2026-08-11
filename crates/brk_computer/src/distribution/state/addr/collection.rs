@@ -16,7 +16,7 @@ pub struct AddrStates {
 }
 
 impl AddrStates {
-    pub(crate) fn new(path: &Path) -> Self {
+    pub fn new(path: &Path) -> Self {
         Self {
             amount_range: AmountRange::new(|filter: Filter, name| {
                 let name = CohortContext::Addr.full_name(&filter, name);
@@ -26,7 +26,7 @@ impl AddrStates {
         }
     }
 
-    pub(crate) fn import(
+    pub fn import(
         &mut self,
         metrics: &CohortMetrics,
         funded: &FundedAddrCountsVecs,
@@ -78,7 +78,7 @@ impl AddrStates {
         Ok(self.starting_height == height)
     }
 
-    pub(crate) fn reset(&mut self) -> Result<()> {
+    pub fn reset(&mut self) -> Result<()> {
         self.starting_height = Height::ZERO;
         for state in self.amount_range.iter_mut() {
             state.reset();
@@ -87,7 +87,7 @@ impl AddrStates {
         Ok(())
     }
 
-    pub(crate) fn push(
+    pub fn push(
         &self,
         metrics: &mut CohortMetrics,
         funded: &mut FundedAddrCountsVecs,
@@ -103,13 +103,13 @@ impl AddrStates {
         }));
     }
 
-    pub(crate) fn reset_block(&mut self) {
+    pub fn reset_block(&mut self) {
         self.amount_range
             .iter_mut()
             .for_each(|state| state.inner.reset_single_iteration_values());
     }
 
-    pub(crate) fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
+    pub fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
         self.amount_range
             .par_iter_mut()
             .try_for_each(|state| state.inner.write(height, cleanup))

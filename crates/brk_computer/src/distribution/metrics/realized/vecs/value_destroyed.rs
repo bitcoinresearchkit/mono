@@ -19,7 +19,7 @@ pub struct CumulativeValueDestroyedByCohort<M: StorageMode = Rw> {
 }
 
 impl CumulativeValueDestroyedByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,

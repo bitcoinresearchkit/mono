@@ -30,7 +30,7 @@ impl<T> UTXOColumnarMetricWithoutAmount<T>
 where
     T: PcoVecValue + AddAssign,
 {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
             age_range_matrix: EagerVec::forced_import(
@@ -45,7 +45,7 @@ where
         })
     }
 
-    pub(crate) fn additive_source(
+    pub fn additive_source(
         &self,
         filter: &Filter,
         name: &str,
@@ -61,7 +61,7 @@ where
         })
     }
 
-    pub(super) fn direct_source(
+    pub fn direct_source(
         &self,
         filter: &Filter,
         name: &str,
@@ -91,7 +91,7 @@ where
         }
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.age_range_matrix
             .len()
             .min(self.epoch_matrix.len())
@@ -101,7 +101,7 @@ where
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, rows: UTXORows<T>) {
+    pub fn push(&mut self, rows: UTXORows<T>) {
         let UTXORows {
             age_range,
             epoch,
@@ -117,7 +117,7 @@ where
         self.type_matrix.push(type_);
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             &mut self.age_range_matrix,
             &mut self.epoch_matrix,

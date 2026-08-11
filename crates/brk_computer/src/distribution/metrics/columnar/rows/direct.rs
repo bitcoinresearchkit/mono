@@ -11,7 +11,7 @@ use vecdb::{ColumnId, VecValue};
 use super::UTXOAggregateRows;
 
 #[derive(Clone, Default)]
-pub(crate) struct UTXORows<T> {
+pub struct UTXORows<T> {
     pub age_range: AgeRange<T>,
     pub epoch: ByEpoch<T>,
     pub class: Class<T>,
@@ -21,7 +21,7 @@ pub(crate) struct UTXORows<T> {
 }
 
 impl<T> UTXORows<T> {
-    pub(crate) fn map<U>(&self, mut map: impl FnMut(&T) -> U) -> UTXORows<U> {
+    pub fn map<U>(&self, mut map: impl FnMut(&T) -> U) -> UTXORows<U> {
         UTXORows {
             age_range: AgeRange::from_fn(|id| map(id.select(&self.age_range))),
             epoch: ByEpoch::from_fn(|id| map(id.select(&self.epoch))),
@@ -32,7 +32,7 @@ impl<T> UTXORows<T> {
         }
     }
 
-    pub(crate) fn aggregate(&self) -> UTXOAggregateRows<T>
+    pub fn aggregate(&self) -> UTXOAggregateRows<T>
     where
         T: AddAssign + Clone + Default,
     {

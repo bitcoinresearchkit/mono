@@ -8,7 +8,7 @@ use brk_types::{Cents, Height, PartsPerMillion32, PartsPerMillionSigned32, Versi
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Exit, Rw, StorageMode};
 
 use crate::{
-    distribution::{AllChainCache, metrics::AggregatePercentPerBlock},
+    distribution::{AllChainSources, metrics::AggregatePercentPerBlock},
     indexes,
     internal::{
         ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioCents, RatioDollars,
@@ -50,11 +50,11 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
 }
 
 impl RelativeVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
-        all_chain: &AllChainCache,
+        all_chain: &AllChainSources,
         sources: &UTXOAggregate<RelativeSource<'_>>,
     ) -> Result<Self> {
         let aggregate_version = version + Version::ONE;
@@ -196,7 +196,7 @@ impl RelativeVecs {
         }
     }
 
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         max_from: Height,
         sources: &UTXOAggregate<RelativeSource<'_>>,
@@ -253,7 +253,7 @@ impl RelativeVecs {
         Ok(())
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             self.supply_profitability_shares.stored_mut(),
             self.unrealized_profit_to_own_mcap.stored_mut(),

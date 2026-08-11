@@ -56,11 +56,7 @@ pub struct Sopr24hVecs<M: StorageMode = Rw> {
 }
 
 impl Sopr24hVecs {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
+    pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
         let matrix_version = version + Version::ONE;
         let aggregate_matrix = Self::import_matrix(
             db,
@@ -276,7 +272,7 @@ impl Sopr24hVecs {
             }
     }
 
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         max_from: Height,
         inputs: &UTXOGroupsWithoutAmountOrType<Sopr24hInput>,
@@ -355,7 +351,7 @@ impl Sopr24hVecs {
         )
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         [
             self.aggregate_matrix.height.len(),
             self.age_range_matrix.height.len(),
@@ -370,7 +366,7 @@ impl Sopr24hVecs {
         .unwrap_or_default()
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             self.aggregate_matrix.stored_mut(),
             self.age_range_matrix.stored_mut(),

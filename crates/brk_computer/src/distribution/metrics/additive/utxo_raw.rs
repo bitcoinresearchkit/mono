@@ -21,25 +21,25 @@ impl<T> AdditiveUTXORawVec<T>
 where
     T: BytesVecValue + AddAssign + Copy,
 {
-    pub(crate) fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    pub fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Ok(Self {
             matrix: ImportableVec::forced_import(db, &format!("{name}_by_term"), version)?,
         })
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, row: &UTXOAggregate<T>) {
+    pub fn push(&mut self, row: &UTXOAggregate<T>) {
         self.matrix.push(ByTerm {
             short: row.sth,
             long: row.lth,
         });
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.matrix.len()
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         &mut self.matrix
     }
 }

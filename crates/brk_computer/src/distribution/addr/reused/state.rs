@@ -27,7 +27,7 @@ pub struct ReusedAddrState {
 
 impl ReusedAddrState {
     #[inline]
-    pub(crate) fn reset_per_block(&mut self) {
+    pub fn reset_per_block(&mut self) {
         self.output_events.reset();
         self.input_events.reset();
         self.active.reset();
@@ -36,7 +36,7 @@ impl ReusedAddrState {
     /// Apply reused-flavor (receive-based: `funded_txo_count > 1`) updates
     /// for a received output, AFTER the receive has mutated `addr_data`.
     #[inline]
-    pub(crate) fn on_receive_as_reused(
+    pub fn on_receive_as_reused(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,
@@ -79,7 +79,7 @@ impl ReusedAddrState {
     /// don't cross the respent threshold. The only transition is an
     /// already-respent empty address reactivating into the funded set.
     #[inline]
-    pub(crate) fn on_receive_as_respent(
+    pub fn on_receive_as_respent(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,
@@ -104,7 +104,7 @@ impl ReusedAddrState {
     /// mutated `addr_data`. Sends don't change the reused predicate, so
     /// `pre.was_reused == is_reused` post-spend.
     #[inline]
-    pub(crate) fn on_send_as_reused(
+    pub fn on_send_as_reused(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,
@@ -133,7 +133,7 @@ impl ReusedAddrState {
     /// mutated `addr_data`. Sends CAN cross the respent threshold on the
     /// 2nd lifetime spend.
     #[inline]
-    pub(crate) fn on_send_as_respent(
+    pub fn on_send_as_respent(
         &mut self,
         output_type: OutputType,
         addr_data: &FundedAddrData,

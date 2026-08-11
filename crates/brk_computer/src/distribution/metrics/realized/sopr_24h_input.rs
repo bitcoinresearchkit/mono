@@ -4,13 +4,13 @@ use vecdb::{DeltaSub, LazyDeltaVec};
 use crate::internal::{LazyFiatPerBlockCumulativeWithSums, LazyValuePerBlockCumulativeRolling};
 
 #[derive(Clone)]
-pub(crate) struct Sopr24hInput {
-    pub(super) transfer_volume: LazyDeltaVec<Height, Cents, Cents, DeltaSub>,
-    pub(super) value_destroyed: LazyDeltaVec<Height, Cents, Cents, DeltaSub>,
+pub struct Sopr24hInput {
+    pub transfer_volume: LazyDeltaVec<Height, Cents, Cents, DeltaSub>,
+    pub value_destroyed: LazyDeltaVec<Height, Cents, Cents, DeltaSub>,
 }
 
 impl Sopr24hInput {
-    pub(crate) fn new(
+    pub fn new(
         transfer_volume: &LazyValuePerBlockCumulativeRolling,
         value_destroyed: &LazyFiatPerBlockCumulativeWithSums<Cents>,
     ) -> Self {

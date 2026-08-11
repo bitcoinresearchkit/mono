@@ -1,9 +1,8 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version};
-use vecdb::{BinaryTransform, ReadableCloneableVec};
+use vecdb::{BinaryTransform, CachedBoxedVec, ReadableCloneableVec};
 
 use crate::{
-    distribution::metrics::AllSupplyCache,
     indexes,
     internal::{
         CachedWindowStartVec, LazyIndexedVec, LazyPercentPerBlock,
@@ -20,11 +19,11 @@ pub struct SupplyBase {
 }
 
 impl SupplyBase {
-    pub(crate) fn from_total(
+    pub fn from_total(
         cohort_name: &str,
         version: Version,
         total: LazySpotValuePerBlock,
-        all_supply: &AllSupplyCache,
+        all_supply: &CachedBoxedVec<Height, Sats>,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
@@ -33,7 +32,7 @@ impl SupplyBase {
             &format!("{dominance_name}_ppm_source"),
             version,
             total.sats.height.read_only_boxed_clone(),
-            all_supply.cached_boxed_clone(),
+            all_supply.clone(),
             |_, supply, all_supply| RatioSats::<PartsPerMillion32>::apply(supply, all_supply),
         );
         let dominance =
@@ -49,7 +48,7 @@ impl SupplyBase {
         )
     }
 
-    pub(crate) fn from_all_total(
+    pub fn from_all_total(
         cohort_name: &str,
         version: Version,
         total: LazySpotValuePerBlock,
@@ -98,7 +97,7 @@ impl SupplyBase {
         }
     }
 
-    pub(super) fn metric_name(cohort_name: &str, metric: &str) -> String {
+    pub fn metric_name(cohort_name: &str, metric: &str) -> String {
         if cohort_name.is_empty() {
             metric.to_owned()
         } else {

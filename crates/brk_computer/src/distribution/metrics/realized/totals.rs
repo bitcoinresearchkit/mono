@@ -3,13 +3,13 @@ use std::ops::AddAssign;
 use brk_types::{Cents, CentsSats, Sats};
 
 #[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct RealizedTotals {
-    pub(super) cap_raw: CentsSats,
-    pub(super) supply: Sats,
+pub struct RealizedTotals {
+    pub cap_raw: CentsSats,
+    pub supply: Sats,
 }
 
 impl RealizedTotals {
-    pub(crate) fn price(&self) -> Cents {
+    pub fn price(&self) -> Cents {
         self.cap_raw
             .as_u128()
             .checked_div(self.supply.as_u128())

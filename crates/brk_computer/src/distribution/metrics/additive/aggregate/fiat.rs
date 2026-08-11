@@ -13,7 +13,7 @@ use vecdb::{
 
 use crate::{
     indexes,
-    internal::{ColumnarPerBlock, FiatType, LazyFiatPerBlock},
+    internal::{ColumnarPerBlock, FiatType, LazyFiatPerBlock, cache_wrap},
 };
 
 #[derive(Deref, DerefMut, Traversable)]
@@ -25,7 +25,7 @@ pub struct AdditiveAggregateFiatPerBlock<C: FiatType, M: StorageMode = Rw> {
 }
 
 impl<C: FiatType> AdditiveAggregateFiatPerBlock<C> {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -44,13 +44,12 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlock<C> {
                         metric,
                     );
                     let cents = match aggregate {
-                        UTXOAggregateId::All => source
-                            .sum_columns(
-                                &format!("{name}_cents"),
-                                version,
-                                TermId::ALL.iter().copied(),
-                            )
-                            .read_only_boxed_clone(),
+                        UTXOAggregateId::All => cache_wrap(source.sum_columns(
+                            &format!("{name}_cents"),
+                            version,
+                            TermId::ALL.iter().copied(),
+                        ))
+                        .read_only_boxed_clone(),
                         UTXOAggregateId::Sth => source
                             .column(&format!("{name}_cents"), version, TermId::Short)
                             .read_only_boxed_clone(),
@@ -66,18 +65,18 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlock<C> {
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, row: UTXOAggregate<C>) {
+    pub fn push(&mut self, row: UTXOAggregate<C>) {
         self.values.push(ByTerm {
             short: row.sth,
             long: row.lth,
         });
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         self.values.height.len()
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.values.stored_mut()
     }
 }

@@ -9,12 +9,12 @@ pub struct BlockActivityCounts {
 
 impl BlockActivityCounts {
     #[inline]
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         *self = Self::default();
     }
 
     #[inline(always)]
-    pub(crate) fn active(&self) -> u32 {
+    pub fn active(&self) -> u32 {
         debug_assert!(self.bidirectional <= self.sending.min(self.receiving));
         self.sending + self.receiving - self.bidirectional
     }

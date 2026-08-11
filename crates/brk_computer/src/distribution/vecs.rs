@@ -7,17 +7,17 @@ use brk_cohort::{AddrTypeId, EntryPrice};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, StoredF64, SupplyState, Timestamp, TxIndex, Version};
+use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
 use vecdb::{
-    AnyVec, BytesVec, Database, Exit, ImportOptions, ImportableVec, LazyVec, ReadableCloneableVec,
+    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, LazyVec, ReadableCloneableVec,
     ReadableVec, Rw, Stamp, StorageMode, WritableVec,
 };
 
 use crate::{
     distribution::{
-        compute::{PriceRangeMax, StartMode, determine_start_mode, process_blocks, reset_state},
-        state::BlockState,
+        compute::{StartMode, determine_start_mode, process_blocks, reset_state},
+        state::{AddrStates, BlockState},
     },
     indexes, inputs,
     internal::{
@@ -27,9 +27,9 @@ use crate::{
     outputs, price, transactions,
 };
 
+use super::inner::Inner;
 use super::{
-    AddrStates, AddrsDataVecs, AllChainCache, AnyAddrIndexesVecs, CohortMetrics, DB_NAME, RangeMap,
-    UTXOStates,
+    AddrsDataVecs, AllChainSources, AnyAddrIndexesVecs, CohortMetrics, DB_NAME, UTXOStates,
     addr::{
         AddrActivityVecs, AddrCountsVecs, AddrVecs, AvgAmountVecs, DeltaVecs, ExposedAddrVecs,
         FundedAddrCountsVecs, NewAddrCountVecs, ReusedAddrVecs, TotalAddrCountVecs,
@@ -41,7 +41,7 @@ const VERSION: Version = Version::new(30 + brk_oracle::VERSION);
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
-    db: Database,
+    inner: Inner,
     #[traversable(skip)]
     pub states_path: PathBuf,
 
@@ -56,27 +56,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(wrap = "cointime/activity")]
     pub coinblocks_destroyed: PerBlockCumulativeRolling<StoredF64, M>,
     pub addrs: AddrVecs<M>,
-
-    /// In-memory state that does NOT survive rollback.
-    /// Grouped so that adding a new field automatically gets it reset.
-    #[traversable(skip)]
-    caches: DistributionTransientState,
-}
-
-/// In-memory state that does NOT survive rollback.
-/// On rollback, the entire struct is replaced with `Default::default()`.
-#[derive(Clone, Default)]
-struct DistributionTransientState {
-    /// Block state for UTXO processing. Persisted via supply_state.
-    chain_state: Vec<BlockState>,
-    /// tx_index→height reverse lookup.
-    tx_index_to_height: RangeMap<TxIndex, Height>,
-    /// Height→price mapping. Incrementally extended.
-    prices: Vec<Cents>,
-    /// Height→timestamp mapping. Incrementally extended.
-    timestamps: Vec<Timestamp>,
-    /// Sparse table for O(1) range-max price queries. Incrementally extended.
-    price_range_max: PriceRangeMax,
 }
 
 const SAVED_STAMPED_CHANGES: u16 = 10;
@@ -84,14 +63,14 @@ const SAVED_STAMPED_CHANGES: u16 = 10;
 const FUNDED_ADDR_DATA_VERSION: Version = Version::ONE;
 
 impl Vecs {
-    pub(crate) fn all_chain_cache(&self, prices: &price::Vecs) -> AllChainCache {
-        AllChainCache::new(
-            self.cohorts.all_supply_cache(),
+    pub fn all_chain_sources(&self, prices: &price::Vecs) -> AllChainSources {
+        AllChainSources::new(
+            self.cohorts.all_supply(),
             &prices.spot.cents.height.read_only_cached_boxed_clone(),
         )
     }
 
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         parent: &Path,
         parent_version: Version,
         indexes: &indexes::Vecs,
@@ -163,7 +142,7 @@ impl Vecs {
             &spot_price,
             outputs_by_type,
             inputs_by_type,
-            cohorts.all_supply_cache(),
+            cohorts.all_supply(),
         )?;
         let respent_addr_count = ReusedAddrVecs::forced_import(
             &db,
@@ -174,7 +153,7 @@ impl Vecs {
             &spot_price,
             outputs_by_type,
             inputs_by_type,
-            cohorts.all_supply_cache(),
+            cohorts.all_supply(),
         )?;
 
         // Exposed address tracking (counts + supply) - quantum / pubkey-exposure sense
@@ -183,14 +162,14 @@ impl Vecs {
             version,
             indexes,
             &spot_price,
-            cohorts.all_supply_cache(),
+            cohorts.all_supply(),
         )?;
 
         // Growth rate: delta change + rate (global + per-type)
         let delta = DeltaVecs::new(version, &funded_addr_count.counts, cached_starts, indexes);
 
         // Average amount (supply / utxo_count, supply / funded_addr_count) for `all` and per addr type.
-        let all_chain = AllChainCache::new(cohorts.all_supply_cache(), &spot_price);
+        let all_chain = AllChainSources::new(cohorts.all_supply(), &spot_price);
         let avg_amount = AvgAmountVecs::forced_import(
             &db,
             version,
@@ -237,20 +216,18 @@ impl Vecs {
                 funded: funded_addr_index_to_funded_addr_data,
                 empty: empty_addr_index_to_empty_addr_data,
             },
-            caches: DistributionTransientState::default(),
-
-            db,
+            inner: Inner::new(db),
             states_path,
         };
 
-        finalize_db(&this.db, &this)?;
+        finalize_db(&this.inner.db, &this)?;
         Ok(this)
     }
 
     /// Reset in-memory caches that become stale after rollback.
     fn reset_in_memory_caches(&mut self) {
         self.cohorts.reset_caches();
-        self.caches = DistributionTransientState::default();
+        self.inner.reset();
     }
 
     /// Main computation loop.
@@ -262,7 +239,7 @@ impl Vecs {
     /// 4. Computes aggregate cohorts from separate cohorts
     /// 5. Computes derived metrics
     #[allow(clippy::too_many_arguments)]
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         indexer: &Indexer,
         indexes: &indexes::Vecs,
@@ -272,7 +249,7 @@ impl Vecs {
         prices: &price::Vecs,
         exit: &Exit,
     ) -> Result<UTXOStates> {
-        self.db.sync_bg_tasks()?;
+        self.inner.db.sync_bg_tasks()?;
         let mut utxo_states = UTXOStates::new(&self.states_path);
         let mut addr_states = AddrStates::new(&self.states_path);
 
@@ -386,11 +363,11 @@ impl Vecs {
             .height
             .len()
             .min(indexes.timestamp.monotonic.len());
-        let cache_current_len = self.caches.prices.len();
+        let cache_current_len = self.inner.prices.len();
         if cache_target_len < cache_current_len {
-            self.caches.prices.truncate(cache_target_len);
-            self.caches.timestamps.truncate(cache_target_len);
-            self.caches.price_range_max.truncate(cache_target_len);
+            self.inner.prices.truncate(cache_target_len);
+            self.inner.timestamps.truncate(cache_target_len);
+            self.inner.price_range_max.truncate(cache_target_len);
         } else if cache_target_len > cache_current_len {
             let new_prices = prices
                 .spot
@@ -401,14 +378,14 @@ impl Vecs {
                 .timestamp
                 .monotonic
                 .collect_range_at(cache_current_len, cache_target_len);
-            self.caches.prices.extend(new_prices);
-            self.caches.timestamps.extend(new_timestamps);
+            self.inner.prices.extend(new_prices);
+            self.inner.timestamps.extend(new_timestamps);
         }
-        self.caches.price_range_max.extend(&self.caches.prices);
+        self.inner.price_range_max.extend(&self.inner.prices);
 
         // Take chain_state and tx_index_to_height out of self to avoid borrow conflicts
-        let mut chain_state = mem::take(&mut self.caches.chain_state);
-        let mut tx_index_to_height = mem::take(&mut self.caches.tx_index_to_height);
+        let mut chain_state = mem::take(&mut self.inner.chain_state);
+        let mut tx_index_to_height = mem::take(&mut self.inner.tx_index_to_height);
 
         // Recover or reuse chain_state
         let starting_height = if recovered_height.is_zero() {
@@ -441,7 +418,7 @@ impl Vecs {
                 .into_iter()
                 .enumerate()
                 .map(|(h, supply)| {
-                    let price = self.caches.prices[h];
+                    let price = self.inner.prices[h];
                     let entry = EntryPrice::from_is_discount(
                         entry_anchor == Cents::ZERO || price <= entry_anchor,
                     );
@@ -451,7 +428,7 @@ impl Vecs {
                         supply,
                         entry,
                         price,
-                        timestamp: self.caches.timestamps[h],
+                        timestamp: self.inner.timestamps[h],
                     }
                 })
                 .collect();
@@ -474,9 +451,9 @@ impl Vecs {
         if starting_height <= last_height {
             debug!("calling process_blocks");
 
-            let prices = mem::take(&mut self.caches.prices);
-            let timestamps = mem::take(&mut self.caches.timestamps);
-            let price_range_max = mem::take(&mut self.caches.price_range_max);
+            let prices = mem::take(&mut self.inner.prices);
+            let timestamps = mem::take(&mut self.inner.timestamps);
+            let price_range_max = mem::take(&mut self.inner.price_range_max);
             let entry_anchor = starting_height
                 .decremented()
                 .and_then(|height| {
@@ -511,14 +488,14 @@ impl Vecs {
                 exit,
             )?;
 
-            self.caches.prices = prices;
-            self.caches.timestamps = timestamps;
-            self.caches.price_range_max = price_range_max;
+            self.inner.prices = prices;
+            self.inner.timestamps = timestamps;
+            self.inner.price_range_max = price_range_max;
         }
 
         // Put chain_state and tx_index_to_height back
-        self.caches.chain_state = chain_state;
-        self.caches.tx_index_to_height = tx_index_to_height;
+        self.inner.chain_state = chain_state;
+        self.inner.tx_index_to_height = tx_index_to_height;
 
         // 5. Compute rest part1 (day1 mappings)
         info!("Computing rest part 1...");
@@ -565,15 +542,15 @@ impl Vecs {
         self.cohorts.compute_rest_part2(&starting_lengths, exit)?;
 
         let exit = exit.clone();
-        self.db.run_bg(move |db| {
+        self.inner.db.run_bg(move |db| {
             let _lock = exit.lock();
             db.compact_deferred_default()
         });
         Ok(utxo_states)
     }
 
-    pub(crate) fn flush(&self) -> Result<()> {
-        self.db.flush()?;
+    pub fn flush(&self) -> Result<()> {
+        self.inner.db.flush()?;
         Ok(())
     }
 

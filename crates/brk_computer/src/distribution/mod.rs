@@ -1,17 +1,16 @@
-pub mod addr;
-mod all_chain_cache;
+mod addr;
+mod all_chain_sources;
 mod block;
-pub mod compute;
-pub mod metrics;
+mod compute;
+mod inner;
+mod metrics;
 mod state;
 mod vecs;
 
-pub(crate) use all_chain_cache::AllChainCache;
-pub use brk_types::RangeMap;
+pub use addr::{AddrsDataVecs, AnyAddrIndexesVecs};
+pub use all_chain_sources::AllChainSources;
+pub use metrics::CohortMetrics;
+pub use state::UTXOStates;
 pub use vecs::Vecs;
 
 pub const DB_NAME: &str = "distribution";
-
-pub use addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVecs};
-pub use metrics::CohortMetrics;
-pub use state::{AddrStates, UTXOStates};

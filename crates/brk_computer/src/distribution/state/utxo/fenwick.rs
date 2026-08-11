@@ -61,7 +61,7 @@ impl FenwickNode for CostBasisNode {
 
 /// Combined Fenwick tree for per-block accurate percentile and profitability queries.
 #[derive(Clone)]
-pub(crate) struct CostBasisFenwick {
+pub struct CostBasisFenwick {
     tree: FenwickTree<CostBasisNode>,
     /// Running totals (sum of all underlying frequencies).
     totals: CostBasisNode,
@@ -122,28 +122,23 @@ impl Default for CostBasisFenwick {
 }
 
 impl CostBasisFenwick {
-    pub(crate) fn is_initialized(&self) -> bool {
+    pub fn is_initialized(&self) -> bool {
         self.initialized
     }
 
     /// Pre-compute `is_sth` lookup from the STH filter and age-range filters.
-    pub(super) fn compute_is_sth(&mut self, sth_filter: &Filter) {
+    pub fn compute_is_sth(&mut self, sth_filter: &Filter) {
         for id in AgeRangeId::ALL {
             self.is_sth[id.index()] = sth_filter.includes(id.filter());
         }
     }
 
-    pub(super) fn is_sth(&self, id: AgeRangeId) -> bool {
+    pub fn is_sth(&self, id: AgeRangeId) -> bool {
         self.is_sth[id.index()]
     }
 
     /// Apply a net delta from a pending map entry.
-    pub(super) fn apply_delta(
-        &mut self,
-        price: CentsCompact,
-        pending: &PendingDelta,
-        is_sth: bool,
-    ) {
+    pub fn apply_delta(&mut self, price: CentsCompact, pending: &PendingDelta, is_sth: bool) {
         let net_sats = u64::from(pending.inc) as i64 - u64::from(pending.dec) as i64;
         if net_sats == 0 {
             return;
@@ -156,7 +151,7 @@ impl CostBasisFenwick {
     }
 
     /// Bulk-initialize from age-range maps.
-    pub(super) fn bulk_init<'a>(
+    pub fn bulk_init<'a>(
         &mut self,
         maps: impl Iterator<Item = (&'a BTreeMap<CentsCompact, Sats>, bool)>,
     ) {
@@ -183,7 +178,7 @@ impl CostBasisFenwick {
     // -----------------------------------------------------------------------
 
     /// Compute sat-weighted and usd-weighted percentile prices for ALL cohort.
-    pub(crate) fn percentiles_all(&self) -> PercentileResult {
+    pub fn percentiles_all(&self) -> PercentileResult {
         self.compute_percentiles(
             self.totals.all_sats,
             self.totals.all_usd,
@@ -193,7 +188,7 @@ impl CostBasisFenwick {
     }
 
     /// Compute percentile prices for STH cohort.
-    pub(crate) fn percentiles_sth(&self) -> PercentileResult {
+    pub fn percentiles_sth(&self) -> PercentileResult {
         self.compute_percentiles(
             self.totals.sth_sats,
             self.totals.sth_usd,
@@ -203,7 +198,7 @@ impl CostBasisFenwick {
     }
 
     /// Compute percentile prices for LTH cohort (all - sth per node).
-    pub(crate) fn percentiles_lth(&self) -> PercentileResult {
+    pub fn percentiles_lth(&self) -> PercentileResult {
         self.compute_percentiles(
             self.totals.all_sats - self.totals.sth_sats,
             self.totals.all_usd - self.totals.sth_usd,
@@ -265,7 +260,7 @@ impl CostBasisFenwick {
     // -----------------------------------------------------------------------
 
     /// Compute supply density: % of supply with cost basis within ±5% of spot.
-    pub(crate) fn density(
+    pub fn density(
         &self,
         spot_price: Cents,
     ) -> (PartsPerMillion32, PartsPerMillion32, PartsPerMillion32) {
@@ -328,10 +323,7 @@ impl CostBasisFenwick {
 
     /// Compute profitability range buckets from current spot price.
     /// Returns exact STH/LTH values for every profitability range.
-    pub(crate) fn profitability(
-        &self,
-        spot_price: Cents,
-    ) -> ProfitabilityRange<ProfitabilityRangeResult> {
+    pub fn profitability(&self, spot_price: Cents) -> ProfitabilityRange<ProfitabilityRangeResult> {
         let mut result = ProfitabilityRange::default();
 
         if self.totals.all_sats <= 0 {

@@ -9,19 +9,19 @@ use super::super::cost_basis::{CostBasisOps, RealizedOps};
 use crate::distribution::metrics::RealizedBlockData;
 
 #[derive(Deref, DerefMut)]
-pub struct UTXOCohortState<R: RealizedOps, C: CostBasisOps>(pub(crate) CohortState<R, C>);
+pub struct UTXOCohortState<R: RealizedOps, C: CostBasisOps>(pub CohortState<R, C>);
 
 impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
-    pub(crate) fn new(path: &Path, name: &str) -> Self {
+    pub fn new(path: &Path, name: &str) -> Self {
         Self(CohortState::new(path, name))
     }
 
-    pub(crate) fn reset_cost_basis_data_if_needed(&mut self) -> Result<()> {
+    pub fn reset_cost_basis_data_if_needed(&mut self) -> Result<()> {
         self.0.reset_cost_basis_data_if_needed()
     }
 
     /// Reset state for fresh start.
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         self.0.supply = SupplyState::default();
         self.0.sent = Sats::ZERO;
         self.0.spent_utxo_count = 0;
@@ -30,12 +30,12 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub(crate) fn supply_value(&self) -> Sats {
+    pub fn supply_value(&self) -> Sats {
         self.supply.value
     }
 
     #[inline(always)]
-    pub(crate) fn output_counts(&self) -> (StoredU64, StoredU64) {
+    pub fn output_counts(&self) -> (StoredU64, StoredU64) {
         (
             StoredU64::from(self.supply.utxo_count),
             StoredU64::from(self.spent_utxo_count),
@@ -43,12 +43,12 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub(crate) fn transfer_volume(&self) -> Sats {
+    pub fn transfer_volume(&self) -> Sats {
         self.sent
     }
 
     #[inline(always)]
-    pub(crate) fn core_activity(&self) -> (StoredF64, Sats, Sats) {
+    pub fn core_activity(&self) -> (StoredF64, Sats, Sats) {
         (
             StoredF64::from(Bitcoin::from(self.satdays_destroyed)),
             self.realized.sent_in_profit(),
@@ -57,7 +57,7 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
     }
 
     #[inline(always)]
-    pub(crate) fn realized_block_data(&self) -> RealizedBlockData {
+    pub fn realized_block_data(&self) -> RealizedBlockData {
         let cap_raw = self.realized.cap_raw();
         let supply = self.supply.value;
         let cap = self.realized.cap();

@@ -16,17 +16,17 @@ pub struct AddrTypeToAddrEventCount(ByAddrType<u64>);
 
 impl AddrTypeToAddrEventCount {
     #[inline]
-    pub(crate) fn sum(&self) -> u64 {
+    pub fn sum(&self) -> u64 {
         self.0.values().sum()
     }
 
     #[inline]
-    pub(crate) fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
+    pub fn row(&self) -> <AddrTypeId as ColumnId>::Row<StoredU64> {
         AddrTypeId::from_fn(|column| StoredU64::from(*column.select(&self.0)))
     }
 
     #[inline]
-    pub(crate) fn reset(&mut self) {
+    pub fn reset(&mut self) {
         for v in self.0.values_mut() {
             *v = 0;
         }

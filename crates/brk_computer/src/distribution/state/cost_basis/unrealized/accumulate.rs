@@ -33,7 +33,7 @@ pub trait Accumulate: Default + Clone + Send + Sync + 'static {
 }
 
 #[inline(always)]
-pub(super) fn div_btc(raw: u128) -> Cents {
+pub fn div_btc(raw: u128) -> Cents {
     if raw == 0 {
         Cents::ZERO
     } else {

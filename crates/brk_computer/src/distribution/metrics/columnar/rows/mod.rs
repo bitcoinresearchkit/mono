@@ -1,5 +1,5 @@
 mod aggregate;
 mod direct;
 
-pub(crate) use aggregate::UTXOAggregateRows;
-pub(crate) use direct::UTXORows;
+pub use aggregate::UTXOAggregateRows;
+pub use direct::UTXORows;

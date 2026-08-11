@@ -2,7 +2,8 @@ use brk_cohort::{ByAddrType, EntryPrice, Filter, Term};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_types::{
-    Cents, Date, Height, ONE_DAY_IN_SEC, OutputType, Sats, StoredF64, Timestamp, TxIndex, TypeIndex,
+    Cents, Date, Height, ONE_DAY_IN_SEC, OutputType, RangeMap, Sats, StoredF64, Timestamp, TxIndex,
+    TypeIndex,
 };
 use rayon::prelude::*;
 use tracing::{debug, info};
@@ -23,7 +24,6 @@ use crate::{
 
 use super::{
     super::{
-        RangeMap,
         metrics::CohortMetrics,
         state::{AddrStates, UTXOStates},
         vecs::Vecs,
@@ -35,7 +35,7 @@ use super::{
 
 /// Process all blocks from starting_height to last_height.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn process_blocks(
+pub fn process_blocks(
     vecs: &mut Vecs,
     utxo_states: &mut UTXOStates,
     addr_states: &mut AddrStates,

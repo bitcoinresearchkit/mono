@@ -18,7 +18,7 @@ pub struct CoreCumulativeValueByCohort<M: StorageMode = Rw> {
 }
 
 impl CoreCumulativeValueByCohort {
-    pub(super) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         metric: &str,
         version: Version,
@@ -51,15 +51,15 @@ impl CoreCumulativeValueByCohort {
     }
 
     #[inline(always)]
-    pub(super) fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
+    pub fn push_block(&mut self, sats: UTXORows<Sats>, cents: UTXORows<Cents>) {
         self.cumulative.push_block(sats, cents);
     }
 
-    pub(super) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.cumulative.min_len()
     }
 
-    pub(super) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.cumulative.collect_vecs_mut()
     }
 }

@@ -11,7 +11,7 @@ pub struct PriceRangeMax {
 }
 
 impl PriceRangeMax {
-    pub(crate) fn extend(&mut self, prices: &[Cents]) {
+    pub fn extend(&mut self, prices: &[Cents]) {
         let new_n = prices.len();
         if new_n <= self.n || new_n == 0 {
             return;
@@ -53,7 +53,7 @@ impl PriceRangeMax {
         );
     }
 
-    pub(crate) fn truncate(&mut self, new_n: usize) {
+    pub fn truncate(&mut self, new_n: usize) {
         if new_n >= self.n {
             return;
         }
@@ -73,7 +73,7 @@ impl PriceRangeMax {
     }
 
     #[inline]
-    pub(crate) fn range_max(&self, start: usize, end: usize) -> Cents {
+    pub fn range_max(&self, start: usize, end: usize) -> Cents {
         debug_assert!(start <= end && end < self.n);
         let len = end - start + 1;
         let level = (usize::BITS - len.leading_zeros() - 1) as usize;
@@ -87,7 +87,7 @@ impl PriceRangeMax {
     }
 
     #[inline]
-    pub(crate) fn max_between(&self, from: Height, to: Height) -> Cents {
+    pub fn max_between(&self, from: Height, to: Height) -> Cents {
         self.range_max(from.to_usize(), to.to_usize())
     }
 }

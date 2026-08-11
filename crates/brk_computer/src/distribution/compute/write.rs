@@ -22,7 +22,7 @@ use super::super::addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVe
 /// - Updates address indexes
 ///
 /// Call this before `flush()` to prepare data for writing.
-pub(crate) fn process_addr_updates(
+pub fn process_addr_updates(
     addrs_data: &mut AddrsDataVecs,
     addr_indexes: &mut AnyAddrIndexesVecs,
     empty_updates: AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
@@ -50,7 +50,7 @@ pub(crate) fn process_addr_updates(
 /// - Chain state
 ///
 /// Set `with_changes=true` near chain tip to enable rollback support.
-pub(crate) fn write(
+pub fn write(
     vecs: &mut Vecs,
     utxo_states: &mut UTXOStates,
     addr_states: &mut AddrStates,

@@ -76,11 +76,7 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
 }
 
 impl CostBasisVecs {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
+    pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
         let aggregate_version = version + Version::ONE;
         let in_profit_per_coin_source = Self::import_prices(
             db,
@@ -218,7 +214,7 @@ impl CostBasisVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_prices(&mut self, spot: Cents, states: &UTXOAggregate<UnrealizedState>) {
+    pub fn push_prices(&mut self, spot: Cents, states: &UTXOAggregate<UnrealizedState>) {
         self.in_profit_per_coin_source
             .push(UTXOAggregate::from_fn(|id| {
                 Self::per_coin_price(spot, id.select(states), true)
@@ -286,7 +282,7 @@ impl CostBasisVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push(&mut self, rows: UTXOAggregate<CostBasisBlockData>) {
+    pub fn push(&mut self, rows: UTXOAggregate<CostBasisBlockData>) {
         self.min_source
             .push(UTXOAggregate::from_fn(|id| id.select(&rows).min));
         self.max_source
@@ -301,7 +297,7 @@ impl CostBasisVecs {
         self.per_dollar_sources.lth.push(&rows.lth.per_dollar);
     }
 
-    pub(crate) fn validate_computed_versions(&mut self, version: Version) -> Result<()> {
+    pub fn validate_computed_versions(&mut self, version: Version) -> Result<()> {
         for percentiles in self
             .per_coin_sources
             .iter_mut()
@@ -312,7 +308,7 @@ impl CostBasisVecs {
         Ok(())
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.in_profit_per_coin_source
             .height
             .len()
@@ -332,7 +328,7 @@ impl CostBasisVecs {
             )
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = vec![
             self.in_profit_per_coin_source.stored_mut(),
             self.in_profit_per_dollar_source.stored_mut(),

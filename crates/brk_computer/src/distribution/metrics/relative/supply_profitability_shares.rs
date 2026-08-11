@@ -29,11 +29,7 @@ pub struct SupplyProfitabilityShares<M: StorageMode = Rw> {
 }
 
 impl SupplyProfitabilityShares {
-    pub(crate) fn forced_import(
-        db: &Database,
-        version: Version,
-        indexes: &indexes::Vecs,
-    ) -> Result<Self> {
+    pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
         let version = version + VERSION;
         let profit_share_source = ColumnarPerBlock::forced_import(
             db,
@@ -111,7 +107,7 @@ impl SupplyProfitabilityShares {
         }
     }
 
-    pub(crate) fn compute(
+    pub fn compute(
         &mut self,
         max_from: Height,
         sources: &UTXOAggregate<RelativeSource<'_>>,
@@ -126,7 +122,7 @@ impl SupplyProfitabilityShares {
         )
     }
 
-    pub(crate) fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
+    pub fn stored_mut(&mut self) -> &mut dyn AnyStoredVec {
         self.profit_share_source.stored_mut()
     }
 }

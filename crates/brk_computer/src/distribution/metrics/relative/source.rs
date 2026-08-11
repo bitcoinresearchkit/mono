@@ -7,7 +7,7 @@ use crate::{
     internal::LazyRatioPerBlock,
 };
 
-pub(crate) struct RelativeSource<'a> {
+pub struct RelativeSource<'a> {
     pub supply: SupplySources,
     pub unrealized: UnrealizedSources,
     pub unrealized_aggregate: UnrealizedAggregateSources,

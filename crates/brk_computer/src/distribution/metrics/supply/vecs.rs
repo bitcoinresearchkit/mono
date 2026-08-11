@@ -18,7 +18,7 @@ use crate::{
     },
 };
 
-use super::{AllSupplyCache, SupplyBase, SupplyByCohort, SupplySources, SupplyTotal};
+use super::{SupplyBase, SupplyByCohort, SupplySources, SupplyTotal};
 
 const MATURED_VERSION: Version = Version::new(5);
 
@@ -44,14 +44,15 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
 }
 
 impl SupplyVecs {
-    pub(crate) fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> Result<(Self, AllSupplyCache)> {
-        let (total, all_supply) = SupplyTotal::forced_import(db, version, indexes, spot_price)?;
+    ) -> Result<Self> {
+        let total = SupplyTotal::forced_import(db, version, indexes, spot_price)?;
+        let all_supply = total.all_supply();
         let in_profit =
             SupplyByCohort::forced_import(db, "supply_in_profit", version, indexes, spot_price)?;
         let in_loss =
@@ -71,7 +72,7 @@ impl SupplyVecs {
                     &full_name,
                     version,
                     total.clone(),
-                    &all_supply,
+                    all_supply,
                     indexes,
                     cached_starts,
                 )
@@ -85,7 +86,7 @@ impl SupplyVecs {
                 &full_name,
                 version + Version::ONE,
                 total.clone(),
-                &all_supply,
+                all_supply,
                 indexes,
                 cached_starts,
             )
@@ -137,30 +138,27 @@ impl SupplyVecs {
             },
         )?;
 
-        Ok((
-            Self {
-                total,
-                matured,
-                half,
-                in_profit,
-                in_loss,
-                delta,
-                addr_balance_delta,
-                dominance,
-                addr_balance_dominance,
-            },
-            all_supply,
-        ))
+        Ok(Self {
+            total,
+            matured,
+            half,
+            in_profit,
+            in_loss,
+            delta,
+            addr_balance_delta,
+            dominance,
+            addr_balance_dominance,
+        })
     }
 
-    pub(crate) fn sources(&self, filter: &Filter) -> Option<SupplySources> {
+    pub fn sources(&self, filter: &Filter) -> Option<SupplySources> {
         Some(SupplySources {
             total: self.total.get(filter)?.clone(),
             in_profit: self.in_profit.get(filter)?.clone(),
         })
     }
 
-    pub(crate) fn min_len(&self) -> usize {
+    pub fn min_len(&self) -> usize {
         self.total
             .min_len()
             .min(self.matured.len())
@@ -169,17 +167,13 @@ impl SupplyVecs {
     }
 
     #[inline(always)]
-    pub(crate) fn push_maturation(&mut self, matured: &AgeRange<Sats>, price: Cents) {
+    pub fn push_maturation(&mut self, matured: &AgeRange<Sats>, price: Cents) {
         let cents = AgeRange::from_fn(|column| SatsToCents::apply(*column.select(matured), price));
         self.matured.push_block(matured.clone(), cents);
     }
 
     #[inline(always)]
-    pub(crate) fn push(
-        &mut self,
-        total: UTXORows<Sats>,
-        profitability: &UTXORows<UnrealizedState>,
-    ) {
+    pub fn push(&mut self, total: UTXORows<Sats>, profitability: &UTXORows<UnrealizedState>) {
         let in_profit = profitability.map(|state| state.supply_in_profit);
         let in_loss = profitability.map(|state| state.supply_in_loss);
 
@@ -188,7 +182,7 @@ impl SupplyVecs {
         self.in_loss.push(in_loss);
     }
 
-    pub(crate) fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.total.collect_vecs_mut();
         vecs.extend(self.matured.collect_vecs_mut());
         vecs.extend(self.in_profit.collect_vecs_mut());
