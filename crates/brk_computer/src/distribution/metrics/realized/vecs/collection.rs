@@ -19,7 +19,7 @@ use crate::{
         metrics::{
             AdditiveAggregateFiatPerBlockCumulativeWithSums, AdditiveUTXORawVec,
             AggregatePercentPerBlock, AggregatePriceWithRatioPerBlock, ColumnarAmount,
-            RealizedBlockData, RealizedTotals, UTXORows, utxo_metric_name,
+            RealizedBlockData, RealizedTotals, UTXORows,
         },
     },
     indexes,
@@ -222,14 +222,14 @@ impl RealizedVecs {
 
         let mvrv = price.cohorts.map_named(|filter, cohort_name, price| {
             LazyPerBlock::from_lazy::<Identity<StoredF32>, PartsPerMillion64>(
-                &utxo_metric_name(filter, cohort_name, "mvrv"),
+                &CohortContext::Utxo.metric_name(filter, cohort_name, "mvrv"),
                 Self::cohort_version(version, filter),
                 &price.ratio,
             )
         });
         let negative_loss = UTXOGroupsWithoutAmountOrType::new(|filter, cohort_name| {
             let loss = loss.cohorts.get(&filter).expect("realized-loss cohort");
-            let name = utxo_metric_name(&filter, cohort_name, "realized_loss_neg");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "realized_loss_neg");
             let version = Self::cohort_version(version, &filter) + Version::ONE;
             let base = LazyVec::transformed::<NegCentsUnsignedToDollars>(
                 &name,
@@ -248,7 +248,7 @@ impl RealizedVecs {
         });
         let cap_to_own_mcap = UTXOAggregate::from_fn(|id| {
             let filter = id.select(&UTXO_AGGREGATE_FILTERS);
-            let name = utxo_metric_name(
+            let name = CohortContext::Utxo.metric_name(
                 filter,
                 id.select(&UTXO_AGGREGATE_NAMES).id,
                 "realized_cap_to_own_mcap",
@@ -268,7 +268,7 @@ impl RealizedVecs {
         });
         let net_pnl_change_1m_to_mcap = UTXOAggregate::from_fn(|id| {
             let filter = id.select(&UTXO_AGGREGATE_FILTERS);
-            let name = utxo_metric_name(
+            let name = CohortContext::Utxo.metric_name(
                 filter,
                 id.select(&UTXO_AGGREGATE_NAMES).id,
                 "net_pnl_change_1m_to_mcap",
@@ -343,7 +343,7 @@ impl RealizedVecs {
     }
 
     fn aggregate_metric_name(id: UTXOAggregateId, metric: &str) -> String {
-        utxo_metric_name(
+        CohortContext::Utxo.metric_name(
             id.select(&UTXO_AGGREGATE_FILTERS),
             id.select(&UTXO_AGGREGATE_NAMES).id,
             metric,

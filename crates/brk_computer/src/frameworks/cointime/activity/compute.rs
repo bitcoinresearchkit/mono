@@ -1,6 +1,6 @@
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_types::{Bitcoin, StoredF64};
+use brk_types::{Bitcoin, Height, StoredF64};
 use vecdb::Exit;
 
 use super::Vecs;
@@ -10,7 +10,7 @@ use crate::{
 };
 
 pub(crate) fn compute_rest(
-    starting_height: brk_types::Height,
+    starting_height: Height,
     created: &PerBlockCumulativeRolling<StoredF64>,
     consumed: &PerBlockCumulativeRolling<StoredF64>,
     stored: &mut PerBlockCumulativeRolling<StoredF64>,

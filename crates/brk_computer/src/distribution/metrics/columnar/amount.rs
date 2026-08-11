@@ -67,8 +67,7 @@ where
         cohort_name: &str,
         metric: &str,
     ) -> String {
-        let cohort = context.full_name(filter, cohort_name);
-        format!("{cohort}_{metric}")
+        context.metric_name(filter, cohort_name, metric)
     }
 
     #[inline(always)]

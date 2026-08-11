@@ -1,11 +1,11 @@
-use brk_cohort::UTXOGroupsWithoutAmountOrType;
+use brk_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{StoredF64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{CumulativeUTXOColumnarMetricWithoutAmountOrType, utxo_metric_name},
+    distribution::metrics::CumulativeUTXOColumnarMetricWithoutAmountOrType,
     indexes,
     internal::{CachedWindowStartVec, LazyPerBlockCumulativeRolling, Windows},
 };
@@ -31,7 +31,7 @@ impl CoindaysDestroyedByCohort {
             version,
         )?;
         let cohorts = UTXOGroupsWithoutAmountOrType::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "coindays_destroyed");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "coindays_destroyed");
             let source = cumulative
                 .matrices
                 .additive_source(&filter, &format!("{name}_cumulative"), version)

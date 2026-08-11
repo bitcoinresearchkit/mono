@@ -1,4 +1,6 @@
-use brk_cohort::{UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId};
+use brk_cohort::{
+    CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
+};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
@@ -8,7 +10,6 @@ use vecdb::{
 };
 
 use crate::{
-    distribution::metrics::utxo_metric_name,
     indexes,
     internal::{ColumnarPerBlock, LazyPercentPerBlock, RatioSats},
 };
@@ -71,7 +72,7 @@ impl SupplyProfitabilityShares {
         indexes: &indexes::Vecs,
     ) -> UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>> {
         UTXOAggregate::from_fn(|id| {
-            let name = utxo_metric_name(
+            let name = CohortContext::Utxo.metric_name(
                 id.select(&UTXO_AGGREGATE_FILTERS),
                 id.select(&UTXO_AGGREGATE_NAMES).id,
                 metric,

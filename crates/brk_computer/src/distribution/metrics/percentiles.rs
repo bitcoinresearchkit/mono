@@ -2,12 +2,12 @@ use std::path::Path;
 
 use brk_cohort::{ByTerm, Filter, ProfitabilityRangeId, Term, UTXOAggregate};
 use brk_error::Result;
-use brk_types::{Cents, Date, PartsPerMillion32};
+use brk_types::{Cents, Date};
 use vecdb::ColumnId;
 
 use crate::distribution::{
     metrics::{CohortMetrics, CostBasisBlockData},
-    state::{PercentileResult, UTXOStates},
+    state::UTXOStates,
 };
 
 impl CohortMetrics {
@@ -31,9 +31,9 @@ impl CohortMetrics {
         let fenwick = states.fenwick();
         let (all_density, sth_density, lth_density) = fenwick.density(spot_price);
         self.cost_basis.push(UTXOAggregate {
-            all: cost_basis_data(fenwick.percentiles_all(), all_density),
-            sth: cost_basis_data(fenwick.percentiles_sth(), sth_density),
-            lth: cost_basis_data(fenwick.percentiles_lth(), lth_density),
+            all: CostBasisBlockData::from_percentiles(fenwick.percentiles_all(), all_density),
+            sth: CostBasisBlockData::from_percentiles(fenwick.percentiles_sth(), sth_density),
+            lth: CostBasisBlockData::from_percentiles(fenwick.percentiles_lth(), lth_density),
         });
 
         let profitability = fenwick.profitability(spot_price);
@@ -48,19 +48,5 @@ impl CohortMetrics {
                 long: ProfitabilityRangeId::map_ref(&profitability, |row| row.realized_cap.long),
             },
         );
-    }
-}
-
-#[inline(always)]
-fn cost_basis_data(
-    percentiles: PercentileResult,
-    supply_density: PartsPerMillion32,
-) -> CostBasisBlockData {
-    CostBasisBlockData {
-        min: percentiles.min_price,
-        max: percentiles.max_price,
-        per_coin: percentiles.sat_prices,
-        per_dollar: percentiles.usd_prices,
-        supply_density,
     }
 }

@@ -1,147 +1,16 @@
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{
-    Bytes, Height, OpReturnKind, OpReturnPolicyId, PartsPerMillion32, Sats, StoredU64, VSize,
-    Version,
-};
-use derive_more::{Deref, DerefMut};
-use vecdb::{AnyVec, CachedBoxedVec, ColumnId, Database, Rw, StorageMode};
+use brk_types::{Bytes, Height, Sats, StoredU64, VSize, Version};
+use vecdb::{AnyVec, CachedBoxedVec, Database, Rw, StorageMode};
 
-use super::{by_kind::ByKind, policy::Policy};
+use super::{BlockMetrics, BreakdownAxis, DataBytesSeries, FeesSeries};
 use crate::{
     indexes,
     internal::{
         CachedWindowStartVec, ColumnarPerBlockCumulativeRolling,
-        LazyColumnPerBlockCumulativeRolling, LazyPercentCumulativeRolling, LazyPercentPerBlock,
-        RatioBytes, RatioSats, Windows,
+        LazyColumnPerBlockCumulativeRolling, Windows,
     },
 };
-
-#[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct BlockMetrics {
-    pub output_count: u64,
-    pub data_bytes: Bytes,
-    pub tx_count: u64,
-    pub tx_vsize: VSize,
-    pub fees: Sats,
-}
-
-pub trait BreakdownAxis: ColumnId {
-    type Series<T>: Clone + Traversable
-    where
-        T: Clone + Traversable + Send + Sync + 'static;
-
-    fn series<T>(create: impl FnMut(Self, &'static str) -> T) -> Self::Series<T>
-    where
-        T: Clone + Traversable + Send + Sync + 'static;
-}
-
-impl BreakdownAxis for OpReturnKind {
-    type Series<T>
-        = ByKind<T>
-    where
-        T: Clone + Traversable + Send + Sync + 'static;
-
-    fn series<T>(create: impl FnMut(Self, &'static str) -> T) -> Self::Series<T>
-    where
-        T: Clone + Traversable + Send + Sync + 'static,
-    {
-        ByKind::new(create)
-    }
-}
-
-impl BreakdownAxis for OpReturnPolicyId {
-    type Series<T>
-        = Policy<T>
-    where
-        T: Clone + Traversable + Send + Sync + 'static;
-
-    fn series<T>(create: impl FnMut(Self, &'static str) -> T) -> Self::Series<T>
-    where
-        T: Clone + Traversable + Send + Sync + 'static,
-    {
-        Policy::new(create)
-    }
-}
-
-#[derive(Clone, Deref, DerefMut, Traversable)]
-pub struct DataBytesSeries<C: ColumnId> {
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub data_bytes: LazyColumnPerBlockCumulativeRolling<Bytes, C>,
-    pub data_share: LazyPercentPerBlock<PartsPerMillion32>,
-    pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
-}
-
-#[derive(Clone, Deref, DerefMut, Traversable)]
-pub struct FeesSeries<C: ColumnId> {
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub fees: LazyColumnPerBlockCumulativeRolling<Sats, C>,
-    pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
-}
-
-impl<C: ColumnId> DataBytesSeries<C> {
-    fn new(
-        prefix: &str,
-        version: Version,
-        data_bytes: LazyColumnPerBlockCumulativeRolling<Bytes, C>,
-        total_data: CachedBoxedVec<Height, Bytes>,
-        block_size: CachedBoxedVec<Height, StoredU64>,
-        indexes: &indexes::Vecs,
-    ) -> Self {
-        let data_share =
-            LazyPercentPerBlock::from_cached_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
-                &format!("{prefix}_data_share"),
-                version,
-                &data_bytes.cumulative.height,
-                total_data,
-                indexes,
-            );
-        let chain_share =
-            LazyPercentPerBlock::from_cached_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
-                &format!("{prefix}_chain_share"),
-                version,
-                &data_bytes.cumulative.height,
-                block_size,
-                indexes,
-            );
-
-        Self {
-            data_bytes,
-            data_share,
-            chain_share,
-        }
-    }
-}
-
-impl<C: ColumnId> FeesSeries<C> {
-    fn new(
-        prefix: &str,
-        version: Version,
-        fees: LazyColumnPerBlockCumulativeRolling<Sats, C>,
-        chain_fees: CachedBoxedVec<Height, Sats>,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &indexes::Vecs,
-    ) -> Self {
-        let fee_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
-            Sats,
-            Sats,
-            RatioSats<PartsPerMillion32>,
-        >(
-            &format!("{prefix}_fee_share"),
-            version,
-            &fees.cumulative.height,
-            chain_fees,
-            cached_starts,
-            indexes,
-        );
-
-        Self { fees, fee_share }
-    }
-}
 
 #[derive(Traversable)]
 pub struct BreakdownVecs<C: BreakdownAxis, M: StorageMode = Rw> {

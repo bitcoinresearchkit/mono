@@ -3,7 +3,8 @@ use brk_traversable::Traversable;
 use brk_types::{Height, StoredF32, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    BinaryTransform, Database, Exit, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecValue,
+    BinaryTransform, Database, EagerVec, Exit, PcoVec, ReadableCloneableVec, ReadableVec, Rw,
+    StorageMode, VecValue,
 };
 
 use crate::{
@@ -73,7 +74,7 @@ impl<B: FixedRatio> PercentPerBlock<B> {
         C: VecValue,
         A: VecValue,
         f64: From<C> + From<A>,
-        vecdb::EagerVec<vecdb::PcoVec<Height, B>>: ComputeDrawdown<Height>,
+        EagerVec<PcoVec<Height, B>>: ComputeDrawdown<Height>,
     {
         self.ppm
             .height

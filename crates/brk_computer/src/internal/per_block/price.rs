@@ -109,10 +109,7 @@ impl Price<LazyPerBlock<Cents>> {
         indexes: &indexes::Vecs,
     ) -> Self
     where
-        V: TypedVec<I = brk_types::Height, T = Cents>
-            + ReadableVec<brk_types::Height, Cents>
-            + Clone
-            + 'static,
+        V: TypedVec<I = Height, T = Cents> + ReadableVec<Height, Cents> + Clone + 'static,
     {
         let cents = LazyPerBlock::from_height_source::<crate::internal::Identity<Cents>, _>(
             &format!("{name}_cents"),
@@ -136,10 +133,7 @@ impl Price<LazyPerBlock<Cents>> {
         indexes: &indexes::Vecs,
     ) -> Self
     where
-        V: TypedVec<I = brk_types::Height, T = Cents>
-            + ReadableVec<brk_types::Height, Cents>
-            + Clone
-            + 'static,
+        V: TypedVec<I = Height, T = Cents> + ReadableVec<Height, Cents> + Clone + 'static,
     {
         let cents = LazyPerBlock::from_uncached_height_source::<crate::internal::Identity<Cents>, _>(
             &format!("{name}_cents"),

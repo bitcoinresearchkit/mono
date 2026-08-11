@@ -5,6 +5,7 @@ pub(crate) mod ohlcs;
 
 use std::path::Path;
 
+use brk_error::Result;
 use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_traversable::Traversable;
 use brk_types::Version;
@@ -40,7 +41,7 @@ impl Vecs {
         parent: &Path,
         version: Version,
         indexes: &indexes::Vecs,
-    ) -> brk_error::Result<Self> {
+    ) -> Result<Self> {
         let db = open_db(parent, DB_NAME, 100_000)?;
         let this = Self::forced_import_inner(&db, version, indexes)?;
         finalize_db(&this.db, &this)?;
@@ -51,7 +52,7 @@ impl Vecs {
         db: &Database,
         version: Version,
         indexes: &indexes::Vecs,
-    ) -> brk_error::Result<Self> {
+    ) -> Result<Self> {
         // `ORACLE_VERSION` folds in the on-chain oracle algorithm version so
         // every price-derived module invalidates when computed prices change.
         let version = version + Version::new(11 + ORACLE_VERSION);

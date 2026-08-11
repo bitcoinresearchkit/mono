@@ -1,7 +1,7 @@
 use brk_traversable::Traversable;
 use brk_types::{
-    Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
-    Month6, StoredU64, Timestamp, Version, Week1, Year1, Year10,
+    Date, Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
+    Month3, Month6, StoredU64, Timestamp, Version, Week1, Year1, Year10,
 };
 use vecdb::{CachedBoxedVec, CachedReadableVec, CachedVec, LazyVec, ReadableBoxedVec, VecValue};
 
@@ -94,7 +94,7 @@ impl Vecs {
     }
 
     pub(crate) fn day1_from_timestamp(timestamp: Timestamp) -> Day1 {
-        Day1::try_from(brk_types::Date::from(timestamp)).unwrap()
+        Day1::try_from(Date::from(timestamp)).unwrap()
     }
 
     pub(crate) fn month1_from_timestamp(timestamp: Timestamp) -> Month1 {

@@ -1,3 +1,6 @@
+use std::result::Result as StdResult;
+
+use brk_error::Result;
 use brk_traversable::Traversable;
 
 #[derive(Clone, Traversable)]
@@ -15,9 +18,7 @@ impl<A> DistributionStats<A> {
     pub const SUFFIXES: [&'static str; 7] =
         ["min", "max", "pct10", "pct25", "median", "pct75", "pct90"];
 
-    pub fn try_from_fn<E>(
-        mut f: impl FnMut(&str) -> std::result::Result<A, E>,
-    ) -> std::result::Result<Self, E> {
+    pub fn try_from_fn<E>(mut f: impl FnMut(&str) -> StdResult<A, E>) -> StdResult<Self, E> {
         Ok(Self {
             min: f(Self::SUFFIXES[0])?,
             max: f(Self::SUFFIXES[1])?,
@@ -30,10 +31,7 @@ impl<A> DistributionStats<A> {
     }
 
     /// Apply a fallible operation to each of the 7 fields.
-    pub fn try_for_each_mut(
-        &mut self,
-        mut f: impl FnMut(&mut A) -> brk_error::Result<()>,
-    ) -> brk_error::Result<()> {
+    pub fn try_for_each_mut(&mut self, mut f: impl FnMut(&mut A) -> Result<()>) -> Result<()> {
         f(&mut self.min)?;
         f(&mut self.max)?;
         f(&mut self.pct10)?;

@@ -37,12 +37,16 @@ impl<S: Clone> ColumnarAmountValue<S> {
         )?;
 
         let series = Amount::new(|filter, cohort_name| {
-            let amounts: Vec<_> = match AmountRangeId::matching(&filter) {
-                Some(amount) => vec![amount],
-                None => AmountRangeId::included_by(&filter).collect(),
-            };
             let name = Self::metric_name(context, &filter, cohort_name, metric);
-            let (sats, cents) = values.sources(&format!("{name}_cumulative"), version, amounts);
+            let amounts = AmountRangeId::matching(&filter);
+            let (sats, cents) = match amounts {
+                Some(amount) => values.sources(&format!("{name}_cumulative"), version, [amount]),
+                None => values.sources(
+                    &format!("{name}_cumulative"),
+                    version,
+                    AmountRangeId::included_by(&filter),
+                ),
+            };
             build(&name, sats, cents)
         });
 
@@ -55,8 +59,7 @@ impl<S: Clone> ColumnarAmountValue<S> {
         cohort_name: &str,
         metric: &str,
     ) -> String {
-        let cohort = context.full_name(filter, cohort_name);
-        format!("{cohort}_{metric}")
+        context.metric_name(filter, cohort_name, metric)
     }
 
     #[inline(always)]

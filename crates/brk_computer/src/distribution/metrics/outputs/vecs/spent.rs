@@ -1,11 +1,11 @@
-use brk_cohort::UTXOGroups;
+use brk_cohort::{CohortContext, UTXOGroups};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{CumulativeUTXOColumnarMetric, utxo_metric_name},
+    distribution::metrics::CumulativeUTXOColumnarMetric,
     indexes,
     internal::{CachedWindowStartVec, LazyPerBlockCumulativeRolling, Windows},
 };
@@ -32,7 +32,7 @@ impl SpentOutputCount {
             version,
         )?;
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "spent_utxo_count");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "spent_utxo_count");
             LazyPerBlockCumulativeRolling::from_boxed_cumulative_source(
                 &name,
                 version,

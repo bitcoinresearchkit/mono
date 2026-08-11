@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Height, VSize, get_percentile, get_weighted_percentile};
+use brk_types::{Height, StoredU64, VSize, get_percentile, get_weighted_percentile};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
@@ -38,12 +38,12 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         max_from: Height,
         source: &impl ReadableVec<A, T>,
         first_indexes: &impl ReadableVec<Height, A>,
-        count_indexes: &impl ReadableVec<Height, brk_types::StoredU64>,
+        count_indexes: &impl ReadableVec<Height, StoredU64>,
         exit: &Exit,
         skip_count: usize,
     ) -> Result<()>
     where
-        A: VecIndex + VecValue + brk_types::CheckedSub<A>,
+        A: VecIndex + VecValue + CheckedSub<A>,
     {
         let DistributionStats {
             min,
@@ -95,8 +95,7 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
 
         let fi_len = first_indexes.len();
         let first_indexes_batch: Vec<A> = first_indexes.collect_range_at(start, fi_len);
-        let count_indexes_batch: Vec<brk_types::StoredU64> =
-            count_indexes.collect_range_at(start, fi_len);
+        let count_indexes_batch: Vec<StoredU64> = count_indexes.collect_range_at(start, fi_len);
 
         let zero = T::from(0_usize);
         let mut values: Vec<T> = Vec::new();
@@ -163,12 +162,12 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         source: &impl ReadableVec<A, T>,
         vsize_source: &impl ReadableVec<A, VSize>,
         first_indexes: &impl ReadableVec<Height, A>,
-        count_indexes: &impl ReadableVec<Height, brk_types::StoredU64>,
+        count_indexes: &impl ReadableVec<Height, StoredU64>,
         exit: &Exit,
         skip_count: usize,
     ) -> Result<()>
     where
-        A: VecIndex + VecValue + brk_types::CheckedSub<A>,
+        A: VecIndex + VecValue + CheckedSub<A>,
     {
         let DistributionStats {
             min,
@@ -223,8 +222,7 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
 
         let fi_len = first_indexes.len();
         let first_indexes_batch: Vec<A> = first_indexes.collect_range_at(start, fi_len);
-        let count_indexes_batch: Vec<brk_types::StoredU64> =
-            count_indexes.collect_range_at(start, fi_len);
+        let count_indexes_batch: Vec<StoredU64> = count_indexes.collect_range_at(start, fi_len);
 
         let zero = T::from(0_usize);
         let mut values: Vec<T> = Vec::new();
@@ -294,13 +292,13 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         max_from: Height,
         source: &(impl ReadableVec<A, T> + Sized),
         first_indexes: &impl ReadableVec<Height, A>,
-        count_indexes: &impl ReadableVec<Height, brk_types::StoredU64>,
+        count_indexes: &impl ReadableVec<Height, StoredU64>,
         n_blocks: usize,
         exit: &Exit,
     ) -> Result<()>
     where
         T: CheckedSub,
-        A: VecIndex + VecValue + brk_types::CheckedSub<A>,
+        A: VecIndex + VecValue + CheckedSub<A>,
     {
         let DistributionStats {
             min,
@@ -341,8 +339,7 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
 
         let batch_start = start.saturating_sub(n_blocks - 1);
         let first_indexes_batch: Vec<A> = first_indexes.collect_range_at(batch_start, fi_len);
-        let count_indexes_all: Vec<brk_types::StoredU64> =
-            count_indexes.collect_range_at(batch_start, fi_len);
+        let count_indexes_all: Vec<StoredU64> = count_indexes.collect_range_at(batch_start, fi_len);
 
         let zero = T::from(0_usize);
 

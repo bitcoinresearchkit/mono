@@ -5,7 +5,7 @@ use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{ColumnarAmount, UTXOColumnarMetric, UTXORows, utxo_metric_name},
+    distribution::metrics::{ColumnarAmount, UTXOColumnarMetric, UTXORows},
     indexes,
     internal::LazySpotValuePerBlock,
 };
@@ -30,7 +30,7 @@ impl SupplyTotal {
     ) -> Result<(Self, AllSupplyCache)> {
         let matrices = UTXOColumnarMetric::forced_import(db, "supply_sats", version)?;
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "supply");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "supply");
             LazySpotValuePerBlock::from_boxed_sats_source(
                 &name,
                 version,

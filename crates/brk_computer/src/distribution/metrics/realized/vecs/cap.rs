@@ -1,11 +1,11 @@
-use brk_cohort::UTXOGroups;
+use brk_cohort::{CohortContext, UTXOGroups};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, CentsSigned, PartsPerMillionSigned64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{UTXOColumnarMetric, utxo_metric_name},
+    distribution::metrics::UTXOColumnarMetric,
     indexes,
     internal::{CachedWindowStartVec, LazyFiatPerBlockWithDeltas, Windows},
 };
@@ -28,7 +28,7 @@ impl RealizedCapByCohort {
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetric::forced_import(db, "realized_cap_cents", version)?;
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "realized_cap");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "realized_cap");
             LazyFiatPerBlockWithDeltas::from_boxed_cents_source(
                 &name,
                 version,

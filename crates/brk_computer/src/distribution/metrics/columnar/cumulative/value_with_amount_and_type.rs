@@ -98,16 +98,15 @@ impl CumulativeUTXOValueColumnarMetric {
         ReadableBoxedVec<Height, Sats>,
         ReadableBoxedVec<Height, Cents>,
     )> {
-        let columns: Vec<_> = UNDER_AMOUNT_FILTERS
+        let filter = UNDER_AMOUNT_FILTERS
             .iter()
             .chain(OVER_AMOUNT_FILTERS.iter())
-            .find(|candidate| *candidate == filter)
-            .map(|filter| AmountRangeId::included_by(filter).collect())?;
+            .find(|candidate| *candidate == filter)?;
         Some(Self::matrix_sources(
             &self.amount_range,
             name,
             version,
-            columns,
+            AmountRangeId::included_by(filter),
         ))
     }
 

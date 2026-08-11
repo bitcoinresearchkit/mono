@@ -88,18 +88,18 @@ where
         ReadableBoxedVec<Height, Sats>,
         ReadableBoxedVec<Height, Cents>,
     ) {
-        let columns: Vec<_> = columns.into_iter().collect();
+        let columns: Box<[_]> = columns.into_iter().collect();
         let sats = Self::typed_source::<StoredU64ToSats, Sats>(
             sats,
             &format!("{name}_sats"),
             version,
-            columns.iter().copied(),
+            &columns,
         );
         let cents = Self::typed_source::<StoredU64ToCents, Cents>(
             cents,
             &format!("{name}_cents"),
             version,
-            columns,
+            &columns,
         );
         (sats, cents)
     }
@@ -108,20 +108,19 @@ where
         source: &ReadOnlyColumnarVec<PcoVec<Height, StoredU64>, C>,
         name: &str,
         version: Version,
-        columns: impl IntoIterator<Item = C>,
+        columns: &[C],
     ) -> ReadableBoxedVec<Height, T>
     where
         F: UnaryTransform<StoredU64, T>,
         T: VecValue,
     {
-        let columns: Vec<_> = columns.into_iter().collect();
         let raw = if columns.len() == 1 {
             source
                 .column(name, version, columns[0])
                 .read_only_boxed_clone()
         } else {
             source
-                .sum_columns(name, version, columns)
+                .sum_columns(name, version, columns.iter().copied())
                 .read_only_boxed_clone()
         };
         LazyVec::transformed::<F>(name, version, raw).read_only_boxed_clone()

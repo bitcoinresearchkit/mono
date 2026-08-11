@@ -5,9 +5,7 @@ use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{
-        ColumnarAmountValue, CumulativeUTXOValueColumnarMetric, UTXORows, utxo_metric_name,
-    },
+    distribution::metrics::{ColumnarAmountValue, CumulativeUTXOValueColumnarMetric, UTXORows},
     indexes,
     internal::{CachedWindowStartVec, LazyValuePerBlockCumulativeRolling, Windows},
 };
@@ -34,7 +32,7 @@ impl CumulativeValueByCohort {
             version,
         )?;
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, metric);
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, metric);
             let (sats, cents) = cumulative
                 .sources(&filter, &name, version)
                 .expect("supported cumulative value cohort");

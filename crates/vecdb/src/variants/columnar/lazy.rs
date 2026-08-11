@@ -149,10 +149,10 @@ where
             return;
         }
 
-        let mut rows = Vec::with_capacity(to - from);
-        self.source.read_into_at(from, to, &mut rows);
         let compute = self.compute;
-        out.extend(rows.into_iter().map(|row| C::map(row, compute)));
+        out.reserve(to - from);
+        self.source
+            .for_each_range_dyn_at(from, to, &mut |row| out.push(C::map(row, compute)));
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(C::Row<T>)) {

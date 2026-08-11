@@ -30,7 +30,7 @@ const TREE_SIZE: usize = TIER0_COUNT + TIER1_COUNT + OVERFLOW; // 190,001
 
 /// Fenwick tree node for combined cost basis tracking.
 #[derive(Clone, Copy, Default)]
-pub(super) struct CostBasisNode {
+struct CostBasisNode {
     all_sats: i64,
     sth_sats: i64,
     all_usd: i128,

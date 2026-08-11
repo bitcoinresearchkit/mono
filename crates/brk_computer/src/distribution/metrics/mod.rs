@@ -26,7 +26,7 @@ pub(crate) use columnar::{
     CumulativeUTXOColumnarMetric, CumulativeUTXOColumnarMetricWithoutAmountOrType,
     CumulativeUTXOValueColumnarMetric, CumulativeUTXOValueColumnarMetricWithoutAmountOrType,
     ExactUTXOColumnarMetric, UTXOColumnarMetric, UTXOColumnarMetricWithoutAmount,
-    UTXOColumnarMetricWithoutAmountOrType, UTXORows, utxo_metric_name,
+    UTXOColumnarMetricWithoutAmountOrType, UTXORows,
 };
 pub(crate) use cost_basis::CostBasisBlockData;
 pub use cost_basis::CostBasisVecs;

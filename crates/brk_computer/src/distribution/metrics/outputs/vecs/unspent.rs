@@ -5,7 +5,7 @@ use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{ColumnarAmount, UTXOColumnarMetric, utxo_metric_name},
+    distribution::metrics::{ColumnarAmount, UTXOColumnarMetric},
     indexes,
     internal::{CachedWindowStartVec, LazyPerBlockWithDeltas, Windows},
 };
@@ -32,7 +32,7 @@ impl UnspentOutputCount {
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetric::forced_import(db, "utxo_count", version)?;
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "utxo_count");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "utxo_count");
             LazyPerBlockWithDeltas::from_boxed_height_source(
                 &name,
                 version,

@@ -1,13 +1,13 @@
 use std::ops::AddAssign;
 
-use brk_cohort::UTXOGroupsWithoutAmount;
+use brk_cohort::{CohortContext, UTXOGroupsWithoutAmount};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, PcoVecValue, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{UTXOColumnarMetricWithoutAmount, utxo_metric_name},
+    distribution::metrics::UTXOColumnarMetricWithoutAmount,
     indexes,
     internal::{FiatType, LazyFiatPerBlock},
 };
@@ -39,7 +39,7 @@ where
             version,
         )?;
         let cohorts = UTXOGroupsWithoutAmount::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, metric);
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, metric);
             let source = matrices
                 .additive_source(&filter, &format!("{name}_cents"), version)
                 .expect("supported unrealized cohort");

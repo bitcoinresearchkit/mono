@@ -1,6 +1,6 @@
 use brk_cohort::{
-    AmountRange, Filter, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate,
-    UTXOAggregateId,
+    AmountRange, CohortContext, Filter, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES,
+    UTXOAggregate, UTXOAggregateId,
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
@@ -8,7 +8,7 @@ use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
 use vecdb::{AnyStoredVec, AnyVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{UTXORows, utxo_metric_name},
+    distribution::metrics::UTXORows,
     indexes,
     internal::{
         CachedWindowStartVec, ColumnarRollingWindows, Identity, LazyPerBlock, SatsToCents, Windows,
@@ -23,13 +23,13 @@ use super::{
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
     pub transfer_volume: Box<CumulativeValueByCohort<M>>,
-    pub coindays_destroyed: Box<CoindaysDestroyedByCohort<M>>,
+    pub coindays_destroyed: CoindaysDestroyedByCohort<M>,
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
     pub transfer_volume_in_profit: Box<CoreCumulativeValueByCohort<M>>,
     #[traversable(wrap = "transfer_volume", rename = "in_loss")]
     pub transfer_volume_in_loss: Box<CoreCumulativeValueByCohort<M>>,
-    pub coinyears_destroyed: Box<UTXOAggregate<LazyPerBlock<StoredF64, StoredF64>>>,
-    pub dormancy: Box<UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>>,
+    pub coinyears_destroyed: UTXOAggregate<LazyPerBlock<StoredF64, StoredF64>>,
+    pub dormancy: UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>,
 }
 
 impl ActivityVecs {
@@ -48,12 +48,8 @@ impl ActivityVecs {
             indexes,
             cached_starts,
         )?);
-        let coindays_destroyed = Box::new(CoindaysDestroyedByCohort::forced_import(
-            db,
-            version,
-            indexes,
-            cached_starts,
-        )?);
+        let coindays_destroyed =
+            CoindaysDestroyedByCohort::forced_import(db, version, indexes, cached_starts)?;
         let transfer_volume_in_profit = Box::new(CoreCumulativeValueByCohort::forced_import(
             db,
             "transfer_volume_in_profit",
@@ -68,7 +64,7 @@ impl ActivityVecs {
             indexes,
             cached_starts,
         )?);
-        let coinyears_destroyed = Box::new(UTXOAggregate::from_fn(|id| {
+        let coinyears_destroyed = UTXOAggregate::from_fn(|id| {
             let filter = id.select(&UTXO_AGGREGATE_FILTERS);
             let name = Self::aggregate_metric_name(id, "coinyears_destroyed");
             LazyPerBlock::from_height_source::<Identity<StoredF64>, _>(
@@ -84,15 +80,15 @@ impl ActivityVecs {
                     .clone(),
                 indexes,
             )
-        }));
-        let dormancy = Box::new(UTXOAggregate::try_from_fn(|id| {
+        });
+        let dormancy = UTXOAggregate::try_from_fn(|id| {
             ColumnarRollingWindows::forced_import(
                 db,
                 &Self::aggregate_metric_name(id, "dormancy"),
                 Self::aggregate_version(aggregate_version, id),
                 indexes,
             )
-        })?);
+        })?;
         Ok(Self {
             transfer_volume,
             coindays_destroyed,
@@ -114,7 +110,7 @@ impl ActivityVecs {
     }
 
     fn aggregate_metric_name(id: UTXOAggregateId, metric: &str) -> String {
-        utxo_metric_name(
+        CohortContext::Utxo.metric_name(
             id.select(&UTXO_AGGREGATE_FILTERS),
             id.select(&UTXO_AGGREGATE_NAMES).id,
             metric,

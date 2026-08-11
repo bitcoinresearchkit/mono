@@ -37,4 +37,13 @@ impl CohortContext {
             Filter::Time(_) | Filter::Amount(_) => self.prefixed(name),
         }
     }
+
+    pub fn metric_name(&self, filter: &Filter, cohort: &str, metric: &str) -> String {
+        let cohort = self.full_name(filter, cohort);
+        if cohort.is_empty() {
+            metric.to_owned()
+        } else {
+            format!("{cohort}_{metric}")
+        }
+    }
 }

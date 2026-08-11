@@ -1,6 +1,6 @@
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
-use brk_types::{TxIndex, Txid, Version};
+use brk_types::{TxInIndex, TxIndex, TxOutIndex, Txid, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 
 use crate::internal::LazyIndexCountVec;
@@ -8,8 +8,8 @@ use crate::internal::LazyIndexCountVec;
 #[derive(Clone, Traversable)]
 pub struct Vecs {
     pub identity: LazyVec<TxIndex, TxIndex, TxIndex, Txid>,
-    pub input_count: LazyIndexCountVec<TxIndex, brk_types::TxInIndex>,
-    pub output_count: LazyIndexCountVec<TxIndex, brk_types::TxOutIndex>,
+    pub input_count: LazyIndexCountVec<TxIndex, TxInIndex>,
+    pub output_count: LazyIndexCountVec<TxIndex, TxOutIndex>,
 }
 
 impl Vecs {

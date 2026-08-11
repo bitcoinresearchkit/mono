@@ -1,5 +1,6 @@
 use brk_cohort::{
-    ByTerm, TermId, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
+    ByTerm, CohortContext, TermId, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate,
+    UTXOAggregateId,
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
@@ -17,8 +18,6 @@ use crate::{
         LazyFiatPerBlockCumulativeWithSums, Windows,
     },
 };
-
-use super::utxo_metric_name;
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct AdditiveAggregateFiatPerBlockCumulativeWithSums<C: FiatType, M: StorageMode = Rw> {
@@ -48,7 +47,7 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
             |source| {
                 let source = source.clone();
                 UTXOAggregate::from_fn(|id| {
-                    let name = utxo_metric_name(
+                    let name = CohortContext::Utxo.metric_name(
                         id.select(&UTXO_AGGREGATE_FILTERS),
                         id.select(&UTXO_AGGREGATE_NAMES).id,
                         metric,

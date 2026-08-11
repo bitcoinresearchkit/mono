@@ -9,12 +9,7 @@ use crate::{
     internal::{ColumnarPerBlock, LazyColumnPerBlock, PerBlock, Price},
 };
 
-use super::{
-    COMPUTE_BATCH_SIZE, Component,
-    percentiles::{
-        BOUNDARY_PERCENTILE_IDS, RarityPercentiles, boundary_index, is_lower_boundary, price_suffix,
-    },
-};
+use super::{COMPUTE_BATCH_SIZE, Component, percentiles::RarityPercentiles};
 
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
@@ -46,7 +41,7 @@ impl RarityMeterInner {
             |source| {
                 RarityPercentiles::from_fn(|id| {
                     Price::from_columnar_source(
-                        &format!("{prefix}_{}", price_suffix(id)),
+                        &format!("{prefix}_{}", id.price_suffix()),
                         version,
                         source,
                         id,
@@ -93,7 +88,7 @@ impl RarityMeterInner {
                     .collect();
 
                 for offset in 0..range.len() {
-                    cents.push(combine_percentiles(&component_prices, offset));
+                    cents.push(Self::combine_percentiles(&component_prices, offset));
                 }
 
                 Ok(())
@@ -131,7 +126,7 @@ impl RarityMeterInner {
                     .each_ref()
                     .map(|band| band.collect_range_at(range.start, range.end));
                 for (offset, price) in spot.into_iter().enumerate() {
-                    index.push(StoredI8::new(score_at(price, &bands, offset)));
+                    index.push(StoredI8::new(Self::score_at(price, &bands, offset)));
                 }
 
                 Ok(())
@@ -176,7 +171,7 @@ impl RarityMeterInner {
                 for (offset, price) in spot.into_iter().enumerate() {
                     let value = component_prices
                         .iter()
-                        .map(|bands| score_at(price, bands, offset))
+                        .map(|bands| Self::score_at(price, bands, offset))
                         .sum();
                     score.push(StoredI8::new(value));
                 }
@@ -188,50 +183,50 @@ impl RarityMeterInner {
 
         Ok(())
     }
-}
 
-fn combine_percentiles(
-    component_prices: &[[Vec<Cents>; 10]],
-    offset: usize,
-) -> [Cents; RARITY_PERCENTILES_LEN] {
-    let boundary_values = BOUNDARY_PERCENTILE_IDS.map(|id| {
-        let index = boundary_index(id).expect("boundary percentile");
-        let values = component_prices
-            .iter()
-            .map(|component| component[index][offset]);
-        if is_lower_boundary(id) {
-            values.max().expect("rarity meter component")
+    fn combine_percentiles(
+        component_prices: &[[Vec<Cents>; 10]],
+        offset: usize,
+    ) -> [Cents; RARITY_PERCENTILES_LEN] {
+        let boundary_values = RarityPercentileId::BOUNDARIES.map(|id| {
+            let index = id.boundary_index().expect("boundary percentile");
+            let values = component_prices
+                .iter()
+                .map(|component| component[index][offset]);
+            if id.is_lower_boundary() {
+                values.max().expect("rarity meter component")
+            } else {
+                values.min().expect("rarity meter component")
+            }
+        });
+        let lower = boundary_values[RarityPercentileId::Pct5.boundary_index().unwrap()];
+        let upper = boundary_values[RarityPercentileId::Pct95.boundary_index().unwrap()];
+
+        RarityPercentileId::from_fn(|id| {
+            id.boundary_index()
+                .map(|index| boundary_values[index])
+                .unwrap_or_else(|| Self::interpolate(lower, upper, id.percentile()))
+        })
+    }
+
+    fn interpolate(lower: Cents, upper: Cents, percentile: f64) -> Cents {
+        let position = (percentile - 0.05) / 0.90;
+        let lower = f64::from(lower);
+        let upper = f64::from(upper);
+        let value = if lower > 0.0 && upper > 0.0 {
+            (lower.ln() + position * (upper.ln() - lower.ln())).exp()
         } else {
-            values.min().expect("rarity meter component")
-        }
-    });
-    let lower = boundary_values[boundary_index(RarityPercentileId::Pct5).unwrap()];
-    let upper = boundary_values[boundary_index(RarityPercentileId::Pct95).unwrap()];
+            lower + position * (upper - lower)
+        };
+        Cents::from(value.round())
+    }
 
-    RarityPercentileId::from_fn(|id| {
-        boundary_index(id)
-            .map(|index| boundary_values[index])
-            .unwrap_or_else(|| interpolate(lower, upper, id.percentile()))
-    })
-}
+    fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
+        let lower = bands[..5].iter().filter(|band| price < band[index]).count() as i8;
+        let upper = bands[5..].iter().filter(|band| price > band[index]).count() as i8;
 
-fn interpolate(lower: Cents, upper: Cents, percentile: f64) -> Cents {
-    let position = (percentile - 0.05) / 0.90;
-    let lower = f64::from(lower);
-    let upper = f64::from(upper);
-    let value = if lower > 0.0 && upper > 0.0 {
-        (lower.ln() + position * (upper.ln() - lower.ln())).exp()
-    } else {
-        lower + position * (upper - lower)
-    };
-    Cents::from(value.round())
-}
-
-fn score_at(price: Cents, bands: &[Vec<Cents>; 10], index: usize) -> i8 {
-    let lower = bands[..5].iter().filter(|band| price < band[index]).count() as i8;
-    let upper = bands[5..].iter().filter(|band| price > band[index]).count() as i8;
-
-    upper - lower
+        upper - lower
+    }
 }
 
 #[cfg(test)]
@@ -250,7 +245,7 @@ mod tests {
             bands([10, 20, 30, 40, 50, 500, 600, 700, 800, 900]),
             bands([15, 25, 35, 45, 55, 450, 550, 650, 750, 850]),
         ];
-        let row = combine_percentiles(&components, 0);
+        let row = RarityMeterInner::combine_percentiles(&components, 0);
 
         assert_eq!(*Pct0_1.get(&row), Cents::from(15_u64));
         assert_eq!(*Pct5.get(&row), Cents::from(55_u64));
@@ -258,7 +253,7 @@ mod tests {
         assert_eq!(*Pct99_9.get(&row), Cents::from(850_u64));
         assert_eq!(
             *Pct50.get(&row),
-            interpolate(Cents::from(55_u64), Cents::from(450_u64), 0.5)
+            RarityMeterInner::interpolate(Cents::from(55_u64), Cents::from(450_u64), 0.5)
         );
     }
 }

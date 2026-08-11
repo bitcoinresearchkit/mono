@@ -42,47 +42,45 @@ impl Carrier {
             return;
         }
 
-        total.add_carrier(self);
+        self.add_to(total);
         let mut kinds = self.kinds;
         while kinds != 0 {
             let kind_index = kinds.trailing_zeros() as usize;
-            by_kind[kind_index].add_carrier(self);
+            self.add_to(&mut by_kind[kind_index]);
             kinds &= kinds - 1;
         }
 
         if self.oversized_output_count > 0 {
             policy.oversized.output_count += self.oversized_output_count;
             policy.oversized.data_bytes += self.oversized_data_bytes;
-            policy.oversized.add_carrier(self);
+            self.add_to(&mut policy.oversized);
         }
 
         if self.output_count > 1 {
             policy.multiple.output_count += self.output_count;
             policy.multiple.data_bytes += self.data_bytes;
-            policy.multiple.add_carrier(self);
+            self.add_to(&mut policy.multiple);
         }
 
         if self.oversized_output_count > 0 || self.output_count > 1 {
             policy.pre_v30_nonstandard.output_count += self.output_count;
             policy.pre_v30_nonstandard.data_bytes += self.data_bytes;
-            policy.pre_v30_nonstandard.add_carrier(self);
+            self.add_to(&mut policy.pre_v30_nonstandard);
         } else {
             policy.pre_v30_standard.output_count += self.output_count;
             policy.pre_v30_standard.data_bytes += self.data_bytes;
-            policy.pre_v30_standard.add_carrier(self);
+            self.add_to(&mut policy.pre_v30_standard);
         }
     }
 
     const fn kind_bit(kind: OpReturnKind) -> u32 {
         1_u32 << kind as u8
     }
-}
 
-impl BlockMetrics {
-    fn add_carrier(&mut self, carrier: Carrier) {
-        self.tx_count += 1;
-        self.tx_vsize += carrier.vsize;
-        self.fees += carrier.fees;
+    fn add_to(self, metrics: &mut BlockMetrics) {
+        metrics.tx_count += 1;
+        metrics.tx_vsize += self.vsize;
+        metrics.fees += self.fees;
     }
 }
 

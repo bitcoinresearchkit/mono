@@ -1,13 +1,11 @@
-use brk_cohort::UTXOGroupsWithoutAmountOrType;
+use brk_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{
-        CumulativeUTXOValueColumnarMetricWithoutAmountOrType, UTXORows, utxo_metric_name,
-    },
+    distribution::metrics::{CumulativeUTXOValueColumnarMetricWithoutAmountOrType, UTXORows},
     indexes,
     internal::{CachedWindowStartVec, LazyValuePerBlockCumulativeRolling, Windows},
 };
@@ -33,7 +31,7 @@ impl CoreCumulativeValueByCohort {
             version,
         )?;
         let cohorts = UTXOGroupsWithoutAmountOrType::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, metric);
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, metric);
             let (sats, cents) = cumulative
                 .sources(&filter, &name, version)
                 .expect("supported core cumulative value cohort");

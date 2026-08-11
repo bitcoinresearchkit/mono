@@ -1,11 +1,11 @@
-use brk_cohort::{Filter, UTXOGroupsWithoutAmount};
+use brk_cohort::{CohortContext, Filter, UTXOGroupsWithoutAmount};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Rw, StorageMode};
 
 use crate::{
-    distribution::metrics::{UTXOColumnarMetricWithoutAmount, UTXORows, utxo_metric_name},
+    distribution::metrics::{UTXOColumnarMetricWithoutAmount, UTXORows},
     indexes,
     internal::LazySpotValuePerBlock,
 };
@@ -29,7 +29,7 @@ impl SupplyByCohort {
         let matrices =
             UTXOColumnarMetricWithoutAmount::forced_import(db, &format!("{metric}_sats"), version)?;
         let cohorts = UTXOGroupsWithoutAmount::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, metric);
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, metric);
             let source = matrices
                 .additive_source(&filter, &format!("{name}_sats"), version)
                 .expect("supported supply cohort");

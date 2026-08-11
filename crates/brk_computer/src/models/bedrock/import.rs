@@ -4,10 +4,7 @@ use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
 
-use super::{
-    price::LazyColumnPrice,
-    vecs::{LossPercentileId, ModeVecs, Modes, PriceBandId, Vecs},
-};
+use super::{LossPercentileId, ModeVecs, Modes, PriceBandId, Vecs, price::LazyColumnPrice};
 use crate::{
     indexes,
     internal::{ColumnarDailyMetric, DailyMappings, LazyColumnDailyMetric},

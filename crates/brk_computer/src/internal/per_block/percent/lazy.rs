@@ -1,5 +1,5 @@
 use brk_traversable::Traversable;
-use brk_types::{Height, StoredF32, Version};
+use brk_types::{Height, PartsPerMillionSigned64, StoredF32, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
     BinaryTransform, CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, UnaryTransform,
@@ -186,7 +186,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
     }
 }
 
-impl LazyPercentPerBlock<brk_types::PartsPerMillionSigned64> {
+impl LazyPercentPerBlock<PartsPerMillionSigned64> {
     pub(crate) fn from_lazy_cagr(name: &str, version: Version, years: u8, source: &Self) -> Self {
         match years {
             2 => Self::from_lazy_percent::<Cagr<2>>(name, version, source),

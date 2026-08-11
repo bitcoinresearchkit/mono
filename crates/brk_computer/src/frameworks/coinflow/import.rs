@@ -10,8 +10,8 @@ use vecdb::{
 };
 
 use super::{
-    AgeRangeVecs, AggregateSources, AggregateVecs, HorizonId, HorizonVecs, Mobility, MobilityId,
-    SpendingExposureSeries, Vecs, mobility,
+    AgeBand, AgeRangeVecs, AggregateSources, AggregateVecs, HorizonId, HorizonVecs, Mobility,
+    MobilityId, SpendingExposureSeries, Vecs,
 };
 use crate::{
     indexes,
@@ -28,7 +28,7 @@ struct ExposureToMobility;
 impl UnaryTransform<StoredF64, StoredF64> for ExposureToMobility {
     #[inline(always)]
     fn apply(exposure: StoredF64) -> StoredF64 {
-        StoredF64::from(mobility(*exposure))
+        StoredF64::from(AgeBand::mobility(*exposure))
     }
 }
 

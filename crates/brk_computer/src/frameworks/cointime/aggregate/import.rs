@@ -5,7 +5,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, StoredF64, Version};
 use vecdb::{
     CachedBoxedVec, ColumnId, Database, ImportableVec, PcoVec, PcoVecValue, ReadOnlyClone,
-    ReadableBoxedVec, ReadableCloneableVec, ReadableColumnarVec,
+    ReadOnlyColumnarVec, ReadableBoxedVec, ReadableCloneableVec, ReadableColumnarVec,
 };
 
 use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};
@@ -49,7 +49,7 @@ impl Sources {
     }
 
     fn additive_source<T>(
-        source: &vecdb::ReadOnlyColumnarVec<PcoVec<Height, T>, TermId>,
+        source: &ReadOnlyColumnarVec<PcoVec<Height, T>, TermId>,
         name: &str,
         version: Version,
         aggregate: UTXOAggregateId,

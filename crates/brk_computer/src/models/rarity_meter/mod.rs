@@ -1,8 +1,13 @@
+mod band;
+mod block_decay_percentiles;
 mod cached_component_price;
+mod component;
 mod components;
+mod extreme;
 mod extremes;
 mod inner;
 mod percentiles;
+mod threshold_vecs;
 
 use brk_error::Result;
 use brk_indexer::Indexer;
@@ -16,9 +21,14 @@ use crate::{
     indexes, price,
 };
 
-pub use components::{Component, Components};
+pub use band::Band;
+pub use component::Component;
+pub use components::Components;
 pub use extremes::Extremes;
 pub use inner::RarityMeterInner;
+pub use threshold_vecs::{ExtremeThresholdId, ThresholdVecs};
+
+use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
 
 #[derive(Traversable)]
 pub struct RarityMeter<M: StorageMode = Rw> {

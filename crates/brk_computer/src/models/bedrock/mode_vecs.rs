@@ -3,11 +3,7 @@ use brk_types::{Cents, StoredF64};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Rw, StorageMode};
 
-use super::{
-    Percentiles, PriceBands,
-    price::LazyColumnPrice,
-    vecs::{LossPercentileId, PriceBandId},
-};
+use super::{LossPercentileId, Percentiles, PriceBandId, PriceBands, price::LazyColumnPrice};
 use crate::internal::{ColumnarDailyMetric, LazyColumnDailyMetric};
 
 #[derive(Deref, DerefMut, Traversable)]

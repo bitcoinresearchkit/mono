@@ -117,9 +117,78 @@ impl PercentileId {
 }
 
 impl RarityPercentileId {
+    pub const BOUNDARIES: [Self; 10] = [
+        Self::Pct0_1,
+        Self::Pct0_5,
+        Self::Pct1,
+        Self::Pct2,
+        Self::Pct5,
+        Self::Pct95,
+        Self::Pct98,
+        Self::Pct99,
+        Self::Pct99_5,
+        Self::Pct99_9,
+    ];
+
     #[inline]
     pub const fn percentile(self) -> f64 {
         RARITY_PERCENTILES[self as usize]
+    }
+
+    pub const fn boundary_index(self) -> Option<usize> {
+        match self {
+            Self::Pct0_1 => Some(0),
+            Self::Pct0_5 => Some(1),
+            Self::Pct1 => Some(2),
+            Self::Pct2 => Some(3),
+            Self::Pct5 => Some(4),
+            Self::Pct95 => Some(5),
+            Self::Pct98 => Some(6),
+            Self::Pct99 => Some(7),
+            Self::Pct99_5 => Some(8),
+            Self::Pct99_9 => Some(9),
+            _ => None,
+        }
+    }
+
+    pub const fn is_lower_boundary(self) -> bool {
+        matches!(
+            self,
+            Self::Pct0_1 | Self::Pct0_5 | Self::Pct1 | Self::Pct2 | Self::Pct5
+        )
+    }
+
+    pub const fn suffix(self) -> &'static str {
+        match self {
+            Self::Pct0_1 => "pct0_1",
+            Self::Pct0_5 => "pct0_5",
+            Self::Pct1 => "pct1",
+            Self::Pct2 => "pct2",
+            Self::Pct5 => "pct5",
+            Self::Pct10 => "pct10",
+            Self::Pct20 => "pct20",
+            Self::Pct30 => "pct30",
+            Self::Pct40 => "pct40",
+            Self::Pct50 => "pct50",
+            Self::Pct60 => "pct60",
+            Self::Pct70 => "pct70",
+            Self::Pct80 => "pct80",
+            Self::Pct90 => "pct90",
+            Self::Pct95 => "pct95",
+            Self::Pct98 => "pct98",
+            Self::Pct99 => "pct99",
+            Self::Pct99_5 => "pct99_5",
+            Self::Pct99_9 => "pct99_9",
+        }
+    }
+
+    pub const fn price_suffix(self) -> &'static str {
+        match self {
+            Self::Pct1 => "pct01",
+            Self::Pct2 => "pct02",
+            Self::Pct5 => "pct05",
+            _ => self.suffix(),
+        }
     }
 }
 

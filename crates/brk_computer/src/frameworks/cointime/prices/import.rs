@@ -1,6 +1,6 @@
 use brk_error::Result;
 use brk_types::{Bitcoin, Cents, Height, Version};
-use vecdb::{CachedBoxedVec, Database};
+use vecdb::{CachedBoxedVec, Database, ReadableCloneableVec};
 
 use super::Vecs;
 use crate::{
@@ -16,7 +16,7 @@ impl Vecs {
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_chain: &AllChainCache,
-        cointime_cap: &(impl vecdb::ReadableCloneableVec<Height, Cents> + 'static),
+        cointime_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
     ) -> Result<Self> {
         macro_rules! import {
             ($name:expr) => {

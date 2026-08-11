@@ -1,8 +1,8 @@
 use brk_cohort::{
     AGE_RANGE_FILTERS, AgeRange, AgeRangeId, ByEntry, ByEpoch, CLASS_FILTERS, Class, ClassId,
-    ENTRY_FILTERS, EPOCH_FILTERS, EntryId, EpochId, Filter, OVER_AGE_FILTERS, OverAge, OverAgeId,
-    Term, UNDER_AGE_FILTERS, UTXOAggregate, UTXOAggregateId, UTXOGroupsWithoutAmountOrType,
-    UnderAge, UnderAgeId,
+    CohortContext, ENTRY_FILTERS, EPOCH_FILTERS, EntryId, EpochId, Filter, OVER_AGE_FILTERS,
+    OverAge, OverAgeId, Term, UNDER_AGE_FILTERS, UTXOAggregate, UTXOAggregateId,
+    UTXOGroupsWithoutAmountOrType, UnderAge, UnderAgeId,
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
@@ -13,7 +13,6 @@ use vecdb::{
 };
 
 use crate::{
-    distribution::metrics::utxo_metric_name,
     indexes,
     internal::{ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyPerBlock, RatioCents64},
 };
@@ -121,7 +120,7 @@ impl Sopr24hVecs {
             })?;
 
         let cohorts = UTXOGroupsWithoutAmountOrType::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "sopr_24h");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "sopr_24h");
             let version = Self::cohort_version(version, &filter);
             match &filter {
                 Filter::All => {

@@ -1,4 +1,4 @@
-use brk_cohort::{Filter, UTXOAggregate, UTXOGroups, UTXOGroupsWithoutAmount};
+use brk_cohort::{CohortContext, Filter, UTXOAggregate, UTXOGroups, UTXOGroupsWithoutAmount};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{
@@ -11,7 +11,6 @@ use crate::{
     distribution::{
         metrics::{
             AdditiveAggregateFiatPerBlock, AdditiveUTXORawVec, AggregateFiatPerBlock, UTXORows,
-            utxo_metric_name,
         },
         state::UnrealizedState,
     },
@@ -95,13 +94,13 @@ impl UnrealizedVecs {
             AggregateFiatPerBlock::forced_import(db, "net_sentiment", aggregate_version, indexes)?;
         let nupl = realized_price.map_named(|filter, cohort_name, price| {
             LazyRatioPerBlock::from_lazy_source::<MvrvToNupl, PartsPerMillion64>(
-                &utxo_metric_name(filter, cohort_name, "nupl"),
+                &CohortContext::Utxo.metric_name(filter, cohort_name, "nupl"),
                 Self::cohort_version(version, filter) + Version::new(5),
                 &price.ppm,
             )
         });
         let negative_loss = UTXOGroupsWithoutAmount::new(|filter, cohort_name| {
-            let name = utxo_metric_name(&filter, cohort_name, "unrealized_loss_neg");
+            let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "unrealized_loss_neg");
             LazyPerBlock::from_lazy::<NegCentsUnsignedToDollars, Cents>(
                 &name,
                 Self::cohort_version(version, &filter),

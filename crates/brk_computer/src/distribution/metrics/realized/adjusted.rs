@@ -1,4 +1,6 @@
-use brk_cohort::{Filter, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAllAndSth, UTXOAllAndSthId};
+use brk_cohort::{
+    CohortContext, Filter, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAllAndSth, UTXOAllAndSthId,
+};
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF64, Version};
@@ -7,7 +9,6 @@ use vecdb::{
 };
 
 use crate::{
-    distribution::metrics::utxo_metric_name,
     indexes,
     internal::{
         CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, ColumnarRollingWindows,
@@ -120,10 +121,14 @@ impl AdjustedSoprVecs {
 
     fn cohort_metric_name(id: UTXOAllAndSthId, metric: &str) -> String {
         match id {
-            UTXOAllAndSthId::All => utxo_metric_name(&Filter::All, UTXO_ALL_NAME.id, metric),
-            UTXOAllAndSthId::Sth => {
-                utxo_metric_name(&Filter::Term(Term::Sth), TERM_NAMES.short.id, metric)
+            UTXOAllAndSthId::All => {
+                CohortContext::Utxo.metric_name(&Filter::All, UTXO_ALL_NAME.id, metric)
             }
+            UTXOAllAndSthId::Sth => CohortContext::Utxo.metric_name(
+                &Filter::Term(Term::Sth),
+                TERM_NAMES.short.id,
+                metric,
+            ),
         }
     }
 

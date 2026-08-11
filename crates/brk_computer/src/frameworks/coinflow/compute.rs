@@ -8,7 +8,6 @@ use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 use super::super::cointime;
 use super::{
     AGE_COHORT_COUNT, AgeBand, AggregateSources, HorizonId, Horizons, MINIMUM_DURATION_DAYS, Vecs,
-    age_bounds_days, horizon_mobility, mobility,
 };
 use crate::{
     distribution,
@@ -195,7 +194,7 @@ impl Vecs {
         let genesis_timestamp = timestamps
             .collect_one(Height::ZERO)
             .unwrap_or(Timestamp::ZERO);
-        let bounds = age_bounds_days();
+        let bounds = AgeBand::all();
         let mut chunk_start = start;
         while chunk_start < source_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
@@ -219,7 +218,7 @@ impl Vecs {
 
             for offset in 0..(chunk_end - chunk_start) {
                 let hazards = AgeRange::from_fn(|id| {
-                    spending_rate(
+                    Self::spending_rate(
                         id.select(&transfer_batches)[offset],
                         *id.get(&coinday_batch[offset]),
                     )
@@ -228,10 +227,12 @@ impl Vecs {
                     .difference_in_days_between_float(genesis_timestamp)
                     .max(MINIMUM_DURATION_DAYS);
                 let exposures = DecayFit::exposures(&hazards, network_age, &bounds);
-                let mobilities = AgeRange::from_fn(|id| mobility(*id.select(&exposures)));
+                let mobilities = AgeRange::from_fn(|id| AgeBand::mobility(*id.select(&exposures)));
                 let horizon_mobilities: Horizons<AgeRange<f64>> = HorizonId::from_fn(|horizon| {
                     let horizon = horizon.days();
-                    AgeRange::from_fn(|age| horizon_mobility(&hazards, age, horizon, &bounds))
+                    AgeRange::from_fn(|age| {
+                        AgeBand::horizon_mobility(&hazards, age, horizon, &bounds)
+                    })
                 });
                 self.age_range.spending_rate.push(AgeRangeId::from_fn(|id| {
                     StoredF64::from(*id.select(&hazards))
@@ -305,6 +306,16 @@ impl Vecs {
         .into_iter()
         .chain(self.aggregate_sources.primary_vecs_mut())
     }
+
+    #[inline]
+    fn spending_rate(transfer_volume: Sats, coindays_created: StoredF64) -> f64 {
+        let exposure = f64::from(coindays_created);
+        if exposure > 0.0 {
+            (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
+        } else {
+            0.0
+        }
+    }
 }
 
 impl AggregateSources {
@@ -361,16 +372,6 @@ impl AggregateSources {
                 .iter_mut()
                 .map(|horizon| horizon as &mut dyn AnyStoredVec),
         )
-    }
-}
-
-#[inline]
-fn spending_rate(transfer_volume: Sats, coindays_created: StoredF64) -> f64 {
-    let exposure = f64::from(coindays_created);
-    if exposure > 0.0 {
-        (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
-    } else {
-        0.0
     }
 }
 
@@ -511,26 +512,27 @@ mod tests {
 
     #[test]
     fn mobility_is_the_complement_of_survival() {
-        assert_eq!(mobility(0.0), 0.0);
-        assert!((mobility(2.0_f64.ln()) - 0.5).abs() < 1e-12);
-        assert!((mobility(1e-15) - 1e-15).abs() < 1e-27);
-        assert!(mobility(1_000.0) < 1.0);
-        assert_eq!(mobility(f64::INFINITY), 1.0 - 1e-12);
-        assert_eq!(mobility(f64::NAN), 0.0);
+        assert_eq!(AgeBand::mobility(0.0), 0.0);
+        assert!((AgeBand::mobility(2.0_f64.ln()) - 0.5).abs() < 1e-12);
+        assert!((AgeBand::mobility(1e-15) - 1e-15).abs() < 1e-27);
+        assert!(AgeBand::mobility(1_000.0) < 1.0);
+        assert_eq!(AgeBand::mobility(f64::INFINITY), 1.0 - 1e-12);
+        assert_eq!(AgeBand::mobility(f64::NAN), 0.0);
     }
 
     #[test]
     fn fixed_horizon_compounds_hazards_across_age_ranges() {
-        let bounds = age_bounds_days();
+        let bounds = AgeBand::all();
         let hazards = AgeRange::from_fn(|_| 0.01);
-        let probability = horizon_mobility(&hazards, AgeRangeId::From1DTo1W, 30.0, &bounds);
+        let probability =
+            AgeBand::horizon_mobility(&hazards, AgeRangeId::From1DTo1W, 30.0, &bounds);
 
-        assert!((probability - mobility(0.3)).abs() < 1e-12);
+        assert!((probability - AgeBand::mobility(0.3)).abs() < 1e-12);
     }
 
     #[test]
     fn decay_fit_recovers_an_exponential_lifetime() {
-        let bounds = age_bounds_days();
+        let bounds = AgeBand::all();
         let expected_tau = 1_000.0;
         let hazards = AgeRange::from_fn(|id| {
             let band = *id.select(&bounds);
@@ -549,7 +551,7 @@ mod tests {
 
     #[test]
     fn oldest_cohort_exposure_is_its_observed_tail_lifetime() {
-        let bounds = age_bounds_days();
+        let bounds = AgeBand::all();
         let hazards = AgeRange::from_fn(|id| {
             let band = *id.select(&bounds);
             let age = if band.upper.is_finite() {

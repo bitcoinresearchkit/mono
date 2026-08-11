@@ -1,6 +1,6 @@
 use brk_cohort::{
-    ByTerm, TERM_FILTERS, TERM_NAMES, TermId, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES,
-    UTXOAggregate, UTXOAggregateId,
+    ByTerm, CohortContext, TERM_FILTERS, TERM_NAMES, TermId, UTXO_AGGREGATE_FILTERS,
+    UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
@@ -8,10 +8,7 @@ use brk_types::{Cents, Height, PartsPerMillion32, PartsPerMillionSigned32, Versi
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Exit, Rw, StorageMode};
 
 use crate::{
-    distribution::{
-        AllChainCache,
-        metrics::{AggregatePercentPerBlock, utxo_metric_name},
-    },
+    distribution::{AllChainCache, metrics::AggregatePercentPerBlock},
     indexes,
     internal::{
         ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioCents, RatioDollars,
@@ -162,15 +159,18 @@ impl RelativeVecs {
     > {
         ColumnarPerBlock::forced_import(db, &format!("{metric}_ppm_by_term"), version, |source| {
             ByTerm::from_fn(|id| {
-                let name =
-                    utxo_metric_name(id.select(&TERM_FILTERS), id.select(&TERM_NAMES).id, metric);
+                let name = CohortContext::Utxo.metric_name(
+                    id.select(&TERM_FILTERS),
+                    id.select(&TERM_NAMES).id,
+                    metric,
+                );
                 LazyColumnPercentPerBlock::new(&name, version, source, id, indexes)
             })
         })
     }
 
     fn aggregate_metric_name(id: UTXOAggregateId, metric: &str) -> String {
-        utxo_metric_name(
+        CohortContext::Utxo.metric_name(
             id.select(&UTXO_AGGREGATE_FILTERS),
             id.select(&UTXO_AGGREGATE_NAMES).id,
             metric,
