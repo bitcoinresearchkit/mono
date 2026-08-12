@@ -9,7 +9,7 @@ use vecdb::{
 };
 
 use crate::internal::{
-    ColumnarPerBlockCumulativeRolling, StoredU64ToCents, StoredU64ToSats, cache_wrap,
+    CACHE_BUDGET, ColumnarPerBlockCumulativeRolling, StoredU64ToCents, StoredU64ToSats,
 };
 
 #[derive(Deref, DerefMut, Traversable)]
@@ -163,7 +163,7 @@ where
         };
         let source = LazyVec::transformed::<F>(name, version, raw);
         if budgeted {
-            cache_wrap(source).read_only_boxed_clone()
+            CACHE_BUDGET.wrap(source).read_only_boxed_clone()
         } else {
             source.read_only_boxed_clone()
         }

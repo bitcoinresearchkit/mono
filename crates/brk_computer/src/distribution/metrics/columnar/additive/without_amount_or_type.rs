@@ -15,7 +15,7 @@ use vecdb::{
 };
 
 use super::super::UTXORows;
-use crate::internal::cache_wrap;
+use crate::internal::CACHE_BUDGET;
 
 #[derive(Traversable)]
 pub struct UTXOColumnarMetricWithoutAmountOrType<T, M: StorageMode = Rw>
@@ -201,7 +201,9 @@ where
     where
         C: ColumnId,
     {
-        cache_wrap(source.sum_columns(name, version, columns)).read_only_boxed_clone()
+        CACHE_BUDGET
+            .wrap(source.sum_columns(name, version, columns))
+            .read_only_boxed_clone()
     }
 
     pub fn min_len(&self) -> usize {

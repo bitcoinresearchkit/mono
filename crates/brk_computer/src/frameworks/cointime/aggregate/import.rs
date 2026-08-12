@@ -12,8 +12,8 @@ use super::{AwakeVecs, CohortVecs, DormantVecs, Sources, Vecs};
 use crate::{
     indexes,
     internal::{
-        Identity, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
-        LazySpotValuePerBlock, PerBlock, cache_wrap,
+        CACHE_BUDGET, Identity, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
+        LazySpotValuePerBlock, PerBlock,
     },
 };
 
@@ -59,7 +59,8 @@ impl Sources {
     {
         match aggregate.term() {
             Some(term) => source.column(name, version, term).read_only_boxed_clone(),
-            None => cache_wrap(source.sum_columns(name, version, TermId::ALL.iter().copied()))
+            None => CACHE_BUDGET
+                .wrap(source.sum_columns(name, version, TermId::ALL.iter().copied()))
                 .read_only_boxed_clone(),
         }
     }

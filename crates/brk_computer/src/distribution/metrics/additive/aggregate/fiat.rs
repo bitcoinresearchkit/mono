@@ -13,7 +13,7 @@ use vecdb::{
 
 use crate::{
     indexes,
-    internal::{ColumnarPerBlock, FiatType, LazyFiatPerBlock, cache_wrap},
+    internal::{CACHE_BUDGET, ColumnarPerBlock, FiatType, LazyFiatPerBlock},
 };
 
 #[derive(Deref, DerefMut, Traversable)]
@@ -44,12 +44,13 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlock<C> {
                         metric,
                     );
                     let cents = match aggregate {
-                        UTXOAggregateId::All => cache_wrap(source.sum_columns(
-                            &format!("{name}_cents"),
-                            version,
-                            TermId::ALL.iter().copied(),
-                        ))
-                        .read_only_boxed_clone(),
+                        UTXOAggregateId::All => CACHE_BUDGET
+                            .wrap(source.sum_columns(
+                                &format!("{name}_cents"),
+                                version,
+                                TermId::ALL.iter().copied(),
+                            ))
+                            .read_only_boxed_clone(),
                         UTXOAggregateId::Sth => source
                             .column(&format!("{name}_cents"), version, TermId::Short)
                             .read_only_boxed_clone(),

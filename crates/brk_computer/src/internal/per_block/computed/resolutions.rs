@@ -14,7 +14,7 @@ use vecdb::{
 
 use crate::{
     indexes,
-    internal::{PerResolution, cache_wrap},
+    internal::{CACHE_BUDGET, PerResolution},
 };
 
 /// Aggregation strategy for epoch-based indices (Halving, Epoch).
@@ -127,7 +127,7 @@ where
     where
         V: TypedVec<I = Height, T = T> + ReadableVec<Height, T> + Clone + 'static,
     {
-        let cached = cache_wrap(height_source);
+        let cached = CACHE_BUDGET.wrap(height_source);
         let height_source = cached.read_only_boxed_clone();
         Self::from_boxed_height_source(name, height_source, version, indexes)
     }

@@ -16,9 +16,8 @@ use super::{
 use crate::{
     indexes,
     internal::{
-        ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
+        CACHE_BUDGET, ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyColumnSpotValuePerBlock,
         LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
-        cache_wrap,
     },
 };
 
@@ -106,7 +105,8 @@ impl AggregateSources {
     {
         match aggregate.term() {
             Some(term) => source.column(name, version, term).read_only_boxed_clone(),
-            None => cache_wrap(source.sum_columns(name, version, TermId::ALL.iter().copied()))
+            None => CACHE_BUDGET
+                .wrap(source.sum_columns(name, version, TermId::ALL.iter().copied()))
                 .read_only_boxed_clone(),
         }
     }

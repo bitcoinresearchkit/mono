@@ -3,7 +3,7 @@ use vecdb::{
     BinaryTransform, CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue,
 };
 
-use crate::internal::{LazyIndexedVec, SatsToCents};
+use crate::internal::{CACHE_BUDGET, LazyIndexedVec, SatsToCents};
 
 /// Shared handles to the pinned all-chain inputs.
 ///
@@ -31,8 +31,7 @@ impl AllChainSources {
         }
     }
 
-    /// Lazily combines one ordinary source with the pinned all-supply cache.
-    pub fn with_supply<S, T>(
+    fn supply_source<S, T>(
         &self,
         name: &str,
         version: Version,
@@ -52,8 +51,24 @@ impl AllChainSources {
         )
     }
 
-    /// Lazily combines one ordinary source with market cap derived from the
-    /// pinned all-supply and spot-price caches.
+    /// Combines one ordinary source with pinned all supply, caching the result
+    /// when it becomes hot.
+    pub fn with_supply<S, T>(
+        &self,
+        name: &str,
+        version: Version,
+        source: &(impl ReadableCloneableVec<Height, S> + 'static),
+        compute: impl Fn(Height, S, Sats) -> T + Send + Sync + 'static,
+    ) -> impl TypedVec<I = Height, T = T> + ReadableVec<Height, T> + Clone + 'static
+    where
+        S: VecValue,
+        T: VecValue,
+    {
+        CACHE_BUDGET.wrap(self.supply_source(name, version, source, compute))
+    }
+
+    /// Combines one ordinary source with market cap, caching only the final
+    /// result when it becomes hot.
     pub fn with_market_cap<S, T>(
         &self,
         name: &str,
@@ -65,14 +80,14 @@ impl AllChainSources {
         S: VecValue,
         T: VecValue,
     {
-        let with_supply = self.with_supply(
+        let with_supply = self.supply_source(
             &format!("{name}_with_supply"),
             Version::ZERO,
             source,
             |_, source, supply| WithSupply { source, supply },
         );
 
-        LazyIndexedVec::new(
+        let source = LazyIndexedVec::new(
             name,
             version,
             with_supply.read_only_boxed_clone(),
@@ -84,7 +99,8 @@ impl AllChainSources {
                     SatsToCents::apply(with_supply.supply, price),
                 )
             },
-        )
+        );
+        CACHE_BUDGET.wrap(source)
     }
 }
 
@@ -92,7 +108,7 @@ impl AllChainSources {
 mod tests {
     use vecdb::{
         AnyStoredVec, CachedReadableVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec,
-        ReadOnlyClone, WritableVec,
+        ReadOnlyClone, ReadableVec, WritableVec,
     };
 
     use super::*;

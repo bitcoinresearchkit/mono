@@ -7,7 +7,7 @@ use vecdb::{
     ReadableColumnarVec, VecValue,
 };
 
-use crate::internal::cache_wrap;
+use crate::internal::CACHE_BUDGET;
 
 const RANGE_COUNT: usize = ProfitabilityRangeId::ALL.len();
 const COLUMN_COUNT: usize = TermId::ALL.len() * RANGE_COUNT;
@@ -79,7 +79,7 @@ impl TermProfitabilityRangeId {
                 }),
         );
         if aggregate == UTXOAggregateId::All {
-            cache_wrap(source).read_only_boxed_clone()
+            CACHE_BUDGET.wrap(source).read_only_boxed_clone()
         } else {
             source.read_only_boxed_clone()
         }

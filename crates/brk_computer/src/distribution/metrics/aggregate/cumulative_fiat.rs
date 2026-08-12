@@ -14,8 +14,8 @@ use vecdb::{
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, FiatType,
-        LazyFiatPerBlockCumulativeWithSums, Windows, cache_wrap,
+        CACHE_BUDGET, CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, FiatType,
+        LazyFiatPerBlockCumulativeWithSums, Windows,
     },
 };
 
@@ -53,12 +53,13 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
                         metric,
                     );
                     let cumulative = match id {
-                        UTXOAggregateId::All => cache_wrap(source.sum_columns(
-                            &format!("{name}_cumulative_cents"),
-                            version,
-                            TermId::ALL.iter().copied(),
-                        ))
-                        .read_only_boxed_clone(),
+                        UTXOAggregateId::All => CACHE_BUDGET
+                            .wrap(source.sum_columns(
+                                &format!("{name}_cumulative_cents"),
+                                version,
+                                TermId::ALL.iter().copied(),
+                            ))
+                            .read_only_boxed_clone(),
                         UTXOAggregateId::Sth => source
                             .column(&format!("{name}_cumulative_cents"), version, TermId::Short)
                             .read_only_boxed_clone(),

@@ -331,7 +331,7 @@ impl Computer {
     }
 
     pub fn compute(&mut self, indexer: &mut Indexer, exit: &Exit) -> Result<()> {
-        internal::cache_clear_all();
+        internal::CACHE_BUDGET.clear();
 
         let compute_start = Instant::now();
 

@@ -4,7 +4,7 @@ use vecdb::{CachedBoxedVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec,
 
 use crate::{
     indexes,
-    internal::{Identity, LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price},
+    internal::{CACHE_BUDGET, Identity, LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price},
 };
 
 use super::price::price_ratio;
@@ -34,13 +34,13 @@ impl LazyPriceWithRatioPerBlock {
         );
         let price = Price::from_lazy_cents_source::<Identity<Cents>, Cents>(name, version, &source);
         let ratio_version = version + Version::new(4);
-        let ppm_source = LazyIndexedVec::new(
+        let ppm_source = CACHE_BUDGET.wrap(LazyIndexedVec::new(
             &format!("{name}_ratio_ppm_source"),
             ratio_version,
             price.cents.height.read_only_boxed_clone(),
             spot_price.clone(),
             |_, price, spot| price_ratio(spot, price),
-        );
+        ));
         let ratio = LazyRatioPerBlock::from_uncached_height_source(
             &format!("{name}_ratio"),
             ratio_version,
