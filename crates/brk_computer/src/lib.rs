@@ -203,7 +203,7 @@ impl Computer {
                 })
             })?;
 
-        let all_chain = distribution.all_chain_sources(&price);
+        let all_chain = distribution.all_chain_sources();
 
         let (frameworks, indicators) = timed("Imported frameworks/indicators", || {
             thread::scope(|s| -> Result<_> {
@@ -331,6 +331,7 @@ impl Computer {
     }
 
     pub fn compute(&mut self, indexer: &mut Indexer, exit: &Exit) -> Result<()> {
+        indexer.begin_update();
         internal::CACHE_BUDGET.clear();
 
         let compute_start = Instant::now();
@@ -482,7 +483,7 @@ impl Computer {
             Ok(())
         })?;
 
-        indexer.advance_safe_lengths()?;
+        indexer.finish_update()?;
 
         info!("Total compute time: {:?}", compute_start.elapsed());
         Ok(())

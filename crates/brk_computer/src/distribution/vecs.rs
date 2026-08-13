@@ -63,11 +63,8 @@ const SAVED_STAMPED_CHANGES: u16 = 10;
 const FUNDED_ADDR_DATA_VERSION: Version = Version::ONE;
 
 impl Vecs {
-    pub fn all_chain_sources(&self, prices: &price::Vecs) -> AllChainSources {
-        AllChainSources::new(
-            self.cohorts.all_supply(),
-            &prices.spot.cents.height.read_only_cached_boxed_clone(),
-        )
+    pub fn all_chain_sources(&self) -> AllChainSources {
+        AllChainSources::new(self.cohorts.all_supply(), self.cohorts.all_market_cap())
     }
 
     pub fn forced_import(
@@ -169,7 +166,7 @@ impl Vecs {
         let delta = DeltaVecs::new(version, &funded_addr_count.counts, cached_starts, indexes);
 
         // Average amount (supply / utxo_count, supply / funded_addr_count) for `all` and per addr type.
-        let all_chain = AllChainSources::new(cohorts.all_supply(), &spot_price);
+        let all_chain = AllChainSources::new(cohorts.all_supply(), cohorts.all_market_cap());
         let avg_amount = AvgAmountVecs::forced_import(
             &db,
             version,
@@ -292,9 +289,9 @@ impl Vecs {
 
         let starting_lengths = indexer.safe_lengths();
 
-        // 1. Find minimum height we have data for across stateful vecs
+        // 1. Find the height from which the block loop can safely resume.
         let current_height = Height::from(self.supply_state.len());
-        let min_stateful = self.min_stateful_len();
+        let min_resume_len = self.min_resume_len();
 
         // 2. Determine start mode and recover/reset state
         // Clamp to starting_lengths.height to handle reorg (indexer may require earlier start)
@@ -305,7 +302,7 @@ impl Vecs {
                 current_height, resume_target
             );
         }
-        let start_mode = determine_start_mode(min_stateful.min(resume_target), resume_target);
+        let start_mode = determine_start_mode(min_resume_len, resume_target);
 
         // Try to resume from checkpoint, fall back to fresh start if needed
         let recovered_height = match start_mode {
@@ -554,13 +551,13 @@ impl Vecs {
         Ok(())
     }
 
-    fn min_stateful_len(&self) -> Height {
+    fn min_resume_len(&self) -> Height {
         self.cohorts
-            .min_stateful_len()
+            .min_resume_len()
             .min(Height::from(self.supply_state.len()))
             .min(self.any_addr_indexes.min_stamped_len())
             .min(self.addrs_data.min_stamped_len())
-            .min(Height::from(self.addrs.min_stateful_len()))
+            .min(Height::from(self.addrs.min_resume_len()))
             .min(Height::from(self.coinblocks_destroyed.block.len()))
     }
 }

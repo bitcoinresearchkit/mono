@@ -1,4 +1,5 @@
 import { BrkClient } from "../modules/brk-client/index.js";
+import { BRK_BASE_URL } from "./api.js";
 
-export const BRK_BASE_URL = "http://localhost:3110";
+export { BRK_BASE_URL } from "./api.js";
 export const brk = new BrkClient(BRK_BASE_URL);

@@ -14,11 +14,11 @@ pub trait AnySerializableVec: AnyReadableVec {
         buf: &mut Vec<u8>,
     ) -> crate::Result<()>;
 
-    /// Write single JSON value to output buffer (first value in range)
+    /// Write one value as raw JSON, if the index is in bounds.
     #[cfg(feature = "serde")]
-    fn write_json_value(&self, from: Option<usize>, buf: &mut Vec<u8>) -> crate::Result<()>;
+    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> crate::Result<()>;
 
-    /// Return the last value as a serde_json::Value, or None if empty
+    /// Return the last value as a serde_json::Value, or None if empty.
     #[cfg(feature = "serde_json")]
     fn last_json_value(&self) -> Option<serde_json::Value>;
 
@@ -65,22 +65,16 @@ where
         Ok(())
     }
 
-    fn write_json_value(&self, from: Option<usize>, buf: &mut Vec<u8>) -> crate::Result<()> {
-        let idx = from.unwrap_or(0);
-        if let Some(value) = self.collect_one_at(idx) {
+    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> crate::Result<()> {
+        if let Some(value) = self.collect_one_at(index) {
             value.fmt_json(buf);
         }
-
         Ok(())
     }
 
     #[cfg(feature = "serde_json")]
     fn last_json_value(&self) -> Option<serde_json::Value> {
-        let len = self.len();
-        if len == 0 {
-            return None;
-        }
-        let value: V::T = self.collect_one_at(len - 1)?;
+        let value: V::T = self.collect_last()?;
         serde_json::to_value(&value).ok()
     }
 

@@ -6,57 +6,60 @@ use brk_cohort::{
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Height, StoredF64, Version};
+use brk_types::{Height, StoredF32, Version};
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, ColumnId, Database, Exit, PcoVec, ReadOnlyColumnarVec,
+    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, PcoVec, ReadOnlyColumnarVec,
     ReadableCloneableVec, Rw, StorageMode,
 };
 
 use crate::{
     indexes,
-    internal::{ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyPerBlock, RatioCents64},
+    internal::{ColumnarPerBlock, Identity, LazyColumnPerBlock, LazyPerBlock, SoprRatio},
 };
 
 use super::Sopr24hInput;
 
+const VERSION: Version = Version::ONE;
+
 #[derive(Traversable)]
 pub struct Sopr24hVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyPerBlock<StoredF64>>,
+    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyPerBlock<StoredF32>>,
     pub aggregate_matrix: ColumnarPerBlock<
-        StoredF64,
+        StoredF32,
         UTXOAggregateId,
-        UTXOAggregate<LazyColumnPerBlock<StoredF64, UTXOAggregateId>>,
+        UTXOAggregate<LazyColumnPerBlock<StoredF32, UTXOAggregateId>>,
         M,
     >,
     pub age_range_matrix: ColumnarPerBlock<
-        StoredF64,
+        StoredF32,
         AgeRangeId,
-        AgeRange<LazyColumnPerBlock<StoredF64, AgeRangeId>>,
+        AgeRange<LazyColumnPerBlock<StoredF32, AgeRangeId>>,
         M,
     >,
     pub under_age_matrix: ColumnarPerBlock<
-        StoredF64,
+        StoredF32,
         UnderAgeId,
-        UnderAge<LazyColumnPerBlock<StoredF64, UnderAgeId>>,
+        UnderAge<LazyColumnPerBlock<StoredF32, UnderAgeId>>,
         M,
     >,
     pub over_age_matrix: ColumnarPerBlock<
-        StoredF64,
+        StoredF32,
         OverAgeId,
-        OverAge<LazyColumnPerBlock<StoredF64, OverAgeId>>,
+        OverAge<LazyColumnPerBlock<StoredF32, OverAgeId>>,
         M,
     >,
     pub epoch_matrix:
-        ColumnarPerBlock<StoredF64, EpochId, ByEpoch<LazyColumnPerBlock<StoredF64, EpochId>>, M>,
+        ColumnarPerBlock<StoredF32, EpochId, ByEpoch<LazyColumnPerBlock<StoredF32, EpochId>>, M>,
     pub class_matrix:
-        ColumnarPerBlock<StoredF64, ClassId, Class<LazyColumnPerBlock<StoredF64, ClassId>>, M>,
+        ColumnarPerBlock<StoredF32, ClassId, Class<LazyColumnPerBlock<StoredF32, ClassId>>, M>,
     pub entry_matrix:
-        ColumnarPerBlock<StoredF64, EntryId, ByEntry<LazyColumnPerBlock<StoredF64, EntryId>>, M>,
+        ColumnarPerBlock<StoredF32, EntryId, ByEntry<LazyColumnPerBlock<StoredF32, EntryId>>, M>,
 }
 
 impl Sopr24hVecs {
     pub fn forced_import(db: &Database, version: Version, indexes: &indexes::Vecs) -> Result<Self> {
+        let version = version + VERSION;
         let matrix_version = version + Version::ONE;
         let aggregate_matrix = Self::import_matrix(
             db,
@@ -228,18 +231,18 @@ impl Sopr24hVecs {
         db: &Database,
         name: &str,
         version: Version,
-        build_series: impl FnOnce(&str, &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, C>) -> S,
-    ) -> Result<ColumnarPerBlock<StoredF64, C, S>> {
+        build_series: impl FnOnce(&str, &ReadOnlyColumnarVec<PcoVec<Height, StoredF32>, C>) -> S,
+    ) -> Result<ColumnarPerBlock<StoredF32, C, S>> {
         ColumnarPerBlock::forced_import(db, name, version, |source| build_series(name, source))
     }
 
     fn column<C: ColumnId>(
         name: &str,
         version: Version,
-        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, C>,
+        source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF32>, C>,
         column: C,
         indexes: &indexes::Vecs,
-    ) -> LazyColumnPerBlock<StoredF64, C> {
+    ) -> LazyColumnPerBlock<StoredF32, C> {
         LazyColumnPerBlock::new(
             &format!("{name}_column_{}", column.index()),
             version,
@@ -250,12 +253,12 @@ impl Sopr24hVecs {
     }
 
     fn logical_source<C: ColumnId>(
-        source: &LazyColumnPerBlock<StoredF64, C>,
+        source: &LazyColumnPerBlock<StoredF32, C>,
         name: &str,
         version: Version,
         indexes: &indexes::Vecs,
-    ) -> LazyPerBlock<StoredF64> {
-        LazyPerBlock::from_uncached_boxed_height_source::<Identity<StoredF64>>(
+    ) -> LazyPerBlock<StoredF32> {
+        LazyPerBlock::from_uncached_boxed_height_source::<Identity<StoredF32>>(
             name,
             version,
             source.height.read_only_boxed_clone(),
@@ -334,7 +337,7 @@ impl Sopr24hVecs {
     }
 
     fn compute_matrix<C: ColumnId, S: Clone, I>(
-        target: &mut ColumnarPerBlock<StoredF64, C, S>,
+        target: &mut ColumnarPerBlock<StoredF32, C, S>,
         inputs: &I,
         select: impl for<'a> Fn(C, &'a I) -> &'a Sopr24hInput,
         max_from: Height,
@@ -345,25 +348,10 @@ impl Sopr24hVecs {
             |column| &select(column, inputs).transfer_volume,
             |column| &select(column, inputs).value_destroyed,
             |_, transfer_volume, value_destroyed| {
-                RatioCents64::apply(transfer_volume, value_destroyed)
+                SoprRatio::apply(transfer_volume, value_destroyed)
             },
             exit,
         )
-    }
-
-    pub fn min_len(&self) -> usize {
-        [
-            self.aggregate_matrix.height.len(),
-            self.age_range_matrix.height.len(),
-            self.under_age_matrix.height.len(),
-            self.over_age_matrix.height.len(),
-            self.epoch_matrix.height.len(),
-            self.class_matrix.height.len(),
-            self.entry_matrix.height.len(),
-        ]
-        .into_iter()
-        .min()
-        .unwrap_or_default()
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {

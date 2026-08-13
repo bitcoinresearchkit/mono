@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, collections::BTreeSet};
+use std::collections::BTreeSet;
 
 use brk_error::Result;
 use brk_types::Height;
@@ -140,18 +140,13 @@ pub fn reset_state(
 
 /// Check if we can resume from a checkpoint or need to start fresh.
 ///
-/// - `min_available`: minimum height we have data for across all stateful vecs
+/// - `min_resume_len`: minimum length across the vectors required by the block loop
 /// - `resume_target`: the height we want to resume processing from
-pub fn determine_start_mode(min_available: Height, resume_target: Height) -> StartMode {
-    // No data to resume from
-    if resume_target.is_zero() {
-        return StartMode::Fresh;
-    }
-
-    match min_available.cmp(&resume_target) {
-        Ordering::Greater => unreachable!("min_available > resume_target"),
-        Ordering::Equal => StartMode::Resume(resume_target),
-        Ordering::Less => StartMode::Fresh,
+pub fn determine_start_mode(min_resume_len: Height, resume_target: Height) -> StartMode {
+    if resume_target.is_zero() || min_resume_len < resume_target {
+        StartMode::Fresh
+    } else {
+        StartMode::Resume(resume_target)
     }
 }
 
@@ -218,5 +213,46 @@ fn rollback_states(
     } else {
         warn!("Rollback heights inconsistent: {:?}", heights);
         Height::ZERO
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::Height;
+
+    use super::{StartMode, determine_start_mode};
+
+    #[test]
+    fn resumes_when_required_vectors_reach_checkpoint() {
+        let target = Height::new(100);
+        assert!(matches!(
+            determine_start_mode(target, target),
+            StartMode::Resume(height) if height == target
+        ));
+    }
+
+    #[test]
+    fn resumes_at_earlier_reorg_target() {
+        let target = Height::new(90);
+        assert!(matches!(
+            determine_start_mode(Height::new(100), target),
+            StartMode::Resume(height) if height == target
+        ));
+    }
+
+    #[test]
+    fn starts_fresh_when_a_resume_vector_is_short() {
+        assert!(matches!(
+            determine_start_mode(Height::new(99), Height::new(100)),
+            StartMode::Fresh
+        ));
+    }
+
+    #[test]
+    fn starts_fresh_without_checkpoint() {
+        assert!(matches!(
+            determine_start_mode(Height::ZERO, Height::ZERO),
+            StartMode::Fresh
+        ));
     }
 }

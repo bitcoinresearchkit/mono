@@ -1,17 +1,12 @@
-import { createAskPage } from "./ask/index.js";
-import { createBuildPage } from "./build/index.js";
-import { createExplorePage } from "./explore/index.js";
-import { createHomePage } from "./home/index.js";
-import { createLearnPage } from "./learn/index.js";
-import { createWalletsPage } from "./wallets/index.js";
-
 const routes = /** @type {const} */ ({
-  "/": createHomePage,
-  "/ask": createAskPage,
-  "/explore": createExplorePage,
-  "/learn": createLearnPage,
-  "/build": createBuildPage,
-  "/wallets": createWalletsPage,
+  "/": async () => (await import("./home/index.js")).createHomePage(),
+  "/ask": async () => (await import("./ask/index.js")).createAskPage(),
+  "/explore": async () =>
+    (await import("./explore/index.js")).createExplorePage(),
+  "/learn": async () => (await import("./learn/index.js")).createLearnPage(),
+  "/build": async () => (await import("./build/index.js")).createBuildPage(),
+  "/wallets": async () =>
+    (await import("./wallets/index.js")).createWalletsPage(),
 });
 
 /** @typedef {keyof typeof routes} RoutePath */
@@ -41,7 +36,10 @@ export function normalizePath(pathname) {
   return resolvePath(pathname) ?? "/";
 }
 
-/** @param {RoutePath} pathname */
+/**
+ * @param {RoutePath} pathname
+ * @returns {Promise<HTMLElement>}
+ */
 export function createRoutePage(pathname) {
   return routes[pathname]();
 }

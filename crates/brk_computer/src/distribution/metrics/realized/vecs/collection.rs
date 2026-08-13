@@ -9,7 +9,7 @@ use brk_types::{
     PartsPerMillionSigned64, StoredF32, StoredF64, Version,
 };
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, CachedBoxedVec, ColumnId, Database, Exit, LazyVec,
+    AnyStoredVec, BinaryTransform, CachedBoxedVec, ColumnId, Database, Exit, LazyVec,
     ReadableCloneableVec, ReadableVec, Rw, StorageMode,
 };
 
@@ -27,7 +27,7 @@ use crate::{
         CachedWindowStartVec, ColumnarPercentRollingWindows, ColumnarRollingWindows,
         ColumnarRollingWindowsFrom1w, Identity, LazyFiatPerBlockCumulativeWithSums,
         LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPercentPerBlock, NegCentsUnsignedToDollars,
-        RatioCents, RatioCents64, RatioCentsSignedCents, Windows,
+        RatioCents, RatioCents64, RatioCentsSignedCents, SoprRatio, Windows,
     },
 };
 
@@ -68,7 +68,7 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     pub peak_regret: AdditiveAggregateFiatPerBlockCumulativeWithSums<Cents, M>,
     pub net_pnl_change_1m_to_rcap: AggregatePercentPerBlock<PartsPerMillionSigned64, M>,
     pub sell_side_risk_ratio: UTXOAggregate<ColumnarPercentRollingWindows<PartsPerMillion32, M>>,
-    pub sopr_ratio_extended: UTXOAggregate<ColumnarRollingWindowsFrom1w<StoredF64, M>>,
+    pub sopr_ratio_extended: UTXOAggregate<ColumnarRollingWindowsFrom1w<StoredF32, M>>,
     pub profit_to_loss_ratio: UTXOAggregate<ColumnarRollingWindows<StoredF64, M>>,
     pub mvrv: UTXOGroups<LazyPerBlock<StoredF32>>,
     #[traversable(wrap = "loss", rename = "negative")]
@@ -131,7 +131,7 @@ impl RealizedVecs {
             ColumnarRollingWindowsFrom1w::forced_import(
                 db,
                 &Self::aggregate_metric_name(id, "sopr"),
-                Self::aggregate_metric_version(version, id, Version::ONE),
+                Self::aggregate_metric_version(version, id, Version::TWO),
                 indexes,
             )
         })?;
@@ -401,8 +401,8 @@ impl RealizedVecs {
         &mut self,
         max_from: Height,
         sources: &UTXOAllAndSth<AdjustedSoprComputeSource>,
-        under_1h_transfer_volume: &V1,
-        under_1h_value_destroyed: &V2,
+        under_1h_transfer_volume_cumulative: &V1,
+        under_1h_value_destroyed_cumulative: &V2,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -412,8 +412,8 @@ impl RealizedVecs {
         self.adjusted_sopr.compute(
             max_from,
             sources,
-            under_1h_transfer_volume,
-            under_1h_value_destroyed,
+            under_1h_transfer_volume_cumulative,
+            under_1h_value_destroyed_cumulative,
             exit,
         )
     }
@@ -469,7 +469,7 @@ impl RealizedVecs {
                         .height
                 },
                 |_, value_created, value_destroyed| {
-                    RatioCents64::apply(value_created, value_destroyed)
+                    SoprRatio::apply(value_created, value_destroyed)
                 },
                 exit,
             )?;
@@ -538,43 +538,23 @@ impl RealizedVecs {
         self.addr_balance_loss.push_cumulative(loss);
     }
 
-    pub fn min_len(&self) -> usize {
+    /// Only values pushed during block processing belong here. SOPR and the
+    /// other ratios are rebuilt afterward from these stored sources.
+    pub fn min_resume_len(&self) -> usize {
         self.cap
             .matrices
             .min_len()
-            .min(self.addr_balance_cap.len())
             .min(self.price.matrices.min_len())
             .min(self.profit.cumulative.min_len())
-            .min(self.addr_balance_profit.len())
             .min(self.loss.cumulative.min_len())
-            .min(self.addr_balance_loss.len())
             .min(self.net_pnl.cumulative.min_len())
-            .min(self.sopr.min_len())
-            .min(self.adjusted_sopr.min_len())
-            .min(self.capitalized_price.len())
+            .min(self.value_destroyed.cumulative.min_len())
+            .min(self.addr_balance_cap.len())
+            .min(self.addr_balance_profit.len())
+            .min(self.addr_balance_loss.len())
             .min(self.gross_pnl.len())
+            .min(self.capitalized_price.len())
             .min(self.peak_regret.len())
-            .min(
-                self.sell_side_risk_ratio
-                    .iter()
-                    .map(|value| value.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            )
-            .min(
-                self.sopr_ratio_extended
-                    .iter()
-                    .map(|value| value.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            )
-            .min(
-                self.profit_to_loss_ratio
-                    .iter()
-                    .map(|value| value.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            )
             .min(self.cap_raw.len())
             .min(self.capitalized_cap_raw.len())
     }

@@ -42,7 +42,7 @@ impl OutputsVecs {
         self.unspent_count.push_addr_balance(row);
     }
 
-    pub fn min_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.unspent_count
             .matrices
             .min_len()

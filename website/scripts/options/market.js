@@ -338,6 +338,7 @@ export function createMarketSection() {
     { id: "21d", ratio: ma.sma._21d },
     { id: "1m", ratio: ma.sma._1m },
     { id: "34d", ratio: ma.sma._34d },
+    { id: "50d", ratio: ma.sma._50d },
     { id: "55d", ratio: ma.sma._55d },
     { id: "89d", ratio: ma.sma._89d },
     { id: "111d", ratio: ma.sma._111d },

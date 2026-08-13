@@ -1,12 +1,20 @@
 /**
+ * @param {HTMLElement} scrollElement
  * @param {Element} target
  * @param {"smooth" | "instant"} behavior
  */
-export function scrollToElement(target, behavior) {
-  target.scrollIntoView({
+export function scrollToElement(scrollElement, target, behavior) {
+  const viewport = scrollElement.getBoundingClientRect();
+  const rect = target.getBoundingClientRect();
+
+  scrollElement.scrollTo({
     behavior,
-    block: "center",
-    inline: "center",
+    left:
+      scrollElement.scrollLeft +
+      rect.left -
+      viewport.left -
+      (viewport.width - rect.width) / 2,
+    top: 0,
   });
 }
 
@@ -20,8 +28,20 @@ export function preserveScrollPosition(scrollElement, anchor, anchorRect) {
 
   const rect = anchor.getBoundingClientRect();
 
-  scrollElement.scrollTop += rect.top - anchorRect.top;
   scrollElement.scrollLeft += rect.left - anchorRect.left;
+  scrollElement.scrollTop = 0;
+}
+
+/**
+ * @param {HTMLElement} scrollElement
+ * @param {HTMLElement} blocksElement
+ */
+export function syncDiagonalScroll(scrollElement, blocksElement) {
+  scrollElement.scrollTop = 0;
+  blocksElement.style.setProperty(
+    "--chain-scroll-x",
+    `${scrollElement.scrollLeft}px`,
+  );
 }
 
 /** @param {HTMLElement} blocksElement */

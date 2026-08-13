@@ -1,5 +1,5 @@
-import { brk } from "../../utils/client.js";
 import { createConfirmedBlocks } from "./confirmed.js";
+import { chainClient } from "./client.js";
 import { createEdgeButton } from "./edge.js";
 import {
   distanceFromViewport,
@@ -7,18 +7,22 @@ import {
   isHorizontalLayout,
   olderWheelDelta,
   preserveScrollPosition,
+  syncDiagonalScroll,
 } from "./scroll.js";
 import { createJumpController } from "./jump.js";
 import { createOlderBlocks } from "./older.js";
+import { createNewBlockTransition } from "./new-block.js";
 import { createProjectedBlocks } from "./projected.js";
+import { hasReorganized } from "./reorg.js";
 import { createTipVisibility } from "./tip.js";
 
 const BLOCK_BATCH_SIZE = 15;
+const CLOCK_INTERVAL = 1_000;
 const EDGE_LOAD_DISTANCE = 50;
-const POLL_INTERVAL = 1_000;
+const POLL_INTERVAL = 5_000;
 
-/** @typedef {Awaited<ReturnType<typeof brk.getBlocksV1>>[number]} Block */
-/** @typedef {Awaited<ReturnType<typeof brk.getMempoolBlocks>>[number]} MempoolBlock */
+/** @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../modules/brk-client/index.js").MempoolBlock} MempoolBlock */
 
 /** @param {string | number | null | undefined} hashOrHeight */
 function normalizeTarget(hashOrHeight) {
@@ -31,9 +35,9 @@ function normalizeTarget(hashOrHeight) {
 }
 
 /**
- * @param {{ onSelect?: (block: Block) => void }} [options]
+ * @param {{ onOpen?: (block: Block, cube: HTMLButtonElement) => void }} [options]
  */
-export function createChain({ onSelect = () => {} } = {}) {
+export function createChain({ onOpen = () => {} } = {}) {
   const element = document.createElement("div");
   const scrollElement = document.createElement("div");
   const blocksElement = document.createElement("div");
@@ -42,7 +46,7 @@ export function createChain({ onSelect = () => {} } = {}) {
   });
   const jump = createJumpController(element, () => {
     const tipCube = confirmed.tipCube();
-    if (tipCube) confirmed.select(tipCube, { scroll: "instant" });
+    if (tipCube) confirmed.scrollTo(tipCube, "instant");
   });
 
   element.id = "chain";
@@ -57,9 +61,10 @@ export function createChain({ onSelect = () => {} } = {}) {
     isElementVisible,
   });
   const confirmed = createConfirmedBlocks({
+    scrollElement,
     blocksElement,
     firstProjectedElement: projected.firstElement,
-    onSelect,
+    onOpen,
     onScrollSelect: () => tip.schedule(),
   });
   const tip = createTipVisibility({
@@ -72,7 +77,11 @@ export function createChain({ onSelect = () => {} } = {}) {
     hasVisibleProjected: () => projected.hasVisibleElement(),
     isElementVisible,
   });
-
+  const newBlock = createNewBlockTransition({
+    scrollElement,
+    blocksElement,
+    firstProjectedElement: projected.firstElement,
+  });
   let active = false;
   let newestHeight = -1;
   let newestTimestamp = 0;
@@ -82,6 +91,9 @@ export function createChain({ onSelect = () => {} } = {}) {
 
   /** @type {number | undefined} */
   let pollId;
+
+  /** @type {number | undefined} */
+  let clockId;
 
   /** @type {AbortController} */
   let controller = new AbortController();
@@ -93,7 +105,7 @@ export function createChain({ onSelect = () => {} } = {}) {
     isActive: () => active,
     isHorizontal,
     fetchBlocks: (startHeight) =>
-      brk.getBlocksV1FromHeight(startHeight, { signal: controller.signal }),
+      chainClient.getBlocksFromHeight(startHeight, controller.signal),
     createCube: confirmed.create,
     isAborted: () => controller.signal.aborted,
     onError: (error) => logChainError("explore older:", error),
@@ -138,18 +150,18 @@ export function createChain({ onSelect = () => {} } = {}) {
 
   /** @param {Block[]} blocks */
   function appendNewerBlocks(blocks) {
-    if (!blocks.length) return false;
+    if (!blocks.length || blocks[0].height <= newestHeight) return false;
 
     const anchor = confirmed.newest();
     const anchorRect = anchor?.getBoundingClientRect();
+    const transition = reachedTip ? newBlock.capture() : null;
+    const entering = [];
 
     for (let i = blocks.length - 1; i >= 0; i--) {
       const block = blocks[i];
 
       if (block.height > newestHeight) {
-        confirmed.append(block);
-      } else {
-        confirmed.cache(block);
+        entering.push(confirmed.append(block));
       }
     }
 
@@ -159,6 +171,8 @@ export function createChain({ onSelect = () => {} } = {}) {
     refreshProjected();
 
     preserveScrollPosition(scrollElement, anchor, anchorRect);
+    syncDiagonalScroll(scrollElement, blocksElement);
+    if (transition && entering.length) void newBlock.play(transition, entering);
 
     tip.sync();
 
@@ -169,13 +183,13 @@ export function createChain({ onSelect = () => {} } = {}) {
   async function loadInitial(height) {
     const blocks =
       height != null
-        ? await brk.getBlocksV1FromHeight(height, { signal: controller.signal })
-        : await brk.getBlocksV1({ signal: controller.signal });
+        ? await chainClient.getBlocksFromHeight(height, controller.signal)
+        : await chainClient.getBlocks(controller.signal);
 
     clear();
 
-    for (const block of blocks) {
-      confirmed.prepend(block);
+    for (const [index, block] of blocks.entries()) {
+      confirmed.prepend(block, index);
     }
 
     newestHeight = blocks[0].height;
@@ -199,9 +213,7 @@ export function createChain({ onSelect = () => {} } = {}) {
       const cached = confirmed.get(hashOrHeight);
       if (cached) return cached.height;
 
-      const block = await brk.getBlockV1(hashOrHeight, {
-        signal: controller.signal,
-      });
+      const block = await chainClient.getBlock(hashOrHeight, controller.signal);
       confirmed.cache(block);
 
       return block.height;
@@ -218,7 +230,7 @@ export function createChain({ onSelect = () => {} } = {}) {
 
     const existing = findCube(hashOrHeight);
     if (existing) {
-      confirmed.select(existing, { scroll: "smooth" });
+      confirmed.scrollTo(existing, "smooth");
       return;
     }
 
@@ -229,7 +241,7 @@ export function createChain({ onSelect = () => {} } = {}) {
       const height = await resolveHeight(hashOrHeight);
       const startHash = await loadInitial(height);
       const cube = findCube(startHash);
-      if (cube) confirmed.select(cube, { scroll: "instant" });
+      if (cube) confirmed.scrollTo(cube, "instant");
     } catch (error) {
       logChainError("explore chain load:", error);
     } finally {
@@ -240,7 +252,7 @@ export function createChain({ onSelect = () => {} } = {}) {
   async function pollProjected() {
     try {
       renderProjected(
-        await brk.getMempoolBlocks({ signal: controller.signal }),
+        await chainClient.getMempoolBlocks(controller.signal),
       );
     } catch (error) {
       logChainError("explore mempool:", error);
@@ -251,14 +263,35 @@ export function createChain({ onSelect = () => {} } = {}) {
     if (!active || !reachedTip || polling) return;
 
     polling = true;
-    await pollProjected();
 
     try {
-      appendNewerBlocks(await brk.getBlocksV1({ signal: controller.signal }));
+      const [blocks] = await Promise.all([
+        chainClient.getBlocks(controller.signal),
+        pollProjected(),
+      ]);
+
+      if (hasReorganized(blocks, confirmed.find)) {
+        await recoverReorganization();
+      } else {
+        appendNewerBlocks(blocks);
+      }
     } catch (error) {
       logChainError("explore chain poll:", error);
     } finally {
       polling = false;
+    }
+  }
+
+  async function recoverReorganization() {
+    element.dataset.reorganizing = "";
+
+    try {
+      const tipHash = await loadInitial(null);
+      const tipCube = findCube(tipHash);
+
+      if (tipCube) confirmed.scrollTo(tipCube, "instant");
+    } finally {
+      delete element.dataset.reorganizing;
     }
   }
 
@@ -269,9 +302,9 @@ export function createChain({ onSelect = () => {} } = {}) {
 
     try {
       const prevNewest = newestHeight;
-      const blocks = await brk.getBlocksV1FromHeight(
+      const blocks = await chainClient.getBlocksFromHeight(
         newestHeight + BLOCK_BATCH_SIZE,
-        { signal: controller.signal },
+        controller.signal,
       );
 
       if (!appendNewerBlocks(blocks) || newestHeight === prevNewest) {
@@ -293,7 +326,7 @@ export function createChain({ onSelect = () => {} } = {}) {
   }
 
   function refreshProjected() {
-    projected.refresh(newestTimestamp);
+    projected.refresh(newestHeight, newestTimestamp);
   }
 
   /** @param {Element} element */
@@ -315,7 +348,13 @@ export function createChain({ onSelect = () => {} } = {}) {
   scrollElement.addEventListener(
     "wheel",
     (event) => {
-      older.reserve(olderWheelDelta(event, isHorizontal()));
+      const horizontal = isHorizontal();
+
+      if (horizontal && Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        scrollElement.scrollLeft += event.deltaY;
+      }
+
+      older.reserve(olderWheelDelta(event, horizontal));
     },
     { passive: true },
   );
@@ -323,6 +362,7 @@ export function createChain({ onSelect = () => {} } = {}) {
   scrollElement.addEventListener(
     "scroll",
     () => {
+      syncDiagonalScroll(scrollElement, blocksElement);
       tip.schedule();
       older.reserve();
 
@@ -331,6 +371,8 @@ export function createChain({ onSelect = () => {} } = {}) {
     },
     { passive: true },
   );
+
+  syncDiagonalScroll(scrollElement, blocksElement);
 
   /** @param {boolean} nextActive */
   function setActive(nextActive) {
@@ -344,6 +386,7 @@ export function createChain({ onSelect = () => {} } = {}) {
       if (newestHeight === -1) void goToCube(null);
       else void poll();
 
+      clockId = window.setInterval(refreshProjected, CLOCK_INTERVAL);
       pollId = window.setInterval(() => void poll(), POLL_INTERVAL);
       return;
     }
@@ -351,6 +394,11 @@ export function createChain({ onSelect = () => {} } = {}) {
     if (pollId !== undefined) {
       window.clearInterval(pollId);
       pollId = undefined;
+    }
+
+    if (clockId !== undefined) {
+      window.clearInterval(clockId);
+      clockId = undefined;
     }
 
     tip.cancel();

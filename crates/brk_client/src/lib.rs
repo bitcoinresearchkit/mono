@@ -1127,7 +1127,7 @@ pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mCumulativeOverUnderPatt
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern2 {
+pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern3 {
     pub _10y_to_12y: BtcCentsSatsUsdPattern,
     pub _12y_to_15y: BtcCentsSatsUsdPattern,
     pub _18m_to_2y: BtcCentsSatsUsdPattern,
@@ -1155,31 +1155,31 @@ pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern2
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern {
-    pub _10y_to_12y: SeriesPattern1<StoredF64>,
-    pub _12y_to_15y: SeriesPattern1<StoredF64>,
-    pub _18m_to_2y: SeriesPattern1<StoredF64>,
-    pub _1d_to_1w: SeriesPattern1<StoredF64>,
-    pub _1h_to_1d: SeriesPattern1<StoredF64>,
-    pub _1m_to_2m: SeriesPattern1<StoredF64>,
-    pub _1w_to_1m: SeriesPattern1<StoredF64>,
-    pub _1y_to_18m: SeriesPattern1<StoredF64>,
-    pub _2m_to_3m: SeriesPattern1<StoredF64>,
-    pub _2y_to_3y: SeriesPattern1<StoredF64>,
-    pub _3m_to_4m: SeriesPattern1<StoredF64>,
-    pub _3y_to_4y: SeriesPattern1<StoredF64>,
-    pub _4m_to_5m: SeriesPattern1<StoredF64>,
-    pub _4y_to_5y: SeriesPattern1<StoredF64>,
-    pub _5m_to_6m: SeriesPattern1<StoredF64>,
-    pub _5y_to_6y: SeriesPattern1<StoredF64>,
-    pub _6m_to_9m: SeriesPattern1<StoredF64>,
-    pub _6y_to_7y: SeriesPattern1<StoredF64>,
-    pub _7y_to_8y: SeriesPattern1<StoredF64>,
-    pub _8y_to_10y: SeriesPattern1<StoredF64>,
-    pub _9m_to_1y: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
-    pub over_15y: SeriesPattern1<StoredF64>,
-    pub under_1h: SeriesPattern1<StoredF64>,
+pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern<T> {
+    pub _10y_to_12y: SeriesPattern1<T>,
+    pub _12y_to_15y: SeriesPattern1<T>,
+    pub _18m_to_2y: SeriesPattern1<T>,
+    pub _1d_to_1w: SeriesPattern1<T>,
+    pub _1h_to_1d: SeriesPattern1<T>,
+    pub _1m_to_2m: SeriesPattern1<T>,
+    pub _1w_to_1m: SeriesPattern1<T>,
+    pub _1y_to_18m: SeriesPattern1<T>,
+    pub _2m_to_3m: SeriesPattern1<T>,
+    pub _2y_to_3y: SeriesPattern1<T>,
+    pub _3m_to_4m: SeriesPattern1<T>,
+    pub _3y_to_4y: SeriesPattern1<T>,
+    pub _4m_to_5m: SeriesPattern1<T>,
+    pub _4y_to_5y: SeriesPattern1<T>,
+    pub _5m_to_6m: SeriesPattern1<T>,
+    pub _5y_to_6y: SeriesPattern1<T>,
+    pub _6m_to_9m: SeriesPattern1<T>,
+    pub _6y_to_7y: SeriesPattern1<T>,
+    pub _7y_to_8y: SeriesPattern1<T>,
+    pub _8y_to_10y: SeriesPattern1<T>,
+    pub _9m_to_1y: SeriesPattern1<T>,
+    pub height: SeriesPattern18<T>,
+    pub over_15y: SeriesPattern1<T>,
+    pub under_1h: SeriesPattern1<T>,
 }
 
 /// Pattern struct for repeated tree structure.
@@ -4079,10 +4079,10 @@ impl _1m1w1y24hPattern2 {
 
 /// Pattern struct for repeated tree structure.
 pub struct _1m1w1yHeightPattern {
-    pub _1m: SeriesPattern1<StoredF64>,
-    pub _1w: SeriesPattern1<StoredF64>,
-    pub _1y: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<[StoredF64; 3]>,
+    pub _1m: SeriesPattern1<StoredF32>,
+    pub _1w: SeriesPattern1<StoredF32>,
+    pub _1y: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<[StoredF32; 3]>,
 }
 
 impl _1m1w1yHeightPattern {
@@ -5529,6 +5529,7 @@ pub struct SeriesTree_Blocks_Lookback {
     pub _26d: SeriesPattern18<Height>,
     pub _1m: SeriesPattern18<Height>,
     pub _34d: SeriesPattern18<Height>,
+    pub _50d: SeriesPattern18<Height>,
     pub _55d: SeriesPattern18<Height>,
     pub _2m: SeriesPattern18<Height>,
     pub _9w: SeriesPattern18<Height>,
@@ -5577,6 +5578,7 @@ impl SeriesTree_Blocks_Lookback {
             _26d: SeriesPattern18::new(client.clone(), "height_26d_ago".to_string()),
             _1m: SeriesPattern18::new(client.clone(), "height_1m_ago".to_string()),
             _34d: SeriesPattern18::new(client.clone(), "height_34d_ago".to_string()),
+            _50d: SeriesPattern18::new(client.clone(), "height_50d_ago".to_string()),
             _55d: SeriesPattern18::new(client.clone(), "height_55d_ago".to_string()),
             _2m: SeriesPattern18::new(client.clone(), "height_2m_ago".to_string()),
             _9w: SeriesPattern18::new(client.clone(), "height_9w_ago".to_string()),
@@ -11090,6 +11092,7 @@ pub struct SeriesTree_Market_MovingAverage_Sma {
     pub _21d: CentsPpmRatioSatsUsdPattern,
     pub _1m: CentsPpmRatioSatsUsdPattern,
     pub _34d: CentsPpmRatioSatsUsdPattern,
+    pub _50d: CentsPpmRatioSatsUsdPattern,
     pub _55d: CentsPpmRatioSatsUsdPattern,
     pub _89d: CentsPpmRatioSatsUsdPattern,
     pub _111d: CentsPpmRatioSatsUsdPattern,
@@ -11111,6 +11114,7 @@ impl SeriesTree_Market_MovingAverage_Sma {
             _21d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_21d".to_string()),
             _1m: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_1m".to_string()),
             _34d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_34d".to_string()),
+            _50d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_50d".to_string()),
             _55d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_55d".to_string()),
             _89d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_89d".to_string()),
             _111d: CentsPpmRatioSatsUsdPattern::new(client.clone(), "price_sma_111d".to_string()),
@@ -18109,12 +18113,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap {
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr {
     pub value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed,
-    pub all: SeriesPattern1<StoredF64>,
+    pub all: SeriesPattern1<StoredF32>,
     pub age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age,
     pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch,
     pub class: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class,
-    pub entry: DiscountPremiumPattern7<StoredF64>,
-    pub term: LongShortPattern7<StoredF64>,
+    pub entry: DiscountPremiumPattern7<StoredF32>,
+    pub term: LongShortPattern7<StoredF32>,
     pub aggregate_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix,
     pub age_range_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix,
     pub under_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix,
@@ -18439,29 +18443,29 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
-    pub under_1h: SeriesPattern1<StoredF64>,
-    pub _1h_to_1d: SeriesPattern1<StoredF64>,
-    pub _1d_to_1w: SeriesPattern1<StoredF64>,
-    pub _1w_to_1m: SeriesPattern1<StoredF64>,
-    pub _1m_to_2m: SeriesPattern1<StoredF64>,
-    pub _2m_to_3m: SeriesPattern1<StoredF64>,
-    pub _3m_to_4m: SeriesPattern1<StoredF64>,
-    pub _4m_to_5m: SeriesPattern1<StoredF64>,
-    pub _5m_to_6m: SeriesPattern1<StoredF64>,
-    pub _6m_to_9m: SeriesPattern1<StoredF64>,
-    pub _9m_to_1y: SeriesPattern1<StoredF64>,
-    pub _1y_to_18m: SeriesPattern1<StoredF64>,
-    pub _18m_to_2y: SeriesPattern1<StoredF64>,
-    pub _2y_to_3y: SeriesPattern1<StoredF64>,
-    pub _3y_to_4y: SeriesPattern1<StoredF64>,
-    pub _4y_to_5y: SeriesPattern1<StoredF64>,
-    pub _5y_to_6y: SeriesPattern1<StoredF64>,
-    pub _6y_to_7y: SeriesPattern1<StoredF64>,
-    pub _7y_to_8y: SeriesPattern1<StoredF64>,
-    pub _8y_to_10y: SeriesPattern1<StoredF64>,
-    pub _10y_to_12y: SeriesPattern1<StoredF64>,
-    pub _12y_to_15y: SeriesPattern1<StoredF64>,
-    pub over_15y: SeriesPattern1<StoredF64>,
+    pub under_1h: SeriesPattern1<StoredF32>,
+    pub _1h_to_1d: SeriesPattern1<StoredF32>,
+    pub _1d_to_1w: SeriesPattern1<StoredF32>,
+    pub _1w_to_1m: SeriesPattern1<StoredF32>,
+    pub _1m_to_2m: SeriesPattern1<StoredF32>,
+    pub _2m_to_3m: SeriesPattern1<StoredF32>,
+    pub _3m_to_4m: SeriesPattern1<StoredF32>,
+    pub _4m_to_5m: SeriesPattern1<StoredF32>,
+    pub _5m_to_6m: SeriesPattern1<StoredF32>,
+    pub _6m_to_9m: SeriesPattern1<StoredF32>,
+    pub _9m_to_1y: SeriesPattern1<StoredF32>,
+    pub _1y_to_18m: SeriesPattern1<StoredF32>,
+    pub _18m_to_2y: SeriesPattern1<StoredF32>,
+    pub _2y_to_3y: SeriesPattern1<StoredF32>,
+    pub _3y_to_4y: SeriesPattern1<StoredF32>,
+    pub _4y_to_5y: SeriesPattern1<StoredF32>,
+    pub _5y_to_6y: SeriesPattern1<StoredF32>,
+    pub _6y_to_7y: SeriesPattern1<StoredF32>,
+    pub _7y_to_8y: SeriesPattern1<StoredF32>,
+    pub _8y_to_10y: SeriesPattern1<StoredF32>,
+    pub _10y_to_12y: SeriesPattern1<StoredF32>,
+    pub _12y_to_15y: SeriesPattern1<StoredF32>,
+    pub over_15y: SeriesPattern1<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
@@ -18496,26 +18500,26 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
-    pub _1w: SeriesPattern1<StoredF64>,
-    pub _1m: SeriesPattern1<StoredF64>,
-    pub _2m: SeriesPattern1<StoredF64>,
-    pub _3m: SeriesPattern1<StoredF64>,
-    pub _4m: SeriesPattern1<StoredF64>,
-    pub _5m: SeriesPattern1<StoredF64>,
-    pub _6m: SeriesPattern1<StoredF64>,
-    pub _9m: SeriesPattern1<StoredF64>,
-    pub _1y: SeriesPattern1<StoredF64>,
-    pub _18m: SeriesPattern1<StoredF64>,
-    pub _2y: SeriesPattern1<StoredF64>,
-    pub _3y: SeriesPattern1<StoredF64>,
-    pub _4y: SeriesPattern1<StoredF64>,
-    pub _5y: SeriesPattern1<StoredF64>,
-    pub _6y: SeriesPattern1<StoredF64>,
-    pub _7y: SeriesPattern1<StoredF64>,
-    pub _8y: SeriesPattern1<StoredF64>,
-    pub _10y: SeriesPattern1<StoredF64>,
-    pub _12y: SeriesPattern1<StoredF64>,
-    pub _15y: SeriesPattern1<StoredF64>,
+    pub _1w: SeriesPattern1<StoredF32>,
+    pub _1m: SeriesPattern1<StoredF32>,
+    pub _2m: SeriesPattern1<StoredF32>,
+    pub _3m: SeriesPattern1<StoredF32>,
+    pub _4m: SeriesPattern1<StoredF32>,
+    pub _5m: SeriesPattern1<StoredF32>,
+    pub _6m: SeriesPattern1<StoredF32>,
+    pub _9m: SeriesPattern1<StoredF32>,
+    pub _1y: SeriesPattern1<StoredF32>,
+    pub _18m: SeriesPattern1<StoredF32>,
+    pub _2y: SeriesPattern1<StoredF32>,
+    pub _3y: SeriesPattern1<StoredF32>,
+    pub _4y: SeriesPattern1<StoredF32>,
+    pub _5y: SeriesPattern1<StoredF32>,
+    pub _6y: SeriesPattern1<StoredF32>,
+    pub _7y: SeriesPattern1<StoredF32>,
+    pub _8y: SeriesPattern1<StoredF32>,
+    pub _10y: SeriesPattern1<StoredF32>,
+    pub _12y: SeriesPattern1<StoredF32>,
+    pub _15y: SeriesPattern1<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
@@ -18547,26 +18551,26 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
-    pub _1d: SeriesPattern1<StoredF64>,
-    pub _1w: SeriesPattern1<StoredF64>,
-    pub _1m: SeriesPattern1<StoredF64>,
-    pub _2m: SeriesPattern1<StoredF64>,
-    pub _3m: SeriesPattern1<StoredF64>,
-    pub _4m: SeriesPattern1<StoredF64>,
-    pub _5m: SeriesPattern1<StoredF64>,
-    pub _6m: SeriesPattern1<StoredF64>,
-    pub _9m: SeriesPattern1<StoredF64>,
-    pub _1y: SeriesPattern1<StoredF64>,
-    pub _18m: SeriesPattern1<StoredF64>,
-    pub _2y: SeriesPattern1<StoredF64>,
-    pub _3y: SeriesPattern1<StoredF64>,
-    pub _4y: SeriesPattern1<StoredF64>,
-    pub _5y: SeriesPattern1<StoredF64>,
-    pub _6y: SeriesPattern1<StoredF64>,
-    pub _7y: SeriesPattern1<StoredF64>,
-    pub _8y: SeriesPattern1<StoredF64>,
-    pub _10y: SeriesPattern1<StoredF64>,
-    pub _12y: SeriesPattern1<StoredF64>,
+    pub _1d: SeriesPattern1<StoredF32>,
+    pub _1w: SeriesPattern1<StoredF32>,
+    pub _1m: SeriesPattern1<StoredF32>,
+    pub _2m: SeriesPattern1<StoredF32>,
+    pub _3m: SeriesPattern1<StoredF32>,
+    pub _4m: SeriesPattern1<StoredF32>,
+    pub _5m: SeriesPattern1<StoredF32>,
+    pub _6m: SeriesPattern1<StoredF32>,
+    pub _9m: SeriesPattern1<StoredF32>,
+    pub _1y: SeriesPattern1<StoredF32>,
+    pub _18m: SeriesPattern1<StoredF32>,
+    pub _2y: SeriesPattern1<StoredF32>,
+    pub _3y: SeriesPattern1<StoredF32>,
+    pub _4y: SeriesPattern1<StoredF32>,
+    pub _5y: SeriesPattern1<StoredF32>,
+    pub _6y: SeriesPattern1<StoredF32>,
+    pub _7y: SeriesPattern1<StoredF32>,
+    pub _8y: SeriesPattern1<StoredF32>,
+    pub _10y: SeriesPattern1<StoredF32>,
+    pub _12y: SeriesPattern1<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
@@ -18598,11 +18602,11 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
-    pub _0: SeriesPattern1<StoredF64>,
-    pub _1: SeriesPattern1<StoredF64>,
-    pub _2: SeriesPattern1<StoredF64>,
-    pub _3: SeriesPattern1<StoredF64>,
-    pub _4: SeriesPattern1<StoredF64>,
+    pub _0: SeriesPattern1<StoredF32>,
+    pub _1: SeriesPattern1<StoredF32>,
+    pub _2: SeriesPattern1<StoredF32>,
+    pub _3: SeriesPattern1<StoredF32>,
+    pub _4: SeriesPattern1<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
@@ -18619,24 +18623,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
-    pub _2009: SeriesPattern1<StoredF64>,
-    pub _2010: SeriesPattern1<StoredF64>,
-    pub _2011: SeriesPattern1<StoredF64>,
-    pub _2012: SeriesPattern1<StoredF64>,
-    pub _2013: SeriesPattern1<StoredF64>,
-    pub _2014: SeriesPattern1<StoredF64>,
-    pub _2015: SeriesPattern1<StoredF64>,
-    pub _2016: SeriesPattern1<StoredF64>,
-    pub _2017: SeriesPattern1<StoredF64>,
-    pub _2018: SeriesPattern1<StoredF64>,
-    pub _2019: SeriesPattern1<StoredF64>,
-    pub _2020: SeriesPattern1<StoredF64>,
-    pub _2021: SeriesPattern1<StoredF64>,
-    pub _2022: SeriesPattern1<StoredF64>,
-    pub _2023: SeriesPattern1<StoredF64>,
-    pub _2024: SeriesPattern1<StoredF64>,
-    pub _2025: SeriesPattern1<StoredF64>,
-    pub _2026: SeriesPattern1<StoredF64>,
+    pub _2009: SeriesPattern1<StoredF32>,
+    pub _2010: SeriesPattern1<StoredF32>,
+    pub _2011: SeriesPattern1<StoredF32>,
+    pub _2012: SeriesPattern1<StoredF32>,
+    pub _2013: SeriesPattern1<StoredF32>,
+    pub _2014: SeriesPattern1<StoredF32>,
+    pub _2015: SeriesPattern1<StoredF32>,
+    pub _2016: SeriesPattern1<StoredF32>,
+    pub _2017: SeriesPattern1<StoredF32>,
+    pub _2018: SeriesPattern1<StoredF32>,
+    pub _2019: SeriesPattern1<StoredF32>,
+    pub _2020: SeriesPattern1<StoredF32>,
+    pub _2021: SeriesPattern1<StoredF32>,
+    pub _2022: SeriesPattern1<StoredF32>,
+    pub _2023: SeriesPattern1<StoredF32>,
+    pub _2024: SeriesPattern1<StoredF32>,
+    pub _2025: SeriesPattern1<StoredF32>,
+    pub _2026: SeriesPattern1<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
@@ -18666,10 +18670,10 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
-    pub all: SeriesPattern1<StoredF64>,
-    pub sth: SeriesPattern1<StoredF64>,
-    pub lth: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub all: SeriesPattern1<StoredF32>,
+    pub sth: SeriesPattern1<StoredF32>,
+    pub lth: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
@@ -18685,30 +18689,30 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
-    pub under_1h: SeriesPattern1<StoredF64>,
-    pub _1h_to_1d: SeriesPattern1<StoredF64>,
-    pub _1d_to_1w: SeriesPattern1<StoredF64>,
-    pub _1w_to_1m: SeriesPattern1<StoredF64>,
-    pub _1m_to_2m: SeriesPattern1<StoredF64>,
-    pub _2m_to_3m: SeriesPattern1<StoredF64>,
-    pub _3m_to_4m: SeriesPattern1<StoredF64>,
-    pub _4m_to_5m: SeriesPattern1<StoredF64>,
-    pub _5m_to_6m: SeriesPattern1<StoredF64>,
-    pub _6m_to_9m: SeriesPattern1<StoredF64>,
-    pub _9m_to_1y: SeriesPattern1<StoredF64>,
-    pub _1y_to_18m: SeriesPattern1<StoredF64>,
-    pub _18m_to_2y: SeriesPattern1<StoredF64>,
-    pub _2y_to_3y: SeriesPattern1<StoredF64>,
-    pub _3y_to_4y: SeriesPattern1<StoredF64>,
-    pub _4y_to_5y: SeriesPattern1<StoredF64>,
-    pub _5y_to_6y: SeriesPattern1<StoredF64>,
-    pub _6y_to_7y: SeriesPattern1<StoredF64>,
-    pub _7y_to_8y: SeriesPattern1<StoredF64>,
-    pub _8y_to_10y: SeriesPattern1<StoredF64>,
-    pub _10y_to_12y: SeriesPattern1<StoredF64>,
-    pub _12y_to_15y: SeriesPattern1<StoredF64>,
-    pub over_15y: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub under_1h: SeriesPattern1<StoredF32>,
+    pub _1h_to_1d: SeriesPattern1<StoredF32>,
+    pub _1d_to_1w: SeriesPattern1<StoredF32>,
+    pub _1w_to_1m: SeriesPattern1<StoredF32>,
+    pub _1m_to_2m: SeriesPattern1<StoredF32>,
+    pub _2m_to_3m: SeriesPattern1<StoredF32>,
+    pub _3m_to_4m: SeriesPattern1<StoredF32>,
+    pub _4m_to_5m: SeriesPattern1<StoredF32>,
+    pub _5m_to_6m: SeriesPattern1<StoredF32>,
+    pub _6m_to_9m: SeriesPattern1<StoredF32>,
+    pub _9m_to_1y: SeriesPattern1<StoredF32>,
+    pub _1y_to_18m: SeriesPattern1<StoredF32>,
+    pub _18m_to_2y: SeriesPattern1<StoredF32>,
+    pub _2y_to_3y: SeriesPattern1<StoredF32>,
+    pub _3y_to_4y: SeriesPattern1<StoredF32>,
+    pub _4y_to_5y: SeriesPattern1<StoredF32>,
+    pub _5y_to_6y: SeriesPattern1<StoredF32>,
+    pub _6y_to_7y: SeriesPattern1<StoredF32>,
+    pub _7y_to_8y: SeriesPattern1<StoredF32>,
+    pub _8y_to_10y: SeriesPattern1<StoredF32>,
+    pub _10y_to_12y: SeriesPattern1<StoredF32>,
+    pub _12y_to_15y: SeriesPattern1<StoredF32>,
+    pub over_15y: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
@@ -18744,27 +18748,27 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
-    pub _1w: SeriesPattern1<StoredF64>,
-    pub _1m: SeriesPattern1<StoredF64>,
-    pub _2m: SeriesPattern1<StoredF64>,
-    pub _3m: SeriesPattern1<StoredF64>,
-    pub _4m: SeriesPattern1<StoredF64>,
-    pub _5m: SeriesPattern1<StoredF64>,
-    pub _6m: SeriesPattern1<StoredF64>,
-    pub _9m: SeriesPattern1<StoredF64>,
-    pub _1y: SeriesPattern1<StoredF64>,
-    pub _18m: SeriesPattern1<StoredF64>,
-    pub _2y: SeriesPattern1<StoredF64>,
-    pub _3y: SeriesPattern1<StoredF64>,
-    pub _4y: SeriesPattern1<StoredF64>,
-    pub _5y: SeriesPattern1<StoredF64>,
-    pub _6y: SeriesPattern1<StoredF64>,
-    pub _7y: SeriesPattern1<StoredF64>,
-    pub _8y: SeriesPattern1<StoredF64>,
-    pub _10y: SeriesPattern1<StoredF64>,
-    pub _12y: SeriesPattern1<StoredF64>,
-    pub _15y: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub _1w: SeriesPattern1<StoredF32>,
+    pub _1m: SeriesPattern1<StoredF32>,
+    pub _2m: SeriesPattern1<StoredF32>,
+    pub _3m: SeriesPattern1<StoredF32>,
+    pub _4m: SeriesPattern1<StoredF32>,
+    pub _5m: SeriesPattern1<StoredF32>,
+    pub _6m: SeriesPattern1<StoredF32>,
+    pub _9m: SeriesPattern1<StoredF32>,
+    pub _1y: SeriesPattern1<StoredF32>,
+    pub _18m: SeriesPattern1<StoredF32>,
+    pub _2y: SeriesPattern1<StoredF32>,
+    pub _3y: SeriesPattern1<StoredF32>,
+    pub _4y: SeriesPattern1<StoredF32>,
+    pub _5y: SeriesPattern1<StoredF32>,
+    pub _6y: SeriesPattern1<StoredF32>,
+    pub _7y: SeriesPattern1<StoredF32>,
+    pub _8y: SeriesPattern1<StoredF32>,
+    pub _10y: SeriesPattern1<StoredF32>,
+    pub _12y: SeriesPattern1<StoredF32>,
+    pub _15y: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
@@ -18797,27 +18801,27 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
-    pub _1d: SeriesPattern1<StoredF64>,
-    pub _1w: SeriesPattern1<StoredF64>,
-    pub _1m: SeriesPattern1<StoredF64>,
-    pub _2m: SeriesPattern1<StoredF64>,
-    pub _3m: SeriesPattern1<StoredF64>,
-    pub _4m: SeriesPattern1<StoredF64>,
-    pub _5m: SeriesPattern1<StoredF64>,
-    pub _6m: SeriesPattern1<StoredF64>,
-    pub _9m: SeriesPattern1<StoredF64>,
-    pub _1y: SeriesPattern1<StoredF64>,
-    pub _18m: SeriesPattern1<StoredF64>,
-    pub _2y: SeriesPattern1<StoredF64>,
-    pub _3y: SeriesPattern1<StoredF64>,
-    pub _4y: SeriesPattern1<StoredF64>,
-    pub _5y: SeriesPattern1<StoredF64>,
-    pub _6y: SeriesPattern1<StoredF64>,
-    pub _7y: SeriesPattern1<StoredF64>,
-    pub _8y: SeriesPattern1<StoredF64>,
-    pub _10y: SeriesPattern1<StoredF64>,
-    pub _12y: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub _1d: SeriesPattern1<StoredF32>,
+    pub _1w: SeriesPattern1<StoredF32>,
+    pub _1m: SeriesPattern1<StoredF32>,
+    pub _2m: SeriesPattern1<StoredF32>,
+    pub _3m: SeriesPattern1<StoredF32>,
+    pub _4m: SeriesPattern1<StoredF32>,
+    pub _5m: SeriesPattern1<StoredF32>,
+    pub _6m: SeriesPattern1<StoredF32>,
+    pub _9m: SeriesPattern1<StoredF32>,
+    pub _1y: SeriesPattern1<StoredF32>,
+    pub _18m: SeriesPattern1<StoredF32>,
+    pub _2y: SeriesPattern1<StoredF32>,
+    pub _3y: SeriesPattern1<StoredF32>,
+    pub _4y: SeriesPattern1<StoredF32>,
+    pub _5y: SeriesPattern1<StoredF32>,
+    pub _6y: SeriesPattern1<StoredF32>,
+    pub _7y: SeriesPattern1<StoredF32>,
+    pub _8y: SeriesPattern1<StoredF32>,
+    pub _10y: SeriesPattern1<StoredF32>,
+    pub _12y: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
@@ -18850,12 +18854,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
-    pub _0: SeriesPattern1<StoredF64>,
-    pub _1: SeriesPattern1<StoredF64>,
-    pub _2: SeriesPattern1<StoredF64>,
-    pub _3: SeriesPattern1<StoredF64>,
-    pub _4: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub _0: SeriesPattern1<StoredF32>,
+    pub _1: SeriesPattern1<StoredF32>,
+    pub _2: SeriesPattern1<StoredF32>,
+    pub _3: SeriesPattern1<StoredF32>,
+    pub _4: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
@@ -18873,25 +18877,25 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
-    pub _2009: SeriesPattern1<StoredF64>,
-    pub _2010: SeriesPattern1<StoredF64>,
-    pub _2011: SeriesPattern1<StoredF64>,
-    pub _2012: SeriesPattern1<StoredF64>,
-    pub _2013: SeriesPattern1<StoredF64>,
-    pub _2014: SeriesPattern1<StoredF64>,
-    pub _2015: SeriesPattern1<StoredF64>,
-    pub _2016: SeriesPattern1<StoredF64>,
-    pub _2017: SeriesPattern1<StoredF64>,
-    pub _2018: SeriesPattern1<StoredF64>,
-    pub _2019: SeriesPattern1<StoredF64>,
-    pub _2020: SeriesPattern1<StoredF64>,
-    pub _2021: SeriesPattern1<StoredF64>,
-    pub _2022: SeriesPattern1<StoredF64>,
-    pub _2023: SeriesPattern1<StoredF64>,
-    pub _2024: SeriesPattern1<StoredF64>,
-    pub _2025: SeriesPattern1<StoredF64>,
-    pub _2026: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub _2009: SeriesPattern1<StoredF32>,
+    pub _2010: SeriesPattern1<StoredF32>,
+    pub _2011: SeriesPattern1<StoredF32>,
+    pub _2012: SeriesPattern1<StoredF32>,
+    pub _2013: SeriesPattern1<StoredF32>,
+    pub _2014: SeriesPattern1<StoredF32>,
+    pub _2015: SeriesPattern1<StoredF32>,
+    pub _2016: SeriesPattern1<StoredF32>,
+    pub _2017: SeriesPattern1<StoredF32>,
+    pub _2018: SeriesPattern1<StoredF32>,
+    pub _2019: SeriesPattern1<StoredF32>,
+    pub _2020: SeriesPattern1<StoredF32>,
+    pub _2021: SeriesPattern1<StoredF32>,
+    pub _2022: SeriesPattern1<StoredF32>,
+    pub _2023: SeriesPattern1<StoredF32>,
+    pub _2024: SeriesPattern1<StoredF32>,
+    pub _2025: SeriesPattern1<StoredF32>,
+    pub _2026: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
@@ -18922,9 +18926,9 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix {
-    pub discount: SeriesPattern1<StoredF64>,
-    pub premium: SeriesPattern1<StoredF64>,
-    pub height: SeriesPattern18<StoredF64>,
+    pub discount: SeriesPattern1<StoredF32>,
+    pub premium: SeriesPattern1<StoredF32>,
+    pub height: SeriesPattern18<StoredF32>,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix {
@@ -18956,15 +18960,15 @@ impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio {
-    pub all: _1m1w1y24hHeightPattern2,
-    pub sth: _1m1w1y24hHeightPattern2,
+    pub all: _1m1w1y24hHeightPattern,
+    pub sth: _1m1w1y24hHeightPattern,
 }
 
 impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio {
     pub fn new(client: Arc<BrkClientBase>, base_path: String) -> Self {
         Self {
-            all: _1m1w1y24hHeightPattern2::new(client.clone(), "asopr".to_string()),
-            sth: _1m1w1y24hHeightPattern2::new(client.clone(), "sth_asopr".to_string()),
+            all: _1m1w1y24hHeightPattern::new(client.clone(), "asopr".to_string()),
+            sth: _1m1w1y24hHeightPattern::new(client.clone(), "sth_asopr".to_string()),
         }
     }
 }

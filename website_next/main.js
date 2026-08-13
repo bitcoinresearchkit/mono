@@ -9,22 +9,27 @@ import { revealPage, transitionPage } from "./utils/transition.js";
 /** @type {HTMLElement | undefined} */
 let currentPage;
 
-/** @type {Map<RoutePath, HTMLElement>} */
+/** @type {Map<RoutePath, Promise<HTMLElement>>} */
 const pageByPath = new Map();
+
+let renderId = 0;
 
 const header = createHeader();
 document.body.append(header);
 
 /** @param {RoutePath} pathname */
-function getPage(pathname) {
+async function getPage(pathname) {
   let page = pageByPath.get(pathname);
 
   if (!page) {
-    page = createRoutePage(pathname);
-    page.hidden = true;
-    page.inert = true;
+    page = createRoutePage(pathname).then((element) => {
+      element.hidden = true;
+      element.inert = true;
+      document.body.append(element);
+
+      return element;
+    });
     pageByPath.set(pathname, page);
-    document.body.append(page);
   }
 
   return page;
@@ -44,15 +49,19 @@ function activatePage(page) {
   page.dispatchEvent(new Event("pageactive"));
 }
 
-function renderPage() {
+async function renderPage() {
+  const id = ++renderId;
   const pathname = normalizePath(window.location.pathname);
-  activatePage(getPage(pathname));
+  const page = await getPage(pathname);
+
+  if (id === renderId) activatePage(page);
 }
 
 /** @param {string} path */
 function navigate(path) {
   if (path === `${window.location.pathname}${window.location.hash}`) return;
   history.pushState(null, "", path);
+  void getPage(normalizePath(window.location.pathname));
   void transitionPage(renderPage);
 }
 
@@ -73,10 +82,8 @@ document.addEventListener("click", (event) => {
   navigate(`${pathname}${url.hash}`);
 });
 
-window.addEventListener("popstate", renderPage);
+window.addEventListener("popstate", () => void renderPage());
 
-renderPage();
-
-requestAnimationFrame(() => {
-  void revealPage();
+void renderPage().then(() => {
+  requestAnimationFrame(() => void revealPage());
 });

@@ -34,6 +34,21 @@ pub fn ref_to_type_name(ref_path: &str) -> Option<&str> {
     ref_path.rsplit('/').next()
 }
 
+/// Extract the element type from a Rust fixed-array name such as `[Cents; 19]`.
+pub fn rust_array_element_type(type_name: &str) -> Option<&str> {
+    let inner = type_name.strip_prefix('[')?.strip_suffix(']')?;
+    let (element, length) = inner.rsplit_once(';')?;
+    length.trim().parse::<usize>().ok()?;
+
+    let element = element.trim();
+    (!element.is_empty()).then_some(element)
+}
+
+/// Whether a schema name is a concrete Rust generic such as `Range<Dollars>`.
+pub fn is_rust_concrete_generic(type_name: &str) -> bool {
+    type_name.contains('<') && type_name.ends_with('>')
+}
+
 /// Get union variants from anyOf or oneOf schema.
 pub fn get_union_variants(schema: &Value) -> Option<&Vec<Value>> {
     schema

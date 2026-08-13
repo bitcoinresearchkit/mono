@@ -1,7 +1,7 @@
 import { createPlaceholderCube, setConfirmedInterval } from "./block-cube.js";
 import { olderRemaining, olderRunway } from "./scroll.js";
 
-const OLDER_RESERVE_VIEWPORTS = 6;
+const OLDER_RESERVE_VIEWPORTS = 3;
 
 /**
  * @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block
@@ -16,7 +16,7 @@ const OLDER_RESERVE_VIEWPORTS = 6;
  * @param {() => boolean} args.isActive
  * @param {() => boolean} args.isHorizontal
  * @param {(startHeight: number) => Promise<Block[]>} args.fetchBlocks
- * @param {(block: Block) => HTMLButtonElement} args.createCube
+ * @param {(block: Block, enterIndex?: number) => HTMLButtonElement} args.createCube
  * @param {() => boolean} args.isAborted
  * @param {(error: unknown) => void} args.onError
  */
@@ -137,7 +137,9 @@ export function createOlderBlocks({
         return;
       }
 
-      const cubes = [...blocks].reverse().map(createCube);
+      const cubes = [...blocks].reverse().map((block, index, ordered) => {
+        return createCube(block, ordered.length - index - 1);
+      });
 
       for (let i = 0; i < batch.placeholders.length; i++) {
         const cube = cubes[i];

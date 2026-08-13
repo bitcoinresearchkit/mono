@@ -185,7 +185,7 @@ impl UnrealizedVecs {
             .push(&rows.map(|row| row.capitalized_cap_in_loss_raw));
     }
 
-    pub fn min_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.profit
             .matrices
             .min_len()

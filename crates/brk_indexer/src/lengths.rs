@@ -12,7 +12,7 @@ use crate::{Stores, Vecs, stores::IndexerStores as _};
 /// Pipeline-wide length/count snapshot. Lengths semantics:
 /// `bound.f = N` means positions `0..N` are fully written; readers
 /// reject `pos >= bound.f`.
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Lengths {
     pub empty_output_index: EmptyOutputIndex,
     pub height: Height,
@@ -33,6 +33,7 @@ pub struct Lengths {
 }
 
 pub trait IndexerLengths: Sized {
+    fn clamp_to(&mut self, other: &Self);
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
     fn resume_at(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<Option<Self>>;
 }
@@ -241,6 +242,25 @@ impl Lengths {
 }
 
 impl IndexerLengths for Lengths {
+    fn clamp_to(&mut self, other: &Self) {
+        self.height = self.height.min(other.height);
+        self.tx_index = self.tx_index.min(other.tx_index);
+        self.txin_index = self.txin_index.min(other.txin_index);
+        self.txout_index = self.txout_index.min(other.txout_index);
+        self.empty_output_index = self.empty_output_index.min(other.empty_output_index);
+        self.op_return_index = self.op_return_index.min(other.op_return_index);
+        self.p2ms_output_index = self.p2ms_output_index.min(other.p2ms_output_index);
+        self.p2pk33_addr_index = self.p2pk33_addr_index.min(other.p2pk33_addr_index);
+        self.p2pk65_addr_index = self.p2pk65_addr_index.min(other.p2pk65_addr_index);
+        self.p2pkh_addr_index = self.p2pkh_addr_index.min(other.p2pkh_addr_index);
+        self.p2sh_addr_index = self.p2sh_addr_index.min(other.p2sh_addr_index);
+        self.p2tr_addr_index = self.p2tr_addr_index.min(other.p2tr_addr_index);
+        self.p2wpkh_addr_index = self.p2wpkh_addr_index.min(other.p2wpkh_addr_index);
+        self.p2wsh_addr_index = self.p2wsh_addr_index.min(other.p2wsh_addr_index);
+        self.p2a_addr_index = self.p2a_addr_index.min(other.p2a_addr_index);
+        self.unknown_output_index = self.unknown_output_index.min(other.unknown_output_index);
+    }
+
     fn from_local(vecs: &Vecs, stores: &Stores) -> Result<Option<Self>> {
         Self::read_local(vecs, stores)
     }
@@ -306,6 +326,34 @@ mod checkpoint_tests {
             None
         );
         assert_eq!(matching_height(Height::ZERO, None), None);
+    }
+
+    #[test]
+    fn componentwise_clamping_covers_every_field() {
+        let value = u32::MAX as usize;
+        let max = Lengths {
+            empty_output_index: EmptyOutputIndex::from(value),
+            height: Height::from(value),
+            op_return_index: OpReturnIndex::from(value),
+            p2ms_output_index: P2MSOutputIndex::from(value),
+            p2pk33_addr_index: P2PK33AddrIndex::from(value),
+            p2pk65_addr_index: P2PK65AddrIndex::from(value),
+            p2pkh_addr_index: P2PKHAddrIndex::from(value),
+            p2sh_addr_index: P2SHAddrIndex::from(value),
+            p2tr_addr_index: P2TRAddrIndex::from(value),
+            p2wpkh_addr_index: P2WPKHAddrIndex::from(value),
+            p2wsh_addr_index: P2WSHAddrIndex::from(value),
+            p2a_addr_index: P2AAddrIndex::from(value),
+            tx_index: TxIndex::from(value),
+            txin_index: TxInIndex::from(value),
+            txout_index: TxOutIndex::from(value),
+            unknown_output_index: UnknownOutputIndex::from(value),
+        };
+        let min = Lengths::default();
+
+        let mut lengths = max;
+        lengths.clamp_to(&min);
+        assert_eq!(lengths, min);
     }
 
     #[test]

@@ -275,28 +275,6 @@ UrpdWeight = Literal["raw", "cointime", "coinflow"]
 Week1 = int
 Year1 = int
 Year10 = int
-[Bitcoin; 3] = List[Bitcoin]
-[Bytes; 23] = List[Bytes]
-[Bytes; 4] = List[Bytes]
-[Cents; 16] = List[Cents]
-[Cents; 19] = List[Cents]
-[Dollars; 3] = List[Dollars]
-[PartsPerMillion32; 19] = List[PartsPerMillion32]
-[PartsPerMillion32; 4] = List[PartsPerMillion32]
-[Sats; 23] = List[Sats]
-[Sats; 4] = List[Sats]
-[Sats; 8] = List[Sats]
-[StoredF32; 3] = List[StoredF32]
-[StoredF32; 4] = List[StoredF32]
-[StoredF64; 3] = List[StoredF64]
-[StoredF64; 4] = List[StoredF64]
-[StoredU16; 12] = List[StoredU16]
-[StoredU64; 12] = List[StoredU64]
-[StoredU64; 23] = List[StoredU64]
-[StoredU64; 4] = List[StoredU64]
-[StoredU64; 8] = List[StoredU64]
-[VSize; 23] = List[VSize]
-[VSize; 4] = List[VSize]
 class AddrAfterTxidParam(TypedDict):
     """
     Bitcoin address + last-seen txid path parameters (Esplora-style pagination)
@@ -1591,14 +1569,6 @@ class ProfitabilityRange(TypedDict):
     _70pct_to_80pct_in_loss: Sats
     _80pct_to_90pct_in_loss: Sats
     _90pct_to_100pct_in_loss: Sats
-
-class ProfitabilityRange<Dollars>(TypedDict):
-    short: ProfitabilityRange
-    long: ProfitabilityRange
-
-class ProfitabilityRange<Sats>(TypedDict):
-    short: ProfitabilityRange
-    long: ProfitabilityRange
 
 class RbfTx(TypedDict):
     """
@@ -3142,11 +3112,11 @@ class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mCumulativeOverUnderPattern:
     """Pattern struct for repeated tree structure."""
     pass
 
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern2:
+class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern3:
     """Pattern struct for repeated tree structure."""
     pass
 
-class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern:
+class _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern(Generic[T]):
     """Pattern struct for repeated tree structure."""
     pass
 
@@ -3208,7 +3178,7 @@ class HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pc
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.height: SeriesPattern18[[Cents; 19]] = SeriesPattern18(client, _m(acc, 'percentiles_cents'))
+        self.height: SeriesPattern18[List[Cents]] = SeriesPattern18(client, _m(acc, 'percentiles_cents'))
         self.index: SeriesPattern1[StoredI8] = SeriesPattern1(client, _m(acc, 'index'))
         self.pct0_1: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct0_1'))
         self.pct0_5: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'pct0_5'))
@@ -3339,7 +3309,7 @@ class Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct
         self.pct99: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99')
         self.pct99_5: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_5')
         self.pct99_9: PpmPriceRatioPattern = PpmPriceRatioPattern(client, acc, 'pct99_9')
-        self.ratios: SeriesPattern18[[PartsPerMillion32; 19]] = SeriesPattern18(client, _m(acc, 'ratios_ppm'))
+        self.ratios: SeriesPattern18[List[PartsPerMillion32]] = SeriesPattern18(client, _m(acc, 'ratios_ppm'))
 
 class _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern7(Generic[T]):
     """Pattern struct for repeated tree structure."""
@@ -4127,7 +4097,7 @@ class HeightRankTailThresholdPattern:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.height: SeriesPattern18[[Dollars; 3]] = SeriesPattern18(client, _m(acc, 'thresholds'))
+        self.height: SeriesPattern18[List[Dollars]] = SeriesPattern18(client, _m(acc, 'thresholds'))
         self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, _m(acc, 'rank'))
         self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, 'tail'))
         self.threshold_pct0_025: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'threshold'))
@@ -4170,7 +4140,7 @@ class _1m1w1y24hHeightPattern3:
         self._1w: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1w'))
         self._1y: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '1y'))
         self._24h: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _m(acc, '24h'))
-        self.height: SeriesPattern18[[PartsPerMillion32; 4]] = SeriesPattern18(client, _m(acc, 'ppm'))
+        self.height: SeriesPattern18[List[PartsPerMillion32]] = SeriesPattern18(client, _m(acc, 'ppm'))
 
 class _1m1w1y24hBlockPattern2:
     """Pattern struct for repeated tree structure."""
@@ -4203,7 +4173,7 @@ class _1m1w1y24hHeightPattern:
         self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1w'))
         self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1y'))
         self._24h: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '24h'))
-        self.height: SeriesPattern18[[StoredF32; 4]] = SeriesPattern18(client, acc)
+        self.height: SeriesPattern18[List[StoredF32]] = SeriesPattern18(client, acc)
 
 class _1m1w1y24hHeightPattern2:
     """Pattern struct for repeated tree structure."""
@@ -4214,7 +4184,7 @@ class _1m1w1y24hHeightPattern2:
         self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1w'))
         self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1y'))
         self._24h: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '24h'))
-        self.height: SeriesPattern18[[StoredF64; 4]] = SeriesPattern18(client, acc)
+        self.height: SeriesPattern18[List[StoredF64]] = SeriesPattern18(client, acc)
 
 class AverageBlockCumulativeFeeSumPattern:
     """Pattern struct for repeated tree structure."""
@@ -4373,10 +4343,10 @@ class _1m1w1yHeightPattern:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1m'))
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1w'))
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1y'))
-        self.height: SeriesPattern18[[StoredF64; 3]] = SeriesPattern18(client, acc)
+        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1m'))
+        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1w'))
+        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1y'))
+        self.height: SeriesPattern18[List[StoredF32]] = SeriesPattern18(client, acc)
 
 class AgeClassEntryEpochPattern:
     """Pattern struct for repeated tree structure."""
@@ -5068,6 +5038,7 @@ class SeriesTree_Blocks_Lookback:
         self._26d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_26d_ago')
         self._1m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_1m_ago')
         self._34d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_34d_ago')
+        self._50d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_50d_ago')
         self._55d: SeriesPattern18[Height] = SeriesPattern18(client, 'height_55d_ago')
         self._2m: SeriesPattern18[Height] = SeriesPattern18(client, 'height_2m_ago')
         self._9w: SeriesPattern18[Height] = SeriesPattern18(client, 'height_9w_ago')
@@ -5461,7 +5432,7 @@ class SeriesTree_Outputs_ByType_OutputCount:
         self.unknown: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'unknown_outputs_output_count')
         self.empty: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'empty_outputs_output_count')
         self.op_return: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_output_count')
-        self.height: SeriesPattern18[[StoredU16; 12]] = SeriesPattern18(client, 'output_count_by_type')
+        self.height: SeriesPattern18[List[StoredU16]] = SeriesPattern18(client, 'output_count_by_type')
 
 class SeriesTree_Outputs_ByType_OutputShare:
     """Series tree node."""
@@ -5497,7 +5468,7 @@ class SeriesTree_Outputs_ByType_TxCount:
         self.unknown: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_with_unknown_outputs_output')
         self.empty: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_with_empty_outputs_output')
         self.op_return: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_with_op_return_output')
-        self.cumulative: SeriesPattern18[[StoredU64; 12]] = SeriesPattern18(client, 'tx_count_with_output_by_type_cumulative')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'tx_count_with_output_by_type_cumulative')
 
 class SeriesTree_Outputs_ByType:
     """Series tree node."""
@@ -5696,7 +5667,7 @@ class SeriesTree_Addrs_Funded:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'addr_count_by_type')
         self.balance: SeriesTree_Addrs_Funded_Balance = SeriesTree_Addrs_Funded_Balance(client)
 
 class SeriesTree_Addrs_Empty:
@@ -5712,7 +5683,7 @@ class SeriesTree_Addrs_Empty:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_empty_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_empty_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_empty_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'empty_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'empty_addr_count_by_type')
 
 class SeriesTree_Addrs_Activity:
     """Series tree node."""
@@ -5737,7 +5708,7 @@ class SeriesTree_Addrs_Total:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_total_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_total_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_total_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'total_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'total_addr_count_by_type')
 
 class SeriesTree_Addrs_New:
     """Series tree node."""
@@ -5766,7 +5737,7 @@ class SeriesTree_Addrs_Reused_Count_Funded:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_reused_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_reused_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_reused_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'reused_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'reused_addr_count_by_type')
 
 class SeriesTree_Addrs_Reused_Count_Total:
     """Series tree node."""
@@ -5781,7 +5752,7 @@ class SeriesTree_Addrs_Reused_Count_Total:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_total_reused_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_total_reused_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_total_reused_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'total_reused_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'total_reused_addr_count_by_type')
 
 class SeriesTree_Addrs_Reused_Count:
     """Series tree node."""
@@ -5803,7 +5774,7 @@ class SeriesTree_Addrs_Reused_Events_OutputToReusedAddrCount:
         self.p2wsh: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2wsh_output_to_reused_addr_count')
         self.p2tr: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2tr_output_to_reused_addr_count')
         self.p2a: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2a_output_to_reused_addr_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'output_to_reused_addr_count_by_type_cumulative')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'output_to_reused_addr_count_by_type_cumulative')
 
 class SeriesTree_Addrs_Reused_Events_InputFromReusedAddrCount:
     """Series tree node."""
@@ -5818,7 +5789,7 @@ class SeriesTree_Addrs_Reused_Events_InputFromReusedAddrCount:
         self.p2wsh: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2wsh_input_from_reused_addr_count')
         self.p2tr: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2tr_input_from_reused_addr_count')
         self.p2a: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2a_input_from_reused_addr_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'input_from_reused_addr_count_by_type_cumulative')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'input_from_reused_addr_count_by_type_cumulative')
 
 class SeriesTree_Addrs_Reused_Events:
     """Series tree node."""
@@ -5845,7 +5816,7 @@ class SeriesTree_Addrs_Reused_Supply:
         self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_reused_addr_supply')
         self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_reused_addr_supply')
         self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_reused_addr_supply')
-        self.height: SeriesPattern18[[Sats; 8]] = SeriesPattern18(client, 'reused_addr_supply_sats_by_type')
+        self.height: SeriesPattern18[List[Sats]] = SeriesPattern18(client, 'reused_addr_supply_sats_by_type')
         self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, 'reused_addr_supply_share')
 
 class SeriesTree_Addrs_Reused:
@@ -5869,7 +5840,7 @@ class SeriesTree_Addrs_Respent_Count_Funded:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_respent_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_respent_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_respent_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'respent_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'respent_addr_count_by_type')
 
 class SeriesTree_Addrs_Respent_Count_Total:
     """Series tree node."""
@@ -5884,7 +5855,7 @@ class SeriesTree_Addrs_Respent_Count_Total:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_total_respent_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_total_respent_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_total_respent_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'total_respent_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'total_respent_addr_count_by_type')
 
 class SeriesTree_Addrs_Respent_Count:
     """Series tree node."""
@@ -5906,7 +5877,7 @@ class SeriesTree_Addrs_Respent_Events_OutputToReusedAddrCount:
         self.p2wsh: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2wsh_output_to_respent_addr_count')
         self.p2tr: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2tr_output_to_respent_addr_count')
         self.p2a: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2a_output_to_respent_addr_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'output_to_respent_addr_count_by_type_cumulative')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'output_to_respent_addr_count_by_type_cumulative')
 
 class SeriesTree_Addrs_Respent_Events_InputFromReusedAddrCount:
     """Series tree node."""
@@ -5921,7 +5892,7 @@ class SeriesTree_Addrs_Respent_Events_InputFromReusedAddrCount:
         self.p2wsh: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2wsh_input_from_respent_addr_count')
         self.p2tr: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2tr_input_from_respent_addr_count')
         self.p2a: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'p2a_input_from_respent_addr_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'input_from_respent_addr_count_by_type_cumulative')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'input_from_respent_addr_count_by_type_cumulative')
 
 class SeriesTree_Addrs_Respent_Events:
     """Series tree node."""
@@ -5948,7 +5919,7 @@ class SeriesTree_Addrs_Respent_Supply:
         self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_respent_addr_supply')
         self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_respent_addr_supply')
         self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_respent_addr_supply')
-        self.height: SeriesPattern18[[Sats; 8]] = SeriesPattern18(client, 'respent_addr_supply_sats_by_type')
+        self.height: SeriesPattern18[List[Sats]] = SeriesPattern18(client, 'respent_addr_supply_sats_by_type')
         self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, 'respent_addr_supply_share')
 
 class SeriesTree_Addrs_Respent:
@@ -5972,7 +5943,7 @@ class SeriesTree_Addrs_Exposed_Count_Funded:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_exposed_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_exposed_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_exposed_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'exposed_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'exposed_addr_count_by_type')
 
 class SeriesTree_Addrs_Exposed_Count_Total:
     """Series tree node."""
@@ -5987,7 +5958,7 @@ class SeriesTree_Addrs_Exposed_Count_Total:
         self.p2wsh: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2wsh_total_exposed_addr_count')
         self.p2tr: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2tr_total_exposed_addr_count')
         self.p2a: SeriesPattern1[StoredU64] = SeriesPattern1(client, 'p2a_total_exposed_addr_count')
-        self.height: SeriesPattern18[[StoredU64; 8]] = SeriesPattern18(client, 'total_exposed_addr_count_by_type')
+        self.height: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'total_exposed_addr_count_by_type')
 
 class SeriesTree_Addrs_Exposed_Count:
     """Series tree node."""
@@ -6009,7 +5980,7 @@ class SeriesTree_Addrs_Exposed_Supply:
         self.p2wsh: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2wsh_exposed_addr_supply')
         self.p2tr: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2tr_exposed_addr_supply')
         self.p2a: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, 'p2a_exposed_addr_supply')
-        self.height: SeriesPattern18[[Sats; 8]] = SeriesPattern18(client, 'exposed_addr_supply_sats_by_type')
+        self.height: SeriesPattern18[List[Sats]] = SeriesPattern18(client, 'exposed_addr_supply_sats_by_type')
         self.share: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4 = AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4(client, 'exposed_addr_supply_share')
 
 class SeriesTree_Addrs_Exposed:
@@ -6142,7 +6113,7 @@ class SeriesTree_OpReturn_ByKind_OutputCount:
         self.text: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_text_output_count')
         self.empty: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_empty_output_count')
         self.unknown: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_unknown_output_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 23]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_output_count')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_output_count')
 
 class SeriesTree_OpReturn_ByKind_DataBytes:
     """Series tree node."""
@@ -6171,7 +6142,7 @@ class SeriesTree_OpReturn_ByKind_DataBytes:
         self.text: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_text')
         self.empty: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_empty')
         self.unknown: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_unknown')
-        self.cumulative: SeriesPattern18[[Bytes; 23]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_data_bytes')
+        self.cumulative: SeriesPattern18[List[Bytes]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_data_bytes')
 
 class SeriesTree_OpReturn_ByKind_TxCount:
     """Series tree node."""
@@ -6200,7 +6171,7 @@ class SeriesTree_OpReturn_ByKind_TxCount:
         self.text: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_text_tx_count')
         self.empty: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_empty_tx_count')
         self.unknown: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_unknown_tx_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 23]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_tx_count')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_tx_count')
 
 class SeriesTree_OpReturn_ByKind_TxVsize:
     """Series tree node."""
@@ -6229,7 +6200,7 @@ class SeriesTree_OpReturn_ByKind_TxVsize:
         self.text: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_text_tx_vsize')
         self.empty: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_empty_tx_vsize')
         self.unknown: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_unknown_tx_vsize')
-        self.cumulative: SeriesPattern18[[VSize; 23]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_tx_vsize')
+        self.cumulative: SeriesPattern18[List[VSize]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_tx_vsize')
 
 class SeriesTree_OpReturn_ByKind_Fees:
     """Series tree node."""
@@ -6258,7 +6229,7 @@ class SeriesTree_OpReturn_ByKind_Fees:
         self.text: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_text')
         self.empty: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_empty')
         self.unknown: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_unknown')
-        self.cumulative: SeriesPattern18[[Sats; 23]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_fees')
+        self.cumulative: SeriesPattern18[List[Sats]] = SeriesPattern18(client, 'op_return_cumulative_by_kind_fees')
 
 class SeriesTree_OpReturn_ByKind:
     """Series tree node."""
@@ -6278,7 +6249,7 @@ class SeriesTree_OpReturn_Policy_OutputCount:
         self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_pre_v30_nonstandard_output_count')
         self.oversized: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_oversized_output_count')
         self.multiple: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_multiple_output_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 4]] = SeriesPattern18(client, 'op_return_cumulative_policy_output_count')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'op_return_cumulative_policy_output_count')
 
 class SeriesTree_OpReturn_Policy_DataBytes:
     """Series tree node."""
@@ -6288,7 +6259,7 @@ class SeriesTree_OpReturn_Policy_DataBytes:
         self.pre_v30_nonstandard: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_pre_v30_nonstandard')
         self.oversized: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_oversized')
         self.multiple: AverageBlockChainCumulativeDataSumPattern = AverageBlockChainCumulativeDataSumPattern(client, 'op_return_policy_multiple')
-        self.cumulative: SeriesPattern18[[Bytes; 4]] = SeriesPattern18(client, 'op_return_cumulative_policy_data_bytes')
+        self.cumulative: SeriesPattern18[List[Bytes]] = SeriesPattern18(client, 'op_return_cumulative_policy_data_bytes')
 
 class SeriesTree_OpReturn_Policy_TxCount:
     """Series tree node."""
@@ -6298,7 +6269,7 @@ class SeriesTree_OpReturn_Policy_TxCount:
         self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_pre_v30_nonstandard_tx_count')
         self.oversized: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_oversized_tx_count')
         self.multiple: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_multiple_tx_count')
-        self.cumulative: SeriesPattern18[[StoredU64; 4]] = SeriesPattern18(client, 'op_return_cumulative_policy_tx_count')
+        self.cumulative: SeriesPattern18[List[StoredU64]] = SeriesPattern18(client, 'op_return_cumulative_policy_tx_count')
 
 class SeriesTree_OpReturn_Policy_TxVsize:
     """Series tree node."""
@@ -6308,7 +6279,7 @@ class SeriesTree_OpReturn_Policy_TxVsize:
         self.pre_v30_nonstandard: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_pre_v30_nonstandard_tx_vsize')
         self.oversized: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_oversized_tx_vsize')
         self.multiple: AverageBlockCumulativeSumPattern[VSize] = AverageBlockCumulativeSumPattern(client, 'op_return_policy_multiple_tx_vsize')
-        self.cumulative: SeriesPattern18[[VSize; 4]] = SeriesPattern18(client, 'op_return_cumulative_policy_tx_vsize')
+        self.cumulative: SeriesPattern18[List[VSize]] = SeriesPattern18(client, 'op_return_cumulative_policy_tx_vsize')
 
 class SeriesTree_OpReturn_Policy_Fees:
     """Series tree node."""
@@ -6318,7 +6289,7 @@ class SeriesTree_OpReturn_Policy_Fees:
         self.pre_v30_nonstandard: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_pre_v30_nonstandard')
         self.oversized: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_oversized')
         self.multiple: AverageBlockCumulativeFeeSumPattern = AverageBlockCumulativeFeeSumPattern(client, 'op_return_policy_multiple')
-        self.cumulative: SeriesPattern18[[Sats; 4]] = SeriesPattern18(client, 'op_return_cumulative_policy_fees')
+        self.cumulative: SeriesPattern18[List[Sats]] = SeriesPattern18(client, 'op_return_cumulative_policy_fees')
 
 class SeriesTree_OpReturn_Policy:
     """Series tree node."""
@@ -7171,7 +7142,7 @@ class SeriesTree_Models_RarityMeter_Extremes_CoinsInLoss:
         self.threshold_pct0_1: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold_pct0_1')
         self.threshold_pct0_05: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold_pct0_05')
         self.threshold_pct0_025: SeriesPattern1[Bitcoin] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_threshold')
-        self.height: SeriesPattern18[[Bitcoin; 3]] = SeriesPattern18(client, 'rarity_meter_coins_in_loss_thresholds')
+        self.height: SeriesPattern18[List[Bitcoin]] = SeriesPattern18(client, 'rarity_meter_coins_in_loss_thresholds')
         self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'rarity_meter_coins_in_loss_tail')
         self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, 'rarity_meter_coins_in_loss_rank')
 
@@ -7182,7 +7153,7 @@ class SeriesTree_Models_RarityMeter_Extremes_SellerExhaustion:
         self.threshold_pct0_1: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold_pct0_1')
         self.threshold_pct0_05: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold_pct0_05')
         self.threshold_pct0_025: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_threshold')
-        self.height: SeriesPattern18[[StoredF32; 3]] = SeriesPattern18(client, 'rarity_meter_seller_exhaustion_thresholds')
+        self.height: SeriesPattern18[List[StoredF32]] = SeriesPattern18(client, 'rarity_meter_seller_exhaustion_thresholds')
         self.tail: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'rarity_meter_seller_exhaustion_tail')
         self.rank: SeriesPattern1[StoredU8] = SeriesPattern1(client, 'rarity_meter_seller_exhaustion_rank')
 
@@ -7758,6 +7729,7 @@ class SeriesTree_Market_MovingAverage_Sma:
         self._21d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_21d')
         self._1m: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_1m')
         self._34d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_34d')
+        self._50d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_50d')
         self._55d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_55d')
         self._89d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_89d')
         self._111d: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_sma_111d')
@@ -7789,7 +7761,7 @@ class SeriesTree_Market_MovingAverage_Ema:
         self._2y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_2y')
         self._200w: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_200w')
         self._4y: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'price_ema_4y')
-        self.height: SeriesPattern18[[Cents; 16]] = SeriesPattern18(client, 'price_ema_cents')
+        self.height: SeriesPattern18[List[Cents]] = SeriesPattern18(client, 'price_ema_cents')
 
 class SeriesTree_Market_MovingAverage:
     """Series tree node."""
@@ -11252,79 +11224,79 @@ class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1h_old_sopr_24h')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1h_to_1d_old_sopr_24h')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1d_to_1w_old_sopr_24h')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1w_to_1m_old_sopr_24h')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1m_to_2m_old_sopr_24h')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2m_to_3m_old_sopr_24h')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3m_to_4m_old_sopr_24h')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4m_to_5m_old_sopr_24h')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5m_to_6m_old_sopr_24h')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6m_to_9m_old_sopr_24h')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_9m_to_1y_old_sopr_24h')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_1y_to_18m_old_sopr_24h')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_18m_to_2y_old_sopr_24h')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_2y_to_3y_old_sopr_24h')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_3y_to_4y_old_sopr_24h')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_4y_to_5y_old_sopr_24h')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_5y_to_6y_old_sopr_24h')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_6y_to_7y_old_sopr_24h')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_7y_to_8y_old_sopr_24h')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_8y_to_10y_old_sopr_24h')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_10y_to_12y_old_sopr_24h')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_12y_to_15y_old_sopr_24h')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_15y_old_sopr_24h')
+        self.under_1h: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_1h_old_sopr_24h')
+        self._1h_to_1d: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_1h_to_1d_old_sopr_24h')
+        self._1d_to_1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_1d_to_1w_old_sopr_24h')
+        self._1w_to_1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_1w_to_1m_old_sopr_24h')
+        self._1m_to_2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_1m_to_2m_old_sopr_24h')
+        self._2m_to_3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_2m_to_3m_old_sopr_24h')
+        self._3m_to_4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_3m_to_4m_old_sopr_24h')
+        self._4m_to_5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_4m_to_5m_old_sopr_24h')
+        self._5m_to_6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_5m_to_6m_old_sopr_24h')
+        self._6m_to_9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_6m_to_9m_old_sopr_24h')
+        self._9m_to_1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_9m_to_1y_old_sopr_24h')
+        self._1y_to_18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_1y_to_18m_old_sopr_24h')
+        self._18m_to_2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_18m_to_2y_old_sopr_24h')
+        self._2y_to_3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_2y_to_3y_old_sopr_24h')
+        self._3y_to_4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_3y_to_4y_old_sopr_24h')
+        self._4y_to_5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_4y_to_5y_old_sopr_24h')
+        self._5y_to_6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_5y_to_6y_old_sopr_24h')
+        self._6y_to_7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_6y_to_7y_old_sopr_24h')
+        self._7y_to_8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_7y_to_8y_old_sopr_24h')
+        self._8y_to_10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_8y_to_10y_old_sopr_24h')
+        self._10y_to_12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_10y_to_12y_old_sopr_24h')
+        self._12y_to_15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_12y_to_15y_old_sopr_24h')
+        self.over_15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_15y_old_sopr_24h')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1w_old_sopr_24h')
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1m_old_sopr_24h')
-        self._2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_2m_old_sopr_24h')
-        self._3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_3m_old_sopr_24h')
-        self._4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_4m_old_sopr_24h')
-        self._5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_5m_old_sopr_24h')
-        self._6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_6m_old_sopr_24h')
-        self._9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_9m_old_sopr_24h')
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_1y_old_sopr_24h')
-        self._18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_18m_old_sopr_24h')
-        self._2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_2y_old_sopr_24h')
-        self._3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_3y_old_sopr_24h')
-        self._4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_4y_old_sopr_24h')
-        self._5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_5y_old_sopr_24h')
-        self._6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_6y_old_sopr_24h')
-        self._7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_7y_old_sopr_24h')
-        self._8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_8y_old_sopr_24h')
-        self._10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_10y_old_sopr_24h')
-        self._12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_12y_old_sopr_24h')
-        self._15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_under_15y_old_sopr_24h')
+        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_1w_old_sopr_24h')
+        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_1m_old_sopr_24h')
+        self._2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_2m_old_sopr_24h')
+        self._3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_3m_old_sopr_24h')
+        self._4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_4m_old_sopr_24h')
+        self._5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_5m_old_sopr_24h')
+        self._6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_6m_old_sopr_24h')
+        self._9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_9m_old_sopr_24h')
+        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_1y_old_sopr_24h')
+        self._18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_18m_old_sopr_24h')
+        self._2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_2y_old_sopr_24h')
+        self._3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_3y_old_sopr_24h')
+        self._4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_4y_old_sopr_24h')
+        self._5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_5y_old_sopr_24h')
+        self._6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_6y_old_sopr_24h')
+        self._7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_7y_old_sopr_24h')
+        self._8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_8y_old_sopr_24h')
+        self._10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_10y_old_sopr_24h')
+        self._12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_12y_old_sopr_24h')
+        self._15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_under_15y_old_sopr_24h')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_1d_old_sopr_24h')
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_1w_old_sopr_24h')
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_1m_old_sopr_24h')
-        self._2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_2m_old_sopr_24h')
-        self._3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_3m_old_sopr_24h')
-        self._4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_4m_old_sopr_24h')
-        self._5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_5m_old_sopr_24h')
-        self._6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_6m_old_sopr_24h')
-        self._9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_9m_old_sopr_24h')
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_1y_old_sopr_24h')
-        self._18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_18m_old_sopr_24h')
-        self._2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_2y_old_sopr_24h')
-        self._3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_3y_old_sopr_24h')
-        self._4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_4y_old_sopr_24h')
-        self._5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_5y_old_sopr_24h')
-        self._6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_6y_old_sopr_24h')
-        self._7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_7y_old_sopr_24h')
-        self._8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_8y_old_sopr_24h')
-        self._10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_10y_old_sopr_24h')
-        self._12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_over_12y_old_sopr_24h')
+        self._1d: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_1d_old_sopr_24h')
+        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_1w_old_sopr_24h')
+        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_1m_old_sopr_24h')
+        self._2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_2m_old_sopr_24h')
+        self._3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_3m_old_sopr_24h')
+        self._4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_4m_old_sopr_24h')
+        self._5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_5m_old_sopr_24h')
+        self._6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_6m_old_sopr_24h')
+        self._9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_9m_old_sopr_24h')
+        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_1y_old_sopr_24h')
+        self._18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_18m_old_sopr_24h')
+        self._2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_2y_old_sopr_24h')
+        self._3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_3y_old_sopr_24h')
+        self._4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_4y_old_sopr_24h')
+        self._5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_5y_old_sopr_24h')
+        self._6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_6y_old_sopr_24h')
+        self._7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_7y_old_sopr_24h')
+        self._8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_8y_old_sopr_24h')
+        self._10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_10y_old_sopr_24h')
+        self._12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_over_12y_old_sopr_24h')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age:
     """Series tree node."""
@@ -11338,179 +11310,179 @@ class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._0: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'epoch_0_sopr_24h')
-        self._1: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'epoch_1_sopr_24h')
-        self._2: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'epoch_2_sopr_24h')
-        self._3: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'epoch_3_sopr_24h')
-        self._4: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'epoch_4_sopr_24h')
+        self._0: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'epoch_0_sopr_24h')
+        self._1: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'epoch_1_sopr_24h')
+        self._2: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'epoch_2_sopr_24h')
+        self._3: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'epoch_3_sopr_24h')
+        self._4: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'epoch_4_sopr_24h')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._2009: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2009_sopr_24h')
-        self._2010: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2010_sopr_24h')
-        self._2011: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2011_sopr_24h')
-        self._2012: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2012_sopr_24h')
-        self._2013: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2013_sopr_24h')
-        self._2014: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2014_sopr_24h')
-        self._2015: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2015_sopr_24h')
-        self._2016: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2016_sopr_24h')
-        self._2017: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2017_sopr_24h')
-        self._2018: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2018_sopr_24h')
-        self._2019: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2019_sopr_24h')
-        self._2020: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2020_sopr_24h')
-        self._2021: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2021_sopr_24h')
-        self._2022: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2022_sopr_24h')
-        self._2023: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2023_sopr_24h')
-        self._2024: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2024_sopr_24h')
-        self._2025: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2025_sopr_24h')
-        self._2026: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'class_2026_sopr_24h')
+        self._2009: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2009_sopr_24h')
+        self._2010: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2010_sopr_24h')
+        self._2011: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2011_sopr_24h')
+        self._2012: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2012_sopr_24h')
+        self._2013: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2013_sopr_24h')
+        self._2014: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2014_sopr_24h')
+        self._2015: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2015_sopr_24h')
+        self._2016: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2016_sopr_24h')
+        self._2017: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2017_sopr_24h')
+        self._2018: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2018_sopr_24h')
+        self._2019: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2019_sopr_24h')
+        self._2020: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2020_sopr_24h')
+        self._2021: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2021_sopr_24h')
+        self._2022: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2022_sopr_24h')
+        self._2023: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2023_sopr_24h')
+        self._2024: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2024_sopr_24h')
+        self._2025: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2025_sopr_24h')
+        self._2026: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'class_2026_sopr_24h')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_0')
-        self.sth: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_1')
-        self.lth: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_2')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'sopr_24h_by_aggregate')
+        self.all: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_0')
+        self.sth: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_1')
+        self.lth: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_aggregate_column_2')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'sopr_24h_by_aggregate')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_0')
-        self._1h_to_1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_1')
-        self._1d_to_1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_2')
-        self._1w_to_1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_3')
-        self._1m_to_2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_4')
-        self._2m_to_3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_5')
-        self._3m_to_4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_6')
-        self._4m_to_5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_7')
-        self._5m_to_6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_8')
-        self._6m_to_9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_9')
-        self._9m_to_1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_10')
-        self._1y_to_18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_11')
-        self._18m_to_2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_12')
-        self._2y_to_3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_13')
-        self._3y_to_4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_14')
-        self._4y_to_5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_15')
-        self._5y_to_6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_16')
-        self._6y_to_7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_17')
-        self._7y_to_8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_18')
-        self._8y_to_10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_19')
-        self._10y_to_12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_20')
-        self._12y_to_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_21')
-        self.over_15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_22')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'utxos_sopr_24h_by_age_range')
+        self.under_1h: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_0')
+        self._1h_to_1d: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_1')
+        self._1d_to_1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_2')
+        self._1w_to_1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_3')
+        self._1m_to_2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_4')
+        self._2m_to_3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_5')
+        self._3m_to_4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_6')
+        self._4m_to_5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_7')
+        self._5m_to_6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_8')
+        self._6m_to_9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_9')
+        self._9m_to_1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_10')
+        self._1y_to_18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_11')
+        self._18m_to_2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_12')
+        self._2y_to_3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_13')
+        self._3y_to_4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_14')
+        self._4y_to_5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_15')
+        self._5y_to_6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_16')
+        self._6y_to_7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_17')
+        self._7y_to_8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_18')
+        self._8y_to_10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_19')
+        self._10y_to_12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_20')
+        self._12y_to_15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_21')
+        self.over_15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_age_range_column_22')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'utxos_sopr_24h_by_age_range')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_0')
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_1')
-        self._2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_2')
-        self._3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_3')
-        self._4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_4')
-        self._5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_5')
-        self._6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_6')
-        self._9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_7')
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_8')
-        self._18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_9')
-        self._2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_10')
-        self._3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_11')
-        self._4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_12')
-        self._5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_13')
-        self._6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_14')
-        self._7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_15')
-        self._8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_16')
-        self._10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_17')
-        self._12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_18')
-        self._15y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_19')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'utxos_sopr_24h_by_under_age')
+        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_0')
+        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_1')
+        self._2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_2')
+        self._3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_3')
+        self._4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_4')
+        self._5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_5')
+        self._6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_6')
+        self._9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_7')
+        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_8')
+        self._18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_9')
+        self._2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_10')
+        self._3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_11')
+        self._4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_12')
+        self._5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_13')
+        self._6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_14')
+        self._7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_15')
+        self._8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_16')
+        self._10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_17')
+        self._12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_18')
+        self._15y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_under_age_column_19')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'utxos_sopr_24h_by_under_age')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1d: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_0')
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_1')
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_2')
-        self._2m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_3')
-        self._3m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_4')
-        self._4m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_5')
-        self._5m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_6')
-        self._6m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_7')
-        self._9m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_8')
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_9')
-        self._18m: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_10')
-        self._2y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_11')
-        self._3y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_12')
-        self._4y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_13')
-        self._5y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_14')
-        self._6y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_15')
-        self._7y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_16')
-        self._8y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_17')
-        self._10y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_18')
-        self._12y: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_19')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'utxos_sopr_24h_by_over_age')
+        self._1d: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_0')
+        self._1w: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_1')
+        self._1m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_2')
+        self._2m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_3')
+        self._3m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_4')
+        self._4m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_5')
+        self._5m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_6')
+        self._6m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_7')
+        self._9m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_8')
+        self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_9')
+        self._18m: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_10')
+        self._2y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_11')
+        self._3y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_12')
+        self._4y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_13')
+        self._5y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_14')
+        self._6y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_15')
+        self._7y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_16')
+        self._8y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_17')
+        self._10y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_18')
+        self._12y: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'utxos_sopr_24h_by_over_age_column_19')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'utxos_sopr_24h_by_over_age')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._0: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_0')
-        self._1: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_1')
-        self._2: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_2')
-        self._3: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_3')
-        self._4: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_4')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'sopr_24h_by_epoch')
+        self._0: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_0')
+        self._1: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_1')
+        self._2: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_2')
+        self._3: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_3')
+        self._4: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_epoch_column_4')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'sopr_24h_by_epoch')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._2009: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_0')
-        self._2010: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_1')
-        self._2011: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_2')
-        self._2012: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_3')
-        self._2013: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_4')
-        self._2014: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_5')
-        self._2015: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_6')
-        self._2016: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_7')
-        self._2017: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_8')
-        self._2018: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_9')
-        self._2019: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_10')
-        self._2020: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_11')
-        self._2021: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_12')
-        self._2022: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_13')
-        self._2023: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_14')
-        self._2024: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_15')
-        self._2025: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_16')
-        self._2026: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_class_column_17')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'sopr_24h_by_class')
+        self._2009: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_0')
+        self._2010: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_1')
+        self._2011: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_2')
+        self._2012: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_3')
+        self._2013: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_4')
+        self._2014: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_5')
+        self._2015: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_6')
+        self._2016: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_7')
+        self._2017: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_8')
+        self._2018: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_9')
+        self._2019: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_10')
+        self._2020: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_11')
+        self._2021: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_12')
+        self._2022: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_13')
+        self._2023: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_14')
+        self._2024: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_15')
+        self._2025: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_16')
+        self._2026: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_class_column_17')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'sopr_24h_by_class')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.discount: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_entry_column_0')
-        self.premium: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h_by_entry_column_1')
-        self.height: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'sopr_24h_by_entry')
+        self.discount: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_entry_column_0')
+        self.premium: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h_by_entry_column_1')
+        self.height: SeriesPattern18[StoredF32] = SeriesPattern18(client, 'sopr_24h_by_entry')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Sopr:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed = SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed(client)
-        self.all: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sopr_24h')
+        self.all: SeriesPattern1[StoredF32] = SeriesPattern1(client, 'sopr_24h')
         self.age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age = SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age(client)
         self.epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch = SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch(client)
         self.class_: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class = SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class(client)
-        self.entry: DiscountPremiumPattern7[StoredF64] = DiscountPremiumPattern7(client, 'sopr_24h')
-        self.term: LongShortPattern7[StoredF64] = LongShortPattern7(client, 'sopr_24h')
+        self.entry: DiscountPremiumPattern7[StoredF32] = DiscountPremiumPattern7(client, 'sopr_24h')
+        self.term: LongShortPattern7[StoredF32] = LongShortPattern7(client, 'sopr_24h')
         self.aggregate_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix = SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix(client)
         self.age_range_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix = SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix(client)
         self.under_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix = SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix(client)
@@ -11523,8 +11495,8 @@ class SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'asopr')
-        self.sth: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'sth_asopr')
+        self.all: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, 'asopr')
+        self.sth: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, 'sth_asopr')
 
 class SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume:
     """Series tree node."""

@@ -1,0 +1,62 @@
+[data-block-xray] {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: min(80dvh, 52rem);
+  padding-top: 2rem;
+
+  > h2 {
+    color: var(--gray);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-regular);
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  > div {
+    position: relative;
+    display: grid;
+    min-height: 0;
+    place-items: center;
+  }
+
+  [data-block-xray-status] {
+    position: absolute;
+    margin: 0;
+    color: var(--gray);
+    text-transform: uppercase;
+  }
+
+  [data-cube-xray-interior] {
+    width: min(100%, 42rem);
+    aspect-ratio: 173.205 / 200;
+    opacity: 0;
+    overflow: visible;
+    transform: scale(0.96);
+    transition:
+      opacity 300ms ease,
+      transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &[data-ready] [data-cube-xray-interior] {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  [data-xray-prism-face] {
+    fill: var(--xray-fee-color);
+    stroke: var(--black);
+    stroke-linejoin: bevel;
+    stroke-width: 1;
+    paint-order: stroke fill;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-block-xray] [data-cube-xray-interior] {
+    transition: none;
+  }
+}

@@ -68,28 +68,39 @@ function renderStatus(content, status) {
 export function createBlockPreviewPane(block) {
   const content = document.createElement("div");
   const controller = new AbortController();
+  /** @type {ReturnType<typeof loadBlockPreview> | null} */
+  let data = null;
   let destroyHeatmap = noop;
   let live = true;
 
   content.dataset.blockPreview = "";
   renderStatus(content, "Loading");
 
-  void loadBlockPreview(block, controller.signal)
-    .then((data) => {
-      if (!live) return;
-      const preview = createPreview(data, block.height, controller.signal);
+  function load() {
+    if (data) return data;
 
-      destroyHeatmap = preview.destroy;
-      content.replaceChildren(preview.element);
-    })
-    .catch((error) => {
-      if (!live) return;
-      console.error(error);
-      renderStatus(content, "Unavailable");
-    });
+    data = loadBlockPreview(block, controller.signal);
+
+    void data
+      .then((data) => {
+        if (!live) return;
+        const preview = createPreview(data, block.height, controller.signal);
+
+        destroyHeatmap = preview.destroy;
+        content.replaceChildren(preview.element);
+      })
+      .catch((error) => {
+        if (!live) return;
+        console.error(error);
+        renderStatus(content, "Unavailable");
+      });
+
+    return data;
+  }
 
   return {
     element: content,
+    load,
     destroy() {
       live = false;
       controller.abort();

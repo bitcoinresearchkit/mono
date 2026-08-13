@@ -1,24 +1,16 @@
-import { brk } from "../../../utils/client.js";
+import { fetchBrkSeries } from "../../../utils/api.js";
 
 /**
  * @template T
- * @param {{
- *   slice: (
- *     start: number,
- *     end: number,
- *   ) => {
- *     fetch: (
- *       options: { signal: AbortSignal, memCache: false },
- *     ) => Promise<{ data: T[] }>,
- *   },
- * }} series
+ * @param {string} name
+ * @param {string} index
  * @param {number} start
  * @param {number} end
  * @param {AbortSignal} signal
  * @returns {Promise<{ data: T[] }>}
  */
-function fetchSeriesSlice(series, start, end, signal) {
-  return series.slice(start, end).fetch({ signal, memCache: false });
+function fetchSeriesSlice(name, index, start, end, signal) {
+  return fetchBrkSeries(name, index, start, end, signal);
 }
 
 /**
@@ -28,7 +20,8 @@ function fetchSeriesSlice(series, start, end, signal) {
 async function loadBlockPreviewRange(block, signal) {
   const firstTxIndex = (
     await fetchSeriesSlice(
-      brk.series.transactions.raw.firstTxIndex.by.height,
+      "first_tx_index",
+      "height",
       block.height,
       block.height + 1,
       signal,
@@ -49,10 +42,9 @@ async function loadBlockPreviewRange(block, signal) {
  */
 export async function loadBlockPreview(block, signal) {
   const { start, end } = await loadBlockPreviewRange(block, signal);
-  const tx = brk.series.transactions;
   const [weights, feeRates] = await Promise.all([
-    fetchSeriesSlice(tx.raw.weight.by.tx_index, start, end, signal),
-    fetchSeriesSlice(tx.fees.feeRate.by.tx_index, start, end, signal),
+    fetchSeriesSlice("tx_weight", "tx_index", start, end, signal),
+    fetchSeriesSlice("fee_rate", "tx_index", start, end, signal),
   ]);
 
   signal.throwIfAborted();
@@ -71,9 +63,7 @@ export async function loadBlockPreview(block, signal) {
  */
 export async function loadBlockPreviewTxid(txIndex, signal) {
   const txid = (
-    await brk.series.transactions.raw.txid.by.tx_index
-      .get(txIndex)
-      .fetch({ signal, memCache: false })
+    await fetchSeriesSlice("txid", "tx_index", txIndex, txIndex + 1, signal)
   ).data[0];
 
   signal.throwIfAborted();

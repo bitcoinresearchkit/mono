@@ -1,14 +1,20 @@
 #block-details {
+  width: min(100%, 80rem);
   min-width: 0;
   height: 100%;
   min-height: 0;
+  margin-inline: auto;
   overflow-y: auto;
-  padding: calc(var(--page-x) + 2.5rem) var(--page-x) var(--page-x) 0;
+  padding: calc(var(--page-x) + 2.5rem) var(--page-x) var(--page-x);
   color: var(--white);
   font-family: var(--font-mono);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
   scrollbar-width: none;
+
+  [data-block-back] {
+    margin-bottom: 1.5rem;
+  }
 
   > div {
     display: grid;
@@ -33,11 +39,6 @@
 
 @media (max-width: 48rem) {
   #block-details {
-    min-width: 0;
-    height: auto;
-    overflow: visible;
-    padding: 1rem var(--page-x) var(--page-x);
-
     > div {
       grid-template-columns: minmax(0, 1fr);
     }

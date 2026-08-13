@@ -3,24 +3,27 @@ use brk_cohort::{
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Cents, Height, StoredF64, Version};
+use brk_types::{Cents, Height, StoredF32, Version};
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode,
+    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode,
 };
 
 use crate::{
     indexes,
     internal::{
         CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, ColumnarRollingWindows,
-        LazyColumnPerBlockCumulativeRolling, RatioCents64, Windows,
+        LazyColumnPerBlockCumulativeRolling, SoprRatio, Windows,
     },
 };
 
 use super::AdjustedSoprComputeSource;
 
+const SOURCE_VERSION: Version = Version::ONE;
+const RATIO_VERSION: Version = Version::ONE;
+
 #[derive(Traversable)]
 pub struct AdjustedSoprVecs<M: StorageMode = Rw> {
-    pub ratio: UTXOAllAndSth<ColumnarRollingWindows<StoredF64, M>>,
+    pub ratio: UTXOAllAndSth<ColumnarRollingWindows<StoredF32, M>>,
     pub transfer_volume: ColumnarPerBlockCumulativeRolling<
         Cents,
         UTXOAllAndSthId,
@@ -42,11 +45,13 @@ impl AdjustedSoprVecs {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
+        let source_version = version + SOURCE_VERSION;
+        let ratio_version = source_version + RATIO_VERSION;
         let transfer_volume = Self::import_cumulative(
             db,
             "adjusted_sopr_transfer_volume_cumulative_by_cohort",
             "adj_value_created",
-            version,
+            source_version,
             indexes,
             cached_starts,
         )?;
@@ -54,7 +59,7 @@ impl AdjustedSoprVecs {
             db,
             "adjusted_sopr_value_destroyed_cumulative_by_cohort",
             "adj_value_destroyed",
-            version,
+            source_version,
             indexes,
             cached_starts,
         )?;
@@ -62,13 +67,13 @@ impl AdjustedSoprVecs {
             all: ColumnarRollingWindows::forced_import(
                 db,
                 "asopr",
-                Self::cohort_version(version, UTXOAllAndSthId::All),
+                Self::cohort_version(ratio_version, UTXOAllAndSthId::All),
                 indexes,
             )?,
             sth: ColumnarRollingWindows::forced_import(
                 db,
                 &Self::cohort_metric_name(UTXOAllAndSthId::Sth, "asopr"),
-                Self::cohort_version(version, UTXOAllAndSthId::Sth),
+                Self::cohort_version(ratio_version, UTXOAllAndSthId::Sth),
                 indexes,
             )?,
         };
@@ -145,8 +150,8 @@ impl AdjustedSoprVecs {
         &mut self,
         max_from: Height,
         sources: &UTXOAllAndSth<AdjustedSoprComputeSource>,
-        under_1h_transfer_volume: &V1,
-        under_1h_value_destroyed: &V2,
+        under_1h_transfer_volume_cumulative: &V1,
+        under_1h_value_destroyed_cumulative: &V2,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -163,7 +168,7 @@ impl AdjustedSoprVecs {
                     .cents
                     .height
             },
-            |_| under_1h_transfer_volume,
+            |_| under_1h_transfer_volume_cumulative,
             |_, base, under_1h| base - under_1h,
             exit,
         )?;
@@ -177,7 +182,7 @@ impl AdjustedSoprVecs {
                     .cents
                     .height
             },
-            |_| under_1h_value_destroyed,
+            |_| under_1h_value_destroyed_cumulative,
             |_, base, under_1h| base - under_1h,
             exit,
         )?;
@@ -201,27 +206,13 @@ impl AdjustedSoprVecs {
                         .height
                 },
                 |_, transfer_volume, value_destroyed| {
-                    RatioCents64::apply(transfer_volume, value_destroyed)
+                    SoprRatio::apply(transfer_volume, value_destroyed)
                 },
                 exit,
             )?;
         }
 
         Ok(())
-    }
-
-    pub fn min_len(&self) -> usize {
-        self.transfer_volume
-            .cumulative
-            .len()
-            .min(self.value_destroyed.cumulative.len())
-            .min(
-                self.ratio
-                    .iter()
-                    .map(|value| value.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            )
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {

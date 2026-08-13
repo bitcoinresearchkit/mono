@@ -43,7 +43,7 @@ pub fn process_addr_updates(
 /// Flush checkpoint to disk (pure I/O, no processing).
 ///
 /// Writes all accumulated data in parallel:
-/// - Cohort stateful vectors (parallel internally)
+/// - Cohort stored vectors (parallel internally)
 /// - Height-indexed vectors
 /// - Address indexes and data
 /// - Transaction output index mappings

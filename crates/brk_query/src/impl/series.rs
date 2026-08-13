@@ -110,9 +110,12 @@ impl Query {
 
     /// Returns the latest value for a single series as a JSON value.
     pub fn latest(&self, series: &SeriesName, index: Index) -> Result<serde_json::Value> {
-        self.get_vec(series, index)?
-            .last_json_value()
-            .ok_or(Error::NoData)
+        let vec = self.get_vec(series, index)?;
+        let len = vec.len();
+        if len == 0 {
+            return Err(Error::NoData);
+        }
+        vec.last_json_value().ok_or(Error::NoData)
     }
 
     /// Returns the length (total data points) for a single series.
@@ -147,27 +150,24 @@ impl Query {
     /// Use with `format` for lazy formatting after ETag check.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
         let vecs = self.search(&params)?;
-
-        let total = vecs.iter().map(|v| v.len()).min().unwrap_or(0);
-        let version: Version = vecs.iter().map(|v| v.version()).sum();
+        let safe = self.safe_lengths();
         let index = params.index;
 
-        let resolve_bound = |ri: RangeIndex, fallback: usize| -> Result<usize> {
+        let total = vecs.iter().map(|vec| vec.len()).min().unwrap_or(0);
+        let version: Version = vecs.iter().map(|v| v.version()).sum();
+
+        let resolve_bound = |ri: RangeIndex| -> Result<usize> {
             let i = self.range_index_to_i64(ri, index)?;
-            Ok(vecs
-                .iter()
-                .map(|v| v.i64_to_usize(i))
-                .min()
-                .unwrap_or(fallback))
+            Ok(vecdb::i64_to_usize(i, total))
         };
 
         let start = match params.start() {
-            Some(ri) => resolve_bound(ri, 0)?,
+            Some(ri) => resolve_bound(ri)?,
             None => 0,
         };
 
         let end = match params.end() {
-            Some(ri) => resolve_bound(ri, total)?,
+            Some(ri) => resolve_bound(ri)?,
             None => params
                 .limit()
                 .map(|l| start.saturating_add(*l).min(total))
@@ -183,11 +183,13 @@ impl Query {
             });
         }
 
-        // Snapshot tip-derived state together so the historical-branch ETag stays
-        // self-consistent: tip_height and hash_prefix both reflect the safe-bound
-        // tip, and stable_count is computed from tip_height.
-        let tip_height = self.height();
-        let hash_prefix = self.tip_hash_prefix();
+        let tip_height = safe.height.decremented().unwrap_or_default();
+        let tip_hash = safe
+            .height
+            .decremented()
+            .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
+            .unwrap_or_default();
+        let hash_prefix = BlockHashPrefix::from(&tip_hash);
         let stable_count = self.stable_count(params.index, total, tip_height);
 
         Ok(ResolvedQuery {
@@ -452,7 +454,7 @@ impl Query {
                     let count = col.range_count(from, to);
                     let mut buf = Vec::new();
                     if count == 1 {
-                        col.write_json_value(Some(start), &mut buf)?;
+                        col.write_json_value_at(start, &mut buf)?;
                         OutputLegacy::Json(LegacyValue::Value(buf))
                     } else {
                         col.write_json(Some(start), Some(end), &mut buf)?;

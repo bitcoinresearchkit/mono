@@ -60,6 +60,7 @@ pub fn main() -> anyhow::Result<()> {
 
     let mempool = Mempool::new(&client);
 
+    indexer.begin_update();
     let query = AsyncQuery::build(&indexer, &computer, Some(mempool.clone()));
 
     let mempool_clone = mempool.clone();
@@ -77,9 +78,10 @@ pub fn main() -> anyhow::Result<()> {
     };
 
     let port = config.brkport();
+    let server_query = query.clone();
 
     let future = async move {
-        let server = Server::new(&query, server_config);
+        let server = Server::new(&server_query, server_config);
 
         tokio::spawn(async move {
             server.serve(port).await.unwrap();

@@ -24,14 +24,15 @@ function waitForReveal() {
   return wait(readCssDuration("--reveal-duration"));
 }
 
-/** @param {() => void} render */
+/** @param {() => void | Promise<void>} render */
 export async function transitionPage(render) {
   const id = ++transitionId;
   document.documentElement.dataset.transition = "";
   await waitForTransition();
   if (id !== transitionId) return;
 
-  render();
+  await render();
+  if (id !== transitionId) return;
 
   requestAnimationFrame(() => {
     if (id === transitionId) delete document.documentElement.dataset.transition;

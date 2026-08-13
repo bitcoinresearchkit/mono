@@ -5,7 +5,7 @@ use brk_cohort::{
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
-use vecdb::{AnyStoredVec, AnyVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode};
+use vecdb::{AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode};
 
 use crate::{
     distribution::metrics::UTXORows,
@@ -158,19 +158,13 @@ impl ActivityVecs {
             .push_addr_balance(transfer_volume, &cents);
     }
 
-    pub fn min_len(&self) -> usize {
+    /// Dormancy is derived during post-processing and intentionally omitted.
+    pub fn min_resume_len(&self) -> usize {
         self.transfer_volume
             .min_len()
             .min(self.coindays_destroyed.cumulative.min_len())
             .min(self.transfer_volume_in_profit.min_len())
             .min(self.transfer_volume_in_loss.min_len())
-            .min(
-                self.dormancy
-                    .iter()
-                    .map(|value| value.height.len())
-                    .min()
-                    .unwrap_or_default(),
-            )
     }
 
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {

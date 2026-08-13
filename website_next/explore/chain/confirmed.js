@@ -5,26 +5,25 @@ import { scrollToElement } from "./scroll.js";
 
 /**
  * @param {Object} args
+ * @param {HTMLElement} args.scrollElement
  * @param {HTMLElement} args.blocksElement
  * @param {() => Element | null} args.firstProjectedElement
- * @param {(block: Block) => void} args.onSelect
+ * @param {(block: Block, cube: HTMLButtonElement) => void} args.onOpen
  * @param {() => void} args.onScrollSelect
  */
 export function createConfirmedBlocks({
+  scrollElement,
   blocksElement,
   firstProjectedElement,
-  onSelect,
+  onOpen,
   onScrollSelect,
 }) {
-  /** @type {HTMLButtonElement | null} */
-  let selectedCube = null;
   /** @type {HTMLButtonElement | null} */
   let tipCube = null;
   /** @type {Map<string, Block>} */
   const blocksByHash = new Map();
 
   function clear() {
-    selectedCube = null;
     tipCube = null;
     blocksByHash.clear();
   }
@@ -64,30 +63,20 @@ export function createConfirmedBlocks({
     tipCube?.setAttribute("data-tip", "");
   }
 
-  function deselect() {
-    if (selectedCube) delete selectedCube.dataset.selected;
-    selectedCube = null;
+  /** @param {HTMLButtonElement} cube */
+  function open(cube) {
+    const hash = cube.dataset.hash;
+    const block = hash ? get(hash) : undefined;
+    if (block) onOpen(block, cube);
   }
 
   /**
    * @param {HTMLButtonElement} cube
-   * @param {{ scroll?: "smooth" | "instant" }} [options]
+   * @param {"smooth" | "instant"} behavior
    */
-  function select(cube, { scroll } = {}) {
-    if (cube !== selectedCube) {
-      deselect();
-      selectedCube = cube;
-      cube.dataset.selected = "";
-    }
-
-    const hash = cube.dataset.hash;
-    const block = hash ? get(hash) : undefined;
-    if (block) onSelect(block);
-
-    if (scroll) {
-      scrollToElement(cube, scroll);
-      onScrollSelect();
-    }
+  function scrollTo(cube, behavior) {
+    scrollToElement(scrollElement, cube, behavior);
+    onScrollSelect();
   }
 
   function markSkeletons() {
@@ -98,16 +87,16 @@ export function createConfirmedBlocks({
     }
   }
 
-  /** @param {Block} block */
-  function create(block) {
+  /** @param {Block} block @param {number} [enterIndex] */
+  function create(block, enterIndex = 0) {
     cache(block);
 
-    return createEnteringConfirmedCube(block, select);
+    return createEnteringConfirmedCube(block, open, enterIndex);
   }
 
-  /** @param {Block} block */
-  function prepend(block) {
-    const cube = create(block);
+  /** @param {Block} block @param {number} [enterIndex] */
+  function prepend(block, enterIndex = 0) {
+    const cube = create(block, enterIndex);
     const oldFirst = /** @type {HTMLElement | null} */ (
       blocksElement.firstElementChild
     );
@@ -138,7 +127,7 @@ export function createConfirmedBlocks({
     markSkeletons,
     markTip,
     newest,
-    select,
+    scrollTo,
     tipCube: () => tipCube,
     prepend,
   });

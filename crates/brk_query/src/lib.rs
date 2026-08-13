@@ -54,8 +54,8 @@ impl Query {
 
     /// Pipeline-safe ceiling: the highest height for which both the
     /// indexer and computer have committed durable data. Backed by
-    /// `Indexer::safe_lengths()`, advanced by `main.rs` after each
-    /// compute pass and lowered before any rollback.
+    /// `Indexer::safe_lengths()`, advanced after each complete compute
+    /// pass and lowered before any rollback.
     ///
     /// Returns a height (the last fully-written block), not a length.
     /// `safe_lengths().height` is a count: `N` means heights `0..N` are

@@ -1,0 +1,98 @@
+#chain {
+  [data-role="glass"],
+  [data-role="liquid"],
+  [data-role="text"] {
+    transition: opacity 180ms ease;
+  }
+
+  [data-cube][data-hash]:hover {
+    --cube-face-base: var(--white);
+    --face-color-base: var(--white);
+
+    [data-role="glass"],
+    [data-role="liquid"] {
+      background: var(--face-color);
+      opacity: 1;
+    }
+
+    [data-role="text"] {
+      color: var(--black);
+      opacity: 1;
+    }
+  }
+
+  [data-cube][data-xray][data-xray-ready] {
+    [data-role="glass"],
+    [data-role="liquid"] {
+      background: var(--face-color);
+      opacity: 0.2;
+    }
+
+    [data-role="text"] {
+      color: var(--black);
+      opacity: 1;
+    }
+
+    [data-xray-prism-face] {
+      --xray-face-color: var(--xray-fee-color);
+    }
+  }
+
+  [data-cube][data-xray][data-xray-ready] [data-cube-xray-interior] {
+    opacity: 1;
+  }
+
+  [data-cube][data-xray][data-xray-ready]:is(:active, [data-opening]) {
+    [data-role="glass"],
+    [data-role="liquid"],
+    [data-role="text"] {
+      opacity: 0;
+    }
+  }
+
+  [data-cube-xray-interior] {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+  }
+
+  [data-xray-prism-face] {
+    fill: var(--xray-face-color);
+    stroke: var(--black);
+    stroke-linejoin: bevel;
+    stroke-width: 1;
+    paint-order: stroke fill;
+    vector-effect: non-scaling-stroke;
+    transition: fill 180ms ease;
+  }
+
+  [data-xray-prism-face="left"] {
+    --xray-face-color: var(--face-left);
+  }
+
+  [data-xray-prism-face="right"] {
+    --xray-face-color: var(--face-right);
+  }
+
+  [data-xray-prism-face="top"] {
+    --xray-face-color: var(--face-top);
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #chain {
+    [data-role="glass"],
+    [data-role="liquid"],
+    [data-role="text"],
+    [data-cube-xray-interior] {
+      transition: none;
+    }
+  }
+}

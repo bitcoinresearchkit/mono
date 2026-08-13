@@ -7,7 +7,8 @@ use serde_json::Value;
 use crate::{
     TypeSchemas,
     generators::{MANUAL_GENERIC_TYPES, write_description},
-    get_union_variants, ref_to_type_name, to_camel_case,
+    get_union_variants, is_rust_concrete_generic, ref_to_type_name, rust_array_element_type,
+    to_camel_case,
 };
 
 /// Generate JSDoc type definitions from OpenAPI schemas.
@@ -19,7 +20,10 @@ pub fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
     writeln!(output, "// Type definitions\n").unwrap();
 
     for (name, schema) in schemas {
-        if MANUAL_GENERIC_TYPES.contains(&name.as_str()) {
+        if MANUAL_GENERIC_TYPES.contains(&name.as_str())
+            || rust_array_element_type(name).is_some()
+            || is_rust_concrete_generic(name)
+        {
             continue;
         }
 
@@ -142,7 +146,10 @@ pub fn schema_to_js_type(schema: &Value, current_type: Option<&str>) -> String {
     }
 
     if let Some(ref_path) = schema.get("$ref").and_then(|r| r.as_str()) {
-        return ref_to_type_name(ref_path).unwrap_or("*").to_string();
+        let type_name = ref_to_type_name(ref_path).unwrap_or("*");
+        return rust_array_element_type(type_name)
+            .map(|element| format!("{element}[]"))
+            .unwrap_or_else(|| type_name.to_string());
     }
 
     if let Some(enum_values) = schema.get("enum").and_then(|e| e.as_array()) {

@@ -51,7 +51,18 @@ impl GenericSyntax {
         // Flatten nested generics to innermost type (e.g., Close<Cents> -> Cents)
         // This is needed because wrapper types like Close, Open, High, Low are
         // just type aliases in generated code, not actual generic classes.
-        extract_inner_type_recursive(type_str)
+        let converted = extract_inner_type_recursive(type_str);
+
+        let Some(element) = rust_array_element_type(&converted) else {
+            return converted;
+        };
+        let element = self.convert(element);
+
+        match self.default_type {
+            "Any" => format!("List[{element}]"),
+            "unknown" => format!("{element}[]"),
+            _ => converted,
+        }
     }
 }
 
@@ -65,4 +76,16 @@ fn extract_inner_type_recursive(type_str: &str) -> String {
         return extract_inner_type_recursive(inner);
     }
     type_str.to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::GenericSyntax;
+
+    #[test]
+    fn fixed_rust_arrays_use_target_language_syntax() {
+        assert_eq!(GenericSyntax::JAVASCRIPT.convert("[Cents; 19]"), "Cents[]");
+        assert_eq!(GenericSyntax::PYTHON.convert("[Cents; 19]"), "List[Cents]");
+        assert_eq!(GenericSyntax::RUST.convert("[Cents; 19]"), "[Cents; 19]");
+    }
 }

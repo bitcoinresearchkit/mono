@@ -42,7 +42,7 @@ impl AddrCountsVecs {
         )?))
     }
 
-    pub fn min_stateful_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.height.len()
     }
 

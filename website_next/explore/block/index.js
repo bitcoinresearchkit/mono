@@ -7,6 +7,7 @@ import { createFeeChart } from "./fee-chart/index.js";
 import { createBlockPreviewPane } from "./preview/index.js";
 import { appendPane } from "./pane.js";
 import { createBlockReceipt } from "./receipt/index.js";
+import { createBlockXrayPane } from "./xray/index.js";
 
 function noop() {}
 
@@ -19,23 +20,33 @@ function createColumn(side) {
   return column;
 }
 
-export function createBlockDetails() {
+/** @param {{ onBack?: () => void }} [options] */
+export function createBlockDetails({ onBack = () => {} } = {}) {
   const element = document.createElement("section");
+  const back = document.createElement("button");
   const receipt = createBlockReceipt();
   const header = createBlockHeader([receipt.button]);
   const content = document.createElement("div");
+  let activatePreview = noop;
   let destroyPreview = noop;
   let destroyFeeChart = noop;
+  let destroyXray = noop;
 
   element.id = "block-details";
-  element.hidden = true;
-  element.append(header.element, content);
+  back.type = "button";
+  back.dataset.blockBack = "";
+  back.textContent = "← Chain";
+  back.addEventListener("click", onBack);
+  element.append(back, header.element, content);
 
   function clearContent() {
+    activatePreview = noop;
     destroyPreview();
     destroyPreview = noop;
     destroyFeeChart();
     destroyFeeChart = noop;
+    destroyXray();
+    destroyXray = noop;
 
     content.textContent = "";
   }
@@ -44,7 +55,6 @@ export function createBlockDetails() {
   function update(block) {
     const extras = block.extras;
 
-    element.hidden = false;
     header.update(block);
     receipt.update(block);
 
@@ -66,9 +76,22 @@ export function createBlockDetails() {
     appendPane(right, "difficulty", [createDifficultyPane(block)]);
     appendPane(right, "fees", [feeChart.element]);
     content.append(left, right);
+
+    activatePreview = () => {
+      const xray = createBlockXrayPane(preview.load(), element);
+
+      destroyXray = xray.destroy;
+      content.append(xray.element);
+    };
+  }
+
+  function activate() {
+    activatePreview();
+    activatePreview = noop;
   }
 
   return /** @type {const} */ ({
+    activate,
     element,
     update,
   });

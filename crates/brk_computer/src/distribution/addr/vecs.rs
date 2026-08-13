@@ -40,14 +40,14 @@ impl AddrVecs {
         Ok(())
     }
 
-    pub fn min_stateful_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.funded
-            .min_stateful_len()
-            .min(self.empty.min_stateful_len())
-            .min(self.activity.min_stateful_len())
-            .min(self.reused.min_stateful_len())
-            .min(self.respent.min_stateful_len())
-            .min(self.exposed.min_stateful_len())
+            .min_resume_len()
+            .min(self.empty.min_resume_len())
+            .min(self.activity.min_resume_len())
+            .min(self.reused.min_resume_len())
+            .min(self.respent.min_resume_len())
+            .min(self.exposed.min_resume_len())
     }
 
     pub fn par_iter_stateful_height_mut(

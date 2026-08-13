@@ -82,10 +82,10 @@ impl ExposedAddrVecs {
         })
     }
 
-    pub fn min_stateful_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.count
-            .min_stateful_len()
-            .min(self.supply.min_stateful_len())
+            .min_resume_len()
+            .min(self.supply.min_resume_len())
     }
 
     pub fn par_iter_stateful_height_mut(

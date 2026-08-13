@@ -59,7 +59,8 @@ impl CohortMetrics<Rw> {
             cached_starts,
             spot_price,
         )?);
-        let all_chain_sources = AllChainSources::new(supply.total.all_supply(), spot_price);
+        let all_chain_sources =
+            AllChainSources::new(supply.total.all_supply(), supply.total.all_market_cap());
         let outputs = Box::new(OutputsVecs::forced_import(db, v, indexes, cached_starts)?);
         let activity = Box::new(ActivityVecs::forced_import(db, v, indexes, cached_starts)?);
         let realized = Box::new(RealizedVecs::forced_import(
@@ -124,10 +125,15 @@ impl CohortMetrics<Rw> {
     /// Reset in-memory caches that become stale after rollback.
     pub fn reset_caches(&mut self) {
         self.supply.total.all_supply().clear();
+        self.supply.total.all_market_cap().clear();
     }
 
     pub fn all_supply(&self) -> &CachedBoxedVec<Height, Sats> {
         self.supply.total.all_supply()
+    }
+
+    pub fn all_market_cap(&self) -> &CachedBoxedVec<Height, Cents> {
+        self.supply.total.all_market_cap()
     }
 
     fn sopr_24h_inputs(&self) -> UTXOGroupsWithoutAmountOrType<Sopr24hInput> {
@@ -338,17 +344,18 @@ impl CohortMetrics<Rw> {
     /// Second phase of post-processing: compute derived ratios and relative metrics.
     pub fn compute_rest_part2(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
         // Get under_1h value sources for adjusted computation (cloned to avoid borrow conflicts).
-        let under_1h_value_created = self
+        let under_1h_value_created_cumulative = self
             .activity
             .transfer_volume
             .cohorts
             .age
             .range
             .under_1h
-            .block
+            .cumulative
             .cents
-            .clone();
-        let under_1h_value_destroyed = self
+            .height
+            .read_only_clone();
+        let under_1h_value_destroyed_cumulative = self
             .realized
             .value_destroyed
             .cohorts
@@ -405,8 +412,8 @@ impl CohortMetrics<Rw> {
         realized_vecs.compute_adjusted_sopr(
             starting_lengths.height,
             &adjusted_sources,
-            &under_1h_value_created,
-            &under_1h_value_destroyed,
+            &under_1h_value_created_cumulative,
+            &under_1h_value_destroyed_cumulative,
             exit,
         )?;
         realized_vecs.compute_sopr(starting_lengths.height, &sopr_inputs, exit)?;
@@ -462,14 +469,16 @@ impl CohortMetrics<Rw> {
         vecs.into_par_iter()
     }
 
-    pub fn min_stateful_len(&self) -> Height {
-        Height::from(self.supply.min_len())
-            .min(Height::from(self.outputs.min_len()))
-            .min(Height::from(self.activity.min_len()))
-            .min(Height::from(self.realized.min_len()))
-            .min(Height::from(self.unrealized.min_len()))
-            .min(Height::from(self.cost_basis.min_len()))
-            .min(Height::from(self.profitability.min_stateful_len()))
+    /// Minimum complete length across values produced by the block loop.
+    /// Post-processing outputs must not participate in recovery.
+    pub fn min_resume_len(&self) -> Height {
+        Height::from(self.supply.min_resume_len())
+            .min(Height::from(self.outputs.min_resume_len()))
+            .min(Height::from(self.activity.min_resume_len()))
+            .min(Height::from(self.realized.min_resume_len()))
+            .min(Height::from(self.unrealized.min_resume_len()))
+            .min(Height::from(self.cost_basis.min_resume_len()))
+            .min(Height::from(self.profitability.min_resume_len()))
     }
 
     /// Validate computed versions for all cohorts.

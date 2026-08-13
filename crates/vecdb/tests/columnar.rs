@@ -708,6 +708,7 @@ fn zerocopy_columnar_roundtrip() -> Result<()> {
     run_small_backend_roundtrip::<vecdb::ZeroCopyVec<usize, u64>>()
 }
 
+#[cfg(any(feature = "lz4", feature = "zstd", feature = "zerocopy"))]
 fn run_small_backend_roundtrip<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u64> + 'static,

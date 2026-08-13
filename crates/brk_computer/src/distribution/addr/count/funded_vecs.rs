@@ -53,8 +53,8 @@ impl FundedAddrCountsVecs {
         })
     }
 
-    pub fn min_stateful_len(&self) -> usize {
-        self.counts.min_stateful_len().min(self.balance.len())
+    pub fn min_resume_len(&self) -> usize {
+        self.counts.min_resume_len().min(self.balance.len())
     }
 
     pub fn par_iter_height_mut(&mut self) -> impl ParallelIterator<Item = &mut dyn AnyStoredVec> {

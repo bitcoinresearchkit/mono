@@ -2,6 +2,7 @@ use brk_computer::Computer;
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_mempool::Mempool;
+
 use tokio::task::spawn_blocking;
 
 use crate::Query;
@@ -42,6 +43,10 @@ impl AsyncQuery {
         F: FnOnce(&Query) -> T,
     {
         f(&self.0)
+    }
+
+    pub fn generation(&self) -> Option<usize> {
+        self.0.indexer().generation()
     }
 
     #[inline]

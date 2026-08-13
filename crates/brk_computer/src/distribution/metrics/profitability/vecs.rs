@@ -53,7 +53,7 @@ pub struct ProfitabilityVecs<M: StorageMode = Rw> {
 }
 
 impl<M: StorageMode> ProfitabilityVecs<M> {
-    pub fn min_stateful_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.supply
             .height
             .len()

@@ -1,9 +1,9 @@
 use std::sync::{
     Arc,
-    atomic::{AtomicU64, Ordering::Relaxed},
+    atomic::{AtomicU64, AtomicUsize, Ordering::Relaxed},
 };
 
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 
 mod any_vec;
 mod budget;
@@ -21,6 +21,7 @@ use crate::{ReadOnlyClone, ReadableVec, StoredVec, TypedVec, VecIndex, Version};
 static NO_BUDGET: NoBudget = NoBudget;
 
 struct CacheState<T> {
+    valid: bool,
     len: usize,
     version: Version,
     generation: u64,
@@ -30,6 +31,7 @@ struct CacheState<T> {
 impl<T> CacheState<T> {
     fn empty() -> Self {
         Self {
+            valid: false,
             len: 0,
             version: Version::ZERO,
             generation: 0,
@@ -38,10 +40,11 @@ impl<T> CacheState<T> {
     }
 
     fn matches(&self, len: usize, version: Version) -> bool {
-        self.len == len && self.version == version
+        self.valid && self.len == len && self.version == version
     }
 
     fn invalidate(&mut self) {
+        self.valid = false;
         self.len = 0;
         self.version = Version::ZERO;
         self.generation = self.generation.wrapping_add(1);
@@ -49,6 +52,7 @@ impl<T> CacheState<T> {
     }
 
     fn replace(&mut self, len: usize, version: Version, data: Arc<[T]>) {
+        self.valid = true;
         self.len = len;
         self.version = version;
         self.data = data;
@@ -69,8 +73,11 @@ impl<T> CacheState<T> {
 pub struct CachedVec<V: TypedVec> {
     pub inner: V,
     cache: Arc<RwLock<CacheState<V::T>>>,
+    materialize: Arc<Mutex<()>>,
     pub(super) budget: &'static dyn CachedVecBudget,
     pub(super) access_count: Option<Arc<AtomicU64>>,
+    pub(super) last_access: Arc<AtomicU64>,
+    pub(super) resident_bytes: Arc<AtomicUsize>,
 }
 
 impl<V: TypedVec> CachedVec<V> {
@@ -78,8 +85,11 @@ impl<V: TypedVec> CachedVec<V> {
         Self {
             inner,
             cache: Arc::new(RwLock::new(CacheState::empty())),
+            materialize: Arc::new(Mutex::new(())),
             budget: &NO_BUDGET,
             access_count: None,
+            last_access: Arc::new(AtomicU64::new(0)),
+            resident_bytes: Arc::new(AtomicUsize::new(0)),
         }
     }
 
@@ -87,12 +97,17 @@ impl<V: TypedVec> CachedVec<V> {
         inner: V,
         budget: &'static dyn CachedVecBudget,
         access_count: Arc<AtomicU64>,
+        last_access: Arc<AtomicU64>,
+        resident_bytes: Arc<AtomicUsize>,
     ) -> Self {
         Self {
             inner,
             cache: Arc::new(RwLock::new(CacheState::empty())),
+            materialize: Arc::new(Mutex::new(())),
             budget,
             access_count: Some(access_count),
+            last_access,
+            resident_bytes,
         }
     }
 
@@ -103,6 +118,7 @@ impl<V: TypedVec> CachedVec<V> {
 
     pub fn clear(&self) {
         self.cache.write().invalidate();
+        self.budget.release(self.resident_bytes.swap(0, Relaxed));
         if let Some(c) = &self.access_count {
             c.store(0, Relaxed);
         }
@@ -110,10 +126,11 @@ impl<V: TypedVec> CachedVec<V> {
 }
 
 impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
-    /// Returns the full cached snapshot. Always materializes on miss (ignores budget).
+    /// Returns a full snapshot, retaining it when the budget allows.
     #[inline(always)]
     pub fn cached(&self) -> Arc<[V::T]> {
-        self.materialize(false).unwrap()
+        self.materialize()
+            .unwrap_or_else(|| self.inner.collect_range_dyn(0, self.inner.len()).into())
     }
 
     /// Returns the value at the given typed index from the cached snapshot.
@@ -131,43 +148,60 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
     /// Returns `None` when budget is exhausted or below min access threshold.
     #[inline]
     pub(super) fn try_cached(&self) -> Option<Arc<[V::T]>> {
-        self.materialize(true)
+        self.materialize()
     }
 
-    fn materialize(&self, check_budget: bool) -> Option<Arc<[V::T]>> {
+    fn materialize(&self) -> Option<Arc<[V::T]>> {
         let count = self
             .access_count
             .as_ref()
             .map(|c| c.fetch_add(1, Relaxed) + 1)
             .unwrap_or(0);
-        let mut reserved = false;
-
+        self.last_access.store(self.budget.record_access(), Relaxed);
         loop {
             let len = self.inner.len();
             let version = self.inner.version();
-            let generation = {
+            {
                 let cache = self.cache.read();
                 if cache.matches(len, version) {
                     return Some(cache.data.clone());
                 }
+            }
+
+            let _materialize = self.materialize.lock();
+
+            let len = self.inner.len();
+            let version = self.inner.version();
+            let generation = {
+                let mut cache = self.cache.write();
+                if cache.matches(len, version) {
+                    return Some(cache.data.clone());
+                }
+                cache.invalidate();
                 cache.generation
             };
+            self.budget.release(self.resident_bytes.swap(0, Relaxed));
 
-            if check_budget && !reserved {
-                if !self.budget.try_reserve(count) {
+            let bytes = len.checked_mul(size_of::<V::T>())?;
+            let reserved_bytes = if bytes > 0 {
+                if !self.budget.try_reserve(count, bytes) {
                     return None;
                 }
-                reserved = true;
-            }
+                bytes
+            } else {
+                0
+            };
 
             let data: Arc<[V::T]> = self.inner.collect_range_dyn(0, len).into();
             let mut cache = self.cache.write();
-            if cache.matches(len, version) {
-                return Some(cache.data.clone());
-            }
-            if cache.generation != generation {
+            if cache.generation != generation
+                || self.inner.len() != len
+                || self.inner.version() != version
+            {
+                self.budget.release(reserved_bytes);
                 continue;
             }
+            self.resident_bytes.store(reserved_bytes, Relaxed);
             cache.replace(len, version, data.clone());
 
             return Some(data);
@@ -187,12 +221,47 @@ impl<V: StoredVec> CachedVec<V> {
 mod tests {
     use std::sync::{
         Arc, Barrier,
-        atomic::{AtomicBool, Ordering::SeqCst},
+        atomic::{AtomicBool, AtomicUsize, Ordering::SeqCst},
     };
 
     use crate::{AnyVec, PrintableIndex, ReadableVec, TypedVec, short_type_name};
 
     use super::*;
+
+    struct TestBudget {
+        remaining: AtomicUsize,
+        reservations: AtomicUsize,
+    }
+
+    impl TestBudget {
+        const fn new(bytes: usize) -> Self {
+            Self {
+                remaining: AtomicUsize::new(bytes),
+                reservations: AtomicUsize::new(0),
+            }
+        }
+    }
+
+    impl CachedVecBudget for TestBudget {
+        fn record_access(&self) -> u64 {
+            0
+        }
+
+        fn try_reserve(&self, _: u64, bytes: usize) -> bool {
+            let reserved = self
+                .remaining
+                .fetch_update(SeqCst, SeqCst, |remaining| remaining.checked_sub(bytes))
+                .is_ok();
+            if reserved {
+                self.reservations.fetch_add(1, SeqCst);
+            }
+            reserved
+        }
+
+        fn release(&self, bytes: usize) {
+            self.remaining.fetch_add(bytes, SeqCst);
+        }
+    }
 
     #[derive(Clone)]
     struct BlockingVec {
@@ -306,5 +375,83 @@ mod tests {
 
         assert_eq!(handle.join().unwrap().as_ref(), [0, 2]);
         assert_eq!(cached.cached().as_ref(), [0, 2]);
+    }
+
+    #[test]
+    fn budget_tracks_resident_bytes_across_clear_and_resize() {
+        static BUDGET: TestBudget = TestBudget::new(16);
+
+        let source = BlockingVec::new([0, 1]);
+        source.block_once.store(false, SeqCst);
+        let access_count = Arc::new(AtomicU64::new(0));
+        let resident_bytes = Arc::new(AtomicUsize::new(0));
+        let cached = CachedVec::wrap_budgeted(
+            source.clone(),
+            &BUDGET,
+            access_count,
+            Arc::new(AtomicU64::new(0)),
+            resident_bytes.clone(),
+        );
+
+        assert_eq!(cached.collect_range_at(0, 2), [0, 1]);
+        assert_eq!(resident_bytes.load(SeqCst), 8);
+        assert_eq!(BUDGET.remaining.load(SeqCst), 8);
+
+        source.values.write().push(2);
+        assert_eq!(cached.collect_range_at(0, 3), [0, 1, 2]);
+        assert_eq!(resident_bytes.load(SeqCst), 12);
+        assert_eq!(BUDGET.remaining.load(SeqCst), 4);
+
+        cached.clear();
+        assert_eq!(resident_bytes.load(SeqCst), 0);
+        assert_eq!(BUDGET.remaining.load(SeqCst), 16);
+    }
+
+    #[test]
+    fn concurrent_miss_reserves_once() {
+        static BUDGET: TestBudget = TestBudget::new(16);
+
+        let source = BlockingVec::new([0, 1]);
+        let cached = CachedVec::wrap_budgeted(
+            source.clone(),
+            &BUDGET,
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicUsize::new(0)),
+        );
+        let first = cached.clone();
+        let second = cached.clone();
+        let first_handle = std::thread::spawn(move || first.collect_range_at(0, 2));
+
+        source.started.wait();
+        let second_handle = std::thread::spawn(move || second.collect_range_at(0, 2));
+        source.resume.wait();
+
+        assert_eq!(first_handle.join().unwrap(), [0, 1]);
+        assert_eq!(second_handle.join().unwrap(), [0, 1]);
+        assert_eq!(BUDGET.reservations.load(SeqCst), 1);
+        assert_eq!(BUDGET.remaining.load(SeqCst), 8);
+
+        cached.clear();
+        assert_eq!(BUDGET.remaining.load(SeqCst), 16);
+    }
+
+    #[test]
+    fn empty_vec_materializes_once() {
+        static BUDGET: TestBudget = TestBudget::new(16);
+
+        let source = BlockingVec::new([]);
+        source.block_once.store(false, SeqCst);
+        let cached = CachedVec::wrap_budgeted(
+            source,
+            &BUDGET,
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicU64::new(0)),
+            Arc::new(AtomicUsize::new(0)),
+        );
+
+        assert!(cached.cached().is_empty());
+        assert!(cached.cached().is_empty());
+        assert_eq!(BUDGET.reservations.load(SeqCst), 0);
     }
 }

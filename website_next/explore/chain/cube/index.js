@@ -25,13 +25,15 @@ export function createCubeDiv(fill = 1) {
  * @param {number} fill
  */
 function populateCube(element, fill) {
+  const visual = document.createElement("div");
   const topFace = createCubeFace("div", "text", "top");
   const rightFace = createCubeFace("div", "text", "right");
   const leftFace = createCubeFace("div", "text", "left");
 
   element.dataset.cube = "block";
   element.style.setProperty("--fill", String(fill));
-  element.append(
+  visual.dataset.cubeVisual = "";
+  visual.append(
     ...CUBE_FACE_SPECS.map(([role, side]) =>
       createCubeFace("div", role, side),
     ),
@@ -39,6 +41,7 @@ function populateCube(element, fill) {
     leftFace,
     topFace,
   );
+  element.append(visual);
 
   return { topFace, rightFace, leftFace };
 }

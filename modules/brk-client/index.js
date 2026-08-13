@@ -1065,16 +1065,6 @@ ancestors and no descendants (matches mempool.space).
  * @property {Sats} _90pctTo100pctInLoss
  */
 /**
- * @typedef {Object} ProfitabilityRange<Dollars>
- * @property {ProfitabilityRange} short
- * @property {ProfitabilityRange} long
- */
-/**
- * @typedef {Object} ProfitabilityRange<Sats>
- * @property {ProfitabilityRange} short
- * @property {ProfitabilityRange} long
- */
-/**
  * A range boundary: integer index, date, or timestamp.
  *
  * @typedef {(number|Date|Timestamp)} RangeIndex
@@ -1567,28 +1557,6 @@ on serialization otherwise.
  */
 /** @typedef {number} Year1 */
 /** @typedef {number} Year10 */
-/** @typedef {Bitcoin[]} [Bitcoin; 3] */
-/** @typedef {Bytes[]} [Bytes; 23] */
-/** @typedef {Bytes[]} [Bytes; 4] */
-/** @typedef {Cents[]} [Cents; 16] */
-/** @typedef {Cents[]} [Cents; 19] */
-/** @typedef {Dollars[]} [Dollars; 3] */
-/** @typedef {PartsPerMillion32[]} [PartsPerMillion32; 19] */
-/** @typedef {PartsPerMillion32[]} [PartsPerMillion32; 4] */
-/** @typedef {Sats[]} [Sats; 23] */
-/** @typedef {Sats[]} [Sats; 4] */
-/** @typedef {Sats[]} [Sats; 8] */
-/** @typedef {StoredF32[]} [StoredF32; 3] */
-/** @typedef {StoredF32[]} [StoredF32; 4] */
-/** @typedef {StoredF64[]} [StoredF64; 3] */
-/** @typedef {StoredF64[]} [StoredF64; 4] */
-/** @typedef {StoredU16[]} [StoredU16; 12] */
-/** @typedef {StoredU64[]} [StoredU64; 12] */
-/** @typedef {StoredU64[]} [StoredU64; 23] */
-/** @typedef {StoredU64[]} [StoredU64; 4] */
-/** @typedef {StoredU64[]} [StoredU64; 8] */
-/** @typedef {VSize[]} [VSize; 23] */
-/** @typedef {VSize[]} [VSize; 4] */
 
 /**
  * @typedef {Object} BrkClientOptions
@@ -2666,7 +2634,7 @@ function createSeriesPattern35(client, name) { return /** @type {SeriesPattern35
  */
 
 /**
- * @typedef {Object} _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern2
+ * @typedef {Object} _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern3
  * @property {BtcCentsSatsUsdPattern} _10yTo12y
  * @property {BtcCentsSatsUsdPattern} _12yTo15y
  * @property {BtcCentsSatsUsdPattern} _18mTo2y
@@ -2694,31 +2662,32 @@ function createSeriesPattern35(client, name) { return /** @type {SeriesPattern35
  */
 
 /**
+ * @template T
  * @typedef {Object} _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mHeightOverUnderPattern
- * @property {SeriesPattern1<StoredF64>} _10yTo12y
- * @property {SeriesPattern1<StoredF64>} _12yTo15y
- * @property {SeriesPattern1<StoredF64>} _18mTo2y
- * @property {SeriesPattern1<StoredF64>} _1dTo1w
- * @property {SeriesPattern1<StoredF64>} _1hTo1d
- * @property {SeriesPattern1<StoredF64>} _1mTo2m
- * @property {SeriesPattern1<StoredF64>} _1wTo1m
- * @property {SeriesPattern1<StoredF64>} _1yTo18m
- * @property {SeriesPattern1<StoredF64>} _2mTo3m
- * @property {SeriesPattern1<StoredF64>} _2yTo3y
- * @property {SeriesPattern1<StoredF64>} _3mTo4m
- * @property {SeriesPattern1<StoredF64>} _3yTo4y
- * @property {SeriesPattern1<StoredF64>} _4mTo5m
- * @property {SeriesPattern1<StoredF64>} _4yTo5y
- * @property {SeriesPattern1<StoredF64>} _5mTo6m
- * @property {SeriesPattern1<StoredF64>} _5yTo6y
- * @property {SeriesPattern1<StoredF64>} _6mTo9m
- * @property {SeriesPattern1<StoredF64>} _6yTo7y
- * @property {SeriesPattern1<StoredF64>} _7yTo8y
- * @property {SeriesPattern1<StoredF64>} _8yTo10y
- * @property {SeriesPattern1<StoredF64>} _9mTo1y
- * @property {SeriesPattern18<StoredF64>} height
- * @property {SeriesPattern1<StoredF64>} over15y
- * @property {SeriesPattern1<StoredF64>} under1h
+ * @property {SeriesPattern1<T>} _10yTo12y
+ * @property {SeriesPattern1<T>} _12yTo15y
+ * @property {SeriesPattern1<T>} _18mTo2y
+ * @property {SeriesPattern1<T>} _1dTo1w
+ * @property {SeriesPattern1<T>} _1hTo1d
+ * @property {SeriesPattern1<T>} _1mTo2m
+ * @property {SeriesPattern1<T>} _1wTo1m
+ * @property {SeriesPattern1<T>} _1yTo18m
+ * @property {SeriesPattern1<T>} _2mTo3m
+ * @property {SeriesPattern1<T>} _2yTo3y
+ * @property {SeriesPattern1<T>} _3mTo4m
+ * @property {SeriesPattern1<T>} _3yTo4y
+ * @property {SeriesPattern1<T>} _4mTo5m
+ * @property {SeriesPattern1<T>} _4yTo5y
+ * @property {SeriesPattern1<T>} _5mTo6m
+ * @property {SeriesPattern1<T>} _5yTo6y
+ * @property {SeriesPattern1<T>} _6mTo9m
+ * @property {SeriesPattern1<T>} _6yTo7y
+ * @property {SeriesPattern1<T>} _7yTo8y
+ * @property {SeriesPattern1<T>} _8yTo10y
+ * @property {SeriesPattern1<T>} _9mTo1y
+ * @property {SeriesPattern18<T>} height
+ * @property {SeriesPattern1<T>} over15y
+ * @property {SeriesPattern1<T>} under1h
  */
 
 /**
@@ -2950,7 +2919,7 @@ function create_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern2(c
 
 /**
  * @typedef {Object} HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern
- * @property {SeriesPattern18<[Cents; 19]>} height
+ * @property {SeriesPattern18<Cents[]>} height
  * @property {SeriesPattern1<StoredI8>} index
  * @property {CentsSatsUsdPattern} pct01
  * @property {CentsSatsUsdPattern} pct05
@@ -3332,7 +3301,7 @@ function create_10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern2(client, acc,
  * @property {PpmPriceRatioPattern} pct99
  * @property {PpmPriceRatioPattern} pct995
  * @property {PpmPriceRatioPattern} pct999
- * @property {SeriesPattern18<[PartsPerMillion32; 19]>} ratios
+ * @property {SeriesPattern18<PartsPerMillion32[]>} ratios
  */
 
 /**
@@ -4527,7 +4496,7 @@ function createEmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2
 /**
  * @typedef {Object} AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshSharePattern
  * @property {BtcCentsSatsUsdPattern} all
- * @property {SeriesPattern18<[Sats; 8]>} height
+ * @property {SeriesPattern18<Sats[]>} height
  * @property {BtcCentsSatsUsdPattern} p2a
  * @property {BtcCentsSatsUsdPattern} p2pk33
  * @property {BtcCentsSatsUsdPattern} p2pk65
@@ -4805,7 +4774,7 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(c
 /**
  * @typedef {Object} AllCumulativeP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} all
- * @property {SeriesPattern18<[StoredU64; 8]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2a
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2pk33
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2pk65
@@ -4819,7 +4788,7 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(c
 /**
  * @typedef {Object} AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern
  * @property {SeriesPattern1<StoredU64>} all
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  * @property {SeriesPattern1<StoredU64>} p2a
  * @property {SeriesPattern1<StoredU64>} p2pk33
  * @property {SeriesPattern1<StoredU64>} p2pk65
@@ -5268,7 +5237,7 @@ function createAverageBlockChainCumulativeDataSumPattern(client, acc) {
 
 /**
  * @typedef {Object} HeightRankTailThresholdPattern
- * @property {SeriesPattern18<[Dollars; 3]>} height
+ * @property {SeriesPattern18<Dollars[]>} height
  * @property {SeriesPattern1<StoredU8>} rank
  * @property {PercentPpmRatioPattern2} tail
  * @property {SeriesPattern1<Dollars>} thresholdPct0025
@@ -5361,7 +5330,7 @@ function create_01234Pattern2(client, acc, disc) {
  * @property {PercentPpmRatioPattern2} _1w
  * @property {PercentPpmRatioPattern2} _1y
  * @property {PercentPpmRatioPattern2} _24h
- * @property {SeriesPattern18<[PartsPerMillion32; 4]>} height
+ * @property {SeriesPattern18<PartsPerMillion32[]>} height
  */
 
 /**
@@ -5436,7 +5405,7 @@ function create_1m1w1y24hBlockPattern(client, acc) {
  * @property {SeriesPattern1<StoredF32>} _1w
  * @property {SeriesPattern1<StoredF32>} _1y
  * @property {SeriesPattern1<StoredF32>} _24h
- * @property {SeriesPattern18<[StoredF32; 4]>} height
+ * @property {SeriesPattern18<StoredF32[]>} height
  */
 
 /**
@@ -5461,7 +5430,7 @@ function create_1m1w1y24hHeightPattern(client, acc) {
  * @property {SeriesPattern1<StoredF64>} _1w
  * @property {SeriesPattern1<StoredF64>} _1y
  * @property {SeriesPattern1<StoredF64>} _24h
- * @property {SeriesPattern18<[StoredF64; 4]>} height
+ * @property {SeriesPattern18<StoredF64[]>} height
  */
 
 /**
@@ -5831,10 +5800,10 @@ function create_1m1w1y24hPattern2(client, acc) {
 
 /**
  * @typedef {Object} _1m1w1yHeightPattern
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern18<[StoredF64; 3]>} height
+ * @property {SeriesPattern1<StoredF32>} _1m
+ * @property {SeriesPattern1<StoredF32>} _1w
+ * @property {SeriesPattern1<StoredF32>} _1y
+ * @property {SeriesPattern18<StoredF32[]>} height
  */
 
 /**
@@ -7394,6 +7363,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern18<Height>} _26d
  * @property {SeriesPattern18<Height>} _1m
  * @property {SeriesPattern18<Height>} _34d
+ * @property {SeriesPattern18<Height>} _50d
  * @property {SeriesPattern18<Height>} _55d
  * @property {SeriesPattern18<Height>} _2m
  * @property {SeriesPattern18<Height>} _9w
@@ -7756,7 +7726,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} unknown
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} empty
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} opReturn
- * @property {SeriesPattern18<[StoredU16; 12]>} height
+ * @property {SeriesPattern18<StoredU16[]>} height
  */
 
 /**
@@ -7790,7 +7760,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} unknown
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} empty
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} opReturn
- * @property {SeriesPattern18<[StoredU64; 12]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -7906,7 +7876,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  * @property {SeriesTree_Addrs_Funded_Balance} balance
  */
 
@@ -7982,7 +7952,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8005,7 +7975,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8045,7 +8015,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8059,7 +8029,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8084,7 +8054,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2wsh
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2tr
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8098,7 +8068,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2wsh
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2tr
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8112,7 +8082,7 @@ function createMatrixPattern(client, acc) {
  * @property {BtcCentsSatsUsdPattern} p2wsh
  * @property {BtcCentsSatsUsdPattern} p2tr
  * @property {BtcCentsSatsUsdPattern} p2a
- * @property {SeriesPattern18<[Sats; 8]>} height
+ * @property {SeriesPattern18<Sats[]>} height
  * @property {AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4} share
  */
 
@@ -8140,7 +8110,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8154,7 +8124,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8179,7 +8149,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2wsh
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2tr
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8193,7 +8163,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2wsh
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2tr
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8207,7 +8177,7 @@ function createMatrixPattern(client, acc) {
  * @property {BtcCentsSatsUsdPattern} p2wsh
  * @property {BtcCentsSatsUsdPattern} p2tr
  * @property {BtcCentsSatsUsdPattern} p2a
- * @property {SeriesPattern18<[Sats; 8]>} height
+ * @property {SeriesPattern18<Sats[]>} height
  * @property {AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4} share
  */
 
@@ -8234,7 +8204,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8248,7 +8218,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredU64>} p2wsh
  * @property {SeriesPattern1<StoredU64>} p2tr
  * @property {SeriesPattern1<StoredU64>} p2a
- * @property {SeriesPattern18<[StoredU64; 8]>} height
+ * @property {SeriesPattern18<StoredU64[]>} height
  */
 
 /**
@@ -8262,7 +8232,7 @@ function createMatrixPattern(client, acc) {
  * @property {BtcCentsSatsUsdPattern} p2wsh
  * @property {BtcCentsSatsUsdPattern} p2tr
  * @property {BtcCentsSatsUsdPattern} p2a
- * @property {SeriesPattern18<[Sats; 8]>} height
+ * @property {SeriesPattern18<Sats[]>} height
  * @property {AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4} share
  */
 
@@ -8377,7 +8347,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} text
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} empty
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} unknown
- * @property {SeriesPattern18<[StoredU64; 23]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8405,7 +8375,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockChainCumulativeDataSumPattern} text
  * @property {AverageBlockChainCumulativeDataSumPattern} empty
  * @property {AverageBlockChainCumulativeDataSumPattern} unknown
- * @property {SeriesPattern18<[Bytes; 23]>} cumulative
+ * @property {SeriesPattern18<Bytes[]>} cumulative
  */
 
 /**
@@ -8433,7 +8403,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} text
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} empty
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} unknown
- * @property {SeriesPattern18<[StoredU64; 23]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8461,7 +8431,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<VSize>} text
  * @property {AverageBlockCumulativeSumPattern<VSize>} empty
  * @property {AverageBlockCumulativeSumPattern<VSize>} unknown
- * @property {SeriesPattern18<[VSize; 23]>} cumulative
+ * @property {SeriesPattern18<VSize[]>} cumulative
  */
 
 /**
@@ -8489,7 +8459,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeFeeSumPattern} text
  * @property {AverageBlockCumulativeFeeSumPattern} empty
  * @property {AverageBlockCumulativeFeeSumPattern} unknown
- * @property {SeriesPattern18<[Sats; 23]>} cumulative
+ * @property {SeriesPattern18<Sats[]>} cumulative
  */
 
 /**
@@ -8507,7 +8477,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} preV30Nonstandard
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} oversized
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} multiple
- * @property {SeriesPattern18<[StoredU64; 4]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8516,7 +8486,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockChainCumulativeDataSumPattern} preV30Nonstandard
  * @property {AverageBlockChainCumulativeDataSumPattern} oversized
  * @property {AverageBlockChainCumulativeDataSumPattern} multiple
- * @property {SeriesPattern18<[Bytes; 4]>} cumulative
+ * @property {SeriesPattern18<Bytes[]>} cumulative
  */
 
 /**
@@ -8525,7 +8495,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} preV30Nonstandard
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} oversized
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} multiple
- * @property {SeriesPattern18<[StoredU64; 4]>} cumulative
+ * @property {SeriesPattern18<StoredU64[]>} cumulative
  */
 
 /**
@@ -8534,7 +8504,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeSumPattern<VSize>} preV30Nonstandard
  * @property {AverageBlockCumulativeSumPattern<VSize>} oversized
  * @property {AverageBlockCumulativeSumPattern<VSize>} multiple
- * @property {SeriesPattern18<[VSize; 4]>} cumulative
+ * @property {SeriesPattern18<VSize[]>} cumulative
  */
 
 /**
@@ -8543,7 +8513,7 @@ function createMatrixPattern(client, acc) {
  * @property {AverageBlockCumulativeFeeSumPattern} preV30Nonstandard
  * @property {AverageBlockCumulativeFeeSumPattern} oversized
  * @property {AverageBlockCumulativeFeeSumPattern} multiple
- * @property {SeriesPattern18<[Sats; 4]>} cumulative
+ * @property {SeriesPattern18<Sats[]>} cumulative
  */
 
 /**
@@ -9341,7 +9311,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<Bitcoin>} thresholdPct01
  * @property {SeriesPattern1<Bitcoin>} thresholdPct005
  * @property {SeriesPattern1<Bitcoin>} thresholdPct0025
- * @property {SeriesPattern18<[Bitcoin; 3]>} height
+ * @property {SeriesPattern18<Bitcoin[]>} height
  * @property {PercentPpmRatioPattern2} tail
  * @property {SeriesPattern1<StoredU8>} rank
  */
@@ -9351,7 +9321,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredF32>} thresholdPct01
  * @property {SeriesPattern1<StoredF32>} thresholdPct005
  * @property {SeriesPattern1<StoredF32>} thresholdPct0025
- * @property {SeriesPattern18<[StoredF32; 3]>} height
+ * @property {SeriesPattern18<StoredF32[]>} height
  * @property {PercentPpmRatioPattern2} tail
  * @property {SeriesPattern1<StoredU8>} rank
  */
@@ -9838,6 +9808,7 @@ function createMatrixPattern(client, acc) {
  * @property {CentsPpmRatioSatsUsdPattern} _21d
  * @property {CentsPpmRatioSatsUsdPattern} _1m
  * @property {CentsPpmRatioSatsUsdPattern} _34d
+ * @property {CentsPpmRatioSatsUsdPattern} _50d
  * @property {CentsPpmRatioSatsUsdPattern} _55d
  * @property {CentsPpmRatioSatsUsdPattern} _89d
  * @property {CentsPpmRatioSatsUsdPattern} _111d
@@ -9889,7 +9860,7 @@ function createMatrixPattern(client, acc) {
  * @property {CentsPpmRatioSatsUsdPattern} _2y
  * @property {CentsPpmRatioSatsUsdPattern} _200w
  * @property {CentsPpmRatioSatsUsdPattern} _4y
- * @property {SeriesPattern18<[Cents; 16]>} height
+ * @property {SeriesPattern18<Cents[]>} height
  */
 
 /**
@@ -13042,12 +13013,12 @@ function createMatrixPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed} valueDestroyed
- * @property {SeriesPattern1<StoredF64>} all
+ * @property {SeriesPattern1<StoredF32>} all
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age} age
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch} epoch
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class} class
- * @property {DiscountPremiumPattern7<StoredF64>} entry
- * @property {LongShortPattern7<StoredF64>} term
+ * @property {DiscountPremiumPattern7<StoredF32>} entry
+ * @property {LongShortPattern7<StoredF32>} term
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix} aggregateMatrix
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix} ageRangeMatrix
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix} underAgeMatrix
@@ -13193,234 +13164,234 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range
- * @property {SeriesPattern1<StoredF64>} under1h
- * @property {SeriesPattern1<StoredF64>} _1hTo1d
- * @property {SeriesPattern1<StoredF64>} _1dTo1w
- * @property {SeriesPattern1<StoredF64>} _1wTo1m
- * @property {SeriesPattern1<StoredF64>} _1mTo2m
- * @property {SeriesPattern1<StoredF64>} _2mTo3m
- * @property {SeriesPattern1<StoredF64>} _3mTo4m
- * @property {SeriesPattern1<StoredF64>} _4mTo5m
- * @property {SeriesPattern1<StoredF64>} _5mTo6m
- * @property {SeriesPattern1<StoredF64>} _6mTo9m
- * @property {SeriesPattern1<StoredF64>} _9mTo1y
- * @property {SeriesPattern1<StoredF64>} _1yTo18m
- * @property {SeriesPattern1<StoredF64>} _18mTo2y
- * @property {SeriesPattern1<StoredF64>} _2yTo3y
- * @property {SeriesPattern1<StoredF64>} _3yTo4y
- * @property {SeriesPattern1<StoredF64>} _4yTo5y
- * @property {SeriesPattern1<StoredF64>} _5yTo6y
- * @property {SeriesPattern1<StoredF64>} _6yTo7y
- * @property {SeriesPattern1<StoredF64>} _7yTo8y
- * @property {SeriesPattern1<StoredF64>} _8yTo10y
- * @property {SeriesPattern1<StoredF64>} _10yTo12y
- * @property {SeriesPattern1<StoredF64>} _12yTo15y
- * @property {SeriesPattern1<StoredF64>} over15y
+ * @property {SeriesPattern1<StoredF32>} under1h
+ * @property {SeriesPattern1<StoredF32>} _1hTo1d
+ * @property {SeriesPattern1<StoredF32>} _1dTo1w
+ * @property {SeriesPattern1<StoredF32>} _1wTo1m
+ * @property {SeriesPattern1<StoredF32>} _1mTo2m
+ * @property {SeriesPattern1<StoredF32>} _2mTo3m
+ * @property {SeriesPattern1<StoredF32>} _3mTo4m
+ * @property {SeriesPattern1<StoredF32>} _4mTo5m
+ * @property {SeriesPattern1<StoredF32>} _5mTo6m
+ * @property {SeriesPattern1<StoredF32>} _6mTo9m
+ * @property {SeriesPattern1<StoredF32>} _9mTo1y
+ * @property {SeriesPattern1<StoredF32>} _1yTo18m
+ * @property {SeriesPattern1<StoredF32>} _18mTo2y
+ * @property {SeriesPattern1<StoredF32>} _2yTo3y
+ * @property {SeriesPattern1<StoredF32>} _3yTo4y
+ * @property {SeriesPattern1<StoredF32>} _4yTo5y
+ * @property {SeriesPattern1<StoredF32>} _5yTo6y
+ * @property {SeriesPattern1<StoredF32>} _6yTo7y
+ * @property {SeriesPattern1<StoredF32>} _7yTo8y
+ * @property {SeriesPattern1<StoredF32>} _8yTo10y
+ * @property {SeriesPattern1<StoredF32>} _10yTo12y
+ * @property {SeriesPattern1<StoredF32>} _12yTo15y
+ * @property {SeriesPattern1<StoredF32>} over15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _2m
- * @property {SeriesPattern1<StoredF64>} _3m
- * @property {SeriesPattern1<StoredF64>} _4m
- * @property {SeriesPattern1<StoredF64>} _5m
- * @property {SeriesPattern1<StoredF64>} _6m
- * @property {SeriesPattern1<StoredF64>} _9m
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern1<StoredF64>} _18m
- * @property {SeriesPattern1<StoredF64>} _2y
- * @property {SeriesPattern1<StoredF64>} _3y
- * @property {SeriesPattern1<StoredF64>} _4y
- * @property {SeriesPattern1<StoredF64>} _5y
- * @property {SeriesPattern1<StoredF64>} _6y
- * @property {SeriesPattern1<StoredF64>} _7y
- * @property {SeriesPattern1<StoredF64>} _8y
- * @property {SeriesPattern1<StoredF64>} _10y
- * @property {SeriesPattern1<StoredF64>} _12y
- * @property {SeriesPattern1<StoredF64>} _15y
+ * @property {SeriesPattern1<StoredF32>} _1w
+ * @property {SeriesPattern1<StoredF32>} _1m
+ * @property {SeriesPattern1<StoredF32>} _2m
+ * @property {SeriesPattern1<StoredF32>} _3m
+ * @property {SeriesPattern1<StoredF32>} _4m
+ * @property {SeriesPattern1<StoredF32>} _5m
+ * @property {SeriesPattern1<StoredF32>} _6m
+ * @property {SeriesPattern1<StoredF32>} _9m
+ * @property {SeriesPattern1<StoredF32>} _1y
+ * @property {SeriesPattern1<StoredF32>} _18m
+ * @property {SeriesPattern1<StoredF32>} _2y
+ * @property {SeriesPattern1<StoredF32>} _3y
+ * @property {SeriesPattern1<StoredF32>} _4y
+ * @property {SeriesPattern1<StoredF32>} _5y
+ * @property {SeriesPattern1<StoredF32>} _6y
+ * @property {SeriesPattern1<StoredF32>} _7y
+ * @property {SeriesPattern1<StoredF32>} _8y
+ * @property {SeriesPattern1<StoredF32>} _10y
+ * @property {SeriesPattern1<StoredF32>} _12y
+ * @property {SeriesPattern1<StoredF32>} _15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over
- * @property {SeriesPattern1<StoredF64>} _1d
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _2m
- * @property {SeriesPattern1<StoredF64>} _3m
- * @property {SeriesPattern1<StoredF64>} _4m
- * @property {SeriesPattern1<StoredF64>} _5m
- * @property {SeriesPattern1<StoredF64>} _6m
- * @property {SeriesPattern1<StoredF64>} _9m
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern1<StoredF64>} _18m
- * @property {SeriesPattern1<StoredF64>} _2y
- * @property {SeriesPattern1<StoredF64>} _3y
- * @property {SeriesPattern1<StoredF64>} _4y
- * @property {SeriesPattern1<StoredF64>} _5y
- * @property {SeriesPattern1<StoredF64>} _6y
- * @property {SeriesPattern1<StoredF64>} _7y
- * @property {SeriesPattern1<StoredF64>} _8y
- * @property {SeriesPattern1<StoredF64>} _10y
- * @property {SeriesPattern1<StoredF64>} _12y
+ * @property {SeriesPattern1<StoredF32>} _1d
+ * @property {SeriesPattern1<StoredF32>} _1w
+ * @property {SeriesPattern1<StoredF32>} _1m
+ * @property {SeriesPattern1<StoredF32>} _2m
+ * @property {SeriesPattern1<StoredF32>} _3m
+ * @property {SeriesPattern1<StoredF32>} _4m
+ * @property {SeriesPattern1<StoredF32>} _5m
+ * @property {SeriesPattern1<StoredF32>} _6m
+ * @property {SeriesPattern1<StoredF32>} _9m
+ * @property {SeriesPattern1<StoredF32>} _1y
+ * @property {SeriesPattern1<StoredF32>} _18m
+ * @property {SeriesPattern1<StoredF32>} _2y
+ * @property {SeriesPattern1<StoredF32>} _3y
+ * @property {SeriesPattern1<StoredF32>} _4y
+ * @property {SeriesPattern1<StoredF32>} _5y
+ * @property {SeriesPattern1<StoredF32>} _6y
+ * @property {SeriesPattern1<StoredF32>} _7y
+ * @property {SeriesPattern1<StoredF32>} _8y
+ * @property {SeriesPattern1<StoredF32>} _10y
+ * @property {SeriesPattern1<StoredF32>} _12y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch
- * @property {SeriesPattern1<StoredF64>} _0
- * @property {SeriesPattern1<StoredF64>} _1
- * @property {SeriesPattern1<StoredF64>} _2
- * @property {SeriesPattern1<StoredF64>} _3
- * @property {SeriesPattern1<StoredF64>} _4
+ * @property {SeriesPattern1<StoredF32>} _0
+ * @property {SeriesPattern1<StoredF32>} _1
+ * @property {SeriesPattern1<StoredF32>} _2
+ * @property {SeriesPattern1<StoredF32>} _3
+ * @property {SeriesPattern1<StoredF32>} _4
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class
- * @property {SeriesPattern1<StoredF64>} _2009
- * @property {SeriesPattern1<StoredF64>} _2010
- * @property {SeriesPattern1<StoredF64>} _2011
- * @property {SeriesPattern1<StoredF64>} _2012
- * @property {SeriesPattern1<StoredF64>} _2013
- * @property {SeriesPattern1<StoredF64>} _2014
- * @property {SeriesPattern1<StoredF64>} _2015
- * @property {SeriesPattern1<StoredF64>} _2016
- * @property {SeriesPattern1<StoredF64>} _2017
- * @property {SeriesPattern1<StoredF64>} _2018
- * @property {SeriesPattern1<StoredF64>} _2019
- * @property {SeriesPattern1<StoredF64>} _2020
- * @property {SeriesPattern1<StoredF64>} _2021
- * @property {SeriesPattern1<StoredF64>} _2022
- * @property {SeriesPattern1<StoredF64>} _2023
- * @property {SeriesPattern1<StoredF64>} _2024
- * @property {SeriesPattern1<StoredF64>} _2025
- * @property {SeriesPattern1<StoredF64>} _2026
+ * @property {SeriesPattern1<StoredF32>} _2009
+ * @property {SeriesPattern1<StoredF32>} _2010
+ * @property {SeriesPattern1<StoredF32>} _2011
+ * @property {SeriesPattern1<StoredF32>} _2012
+ * @property {SeriesPattern1<StoredF32>} _2013
+ * @property {SeriesPattern1<StoredF32>} _2014
+ * @property {SeriesPattern1<StoredF32>} _2015
+ * @property {SeriesPattern1<StoredF32>} _2016
+ * @property {SeriesPattern1<StoredF32>} _2017
+ * @property {SeriesPattern1<StoredF32>} _2018
+ * @property {SeriesPattern1<StoredF32>} _2019
+ * @property {SeriesPattern1<StoredF32>} _2020
+ * @property {SeriesPattern1<StoredF32>} _2021
+ * @property {SeriesPattern1<StoredF32>} _2022
+ * @property {SeriesPattern1<StoredF32>} _2023
+ * @property {SeriesPattern1<StoredF32>} _2024
+ * @property {SeriesPattern1<StoredF32>} _2025
+ * @property {SeriesPattern1<StoredF32>} _2026
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix
- * @property {SeriesPattern1<StoredF64>} all
- * @property {SeriesPattern1<StoredF64>} sth
- * @property {SeriesPattern1<StoredF64>} lth
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} all
+ * @property {SeriesPattern1<StoredF32>} sth
+ * @property {SeriesPattern1<StoredF32>} lth
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix
- * @property {SeriesPattern1<StoredF64>} under1h
- * @property {SeriesPattern1<StoredF64>} _1hTo1d
- * @property {SeriesPattern1<StoredF64>} _1dTo1w
- * @property {SeriesPattern1<StoredF64>} _1wTo1m
- * @property {SeriesPattern1<StoredF64>} _1mTo2m
- * @property {SeriesPattern1<StoredF64>} _2mTo3m
- * @property {SeriesPattern1<StoredF64>} _3mTo4m
- * @property {SeriesPattern1<StoredF64>} _4mTo5m
- * @property {SeriesPattern1<StoredF64>} _5mTo6m
- * @property {SeriesPattern1<StoredF64>} _6mTo9m
- * @property {SeriesPattern1<StoredF64>} _9mTo1y
- * @property {SeriesPattern1<StoredF64>} _1yTo18m
- * @property {SeriesPattern1<StoredF64>} _18mTo2y
- * @property {SeriesPattern1<StoredF64>} _2yTo3y
- * @property {SeriesPattern1<StoredF64>} _3yTo4y
- * @property {SeriesPattern1<StoredF64>} _4yTo5y
- * @property {SeriesPattern1<StoredF64>} _5yTo6y
- * @property {SeriesPattern1<StoredF64>} _6yTo7y
- * @property {SeriesPattern1<StoredF64>} _7yTo8y
- * @property {SeriesPattern1<StoredF64>} _8yTo10y
- * @property {SeriesPattern1<StoredF64>} _10yTo12y
- * @property {SeriesPattern1<StoredF64>} _12yTo15y
- * @property {SeriesPattern1<StoredF64>} over15y
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} under1h
+ * @property {SeriesPattern1<StoredF32>} _1hTo1d
+ * @property {SeriesPattern1<StoredF32>} _1dTo1w
+ * @property {SeriesPattern1<StoredF32>} _1wTo1m
+ * @property {SeriesPattern1<StoredF32>} _1mTo2m
+ * @property {SeriesPattern1<StoredF32>} _2mTo3m
+ * @property {SeriesPattern1<StoredF32>} _3mTo4m
+ * @property {SeriesPattern1<StoredF32>} _4mTo5m
+ * @property {SeriesPattern1<StoredF32>} _5mTo6m
+ * @property {SeriesPattern1<StoredF32>} _6mTo9m
+ * @property {SeriesPattern1<StoredF32>} _9mTo1y
+ * @property {SeriesPattern1<StoredF32>} _1yTo18m
+ * @property {SeriesPattern1<StoredF32>} _18mTo2y
+ * @property {SeriesPattern1<StoredF32>} _2yTo3y
+ * @property {SeriesPattern1<StoredF32>} _3yTo4y
+ * @property {SeriesPattern1<StoredF32>} _4yTo5y
+ * @property {SeriesPattern1<StoredF32>} _5yTo6y
+ * @property {SeriesPattern1<StoredF32>} _6yTo7y
+ * @property {SeriesPattern1<StoredF32>} _7yTo8y
+ * @property {SeriesPattern1<StoredF32>} _8yTo10y
+ * @property {SeriesPattern1<StoredF32>} _10yTo12y
+ * @property {SeriesPattern1<StoredF32>} _12yTo15y
+ * @property {SeriesPattern1<StoredF32>} over15y
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _2m
- * @property {SeriesPattern1<StoredF64>} _3m
- * @property {SeriesPattern1<StoredF64>} _4m
- * @property {SeriesPattern1<StoredF64>} _5m
- * @property {SeriesPattern1<StoredF64>} _6m
- * @property {SeriesPattern1<StoredF64>} _9m
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern1<StoredF64>} _18m
- * @property {SeriesPattern1<StoredF64>} _2y
- * @property {SeriesPattern1<StoredF64>} _3y
- * @property {SeriesPattern1<StoredF64>} _4y
- * @property {SeriesPattern1<StoredF64>} _5y
- * @property {SeriesPattern1<StoredF64>} _6y
- * @property {SeriesPattern1<StoredF64>} _7y
- * @property {SeriesPattern1<StoredF64>} _8y
- * @property {SeriesPattern1<StoredF64>} _10y
- * @property {SeriesPattern1<StoredF64>} _12y
- * @property {SeriesPattern1<StoredF64>} _15y
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} _1w
+ * @property {SeriesPattern1<StoredF32>} _1m
+ * @property {SeriesPattern1<StoredF32>} _2m
+ * @property {SeriesPattern1<StoredF32>} _3m
+ * @property {SeriesPattern1<StoredF32>} _4m
+ * @property {SeriesPattern1<StoredF32>} _5m
+ * @property {SeriesPattern1<StoredF32>} _6m
+ * @property {SeriesPattern1<StoredF32>} _9m
+ * @property {SeriesPattern1<StoredF32>} _1y
+ * @property {SeriesPattern1<StoredF32>} _18m
+ * @property {SeriesPattern1<StoredF32>} _2y
+ * @property {SeriesPattern1<StoredF32>} _3y
+ * @property {SeriesPattern1<StoredF32>} _4y
+ * @property {SeriesPattern1<StoredF32>} _5y
+ * @property {SeriesPattern1<StoredF32>} _6y
+ * @property {SeriesPattern1<StoredF32>} _7y
+ * @property {SeriesPattern1<StoredF32>} _8y
+ * @property {SeriesPattern1<StoredF32>} _10y
+ * @property {SeriesPattern1<StoredF32>} _12y
+ * @property {SeriesPattern1<StoredF32>} _15y
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix
- * @property {SeriesPattern1<StoredF64>} _1d
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _2m
- * @property {SeriesPattern1<StoredF64>} _3m
- * @property {SeriesPattern1<StoredF64>} _4m
- * @property {SeriesPattern1<StoredF64>} _5m
- * @property {SeriesPattern1<StoredF64>} _6m
- * @property {SeriesPattern1<StoredF64>} _9m
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern1<StoredF64>} _18m
- * @property {SeriesPattern1<StoredF64>} _2y
- * @property {SeriesPattern1<StoredF64>} _3y
- * @property {SeriesPattern1<StoredF64>} _4y
- * @property {SeriesPattern1<StoredF64>} _5y
- * @property {SeriesPattern1<StoredF64>} _6y
- * @property {SeriesPattern1<StoredF64>} _7y
- * @property {SeriesPattern1<StoredF64>} _8y
- * @property {SeriesPattern1<StoredF64>} _10y
- * @property {SeriesPattern1<StoredF64>} _12y
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} _1d
+ * @property {SeriesPattern1<StoredF32>} _1w
+ * @property {SeriesPattern1<StoredF32>} _1m
+ * @property {SeriesPattern1<StoredF32>} _2m
+ * @property {SeriesPattern1<StoredF32>} _3m
+ * @property {SeriesPattern1<StoredF32>} _4m
+ * @property {SeriesPattern1<StoredF32>} _5m
+ * @property {SeriesPattern1<StoredF32>} _6m
+ * @property {SeriesPattern1<StoredF32>} _9m
+ * @property {SeriesPattern1<StoredF32>} _1y
+ * @property {SeriesPattern1<StoredF32>} _18m
+ * @property {SeriesPattern1<StoredF32>} _2y
+ * @property {SeriesPattern1<StoredF32>} _3y
+ * @property {SeriesPattern1<StoredF32>} _4y
+ * @property {SeriesPattern1<StoredF32>} _5y
+ * @property {SeriesPattern1<StoredF32>} _6y
+ * @property {SeriesPattern1<StoredF32>} _7y
+ * @property {SeriesPattern1<StoredF32>} _8y
+ * @property {SeriesPattern1<StoredF32>} _10y
+ * @property {SeriesPattern1<StoredF32>} _12y
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix
- * @property {SeriesPattern1<StoredF64>} _0
- * @property {SeriesPattern1<StoredF64>} _1
- * @property {SeriesPattern1<StoredF64>} _2
- * @property {SeriesPattern1<StoredF64>} _3
- * @property {SeriesPattern1<StoredF64>} _4
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} _0
+ * @property {SeriesPattern1<StoredF32>} _1
+ * @property {SeriesPattern1<StoredF32>} _2
+ * @property {SeriesPattern1<StoredF32>} _3
+ * @property {SeriesPattern1<StoredF32>} _4
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix
- * @property {SeriesPattern1<StoredF64>} _2009
- * @property {SeriesPattern1<StoredF64>} _2010
- * @property {SeriesPattern1<StoredF64>} _2011
- * @property {SeriesPattern1<StoredF64>} _2012
- * @property {SeriesPattern1<StoredF64>} _2013
- * @property {SeriesPattern1<StoredF64>} _2014
- * @property {SeriesPattern1<StoredF64>} _2015
- * @property {SeriesPattern1<StoredF64>} _2016
- * @property {SeriesPattern1<StoredF64>} _2017
- * @property {SeriesPattern1<StoredF64>} _2018
- * @property {SeriesPattern1<StoredF64>} _2019
- * @property {SeriesPattern1<StoredF64>} _2020
- * @property {SeriesPattern1<StoredF64>} _2021
- * @property {SeriesPattern1<StoredF64>} _2022
- * @property {SeriesPattern1<StoredF64>} _2023
- * @property {SeriesPattern1<StoredF64>} _2024
- * @property {SeriesPattern1<StoredF64>} _2025
- * @property {SeriesPattern1<StoredF64>} _2026
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} _2009
+ * @property {SeriesPattern1<StoredF32>} _2010
+ * @property {SeriesPattern1<StoredF32>} _2011
+ * @property {SeriesPattern1<StoredF32>} _2012
+ * @property {SeriesPattern1<StoredF32>} _2013
+ * @property {SeriesPattern1<StoredF32>} _2014
+ * @property {SeriesPattern1<StoredF32>} _2015
+ * @property {SeriesPattern1<StoredF32>} _2016
+ * @property {SeriesPattern1<StoredF32>} _2017
+ * @property {SeriesPattern1<StoredF32>} _2018
+ * @property {SeriesPattern1<StoredF32>} _2019
+ * @property {SeriesPattern1<StoredF32>} _2020
+ * @property {SeriesPattern1<StoredF32>} _2021
+ * @property {SeriesPattern1<StoredF32>} _2022
+ * @property {SeriesPattern1<StoredF32>} _2023
+ * @property {SeriesPattern1<StoredF32>} _2024
+ * @property {SeriesPattern1<StoredF32>} _2025
+ * @property {SeriesPattern1<StoredF32>} _2026
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix
- * @property {SeriesPattern1<StoredF64>} discount
- * @property {SeriesPattern1<StoredF64>} premium
- * @property {SeriesPattern18<StoredF64>} height
+ * @property {SeriesPattern1<StoredF32>} discount
+ * @property {SeriesPattern1<StoredF32>} premium
+ * @property {SeriesPattern18<StoredF32>} height
  */
 
 /**
@@ -13432,8 +13403,8 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio
- * @property {_1m1w1y24hHeightPattern2} all
- * @property {_1m1w1y24hHeightPattern2} sth
+ * @property {_1m1w1y24hHeightPattern} all
+ * @property {_1m1w1y24hHeightPattern} sth
  */
 
 /**
@@ -16867,6 +16838,7 @@ class BrkClient extends BrkClientBase {
           _26d: createSeriesPattern18(this, 'height_26d_ago'),
           _1m: createSeriesPattern18(this, 'height_1m_ago'),
           _34d: createSeriesPattern18(this, 'height_34d_ago'),
+          _50d: createSeriesPattern18(this, 'height_50d_ago'),
           _55d: createSeriesPattern18(this, 'height_55d_ago'),
           _2m: createSeriesPattern18(this, 'height_2m_ago'),
           _9w: createSeriesPattern18(this, 'height_9w_ago'),
@@ -18660,6 +18632,7 @@ class BrkClient extends BrkClientBase {
             _21d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_21d'),
             _1m: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_1m'),
             _34d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_34d'),
+            _50d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_50d'),
             _55d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_55d'),
             _89d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_89d'),
             _111d: createCentsPpmRatioSatsUsdPattern(this, 'price_sma_111d'),
@@ -21570,8 +21543,8 @@ class BrkClient extends BrkClientBase {
             },
             adjustedSopr: {
               ratio: {
-                all: create_1m1w1y24hHeightPattern2(this, 'asopr'),
-                sth: create_1m1w1y24hHeightPattern2(this, 'sth_asopr'),
+                all: create_1m1w1y24hHeightPattern(this, 'asopr'),
+                sth: create_1m1w1y24hHeightPattern(this, 'sth_asopr'),
               },
               transferVolume: {
                 all: createAverageBlockCumulativeSumPattern(this, 'adj_value_created'),

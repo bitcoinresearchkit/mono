@@ -7,7 +7,7 @@ use serde_json::Value;
 
 use crate::{
     TypeSchemas, escape_python_keyword, generators::MANUAL_GENERIC_TYPES, get_union_variants,
-    ref_to_type_name,
+    is_rust_concrete_generic, ref_to_type_name, rust_array_element_type,
 };
 
 /// Generate type definitions from schemas.
@@ -25,6 +25,8 @@ pub fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
     let (type_aliases, typed_dicts): (Vec<_>, Vec<_>) = sorted_names
         .into_iter()
         .filter(|name| !MANUAL_GENERIC_TYPES.contains(&name.as_str()))
+        .filter(|name| rust_array_element_type(name).is_none())
+        .filter(|name| !is_rust_concrete_generic(name))
         .filter(|name| schemas.contains_key(name))
         .partition(|name| {
             schemas
@@ -236,6 +238,9 @@ pub fn schema_to_python_type(
     // Handle $ref
     if let Some(ref_path) = schema.get("$ref").and_then(|r| r.as_str()) {
         let type_name = ref_to_type_name(ref_path).unwrap_or("Any");
+        if let Some(element) = rust_array_element_type(type_name) {
+            return format!("List[{element}]");
+        }
         // Quote self-references or types in quote_types set
         let should_quote =
             current_type == Some(type_name) || quote_types.is_some_and(|qt| qt.contains(type_name));

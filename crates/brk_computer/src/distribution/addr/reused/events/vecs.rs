@@ -218,12 +218,12 @@ impl AddrEventsVecs {
         })
     }
 
-    pub fn min_stateful_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.output_to_reused_addr_count
             .cumulative
             .len()
             .min(self.input_from_reused_addr_count.cumulative.len())
-            .min(self.active_reused_addr_count.min_stateful_len())
+            .min(self.active_reused_addr_count.block.len())
             .min(self.active_reused_addr_share.block.len())
     }
 

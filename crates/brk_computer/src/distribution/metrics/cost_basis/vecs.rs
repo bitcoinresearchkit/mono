@@ -308,7 +308,7 @@ impl CostBasisVecs {
         Ok(())
     }
 
-    pub fn min_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.in_profit_per_coin_source
             .height
             .len()

@@ -1,8 +1,11 @@
 import {
   createProjectedCube,
+  setBlockInterval,
   updateProjectedCube,
+  updateProjectedHeight,
   updateProjectedTime,
 } from "./block-cube.js";
+import { formatInterval } from "./format.js";
 
 const PROJECTED_LIMIT = 8;
 const TARGET_BLOCK_SECONDS = 600;
@@ -22,6 +25,7 @@ export function createProjectedBlocks({
 }) {
   /** @type {ReturnType<typeof createProjectedCube>[]} */
   const cubes = [];
+  let renderedHeight = -1;
 
   function firstElement() {
     return cubes[0]?.element ?? null;
@@ -29,18 +33,25 @@ export function createProjectedBlocks({
 
   function clear() {
     cubes.length = 0;
+    renderedHeight = -1;
   }
 
   /** @param {MempoolBlock[]} blocks */
   function render(blocks) {
     const want = Math.min(blocks.length, PROJECTED_LIMIT);
 
+    if (cubes.length !== want) renderedHeight = -1;
+
     while (cubes.length > want) {
       cubes.pop()?.element.remove();
     }
 
     while (cubes.length < want) {
-      const cube = createProjectedCube();
+      const cube = createProjectedCube(cubes.length + 1);
+
+      if (cubes.length > 0) {
+        setBlockInterval(cube.element, TARGET_BLOCK_SECONDS, "~10mn");
+      }
 
       cubes.push(cube);
       blocksElement.append(cube.element);
@@ -51,25 +62,28 @@ export function createProjectedBlocks({
     }
   }
 
-  /** @param {number} newestTimestamp */
-  function refresh(newestTimestamp) {
-    if (!cubes.length || !newestTimestamp) return;
+  /** @param {number} newestHeight @param {number} newestTimestamp */
+  function refresh(newestHeight, newestTimestamp) {
+    if (!cubes.length || newestHeight < 0 || !newestTimestamp) return;
 
     const now = Math.floor(Date.now() / 1_000);
     const elapsed = Math.max(0, now - newestTimestamp);
+    const heightChanged = renderedHeight !== newestHeight;
     const updateLayout = !isLayoutFrozen();
 
     for (let i = 0; i < cubes.length; i++) {
       const cube = cubes[i];
-      const interval = i === 0 ? elapsed : TARGET_BLOCK_SECONDS;
       const timestamp = now + i * TARGET_BLOCK_SECONDS;
 
-      if (updateLayout) {
-        cube.element.style.setProperty("--block-interval", String(interval));
+      if (updateLayout && i === 0) {
+        setBlockInterval(cube.element, elapsed, formatInterval(elapsed));
       }
 
+      if (heightChanged) updateProjectedHeight(cube, newestHeight + i + 1);
       updateProjectedTime(cube, timestamp);
     }
+
+    renderedHeight = newestHeight;
   }
 
   function hasVisibleElement() {

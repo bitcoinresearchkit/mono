@@ -158,7 +158,7 @@ impl SupplyVecs {
         })
     }
 
-    pub fn min_len(&self) -> usize {
+    pub fn min_resume_len(&self) -> usize {
         self.total
             .min_len()
             .min(self.matured.len())

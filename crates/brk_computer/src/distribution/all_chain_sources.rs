@@ -1,9 +1,7 @@
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{
-    BinaryTransform, CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue,
-};
+use vecdb::{CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
 
-use crate::internal::{CACHE_BUDGET, LazyIndexedVec, SatsToCents};
+use crate::internal::{CACHE_BUDGET, LazyIndexedVec};
 
 /// Shared handles to the pinned all-chain inputs.
 ///
@@ -11,44 +9,18 @@ use crate::internal::{CACHE_BUDGET, LazyIndexedVec, SatsToCents};
 #[derive(Clone)]
 pub struct AllChainSources {
     supply: CachedBoxedVec<Height, Sats>,
-    price: CachedBoxedVec<Height, Cents>,
-}
-
-#[derive(Clone, Debug)]
-struct WithSupply<S> {
-    source: S,
-    supply: Sats,
+    market_cap: CachedBoxedVec<Height, Cents>,
 }
 
 impl AllChainSources {
     pub fn new(
         supply: &CachedBoxedVec<Height, Sats>,
-        price: &CachedBoxedVec<Height, Cents>,
+        market_cap: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
         Self {
             supply: supply.clone(),
-            price: price.clone(),
+            market_cap: market_cap.clone(),
         }
-    }
-
-    fn supply_source<S, T>(
-        &self,
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + 'static),
-        compute: impl Fn(Height, S, Sats) -> T + Send + Sync + 'static,
-    ) -> LazyIndexedVec<Height, S, Sats, T>
-    where
-        S: VecValue,
-        T: VecValue,
-    {
-        LazyIndexedVec::new(
-            name,
-            version,
-            source.read_only_boxed_clone(),
-            self.supply.clone(),
-            compute,
-        )
     }
 
     /// Combines one ordinary source with pinned all supply, caching the result
@@ -64,7 +36,13 @@ impl AllChainSources {
         S: VecValue,
         T: VecValue,
     {
-        CACHE_BUDGET.wrap(self.supply_source(name, version, source, compute))
+        CACHE_BUDGET.wrap(LazyIndexedVec::new(
+            name,
+            version,
+            source.read_only_boxed_clone(),
+            self.supply.clone(),
+            compute,
+        ))
     }
 
     /// Combines one ordinary source with market cap, caching only the final
@@ -80,27 +58,13 @@ impl AllChainSources {
         S: VecValue,
         T: VecValue,
     {
-        let with_supply = self.supply_source(
-            &format!("{name}_with_supply"),
-            Version::ZERO,
-            source,
-            |_, source, supply| WithSupply { source, supply },
-        );
-
-        let source = LazyIndexedVec::new(
+        CACHE_BUDGET.wrap(LazyIndexedVec::new(
             name,
             version,
-            with_supply.read_only_boxed_clone(),
-            self.price.clone(),
-            move |height, with_supply, price| {
-                compute(
-                    height,
-                    with_supply.source,
-                    SatsToCents::apply(with_supply.supply, price),
-                )
-            },
-        );
-        CACHE_BUDGET.wrap(source)
+            source.read_only_boxed_clone(),
+            self.market_cap.clone(),
+            compute,
+        ))
     }
 }
 
@@ -127,28 +91,30 @@ mod tests {
 
         let mut supply: EagerVec<PcoVec<Height, Sats>> =
             EagerVec::forced_import(&db, "supply", Version::ONE).unwrap();
-        let mut price: EagerVec<PcoVec<Height, Cents>> =
-            EagerVec::forced_import(&db, "price", Version::ONE).unwrap();
+        let mut market_cap: EagerVec<PcoVec<Height, Cents>> =
+            EagerVec::forced_import(&db, "market_cap", Version::ONE).unwrap();
         let mut realized: EagerVec<PcoVec<Height, Cents>> =
             EagerVec::forced_import(&db, "realized", Version::ONE).unwrap();
 
         for value in [100_000_000, 100_000_000, 200_000_000] {
             supply.push(Sats::new(value));
         }
-        for value in [100, 200, 200] {
-            price.push(Cents::new(value));
+        for value in [100, 200, 400] {
+            market_cap.push(Cents::new(value));
         }
         for value in [50, 100, 100] {
             realized.push(Cents::new(value));
         }
         supply.write().unwrap();
-        price.write().unwrap();
+        market_cap.write().unwrap();
         realized.write().unwrap();
 
         let supply_cache = CachedVec::wrap(supply.read_only_clone()).cached_boxed_clone();
-        let price_cache = CachedVec::wrap(price);
-        let sources =
-            AllChainSources::new(&supply_cache, &price_cache.read_only_cached_boxed_clone());
+        let market_cap_cache = CachedVec::wrap(market_cap);
+        let sources = AllChainSources::new(
+            &supply_cache,
+            &market_cap_cache.read_only_cached_boxed_clone(),
+        );
 
         let cached_supply =
             sources.with_supply("cached_supply", Version::ONE, &realized, |_, _, supply| {
@@ -180,7 +146,7 @@ mod tests {
 
         drop(market_cap);
         drop(cached_supply);
-        drop(price_cache);
+        drop(market_cap_cache);
         drop(supply_cache);
         drop(realized);
         drop(supply);

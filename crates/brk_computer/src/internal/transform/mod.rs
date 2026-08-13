@@ -3,6 +3,7 @@ mod currency;
 mod derived;
 mod fixed_ratio;
 mod ratio;
+mod sopr_ratio;
 mod specialized;
 
 pub use arithmetic::{
@@ -24,6 +25,7 @@ pub use ratio::{
     RatioBytes, RatioCents, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars, RatioDiffF32,
     RatioDollars, RatioSats, RatioU64,
 };
+pub use sopr_ratio::SoprRatio;
 pub use specialized::{
     BlockCountTarget1m, BlockCountTarget1w, BlockCountTarget1y, BlockCountTarget24h,
     OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,

@@ -20,7 +20,7 @@ mod constants;
 mod lengths;
 mod processor;
 mod readers;
-mod safe_lengths;
+mod state;
 mod stores;
 mod vecs;
 
@@ -39,7 +39,7 @@ pub use vecs::{
     TransactionsVecs, TxMetadataVecs, Vecs,
 };
 
-use safe_lengths::SafeLengths;
+use state::State;
 
 pub struct Indexer<M: StorageMode = Rw> {
     inner: IndexerInner<M>,
@@ -50,7 +50,7 @@ struct IndexerInner<M: StorageMode> {
     vecs: Vecs<M>,
     stores: Stores,
     buffers: BlockBuffers,
-    safe_lengths: SafeLengths,
+    state: State,
 }
 
 enum ImportValidation {
@@ -135,7 +135,7 @@ impl<M: StorageMode> Indexer<M> {
     /// the answer always agrees with `safe_lengths`. The indexer's loop
     /// pushes new hashes per block before `safe_lengths` advances (that
     /// only happens after the compute pass via
-    /// [`Indexer::advance_safe_lengths`]); reading from a live cache
+    /// [`Indexer::finish_update`]); reading from a live cache
     /// here would mint a tip ahead of every safe-bound endpoint and
     /// cause cache etags to invalidate before the data they cover is
     /// actually queryable.
@@ -156,7 +156,11 @@ impl<M: StorageMode> Indexer<M> {
     /// advance and lower this internally; readers clamp non-series
     /// answers against this loaded snapshot.
     pub fn safe_lengths(&self) -> Lengths {
-        self.inner.safe_lengths.load()
+        self.inner.state.lengths()
+    }
+
+    pub fn generation(&self) -> Option<usize> {
+        self.inner.state.generation()
     }
 
     pub fn reader(&self) -> &Reader {
@@ -175,8 +179,8 @@ impl<M: StorageMode> Indexer<M> {
 }
 
 impl Indexer<Ro> {
-    /// Live indexer stamp for diagnostics. For data reads use
-    /// `SafeLengths::load` (via `Query::height`).
+    /// Live indexer stamp for diagnostics. For data reads use the published
+    /// state lengths (via `Query::height`).
     pub fn indexed_height(&self) -> Height {
         Height::from(self.inner.vecs.blocks.blockhash.inner.stamp())
     }
@@ -194,17 +198,23 @@ impl Indexer {
     }
 
     pub fn index(&mut self, exit: &Exit) -> Result<()> {
+        self.begin_update();
         self.inner.index(exit, false)
     }
 
     pub fn checked_index(&mut self, exit: &Exit) -> Result<()> {
+        self.begin_update();
         self.inner.index(exit, true)
+    }
+
+    pub fn begin_update(&self) {
+        self.inner.state.begin_update();
     }
 
     /// Publish disk state as the new safe-lengths snapshot. Drains pending
     /// bg ingest first so stores are queryable at the new bound.
-    pub fn advance_safe_lengths(&mut self) -> Result<()> {
-        self.inner.advance_safe_lengths()
+    pub fn finish_update(&mut self) -> Result<()> {
+        self.inner.finish_update()
     }
 }
 
@@ -233,7 +243,7 @@ impl IndexerInner<Rw> {
                 vecs,
                 stores,
                 buffers: BlockBuffers::default(),
-                safe_lengths: SafeLengths::new(),
+                state: State::new(),
             })
         };
 
@@ -257,7 +267,7 @@ impl IndexerInner<Rw> {
         match indexer.validate_import(&indexed_path)? {
             ImportValidation::Valid(lengths) => {
                 indexer.rollback_to(&lengths)?;
-                indexer.safe_lengths.advance(lengths);
+                indexer.state.finish_update(lengths);
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
@@ -383,7 +393,7 @@ impl IndexerInner<Rw> {
         debug!("Starting lengths set.");
 
         let lock = exit.lock();
-        self.safe_lengths.lower_before(&starting_lengths);
+        self.state.lower_before(&starting_lengths);
         self.rollback_to(&starting_lengths)?;
         debug!("Rollback done.");
         drop(lock);
@@ -530,11 +540,22 @@ impl IndexerInner<Rw> {
         Ok(())
     }
 
-    fn advance_safe_lengths(&mut self) -> Result<()> {
+    fn finish_update(&mut self) -> Result<()> {
         self.vecs.sync_bg_tasks()?;
-        if let Some(lengths) = Lengths::from_local(&self.vecs, &self.stores)? {
-            self.safe_lengths.advance(lengths);
-        }
+        let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
+            Some(lengths) => lengths,
+            None if self.vecs.next_height().is_zero()
+                && self.stores.next_height()? == Some(Height::ZERO) =>
+            {
+                Lengths::default()
+            }
+            None => {
+                return Err(Error::Internal(
+                    "Indexer checkpoints became inconsistent during the update",
+                ));
+            }
+        };
+        self.state.finish_update(lengths);
         Ok(())
     }
 }
@@ -549,7 +570,7 @@ impl ReadOnlyClone for Indexer {
                 vecs: self.inner.vecs.read_only_clone(),
                 stores: self.inner.stores.clone(),
                 buffers: BlockBuffers::default(),
-                safe_lengths: self.inner.safe_lengths.clone(),
+                state: self.inner.state.clone(),
             },
         }
     }
