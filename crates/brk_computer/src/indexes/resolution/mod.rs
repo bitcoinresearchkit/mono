@@ -22,7 +22,7 @@ impl<I: VecIndex> ResolutionVecs<I> {
     }
 
     pub(crate) fn invalidate_timestamp_caches(&self) {
-        self.first_height.clear();
+        self.first_height.invalidate();
     }
 }
 
@@ -77,7 +77,7 @@ impl<I: VecIndex> DatedResolutionVecs<I> {
     }
 
     pub(crate) fn invalidate_timestamp_caches(&self) {
-        self.date.clear();
-        self.first_height.clear();
+        self.date.invalidate();
+        self.first_height.invalidate();
     }
 }

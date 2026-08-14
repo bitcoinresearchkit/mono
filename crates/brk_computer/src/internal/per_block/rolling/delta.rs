@@ -88,7 +88,7 @@ where
                 starts_version,
                 {
                     let cached = cached.clone();
-                    move || cached.cached()
+                    move || cached.snapshot()
                 },
             );
             let change_resolutions =
@@ -105,7 +105,7 @@ where
                 version,
                 src.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let rate_resolutions =
                 Resolutions::forced_import(&rate_raw_name, rate_vec.clone(), version, indexes);
@@ -218,7 +218,7 @@ where
                 starts_version,
                 {
                     let cached = cached.clone();
-                    move || cached.cached()
+                    move || cached.snapshot()
                 },
             );
             let change_resolutions =
@@ -251,7 +251,7 @@ where
                 version,
                 src.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let rate_resolutions =
                 Resolutions::forced_import(&rate_raw_name, rate_vec.clone(), version, indexes);
@@ -363,7 +363,7 @@ where
                 starts_version,
                 {
                     let cached = cached.clone();
-                    move || cached.cached()
+                    move || cached.snapshot()
                 },
             );
             let change_resolutions =
@@ -396,7 +396,7 @@ where
                 version,
                 src.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let rate_resolutions =
                 Resolutions::forced_import(&rate_raw_name, rate_vec.clone(), version, indexes);

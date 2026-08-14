@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn reads_rewritten_source_after_its_cache_is_cleared() {
+    fn reads_rewritten_source_after_its_cache_is_invalidated() {
         let inner = TestTimestamps::new(100..106);
         let source = CachedVec::wrap(inner.clone());
         let timestamps = BoundaryTimestampVec::<Epoch>::new(Box::new(source.clone()), 3);
@@ -294,7 +294,7 @@ mod tests {
             Some(Timestamp::from(103_u32))
         );
 
-        source.clear();
+        source.invalidate();
         assert_eq!(
             timestamps.collect_one(Epoch::from(1_usize)),
             Some(Timestamp::from(999_u32))

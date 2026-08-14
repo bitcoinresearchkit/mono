@@ -193,7 +193,7 @@ impl Vecs {
 
         self.tx_heights.update(indexer, starting_height);
         if starting_height.to_usize() < indexer.vecs().transactions.first_tx_index.len() {
-            self.chain_counts.clear();
+            self.chain_counts.invalidate();
         }
 
         // timestamp_monotonic must be computed first — other mappings read it

@@ -42,7 +42,7 @@ impl LazyRollingSumsAmountFromHeight {
                 starts_version,
                 {
                     let cached = cached.clone();
-                    move || cached.cached()
+                    move || cached.snapshot()
                 },
             );
             let sats_resolutions = Resolutions::forced_import(
@@ -76,7 +76,7 @@ impl LazyRollingSumsAmountFromHeight {
                 version,
                 cum_cents.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let cents_resolutions = Resolutions::forced_import(
                 &format!("{full_name}_cents"),

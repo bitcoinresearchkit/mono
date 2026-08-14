@@ -138,7 +138,7 @@ impl Timestamps {
             exit,
         )?;
         if rewrites_existing {
-            self.monotonic.clear();
+            self.monotonic.invalidate();
         }
         Ok(rewrites_existing)
     }

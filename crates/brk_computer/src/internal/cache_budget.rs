@@ -7,7 +7,6 @@ use parking_lot::Mutex;
 use vecdb::{CachedVec, CachedVecBudget, ReadableVec, TypedVec};
 
 const MAX_BYTES: usize = 2 * 1024 * 1024 * 1024;
-const MIN_ACCESSES: u64 = 2;
 
 pub struct CacheBudget {
     remaining_bytes: AtomicUsize,
@@ -31,15 +30,15 @@ impl CacheBudget {
     }
 
     fn evict_one(&self) -> bool {
-        let clear = self
+        let invalidate = self
             .caches
             .lock()
             .iter()
             .filter(|entry| entry.resident_bytes.load(Relaxed) > 0)
             .min_by_key(|entry| entry.last_access.load(Relaxed))
-            .map(|entry| Arc::clone(&entry.clear));
-        if let Some(clear) = clear {
-            clear();
+            .map(|entry| Arc::clone(&entry.invalidate));
+        if let Some(invalidate) = invalidate {
+            invalidate();
             true
         } else {
             false
@@ -51,35 +50,29 @@ impl CacheBudget {
     where
         V: TypedVec + ReadableVec<V::I, V::T> + Clone + 'static,
     {
-        let access_count = Arc::new(AtomicU64::new(0));
         let last_access = Arc::new(AtomicU64::new(0));
         let resident_bytes = Arc::new(AtomicUsize::new(0));
-        let cached = CachedVec::wrap_budgeted(
-            source,
-            self,
-            access_count.clone(),
-            last_access.clone(),
-            resident_bytes.clone(),
-        );
-        let clone = cached.clone();
+        let cached =
+            CachedVec::wrap_budgeted(source, self, last_access.clone(), resident_bytes.clone());
+        let invalidated = cached.clone();
         self.caches.lock().push(CacheEntry {
             last_access,
             resident_bytes,
-            clear: Arc::new(move || clone.clear()),
+            invalidate: Arc::new(move || invalidated.invalidate()),
         });
         cached
     }
 
-    /// Clears every registered vec and resets the budget.
-    pub fn clear(&self) {
-        let clear: Vec<_> = self
+    /// Invalidates every registered vec.
+    pub fn invalidate(&self) {
+        let invalidate: Vec<_> = self
             .caches
             .lock()
             .iter()
-            .map(|entry| Arc::clone(&entry.clear))
+            .map(|entry| Arc::clone(&entry.invalidate))
             .collect();
-        for clear in clear {
-            clear();
+        for invalidate in invalidate {
+            invalidate();
         }
     }
 }
@@ -87,7 +80,7 @@ impl CacheBudget {
 struct CacheEntry {
     last_access: Arc<AtomicU64>,
     resident_bytes: Arc<AtomicUsize>,
-    clear: Arc<dyn Fn() + Send + Sync>,
+    invalidate: Arc<dyn Fn() + Send + Sync>,
 }
 
 impl CachedVecBudget for CacheBudget {
@@ -96,10 +89,7 @@ impl CachedVecBudget for CacheBudget {
         self.clock.fetch_add(1, Relaxed) + 1
     }
 
-    fn try_reserve(&self, access_count: u64, bytes: usize) -> bool {
-        if access_count < MIN_ACCESSES {
-            return false;
-        }
+    fn try_reserve(&self, bytes: usize) -> bool {
         if bytes > MAX_BYTES {
             return false;
         }

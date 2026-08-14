@@ -223,7 +223,7 @@ impl Vecs {
 
     /// Reset in-memory caches that become stale after rollback.
     fn reset_in_memory_caches(&mut self) {
-        self.cohorts.reset_caches();
+        self.cohorts.invalidate_caches();
         self.inner.reset();
     }
 
@@ -352,7 +352,7 @@ impl Vecs {
         }
 
         // Populate price/timestamp caches from the prices module.
-        // Must happen AFTER rollback/reset (which clears caches) but BEFORE
+        // Must happen AFTER rollback/reset (which invalidates caches) but BEFORE
         // chain_state rebuild (which reads from them).
         let cache_target_len = prices
             .spot

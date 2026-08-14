@@ -15,8 +15,8 @@ pub struct CachedBlockCountReader {
 }
 
 struct Checkpoints {
-    block: Arc<[StoredU16]>,
-    cumulative: Arc<[u64]>,
+    block: Arc<Vec<StoredU16>>,
+    cumulative: Arc<Vec<u64>>,
 }
 
 impl CachedBlockCountReader {
@@ -24,14 +24,14 @@ impl CachedBlockCountReader {
         Self {
             block,
             checkpoints: Arc::new(RwLock::new(Checkpoints {
-                block: Arc::from([]),
-                cumulative: Arc::from([0]),
+                block: Arc::new(Vec::new()),
+                cumulative: Arc::new(vec![0]),
             })),
         }
     }
 
-    pub(crate) fn clear(&self) {
-        self.block.clear();
+    pub(crate) fn invalidate(&self) {
+        self.block.invalidate();
     }
 
     pub fn cumulative_at(&self, index: usize) -> Option<StoredU64> {
@@ -96,8 +96,8 @@ impl CachedBlockCountReader {
         ))
     }
 
-    fn snapshot(&self) -> (Arc<[StoredU16]>, Arc<[u64]>) {
-        let block = self.block.cached();
+    fn snapshot(&self) -> (Arc<Vec<StoredU16>>, Arc<Vec<u64>>) {
+        let block = self.block.snapshot();
 
         {
             let checkpoints = self.checkpoints.read();
@@ -140,7 +140,7 @@ impl CachedBlockCountReader {
         Ok(accumulator)
     }
 
-    fn build_checkpoints(block: &[StoredU16]) -> Arc<[u64]> {
+    fn build_checkpoints(block: &[StoredU16]) -> Arc<Vec<u64>> {
         let mut checkpoints = Vec::with_capacity(block.len() / CHECKPOINT_INTERVAL + 1);
         let mut cumulative = 0;
         checkpoints.push(cumulative);
@@ -152,7 +152,7 @@ impl CachedBlockCountReader {
             }
         }
 
-        checkpoints.into()
+        Arc::new(checkpoints)
     }
 
     #[inline(always)]
@@ -319,7 +319,7 @@ mod tests {
             block.inner.push(StoredU16::new(1));
         }
         block.inner.write().unwrap();
-        block.clear();
+        block.invalidate();
 
         assert_eq!(count.cumulative_at(599), Some(StoredU64::from(600_u64)));
 

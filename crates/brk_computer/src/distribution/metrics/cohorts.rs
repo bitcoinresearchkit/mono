@@ -122,10 +122,9 @@ impl CohortMetrics<Rw> {
         })
     }
 
-    /// Reset in-memory caches that become stale after rollback.
-    pub fn reset_caches(&mut self) {
-        self.supply.total.all_supply().clear();
-        self.supply.total.all_market_cap().clear();
+    pub fn invalidate_caches(&self) {
+        self.supply.total.all_supply().invalidate();
+        self.supply.total.all_market_cap().invalidate();
     }
 
     pub fn all_supply(&self) -> &CachedBoxedVec<Height, Sats> {

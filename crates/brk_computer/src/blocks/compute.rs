@@ -12,7 +12,7 @@ impl Vecs {
 
         // Cached lookbacks depend on the monotonic timestamp vec, which may
         // have changed without changing its final length after a reorg.
-        self.lookback.clear_caches();
+        self.lookback.invalidate_caches();
 
         // Interval and size are independent.
         let Vecs {

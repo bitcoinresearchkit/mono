@@ -4,8 +4,8 @@ use brk_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CachedBoxedVec, Formattable, ReadableBoxedVec, ReadableVec, TypedVec,
-    VecIndex, VecValue, Version, short_type_name,
+    AnyExportableVec, AnyVec, CachedBoxedVec, Cursor, Formattable, ReadableBoxedVec, ReadableVec,
+    TypedVec, VecIndex, VecValue, Version, short_type_name,
 };
 
 /// Lazily transforms one metric source with aligned index metadata.
@@ -47,7 +47,7 @@ where
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        let metadata = self.metadata.cached();
+        let metadata = self.metadata.snapshot();
         let to = to.min(self.len()).min(metadata.len());
         if from >= to {
             return;
@@ -165,16 +165,29 @@ where
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
         let source = self.source.collect_one_at(index)?;
-        let metadata = self.metadata.cached().get(index)?.clone();
+        let metadata = self.metadata.snapshot().get(index)?.clone();
         Some((self.compute)(I::from(index), source, metadata))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        let metadata = self.metadata.snapshot();
+        let len = self.source.len().min(metadata.len());
+        let mut source = Cursor::new(&*self.source);
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            if index >= len {
+                break;
+            }
+            let Some(value) = source.get(index) else {
+                continue;
+            };
+            out.push((self.compute)(
+                I::from(index),
+                value,
+                metadata[index].clone(),
+            ));
+        }
     }
 }
 

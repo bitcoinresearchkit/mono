@@ -47,7 +47,7 @@ where
     }
 
     fn start_height(&self) -> usize {
-        let days = self.days.cached();
+        let days = self.days.snapshot();
         let mut left = 0;
         let mut right = self.len().min(days.len());
         while left < right {

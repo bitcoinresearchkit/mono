@@ -4,14 +4,18 @@ use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 ///
 /// When the budget is exhausted, reads fall through to the inner vec without caching.
 pub trait CachedVecBudget: Send + Sync {
+    /// Returns whether this read may populate an empty cache.
+    fn admit(&self, cache_worthy: bool) -> bool {
+        cache_worthy
+    }
+
     /// Records an access and returns a monotonically increasing recency stamp.
     fn record_access(&self) -> u64 {
         0
     }
 
-    /// Attempts to reserve `bytes` given the entry's access count.
-    /// Implementations may enforce a minimum access threshold or evict entries.
-    fn try_reserve(&self, access_count: u64, bytes: usize) -> bool;
+    /// Attempts to reserve `bytes` for an admitted snapshot.
+    fn try_reserve(&self, bytes: usize) -> bool;
 
     /// Releases bytes previously reserved by [`Self::try_reserve`].
     fn release(&self, bytes: usize);
@@ -19,7 +23,7 @@ pub trait CachedVecBudget: Send + Sync {
 
 impl CachedVecBudget for AtomicUsize {
     #[inline]
-    fn try_reserve(&self, _: u64, bytes: usize) -> bool {
+    fn try_reserve(&self, bytes: usize) -> bool {
         self.fetch_update(Relaxed, Relaxed, |n| n.checked_sub(bytes))
             .is_ok()
     }
@@ -35,7 +39,12 @@ pub struct NoBudget;
 
 impl CachedVecBudget for NoBudget {
     #[inline]
-    fn try_reserve(&self, _: u64, _: usize) -> bool {
+    fn admit(&self, _: bool) -> bool {
+        true
+    }
+
+    #[inline]
+    fn try_reserve(&self, _: usize) -> bool {
         true
     }
 

@@ -22,8 +22,8 @@ impl<I: VecIndex> CachedDateVec<I> {
         )))
     }
 
-    pub(crate) fn clear(&self) {
-        self.0.clear();
+    pub(crate) fn invalidate(&self) {
+        self.0.invalidate();
     }
 
     pub fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, Date> {
@@ -474,7 +474,7 @@ mod tests {
         timestamps.replace(1, Timestamp::from(Date::new(2009, 1, 10)));
         assert_eq!(date.collect_last(), Some(Date::new(2009, 1, 9)));
 
-        date.clear();
+        date.invalidate();
         assert_eq!(date.collect_last(), Some(Date::new(2009, 1, 10)));
     }
 }

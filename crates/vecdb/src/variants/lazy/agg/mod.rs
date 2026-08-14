@@ -29,7 +29,7 @@ where
     pub(super) mapping_version: Version,
     pub(super) source: ReadableBoxedVec<S1I, S1T>,
     #[allow(clippy::type_complexity)]
-    pub(super) mapping: Arc<dyn Fn() -> Arc<[S2T]> + Send + Sync>,
+    pub(super) mapping: Arc<dyn Fn() -> Arc<Vec<S2T>> + Send + Sync>,
     #[allow(clippy::type_complexity)]
     pub(super) _phantom: PhantomData<fn() -> (I, O, Strat)>,
 }
@@ -47,7 +47,7 @@ where
         version: Version,
         mapping_version: Version,
         source: ReadableBoxedVec<S1I, S1T>,
-        mapping: impl Fn() -> Arc<[S2T]> + Send + Sync + 'static,
+        mapping: impl Fn() -> Arc<Vec<S2T>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             name: Arc::from(name),

@@ -47,7 +47,7 @@ where
                 version,
                 cum_source.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let resolutions = Resolutions::forced_import(&full_name, sum.clone(), version, indexes);
             LazyRollingSumFromHeight {
@@ -77,7 +77,7 @@ where
                 version,
                 cum_source.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
             let resolutions =
                 Resolutions::forced_import_uncached(&full_name, sum.clone(), version, indexes);

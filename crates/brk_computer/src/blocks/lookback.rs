@@ -220,19 +220,19 @@ impl Vecs {
         }
     }
 
-    pub(crate) fn clear_caches(&self) {
-        self._24h.clear();
-        self._1w.clear();
-        self._1m.clear();
-        self._3m.clear();
-        self._6m.clear();
-        self._1y.clear();
-        self._2y.clear();
-        self._3y.clear();
-        self._4y.clear();
-        self._5y.clear();
-        self._6y.clear();
-        self._8y.clear();
-        self._10y.clear();
+    pub(crate) fn invalidate_caches(&self) {
+        self._24h.invalidate();
+        self._1w.invalidate();
+        self._1m.invalidate();
+        self._3m.invalidate();
+        self._6m.invalidate();
+        self._1y.invalidate();
+        self._2y.invalidate();
+        self._3y.invalidate();
+        self._4y.invalidate();
+        self._5y.invalidate();
+        self._6y.invalidate();
+        self._8y.invalidate();
+        self._10y.invalidate();
     }
 }

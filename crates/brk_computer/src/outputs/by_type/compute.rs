@@ -20,7 +20,7 @@ impl Vecs {
 
         self.output_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
-        self.output_count.clear();
+        self.output_count.invalidate();
         self.tx_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
 
@@ -93,7 +93,7 @@ impl Vecs {
                 self.output_count.write()?;
                 self.tx_count.write()?;
             }
-            self.spendable_output_count.clear();
+            self.spendable_output_count.invalidate();
         }
 
         Ok(())

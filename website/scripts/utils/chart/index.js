@@ -4,7 +4,7 @@ import {
   HistogramSeries,
   LineSeries,
   BaselineSeries,
-} from "../../modules/lightweight-charts/5.2.0/dist/lightweight-charts.standalone.production.mjs";
+} from "../../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
 import { createLegend, createSeriesLegend } from "./legend.js";
 import { capture } from "./capture.js";
 import { colors } from "../colors.js";

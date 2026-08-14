@@ -49,7 +49,7 @@ impl LazySmaVec {
         to: usize,
         mut each: impl FnMut(Cents) -> Result<(), E>,
     ) -> Result<(), E> {
-        let prefix_sum = self.prefix_sum.cached();
+        let prefix_sum = self.prefix_sum.snapshot();
         let to = to.min(self.window_starts.len()).min(prefix_sum.len());
         if from >= to {
             return Ok(());
@@ -67,7 +67,7 @@ impl LazySmaVec {
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(Cents)) {
-        let prefix_sum = self.prefix_sum.cached();
+        let prefix_sum = self.prefix_sum.snapshot();
         let to = to.min(self.window_starts.len()).min(prefix_sum.len());
         if from >= to {
             return;
@@ -161,7 +161,7 @@ impl ReadableVec<Height, Cents> for LazySmaVec {
             return None;
         }
         let start = self.window_starts.collect_one_at(index)?;
-        Some(Self::average(&self.prefix_sum.cached(), index, start))
+        Some(Self::average(&self.prefix_sum.snapshot(), index, start))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Cents>) {
@@ -172,7 +172,7 @@ impl ReadableVec<Height, Cents> for LazySmaVec {
             .filter(|index| *index < len)
             .collect();
         let starts = self.window_starts.read_sorted_at(&indices);
-        let prefix_sum = self.prefix_sum.cached();
+        let prefix_sum = self.prefix_sum.snapshot();
 
         out.reserve(indices.len());
         indices
@@ -230,7 +230,7 @@ mod tests {
         );
 
         assert_eq!(
-            prefix_sum.cached().as_ref(),
+            prefix_sum.snapshot().as_slice(),
             [
                 StoredU64::new(100),
                 StoredU64::new(300),

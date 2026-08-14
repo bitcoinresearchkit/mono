@@ -1,4 +1,4 @@
-use crate::{READ_CHUNK_SIZE, ReadableVec, VecIndex, VecValue};
+use crate::{ReadableVec, VecIndex, VecValue};
 
 use super::{
     super::{CompressionStrategy, ReadWriteCompressedVec},
@@ -13,8 +13,7 @@ where
 {
     #[inline(always)]
     fn cursor_chunk_size(&self) -> usize {
-        let per_page = ReadWriteCompressedVec::<I, T, S>::PER_PAGE;
-        per_page * READ_CHUNK_SIZE.div_ceil(per_page)
+        ReadWriteCompressedVec::<I, T, S>::PER_PAGE
     }
 
     #[inline(always)]

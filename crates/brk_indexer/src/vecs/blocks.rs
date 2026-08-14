@@ -21,7 +21,7 @@ where
     let truncates = index.to_usize() < vec.len();
     vec.inner.truncate_if_needed_with_stamp(index, stamp)?;
     if truncates {
-        vec.clear();
+        vec.invalidate();
     }
     Ok(())
 }

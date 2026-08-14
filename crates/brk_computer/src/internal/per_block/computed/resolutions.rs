@@ -177,7 +177,7 @@ where
                     version,
                     mapping_version,
                     height_source.clone(),
-                    move || cached.cached(),
+                    move || cached.snapshot(),
                 )
             }};
         }

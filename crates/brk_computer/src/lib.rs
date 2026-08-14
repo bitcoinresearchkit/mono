@@ -332,7 +332,7 @@ impl Computer {
 
     pub fn compute(&mut self, indexer: &mut Indexer, exit: &Exit) -> Result<()> {
         indexer.begin_update();
-        internal::CACHE_BUDGET.clear();
+        internal::CACHE_BUDGET.invalidate();
 
         let compute_start = Instant::now();
 

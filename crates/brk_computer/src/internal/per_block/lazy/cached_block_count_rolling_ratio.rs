@@ -53,7 +53,7 @@ where
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        let window_starts = self.window_starts.cached();
+        let window_starts = self.window_starts.snapshot();
         let to = to
             .min(self.numerator.len())
             .min(self.denominator.len())
@@ -217,7 +217,7 @@ where
             return None;
         }
 
-        let start = self.window_starts.cached()[index];
+        let start = self.window_starts.snapshot()[index];
         let previous = Self::previous_index(start);
         Some(F::apply(
             self.numerator

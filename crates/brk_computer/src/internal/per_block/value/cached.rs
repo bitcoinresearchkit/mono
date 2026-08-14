@@ -68,7 +68,7 @@ impl CachedValuePerBlock {
         usize: From<B>,
     {
         if max_from.to_usize() < self.sats.height.len() {
-            self.sats.height.clear();
+            self.sats.height.invalidate();
         }
 
         ValuePerBlockCumulative::compute_sats_height_from_indexes(

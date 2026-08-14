@@ -73,7 +73,7 @@ impl LazyColumnCountPerBlockCumulativeRolling {
         self.cached_cumulative.clone()
     }
 
-    pub(crate) fn clear(&self) {
-        self.cached_cumulative.clear();
+    pub(crate) fn invalidate(&self) {
+        self.cached_cumulative.invalidate();
     }
 }

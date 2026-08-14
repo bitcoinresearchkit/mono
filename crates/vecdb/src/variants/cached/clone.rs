@@ -10,7 +10,6 @@ impl<V: TypedVec + Clone> Clone for CachedVec<V> {
             cache: self.cache.clone(),
             materialize: self.materialize.clone(),
             budget: self.budget,
-            access_count: self.access_count.clone(),
             last_access: self.last_access.clone(),
             resident_bytes: self.resident_bytes.clone(),
         }

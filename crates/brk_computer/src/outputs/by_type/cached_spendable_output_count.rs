@@ -46,7 +46,7 @@ impl CachedSpendableOutputCount {
         self.cumulative.cached_boxed_clone()
     }
 
-    pub(crate) fn clear(&self) {
-        self.cumulative.clear();
+    pub(crate) fn invalidate(&self) {
+        self.cumulative.invalidate();
     }
 }

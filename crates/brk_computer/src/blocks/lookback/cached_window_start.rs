@@ -30,12 +30,12 @@ impl CachedWindowStartVec {
         self.0.cached_boxed_clone()
     }
 
-    pub fn cached(&self) -> Arc<[Height]> {
-        self.0.cached()
+    pub fn snapshot(&self) -> Arc<Vec<Height>> {
+        self.0.snapshot()
     }
 
-    pub fn clear(&self) {
-        self.0.clear();
+    pub fn invalidate(&self) {
+        self.0.invalidate();
     }
 }
 

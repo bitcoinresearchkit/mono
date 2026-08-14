@@ -26,7 +26,7 @@ impl CachedDcaSats {
 
     /// Daily closes can be rewritten without changing their length.
     pub(super) fn invalidate(&self) {
-        self.daily.clear();
+        self.daily.invalidate();
     }
 
     fn try_for_each_value<E>(
@@ -35,8 +35,8 @@ impl CachedDcaSats {
         to: usize,
         mut each: impl FnMut(Sats) -> Result<(), E>,
     ) -> Result<(), E> {
-        let days = self.days.cached();
-        let daily = self.daily.cached();
+        let days = self.days.snapshot();
+        let daily = self.daily.snapshot();
         let to = to.min(days.len());
         if from >= to {
             return Ok(());
@@ -398,15 +398,18 @@ mod tests {
 
         let first = sats_from_dca(Dollars::mint(100.0));
         let third = first + sats_from_dca(Dollars::mint(200.0));
-        assert_eq!(cached.daily.cached().as_ref(), &[first, first, third]);
+        assert_eq!(cached.daily.snapshot().as_slice(), &[first, first, third]);
 
         prices.replace(0, Some(Dollars::mint(50.0)));
-        assert_eq!(cached.daily.cached().as_ref(), &[first, first, third]);
+        assert_eq!(cached.daily.snapshot().as_slice(), &[first, first, third]);
 
         cached.invalidate();
         let replaced = sats_from_dca(Dollars::mint(50.0));
         let third = replaced + sats_from_dca(Dollars::mint(200.0));
-        assert_eq!(cached.daily.cached().as_ref(), &[replaced, replaced, third]);
+        assert_eq!(
+            cached.daily.snapshot().as_slice(),
+            &[replaced, replaced, third]
+        );
     }
 
     #[test]

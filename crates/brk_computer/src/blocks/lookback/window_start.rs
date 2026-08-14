@@ -72,7 +72,7 @@ impl LazyWindowStartVec {
         to: usize,
         mut each: impl FnMut(Height) -> Result<(), E>,
     ) -> Result<(), E> {
-        let timestamps = self.timestamps.cached();
+        let timestamps = self.timestamps.snapshot();
         let to = to.min(timestamps.len());
         if from >= to {
             return Ok(());
@@ -175,7 +175,7 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
     }
 
     fn collect_one_at(&self, index: usize) -> Option<Height> {
-        let timestamps = self.timestamps.cached();
+        let timestamps = self.timestamps.snapshot();
         (index < timestamps.len()).then(|| Height::from(self.start_at(&timestamps, index)))
     }
 
@@ -183,7 +183,7 @@ impl ReadableVec<Height, Height> for LazyWindowStartVec {
         let Some(&first) = indices.first() else {
             return;
         };
-        let timestamps = self.timestamps.cached();
+        let timestamps = self.timestamps.snapshot();
         if first >= timestamps.len() {
             return;
         }
@@ -374,7 +374,7 @@ mod tests {
     }
 
     #[test]
-    fn explicit_clears_refresh_same_length_reorgs() {
+    fn explicit_invalidations_refresh_same_length_reorgs() {
         let (timestamps, cached_timestamps) = timestamp_fixture();
         let window = CachedWindowStartVec::new(lazy_window(&cached_timestamps, DAY_SECONDS));
 
@@ -382,8 +382,8 @@ mod tests {
         timestamps.replace(4, (DAY_SECONDS + 18 * HOUR_SECONDS) as u32);
 
         assert_eq!(window.collect_one_at(4), Some(Height::from(3_usize)));
-        cached_timestamps.clear();
-        window.clear();
+        cached_timestamps.invalidate();
+        window.invalidate();
         assert_eq!(window.collect_one_at(4), Some(Height::from(2_usize)));
     }
 

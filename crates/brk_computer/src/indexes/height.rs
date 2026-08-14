@@ -140,7 +140,7 @@ impl Vecs {
     /// Invalidate mappings after monotonic timestamps are rewritten without
     /// changing length or schema version.
     pub(crate) fn invalidate_timestamp_caches(&self) {
-        self.day1.clear();
+        self.day1.invalidate();
     }
 }
 
@@ -329,8 +329,8 @@ mod tests {
         timestamps.replace(1, third);
         assert_eq!(day1.collect_one_at(1), Some(Day1::from(1_usize)));
 
-        cached_timestamps.clear();
-        day1.clear();
+        cached_timestamps.invalidate();
+        day1.invalidate();
         assert_eq!(day1.collect_one_at(1), Some(Day1::from(2_usize)));
     }
 }

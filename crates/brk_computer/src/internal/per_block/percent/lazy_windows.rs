@@ -134,7 +134,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
                 version,
                 cumulative_source.clone(),
                 starts_version,
-                move || cached.cached(),
+                move || cached.snapshot(),
             );
 
             LazyPercentPerBlock::from_uncached_height_source(&full_name, version, average, indexes)

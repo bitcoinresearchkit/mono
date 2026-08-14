@@ -65,9 +65,9 @@ impl CachedChainCounts {
         self.output.cached_boxed_clone()
     }
 
-    pub(crate) fn clear(&self) {
-        self.transaction.clear();
-        self.input.clear();
-        self.output.clear();
+    pub(crate) fn invalidate(&self) {
+        self.transaction.invalidate();
+        self.input.invalidate();
+        self.output.invalidate();
     }
 }

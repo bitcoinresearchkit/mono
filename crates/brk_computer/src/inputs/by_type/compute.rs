@@ -20,7 +20,7 @@ impl Vecs {
 
         self.input_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
-        self.input_count.clear();
+        self.input_count.invalidate();
         self.tx_count
             .validate_and_truncate(dep_version, starting_lengths.height)?;
 

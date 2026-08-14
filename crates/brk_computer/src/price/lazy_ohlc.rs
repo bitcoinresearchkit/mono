@@ -38,13 +38,13 @@ impl<I: VecIndex> LazyOhlcVec<I> {
         to: usize,
         mut each: impl FnMut(OHLCCents) -> Result<(), E>,
     ) -> Result<(), E> {
-        let first_heights = self.first_heights.cached();
+        let first_heights = self.first_heights.snapshot();
         let to = to.min(first_heights.len());
         if from >= to {
             return Ok(());
         }
 
-        let prices = self.prices.cached();
+        let prices = self.prices.snapshot();
         for index in from..to {
             each(Self::candle_at(index, &prices, &first_heights).unwrap())?;
         }
@@ -161,14 +161,14 @@ impl<I: VecIndex> ReadableVec<I, OHLCCents> for LazyOhlcVec<I> {
     }
 
     fn collect_one_at(&self, index: usize) -> Option<OHLCCents> {
-        let prices = self.prices.cached();
-        let first_heights = self.first_heights.cached();
+        let prices = self.prices.snapshot();
+        let first_heights = self.first_heights.snapshot();
         Self::candle_at(index, &prices, &first_heights)
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<OHLCCents>) {
-        let prices = self.prices.cached();
-        let first_heights = self.first_heights.cached();
+        let prices = self.prices.snapshot();
+        let first_heights = self.first_heights.snapshot();
         out.reserve(indices.len());
         indices
             .iter()

@@ -25,7 +25,7 @@ struct CacheState<T> {
     len: usize,
     version: Version,
     generation: u64,
-    data: Arc<[T]>,
+    data: Arc<Vec<T>>,
 }
 
 impl<T> CacheState<T> {
@@ -35,7 +35,7 @@ impl<T> CacheState<T> {
             len: 0,
             version: Version::ZERO,
             generation: 0,
-            data: Arc::from([]),
+            data: Arc::new(Vec::new()),
         }
     }
 
@@ -48,10 +48,10 @@ impl<T> CacheState<T> {
         self.len = 0;
         self.version = Version::ZERO;
         self.generation = self.generation.wrapping_add(1);
-        self.data = Arc::from([]);
+        self.data = Arc::new(Vec::new());
     }
 
-    fn replace(&mut self, len: usize, version: Version, data: Arc<[T]>) {
+    fn replace(&mut self, len: usize, version: Version, data: Arc<Vec<T>>) {
         self.valid = true;
         self.len = len;
         self.version = version;
@@ -62,20 +62,21 @@ impl<T> CacheState<T> {
 /// Cached wrapper around any readable vec, refreshed when len or version changes.
 ///
 /// Wraps a concrete vec `V` and adds an in-memory cache layer.
-/// Reads check the cache first; on miss, the inner vec is read and cached.
+/// Reads always use a valid cache. Without a budget, the first miss materializes
+/// the full snapshot. With a budget, an ordinary miss is retained only when that
+/// read touches every source chunk; [`Self::snapshot`] explicitly requests the
+/// complete snapshot.
 ///
 /// For writes, access the inner vec directly via the `inner` field.
-/// After a same-length, same-version rewrite, call [`Self::clear`] after the
-/// mutation and before dependent reads.
+/// After a same-length, same-version rewrite, call [`Self::invalidate`] after
+/// the mutation and before dependent reads.
 ///
-/// When constructed with a budget, materialization is gated: if the budget
-/// is exhausted, reads fall through to the inner vec without caching.
+/// If the budget cannot retain a snapshot, reads fall through to the inner vec.
 pub struct CachedVec<V: TypedVec> {
     pub inner: V,
     cache: Arc<RwLock<CacheState<V::T>>>,
     materialize: Arc<Mutex<()>>,
     pub(super) budget: &'static dyn CachedVecBudget,
-    pub(super) access_count: Option<Arc<AtomicU64>>,
     pub(super) last_access: Arc<AtomicU64>,
     pub(super) resident_bytes: Arc<AtomicUsize>,
 }
@@ -87,7 +88,6 @@ impl<V: TypedVec> CachedVec<V> {
             cache: Arc::new(RwLock::new(CacheState::empty())),
             materialize: Arc::new(Mutex::new(())),
             budget: &NO_BUDGET,
-            access_count: None,
             last_access: Arc::new(AtomicU64::new(0)),
             resident_bytes: Arc::new(AtomicUsize::new(0)),
         }
@@ -96,7 +96,6 @@ impl<V: TypedVec> CachedVec<V> {
     pub fn wrap_budgeted(
         inner: V,
         budget: &'static dyn CachedVecBudget,
-        access_count: Arc<AtomicU64>,
         last_access: Arc<AtomicU64>,
         resident_bytes: Arc<AtomicUsize>,
     ) -> Self {
@@ -105,7 +104,6 @@ impl<V: TypedVec> CachedVec<V> {
             cache: Arc::new(RwLock::new(CacheState::empty())),
             materialize: Arc::new(Mutex::new(())),
             budget,
-            access_count: Some(access_count),
             last_access,
             resident_bytes,
         }
@@ -116,75 +114,81 @@ impl<V: TypedVec> CachedVec<V> {
         self.inner.version()
     }
 
-    pub fn clear(&self) {
-        self.cache.write().invalidate();
-        self.budget.release(self.resident_bytes.swap(0, Relaxed));
-        if let Some(c) = &self.access_count {
-            c.store(0, Relaxed);
-        }
+    pub fn invalidate(&self) {
+        let released_bytes = {
+            let mut cache = self.cache.write();
+            cache.invalidate();
+            self.resident_bytes.swap(0, Relaxed)
+        };
+        self.budget.release(released_bytes);
     }
 }
 
 impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
     /// Returns a full snapshot, retaining it when the budget allows.
     #[inline(always)]
-    pub fn cached(&self) -> Arc<[V::T]> {
-        self.materialize()
-            .unwrap_or_else(|| self.inner.collect_range_dyn(0, self.inner.len()).into())
+    pub fn snapshot(&self) -> Arc<Vec<V::T>> {
+        self.materialize(true)
+            .unwrap_or_else(|| Arc::new(self.inner.collect_range_dyn(0, self.inner.len())))
     }
 
-    /// Returns the value at the given typed index from the cached snapshot.
+    /// Returns the value at the given typed index.
     #[inline(always)]
     pub fn get(&self, index: V::I) -> Option<V::T> {
         self.get_at(index.to_usize())
     }
 
-    /// Returns the value at the given raw index from the cached snapshot.
+    /// Returns the value at the given raw index.
     #[inline(always)]
     pub fn get_at(&self, index: usize) -> Option<V::T> {
-        self.cached().get(index).cloned()
+        self.collect_one_at(index)
     }
 
-    /// Returns `None` when budget is exhausted or below min access threshold.
+    /// Returns `None` when this read should not populate an empty budgeted cache
+    /// or when the budget cannot retain the snapshot.
     #[inline]
-    pub(super) fn try_cached(&self) -> Option<Arc<[V::T]>> {
-        self.materialize()
+    pub(super) fn try_snapshot(&self, cache_worthy: bool) -> Option<Arc<Vec<V::T>>> {
+        self.materialize(cache_worthy)
     }
 
-    fn materialize(&self) -> Option<Arc<[V::T]>> {
-        let count = self
-            .access_count
-            .as_ref()
-            .map(|c| c.fetch_add(1, Relaxed) + 1)
-            .unwrap_or(0);
-        self.last_access.store(self.budget.record_access(), Relaxed);
+    fn materialize(&self, cache_worthy: bool) -> Option<Arc<Vec<V::T>>> {
         loop {
             let len = self.inner.len();
             let version = self.inner.version();
-            {
+            let cache_is_invalid = {
                 let cache = self.cache.read();
                 if cache.matches(len, version) {
+                    self.record_cache_access();
                     return Some(cache.data.clone());
                 }
+                !cache.valid
+            };
+            let admitted = self.budget.admit(cache_worthy);
+            if cache_is_invalid && !admitted {
+                return None;
             }
 
             let _materialize = self.materialize.lock();
 
             let len = self.inner.len();
             let version = self.inner.version();
-            let generation = {
+            let (generation, released_bytes) = {
                 let mut cache = self.cache.write();
                 if cache.matches(len, version) {
+                    self.record_cache_access();
                     return Some(cache.data.clone());
                 }
                 cache.invalidate();
-                cache.generation
+                (cache.generation, self.resident_bytes.swap(0, Relaxed))
             };
-            self.budget.release(self.resident_bytes.swap(0, Relaxed));
+            self.budget.release(released_bytes);
+            if !admitted {
+                return None;
+            }
 
             let bytes = len.checked_mul(size_of::<V::T>())?;
             let reserved_bytes = if bytes > 0 {
-                if !self.budget.try_reserve(count, bytes) {
+                if !self.budget.try_reserve(bytes) {
                     return None;
                 }
                 bytes
@@ -192,7 +196,7 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
                 0
             };
 
-            let data: Arc<[V::T]> = self.inner.collect_range_dyn(0, len).into();
+            let data = Arc::new(self.inner.collect_range_dyn(0, len));
             let mut cache = self.cache.write();
             if cache.generation != generation
                 || self.inner.len() != len
@@ -201,11 +205,17 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
                 self.budget.release(reserved_bytes);
                 continue;
             }
+            self.record_cache_access();
             self.resident_bytes.store(reserved_bytes, Relaxed);
             cache.replace(len, version, data.clone());
 
             return Some(data);
         }
+    }
+
+    #[inline(always)]
+    fn record_cache_access(&self) {
+        self.last_access.store(self.budget.record_access(), Relaxed);
     }
 }
 
@@ -247,7 +257,7 @@ mod tests {
             0
         }
 
-        fn try_reserve(&self, _: u64, bytes: usize) -> bool {
+        fn try_reserve(&self, bytes: usize) -> bool {
             let reserved = self
                 .remaining
                 .fetch_update(SeqCst, SeqCst, |remaining| remaining.checked_sub(bytes))
@@ -327,6 +337,10 @@ mod tests {
     }
 
     impl ReadableVec<usize, u32> for BlockingVec {
+        fn cursor_chunk_size(&self) -> usize {
+            2
+        }
+
         fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<u32>) {
             let values = self.values(from, to);
             if self.block_once.swap(false, SeqCst) {
@@ -362,33 +376,31 @@ mod tests {
     }
 
     #[test]
-    fn clear_rejects_an_in_flight_stale_materialization() {
+    fn invalidation_rejects_an_in_flight_stale_materialization() {
         let source = BlockingVec::new([0, 1]);
         let cached = CachedVec::wrap(source.clone());
         let reader = cached.clone();
-        let handle = std::thread::spawn(move || reader.cached());
+        let handle = std::thread::spawn(move || reader.snapshot());
 
         source.started.wait();
         source.replace(1, 2);
-        cached.clear();
+        cached.invalidate();
         source.resume.wait();
 
-        assert_eq!(handle.join().unwrap().as_ref(), [0, 2]);
-        assert_eq!(cached.cached().as_ref(), [0, 2]);
+        assert_eq!(handle.join().unwrap().as_slice(), [0, 2]);
+        assert_eq!(cached.snapshot().as_slice(), [0, 2]);
     }
 
     #[test]
-    fn budget_tracks_resident_bytes_across_clear_and_resize() {
+    fn budget_tracks_resident_bytes_across_invalidation_and_resize() {
         static BUDGET: TestBudget = TestBudget::new(16);
 
         let source = BlockingVec::new([0, 1]);
         source.block_once.store(false, SeqCst);
-        let access_count = Arc::new(AtomicU64::new(0));
         let resident_bytes = Arc::new(AtomicUsize::new(0));
         let cached = CachedVec::wrap_budgeted(
             source.clone(),
             &BUDGET,
-            access_count,
             Arc::new(AtomicU64::new(0)),
             resident_bytes.clone(),
         );
@@ -402,9 +414,65 @@ mod tests {
         assert_eq!(resident_bytes.load(SeqCst), 12);
         assert_eq!(BUDGET.remaining.load(SeqCst), 4);
 
-        cached.clear();
+        cached.invalidate();
         assert_eq!(resident_bytes.load(SeqCst), 0);
         assert_eq!(BUDGET.remaining.load(SeqCst), 16);
+    }
+
+    #[test]
+    fn partial_reads_fall_through_until_every_chunk_is_touched() {
+        static BUDGET: TestBudget = TestBudget::new(32);
+
+        let source = BlockingVec::new([0, 1, 2, 3, 4, 5]);
+        source.block_once.store(false, SeqCst);
+        let resident_bytes = Arc::new(AtomicUsize::new(0));
+        let cached = CachedVec::wrap_budgeted(
+            source,
+            &BUDGET,
+            Arc::new(AtomicU64::new(0)),
+            resident_bytes.clone(),
+        );
+
+        assert_eq!(cached.collect_one_at(0), Some(0));
+        assert_eq!(cached.collect_range_at(0, 2), [0, 1]);
+        assert_eq!(resident_bytes.load(SeqCst), 0);
+        assert_eq!(BUDGET.reservations.load(SeqCst), 0);
+
+        assert_eq!(cached.read_sorted_at(&[0, 4]), [0, 4]);
+        assert_eq!(resident_bytes.load(SeqCst), 0);
+        assert_eq!(BUDGET.reservations.load(SeqCst), 0);
+
+        assert_eq!(cached.read_sorted_at(&[0, 2, 4]), [0, 2, 4]);
+        assert_eq!(resident_bytes.load(SeqCst), 24);
+        assert_eq!(BUDGET.reservations.load(SeqCst), 1);
+
+        cached.invalidate();
+        assert_eq!(BUDGET.remaining.load(SeqCst), 32);
+    }
+
+    #[test]
+    fn snapshot_explicitly_materializes_a_budgeted_vec() {
+        static BUDGET: TestBudget = TestBudget::new(32);
+
+        let source = BlockingVec::new([0, 1, 2, 3, 4, 5]);
+        source.block_once.store(false, SeqCst);
+        let resident_bytes = Arc::new(AtomicUsize::new(0));
+        let cached = CachedVec::wrap_budgeted(
+            source,
+            &BUDGET,
+            Arc::new(AtomicU64::new(0)),
+            resident_bytes.clone(),
+        );
+
+        assert_eq!(cached.collect_one_at(0), Some(0));
+        assert_eq!(resident_bytes.load(SeqCst), 0);
+
+        assert_eq!(cached.snapshot().as_slice(), [0, 1, 2, 3, 4, 5]);
+        assert_eq!(resident_bytes.load(SeqCst), 24);
+        assert_eq!(BUDGET.reservations.load(SeqCst), 1);
+
+        cached.invalidate();
+        assert_eq!(BUDGET.remaining.load(SeqCst), 32);
     }
 
     #[test]
@@ -415,7 +483,6 @@ mod tests {
         let cached = CachedVec::wrap_budgeted(
             source.clone(),
             &BUDGET,
-            Arc::new(AtomicU64::new(0)),
             Arc::new(AtomicU64::new(0)),
             Arc::new(AtomicUsize::new(0)),
         );
@@ -432,7 +499,7 @@ mod tests {
         assert_eq!(BUDGET.reservations.load(SeqCst), 1);
         assert_eq!(BUDGET.remaining.load(SeqCst), 8);
 
-        cached.clear();
+        cached.invalidate();
         assert_eq!(BUDGET.remaining.load(SeqCst), 16);
     }
 
@@ -446,12 +513,11 @@ mod tests {
             source,
             &BUDGET,
             Arc::new(AtomicU64::new(0)),
-            Arc::new(AtomicU64::new(0)),
             Arc::new(AtomicUsize::new(0)),
         );
 
-        assert!(cached.cached().is_empty());
-        assert!(cached.cached().is_empty());
+        assert!(cached.snapshot().is_empty());
+        assert!(cached.snapshot().is_empty());
         assert_eq!(BUDGET.reservations.load(SeqCst), 0);
     }
 }

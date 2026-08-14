@@ -9,8 +9,8 @@ where
     I: VecIndex,
     T: VecValue,
 {
-    fn cached(&self) -> Arc<[T]>;
-    fn clear(&self);
+    fn snapshot(&self) -> Arc<Vec<T>>;
+    fn invalidate(&self);
     fn cached_boxed_clone(&self) -> CachedBoxedVec<I, T>;
 }
 
@@ -32,12 +32,12 @@ where
     T: VecValue,
     V: TypedVec<I = I, T = T> + ReadableVec<I, T> + Clone + Send + Sync + 'static,
 {
-    fn cached(&self) -> Arc<[T]> {
-        self.cached()
+    fn snapshot(&self) -> Arc<Vec<T>> {
+        CachedVec::snapshot(self)
     }
 
-    fn clear(&self) {
-        CachedVec::clear(self);
+    fn invalidate(&self) {
+        CachedVec::invalidate(self);
     }
 
     fn cached_boxed_clone(&self) -> CachedBoxedVec<I, T> {

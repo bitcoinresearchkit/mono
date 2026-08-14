@@ -17,16 +17,16 @@ impl<I: VecIndex> CachedFirstHeightVec<I> {
         Self(CachedVec::wrap(FirstHeightSource::new(mapping)))
     }
 
-    pub(crate) fn clear(&self) {
-        self.0.clear();
+    pub(crate) fn invalidate(&self) {
+        self.0.invalidate();
     }
 
     pub fn version(&self) -> Version {
         self.0.version()
     }
 
-    pub fn cached(&self) -> Arc<[Height]> {
-        self.0.cached()
+    pub fn snapshot(&self) -> Arc<Vec<Height>> {
+        self.0.snapshot()
     }
 
     pub fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, Height> {
@@ -416,7 +416,7 @@ mod tests {
         mapping.replace(1, 1);
         assert_eq!(first_height.collect(), [0_u32, 2].map(Height::from));
 
-        first_height.clear();
+        first_height.invalidate();
         assert_eq!(first_height.collect(), [0_u32, 1].map(Height::from));
     }
 }

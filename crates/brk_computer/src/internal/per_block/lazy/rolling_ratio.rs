@@ -108,8 +108,8 @@ where
     }
 
     fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        let cached = self.cached.cached();
-        let window_starts = self.window_starts.cached();
+        let cached = self.cached.snapshot();
+        let window_starts = self.window_starts.snapshot();
         let to = to
             .min(self.source.len())
             .min(cached.len())
@@ -295,8 +295,8 @@ where
             return None;
         }
 
-        let cached = self.cached.cached();
-        let window_starts = self.window_starts.cached();
+        let cached = self.cached.snapshot();
+        let window_starts = self.window_starts.snapshot();
         let previous = Self::previous_index(window_starts[index]);
         Some(
             self.compute(

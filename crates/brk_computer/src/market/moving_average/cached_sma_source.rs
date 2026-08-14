@@ -79,7 +79,7 @@ impl PricePrefixSumVec {
         to: usize,
         mut each: impl FnMut(StoredU64) -> Result<(), E>,
     ) -> Result<(), E> {
-        let prices = self.spot_price.cached();
+        let prices = self.spot_price.snapshot();
         let to = to.min(prices.len());
         if from >= to {
             return Ok(());

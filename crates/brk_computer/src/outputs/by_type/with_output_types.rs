@@ -151,8 +151,8 @@ impl WithOutputTypes<LazyColumnCountPerBlockCumulativeRolling> {
         })
     }
 
-    pub(crate) fn clear(&self) {
-        self.by_type.iter().for_each(|count| count.clear());
+    pub(crate) fn invalidate(&self) {
+        self.by_type.iter().for_each(|count| count.invalidate());
     }
 }
 

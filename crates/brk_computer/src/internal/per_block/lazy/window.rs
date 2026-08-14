@@ -70,7 +70,7 @@ where
     }
 
     fn for_each_window(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
-        let window_starts = self.window_starts.cached();
+        let window_starts = self.window_starts.snapshot();
         let to = to.min(self.len()).min(window_starts.len());
         if from >= to {
             return;
@@ -206,7 +206,7 @@ where
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
-        let window_starts = self.window_starts.cached();
+        let window_starts = self.window_starts.snapshot();
         let start = window_starts.get(index)?.to_usize();
         let current = self.source.collect_one_at(index)?;
         let previous = self

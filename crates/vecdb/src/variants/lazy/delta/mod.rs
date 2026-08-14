@@ -33,7 +33,7 @@ pub struct LazyDeltaVec<I, S, T, Op> {
     pub(super) source: ReadableBoxedVec<I, S>,
     pub(super) window_starts_version: Version,
     #[allow(clippy::type_complexity)]
-    pub(super) window_starts: Arc<dyn Fn() -> Arc<[I]> + Send + Sync>,
+    pub(super) window_starts: Arc<dyn Fn() -> Arc<Vec<I>> + Send + Sync>,
     pub(super) _op: PhantomData<(Op, T)>,
 }
 
@@ -49,7 +49,7 @@ where
         version: Version,
         source: ReadableBoxedVec<I, S>,
         window_starts_version: Version,
-        window_starts: impl Fn() -> Arc<[I]> + Send + Sync + 'static,
+        window_starts: impl Fn() -> Arc<Vec<I>> + Send + Sync + 'static,
     ) -> Self {
         Self {
             name: Arc::from(name),

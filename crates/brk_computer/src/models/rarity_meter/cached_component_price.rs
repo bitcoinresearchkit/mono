@@ -53,7 +53,7 @@ impl CachedComponentPrice {
 
     pub(super) fn clear_if_recomputed_from(&self, height: Height) {
         if height.to_usize() < self.cache.len() {
-            self.cache.clear();
+            self.cache.invalidate();
         }
     }
 }
