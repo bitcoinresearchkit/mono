@@ -39,9 +39,8 @@ where
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
-        let base = LazyPerBlock::from_uncached_boxed_height_source::<Identity<S>>(
-            name, version, source, indexes,
-        );
+        let base =
+            LazyPerBlock::from_boxed_height_source::<Identity<S>>(name, version, source, indexes);
         let delta = LazyRollingDeltasFromHeight::new(
             &format!("{name}_delta"),
             version + delta_version_offset,

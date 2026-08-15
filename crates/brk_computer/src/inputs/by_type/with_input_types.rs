@@ -5,7 +5,7 @@ use brk_cohort::{ByAddrType, Filter, SpendableType, SpendableTypeId};
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, StoredU16, StoredU64, Version};
 use vecdb::{
-    CachedBoxedVec, CachedReadableVec, CachedVec, PcoVec, ReadOnlyColumnarVec,
+    CachedBoxedVec, CachedReadableVec, CachedVec, LazyVec, PcoVec, ReadOnlyColumnarVec,
     ReadableCloneableVec, ReadableVec, TypedVec,
 };
 
@@ -45,11 +45,16 @@ impl<V> WithInputTypes<V> {
             + Clone
             + 'static,
     {
-        let all = LazyPerBlockCumulativeRolling::from_uncached_indexed_source(
+        let source = LazyVec::init(
+            &format!("{all_name}_cumulative_source"),
+            version,
+            all_source.read_only_boxed_clone(),
+            all_transform,
+        );
+        let all = LazyPerBlockCumulativeRolling::from_cumulative_source(
             all_name,
             version,
-            &all_source,
-            all_transform,
+            source,
             cached_starts,
             indexes,
         );

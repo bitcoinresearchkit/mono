@@ -26,7 +26,7 @@ impl LazyPriceWithRatioPerBlock {
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
-        let source = LazyPerBlock::from_uncached_boxed_height_source::<Identity<Cents>>(
+        let source = LazyPerBlock::from_boxed_height_source::<Identity<Cents>>(
             &format!("{name}_cents"),
             version,
             source,
@@ -41,7 +41,7 @@ impl LazyPriceWithRatioPerBlock {
             spot_price.clone(),
             |_, price, spot| price_ratio(spot, price),
         ));
-        let ratio = LazyRatioPerBlock::from_uncached_height_source(
+        let ratio = LazyRatioPerBlock::from_height_source(
             &format!("{name}_ratio"),
             ratio_version,
             ppm_source,
@@ -57,7 +57,7 @@ impl LazyPriceWithRatioPerBlock {
         }
     }
 
-    pub(crate) fn from_uncached_height_source<V>(
+    pub(crate) fn from_height_source<V>(
         name: &str,
         version: Version,
         source: V,
@@ -67,7 +67,7 @@ impl LazyPriceWithRatioPerBlock {
     where
         V: TypedVec<I = Height, T = Cents> + ReadableVec<Height, Cents> + Clone + 'static,
     {
-        let price = Price::from_uncached_height_source(name, version, source, indexes);
+        let price = Price::from_height_source(name, version, source, indexes);
         let ratio_version = version + Version::new(4);
         let ppm_source = LazyIndexedVec::new(
             &format!("{name}_ratio_ppm_source"),
@@ -76,7 +76,7 @@ impl LazyPriceWithRatioPerBlock {
             spot_price.clone(),
             |_, price, spot| price_ratio(spot, price),
         );
-        let ratio = LazyRatioPerBlock::from_uncached_height_source(
+        let ratio = LazyRatioPerBlock::from_height_source(
             &format!("{name}_ratio"),
             ratio_version,
             ppm_source,

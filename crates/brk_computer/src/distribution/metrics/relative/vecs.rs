@@ -11,7 +11,8 @@ use crate::{
     distribution::{AllChainSources, metrics::AggregatePercentPerBlock},
     indexes,
     internal::{
-        ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioCents, RatioDollars,
+        CACHE_BUDGET, ColumnarPerBlock, LazyColumnPercentPerBlock, LazyPercentPerBlock, RatioCents,
+        RatioDollars,
     },
 };
 
@@ -96,12 +97,7 @@ impl RelativeVecs {
                 &source.unrealized.profit.cents.height,
                 |_, value, market_cap| Self::ratio_to_market_cap(value, market_cap),
             );
-            LazyPercentPerBlock::from_uncached_height_source(
-                &name,
-                Version::new(2),
-                source,
-                indexes,
-            )
+            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, indexes)
         });
         let unrealized_loss_to_mcap = UTXOAggregate::from_fn(|id| {
             let source = id.select(sources);
@@ -112,22 +108,18 @@ impl RelativeVecs {
                 &source.unrealized.loss.cents.height,
                 |_, value, market_cap| Self::ratio_to_market_cap(value, market_cap),
             );
-            LazyPercentPerBlock::from_uncached_height_source(
-                &name,
-                Version::new(2),
-                source,
-                indexes,
-            )
+            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, indexes)
         });
         let net_unrealized_pnl_to_own_mcap = ByTerm::from_fn(|term_id| {
             let aggregate_id = match term_id {
                 TermId::Short => UTXOAggregateId::Sth,
                 TermId::Long => UTXOAggregateId::Lth,
             };
+            let source = CACHE_BUDGET.wrap(aggregate_id.select(sources).nupl.ppm.height.clone());
             LazyPercentPerBlock::from_height_source(
                 &Self::aggregate_metric_name(aggregate_id, "net_unrealized_pnl_to_own_mcap"),
                 version + Version::new(4),
-                aggregate_id.select(sources).nupl.ppm.height.clone(),
+                source,
                 indexes,
             )
         });

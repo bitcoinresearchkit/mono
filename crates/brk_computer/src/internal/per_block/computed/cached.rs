@@ -37,7 +37,12 @@ where
     ) -> Result<Self> {
         let height = CachedVec::wrap(EagerVec::forced_import(db, name, version)?);
 
-        let resolutions = Resolutions::from_cached_height(name, &height, version, indexes);
+        let resolutions = Resolutions::from_boxed_height_source(
+            name,
+            height.read_only_boxed_clone(),
+            version,
+            indexes,
+        );
 
         Ok(Self {
             height,

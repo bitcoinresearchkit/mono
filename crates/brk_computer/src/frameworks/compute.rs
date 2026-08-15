@@ -20,9 +20,9 @@ impl Vecs {
         self.db.sync_bg_tasks()?;
 
         self.cointime
-            .compute(indexer, indexes, prices, blocks, supply, distribution, exit)?;
+            .compute(indexer, prices, blocks, supply, distribution, exit)?;
         self.coinflow
-            .compute(indexer, indexes, prices, distribution, &self.cointime, exit)?;
+            .compute(indexer, indexes, prices, distribution, exit)?;
 
         let frameworks_exit = exit.clone();
         self.db.run_bg(move |db| {

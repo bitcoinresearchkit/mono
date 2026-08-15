@@ -13,7 +13,7 @@ use crate::{
     },
 };
 
-const VERSION: Version = Version::TWO;
+const VERSION: Version = Version::new(3);
 
 impl ActivitySeries {
     fn new(
@@ -66,23 +66,6 @@ impl Vecs {
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
-        let coindays_created = ColumnarPerBlockCumulativeRolling::forced_import(
-            db,
-            &CohortContext::Utxo.prefixed("age_range_coindays_created_cumulative"),
-            version,
-            |source| {
-                AgeRangeId::series(CohortContext::Utxo, |column, name| {
-                    LazyColumnPerBlockCumulativeRolling::new(
-                        &format!("{name}_coindays_created"),
-                        version,
-                        source,
-                        column,
-                        indexes,
-                        cached_starts,
-                    )
-                })
-            },
-        )?;
         let coindays_consumed = ColumnarPerBlockCumulativeRolling::forced_import(
             db,
             &CohortContext::Utxo.prefixed("age_range_coindays_consumed_cumulative"),
@@ -148,7 +131,6 @@ impl Vecs {
         };
 
         Ok(Self {
-            coindays_created,
             coindays_consumed,
             coindays_stored,
             activity,

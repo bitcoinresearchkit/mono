@@ -8,9 +8,9 @@ use crate::{
     distribution::AllChainSources,
     indexes,
     internal::{
-        CachedWindowStartVec, Identity, LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock,
-        LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock, LazyValuePerBlock, LazyWindowVec,
-        Windows,
+        CACHE_BUDGET, CachedWindowStartVec, Identity, LazyFiatPerBlock, LazyPerBlock,
+        LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock,
+        LazyValuePerBlock, LazyWindowVec, Windows,
         db_utils::{finalize_db, open_db},
     },
     supply::burned,
@@ -53,6 +53,7 @@ impl Vecs {
                 }
             },
         );
+        let inflation_source = CACHE_BUDGET.wrap(inflation_source);
         let inflation_rate = LazyPercentPerBlock::from_height_source(
             "inflation_rate",
             inflation_version,
@@ -100,7 +101,7 @@ impl Vecs {
                     realized_cap,
                     starts.read_only_cached_boxed_clone(),
                 );
-                LazyPerBlock::from_uncached_height_source::<Identity<PartsPerMillionSigned64>, _>(
+                LazyPerBlock::from_height_source::<Identity<PartsPerMillionSigned64>>(
                     &name,
                     growth_version,
                     source,

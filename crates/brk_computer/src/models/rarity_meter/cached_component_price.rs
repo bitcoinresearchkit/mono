@@ -48,7 +48,7 @@ impl CachedComponentPrice {
             },
         );
 
-        Price::from_uncached_height_source(name, version, source, indexes)
+        Price::from_height_source(name, version, source, indexes)
     }
 
     pub(super) fn clear_if_recomputed_from(&self, height: Height) {

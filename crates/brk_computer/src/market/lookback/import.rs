@@ -6,7 +6,7 @@ use vecdb::CachedBoxedVec;
 use super::{ByLookbackPeriod, Vecs};
 use crate::{
     indexes,
-    internal::{LazyWindowVec, Price},
+    internal::{CACHE_BUDGET, LazyWindowVec, Price},
     price,
 };
 
@@ -28,6 +28,7 @@ impl Vecs {
                     false,
                     |_, past, _| past,
                 );
+                let source = CACHE_BUDGET.wrap(source);
                 Ok::<_, Error>(Price::from_height_source(
                     &metric_name,
                     version,

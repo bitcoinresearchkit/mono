@@ -1,11 +1,11 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version};
-use vecdb::{BinaryTransform, CachedBoxedVec, ReadableCloneableVec};
+use vecdb::{BinaryTransform, CachedBoxedVec, LazyVec, ReadableCloneableVec};
 
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, LazyIndexedVec, LazyPercentPerBlock,
+        CACHE_BUDGET, CachedWindowStartVec, LazyIndexedVec, LazyPercentPerBlock,
         LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, RatioSats, Windows,
     },
 };
@@ -35,6 +35,7 @@ impl SupplyBase {
             all_supply.clone(),
             |_, supply, all_supply| RatioSats::<PartsPerMillion32>::apply(supply, all_supply),
         );
+        let source = CACHE_BUDGET.wrap(source);
         let dominance =
             LazyPercentPerBlock::from_height_source(&dominance_name, version, source, indexes);
 
@@ -56,13 +57,15 @@ impl SupplyBase {
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let dominance_name = Self::metric_name(cohort_name, "supply_dominance");
-        let dominance = LazyPercentPerBlock::from_indexed_source(
-            &dominance_name,
+        let source = LazyVec::init(
+            &format!("{dominance_name}_ppm_source"),
             version,
-            &total.sats.height,
+            total.sats.height.read_only_boxed_clone(),
             Self::all_dominance,
-            indexes,
         );
+        let source = CACHE_BUDGET.wrap(source);
+        let dominance =
+            LazyPercentPerBlock::from_height_source(&dominance_name, version, source, indexes);
 
         Self::new(
             cohort_name,

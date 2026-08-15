@@ -6,8 +6,12 @@ use vecdb::{
     short_type_name,
 };
 
+mod prefix_sum;
+
+pub use prefix_sum::*;
+
 #[derive(Clone)]
-pub(super) struct LazySmaVec {
+pub struct LazySmaVec {
     name: Arc<str>,
     version: Version,
     window_starts: ReadableBoxedVec<Height, Height>,
@@ -15,7 +19,7 @@ pub(super) struct LazySmaVec {
 }
 
 impl LazySmaVec {
-    pub(super) fn new(
+    pub fn new(
         name: &str,
         version: Version,
         window_starts: ReadableBoxedVec<Height, Height>,
@@ -190,8 +194,6 @@ mod tests {
     };
 
     use super::*;
-    use crate::market::moving_average::cached_sma_source::PricePrefixSumVec;
-
     #[test]
     fn computes_rolling_average_from_one_shared_prefix_cache() {
         let suffix = std::time::SystemTime::now()
@@ -217,7 +219,7 @@ mod tests {
         starts.write().unwrap();
 
         let prices = CachedVec::wrap(prices);
-        let prefix_sum = CachedVec::wrap(PricePrefixSumVec::new(
+        let prefix_sum = CachedVec::wrap(SmaPrefixSumVec::new(
             "prefix",
             Version::ONE,
             prices.read_only_cached_boxed_clone(),

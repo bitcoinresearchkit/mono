@@ -12,12 +12,6 @@ use super::{ActivitySeries, SupplyVecs};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    pub coindays_created: ColumnarPerBlockCumulativeRolling<
-        StoredF64,
-        AgeRangeId,
-        AgeRange<LazyColumnPerBlockCumulativeRolling<StoredF64, AgeRangeId>>,
-        M,
-    >,
     pub coindays_consumed: ColumnarPerBlockCumulativeRolling<
         StoredF64,
         AgeRangeId,

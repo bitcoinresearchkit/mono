@@ -3,7 +3,7 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{ColumnId, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec, VecValue};
+use vecdb::{ColumnId, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec};
 
 use crate::{
     indexes,
@@ -79,7 +79,7 @@ where
         }
     }
 
-    pub(crate) fn from_cached_cumulative_source<V>(
+    pub(crate) fn from_cumulative_source<V>(
         name: &str,
         version: Version,
         source: V,
@@ -89,7 +89,7 @@ where
     where
         V: TypedVec<I = Height, T = T> + ReadableVec<Height, T> + Clone + 'static,
     {
-        let cumulative = LazyPerBlock::from_uncached_height_source::<Identity<T>, _>(
+        let cumulative = LazyPerBlock::from_height_source::<Identity<T>>(
             &format!("{name}_cumulative"),
             version,
             source,
@@ -106,7 +106,7 @@ where
         cached_starts: &Windows<&CachedWindowStartVec>,
         indexes: &indexes::Vecs,
     ) -> Self {
-        let cumulative = LazyPerBlock::from_uncached_boxed_height_source::<Identity<T>>(
+        let cumulative = LazyPerBlock::from_boxed_height_source::<Identity<T>>(
             &format!("{name}_cumulative"),
             version,
             source,
@@ -144,50 +144,6 @@ where
             version,
             source.height.read_only_boxed_clone(),
             &source.resolutions,
-        );
-
-        Self::from_cumulative(name, version, cumulative, cached_starts, indexes)
-    }
-
-    pub(crate) fn from_indexed_source<S>(
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + 'static),
-        compute_cumulative: fn(Height, S) -> T,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: VecValue,
-    {
-        let cumulative = LazyPerBlock::from_indexed_source(
-            &format!("{name}_cumulative"),
-            version,
-            source,
-            compute_cumulative,
-            indexes,
-        );
-
-        Self::from_cumulative(name, version, cumulative, cached_starts, indexes)
-    }
-
-    pub(crate) fn from_uncached_indexed_source<S>(
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + 'static),
-        compute_cumulative: fn(Height, S) -> T,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: VecValue,
-    {
-        let cumulative = LazyPerBlock::from_uncached_indexed_source(
-            &format!("{name}_cumulative"),
-            version,
-            source,
-            compute_cumulative,
-            indexes,
         );
 
         Self::from_cumulative(name, version, cumulative, cached_starts, indexes)

@@ -1,13 +1,13 @@
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, Version};
-use vecdb::CachedBoxedVec;
+use vecdb::{CachedBoxedVec, CachedReadableVec, CachedVec, ReadableCloneableVec};
 
 use crate::{
     blocks, indexes,
     internal::{CentsTimesTenths, LazyPerBlock, LazyPriceWithRatioPerBlock, Price},
 };
 
-use super::cached_sma_source::CachedSmaSource;
+use super::lazy_sma::{LazySmaVec, SmaPrefixSumVec};
 
 #[derive(Clone, Traversable)]
 pub struct SmaVecs {
@@ -46,15 +46,25 @@ impl SmaVecs {
         spot_price: CachedBoxedVec<Height, Cents>,
     ) -> Self {
         let version = version + VERSION;
-        let source = CachedSmaSource::new(version, spot_price);
+        let prefix_sum = CachedVec::wrap(SmaPrefixSumVec::new(
+            "price_sma_prefix_sum",
+            version,
+            spot_price.clone(),
+        ));
 
         macro_rules! sma {
             ($name:literal, $days:expr) => {
-                source.price(
+                LazyPriceWithRatioPerBlock::from_height_source(
                     concat!("price_sma_", $name),
                     version,
-                    lookback.start_vec($days),
+                    LazySmaVec::new(
+                        concat!("price_sma_", $name, "_cents_source"),
+                        version,
+                        lookback.start_vec($days).read_only_boxed_clone(),
+                        prefix_sum.cached_boxed_clone(),
+                    ),
                     indexes,
+                    &spot_price,
                 )
             };
         }

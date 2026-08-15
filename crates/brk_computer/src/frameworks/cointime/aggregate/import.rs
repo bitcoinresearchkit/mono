@@ -114,9 +114,7 @@ impl CohortVecs {
                     indexes,
                     spot_price,
                 ),
-                supply_in_loss_share: LazyPerBlock::from_uncached_boxed_height_source::<
-                    Identity<StoredF64>,
-                >(
+                supply_in_loss_share: LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
                     &format!("{prefix}awake_supply_in_loss_share"),
                     version,
                     supply_in_loss_share,

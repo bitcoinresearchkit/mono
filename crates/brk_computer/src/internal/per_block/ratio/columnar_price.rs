@@ -4,7 +4,9 @@ use vecdb::{CachedBoxedVec, ColumnId, PcoVec, ReadOnlyColumnarVec, ReadableClone
 
 use crate::{
     indexes,
-    internal::{LazyColumnPerBlock, LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price},
+    internal::{
+        CACHE_BUDGET, LazyColumnPerBlock, LazyIndexedVec, LazyPerBlock, LazyRatioPerBlock, Price,
+    },
 };
 
 use super::price::price_ratio;
@@ -42,6 +44,7 @@ where
             spot_price.clone(),
             |_, price, spot| price_ratio(spot, price),
         );
+        let ppm_source = CACHE_BUDGET.wrap(ppm_source);
         let ratio = LazyRatioPerBlock::from_height_source(
             &format!("{name}_ratio"),
             ratio_version,

@@ -36,7 +36,7 @@ impl Vecs {
             &transactions.volume.transfer_volume.sum._24h.cents.height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
-        let nvt = LazyRatioPerBlock::from_uncached_height_source("nvt", v, nvt_source, indexes);
+        let nvt = LazyRatioPerBlock::from_height_source("nvt", v, nvt_source, indexes);
         let gini = PercentPerBlock::forced_import(&db, "gini", v, indexes)?;
         let rhodl_ratio = RatioPerBlock::forced_import_ppm(&db, "rhodl_ratio", v, indexes)?;
         let thermo_source = all_chain.with_market_cap(
@@ -45,12 +45,8 @@ impl Vecs {
             &mining.rewards.subsidy.cumulative.cents.height,
             |_, thermo_cap, market_cap| Self::market_ratio(market_cap, thermo_cap),
         );
-        let thermo_cap_multiple = LazyRatioPerBlock::from_uncached_height_source(
-            "thermo_cap_multiple",
-            v,
-            thermo_source,
-            indexes,
-        );
+        let thermo_cap_multiple =
+            LazyRatioPerBlock::from_height_source("thermo_cap_multiple", v, thermo_source, indexes);
 
         let activity = &distribution.cohorts.activity;
         let cdd_source = all_chain.with_supply(
@@ -59,26 +55,24 @@ impl Vecs {
             &activity.coindays_destroyed.cohorts.all.sum._24h.height,
             |_, cdd, supply| Self::supply_adjusted(f64::from(cdd), supply),
         );
-        let coindays_destroyed_supply_adj =
-            LazyPerBlock::from_uncached_height_source::<Identity<StoredF32>, _>(
-                "coindays_destroyed_supply_adj",
-                v,
-                cdd_source,
-                indexes,
-            );
+        let coindays_destroyed_supply_adj = LazyPerBlock::from_height_source::<Identity<StoredF32>>(
+            "coindays_destroyed_supply_adj",
+            v,
+            cdd_source,
+            indexes,
+        );
         let cyd_source = all_chain.with_supply(
             "coinyears_destroyed_supply_adj_source",
             v,
             &activity.coinyears_destroyed.all.height,
             |_, cyd, supply| Self::supply_adjusted(f64::from(cyd), supply),
         );
-        let coinyears_destroyed_supply_adj =
-            LazyPerBlock::from_uncached_height_source::<Identity<StoredF32>, _>(
-                "coinyears_destroyed_supply_adj",
-                v,
-                cyd_source,
-                indexes,
-            );
+        let coinyears_destroyed_supply_adj = LazyPerBlock::from_height_source::<Identity<StoredF32>>(
+            "coinyears_destroyed_supply_adj",
+            v,
+            cyd_source,
+            indexes,
+        );
         let dormancy_24h = &activity.dormancy.all._24h.height;
         let dormancy_supply_source = all_chain.with_supply(
             "dormancy_supply_adj_source",
@@ -93,13 +87,13 @@ impl Vecs {
             |_, dormancy, supply| Self::dormancy_flow(dormancy, supply),
         );
         let dormancy = super::vecs::DormancyVecs {
-            supply_adj: LazyPerBlock::from_uncached_height_source::<Identity<StoredF32>, _>(
+            supply_adj: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "dormancy_supply_adj",
                 v,
                 dormancy_supply_source,
                 indexes,
             ),
-            flow: LazyPerBlock::from_uncached_height_source::<Identity<StoredF32>, _>(
+            flow: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "dormancy_flow",
                 v,
                 dormancy_flow_source,
@@ -112,7 +106,7 @@ impl Vecs {
             &mining.rewards.subsidy.block.sats,
             |_, subsidy, supply| Self::stock_to_flow(supply, subsidy),
         );
-        let stock_to_flow = LazyPerBlock::from_uncached_height_source::<Identity<StoredF32>, _>(
+        let stock_to_flow = LazyPerBlock::from_height_source::<Identity<StoredF32>>(
             "stock_to_flow",
             v,
             stock_source,

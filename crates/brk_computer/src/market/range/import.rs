@@ -5,7 +5,9 @@ use vecdb::{Database, ReadableCloneableVec};
 use super::{Vecs, vecs::PriceMinMaxVecs};
 use crate::{
     indexes,
-    internal::{Identity, LazyLookbackVec, LazyPerBlock, PerBlock, PercentPerBlock, Price},
+    internal::{
+        CACHE_BUDGET, Identity, LazyLookbackVec, LazyPerBlock, PerBlock, PercentPerBlock, Price,
+    },
 };
 
 impl Vecs {
@@ -41,10 +43,10 @@ impl Vecs {
                 _1m: Price::forced_import(db, "price_max_1m", version + v1, indexes)?,
                 _1y: Price::forced_import(db, "price_max_1y", version + v1, indexes)?,
             },
-            true_range: LazyPerBlock::from_height_source::<Identity<StoredF32>, _>(
+            true_range: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "price_true_range",
                 v,
-                true_range_source,
+                CACHE_BUDGET.wrap(true_range_source),
                 indexes,
             ),
             true_range_sum_2w: PerBlock::forced_import(

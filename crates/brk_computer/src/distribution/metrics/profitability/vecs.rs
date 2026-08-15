@@ -95,7 +95,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "realized_cap", version, |name, source| {
-                    LazyPerBlock::from_uncached_boxed_height_source::<Identity<Dollars>>(
+                    LazyPerBlock::from_boxed_height_source::<Identity<Dollars>>(
                         name, version, source, indexes,
                     )
                 })
@@ -107,7 +107,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "unrealized_pnl", version, |name, source| {
-                    LazyPerBlock::from_uncached_boxed_height_source::<Identity<Dollars>>(
+                    LazyPerBlock::from_boxed_height_source::<Identity<Dollars>>(
                         name, version, source, indexes,
                     )
                 })

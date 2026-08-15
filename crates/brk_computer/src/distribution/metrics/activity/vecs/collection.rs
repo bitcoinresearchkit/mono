@@ -11,7 +11,8 @@ use crate::{
     distribution::metrics::UTXORows,
     indexes,
     internal::{
-        CachedWindowStartVec, ColumnarRollingWindows, Identity, LazyPerBlock, SatsToCents, Windows,
+        CACHE_BUDGET, CachedWindowStartVec, ColumnarRollingWindows, Identity, LazyPerBlock,
+        SatsToCents, Windows,
     },
 };
 
@@ -67,17 +68,19 @@ impl ActivityVecs {
         let coinyears_destroyed = UTXOAggregate::from_fn(|id| {
             let filter = id.select(&UTXO_AGGREGATE_FILTERS);
             let name = Self::aggregate_metric_name(id, "coinyears_destroyed");
-            LazyPerBlock::from_height_source::<Identity<StoredF64>, _>(
+            let source = coindays_destroyed
+                .cohorts
+                .get(filter)
+                .expect("aggregate coindays-destroyed source")
+                .sum
+                ._1y
+                .height
+                .clone();
+            let source = CACHE_BUDGET.wrap(source);
+            LazyPerBlock::from_height_source::<Identity<StoredF64>>(
                 &name,
                 Self::aggregate_version(aggregate_version, id),
-                coindays_destroyed
-                    .cohorts
-                    .get(filter)
-                    .expect("aggregate coindays-destroyed source")
-                    .sum
-                    ._1y
-                    .height
-                    .clone(),
+                source,
                 indexes,
             )
         });

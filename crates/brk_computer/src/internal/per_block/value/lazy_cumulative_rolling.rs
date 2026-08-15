@@ -29,14 +29,14 @@ impl LazyValuePerBlockCumulativeRolling {
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let cumulative_name = format!("{name}_cumulative");
-        let sats = LazyPerBlock::from_uncached_boxed_height_source::<Identity<Sats>>(
+        let sats = LazyPerBlock::from_boxed_height_source::<Identity<Sats>>(
             &format!("{cumulative_name}_sats"),
             version,
             cumulative_sats,
             indexes,
         );
         let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(&cumulative_name, version, &sats);
-        let cents = LazyPerBlock::from_uncached_boxed_height_source::<Identity<Cents>>(
+        let cents = LazyPerBlock::from_boxed_height_source::<Identity<Cents>>(
             &format!("{cumulative_name}_cents"),
             version,
             cumulative_cents,

@@ -6,7 +6,7 @@ use vecdb::{DeltaAvg, LazyDeltaVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, NumericValue, Resolutions, Windows},
+    internal::{CACHE_BUDGET, CachedWindowStartVec, NumericValue, Resolutions, Windows},
 };
 
 use super::LazyRollingAvgFromHeight;
@@ -46,7 +46,8 @@ where
                 starts_version,
                 move || cached.snapshot(),
             );
-            let resolutions = Resolutions::forced_import(&full_name, avg.clone(), version, indexes);
+            let source = CACHE_BUDGET.wrap(avg.clone());
+            let resolutions = Resolutions::from_height_source(&full_name, source, version, indexes);
             LazyRollingAvgFromHeight {
                 height: avg,
                 resolutions: Box::new(resolutions),

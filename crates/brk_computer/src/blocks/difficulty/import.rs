@@ -1,13 +1,13 @@
 use brk_indexer::Indexer;
 use brk_types::{Epoch, Height, PartsPerMillionSigned32, StoredF64, StoredU32, Version};
-use vecdb::ReadOnlyClone;
+use vecdb::{LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use super::Vecs;
 use crate::{
     indexes,
     internal::{
-        BlocksToDaysF32, DifficultyToHashF64, Identity, LazyPerBlock, LazyPercentPerBlock,
-        Resolutions,
+        BlocksToDaysF32, CACHE_BUDGET, DifficultyToHashF64, Identity, LazyPerBlock,
+        LazyPercentPerBlock, Resolutions,
     },
 };
 
@@ -33,24 +33,33 @@ impl Vecs {
     pub(crate) fn new(version: Version, indexer: &Indexer, indexes: &indexes::Vecs) -> Self {
         let v2 = Version::TWO;
 
-        let hashrate = LazyPerBlock::from_height_source::<DifficultyToHashF64, _>(
+        let difficulty_source =
+            CACHE_BUDGET.wrap(indexer.vecs().blocks.difficulty.read_only_clone());
+        let hashrate = LazyPerBlock::from_height_source::<DifficultyToHashF64>(
             "difficulty_hashrate",
             version,
-            indexer.vecs().blocks.difficulty.read_only_clone(),
+            difficulty_source.clone(),
             indexes,
         );
 
-        let epoch = LazyPerBlock::from_height_source::<Identity<Epoch>, _>(
+        let epoch_source = CACHE_BUDGET.wrap(indexes.height.epoch.read_only_clone());
+        let epoch = LazyPerBlock::from_height_source::<Identity<Epoch>>(
             "difficulty_epoch",
             version,
-            indexes.height.epoch.read_only_clone(),
+            epoch_source,
             indexes,
         );
-        let blocks_to_retarget = LazyPerBlock::from_indexed_source(
+        let blocks_to_retarget_source = LazyVec::init(
+            "blocks_to_retarget_source",
+            version + v2,
+            indexes.height.epoch.read_only_boxed_clone(),
+            blocks_left_to_retarget,
+        );
+        let blocks_to_retarget_source = CACHE_BUDGET.wrap(blocks_to_retarget_source);
+        let blocks_to_retarget = LazyPerBlock::from_height_source::<Identity<StoredU32>>(
             "blocks_to_retarget",
             version + v2,
-            &indexes.height.epoch,
-            blocks_left_to_retarget,
+            blocks_to_retarget_source,
             indexes,
         );
 
@@ -61,9 +70,9 @@ impl Vecs {
         );
 
         Self {
-            value: Resolutions::forced_import(
+            value: Resolutions::from_height_source(
                 "difficulty",
-                indexer.vecs().blocks.difficulty.read_only_clone(),
+                difficulty_source,
                 version,
                 indexes,
             ),

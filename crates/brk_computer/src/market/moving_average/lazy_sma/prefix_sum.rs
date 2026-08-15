@@ -1,71 +1,17 @@
 use std::sync::Arc;
 
 use brk_types::{Cents, Height, StoredU64, Version};
-use vecdb::{
-    AnyVec, CachedBoxedVec, CachedReadableVec, CachedVec, PrintableIndex, ReadableCloneableVec,
-    ReadableVec, TypedVec, short_type_name,
-};
-
-use crate::{indexes, internal::LazyPriceWithRatioPerBlock};
-
-use super::lazy_sma::LazySmaVec;
-
-pub(super) struct CachedSmaSource {
-    spot_price: CachedBoxedVec<Height, Cents>,
-    prefix_sum: CachedVec<PricePrefixSumVec>,
-}
-
-impl CachedSmaSource {
-    pub(super) fn new(version: Version, spot_price: CachedBoxedVec<Height, Cents>) -> Self {
-        let prefix_sum = CachedVec::wrap(PricePrefixSumVec::new(
-            "price_sma_prefix_sum",
-            version,
-            spot_price.clone(),
-        ));
-
-        Self {
-            spot_price,
-            prefix_sum,
-        }
-    }
-
-    pub(super) fn price(
-        &self,
-        name: &str,
-        version: Version,
-        window_starts: &(impl ReadableCloneableVec<Height, Height> + 'static),
-        indexes: &indexes::Vecs,
-    ) -> LazyPriceWithRatioPerBlock {
-        let source = LazySmaVec::new(
-            &format!("{name}_cents_source"),
-            version,
-            window_starts.read_only_boxed_clone(),
-            self.prefix_sum.cached_boxed_clone(),
-        );
-
-        LazyPriceWithRatioPerBlock::from_uncached_height_source(
-            name,
-            version,
-            source,
-            indexes,
-            &self.spot_price,
-        )
-    }
-}
+use vecdb::{AnyVec, CachedBoxedVec, PrintableIndex, ReadableVec, TypedVec, short_type_name};
 
 #[derive(Clone)]
-pub(super) struct PricePrefixSumVec {
+pub struct SmaPrefixSumVec {
     name: Arc<str>,
     version: Version,
     spot_price: CachedBoxedVec<Height, Cents>,
 }
 
-impl PricePrefixSumVec {
-    pub(super) fn new(
-        name: &str,
-        version: Version,
-        spot_price: CachedBoxedVec<Height, Cents>,
-    ) -> Self {
+impl SmaPrefixSumVec {
+    pub fn new(name: &str, version: Version, spot_price: CachedBoxedVec<Height, Cents>) -> Self {
         Self {
             name: Arc::from(name),
             version,
@@ -109,7 +55,7 @@ impl PricePrefixSumVec {
     }
 }
 
-impl AnyVec for PricePrefixSumVec {
+impl AnyVec for SmaPrefixSumVec {
     fn version(&self) -> Version {
         self.version + self.spot_price.version()
     }
@@ -139,12 +85,12 @@ impl AnyVec for PricePrefixSumVec {
     }
 }
 
-impl TypedVec for PricePrefixSumVec {
+impl TypedVec for SmaPrefixSumVec {
     type I = Height;
     type T = StoredU64;
 }
 
-impl ReadableVec<Height, StoredU64> for PricePrefixSumVec {
+impl ReadableVec<Height, StoredU64> for SmaPrefixSumVec {
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<StoredU64>) {
         buf.reserve(to.min(self.len()).saturating_sub(from));
         self.for_each_value(from, to, |value| buf.push(value));

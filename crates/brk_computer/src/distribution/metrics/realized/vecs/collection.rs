@@ -24,7 +24,7 @@ use crate::{
     },
     indexes,
     internal::{
-        CachedWindowStartVec, ColumnarPercentRollingWindows, ColumnarRollingWindows,
+        CACHE_BUDGET, CachedWindowStartVec, ColumnarPercentRollingWindows, ColumnarRollingWindows,
         ColumnarRollingWindowsFrom1w, Identity, LazyFiatPerBlockCumulativeWithSums,
         LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPercentPerBlock, NegCentsUnsignedToDollars,
         RatioCents, RatioCents64, RatioCentsSignedCents, SoprRatio, Windows,
@@ -237,10 +237,11 @@ impl RealizedVecs {
                 loss.block.cents.read_only_boxed_clone(),
             );
             let sum = loss.sum.0.map_with_suffix(|suffix, slot| {
-                LazyPerBlock::from_height_source::<NegCentsUnsignedToDollars, _>(
+                let source = CACHE_BUDGET.wrap(slot.cents.height.clone());
+                LazyPerBlock::from_height_source::<NegCentsUnsignedToDollars>(
                     &format!("{name}_sum_{suffix}"),
                     version,
-                    slot.cents.height.clone(),
+                    source,
                     indexes,
                 )
             });
@@ -253,16 +254,23 @@ impl RealizedVecs {
                 id.select(&UTXO_AGGREGATE_NAMES).id,
                 "realized_cap_to_own_mcap",
             );
-            LazyPercentPerBlock::from_indexed_source(
-                &name,
+            let source = LazyVec::init(
+                &format!("{name}_ppm_source"),
                 Self::cohort_version(version, filter) + Version::TWO,
-                &price
+                price
                     .cohorts
                     .get(filter)
                     .expect("realized-price cohort")
                     .ppm
-                    .height,
+                    .height
+                    .read_only_boxed_clone(),
                 Self::mvrv_to_realized_cap_ratio,
+            );
+            let source = CACHE_BUDGET.wrap(source);
+            LazyPercentPerBlock::from_height_source(
+                &name,
+                Self::cohort_version(version, filter) + Version::TWO,
+                source,
                 indexes,
             )
         });
@@ -287,12 +295,7 @@ impl RealizedVecs {
                     .height,
                 |_, net_pnl, market_cap| Self::net_pnl_to_market_cap(net_pnl, market_cap),
             );
-            LazyPercentPerBlock::from_uncached_height_source(
-                &name,
-                Version::new(5),
-                source,
-                indexes,
-            )
+            LazyPercentPerBlock::from_height_source(&name, Version::new(5), source, indexes)
         });
 
         Ok(Self {

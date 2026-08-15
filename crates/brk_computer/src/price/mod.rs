@@ -14,9 +14,9 @@ use vecdb::{Database, Rw, StorageMode};
 use crate::{
     indexes,
     internal::{
-        CachedPerBlock, CentsUnsignedToDollars, CentsUnsignedToSats, LazyIndexes, LazyPerBlock,
-        OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,
-        OhlcCentsToSats, Resolutions,
+        CACHE_BUDGET, CachedPerBlock, CentsUnsignedToDollars, CentsUnsignedToSats, LazyIndexes,
+        LazyPerBlock, OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents,
+        OhlcCentsToOpenCents, OhlcCentsToSats, Resolutions,
         db_utils::{finalize_db, open_db},
     },
 };
@@ -58,9 +58,9 @@ impl Vecs {
         let version = version + Version::new(11 + ORACLE_VERSION);
 
         let price_cents = CachedPerBlock::forced_import(db, "price_cents", version, indexes)?;
-        let close_cents = Resolutions::from_cached_height(
+        let close_cents = Resolutions::from_boxed_height_source(
             "price_close_cents",
-            &price_cents.height,
+            price_cents.height.read_only_boxed_clone(),
             version,
             indexes,
         );
@@ -111,8 +111,8 @@ impl Vecs {
             &low_cents,
         );
 
-        let close_usd =
-            Resolutions::forced_import("price_close", price_usd.height.clone(), version, indexes);
+        let source = CACHE_BUDGET.wrap(price_usd.height.clone());
+        let close_usd = Resolutions::from_height_source("price_close", source, version, indexes);
 
         let ohlc_usd = LazyOhlcVecs::from_ohlc_indexes::<OhlcCentsToDollars>(
             "price_ohlc",
@@ -144,12 +144,9 @@ impl Vecs {
             &high_cents,
         );
 
-        let close_sats = Resolutions::forced_import(
-            "price_close_sats",
-            price_sats.height.clone(),
-            version,
-            indexes,
-        );
+        let source = CACHE_BUDGET.wrap(price_sats.height.clone());
+        let close_sats =
+            Resolutions::from_height_source("price_close_sats", source, version, indexes);
 
         // OhlcCentsToSats handles the high↔low swap internally
         let ohlc_sats = LazyOhlcVecs::from_ohlc_indexes::<OhlcCentsToSats>(

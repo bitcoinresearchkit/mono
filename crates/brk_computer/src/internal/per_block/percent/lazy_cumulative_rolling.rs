@@ -5,8 +5,8 @@ use vecdb::{BinaryTransform, CachedBoxedVec, ReadableCloneableVec, UnaryTransfor
 use crate::{
     indexes,
     internal::{
-        CachedBlockCountReader, CachedWindowStartVec, FixedRatio, LazyPercentPerBlock,
-        LazyPercentRollingWindows, LazyRatioWithCachedBlockCount,
+        CACHE_BUDGET, CachedBlockCountReader, CachedWindowStartVec, FixedRatio,
+        LazyPercentPerBlock, LazyPercentRollingWindows, LazyRatioWithCachedBlockCount,
         LazyRollingRatioWithCachedBlockCount, NumericValue, RatioU64, Windows,
     },
 };
@@ -34,33 +34,27 @@ impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {
         indexes: &indexes::Vecs,
     ) -> Self {
         let source_name = format!("{name}_{}_source", B::SUFFIX);
-        let cumulative = LazyPercentPerBlock::from_height_source(
-            name,
+        let source = LazyRatioWithCachedBlockCount::<B, RatioU64<B>>::new(
+            &source_name,
             version,
-            LazyRatioWithCachedBlockCount::<B, RatioU64<B>>::new(
-                &source_name,
-                version,
-                numerator.read_only_boxed_clone(),
-                denominator.clone(),
-            ),
-            indexes,
+            numerator.read_only_boxed_clone(),
+            denominator.clone(),
         );
+        let source = CACHE_BUDGET.wrap(source);
+        let cumulative = LazyPercentPerBlock::from_height_source(name, version, source, indexes);
         let numerator = numerator.read_only_boxed_clone();
         let rolling =
             LazyPercentRollingWindows(cached_starts.map_with_suffix(|suffix, cached_start| {
                 let full_name = format!("{name}_{suffix}");
-                LazyPercentPerBlock::from_height_source(
-                    &full_name,
+                let source = LazyRollingRatioWithCachedBlockCount::<B, RatioU64<B>>::new(
+                    &format!("{full_name}_{}_source", B::SUFFIX),
                     version,
-                    LazyRollingRatioWithCachedBlockCount::<B, RatioU64<B>>::new(
-                        &format!("{full_name}_{}_source", B::SUFFIX),
-                        version,
-                        numerator.clone(),
-                        denominator.clone(),
-                        cached_start.read_only_cached_boxed_clone(),
-                    ),
-                    indexes,
-                )
+                    numerator.clone(),
+                    denominator.clone(),
+                    cached_start.read_only_cached_boxed_clone(),
+                );
+                let source = CACHE_BUDGET.wrap(source);
+                LazyPercentPerBlock::from_height_source(&full_name, version, source, indexes)
             }));
 
         Self {

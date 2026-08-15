@@ -5,7 +5,7 @@ use brk_cohort::{ByAddrType, ByType, Filter, OutputTypeId};
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, StoredU16, StoredU64, Version};
 use vecdb::{
-    CachedBoxedVec, CachedReadableVec, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec,
+    CachedBoxedVec, CachedReadableVec, LazyVec, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec,
     ReadableVec, TypedVec,
 };
 
@@ -50,12 +50,17 @@ impl<V> WithOutputTypes<V> {
             + 'static,
     {
         let cached_all = all_source.cached_boxed_clone();
+        let source = LazyVec::init(
+            &format!("{all_name}_cumulative_source"),
+            version,
+            all_source.read_only_boxed_clone(),
+            all_transform,
+        );
         Self {
-            all: LazyPerBlockCumulativeRolling::from_uncached_indexed_source(
+            all: LazyPerBlockCumulativeRolling::from_cumulative_source(
                 all_name,
                 version,
-                &all_source,
-                all_transform,
+                source,
                 cached_starts,
                 indexes,
             ),

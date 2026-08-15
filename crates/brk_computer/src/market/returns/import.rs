@@ -6,7 +6,9 @@ use super::super::lookback::ByLookbackPeriod;
 use super::Vecs;
 use crate::{
     indexes,
-    internal::{LazyPercentPerBlock, LazyWindowVec, RatioDiffDollars, StdDevPerBlock, Windows},
+    internal::{
+        CACHE_BUDGET, LazyPercentPerBlock, LazyWindowVec, RatioDiffDollars, StdDevPerBlock, Windows,
+    },
     investing::{ByDcaCagr, ByDcaPeriod},
     price,
 };
@@ -32,6 +34,7 @@ impl Vecs {
                         RatioDiffDollars::<PartsPerMillionSigned64>::apply(current, past)
                     },
                 );
+                let source = CACHE_BUDGET.wrap(source);
                 Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
                     &metric_name,
                     version,

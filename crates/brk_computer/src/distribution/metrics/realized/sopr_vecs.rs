@@ -258,7 +258,7 @@ impl Sopr24hVecs {
         version: Version,
         indexes: &indexes::Vecs,
     ) -> LazyPerBlock<StoredF32> {
-        LazyPerBlock::from_uncached_boxed_height_source::<Identity<StoredF32>>(
+        LazyPerBlock::from_boxed_height_source::<Identity<StoredF32>>(
             name,
             version,
             source.height.read_only_boxed_clone(),

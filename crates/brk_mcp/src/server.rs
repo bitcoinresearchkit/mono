@@ -1,19 +1,12 @@
-use std::{
-    borrow::Cow,
-    sync::{Arc, Mutex},
-    time::Instant,
-};
+use std::{borrow::Cow, sync::Arc, time::Duration};
 
 use axum::{
     Router,
     body::Body,
-    extract::State,
-    http::{
-        Request, StatusCode,
-        header::{ORIGIN, RETRY_AFTER},
-    },
+    http::{Method, Request, StatusCode, header::ORIGIN},
     middleware::{self, Next},
     response::{IntoResponse, Response},
+    routing::get,
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 use rmcp::{
@@ -40,7 +33,7 @@ use crate::{
 const CACHE_META_KEY: &str = "space.bitview/upstreamCache";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_CONCURRENCY: usize = 16;
-const REQUESTS_PER_SECOND: u32 = 50;
+const CONCURRENCY_WAIT: Duration = Duration::from_secs(5);
 const CATALOG_TTL_MS: u64 = 3_600_000;
 const MAX_UPSTREAM_ERROR_BYTES: usize = 2_048;
 static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 1] = [ProtocolVersion::V_2026_07_28];
@@ -49,12 +42,6 @@ struct AppState {
     catalog: Catalog,
     upstream: Upstream,
     concurrency: Arc<Semaphore>,
-    rate_limit: Mutex<RateLimit>,
-}
-
-struct RateLimit {
-    window_started: Instant,
-    used: u32,
 }
 
 #[derive(Clone)]
@@ -67,26 +54,9 @@ impl AppState {
         let upstream = Upstream::new(api_bases);
         Self {
             concurrency: Arc::new(Semaphore::new(MAX_CONCURRENCY)),
-            rate_limit: Mutex::new(RateLimit {
-                window_started: Instant::now(),
-                used: 0,
-            }),
             catalog,
             upstream,
         }
-    }
-
-    fn admit(&self) -> bool {
-        let mut limit = self.rate_limit.lock().expect("rate limit mutex poisoned");
-        if limit.window_started.elapsed().as_secs() >= 1 {
-            limit.window_started = Instant::now();
-            limit.used = 0;
-        }
-        if limit.used >= REQUESTS_PER_SECOND {
-            return false;
-        }
-        limit.used += 1;
-        true
     }
 }
 
@@ -111,8 +81,8 @@ pub fn router(api_bases: Vec<String>, catalog: Catalog) -> Router {
     );
 
     Router::new()
-        .route_service("/", service)
-        .layer(middleware::from_fn_with_state(state, gateway_guard))
+        .route("/", get(crate::page::get).post_service(service))
+        .layer(middleware::from_fn(gateway_guard))
 }
 
 impl BrkMcp {
@@ -257,12 +227,20 @@ impl ServerHandler for BrkMcp {
             .upstream
             .prepare(operation, arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
-        let permit = self
-            .state
-            .concurrency
-            .clone()
-            .try_acquire_owned()
-            .map_err(|_| McpError::internal_error("MCP proxy is at its concurrency limit", None))?;
+        let permit = match tokio::time::timeout(
+            CONCURRENCY_WAIT,
+            self.state.concurrency.clone().acquire_owned(),
+        )
+        .await
+        {
+            Ok(Ok(permit)) => permit,
+            Ok(Err(_)) => return Ok(self.tool_error("MCP proxy is unavailable")),
+            Err(_) => {
+                return Ok(
+                    self.tool_error("MCP proxy is temporarily busy; retry this tool call shortly")
+                );
+            }
+        };
 
         let upstream = self.state.upstream.clone();
         let response = match tokio::task::spawn_blocking(move || {
@@ -296,23 +274,9 @@ impl ServerHandler for BrkMcp {
     }
 }
 
-async fn gateway_guard(
-    State(state): State<Arc<AppState>>,
-    request: Request<Body>,
-    next: Next,
-) -> Response {
-    if request.headers().contains_key(ORIGIN) {
+async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
+    if request.method() == Method::POST && request.headers().contains_key(ORIGIN) {
         return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
-    }
-
-    if !state.admit() {
-        let mut response =
-            (StatusCode::TOO_MANY_REQUESTS, "Request rate limit exceeded").into_response();
-        response.headers_mut().insert(
-            RETRY_AFTER,
-            "1".parse().expect("static retry header is valid"),
-        );
-        return response;
     }
 
     next.run(request).await

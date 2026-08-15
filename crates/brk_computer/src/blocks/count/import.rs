@@ -1,12 +1,13 @@
 use brk_indexer::Indexer;
 use brk_types::{Height, StoredU64, Version, Weight};
+use vecdb::{LazyVec, ReadableCloneableVec};
 
 use super::Vecs;
 use crate::{
     indexes,
     internal::{
         BlockCountTarget1m, BlockCountTarget1w, BlockCountTarget1y, BlockCountTarget24h,
-        CachedWindowStartVec, ConstantVecs, LazyPerBlockCumulativeRolling, Windows,
+        CACHE_BUDGET, CachedWindowStartVec, ConstantVecs, LazyPerBlockCumulativeRolling, Windows,
     },
 };
 
@@ -21,6 +22,14 @@ impl Vecs {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
+        let total_source = LazyVec::init(
+            "block_count_cumulative_source",
+            version + Version::ONE,
+            indexer.vecs().blocks.weight.read_only_boxed_clone(),
+            cumulative_block_count,
+        );
+        let total_source = CACHE_BUDGET.wrap(total_source);
+
         Self {
             target: Windows {
                 _24h: ConstantVecs::new::<BlockCountTarget24h>(
@@ -44,11 +53,10 @@ impl Vecs {
                     indexes,
                 ),
             },
-            total: LazyPerBlockCumulativeRolling::from_indexed_source(
+            total: LazyPerBlockCumulativeRolling::from_cumulative_source(
                 "block_count",
                 version + Version::ONE,
-                &indexer.vecs().blocks.weight,
-                cumulative_block_count,
+                total_source,
                 cached_starts,
                 indexes,
             ),

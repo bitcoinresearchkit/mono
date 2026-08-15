@@ -31,7 +31,7 @@ impl CachedSpendableOutputCount {
             indexes.output_count(),
             |_, op_return, total| total - op_return,
         ));
-        let views = LazyPerBlockCumulativeRolling::from_cached_cumulative_source(
+        let views = LazyPerBlockCumulativeRolling::from_cumulative_source(
             "spendable_output_count",
             version,
             cumulative.clone(),

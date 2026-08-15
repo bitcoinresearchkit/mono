@@ -49,7 +49,7 @@ impl Vecs {
             cached_starts,
         )?;
 
-        let dominance_rolling = LazyPercentRollingWindows::from_uncached_cumulative_average(
+        let dominance_rolling = LazyPercentRollingWindows::from_compact_cumulative_average(
             &suffix("dominance"),
             version,
             &base.blocks_mined.cumulative.height,

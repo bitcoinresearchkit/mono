@@ -25,7 +25,7 @@ impl<C: FiatType> LazyFiatPerBlockCumulativeWithSums<C> {
         indexes: &indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
-        let source = LazyPerBlock::from_uncached_boxed_height_source::<Identity<C>>(
+        let source = LazyPerBlock::from_boxed_height_source::<Identity<C>>(
             &format!("{name}_cumulative_cents"),
             version,
             source,

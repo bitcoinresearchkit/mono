@@ -1,11 +1,11 @@
 use brk_cohort::{AgeRange, AgeRangeId};
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_types::{Bitcoin, Height, ONE_DAY_IN_SEC_F64, Sats, StoredF64, Timestamp, Version};
+use brk_types::{Bitcoin, Height, Sats, StoredF64, Version};
 use vecdb::{AnyVec, CheckedSub, ColumnId, Exit, ReadableVec, StoredVec, WritableVec};
 
 use super::Vecs;
-use crate::{distribution, frameworks::WeightedCohortState, indexes};
+use crate::{distribution, frameworks::WeightedCohortState};
 
 const HOURS_PER_DAY: f64 = 24.0;
 const WRITE_INTERVAL: usize = 10_000;
@@ -14,7 +14,6 @@ impl Vecs {
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &indexes::Vecs,
         distribution: &distribution::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -49,75 +48,15 @@ impl Vecs {
             )
             .block
         });
+        let coindays_created = &distribution.coindays_created.cumulative;
 
-        self.compute_created(
-            starting_height,
-            &indexes.timestamp.monotonic,
-            &supplies,
-            exit,
-        )?;
         self.compute_consumed(
             starting_height,
             &transfer_volumes,
             &coindays_destroyed,
             exit,
         )?;
-        self.compute_rest(starting_height, &supplies, exit)
-    }
-
-    fn compute_created<T, S>(
-        &mut self,
-        starting_height: Height,
-        timestamps: &T,
-        supplies: &AgeRange<&S>,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        T: ReadableVec<Height, Timestamp>,
-        S: ReadableVec<Height, Sats>,
-    {
-        let version = Version::combine_all(
-            std::iter::once(timestamps.version()).chain(supplies.iter().map(|vec| vec.version())),
-        );
-        let source_end = supplies
-            .iter()
-            .map(|vec| vec.len())
-            .chain(std::iter::once(timestamps.len()))
-            .min()
-            .unwrap_or_default();
-        self.coindays_created.cumulative.compute_batched_to(
-            starting_height,
-            source_end,
-            version,
-            WRITE_INTERVAL,
-            |created, range| {
-                let mut cumulative = created
-                    .collect_last()
-                    .unwrap_or_else(|| AgeRangeId::from_fn(|_| StoredF64::default()));
-                let timestamp_start = range.start.saturating_sub(1);
-                let timestamp_batch = timestamps.collect_range_at(timestamp_start, range.end);
-                let supply_batches = AgeRange::from_fn(|id| {
-                    id.select(supplies).collect_range_at(range.start, range.end)
-                });
-
-                for offset in 0..range.len() {
-                    let interval_seconds =
-                        monotonic_interval_seconds(&timestamp_batch, range.start, offset);
-                    created.push(AgeRangeId::from_fn(|column| {
-                        let value = column.get_mut(&mut cumulative);
-                        *value += coindays_created(
-                            column.select(&supply_batches)[offset],
-                            interval_seconds,
-                        );
-                        *value
-                    }));
-                }
-
-                Ok(())
-            },
-            exit,
-        )?;
-        Ok(())
+        self.compute_rest(starting_height, &supplies, coindays_created, exit)
     }
 
     fn compute_consumed<V, D>(
@@ -184,21 +123,22 @@ impl Vecs {
         Ok(())
     }
 
-    fn compute_rest<S>(
+    fn compute_rest<S, C>(
         &mut self,
         starting_height: Height,
         supplies: &AgeRange<&S>,
+        created: &C,
         exit: &Exit,
     ) -> Result<()>
     where
         S: ReadableVec<Height, Sats>,
+        C: ReadableVec<Height, AgeRange<StoredF64>>,
     {
         {
-            let created = self.coindays_created.cumulative.read_only_clone();
             let consumed = self.coindays_consumed.cumulative.read_only_clone();
             self.coindays_stored.cumulative.compute_transform2_batched(
                 starting_height,
-                &created,
+                created,
                 &consumed,
                 WRITE_INTERVAL,
                 |(height, created, consumed, ..)| {
@@ -214,7 +154,7 @@ impl Vecs {
             self.activity.height.compute_transform2_batched(
                 starting_height,
                 &consumed,
-                &created,
+                created,
                 WRITE_INTERVAL,
                 |(height, consumed, created, ..)| {
                     let wakefulness = AgeRangeId::from_fn(|column| {
@@ -299,25 +239,6 @@ impl Vecs {
     }
 }
 
-#[inline(always)]
-fn monotonic_interval_seconds(
-    timestamp_batch: &[Timestamp],
-    chunk_start: usize,
-    offset: usize,
-) -> u32 {
-    if chunk_start + offset == 0 {
-        return 0;
-    }
-
-    let current_index = offset + usize::from(chunk_start > 0);
-    (*timestamp_batch[current_index]).saturating_sub(*timestamp_batch[current_index - 1])
-}
-
-#[inline(always)]
-fn coindays_created(supply: Sats, interval_seconds: u32) -> StoredF64 {
-    StoredF64::from(f64::from(Bitcoin::from(supply)) * interval_seconds as f64 / ONE_DAY_IN_SEC_F64)
-}
-
 fn age_bounds_days() -> AgeRange<(f64, f64)> {
     AgeRange::from_fn(|id| {
         let bound = id.bounds();
@@ -356,27 +277,6 @@ mod tests {
     use brk_cohort::AGE_RANGE_COUNT;
 
     use super::*;
-
-    #[test]
-    fn created_coindays_use_the_exact_monotonic_block_interval() {
-        let created = f64::from(coindays_created(Sats::ONE_BTC, 6 * 60 * 60));
-
-        assert!((created - 0.25).abs() < 1e-12);
-    }
-
-    #[test]
-    fn monotonic_interval_handles_initial_and_resumed_chunks() {
-        let initial = [
-            Timestamp::from(100_u32),
-            Timestamp::from(160_u32),
-            Timestamp::from(220_u32),
-        ];
-        let resumed = [Timestamp::from(160_u32), Timestamp::from(220_u32)];
-
-        assert_eq!(monotonic_interval_seconds(&initial, 0, 0), 0);
-        assert_eq!(monotonic_interval_seconds(&initial, 0, 1), 60);
-        assert_eq!(monotonic_interval_seconds(&resumed, 2, 0), 60);
-    }
 
     #[test]
     fn destruction_at_a_boundary_stays_in_the_ranges_already_traversed() {

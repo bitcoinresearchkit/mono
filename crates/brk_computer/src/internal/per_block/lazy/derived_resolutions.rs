@@ -5,7 +5,7 @@ use brk_types::{
 };
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{ReadableCloneableVec, ReadableVec, TypedVec, UnaryTransform, VecValue};
+use vecdb::{ReadableBoxedVec, ReadableCloneableVec, UnaryTransform, VecValue};
 
 use crate::{
     indexes,
@@ -44,17 +44,16 @@ where
     T: VecValue + PartialOrd + JsonSchema + 'static,
     S1T: VecValue + PartialOrd + JsonSchema,
 {
-    pub(crate) fn from_height_source<F: UnaryTransform<S1T, T>, V>(
+    pub(crate) fn from_height_source<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
-        height_source: V,
+        height_source: ReadableBoxedVec<Height, S1T>,
         indexes: &indexes::Vecs,
     ) -> Self
     where
         S1T: NumericValue,
-        V: TypedVec<I = Height, T = S1T> + ReadableVec<Height, S1T> + Clone + 'static,
     {
-        let derived = Resolutions::forced_import(name, height_source, version, indexes);
+        let derived = Resolutions::from_boxed_height_source(name, height_source, version, indexes);
         Self::from_derived_computed::<F>(name, version, &derived)
     }
 

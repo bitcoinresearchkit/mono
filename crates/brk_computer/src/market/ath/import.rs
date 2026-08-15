@@ -6,8 +6,8 @@ use super::Vecs;
 use crate::{
     indexes,
     internal::{
-        DaysToYears, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock, Price,
-        RatioDiffCents,
+        CACHE_BUDGET, DaysToYears, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, PerBlock,
+        Price, RatioDiffCents,
     },
 };
 
@@ -50,6 +50,7 @@ impl Vecs {
             spot_price.clone(),
             |_, high, spot| RatioDiffCents::<PartsPerMillionSigned32>::apply(spot, high),
         );
+        let drawdown_source = CACHE_BUDGET.wrap(drawdown_source);
         let drawdown =
             LazyPercentPerBlock::from_height_source("price_drawdown", v, drawdown_source, indexes);
 

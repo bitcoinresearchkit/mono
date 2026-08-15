@@ -10,6 +10,7 @@
     />
     <link rel="preconnect" href="https://bitview.space" crossorigin />
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
     <title>Bitcoin HODL Wave</title>
     <style>
       @font-face {
@@ -37,10 +38,11 @@
         --background: #000;
         --foreground: #f5f5f5;
         --muted: #8a8a8a;
-        --panel: rgb(0 0 0 / 76%);
-        --selected: #292929;
-        --legend-height: calc(42px + env(safe-area-inset-top));
-        --controls-height: calc(42px + env(safe-area-inset-bottom));
+        --panel: rgb(8 8 8 / 94%);
+        --selected: #242424;
+        --rail-border: rgb(255 255 255 / 10%);
+        --legend-height: calc(46px + env(safe-area-inset-top));
+        --controls-height: calc(50px + env(safe-area-inset-bottom));
         --font-mono:
           "Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
@@ -83,38 +85,51 @@
         background: var(--background);
       }
 
-      #identity {
+      #overview {
         position: absolute;
         z-index: 3;
-        top: calc(var(--legend-height) + 8px);
-        left: max(18px, env(safe-area-inset-left));
-        max-width: min(510px, calc(100% - 72px));
+        top: calc(var(--legend-height) + 16px);
+        left: max(22px, env(safe-area-inset-left));
+        display: grid;
+        gap: 24px;
+        max-width: min(540px, calc(100% - 88px));
         pointer-events: none;
         text-shadow:
-          -1px -1px 0 #000,
-          0 -1px 0 #000,
-          1px -1px 0 #000,
-          -1px 0 0 #000,
-          1px 0 0 #000,
-          -1px 1px 0 #000,
-          0 1px 0 #000,
-          1px 1px 0 #000;
+          0 1px 2px #000,
+          0 0 12px rgb(0 0 0 / 92%);
+      }
+
+      #overview::before {
+        position: absolute;
+        z-index: -1;
+        inset: -16px -96px -34px -22px;
+        background: radial-gradient(
+          ellipse at top left,
+          rgb(0 0 0 / 68%),
+          rgb(0 0 0 / 28%) 48%,
+          transparent 74%
+        );
+        content: "";
+      }
+
+      #identity {
+        display: grid;
+        gap: 9px;
       }
 
       h1 {
         margin: 0;
         font-family: var(--font-serif);
-        font-size: clamp(35px, 4.5vw, 54px);
+        font-size: clamp(38px, 4.7vw, 58px);
         font-weight: 400;
-        letter-spacing: -0.03em;
-        line-height: 0.92;
+        letter-spacing: -0.035em;
+        line-height: 0.9;
       }
 
       #mode-copy {
         display: flex;
         flex-wrap: wrap;
         gap: 0.4em;
-        margin-top: 8px;
         font-size: 11px;
         font-weight: 550;
         letter-spacing: 0.055em;
@@ -130,16 +145,16 @@
         color: var(--muted);
       }
 
+      #mode-description::before {
+        margin-right: 0.4em;
+        color: #555;
+        content: "—";
+      }
+
       #readout {
-        position: absolute;
-        z-index: 3;
-        top: calc(var(--legend-height) + 98px);
-        left: max(18px, env(safe-area-inset-left));
         display: grid;
-        gap: 3px;
-        pointer-events: none;
+        gap: 4px;
         font-variant-numeric: tabular-nums;
-        text-shadow: 0 1px 3px #000;
       }
 
       #date {
@@ -154,7 +169,7 @@
       #total {
         color: var(--foreground);
         font-family: var(--font-serif);
-        font-size: clamp(24px, 3vw, 38px);
+        font-size: clamp(27px, 3.2vw, 42px);
         font-weight: 400;
         letter-spacing: -0.025em;
         line-height: 1;
@@ -182,14 +197,15 @@
         gap: 1px 8px;
         height: var(--legend-height);
         margin: 0;
-        padding: calc(4px + env(safe-area-inset-top)) 8px 4px;
+        padding: calc(5px + env(safe-area-inset-top)) 8px 5px;
         overflow-x: auto;
         overflow-y: hidden;
-        border-radius: 0;
-        background: rgb(0 0 0 / 82%);
+        border-bottom: 1px solid var(--rail-border);
+        background: linear-gradient(180deg, #080808, rgb(0 0 0 / 94%));
         list-style: none;
+        scroll-snap-type: x proximity;
         scrollbar-width: none;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(8px);
         font-size: 9px;
         font-variant-numeric: tabular-nums;
         font-weight: 550;
@@ -206,18 +222,23 @@
         align-items: center;
         gap: 5px;
         min-width: 0;
-        color: #b3b3b3;
+        padding: 0 4px;
+        border-radius: 4px;
+        color: #a7a7a7;
+        scroll-snap-align: start;
         transition:
           color 100ms ease,
+          background-color 100ms ease,
           opacity 100ms ease;
       }
 
       #legend li[data-active="true"] {
         color: #fff;
+        background: rgb(255 255 255 / 8%);
       }
 
       #legend li[data-dimmed="true"] {
-        opacity: 0.42;
+        opacity: 0.34;
       }
 
       #legend li[hidden] {
@@ -267,20 +288,55 @@
         background: rgb(95 19 25 / 94%);
       }
 
-      #controls {
+      #axis-unit {
+        position: absolute;
+        z-index: 3;
+        top: calc(var(--legend-height) + 7px);
+        right: 56px;
+        padding: 3px 5px;
+        border: 1px solid rgb(255 255 255 / 10%);
+        border-radius: 4px;
+        color: #aaa;
+        background: rgb(0 0 0 / 70%);
+        font-size: 8px;
+        font-variant-numeric: tabular-nums;
+        font-weight: 550;
+        letter-spacing: 0.065em;
+        line-height: 12px;
+        text-transform: uppercase;
+        pointer-events: none;
+      }
+
+      #axis-unit[hidden] {
+        display: none;
+      }
+
+      #footer {
         position: absolute;
         z-index: 4;
-        right: max(8px, calc(env(safe-area-inset-right) + 8px));
-        bottom: max(3px, env(safe-area-inset-bottom));
+        right: 0;
+        bottom: 0;
+        left: 0;
         display: flex;
         align-items: center;
-        justify-content: flex-end;
-        gap: 3px;
-        max-width: calc(100% - 235px);
-        padding: 3px;
-        border-radius: 8px;
+        justify-content: space-between;
+        gap: 20px;
+        height: var(--controls-height);
+        padding:
+          4px max(10px, calc(env(safe-area-inset-right) + 8px))
+          max(4px, env(safe-area-inset-bottom))
+          max(18px, env(safe-area-inset-left));
+        border-top: 1px solid var(--rail-border);
         background: var(--panel);
-        backdrop-filter: blur(5px);
+        backdrop-filter: blur(10px);
+      }
+
+      #controls {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 4px;
       }
 
       .control-set {
@@ -294,8 +350,8 @@
       }
 
       #view-controls {
-        padding-left: 3px;
-        border-left: 1px solid rgb(255 255 255 / 10%);
+        padding-left: 4px;
+        border-left: 1px solid var(--rail-border);
       }
 
       button {
@@ -319,6 +375,7 @@
 
       button:hover {
         color: #ddd;
+        background: rgb(255 255 255 / 5%);
       }
 
       button:focus-visible {
@@ -329,6 +386,13 @@
       button[aria-selected="true"] {
         color: #e0e0e0;
         background: var(--selected);
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 8%);
+      }
+
+      #view-controls button[aria-selected="true"] {
+        color: #090909;
+        background: #dedede;
+        box-shadow: none;
       }
 
       button:disabled {
@@ -337,16 +401,16 @@
       }
 
       #credit {
-        position: absolute;
-        z-index: 3;
-        bottom: max(17px, calc(env(safe-area-inset-bottom) + 5px));
-        left: max(18px, env(safe-area-inset-left));
+        min-width: 0;
+        overflow: hidden;
         color: var(--muted);
         font-size: 9px;
         font-weight: 550;
         letter-spacing: 0.07em;
         line-height: 15px;
+        text-overflow: ellipsis;
         text-transform: uppercase;
+        white-space: nowrap;
       }
 
       #credit a {
@@ -367,13 +431,14 @@
 
       @media (max-width: 780px) {
         :root {
-          --legend-height: calc(36px + env(safe-area-inset-top));
-          --controls-height: calc(100px + env(safe-area-inset-bottom));
+          --legend-height: calc(38px + env(safe-area-inset-top));
+          --controls-height: calc(112px + env(safe-area-inset-bottom));
         }
 
-        #identity {
-          top: calc(var(--legend-height) + 8px);
+        #overview {
+          top: calc(var(--legend-height) + 12px);
           left: max(12px, env(safe-area-inset-left));
+          gap: 18px;
           max-width: calc(100% - 72px);
         }
 
@@ -383,13 +448,7 @@
 
         #mode-copy {
           max-width: calc(100vw - 84px);
-          margin-top: 6px;
           font-size: 9px;
-        }
-
-        #readout {
-          top: calc(var(--legend-height) + 80px);
-          left: max(12px, env(safe-area-inset-left));
         }
 
         #legend {
@@ -403,7 +462,7 @@
           gap: 0 6px;
           height: var(--legend-height);
           padding: calc(3px + env(safe-area-inset-top)) 6px 3px;
-          background: rgb(0 0 0 / 82%);
+          background: linear-gradient(180deg, #080808, rgb(0 0 0 / 94%));
           font-size: 8px;
           line-height: 15px;
         }
@@ -420,13 +479,21 @@
           height: 6px;
         }
 
-        #controls {
-          right: max(7px, env(safe-area-inset-right));
-          bottom: max(7px, env(safe-area-inset-bottom));
-          left: max(7px, env(safe-area-inset-left));
+        #footer {
           flex-direction: column;
           align-items: stretch;
-          max-width: none;
+          justify-content: center;
+          gap: 3px;
+          padding:
+            5px max(7px, env(safe-area-inset-right))
+            max(4px, env(safe-area-inset-bottom))
+            max(7px, env(safe-area-inset-left));
+        }
+
+        #controls {
+          flex-direction: column;
+          align-items: stretch;
+          width: 100%;
         }
 
         .control-set {
@@ -452,10 +519,11 @@
         }
 
         #credit {
-          bottom: calc(var(--controls-height) + 4px);
-          left: max(12px, env(safe-area-inset-left));
-          max-width: calc(100% - 72px);
+          order: 2;
+          width: 100%;
           font-size: 8px;
+          line-height: 12px;
+          text-align: center;
         }
       }
 
@@ -480,85 +548,90 @@
         aria-label="Bitcoin HODL Wave by UTXO age"
       ></div>
 
-      <header id="identity">
-        <h1>Bitcoin HODL Wave</h1>
-        <div id="mode-copy">
-          <strong id="mode-name">Normal</strong>
-          <span id="mode-description">Every live BTC counts once.</span>
-        </div>
-      </header>
+      <section id="overview" aria-label="Current wave summary">
+        <header id="identity">
+          <h1>Bitcoin HODL Wave</h1>
+          <div id="mode-copy">
+            <strong id="mode-name">Normal</strong>
+            <span id="mode-description">Every live BTC counts once.</span>
+          </div>
+        </header>
 
-      <div id="readout" aria-live="polite">
-        <time id="date">—</time>
-        <strong id="total">—</strong>
-        <span id="total-label">Live supply represented</span>
-      </div>
+        <div id="readout" aria-live="polite">
+          <time id="date">—</time>
+          <strong id="total">—</strong>
+          <span id="total-label">Live supply represented</span>
+        </div>
+      </section>
 
       <ol id="legend" aria-label="Age range shares"></ol>
 
       <output id="status">Loading HODL Wave…</output>
+      <span id="axis-unit" hidden aria-hidden="true"></span>
 
-      <div id="controls">
-        <div
-          id="mode-controls"
-          class="control-set"
-          role="tablist"
-          aria-label="HODL Wave weighting"
-        >
-          <button type="button" role="tab" data-mode="supply" aria-selected="true">
-            Normal
-          </button>
-          <button type="button" role="tab" data-mode="cointime" aria-selected="false">
-            Awake
-          </button>
-          <button type="button" role="tab" data-mode="coinflow" aria-selected="false">
-            Mobile
-          </button>
-          <button type="button" role="tab" data-mode="capital" aria-selected="false">
-            Capital
-          </button>
-          <button type="button" role="tab" data-mode="dormant" aria-selected="false">
-            Dormant
-          </button>
-          <button type="button" role="tab" data-mode="immobile" aria-selected="false">
-            Immobile
-          </button>
+      <footer id="footer">
+        <div id="credit">
+          <span class="credit-copy">Source:</span>
+          <a href="https://bitview.space" target="_blank" rel="noreferrer">
+            Bitview.space
+          </a>
+          <span class="credit-copy">· Powered by</span>
+          <a
+            href="https://bitcoinresearchkit.org"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Bitcoin Research Kit
+          </a>
         </div>
-        <div
-          id="view-controls"
-          class="control-set"
-          role="tablist"
-          aria-label="HODL Wave display"
-        >
-          <button type="button" role="tab" data-view="share" aria-selected="true">
-            Share
-          </button>
-          <button type="button" role="tab" data-view="absolute" aria-selected="false">
-            Absolute
-          </button>
-        </div>
-      </div>
 
-      <div id="credit">
-        <span class="credit-copy">Source:</span>
-        <a href="https://bitview.space" target="_blank" rel="noreferrer">
-          Bitview.space
-        </a>
-        <span class="credit-copy">· Powered by</span>
-        <a
-          href="https://bitcoinresearchkit.org"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Bitcoin Research Kit
-        </a>
-      </div>
+        <div id="controls">
+          <div
+            id="mode-controls"
+            class="control-set"
+            role="tablist"
+            aria-label="HODL Wave weighting"
+          >
+            <button type="button" role="tab" data-mode="supply" aria-selected="true">
+              Normal
+            </button>
+            <button type="button" role="tab" data-mode="cointime" aria-selected="false">
+              Awake
+            </button>
+            <button type="button" role="tab" data-mode="coinflow" aria-selected="false">
+              Mobile
+            </button>
+            <button type="button" role="tab" data-mode="capital" aria-selected="false">
+              Capital
+            </button>
+            <button type="button" role="tab" data-mode="dormant" aria-selected="false">
+              Dormant
+            </button>
+            <button type="button" role="tab" data-mode="immobile" aria-selected="false">
+              Immobile
+            </button>
+          </div>
+          <div
+            id="view-controls"
+            class="control-set"
+            role="tablist"
+            aria-label="HODL Wave display"
+          >
+            <button type="button" role="tab" data-view="share" aria-selected="true">
+              Share
+            </button>
+            <button type="button" role="tab" data-view="absolute" aria-selected="false">
+              Absolute
+            </button>
+          </div>
+        </div>
+      </footer>
     </main>
 
     <script type="module">
-      import * as LightweightCharts from "https://cdn.jsdelivr.net/npm/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      import * as LightweightCharts from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
 
-      (() => {
+      function start() {
         "use strict";
 
         const API = "https://bitview.space/api";
@@ -668,10 +741,10 @@
           "#ee1988", // pink
           "#f6004b", // rose
         ];
-        const colors = ranges.map((_, index) =>
-          index === 0 ? "#ee1988" : PALETTE[(index - 1) % PALETTE.length],
+        const colors = ranges.map(
+          (_, index) => PALETTE[(index + PALETTE.length - 2) % PALETTE.length],
         );
-        const COMPLEMENT_COLOR = "#555555";
+        const COMPLEMENT_COLOR = "#737373";
 
         const chartElement = document.getElementById("chart");
         const dateElement = document.getElementById("date");
@@ -681,6 +754,7 @@
         const modeDescriptionElement = document.getElementById("mode-description");
         const legendElement = document.getElementById("legend");
         const statusElement = document.getElementById("status");
+        const axisUnitElement = document.getElementById("axis-unit");
         const modeControlsElement = document.getElementById("mode-controls");
         const viewControlsElement = document.getElementById("view-controls");
         const modeButtons = [...modeControlsElement.querySelectorAll("button")];
@@ -708,6 +782,7 @@
         let complementLegend = null;
         let requestToken = 0;
         let fitted = false;
+        let axisDivisor = 1;
 
         function dayToDate(day) {
           return new Date(DAY_ZERO + day * DAY_MS).toISOString().slice(0, 10);
@@ -731,11 +806,45 @@
           return unit === "usd" ? `$${formatted}` : `${formatted} BTC`;
         }
 
+        function formatAbsolute(value) {
+          if (!Number.isFinite(value)) return "";
+          const formatted = compactNumber.format(value);
+          return modes[activeMode].unit === "usd" ? `$${formatted}` : formatted;
+        }
+
+        function updateAxisUnit() {
+          if (activeView === "share") {
+            axisDivisor = 1;
+            axisUnitElement.hidden = true;
+            return;
+          }
+
+          const maximum = activeRows.reduce(
+            (current, row) =>
+              Math.max(current, row.total + row.complementValue),
+            0,
+          );
+          const isUsd = modes[activeMode].unit === "usd";
+
+          if (isUsd && maximum >= 1_000_000_000_000) {
+            axisDivisor = 1_000_000_000_000;
+            axisUnitElement.textContent = "$T";
+          } else if (isUsd) {
+            axisDivisor = 1_000_000_000;
+            axisUnitElement.textContent = "$B";
+          } else {
+            axisDivisor = 1_000_000;
+            axisUnitElement.textContent = "M BTC";
+          }
+          axisUnitElement.hidden = false;
+        }
+
         function formatAxis(value) {
           if (!Number.isFinite(value)) return "";
           if (activeView === "share") return `${value.toFixed(0)}%`;
-          const formatted = compactNumber.format(value);
-          return modes[activeMode].unit === "usd" ? `$${formatted}` : formatted;
+          const scaled = value / axisDivisor;
+          const precision = Math.abs(scaled) < 10 && scaled !== 0 ? 1 : 0;
+          return scaled.toFixed(precision).replace(/\.0$/, "");
         }
 
         function setStatus(message, isError = false) {
@@ -795,7 +904,7 @@
             legendRows[index].value.textContent =
               activeView === "share"
                 ? `${share.toFixed(1)}%`
-                : formatAxis(absolute);
+                : formatAbsolute(absolute);
           });
 
           const hasComplement = Boolean(row.complementLabel);
@@ -805,7 +914,7 @@
             complementLegend.value.textContent =
               activeView === "share"
                 ? `${row.complementShare.toFixed(1)}%`
-                : formatAxis(row.complementValue);
+                : formatAbsolute(row.complementValue);
           }
         }
 
@@ -864,7 +973,7 @@
           return request;
         }
 
-        async function fetchMode(modeKey) {
+        async function fetchMode(modeKey, onProgress) {
           if (cache.has(modeKey)) return cache.get(modeKey);
 
           const definition = modes[modeKey];
@@ -877,9 +986,19 @@
                   `utxos_${id}_${definition.complement.suffix}`,
               )
             : [];
+          const requestCount = names.length + complementNames.length;
+          let completedRequests = 0;
+          const loadSeries = (name) =>
+            fetchSeries(name).then((response) => {
+              completedRequests += 1;
+              onProgress?.(completedRequests, requestCount);
+              return response;
+            });
+
+          onProgress?.(0, requestCount);
           const [responses, complementResponses] = await Promise.all([
-            Promise.all(names.map(fetchSeries)),
-            Promise.all(complementNames.map(fetchSeries)),
+            Promise.all(names.map(loadSeries)),
+            Promise.all(complementNames.map(loadSeries)),
           ]);
           const allResponses = [...responses, ...complementResponses];
 
@@ -943,8 +1062,16 @@
           return rows;
         }
 
+        function chartSize() {
+          const { width, height } = chartElement.getBoundingClientRect();
+          return {
+            width: Math.max(1, Math.floor(width)),
+            height: Math.max(1, Math.floor(height)),
+          };
+        }
+
         const chart = LightweightCharts.createChart(chartElement, {
-          autoSize: true,
+          ...chartSize(),
           hoveredSeriesOnTop: false,
           layout: {
             background: {
@@ -1003,6 +1130,23 @@
             pinch: true,
           },
         });
+
+        let resizeFrame = 0;
+        function resizeChart() {
+          if (resizeFrame) return;
+          resizeFrame = requestAnimationFrame(() => {
+            resizeFrame = 0;
+            const { width, height } = chartSize();
+            chart.resize(width, height, true);
+          });
+        }
+
+        new ResizeObserver(resizeChart).observe(chartElement);
+        window.addEventListener("pageshow", resizeChart);
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) resizeChart();
+        });
+        resizeChart();
 
         class WaveRenderer {
           update(seriesData, options) {
@@ -1123,6 +1267,7 @@
         function renderActiveRows() {
           if (!activeRows.length) return;
 
+          updateAxisUnit();
           const visibleRange = fitted
             ? chart.timeScale().getVisibleLogicalRange()
             : null;
@@ -1142,7 +1287,9 @@
               : colors,
             priceFormat: { type: "custom", formatter: formatAxis },
           });
-          chart.applyOptions({ localization: { priceFormatter: formatAxis } });
+          chart.applyOptions({
+            localization: { priceFormatter: formatAxis },
+          });
           waveSeries.setData(displayRows);
 
           if (visibleRange) {
@@ -1170,6 +1317,7 @@
           modeNameElement.textContent = definition.name;
           modeDescriptionElement.textContent = definition.description;
           totalLabelElement.textContent = definition.totalLabel;
+          document.title = `${definition.button} Bitcoin HODL Wave`;
           chartElement.setAttribute(
             "aria-label",
             `Bitcoin ${definition.name} by UTXO age, ${activeView} view`,
@@ -1225,20 +1373,25 @@
               String(button.dataset.mode === modeKey),
             );
           });
-          persistMode(modeKey);
           setBusy(true);
           setStatus(`Loading ${modes[modeKey].name}…`);
 
           try {
-            const rows = await fetchMode(modeKey);
+            const rows = await fetchMode(modeKey, (completed, total) => {
+              if (token !== requestToken) return;
+              setStatus(
+                `Loading ${modes[modeKey].button} · ${completed}/${total} series`,
+              );
+            });
             if (token !== requestToken) return;
             applyRows(modeKey, rows);
+            persistMode(modeKey);
             setStatus("");
           } catch (error) {
             if (token !== requestToken) return;
             console.error(error);
             setStatus(
-              "Could not load this wave. Check the connection and try again.",
+              `Could not load ${modes[modeKey].button}. Check the connection and try again.`,
               true,
             );
             modeButtons.forEach((button) => {
@@ -1313,7 +1466,10 @@
         buildLegend();
         activateView(initialView(), true);
         activateMode(initialMode(), true);
-      })();
+      }
+
+      if (document.readyState === "complete") start();
+      else window.addEventListener("load", start, { once: true });
     </script>
   </body>
 </html>

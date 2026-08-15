@@ -6,7 +6,7 @@ use vecdb::{DeltaSub, LazyDeltaVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, NumericValue, Resolutions, Windows},
+    internal::{CACHE_BUDGET, CachedWindowStartVec, NumericValue, Resolutions, Windows},
 };
 
 use super::LazyRollingSumFromHeight;
@@ -49,7 +49,8 @@ where
                 starts_version,
                 move || cached.snapshot(),
             );
-            let resolutions = Resolutions::forced_import(&full_name, sum.clone(), version, indexes);
+            let source = CACHE_BUDGET.wrap(sum.clone());
+            let resolutions = Resolutions::from_height_source(&full_name, source, version, indexes);
             LazyRollingSumFromHeight {
                 height: sum,
                 resolutions: Box::new(resolutions),
@@ -57,9 +58,9 @@ where
         }))
     }
 
-    /// Build rolling sums from compact in-memory state without adding the four
-    /// full-height rolling vecs to `cache_budget`.
-    pub fn new_uncached(
+    /// Build rolling sums from compact in-memory cumulative state, where the
+    /// derived full-height histories are cheap to recompute.
+    pub fn from_compact_cumulative(
         name: &str,
         version: Version,
         cumulative: &(impl ReadableCloneableVec<Height, T> + 'static),
@@ -80,7 +81,7 @@ where
                 move || cached.snapshot(),
             );
             let resolutions =
-                Resolutions::forced_import_uncached(&full_name, sum.clone(), version, indexes);
+                Resolutions::from_height_source(&full_name, sum.clone(), version, indexes);
             LazyRollingSumFromHeight {
                 height: sum,
                 resolutions: Box::new(resolutions),

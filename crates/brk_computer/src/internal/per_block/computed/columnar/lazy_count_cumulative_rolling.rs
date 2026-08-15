@@ -2,7 +2,7 @@ use brk_traversable::Traversable;
 use brk_types::{Height, StoredU16, StoredU64, Version};
 use vecdb::{
     CachedReadableVec, CachedVec, ColumnId, LazyVec, PcoVec, ReadOnlyColumnarVec,
-    ReadableColumnarVec,
+    ReadableCloneableVec, ReadableColumnarVec,
 };
 
 use crate::{
@@ -37,14 +37,18 @@ impl LazyColumnCountPerBlockCumulativeRolling {
     {
         let column = CachedVec::wrap(source.column(name, version, column));
         let cached_cumulative = CachedBlockCountReader::new(column.cached_boxed_clone());
-        let block = LazyVec::transformed::<StoredU16ToStoredU64>(name, version, Box::new(column));
-        let cumulative = LazyPerBlock::from_uncached_height_source::<Identity<StoredU64>, _>(
+        let block = LazyVec::transformed::<StoredU16ToStoredU64>(
+            name,
+            version,
+            column.read_only_boxed_clone(),
+        );
+        let cumulative = LazyPerBlock::from_height_source::<Identity<StoredU64>>(
             &format!("{name}_cumulative"),
             version,
             cached_cumulative.clone(),
             indexes,
         );
-        let sum = LazyRollingSumsFromHeight::new_uncached(
+        let sum = LazyRollingSumsFromHeight::from_compact_cumulative(
             &format!("{name}_sum"),
             version,
             &cached_cumulative,

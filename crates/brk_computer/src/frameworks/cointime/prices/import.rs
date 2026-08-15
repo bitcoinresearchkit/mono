@@ -35,7 +35,7 @@ impl Vecs {
             vaulted: import!("vaulted_price"),
             active: import!("active_price"),
             true_market_mean: import!("true_market_mean"),
-            cointime: LazyPriceWithRatioPerBlock::from_uncached_height_source(
+            cointime: LazyPriceWithRatioPerBlock::from_height_source(
                 "cointime_price",
                 version,
                 cointime_source,

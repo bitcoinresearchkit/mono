@@ -35,7 +35,7 @@ impl<C: FiatType> LazyFiatPerBlock<C> {
     where
         C: NumericValue,
     {
-        let source = LazyPerBlock::from_uncached_boxed_height_source::<Identity<C>>(
+        let source = LazyPerBlock::from_boxed_height_source::<Identity<C>>(
             &format!("{name}_cents"),
             version,
             source,

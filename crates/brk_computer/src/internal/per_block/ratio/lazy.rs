@@ -54,27 +54,7 @@ where
     where
         V: TypedVec<I = Height, T = R> + ReadableVec<Height, R> + Clone + 'static,
     {
-        let ppm = LazyPerBlock::from_height_source::<Identity<R>, _>(
-            &format!("{name}_{}", R::SUFFIX),
-            version,
-            source,
-            indexes,
-        );
-        let ratio = LazyPerBlock::from_lazy::<R::ToRatio, R>(name, version, &ppm);
-
-        Self { ppm, ratio }
-    }
-
-    pub(crate) fn from_uncached_height_source<V>(
-        name: &str,
-        version: Version,
-        source: V,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        V: TypedVec<I = Height, T = R> + ReadableVec<Height, R> + Clone + 'static,
-    {
-        let ppm = LazyPerBlock::from_uncached_height_source::<Identity<R>, _>(
+        let ppm = LazyPerBlock::from_height_source::<Identity<R>>(
             &format!("{name}_{}", R::SUFFIX),
             version,
             source,

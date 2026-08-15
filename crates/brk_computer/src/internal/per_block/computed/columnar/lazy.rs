@@ -8,7 +8,10 @@ use vecdb::{
     ReadableColumnarVec,
 };
 
-use crate::{indexes, internal::Resolutions};
+use crate::{
+    indexes,
+    internal::{CACHE_BUDGET, Resolutions},
+};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(merge)]
@@ -37,7 +40,8 @@ where
         indexes: &indexes::Vecs,
     ) -> Self {
         let height = source.column(name, version, column);
-        let resolutions = Resolutions::forced_import(name, height.clone(), version, indexes);
+        let cached = CACHE_BUDGET.wrap(height.clone());
+        let resolutions = Resolutions::from_height_source(name, cached, version, indexes);
 
         Self {
             height,

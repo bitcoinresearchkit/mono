@@ -15,7 +15,7 @@ mod with_addr_types;
 pub(crate) use block_walker::*;
 pub(crate) use cache_budget::*;
 pub(crate) use containers::*;
-pub(crate) use daily_metric::*;
+pub use daily_metric::*;
 pub(crate) use indexes::*;
 pub(crate) use per_block::*;
 pub(crate) use per_tx::*;

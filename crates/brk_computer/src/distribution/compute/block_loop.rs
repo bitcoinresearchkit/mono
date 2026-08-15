@@ -213,7 +213,13 @@ pub fn process_blocks(
         vecs.cohorts
             .par_iter_vecs_mut()
             .chain(vecs.addrs.par_iter_height_mut())
-            .chain(rayon::iter::once(vecs.coinblocks_destroyed.stored_mut()))
+            .chain(
+                [
+                    vecs.coindays_created.stored_mut(),
+                    vecs.coinblocks_destroyed.stored_mut(),
+                ]
+                .into_par_iter(),
+            )
             .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
     }
 
@@ -264,7 +270,7 @@ pub fn process_blocks(
         debug_assert!(input_count > 0);
 
         // Keep tick-tock concurrent with the block reads and address processing.
-        let (matured, (outputs_result, inputs_result)) = rayon::join(
+        let (tick_tock, (outputs_result, inputs_result)) = rayon::join(
             || utxo_states.tick_tock_next_block(chain_state, timestamp),
             || {
                 // Collect both sides concurrently, then load their shared addresses once.
@@ -388,7 +394,10 @@ pub fn process_blocks(
         }
 
         // Record maturation (sats crossing age boundaries)
-        vecs.cohorts.supply.push_maturation(&matured, block_price);
+        vecs.cohorts
+            .supply
+            .push_maturation(&tick_tock.matured, block_price);
+        vecs.coindays_created.push_block(tick_tock.coindays_created);
 
         transfer_addresses.prepare(&outputs_result.received_data);
 

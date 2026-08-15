@@ -6,8 +6,9 @@ use vecdb::{DeltaAvg, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec
 use crate::{
     indexes,
     internal::{
-        AvgCentsToUsd, AvgSatsToBtc, CachedWindowStartVec, DerivedResolutions, LazyPerBlock,
-        LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight, Resolutions, Windows,
+        AvgCentsToUsd, AvgSatsToBtc, CACHE_BUDGET, CachedWindowStartVec, DerivedResolutions,
+        LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight, Resolutions,
+        Windows,
     },
 };
 
@@ -44,9 +45,10 @@ impl LazyRollingAvgsAmountFromHeight {
                     move || cached.snapshot()
                 },
             );
-            let sats_resolutions = Resolutions::forced_import(
+            let source = CACHE_BUDGET.wrap(sats_avg.clone());
+            let sats_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_sats"),
-                sats_avg.clone(),
+                source,
                 version,
                 indexes,
             );
@@ -77,9 +79,10 @@ impl LazyRollingAvgsAmountFromHeight {
                 starts_version,
                 move || cached.snapshot(),
             );
-            let cents_resolutions = Resolutions::forced_import(
+            let source = CACHE_BUDGET.wrap(cents_avg.clone());
+            let cents_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_cents"),
-                cents_avg.clone(),
+                source,
                 version,
                 indexes,
             );

@@ -1,8 +1,9 @@
+mod pinned;
+
 use brk_traversable::Traversable;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{
-    BinaryTransform, CachedBoxedVec, CachedReadableVec, CachedVec, LazyVec, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, TypedVec,
+    BinaryTransform, CachedBoxedVec, ReadableBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec,
 };
 
 use crate::{
@@ -13,6 +14,8 @@ use crate::{
     },
 };
 
+pub use pinned::PinnedSpotValuePerBlock;
+
 /// Fully lazy point-in-time value backed by one sats source.
 #[derive(Clone, Traversable)]
 pub struct LazySpotValuePerBlock {
@@ -22,7 +25,7 @@ pub struct LazySpotValuePerBlock {
     pub cents: LazyPerBlock<Cents>,
 }
 
-pub(crate) trait SpotValueSource {
+pub trait SpotValueSource {
     type SatsResolutions: ReadableResolutions<Sats>;
     type CentsResolutions: ReadableResolutions<Cents>;
     type DollarsResolutions: ReadableResolutions<Dollars>;
@@ -66,7 +69,7 @@ impl SpotValueSource for LazySpotValuePerBlock {
 }
 
 impl LazySpotValuePerBlock {
-    pub(crate) fn identity(name: &str, version: Version, source: &Self) -> Self {
+    pub fn identity(name: &str, version: Version, source: &Self) -> Self {
         let sats = LazyPerBlock::from_lazy::<Identity<Sats>, Sats>(
             &format!("{name}_sats"),
             version,
@@ -92,7 +95,7 @@ impl LazySpotValuePerBlock {
         }
     }
 
-    pub(crate) fn from_sats_source<V>(
+    pub fn from_sats_source<V>(
         name: &str,
         version: Version,
         source: V,
@@ -102,7 +105,7 @@ impl LazySpotValuePerBlock {
     where
         V: TypedVec<I = Height, T = Sats> + ReadableVec<Height, Sats> + Clone + 'static,
     {
-        let sats = LazyPerBlock::from_uncached_height_source::<Identity<Sats>, _>(
+        let sats = LazyPerBlock::from_height_source::<Identity<Sats>>(
             &format!("{name}_sats"),
             version,
             source,
@@ -111,63 +114,14 @@ impl LazySpotValuePerBlock {
         Self::from_sats(name, version, sats, indexes, spot_price)
     }
 
-    pub fn from_sats_source_with_pinned_heights<V>(
-        name: &str,
-        version: Version,
-        source: V,
-        indexes: &indexes::Vecs,
-        spot_price: &CachedBoxedVec<Height, Cents>,
-    ) -> (
-        Self,
-        CachedBoxedVec<Height, Sats>,
-        CachedBoxedVec<Height, Cents>,
-    )
-    where
-        V: TypedVec<I = Height, T = Sats> + ReadableVec<Height, Sats> + Clone + 'static,
-    {
-        let sats_name = format!("{name}_sats");
-        let height = LazyVec::transformed::<Identity<Sats>>(
-            &sats_name,
-            Version::ZERO,
-            source.read_only_boxed_clone(),
-        );
-        let height = CachedVec::wrap(height);
-        let cache = height.cached_boxed_clone();
-        let sats = LazyPerBlock::from_uncached_height_source::<Identity<Sats>, _>(
-            &sats_name, version, height, indexes,
-        );
-        let cents_name = format!("{name}_cents");
-        let cents_source = LazyIndexedVec::new(
-            &format!("{cents_name}_source"),
-            version,
-            sats.height.read_only_boxed_clone(),
-            spot_price.clone(),
-            |_, sats, spot| SatsToCents::apply(sats, spot),
-        );
-        let cents_height = CachedVec::wrap(cents_source);
-        let cents_cache = cents_height.cached_boxed_clone();
-        let cents = LazyPerBlock::from_uncached_height_source::<Identity<Cents>, _>(
-            &cents_name,
-            version,
-            cents_height,
-            indexes,
-        );
-
-        (
-            Self::from_sats_and_cents(name, version, sats, cents),
-            cache,
-            cents_cache,
-        )
-    }
-
-    pub(crate) fn from_boxed_sats_source(
+    pub fn from_boxed_sats_source(
         name: &str,
         version: Version,
         source: ReadableBoxedVec<Height, Sats>,
         indexes: &indexes::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
-        let sats = LazyPerBlock::from_uncached_boxed_height_source::<Identity<Sats>>(
+        let sats = LazyPerBlock::from_boxed_height_source::<Identity<Sats>>(
             &format!("{name}_sats"),
             version,
             source,
@@ -190,7 +144,7 @@ impl LazySpotValuePerBlock {
             spot_price.clone(),
             |_, sats, spot| SatsToCents::apply(sats, spot),
         );
-        let cents = LazyPerBlock::from_uncached_height_source::<Identity<Cents>, _>(
+        let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
             &format!("{name}_cents"),
             version,
             cents_source,
@@ -199,7 +153,7 @@ impl LazySpotValuePerBlock {
         Self::from_sats_and_cents(name, version, sats, cents)
     }
 
-    fn from_sats_and_cents(
+    pub fn from_sats_and_cents(
         name: &str,
         version: Version,
         sats: LazyPerBlock<Sats>,

@@ -79,7 +79,7 @@ impl Vecs {
                     Cents::from(DCA_AMOUNT * num_days / Bitcoin::from(stack_sats))
                 },
             );
-            Ok::<_, Error>(Price::from_uncached_height_source(
+            Ok::<_, Error>(Price::from_height_source(
                 &metric_name,
                 version,
                 source,
@@ -99,7 +99,7 @@ impl Vecs {
                         RatioDiffCents::<PartsPerMillionSigned64>::apply(spot, cost_basis)
                     },
                 );
-                Ok::<_, Error>(LazyPercentPerBlock::from_uncached_height_source(
+                Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
                     &metric_name,
                     version,
                     source,
@@ -141,7 +141,7 @@ impl Vecs {
                         RatioDiffCents::<PartsPerMillionSigned64>::apply(current, past)
                     },
                 );
-                Ok::<_, Error>(LazyPercentPerBlock::from_uncached_height_source(
+                Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
                     &metric_name,
                     version,
                     source,
@@ -178,7 +178,7 @@ impl Vecs {
                         Cents::from(DCA_AMOUNT * num_days / Bitcoin::from(stack_sats))
                     },
                 );
-                Ok::<_, Error>(Price::from_uncached_height_source(
+                Ok::<_, Error>(Price::from_height_source(
                     &metric_name,
                     version,
                     source,
@@ -198,7 +198,7 @@ impl Vecs {
                         RatioDiffCents::<PartsPerMillionSigned64>::apply(spot, cost_basis)
                     },
                 );
-                Ok::<_, Error>(LazyPercentPerBlock::from_uncached_height_source(
+                Ok::<_, Error>(LazyPercentPerBlock::from_height_source(
                     &metric_name,
                     version,
                     source,
@@ -236,7 +236,7 @@ fn dca_stack_from_source<V>(
 where
     V: TypedVec<I = Height, T = Sats> + ReadableVec<Height, Sats> + Clone + 'static,
 {
-    let sats = LazyPerBlock::from_uncached_height_source::<Identity<Sats>, _>(
+    let sats = LazyPerBlock::from_height_source::<Identity<Sats>>(
         &format!("{name}_sats"),
         version,
         source,
@@ -250,7 +250,7 @@ where
         spot_price.clone(),
         |_, sats, spot| SatsToCents::apply(sats, spot),
     );
-    let cents = LazyPerBlock::from_uncached_height_source::<Identity<Cents>, _>(
+    let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
         &format!("{name}_cents"),
         version,
         cents_source,
@@ -287,7 +287,7 @@ fn lump_sum_stack(
         false,
         move |_, past, _| lump_sum_sats(total_invested, past),
     );
-    let sats = LazyPerBlock::from_uncached_height_source::<Identity<Sats>, _>(
+    let sats = LazyPerBlock::from_height_source::<Identity<Sats>>(
         &format!("{name}_sats"),
         version,
         sats_source,
@@ -303,7 +303,7 @@ fn lump_sum_stack(
         false,
         move |current, past, _| SatsToCents::apply(lump_sum_sats(total_invested, past), current),
     );
-    let cents = LazyPerBlock::from_uncached_height_source::<Identity<Cents>, _>(
+    let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
         &format!("{name}_cents"),
         version,
         cents_source,

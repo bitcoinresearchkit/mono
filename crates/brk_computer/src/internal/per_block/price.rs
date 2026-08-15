@@ -16,7 +16,7 @@ use vecdb::{
 use super::{LazyColumnPerBlock, LazyPerBlock, PerBlock};
 use crate::{
     indexes,
-    internal::{CentsUnsignedToDollars, ComputedVecValue, DollarsToSatsFract},
+    internal::{CentsUnsignedToDollars, ComputedVecValue, DollarsToSatsFract, Identity},
 };
 
 /// Generic price metric with cents, USD, and sats representations.
@@ -111,31 +111,7 @@ impl Price<LazyPerBlock<Cents>> {
     where
         V: TypedVec<I = Height, T = Cents> + ReadableVec<Height, Cents> + Clone + 'static,
     {
-        let cents = LazyPerBlock::from_height_source::<crate::internal::Identity<Cents>, _>(
-            &format!("{name}_cents"),
-            version,
-            source,
-            indexes,
-        );
-        let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(name, version, &cents);
-        let sats = LazyPerBlock::from_lazy::<DollarsToSatsFract, Cents>(
-            &format!("{name}_sats"),
-            version,
-            &usd,
-        );
-        Self { usd, cents, sats }
-    }
-
-    pub(crate) fn from_uncached_height_source<V>(
-        name: &str,
-        version: Version,
-        source: V,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        V: TypedVec<I = Height, T = Cents> + ReadableVec<Height, Cents> + Clone + 'static,
-    {
-        let cents = LazyPerBlock::from_uncached_height_source::<crate::internal::Identity<Cents>, _>(
+        let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
             &format!("{name}_cents"),
             version,
             source,

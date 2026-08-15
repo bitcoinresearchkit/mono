@@ -5,7 +5,7 @@ use vecdb::{CachedBoxedVec, Database, EagerVec, ImportableVec, ReadableCloneable
 use super::Vecs;
 use crate::{
     indexes,
-    internal::{Identity, LazyIndexedVec, LazyPerBlock},
+    internal::{CACHE_BUDGET, Identity, LazyIndexedVec, LazyPerBlock},
 };
 
 impl Vecs {
@@ -27,10 +27,10 @@ impl Vecs {
         Ok(Self {
             vocdd_median_1y: EagerVec::forced_import(db, "vocdd_median_1y", v1)?,
             hodl_bank,
-            value: LazyPerBlock::from_height_source::<Identity<StoredF64>, _>(
+            value: LazyPerBlock::from_height_source::<Identity<StoredF64>>(
                 "reserve_risk",
                 v1,
-                value_source,
+                CACHE_BUDGET.wrap(value_source),
                 indexes,
             ),
         })

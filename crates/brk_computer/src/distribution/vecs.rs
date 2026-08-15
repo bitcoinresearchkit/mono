@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use brk_cohort::{AddrTypeId, EntryPrice};
+use brk_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
 use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
@@ -21,7 +21,8 @@ use crate::{
     },
     indexes, inputs,
     internal::{
-        CachedWindowStartVec, PerBlockCumulativeRolling, Windows,
+        CachedWindowStartVec, ColumnarPerBlockCumulativeRolling,
+        LazyColumnPerBlockCumulativeRolling, PerBlockCumulativeRolling, Windows,
         db_utils::{finalize_db, open_db},
     },
     outputs, price, transactions,
@@ -37,6 +38,7 @@ use super::{
 };
 
 const VERSION: Version = Version::new(30 + brk_oracle::VERSION);
+const COINDAYS_CREATED_VERSION: Version = Version::ONE;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -53,6 +55,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub addrs_data: AddrsDataVecs<M>,
     #[traversable(wrap = "cohorts")]
     pub cohorts: CohortMetrics<M>,
+    /// Computed and stored with distribution, but presented beside the other
+    /// age-range cointime series to preserve the public series tree.
+    #[traversable(wrap = "frameworks/cointime/age_range")]
+    pub coindays_created: ColumnarPerBlockCumulativeRolling<
+        StoredF64,
+        AgeRangeId,
+        AgeRange<LazyColumnPerBlockCumulativeRolling<StoredF64, AgeRangeId>>,
+        M,
+    >,
     #[traversable(wrap = "cointime/activity")]
     pub coinblocks_destroyed: PerBlockCumulativeRolling<StoredF64, M>,
     pub addrs: AddrVecs<M>,
@@ -200,6 +211,24 @@ impl Vecs {
 
             cohorts,
 
+            coindays_created: ColumnarPerBlockCumulativeRolling::forced_import(
+                &db,
+                &CohortContext::Utxo.prefixed("age_range_coindays_created_cumulative"),
+                version + COINDAYS_CREATED_VERSION,
+                |source| {
+                    AgeRangeId::series(CohortContext::Utxo, |column, name| {
+                        LazyColumnPerBlockCumulativeRolling::new(
+                            &format!("{name}_coindays_created"),
+                            version,
+                            source,
+                            column,
+                            indexes,
+                            cached_starts,
+                        )
+                    })
+                },
+            )?,
+
             coinblocks_destroyed: PerBlockCumulativeRolling::forced_import(
                 &db,
                 "coinblocks_destroyed",
@@ -285,6 +314,9 @@ impl Vecs {
         self.supply_state
             .validate_computed_version_or_reset(base_version)?;
         self.cohorts.validate_computed_versions(base_version)?;
+        self.coindays_created
+            .cumulative
+            .validate_computed_version_or_reset(base_version)?;
         debug!("computed versions validated");
 
         let starting_lengths = indexer.safe_lengths();
@@ -558,6 +590,7 @@ impl Vecs {
             .min(self.any_addr_indexes.min_stamped_len())
             .min(self.addrs_data.min_stamped_len())
             .min(Height::from(self.addrs.min_resume_len()))
+            .min(Height::from(self.coindays_created.cumulative.len()))
             .min(Height::from(self.coinblocks_destroyed.block.len()))
     }
 }

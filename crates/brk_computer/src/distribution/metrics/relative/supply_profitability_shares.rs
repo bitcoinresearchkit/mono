@@ -5,8 +5,8 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, Database, Exit, PcoVec, ReadOnlyClone, ReadOnlyColumnarVec,
-    ReadableColumnarVec, Rw, StorageMode,
+    AnyStoredVec, BinaryTransform, Database, Exit, LazyVec, PcoVec, ReadOnlyClone,
+    ReadOnlyColumnarVec, ReadableCloneableVec, ReadableColumnarVec, Rw, StorageMode,
 };
 
 use crate::{
@@ -74,9 +74,13 @@ impl SupplyProfitabilityShares {
                 metric,
             );
             let source = source.column(&format!("{name}_source"), version, id);
-            LazyPercentPerBlock::from_uncached_indexed_source(
-                &name, version, &source, compute, indexes,
-            )
+            let source = LazyVec::init(
+                &format!("{name}_ppm_source"),
+                version,
+                source.read_only_boxed_clone(),
+                compute,
+            );
+            LazyPercentPerBlock::from_height_source(&name, version, source, indexes)
         })
     }
 

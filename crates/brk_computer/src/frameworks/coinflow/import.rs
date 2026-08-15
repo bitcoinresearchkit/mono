@@ -166,24 +166,21 @@ impl AggregateVecs {
                 spot_price,
             ),
         };
-        let supply_in_loss_share =
-            LazyPerBlock::from_uncached_boxed_height_source::<Identity<StoredF64>>(
+        let supply_in_loss_share = LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
+            &format!("{prefix}coinflow_supply_in_loss_share"),
+            version,
+            AggregateSources::exact_source(
+                &sources.supply_in_loss_share.read_only_clone(),
                 &format!("{prefix}coinflow_supply_in_loss_share"),
                 version,
-                AggregateSources::exact_source(
-                    &sources.supply_in_loss_share.read_only_clone(),
-                    &format!("{prefix}coinflow_supply_in_loss_share"),
-                    version,
-                    aggregate,
-                ),
-                indexes,
-            );
+                aggregate,
+            ),
+            indexes,
+        );
         let horizon = HorizonId::from_fn(|horizon| {
             let name = format!("{prefix}coinflow_{}_supply_in_loss_share", horizon.name());
             HorizonVecs {
-                supply_in_loss_share: LazyPerBlock::from_uncached_boxed_height_source::<
-                    Identity<StoredF64>,
-                >(
+                supply_in_loss_share: LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
                     &name,
                     version,
                     AggregateSources::exact_source(

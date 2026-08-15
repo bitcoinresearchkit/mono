@@ -11,7 +11,9 @@ use vecdb::{
 
 use crate::{
     indexes,
-    internal::{CachedWindowStartVec, FixedRatio, LazyRollingRatioVec, NumericValue, Windows},
+    internal::{
+        CACHE_BUDGET, CachedWindowStartVec, FixedRatio, LazyRollingRatioVec, NumericValue, Windows,
+    },
 };
 
 use super::LazyPercentPerBlock;
@@ -107,13 +109,14 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
                 cached.clone(),
                 cached_start.read_only_cached_boxed_clone(),
             );
+            let ratio = CACHE_BUDGET.wrap(ratio);
             LazyPercentPerBlock::from_height_source(&full_name, version, ratio, indexes)
         }))
     }
 
-    /// Rolling percentages derived from one cumulative in-memory source,
-    /// without adding the four full-height averages to `cache_budget`.
-    pub(crate) fn from_uncached_cumulative_average<T>(
+    /// Build rolling averages from compact in-memory cumulative state, where
+    /// the derived full-height histories are cheap to recompute.
+    pub(crate) fn from_compact_cumulative_average<T>(
         name: &str,
         version: Version,
         cumulative: &(impl ReadableCloneableVec<Height, T> + 'static),
@@ -137,7 +140,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
                 move || cached.snapshot(),
             );
 
-            LazyPercentPerBlock::from_uncached_height_source(&full_name, version, average, indexes)
+            LazyPercentPerBlock::from_height_source(&full_name, version, average, indexes)
         }))
     }
 

@@ -5,8 +5,8 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Dollars, Height, PartsPerMillion32, PartsPerMillionSigned32, Version};
 use vecdb::{
-    AnyStoredVec, Database, Exit, PcoVec, ReadOnlyClone, ReadOnlyColumnarVec, ReadableColumnarVec,
-    Rw, StorageMode,
+    AnyStoredVec, Database, Exit, LazyVec, PcoVec, ReadOnlyClone, ReadOnlyColumnarVec,
+    ReadableCloneableVec, ReadableColumnarVec, Rw, StorageMode,
 };
 
 use crate::{
@@ -85,9 +85,13 @@ impl GrossPnlComposition {
                 metric,
             );
             let source = source.column(&format!("{name}_source"), version, id);
-            LazyPercentPerBlock::from_uncached_indexed_source(
-                &name, version, &source, compute, indexes,
-            )
+            let source = LazyVec::init(
+                &format!("{name}_{}_source", B::SUFFIX),
+                version,
+                source.read_only_boxed_clone(),
+                compute,
+            );
+            LazyPercentPerBlock::from_height_source(&name, version, source, indexes)
         })
     }
 

@@ -3,14 +3,13 @@ use brk_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
-use crate::{blocks, distribution, indexes, price, supply};
+use crate::{blocks, distribution, price, supply};
 
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &indexes::Vecs,
         prices: &price::Vecs,
         blocks: &blocks::Vecs,
         supply_vecs: &supply::Vecs,
@@ -19,8 +18,7 @@ impl Vecs {
     ) -> Result<()> {
         // Activity computes first (liveliness, vaultedness, etc.)
         self.activity.compute(indexer, distribution, exit)?;
-        self.age_range
-            .compute(indexer, indexes, distribution, exit)?;
+        self.age_range.compute(indexer, distribution, exit)?;
 
         // Phase 2: age-weighted aggregates, adjusted, and value are independent.
         let (r1, r2) = rayon::join(

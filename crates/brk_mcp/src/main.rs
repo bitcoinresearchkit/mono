@@ -1,6 +1,9 @@
 mod config;
 mod manifest;
+mod page;
 mod server;
+#[cfg(test)]
+mod server_tests;
 mod upstream;
 
 use std::{env, error::Error, io, process};

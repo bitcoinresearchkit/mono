@@ -9,8 +9,8 @@ use vecdb::{
 use crate::{
     indexes,
     internal::{
-        Cagr, FixedRatio, Identity, LazyIndexedVec, LazyLookbackVec, LazyPerBlock, NumericValue,
-        Percent,
+        CACHE_BUDGET, Cagr, FixedRatio, Identity, LazyIndexedVec, LazyLookbackVec, LazyPerBlock,
+        NumericValue, Percent,
     },
 };
 
@@ -44,6 +44,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
             denominator,
             |_, numerator, denominator| F::apply(numerator, denominator),
         );
+        let source = CACHE_BUDGET.wrap(source);
         Self::from_height_source(name, version, source, indexes)
     }
 
@@ -66,6 +67,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
             numerator,
             |_, denominator, numerator| F::apply(numerator, denominator),
         );
+        let source = CACHE_BUDGET.wrap(source);
         Self::from_height_source(name, version, source, indexes)
     }
 
@@ -80,61 +82,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
     {
         let ppm_name = format!("{name}_{}", B::SUFFIX);
         let ppm =
-            LazyPerBlock::from_height_source::<Identity<B>, _>(&ppm_name, version, source, indexes);
-        Self::from_ppm(name, version, ppm)
-    }
-
-    pub(crate) fn from_uncached_height_source<V>(
-        name: &str,
-        version: Version,
-        source: V,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        V: TypedVec<I = Height, T = B> + ReadableVec<Height, B> + Clone + 'static,
-    {
-        let ppm_name = format!("{name}_{}", B::SUFFIX);
-        let ppm = LazyPerBlock::from_uncached_height_source::<Identity<B>, _>(
-            &ppm_name, version, source, indexes,
-        );
-        Self::from_ppm(name, version, ppm)
-    }
-
-    /// Create from one height-indexed source. The fixed-point ratio is computed
-    /// lazily at height, then all coarser resolutions are derived from it.
-    pub(crate) fn from_indexed_source<S>(
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + 'static),
-        compute: fn(Height, S) -> B,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: VecValue,
-    {
-        let ppm_name = format!("{name}_{}", B::SUFFIX);
-        let ppm = LazyPerBlock::from_indexed_source(&ppm_name, version, source, compute, indexes);
-
-        Self::from_ppm(name, version, ppm)
-    }
-
-    /// Create from one height-indexed in-memory source without adding the
-    /// derived fixed-point ratio to `cache_budget`.
-    pub(crate) fn from_uncached_indexed_source<S>(
-        name: &str,
-        version: Version,
-        source: &(impl ReadableCloneableVec<Height, S> + 'static),
-        compute: fn(Height, S) -> B,
-        indexes: &indexes::Vecs,
-    ) -> Self
-    where
-        S: VecValue,
-    {
-        let ppm_name = format!("{name}_{}", B::SUFFIX);
-        let ppm = LazyPerBlock::from_uncached_indexed_source(
-            &ppm_name, version, source, compute, indexes,
-        );
-
+            LazyPerBlock::from_height_source::<Identity<B>>(&ppm_name, version, source, indexes);
         Self::from_ppm(name, version, ppm)
     }
 
@@ -158,8 +106,9 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
             lookback,
             compute,
         );
+        let source = CACHE_BUDGET.wrap(source);
         let ppm =
-            LazyPerBlock::from_height_source::<Identity<B>, _>(&ppm_name, version, source, indexes);
+            LazyPerBlock::from_height_source::<Identity<B>>(&ppm_name, version, source, indexes);
 
         Self::from_ppm(name, version, ppm)
     }

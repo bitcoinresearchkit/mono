@@ -5,7 +5,6 @@ use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
 
 use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 
-use super::super::cointime;
 use super::{
     AGE_COHORT_COUNT, AgeBand, AggregateSources, HorizonId, Horizons, MINIMUM_DURATION_DAYS, Vecs,
 };
@@ -83,7 +82,6 @@ impl Vecs {
         indexes: &indexes::Vecs,
         _prices: &price::Vecs,
         distribution: &distribution::Vecs,
-        cointime: &cointime::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
@@ -116,7 +114,7 @@ impl Vecs {
                 .cents
                 .height
         });
-        let coindays_created = &cointime.age_range.coindays_created.cumulative;
+        let coindays_created = &distribution.coindays_created.cumulative;
 
         self.compute_primary(
             &starting_lengths,

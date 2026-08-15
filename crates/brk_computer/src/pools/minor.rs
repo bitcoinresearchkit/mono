@@ -1,58 +1,17 @@
 use brk_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, PoolSlug, StoredU64};
-use vecdb::{ReadableCloneableVec, Version};
+use vecdb::{LazyVec, ReadableCloneableVec, Version};
+
+mod blocks_mined;
+
+use blocks_mined::BlocksMined;
 
 use crate::{
     indexes,
-    internal::{
-        CachedWindowStartVec, Identity, LazyPerBlock, LazyPercentPerBlock, LazyPreviousDeltaVec,
-        LazyRollingSumsFromHeight, Windows,
-    },
+    internal::{CachedWindowStartVec, LazyPercentPerBlock, Windows},
 };
 
-use super::{PoolHeights, pool_heights::PoolCumulativeVec};
-
-#[derive(Clone, Traversable)]
-pub struct BlocksMined {
-    pub block: LazyPreviousDeltaVec<Height, StoredU64>,
-    pub cumulative: LazyPerBlock<StoredU64>,
-    pub sum: LazyRollingSumsFromHeight<StoredU64>,
-}
-
-impl BlocksMined {
-    fn forced_import(
-        name: &str,
-        slug: PoolSlug,
-        pool_heights: PoolHeights,
-        version: Version,
-        indexes: &indexes::Vecs,
-        cached_starts: &Windows<&CachedWindowStartVec>,
-    ) -> Self {
-        let cumulative_name = format!("{name}_cumulative");
-        let cumulative_source = PoolCumulativeVec::new(&cumulative_name, slug, pool_heights);
-        let cumulative = LazyPerBlock::from_uncached_height_source::<Identity<StoredU64>, _>(
-            &cumulative_name,
-            version,
-            cumulative_source,
-            indexes,
-        );
-        let block =
-            LazyPreviousDeltaVec::new(name, version, cumulative.height.read_only_boxed_clone());
-        let sum = LazyRollingSumsFromHeight::new_uncached(
-            &format!("{name}_sum"),
-            version,
-            &cumulative.height,
-            cached_starts,
-            indexes,
-        );
-
-        Self {
-            block,
-            cumulative,
-            sum,
-        }
-    }
-}
+use super::PoolHeights;
 
 fn pool_dominance(height: Height, blocks_mined: StoredU64) -> PartsPerMillion32 {
     PartsPerMillion32::from(u64::from(blocks_mined) as f64 / (u64::from(height) + 1) as f64)
@@ -74,7 +33,7 @@ impl Vecs {
     ) -> Self {
         let suffix = |s: &str| format!("{}_{s}", slug);
 
-        let blocks_mined = BlocksMined::forced_import(
+        let blocks_mined = BlocksMined::new(
             &suffix("blocks_mined"),
             slug,
             pool_heights,
@@ -83,11 +42,17 @@ impl Vecs {
             cached_starts,
         );
 
-        let dominance = LazyPercentPerBlock::from_uncached_indexed_source(
-            &suffix("dominance"),
+        let dominance_name = suffix("dominance");
+        let dominance_source = LazyVec::init(
+            &format!("{dominance_name}_ppm_source"),
             version,
-            &blocks_mined.cumulative.height,
+            blocks_mined.cumulative.height.read_only_boxed_clone(),
             pool_dominance,
+        );
+        let dominance = LazyPercentPerBlock::from_height_source(
+            &dominance_name,
+            version,
+            dominance_source,
             indexes,
         );
 

@@ -7,8 +7,8 @@ use vecdb::{
 use crate::{
     indexes,
     internal::{
-        CentsUnsignedToDollars, Identity, LazyColumnPerBlock, LazyIndexedVec, LazyPerBlock,
-        SatsToBitcoin, SatsToCents,
+        CACHE_BUDGET, CentsUnsignedToDollars, Identity, LazyColumnPerBlock, LazyIndexedVec,
+        LazyPerBlock, SatsToBitcoin, SatsToCents,
     },
 };
 
@@ -50,7 +50,8 @@ where
             spot_price.clone(),
             |_, sats, spot| SatsToCents::apply(sats, spot),
         );
-        let cents = LazyPerBlock::from_height_source::<Identity<Cents>, _>(
+        let cents_source = CACHE_BUDGET.wrap(cents_source);
+        let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
             &format!("{name}_cents"),
             version,
             cents_source,

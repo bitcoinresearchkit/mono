@@ -31,13 +31,13 @@ impl Vecs {
         );
 
         Ok(Self {
-            native: LazyPerBlock::from_uncached_height_source::<Identity<StoredF64>, _>(
+            native: LazyPerBlock::from_height_source::<Identity<StoredF64>>(
                 "velocity_btc",
                 version,
                 native_source,
                 indexes,
             ),
-            fiat: LazyPerBlock::from_uncached_height_source::<Identity<StoredF64>, _>(
+            fiat: LazyPerBlock::from_height_source::<Identity<StoredF64>>(
                 "velocity_usd",
                 version,
                 fiat_source,

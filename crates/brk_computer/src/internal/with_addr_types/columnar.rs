@@ -9,9 +9,10 @@ use vecdb::{
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, Identity, LazyColumnPerBlock, LazyColumnPerBlockCumulativeRolling,
-        LazyColumnSpotValuePerBlock, LazyPerBlock, LazyPerBlockCumulativeAverage,
-        LazyPerBlockCumulativeRolling, LazySpotValuePerBlock, NumericValue, Windows,
+        CACHE_BUDGET, CachedWindowStartVec, Identity, LazyColumnPerBlock,
+        LazyColumnPerBlockCumulativeRolling, LazyColumnSpotValuePerBlock, LazyPerBlock,
+        LazyPerBlockCumulativeAverage, LazyPerBlockCumulativeRolling, LazySpotValuePerBlock,
+        NumericValue, Windows,
     },
 };
 
@@ -27,12 +28,9 @@ where
         source: &ReadOnlyColumnarVec<PcoVec<Height, T>, AddrTypeId>,
         indexes: &indexes::Vecs,
     ) -> Self {
-        let all = LazyPerBlock::from_height_source::<Identity<T>, _>(
-            name,
-            version,
-            source.sum_columns(name, version, ADDR_TYPE_IDS),
-            indexes,
-        );
+        let all_source = CACHE_BUDGET.wrap(source.sum_columns(name, version, ADDR_TYPE_IDS));
+        let all =
+            LazyPerBlock::from_height_source::<Identity<T>>(name, version, all_source, indexes);
         let by_addr_type = AddrTypeId::series(|column, type_name| {
             LazyColumnPerBlock::new(
                 &format!("{type_name}_{name}"),
@@ -93,7 +91,7 @@ where
             version,
             ADDR_TYPE_IDS,
         ));
-        let all = LazyPerBlockCumulativeRolling::from_cached_cumulative_source(
+        let all = LazyPerBlockCumulativeRolling::from_cumulative_source(
             name,
             version,
             cumulative,

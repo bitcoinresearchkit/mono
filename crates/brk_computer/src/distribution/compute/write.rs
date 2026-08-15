@@ -82,6 +82,7 @@ pub fn write(
         .chain(
             [
                 &mut vecs.supply_state as &mut dyn AnyStoredVec,
+                vecs.coindays_created.stored_mut(),
                 vecs.coinblocks_destroyed.stored_mut(),
             ]
             .into_par_iter(),

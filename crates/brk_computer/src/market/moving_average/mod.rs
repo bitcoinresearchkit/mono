@@ -1,4 +1,3 @@
-mod cached_sma_source;
 mod compute;
 mod import;
 mod lazy_sma;

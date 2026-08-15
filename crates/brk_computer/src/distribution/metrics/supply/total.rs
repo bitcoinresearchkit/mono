@@ -10,7 +10,7 @@ use vecdb::{
 use crate::{
     distribution::metrics::{ColumnarAmount, UTXOColumnarMetric, UTXORows},
     indexes,
-    internal::LazySpotValuePerBlock,
+    internal::{LazySpotValuePerBlock, PinnedSpotValuePerBlock},
 };
 
 #[derive(Traversable)]
@@ -21,9 +21,7 @@ pub struct SupplyTotal<M: StorageMode = Rw> {
     pub matrices: UTXOColumnarMetric<Sats, M>,
     pub addr_balance: ColumnarAmount<Sats, LazySpotValuePerBlock, M>,
     #[traversable(skip)]
-    all_supply: CachedBoxedVec<Height, Sats>,
-    #[traversable(skip)]
-    all_market_cap: CachedBoxedVec<Height, Cents>,
+    all: PinnedSpotValuePerBlock,
 }
 
 impl SupplyTotal {
@@ -35,22 +33,21 @@ impl SupplyTotal {
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetric::forced_import(db, "supply_sats", version)?;
         let all_name = CohortContext::Utxo.metric_name(&Filter::All, "", "supply");
-        let (all, all_supply, all_market_cap) =
-            LazySpotValuePerBlock::from_sats_source_with_pinned_heights(
-                &all_name,
+        let all = PinnedSpotValuePerBlock::from_sats_source(
+            &all_name,
+            version,
+            matrices.age_range_matrix.read_only_clone().sum_columns(
+                &format!("{all_name}_sats"),
                 version,
-                matrices.age_range_matrix.read_only_clone().sum_columns(
-                    &format!("{all_name}_sats"),
-                    version,
-                    AgeRangeId::ALL.iter().copied(),
-                ),
-                indexes,
-                spot_price,
-            );
+                AgeRangeId::ALL.iter().copied(),
+            ),
+            indexes,
+            spot_price,
+        );
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
             let name = CohortContext::Utxo.metric_name(&filter, cohort_name, "supply");
             if matches!(filter, Filter::All) {
-                all.clone()
+                all.series.clone()
             } else {
                 let source = matrices
                     .additive_source(&filter, &format!("{name}_sats"), version)
@@ -81,8 +78,7 @@ impl SupplyTotal {
             cohorts,
             matrices,
             addr_balance,
-            all_supply,
-            all_market_cap,
+            all,
         })
     }
 
@@ -95,11 +91,11 @@ impl SupplyTotal {
     }
 
     pub fn all_supply(&self) -> &CachedBoxedVec<Height, Sats> {
-        &self.all_supply
+        &self.all.sats
     }
 
     pub fn all_market_cap(&self) -> &CachedBoxedVec<Height, Cents> {
-        &self.all_market_cap
+        &self.all.cents
     }
 
     #[inline(always)]
