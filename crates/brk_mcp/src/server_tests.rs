@@ -42,6 +42,8 @@ async fn get_root_serves_the_documentation_page() {
     let body = str::from_utf8(&body).expect("page should be UTF-8");
     assert!(body.contains("Bitcoin data for AI"));
     assert!(body.contains("https://mcp.bitview.space/"));
+    assert!(body.contains("https://bitview.space/assets/fonts/Lilex%5Bwght%5D-v2_620.woff2"));
+    assert!(body.contains("https://bitview.space/assets/fonts/InstrumentSerif-Regular.woff2"));
 }
 
 #[tokio::test]

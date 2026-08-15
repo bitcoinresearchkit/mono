@@ -4,396 +4,411 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="dark" />
+    <meta name="referrer" content="no-referrer" />
     <meta
       name="description"
-      content="Bitview MCP gives AI clients free, read-only access to public Bitcoin blockchain, mempool, market, mining, and on-chain data."
+      content="Free, read-only Bitcoin data for AI through the Bitview MCP server."
     />
     <link rel="canonical" href="https://mcp.bitview.space/" />
     <title>Bitview MCP — Bitcoin data for AI</title>
     <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("https://bitview.space/assets/fonts/Lilex%5Bwght%5D-v2_620.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("https://bitview.space/assets/fonts/InstrumentSerif-Regular.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+      }
+
       :root {
         color-scheme: dark;
-        --background: #0b0b0b;
-        --surface: #121212;
-        --surface-raised: #181818;
-        --text: #f2f2f2;
-        --muted: #9e9e9e;
-        --faint: #717171;
-        --border: #2a2a2a;
-        --orange: #f7931a;
-        --orange-soft: #ffb45a;
-        --max-width: 72rem;
-        font-family:
-          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        --white: oklch(95% 0 0);
+        --gray: oklch(55% 0 0);
+        --black: oklch(15% 0 0);
+        --orange: oklch(67.64% 0.191 44.41);
+        --line: oklch(30% 0 0);
+        --page-x: clamp(1.25rem, 4vw, 3rem);
+        --content: 70rem;
+        --mono:
+          Lilex, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", monospace;
+        --serif: Instrument, Charter, "Bitstream Charter", Cambria, serif;
+        font-family: var(--mono);
         font-synthesis: none;
       }
 
-      * {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
       }
 
+      * {
+        margin: 0;
+      }
+
       html {
+        background: var(--black);
         scroll-behavior: smooth;
       }
 
       body {
         min-width: 20rem;
-        margin: 0;
-        color: var(--text);
-        background:
-          radial-gradient(circle at 72% 0%, #2b1708 0, transparent 30rem),
-          var(--background);
+        color: var(--white);
+        background: var(--black);
         font-size: 1rem;
-        line-height: 1.6;
+        line-height: 1.5;
       }
 
       a {
         color: inherit;
         text-underline-offset: 0.2em;
-        text-decoration-color: #555;
-      }
-
-      a:hover {
-        color: var(--orange-soft);
-        text-decoration-color: currentColor;
       }
 
       a:focus-visible {
-        outline: 0.15rem solid var(--orange);
-        outline-offset: 0.25rem;
-        border-radius: 0.2rem;
+        outline: 2px solid var(--orange);
+        outline-offset: 3px;
       }
 
-      code {
-        font: inherit;
+      ::selection {
+        color: var(--black);
+        background: var(--orange);
       }
 
       .shell {
-        width: min(calc(100% - 2rem), var(--max-width));
+        width: min(calc(100% - 2 * var(--page-x)), var(--content));
         margin-inline: auto;
       }
 
-      .site-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 5rem;
-        border-bottom: 1px solid var(--border);
-      }
-
       .brand {
+        position: fixed;
+        top: 1.5rem;
+        left: var(--page-x);
+        z-index: 10;
         display: inline-flex;
         align-items: center;
-        gap: 0.7rem;
-        color: var(--text);
-        font-size: 1.05rem;
-        font-weight: 650;
+        gap: 0.5rem;
+        color: var(--white);
+        font-size: 1rem;
+        line-height: 1;
         text-decoration: none;
-        letter-spacing: -0.03em;
+        opacity: 0.8;
+      }
+
+      .brand:hover {
+        opacity: 1;
       }
 
       .brand-mark {
-        width: 1.35rem;
+        display: grid;
+        width: 1.65rem;
+        height: 1.65rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--white);
+        border-radius: 0.25rem;
+      }
+
+      .brand-mark svg {
+        width: 0.72rem;
         height: auto;
       }
 
-      .header-label {
-        color: var(--muted);
-        font-size: 0.78rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
       main {
-        padding-bottom: 6rem;
+        overflow: clip;
       }
 
       .hero {
-        padding-block: clamp(4rem, 11vw, 8.5rem) clamp(4rem, 9vw, 7rem);
-        border-bottom: 1px solid var(--border);
+        display: grid;
+        min-height: 100svh;
+        align-content: center;
+        padding-block: 8rem 5rem;
       }
 
-      .eyebrow {
-        margin: 0 0 1.1rem;
-        color: var(--orange-soft);
-        font-size: 0.76rem;
-        font-weight: 650;
-        letter-spacing: 0.1em;
+      .eyebrow,
+      .section-index {
+        color: var(--orange);
+        font-size: 0.75rem;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        line-height: 1;
         text-transform: uppercase;
       }
 
       h1,
-      h2,
-      h3,
-      p {
-        margin-top: 0;
+      h2 {
+        font-family: var(--serif);
+        font-weight: 400;
+        text-wrap: balance;
       }
 
       h1 {
-        max-width: 12ch;
-        margin-bottom: 1.5rem;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(3.4rem, 9.5vw, 7.6rem);
-        font-weight: 400;
-        line-height: 0.94;
-        letter-spacing: -0.065em;
+        max-width: 9ch;
+        margin-top: 1.25rem;
+        font-size: clamp(4.25rem, 12vw, 9rem);
+        letter-spacing: -0.055em;
+        line-height: 0.84;
       }
 
-      .lede {
-        max-width: 45rem;
-        margin-bottom: 2rem;
-        color: #c6c6c6;
-        font-size: clamp(1rem, 2vw, 1.2rem);
+      .hero-copy {
+        max-width: 39rem;
+        margin-top: 2rem;
+        color: var(--gray);
+        font-size: clamp(0.95rem, 1.8vw, 1.125rem);
       }
 
       .endpoint {
-        display: block;
-        width: fit-content;
-        max-width: 100%;
-        margin-bottom: 1.25rem;
-        padding: 0.85rem 1rem;
-        overflow-x: auto;
-        color: var(--orange-soft);
-        border: 1px solid #5c3715;
-        border-radius: 0.55rem;
-        background: #171007;
-        font-size: clamp(0.84rem, 2.4vw, 1rem);
+        display: grid;
+        grid-template-columns: 10rem minmax(0, 1fr);
+        gap: 1rem;
+        align-items: center;
+        width: min(100%, 48rem);
+        margin-top: 3.5rem;
+        padding-block: 1rem;
+        border-block: 1px solid var(--line);
+      }
+
+      .endpoint span {
+        color: var(--gray);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+
+      .endpoint code {
+        min-width: 0;
+        overflow: auto;
+        color: var(--white);
+        font: 450 clamp(0.85rem, 2vw, 1rem) / 1.5 var(--mono);
         white-space: nowrap;
       }
 
-      .badges {
+      .facts {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
-        margin: 0;
-        padding: 0;
-        list-style: none;
+        gap: 0.5rem 1.5rem;
+        margin-top: 1rem;
+        color: var(--gray);
+        font-size: 0.7rem;
+        line-height: 1.4;
+        text-transform: uppercase;
       }
 
-      .badges li {
-        padding: 0.3rem 0.55rem;
-        color: #bdbdbd;
-        border: 1px solid var(--border);
-        border-radius: 999px;
-        background: #111;
-        font-size: 0.72rem;
+      .facts span::before {
+        display: inline-block;
+        width: 0.35rem;
+        height: 0.35rem;
+        margin-right: 0.5rem;
+        background: var(--orange);
+        border-radius: 50%;
+        content: "";
+        vertical-align: 0.1em;
       }
 
-      section {
-        padding-top: clamp(4rem, 8vw, 6rem);
-      }
-
-      .section-heading {
+      .section {
         display: grid;
-        grid-template-columns: minmax(10rem, 0.6fr) minmax(0, 1.4fr);
-        gap: 2rem;
-        margin-bottom: 2rem;
+        grid-template-columns: 10rem minmax(0, 1fr);
+        gap: clamp(2rem, 6vw, 7rem);
+        padding-block: clamp(6rem, 12vw, 10rem);
+        border-top: 1px solid var(--line);
+      }
+
+      .section-body {
+        min-width: 0;
       }
 
       h2 {
-        margin-bottom: 0;
-        font-family: Georgia, "Times New Roman", serif;
-        font-size: clamp(2rem, 5vw, 3.6rem);
-        font-weight: 400;
-        line-height: 1;
-        letter-spacing: -0.045em;
+        max-width: 12ch;
+        font-size: clamp(3rem, 7vw, 5rem);
+        letter-spacing: -0.04em;
+        line-height: 0.95;
       }
 
       .section-intro {
-        max-width: 42rem;
-        margin: 0;
-        color: var(--muted);
+        max-width: 38rem;
+        margin-top: 1.5rem;
+        color: var(--gray);
       }
 
       .steps,
       .capabilities,
-      .prompt-grid,
-      .link-grid {
-        display: grid;
-        gap: 1rem;
-        margin: 0;
+      .prompts,
+      .resources {
+        margin-top: 4rem;
         padding: 0;
         list-style: none;
       }
 
       .steps {
-        grid-template-columns: repeat(3, 1fr);
         counter-reset: step;
       }
 
       .steps li {
-        min-height: 10rem;
-        padding: 1.25rem;
-        border: 1px solid var(--border);
-        border-radius: 0.75rem;
-        background: var(--surface);
+        display: grid;
+        grid-template-columns: 3rem minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+        gap: 1rem;
+        padding-block: 1.25rem;
+        border-top: 1px solid var(--line);
         counter-increment: step;
       }
 
+      .steps li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+
       .steps li::before {
-        display: block;
-        margin-bottom: 2.6rem;
         color: var(--orange);
         content: "0" counter(step);
-        font-size: 0.72rem;
+        font-size: 0.75rem;
       }
 
       .steps strong {
-        display: block;
-        margin-bottom: 0.35rem;
-        font-size: 0.92rem;
+        font-size: 0.875rem;
+        font-weight: 500;
       }
 
       .steps span {
-        color: var(--muted);
-        font-size: 0.82rem;
+        color: var(--gray);
+        font-size: 0.875rem;
       }
 
-      .compatibility-note {
-        margin: 1rem 0 0;
-        color: var(--faint);
-        font-size: 0.78rem;
+      .specs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 2rem;
+        margin-top: 3rem;
+      }
+
+      .specs div {
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .specs dt {
+        color: var(--gray);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+      }
+
+      .specs dd {
+        margin-top: 0.35rem;
+        font-size: 0.875rem;
+      }
+
+      .compatibility {
+        margin-top: 2rem;
+        color: var(--gray);
+        font-size: 0.75rem;
       }
 
       .capabilities {
-        grid-template-columns: repeat(3, 1fr);
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 3rem;
       }
 
-      .card {
-        min-height: 11rem;
-        padding: 1.25rem;
-        border-top: 1px solid var(--border);
-        background: linear-gradient(180deg, #111 0, transparent 100%);
+      .capabilities li {
+        min-height: 8rem;
+        padding-block: 1.25rem 2rem;
+        border-top: 1px solid var(--line);
       }
 
-      .card h3 {
-        margin-bottom: 0.6rem;
-        font-size: 0.92rem;
+      .capabilities h3 {
+        font: 500 0.875rem / 1.3 var(--mono);
       }
 
-      .card p {
-        margin-bottom: 0;
-        color: var(--muted);
-        font-size: 0.82rem;
+      .capabilities p {
+        max-width: 27rem;
+        margin-top: 0.6rem;
+        color: var(--gray);
+        font-size: 0.825rem;
       }
 
-      .prompt-grid {
-        grid-template-columns: repeat(2, 1fr);
+      .prompts {
+        counter-reset: prompt;
       }
 
-      .prompt-grid li {
+      .prompts li {
         position: relative;
-        min-height: 8.5rem;
-        padding: 1.3rem 1.3rem 1.3rem 3.4rem;
-        color: #d0d0d0;
-        border: 1px solid var(--border);
-        border-radius: 0.75rem;
-        background: var(--surface);
-        font-size: 0.88rem;
+        padding: 1.5rem 3rem 1.5rem 0;
+        border-top: 1px solid var(--line);
+        color: var(--white);
+        counter-increment: prompt;
+        font-size: clamp(0.95rem, 2vw, 1.125rem);
       }
 
-      .prompt-grid li::before {
+      .prompts li:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+
+      .prompts li::after {
         position: absolute;
-        top: 1.25rem;
-        left: 1.25rem;
+        top: 1.6rem;
+        right: 0;
         color: var(--orange);
-        content: ">";
+        content: "↗";
+        font-size: 0.9rem;
+      }
+
+      .boundary-wrap {
+        padding-bottom: clamp(6rem, 12vw, 10rem);
       }
 
       .boundary {
         display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.6fr);
-        gap: 2rem;
-        padding: clamp(1.5rem, 4vw, 2.5rem);
-        border: 1px solid #553718;
-        border-radius: 1rem;
-        background: linear-gradient(135deg, #1b1208, #101010 65%);
+        grid-template-columns: minmax(0, 1.2fr) minmax(16rem, 0.8fr);
+        gap: 4rem;
+        padding: clamp(2rem, 6vw, 5rem);
+        color: var(--black);
+        background: var(--orange);
       }
 
       .boundary h2 {
-        margin-bottom: 1.2rem;
+        max-width: 9ch;
       }
 
       .boundary p {
-        max-width: 44rem;
-        margin-bottom: 0;
-        color: #bebebe;
+        align-self: end;
+        max-width: 31rem;
+        font-size: 0.875rem;
       }
 
-      .boundary ul {
-        margin: 0;
-        padding: 0;
-        list-style: none;
+      .boundary strong {
+        font-weight: 600;
       }
 
-      .boundary li {
-        padding-block: 0.55rem;
-        color: var(--muted);
-        border-bottom: 1px solid #30261c;
-        font-size: 0.8rem;
+      .resources {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0 2rem;
       }
 
-      .boundary li::before {
-        margin-right: 0.65rem;
-        color: var(--orange);
-        content: "—";
-      }
-
-      .technical {
-        width: 100%;
-        border-collapse: collapse;
-        background: var(--surface);
-      }
-
-      .technical th,
-      .technical td {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border);
-        text-align: left;
-        vertical-align: top;
-      }
-
-      .technical th {
-        width: 14rem;
-        color: var(--faint);
-        font-size: 0.72rem;
-        font-weight: 500;
-        letter-spacing: 0.06em;
-        text-transform: uppercase;
-      }
-
-      .technical td {
-        color: #d2d2d2;
-        font-size: 0.85rem;
-      }
-
-      .link-grid {
-        grid-template-columns: repeat(3, 1fr);
-      }
-
-      .link-grid a {
+      .resources a {
         display: flex;
-        min-height: 5.5rem;
-        align-items: flex-end;
         justify-content: space-between;
         gap: 1rem;
-        padding: 1rem;
-        border: 1px solid var(--border);
-        border-radius: 0.65rem;
-        background: var(--surface);
-        font-size: 0.82rem;
+        padding-block: 1rem;
+        border-top: 1px solid var(--line);
+        font-size: 0.8rem;
         text-decoration: none;
       }
 
-      .link-grid a::after {
+      .resources a::after {
         color: var(--orange);
         content: "↗";
       }
 
-      .link-grid a:hover {
-        border-color: #5c3715;
-        background: var(--surface-raised);
+      .resources a:hover {
+        color: var(--orange);
       }
 
       footer {
@@ -401,57 +416,65 @@
         justify-content: space-between;
         gap: 2rem;
         padding-block: 2rem;
-        color: var(--faint);
-        border-top: 1px solid var(--border);
-        font-size: 0.72rem;
+        color: var(--gray);
+        border-top: 1px solid var(--line);
+        font-size: 0.7rem;
       }
 
-      @media (max-width: 52rem) {
-        .section-heading,
-        .boundary {
+      @media (max-width: 48rem) {
+        .hero {
+          min-height: 48rem;
+        }
+
+        .section {
           grid-template-columns: 1fr;
         }
 
-        .steps,
-        .capabilities,
-        .link-grid {
-          grid-template-columns: repeat(2, 1fr);
+        .section-index {
+          position: static;
+        }
+
+        .steps li {
+          grid-template-columns: 2.5rem minmax(0, 1fr);
+        }
+
+        .steps span {
+          grid-column: 2;
+        }
+
+        .boundary {
+          grid-template-columns: 1fr;
+          gap: 3rem;
         }
       }
 
       @media (max-width: 36rem) {
-        .shell {
-          width: min(calc(100% - 1.25rem), var(--max-width));
+        .brand {
+          top: 1.25rem;
         }
 
-        .site-header {
-          min-height: 4.25rem;
+        h1 {
+          font-size: clamp(4rem, 21vw, 5.5rem);
         }
 
-        .header-label {
-          display: none;
+        .endpoint {
+          grid-template-columns: 1fr;
+          gap: 0.35rem;
         }
 
-        .steps,
+        .facts {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .specs,
         .capabilities,
-        .prompt-grid,
-        .link-grid {
+        .resources {
           grid-template-columns: 1fr;
         }
 
-        .technical th,
-        .technical td {
-          display: block;
-          width: 100%;
-        }
-
-        .technical th {
-          padding-bottom: 0.2rem;
-          border-bottom: 0;
-        }
-
-        .technical td {
-          padding-top: 0.2rem;
+        .capabilities li {
+          min-height: 0;
         }
 
         footer {
@@ -468,206 +491,170 @@
     </style>
   </head>
   <body>
-    <header class="site-header shell">
-      <a class="brand" href="https://bitview.space" aria-label="Bitview home">
-        <svg class="brand-mark" viewBox="0 0 64 72" aria-hidden="true">
-          <path fill="#ffae42" d="M32 2 60 18 32 34 4 18Z" />
-          <path fill="#f7931a" d="M4 18 32 34v32L4 50Z" />
-          <path fill="#c96300" d="m32 34 28-16v32L32 66Z" />
+    <a class="brand" href="https://bitview.space" aria-label="Bitview home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 173.2 200">
+          <polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" />
+          <polygon fill="currentColor" opacity="0.72" points="0,50 86.6,100 86.6,200 0,150" />
+          <polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" />
         </svg>
-        <span>bitview</span>
-      </a>
-      <span class="header-label">MCP server</span>
-    </header>
+      </span>
+      <span>bitview</span>
+    </a>
 
-    <main class="shell">
-      <section class="hero" aria-labelledby="page-title">
-        <p class="eyebrow">Powered by Bitcoin Research Kit</p>
-        <h1 id="page-title">Bitcoin data for AI</h1>
-        <p class="lede">
-          Connect AI clients to public Bitcoin blockchain, mempool, market,
-          mining, and on-chain data. Free, stateless, and built from the same
-          open-source contract as the Bitview API.
+    <main>
+      <section class="hero shell" aria-labelledby="page-title">
+        <p class="eyebrow">Model Context Protocol</p>
+        <h1 id="page-title">Bitcoin data for AI.</h1>
+        <p class="hero-copy">
+          One public endpoint for blockchain, mempool, market, mining, and
+          on-chain data—powered by the open-source Bitcoin Research Kit.
         </p>
-        <code class="endpoint">https://mcp.bitview.space/</code>
-        <ul class="badges" aria-label="Server properties">
-          <li>MCP 2026-07-28</li>
-          <li>Streamable HTTP</li>
-          <li>No authentication</li>
-          <li>No rate limits</li>
-          <li>Stateless</li>
-          <li>Read-only</li>
-        </ul>
+        <div class="endpoint">
+          <span>Remote server</span>
+          <code>https://mcp.bitview.space/</code>
+        </div>
+        <div class="facts" aria-label="Server properties">
+          <span>Free</span>
+          <span>No authentication</span>
+          <span>No rate limits</span>
+          <span>Read-only</span>
+          <span>Stateless</span>
+        </div>
       </section>
 
-      <section aria-labelledby="connect-title">
-        <div class="section-heading">
-          <h2 id="connect-title">Connect</h2>
+      <section class="section shell" id="connect" aria-labelledby="connect-title">
+        <p class="section-index">01 / Connect</p>
+        <div class="section-body">
+          <h2 id="connect-title">Give your AI one URL.</h2>
           <p class="section-intro">
-            Use the root URL as a remote Streamable HTTP MCP server. The same
-            path serves this page to people over GET and the MCP protocol to
-            clients over POST.
+            Add Bitview as a remote MCP server in any compatible client. There
+            is no account to create, key to store, or authentication flow to run.
+          </p>
+          <ol class="steps">
+            <li>
+              <strong>Add a remote server</strong>
+              <span>Open the MCP or connector settings in your client.</span>
+            </li>
+            <li>
+              <strong>Use the root endpoint</strong>
+              <span><code>https://mcp.bitview.space/</code></span>
+            </li>
+            <li>
+              <strong>Select no authentication</strong>
+              <span>The public instance requires no credentials.</span>
+            </li>
+          </ol>
+          <dl class="specs">
+            <div>
+              <dt>Transport</dt>
+              <dd>Streamable HTTP</dd>
+            </div>
+            <div>
+              <dt>Protocol</dt>
+              <dd>MCP 2026-07-28</dd>
+            </div>
+            <div>
+              <dt>Sessions</dt>
+              <dd>None</dd>
+            </div>
+          </dl>
+          <p class="compatibility">
+            Requires modern stateless request metadata. Legacy MCP handshakes
+            are not supported.
           </p>
         </div>
-        <ol class="steps">
-          <li>
-            <strong>Add a remote MCP server</strong>
-            <span>Open your client's MCP or connector settings.</span>
-          </li>
-          <li>
-            <strong>Enter the endpoint</strong>
-            <span>Use <code>https://mcp.bitview.space/</code>.</span>
-          </li>
-          <li>
-            <strong>Choose no authentication</strong>
-            <span>No account, API key, or secret is required.</span>
-          </li>
-        </ol>
-        <p class="compatibility-note">
-          Client requirement: MCP 2026-07-28 with modern stateless request
-          metadata. Legacy handshakes are not supported.
-        </p>
       </section>
 
-      <section aria-labelledby="capabilities-title">
-        <div class="section-heading">
-          <h2 id="capabilities-title">What it knows</h2>
+      <section class="section shell" aria-labelledby="data-title">
+        <p class="section-index">02 / Data</p>
+        <div class="section-body">
+          <h2 id="data-title">From blocks to market structure.</h2>
           <p class="section-intro">
-            The tool catalog is generated from Bitcoin Research Kit's
-            non-deprecated REST GET operations, so MCP and API capabilities stay
-            aligned.
+            Tools are generated from Bitcoin Research Kit's non-deprecated REST
+            GET operations, keeping the public API and MCP catalog aligned.
           </p>
-        </div>
-        <ul class="capabilities">
-          <li class="card">
-            <h3>Blockchain</h3>
-            <p>Blocks, transactions, addresses, outputs, scripts, and UTXOs.</p>
-          </li>
-          <li class="card">
-            <h3>Mempool</h3>
-            <p>Unconfirmed transactions, projected blocks, replacements, and fees.</p>
-          </li>
-          <li class="card">
-            <h3>Market</h3>
-            <p>Current and historical Bitcoin prices across supported currencies.</p>
-          </li>
-          <li class="card">
-            <h3>On-chain analytics</h3>
-            <p>Supply, cohorts, realized metrics, profitability, and distributions.</p>
-          </li>
-          <li class="card">
-            <h3>Mining &amp; network</h3>
-            <p>Hashrate, difficulty, rewards, fee rates, pools, and network state.</p>
-          </li>
-          <li class="card">
-            <h3>Discovery</h3>
-            <p>Search, list, and metadata operations for finding valid identifiers.</p>
-          </li>
-        </ul>
-      </section>
-
-      <section aria-labelledby="prompts-title">
-        <div class="section-heading">
-          <h2 id="prompts-title">Try asking</h2>
-          <p class="section-intro">
-            Start with a question. The client can inspect the catalog and choose
-            the relevant Bitview tools.
-          </p>
-        </div>
-        <ul class="prompt-grid">
-          <li>Summarize the latest Bitcoin block and compare its fees with the previous ten blocks.</li>
-          <li>What fee rate is projected to clear in each of the next three blocks?</li>
-          <li>Compare the current short-term-holder and long-term-holder realized prices.</li>
-          <li>Show Bitcoin's daily closing price and realized capitalization since January 1.</li>
-        </ul>
-      </section>
-
-      <section aria-labelledby="boundary-title">
-        <div class="boundary">
-          <div>
-            <h2 id="boundary-title">Read-only by design</h2>
-            <p>
-              Bitview MCP reads changing public Bitcoin and market data. It does
-              not expose the REST transaction-broadcast operation and cannot
-              move bitcoin or act on a user's behalf.
-            </p>
-          </div>
-          <ul aria-label="Safety boundaries">
-            <li>No private keys</li>
-            <li>No transaction signing</li>
-            <li>No wallet control</li>
-            <li>No trading or transfers</li>
-            <li>No transaction broadcasting</li>
+          <ul class="capabilities">
+            <li>
+              <h3>Blockchain</h3>
+              <p>Blocks, transactions, addresses, scripts, outputs, and UTXOs.</p>
+            </li>
+            <li>
+              <h3>Mempool</h3>
+              <p>Unconfirmed transactions, projected blocks, replacements, and fees.</p>
+            </li>
+            <li>
+              <h3>Market</h3>
+              <p>Current and historical Bitcoin prices across supported currencies.</p>
+            </li>
+            <li>
+              <h3>On-chain</h3>
+              <p>Supply, cohorts, realized metrics, profitability, and distributions.</p>
+            </li>
+            <li>
+              <h3>Mining</h3>
+              <p>Hashrate, difficulty, rewards, fee rates, pools, and network state.</p>
+            </li>
+            <li>
+              <h3>Discovery</h3>
+              <p>Search, list, and metadata tools for finding valid identifiers.</p>
+            </li>
           </ul>
         </div>
       </section>
 
-      <section aria-labelledby="technical-title">
-        <div class="section-heading">
-          <h2 id="technical-title">Technical details</h2>
-          <p class="section-intro">
-            Everything a client needs to identify the public production server.
-          </p>
+      <section class="section shell" aria-labelledby="prompts-title">
+        <p class="section-index">03 / Ask</p>
+        <div class="section-body">
+          <h2 id="prompts-title">Start with a question.</h2>
+          <ul class="prompts">
+            <li>Summarize the latest block and compare its fees with the previous ten.</li>
+            <li>What fee rate is projected to clear in each of the next three blocks?</li>
+            <li>Compare short-term-holder and long-term-holder realized prices.</li>
+            <li>Show daily closing price and realized capitalization since January 1.</li>
+          </ul>
         </div>
-        <table class="technical">
-          <tbody>
-            <tr>
-              <th scope="row">Endpoint</th>
-              <td><code>https://mcp.bitview.space/</code></td>
-            </tr>
-            <tr>
-              <th scope="row">Transport</th>
-              <td>Streamable HTTP</td>
-            </tr>
-            <tr>
-              <th scope="row">Protocol</th>
-              <td>MCP 2026-07-28 only</td>
-            </tr>
-            <tr>
-              <th scope="row">Authentication</th>
-              <td>None</td>
-            </tr>
-            <tr>
-              <th scope="row">Sessions</th>
-              <td>None — every request is stateless</td>
-            </tr>
-            <tr>
-              <th scope="row">Usage limits</th>
-              <td>No request rate limit or usage quota</td>
-            </tr>
-            <tr>
-              <th scope="row">Access</th>
-              <td>Public data through read-only tools</td>
-            </tr>
-          </tbody>
-        </table>
       </section>
 
-      <section aria-labelledby="resources-title">
-        <div class="section-heading">
-          <h2 id="resources-title">Build with BRK</h2>
+      <div class="boundary-wrap shell">
+        <section class="boundary" aria-labelledby="boundary-title">
+          <h2 id="boundary-title">Read-only by design.</h2>
+          <p>
+            Bitview MCP reads changing public Bitcoin and market data. It has
+            <strong>no private keys</strong>, cannot sign or broadcast
+            transactions, cannot control wallets, and cannot trade or transfer
+            bitcoin.
+          </p>
+        </section>
+      </div>
+
+      <section class="section shell" aria-labelledby="resources-title">
+        <p class="section-index">04 / Build</p>
+        <div class="section-body">
+          <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
             Bitview is the official public instance. Bitcoin Research Kit is the
-            open-source project behind its API, MCP server, and generated clients.
+            open-source project behind the data engine, API, MCP server, and
+            generated clients.
           </p>
+          <nav class="resources" aria-label="Developer resources">
+            <a href="https://bitview.space/api">API documentation</a>
+            <a href="https://bitview.space/api.json">LLM schema</a>
+            <a href="https://bitview.space/llms.txt">llms.txt</a>
+            <a href="https://www.npmjs.com/package/brk-client">JavaScript</a>
+            <a href="https://pypi.org/project/brk-client/">Python</a>
+            <a href="https://crates.io/crates/brk_client">Rust</a>
+            <a href="https://github.com/bitcoinresearchkit/brk">Source</a>
+            <a href="mailto:support@bitcoinresearchkit.org">Support</a>
+            <a href="https://bitview.space">Bitview</a>
+          </nav>
         </div>
-        <nav class="link-grid" aria-label="Developer resources">
-          <a href="https://bitview.space/api">API documentation</a>
-          <a href="https://bitview.space/api.json">LLM-friendly schema</a>
-          <a href="https://bitview.space/llms.txt">llms.txt</a>
-          <a href="https://www.npmjs.com/package/brk-client">JavaScript client</a>
-          <a href="https://pypi.org/project/brk-client/">Python client</a>
-          <a href="https://crates.io/crates/brk_client">Rust client</a>
-          <a href="https://github.com/bitcoinresearchkit/brk">Source on GitHub</a>
-          <a href="mailto:support@bitcoinresearchkit.org">Support</a>
-          <a href="https://bitview.space">Open Bitview</a>
-        </nav>
       </section>
     </main>
 
     <footer class="shell">
-      <span>Bitview is the official public instance of Bitcoin Research Kit.</span>
-      <span>Open-source Bitcoin data infrastructure.</span>
+      <span>Bitview / powered by Bitcoin Research Kit</span>
+      <span>Public · free · open source</span>
     </footer>
   </body>
 </html>
