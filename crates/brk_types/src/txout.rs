@@ -1,46 +1,75 @@
-use crate::{Addr, AddrBytes, OutputType, Sats};
+use crate::{Addr, AddrBytes, OutputType, OutputTypeNormalized, Sats};
 use bitcoin::ScriptBuf;
-use schemars::JsonSchema;
+use schemars::{JsonSchema, SchemaGenerator};
 use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 
 /// Transaction output
-#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
     /// Script pubkey (locking script)
     #[serde(
         rename = "scriptpubkey",
         serialize_with = "serialize_with_script_pubkey"
     )]
-    #[schemars(
-        with = "String",
-        example = "00143b064c595a95f977f00352d6e917501267cacdc6"
-    )]
     pub script_pubkey: ScriptBuf,
 
     /// Script pubkey in assembly format
     #[allow(dead_code)]
     #[serde(skip, rename = "scriptpubkey_asm")]
-    #[schemars(
-        with = "String",
-        example = "OP_0 OP_PUSHBYTES_20 3b064c595a95f977f00352d6e917501267cacdc6"
-    )]
     script_pubkey_asm: (),
 
     /// Esplora/mempool.space script type
     #[allow(dead_code)]
     #[serde(skip, rename = "scriptpubkey_type")]
-    #[schemars(with = "crate::OutputTypeNormalized", example = &"v0_p2wpkh")]
     script_pubkey_type: (),
 
     /// Bitcoin address (if applicable, None for OP_RETURN)
     #[allow(dead_code)]
     #[serde(skip, rename = "scriptpubkey_address")]
-    #[schemars(with = "Option<Addr>", example = Some("bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y".to_string()))]
     script_pubkey_addr: (),
 
     /// Value of the output in satoshis
-    #[schemars(example = Sats::new(7782))]
     pub value: Sats,
+}
+
+#[allow(dead_code)]
+#[derive(JsonSchema)]
+struct TxOutSchema {
+    /// Script pubkey (locking script), encoded as hexadecimal.
+    #[schemars(example = "00143b064c595a95f977f00352d6e917501267cacdc6")]
+    scriptpubkey: String,
+    /// Script pubkey in assembly format.
+    #[schemars(example = "OP_0 OP_PUSHBYTES_20 3b064c595a95f977f00352d6e917501267cacdc6")]
+    scriptpubkey_asm: String,
+    /// Esplora/mempool.space script type.
+    #[schemars(example = &"v0_p2wpkh")]
+    scriptpubkey_type: OutputTypeNormalized,
+    /// Bitcoin address, omitted for scripts without an address.
+    #[schemars(example = &"bc1q8vryck26jhuh0uqr2ttwj96szfnu4nwxfmu39y")]
+    scriptpubkey_address: Addr,
+    /// Value of the output in satoshis.
+    #[schemars(example = Sats::new(7782))]
+    value: Sats,
+}
+
+impl JsonSchema for TxOut {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "TxOut".into()
+    }
+
+    fn json_schema(generator: &mut SchemaGenerator) -> schemars::Schema {
+        let mut schema = TxOutSchema::json_schema(generator);
+        schema.insert(
+            "required".to_owned(),
+            serde_json::json!([
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+            ]),
+        );
+        schema
+    }
 }
 
 impl TxOut {
@@ -174,5 +203,23 @@ mod tests {
             script_type(ScriptBuf::from_bytes(vec![0x6a])),
             (OutputType::OpReturn, "op_return".to_string())
         );
+    }
+
+    #[test]
+    fn schema_documents_every_emitted_field() {
+        let schema = serde_json::to_value(schemars::schema_for!(TxOut)).unwrap();
+        let properties = schema["properties"].as_object().unwrap();
+        for field in [
+            "scriptpubkey",
+            "scriptpubkey_asm",
+            "scriptpubkey_type",
+            "scriptpubkey_address",
+            "value",
+        ] {
+            assert!(properties.contains_key(field));
+        }
+
+        let required = schema["required"].as_array().unwrap();
+        assert!(!required.iter().any(|value| value == "scriptpubkey_address"));
     }
 }

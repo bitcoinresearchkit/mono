@@ -65,14 +65,14 @@ where
     pub(super) const COLUMN_COUNT: usize = C::ALL.len();
     pub(super) const ROWS_PER_BLOCK: usize = rows_per_block::<V::T>();
 
-    fn validate_layout() -> Result<()> {
-        validate_schema::<C>()?;
+    fn validate_layout() -> Result<Version> {
+        let schema = validate_schema::<C>()?;
         if size_of::<V::T>() == 0 || Self::ROWS_PER_BLOCK == 0 {
             return Err(Error::InvalidArgument(
                 "ColumnarVec requires at least one non-zero-sized scalar per page",
             ));
         }
-        Ok(())
+        Ok(schema)
     }
 
     fn validate_flat_len(vec: &V) -> Result<usize> {
@@ -87,12 +87,13 @@ where
     }
 
     fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
-        Self::validate_layout()?;
+        let schema = Self::validate_layout()?;
         let columns = u32::try_from(Self::COLUMN_COUNT).map_err(|_| Error::Overflow)?;
         options.version = options
             .version
             .combine(VERSION)
             .combine(C::VERSION)
+            .combine(schema)
             .combine(Version::new(columns));
         options.initial_capacity = Some(
             options

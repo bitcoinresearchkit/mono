@@ -7,6 +7,7 @@ use crate::{Height, Timestamp};
 /// A single difficulty adjustment entry.
 /// Serializes as array: [timestamp, height, difficulty, change_percent]
 #[derive(Debug, Deserialize, JsonSchema)]
+#[schemars(with = "[f64; 4]")]
 pub struct DifficultyAdjustmentEntry {
     /// Unix timestamp of the adjustment
     pub timestamp: Timestamp,
@@ -31,5 +32,20 @@ impl Serialize for DifficultyAdjustmentEntry {
         tup.serialize_element(&self.difficulty)?;
         tup.serialize_element(&self.change_percent)?;
         tup.end()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn wire_schema_is_a_fixed_four_item_array() {
+        let schema =
+            serde_json::to_value(schemars::schema_for!(DifficultyAdjustmentEntry)).unwrap();
+        assert_eq!(schema["type"], "array");
+        assert_eq!(schema["minItems"], 4);
+        assert_eq!(schema["maxItems"], 4);
+        assert_eq!(schema["items"]["type"], "number");
     }
 }

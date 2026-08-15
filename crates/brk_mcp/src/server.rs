@@ -13,7 +13,7 @@ use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
-        DiscoverResult, Implementation, ListToolsResult, MetaObject, PaginatedRequestParams,
+        DiscoverResult, Icon, Implementation, ListToolsResult, MetaObject, PaginatedRequestParams,
         ProtocolVersion, ResourceContents, ServerCapabilities, ServerInfo, Tool,
     },
     service::RequestContext,
@@ -27,10 +27,11 @@ use tracing::{info, warn};
 
 use crate::{
     manifest::Catalog,
+    page::Pages,
     upstream::{Upstream, UpstreamResponse},
 };
 
-const CACHE_META_KEY: &str = "space.bitview/upstreamCache";
+const CACHE_META_KEY: &str = "org.bitcoinresearchkit/upstreamCache";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 const MAX_CONCURRENCY: usize = 16;
 const CONCURRENCY_WAIT: Duration = Duration::from_secs(5);
@@ -42,6 +43,8 @@ struct AppState {
     catalog: Catalog,
     upstream: Upstream,
     concurrency: Arc<Semaphore>,
+    display_name: String,
+    public_url: String,
 }
 
 #[derive(Clone)]
@@ -50,17 +53,30 @@ struct BrkMcp {
 }
 
 impl AppState {
-    fn new(api_bases: Vec<String>, catalog: Catalog) -> Self {
+    fn new(
+        api_bases: Vec<String>,
+        catalog: Catalog,
+        display_name: String,
+        public_url: String,
+    ) -> Self {
         let upstream = Upstream::new(api_bases);
         Self {
             concurrency: Arc::new(Semaphore::new(MAX_CONCURRENCY)),
             catalog,
             upstream,
+            display_name,
+            public_url,
         }
     }
 }
 
-pub fn router(api_bases: Vec<String>, catalog: Catalog) -> Router {
+pub fn router(
+    api_bases: Vec<String>,
+    catalog: Catalog,
+    display_name: String,
+    public_url: String,
+    pages: Pages,
+) -> Router {
     let transport_config = StreamableHttpServerConfig::default()
         .disable_allowed_hosts()
         .with_sse_keep_alive(None)
@@ -70,7 +86,7 @@ pub fn router(api_bases: Vec<String>, catalog: Catalog) -> Router {
         .with_max_request_body_bytes(MAX_REQUEST_BYTES)
         .with_stateless_protocol_metadata_required(true);
 
-    let state = Arc::new(AppState::new(api_bases, catalog));
+    let state = Arc::new(AppState::new(api_bases, catalog, display_name, public_url));
     let handler = BrkMcp {
         state: state.clone(),
     };
@@ -80,8 +96,33 @@ pub fn router(api_bases: Vec<String>, catalog: Catalog) -> Router {
         transport_config,
     );
 
+    let home_html = pages.home();
+    let home_handler = move || {
+        let home_html = home_html.clone();
+        async move { crate::page::get(home_html).await }
+    };
+    let privacy_html = pages.privacy();
+    let privacy_handler = move || {
+        let privacy_html = privacy_html.clone();
+        async move { crate::page::get(privacy_html).await }
+    };
+    let terms_html = pages.terms();
+    let terms_handler = move || {
+        let terms_html = terms_html.clone();
+        async move { crate::page::get(terms_html).await }
+    };
+    let support_html = pages.support();
+    let support_handler = move || {
+        let support_html = support_html.clone();
+        async move { crate::page::get(support_html).await }
+    };
+
     Router::new()
-        .route("/", get(crate::page::get).post_service(service))
+        .route("/", get(home_handler).post_service(service))
+        .route("/logo.png", get(crate::logo::get))
+        .route("/privacy", get(privacy_handler))
+        .route("/terms", get(terms_handler))
+        .route("/support", get(support_handler))
         .layer(middleware::from_fn(gateway_guard))
 }
 
@@ -89,7 +130,16 @@ impl BrkMcp {
     fn server_info(&self) -> ServerInfo {
         ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
-            .with_server_info(Implementation::new("brk_mcp", env!("CARGO_PKG_VERSION")))
+            .with_server_info(
+                Implementation::new("brk_mcp", env!("CARGO_PKG_VERSION"))
+                    .with_title(&self.state.display_name)
+                    .with_icons(vec![
+                        Icon::new(format!("{}logo.png", self.state.public_url))
+                            .with_mime_type("image/png")
+                            .with_sizes(vec!["512x512".to_owned()]),
+                    ])
+                    .with_website_url(&self.state.public_url),
+            )
             .with_instructions(
                 "Read-only Bitcoin analytics tools backed by BRK REST GET endpoints. \
                  Calls use the configured public Cloudflare-cached API and never mutate BRK state. \

@@ -4,13 +4,20 @@ use crate::{Error, ReadableVec, Result, VecIndex, VecValue, Version};
 
 use super::{LazyColumnSumVec, LazyColumnVec};
 
+const FNV_OFFSET: u32 = 0x811c_9dc5;
+const FNV_PRIME: u32 = 0x0100_0193;
+
 /// Typed description of a fixed column set and its logical row representation.
+///
+/// Column debug identities in [`Self::ALL`] order are automatically included
+/// in the persisted schema version.
 pub trait ColumnId: Copy + Debug + Eq + Ord + Send + Sync + 'static {
     type Row<T>: VecValue
     where
         T: VecValue;
 
-    /// Bump this whenever the column meaning or physical ordering changes.
+    /// Bump this whenever a column's meaning changes without changing its
+    /// debug identity or physical ordering.
     const VERSION: Version;
 
     /// Every valid column in physical storage order.
@@ -78,20 +85,39 @@ where
     }
 }
 
-pub(super) fn validate_schema<C: ColumnId>() -> Result<()> {
+pub(super) fn validate_schema<C: ColumnId>() -> Result<Version> {
     if C::ALL.is_empty() {
         return Err(Error::InvalidArgument(
             "ColumnarVec requires at least one column",
         ));
     }
+
+    let mut fingerprint = FNV_OFFSET;
+    let mut names = Vec::with_capacity(C::ALL.len());
     for (index, &column) in C::ALL.iter().enumerate() {
         if column.index() != index {
             return Err(Error::InvalidArgument(
                 "ColumnId::ALL must contain every column in physical index order",
             ));
         }
+        let name = format!("{column:?}");
+        if name.is_empty() {
+            return Err(Error::InvalidArgument(
+                "ColumnId column names cannot be empty",
+            ));
+        }
+        if names.contains(&name) {
+            return Err(Error::InvalidArgument(
+                "ColumnId column names must be unique",
+            ));
+        }
+        for byte in name.bytes().chain(std::iter::once(0)) {
+            fingerprint ^= u32::from(byte);
+            fingerprint = fingerprint.wrapping_mul(FNV_PRIME);
+        }
+        names.push(name);
     }
-    Ok(())
+    Ok(Version::new(fingerprint))
 }
 
 pub(super) fn validate_column<C: ColumnId>(column: C) {

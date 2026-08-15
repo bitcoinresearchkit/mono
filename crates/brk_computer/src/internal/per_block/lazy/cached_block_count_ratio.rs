@@ -2,8 +2,8 @@ use std::{marker::PhantomData, sync::Arc};
 
 use brk_types::{Height, StoredU64};
 use vecdb::{
-    AnyVec, BinaryTransform, PrintableIndex, ReadableBoxedVec, ReadableVec, TypedVec, VecValue,
-    Version, short_type_name,
+    AnyVec, BinaryTransform, Cursor, PrintableIndex, ReadableBoxedVec, ReadableVec, TypedVec,
+    VecValue, Version, short_type_name,
 };
 
 use crate::internal::CachedBlockCountReader;
@@ -156,10 +156,27 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let indices = &indices[..indices.partition_point(|&index| index < self.len())];
+        let denominators = self.denominator.read_sorted_at(indices);
+        let mut numerators = Cursor::new(&*self.numerator);
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for (&index, denominator) in indices.iter().zip(denominators) {
+            let Some(numerator) = numerators.get(index) else {
+                continue;
+            };
+            out.push(F::apply(numerator, denominator));
+        }
     }
 }

@@ -7,14 +7,15 @@
     <meta name="referrer" content="no-referrer" />
     <meta
       name="description"
-      content="Free, read-only Bitcoin data for AI through the Bitview MCP server."
+      content="{{PAGE_DESCRIPTION}}"
     />
-    <link rel="canonical" href="https://mcp.bitview.space/" />
-    <title>Bitview MCP — Bitcoin data for AI</title>
+    <link rel="canonical" href="{{CANONICAL_URL}}" />
+    <link rel="icon" href="{{PUBLIC_URL}}logo.png" type="image/png" sizes="512x512" />
+    <title>{{PAGE_TITLE}}</title>
     <style>
       @font-face {
         font-family: Lilex;
-        src: url("https://bitview.space/assets/fonts/Lilex%5Bwght%5D-v2_620.woff2")
+        src: url("https://cdn.jsdelivr.net/gh/bitcoinresearchkit/brk@main/website_next/assets/fonts/Lilex%5Bwght%5D-v2_620.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 100 700;
@@ -23,7 +24,7 @@
 
       @font-face {
         font-family: Instrument;
-        src: url("https://bitview.space/assets/fonts/InstrumentSerif-Regular.woff2")
+        src: url("https://cdn.jsdelivr.net/gh/bitcoinresearchkit/brk@main/website_next/assets/fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -126,6 +127,20 @@
 
       main {
         overflow: clip;
+      }
+
+      .home-view,
+      .privacy-view,
+      .terms-view,
+      .support-view {
+        display: none;
+      }
+
+      body[data-page="home"] .home-view,
+      body[data-page="privacy"] .privacy-view,
+      body[data-page="terms"] .terms-view,
+      body[data-page="support"] .support-view {
+        display: block;
       }
 
       .hero {
@@ -421,6 +436,67 @@
         font-size: 0.7rem;
       }
 
+      .policy {
+        min-height: calc(100svh - 5rem);
+        padding-block: 9rem 7rem;
+      }
+
+      .policy-header {
+        padding-bottom: 3rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .policy h1 {
+        max-width: 12ch;
+        font-size: clamp(3.75rem, 9vw, 7rem);
+      }
+
+      .policy-meta {
+        margin-top: 1.5rem;
+        color: var(--gray);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+
+      .policy-body {
+        width: min(100%, 48rem);
+        margin-top: 4rem;
+        margin-left: auto;
+      }
+
+      .policy-body section + section {
+        margin-top: 3rem;
+      }
+
+      .policy-body h2 {
+        max-width: none;
+        font: 500 0.8rem / 1.4 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .policy-body p,
+      .policy-body li {
+        color: var(--gray);
+        font-size: 0.875rem;
+      }
+
+      .policy-body p {
+        margin-top: 0.8rem;
+      }
+
+      .policy-body ul {
+        display: grid;
+        gap: 0.65rem;
+        margin-top: 0.8rem;
+        padding-left: 1.25rem;
+      }
+
+      .policy-body strong {
+        color: var(--white);
+        font-weight: 500;
+      }
+
       @media (max-width: 48rem) {
         .hero {
           min-height: 48rem;
@@ -490,8 +566,8 @@
       }
     </style>
   </head>
-  <body>
-    <a class="brand" href="https://bitview.space" aria-label="Bitview home">
+  <body data-page="{{PAGE}}">
+    <a class="brand" href="{{PUBLIC_URL}}" aria-label="{{DISPLAY_NAME}} home">
       <span class="brand-mark" aria-hidden="true">
         <svg viewBox="0 0 173.2 200">
           <polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" />
@@ -499,11 +575,12 @@
           <polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" />
         </svg>
       </span>
-      <span>bitview</span>
+      <span>{{DISPLAY_NAME}}</span>
     </a>
 
     <main>
-      <section class="hero shell" aria-labelledby="page-title">
+      <div class="home-view">
+        <section class="hero shell" aria-labelledby="page-title">
         <p class="eyebrow">Model Context Protocol</p>
         <h1 id="page-title">Bitcoin data for AI.</h1>
         <p class="hero-copy">
@@ -512,7 +589,7 @@
         </p>
         <div class="endpoint">
           <span>Remote server</span>
-          <code>https://mcp.bitview.space/</code>
+          <code>{{PUBLIC_URL}}</code>
         </div>
         <div class="facts" aria-label="Server properties">
           <span>Free</span>
@@ -521,15 +598,16 @@
           <span>Read-only</span>
           <span>Stateless</span>
         </div>
-      </section>
+        </section>
 
-      <section class="section shell" id="connect" aria-labelledby="connect-title">
+        <section class="section shell" id="connect" aria-labelledby="connect-title">
         <p class="section-index">01 / Connect</p>
         <div class="section-body">
           <h2 id="connect-title">Give your AI one URL.</h2>
           <p class="section-intro">
-            Add Bitview as a remote MCP server in any compatible client. There
-            is no account to create, key to store, or authentication flow to run.
+            Add {{DISPLAY_NAME}} as a remote MCP server in any compatible client.
+            There is no account to create, key to store, or authentication flow
+            to run.
           </p>
           <ol class="steps">
             <li>
@@ -538,7 +616,7 @@
             </li>
             <li>
               <strong>Use the root endpoint</strong>
-              <span><code>https://mcp.bitview.space/</code></span>
+              <span><code>{{PUBLIC_URL}}</code></span>
             </li>
             <li>
               <strong>Select no authentication</strong>
@@ -564,9 +642,9 @@
             are not supported.
           </p>
         </div>
-      </section>
+        </section>
 
-      <section class="section shell" aria-labelledby="data-title">
+        <section class="section shell" aria-labelledby="data-title">
         <p class="section-index">02 / Data</p>
         <div class="section-body">
           <h2 id="data-title">From blocks to market structure.</h2>
@@ -601,9 +679,9 @@
             </li>
           </ul>
         </div>
-      </section>
+        </section>
 
-      <section class="section shell" aria-labelledby="prompts-title">
+        <section class="section shell" aria-labelledby="prompts-title">
         <p class="section-index">03 / Ask</p>
         <div class="section-body">
           <h2 id="prompts-title">Start with a question.</h2>
@@ -614,46 +692,342 @@
             <li>Show daily closing price and realized capitalization since January 1.</li>
           </ul>
         </div>
-      </section>
+        </section>
 
-      <div class="boundary-wrap shell">
-        <section class="boundary" aria-labelledby="boundary-title">
+        <div class="boundary-wrap shell">
+          <section class="boundary" aria-labelledby="boundary-title">
           <h2 id="boundary-title">Read-only by design.</h2>
           <p>
-            Bitview MCP reads changing public Bitcoin and market data. It has
-            <strong>no private keys</strong>, cannot sign or broadcast
+            {{DISPLAY_NAME}} MCP reads changing public Bitcoin and market data.
+            It has <strong>no private keys</strong>, cannot sign or broadcast
             transactions, cannot control wallets, and cannot trade or transfer
             bitcoin.
           </p>
-        </section>
-      </div>
+          </section>
+        </div>
 
-      <section class="section shell" aria-labelledby="resources-title">
+        <section class="section shell" aria-labelledby="resources-title">
         <p class="section-index">04 / Build</p>
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
-            Bitview is the official public instance. Bitcoin Research Kit is the
-            open-source project behind the data engine, API, MCP server, and
-            generated clients.
+            This instance is powered by Bitcoin Research Kit, the open-source
+            project behind the data engine, API, MCP server, and generated
+            clients.
           </p>
           <nav class="resources" aria-label="Developer resources">
-            <a href="https://bitview.space/api">API documentation</a>
-            <a href="https://bitview.space/api.json">LLM schema</a>
-            <a href="https://bitview.space/llms.txt">llms.txt</a>
+            <a href="{{API_URL}}/api">API documentation</a>
+            <a href="{{API_URL}}/api.json">LLM schema</a>
+            <a href="{{API_URL}}/llms.txt">llms.txt</a>
             <a href="https://www.npmjs.com/package/brk-client">JavaScript</a>
             <a href="https://pypi.org/project/brk-client/">Python</a>
             <a href="https://crates.io/crates/brk_client">Rust</a>
             <a href="https://github.com/bitcoinresearchkit/brk">Source</a>
-            <a href="mailto:support@bitcoinresearchkit.org">Support</a>
-            <a href="https://bitview.space">Bitview</a>
+            <a href="{{PUBLIC_URL}}support">Support</a>
+            <a href="{{API_URL}}">REST API</a>
+            <a href="{{PUBLIC_URL}}privacy">Privacy</a>
+            <a href="{{PUBLIC_URL}}terms">Terms</a>
           </nav>
         </div>
-      </section>
+        </section>
+      </div>
+
+      <article class="privacy-view policy shell" aria-labelledby="privacy-title">
+        <header class="policy-header">
+          <p class="eyebrow">Policy</p>
+          <h1 id="privacy-title">Privacy.</h1>
+          <p class="policy-meta">Last updated August 15, 2026</p>
+        </header>
+
+        <div class="policy-body">
+          <section>
+            <h2>Scope</h2>
+            <p>
+              This policy describes the {{DISPLAY_NAME}} Model Context Protocol
+              service available at <a href="{{PUBLIC_URL}}">{{PUBLIC_URL}}</a>.
+              It covers this MCP endpoint and its documentation pages. Other
+              websites and independently operated deployments may have their own
+              policies.
+            </p>
+          </section>
+
+          <section>
+            <h2>Information processed</h2>
+            <p>
+              MCP clients send the protocol requests needed to discover tools and
+              call them. A tool call includes a tool name and may include arguments.
+              The service also receives the ordinary network information required
+              to handle an HTTP connection.
+            </p>
+          </section>
+
+          <section>
+            <h2>Application logs</h2>
+            <p>
+              At the default production log level, startup logs contain the local
+              bind address and tool count. Successful tool calls log the requested
+              MCP tool name and upstream cache status and age. The <code>brk_mcp</code>
+              application does not log tool arguments, request bodies, response
+              bodies, IP addresses, cookies, or user identifiers during normal
+              successful request processing.
+            </p>
+            <p>
+              Transport libraries may emit limited diagnostic values for malformed
+              or failed requests. Operators can also change log verbosity through
+              environment configuration; verbose protocol tracing may include
+              additional request or response details. Log destinations and retention
+              are controlled by the operator.
+            </p>
+            <p>
+              Hosting platforms, content-delivery networks, and reverse proxies may
+              separately process or retain standard network logs according to the
+              operator's hosting configuration.
+            </p>
+          </section>
+
+          <section>
+            <h2>API requests</h2>
+            <p>
+              Tool calls are translated into read-only HTTP GET requests to the
+              configured BRK REST API at <a href="{{API_URL}}">{{API_URL}}</a>.
+              The API receives those requests and may maintain its own operational
+              logs. The MCP service cannot sign or broadcast transactions, control
+              wallets, trade, or transfer bitcoin.
+            </p>
+          </section>
+
+          <section>
+            <h2>Storage and tracking</h2>
+            <p>
+              The MCP service has no user accounts, authentication, advertising,
+              analytics, or persistent MCP sessions. It does not set cookies or use
+              browser local storage. The application does not build user profiles or
+              retain a history of tool arguments and results.
+            </p>
+          </section>
+
+          <section>
+            <h2>Documentation fonts</h2>
+            <p>
+              The browser documentation pages load font files from jsDelivr. When a
+              person opens a documentation page, jsDelivr receives the standard web
+              request needed to deliver those files. MCP tool calls do not load the
+              documentation fonts.
+            </p>
+          </section>
+
+          <section>
+            <h2>Sharing</h2>
+            <p>
+              The MCP application does not sell or rent personal information. Data
+              is sent only to the configured API and infrastructure providers as
+              necessary to operate the service, or when disclosure is required by
+              law.
+            </p>
+          </section>
+
+          <section>
+            <h2>Changes and contact</h2>
+            <p>
+              This policy may be updated when the service changes. The date above
+              identifies the current version. Questions can be sent to
+              <a href="mailto:support@bitcoinresearchkit.org"
+                >support@bitcoinresearchkit.org</a
+              >.
+            </p>
+          </section>
+        </div>
+      </article>
+
+      <article class="terms-view policy shell" aria-labelledby="terms-title">
+        <header class="policy-header">
+          <p class="eyebrow">Policy</p>
+          <h1 id="terms-title">Terms.</h1>
+          <p class="policy-meta">Last updated August 15, 2026</p>
+        </header>
+
+        <div class="policy-body">
+          <section>
+            <h2>Acceptance and scope</h2>
+            <p>
+              These terms govern use of the {{DISPLAY_NAME}} Model Context
+              Protocol service at <a href="{{PUBLIC_URL}}">{{PUBLIC_URL}}</a>.
+              By using the service, you agree to these terms. If you do not agree,
+              do not use the service. Independently operated deployments may
+              publish different terms.
+            </p>
+          </section>
+
+          <section>
+            <h2>The service</h2>
+            <p>
+              The service provides a read-only interface to public Bitcoin,
+              blockchain, mempool, mining, market, and on-chain data through the
+              BRK REST API at <a href="{{API_URL}}">{{API_URL}}</a>. It cannot
+              sign or broadcast transactions, control wallets, trade, or transfer
+              bitcoin.
+            </p>
+          </section>
+
+          <section>
+            <h2>No financial advice</h2>
+            <p>
+              The service and all information it returns are provided for general
+              informational and research purposes only. Nothing provided is
+              financial, investment, trading, tax, accounting, or legal advice, or
+              a recommendation to buy, sell, or hold any asset.
+            </p>
+          </section>
+
+          <section>
+            <h2>Data and verification</h2>
+            <p>
+              Bitcoin and market data can be delayed, incomplete, unavailable, or
+              incorrect. Calculated metrics depend on their underlying data and
+              methodology. You are responsible for independently verifying
+              information before relying on it or making decisions.
+            </p>
+          </section>
+
+          <section>
+            <h2>Acceptable use</h2>
+            <p>You may use the service only for lawful purposes. You must not:</p>
+            <ul>
+              <li>interfere with or disrupt the service or its infrastructure;</li>
+              <li>attempt to bypass security or access controls;</li>
+              <li>misrepresent service output or its source; or</li>
+              <li>use the service in violation of applicable law or third-party rights.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Availability and changes</h2>
+            <p>
+              The service is offered without a service-level commitment. Tools,
+              schemas, data, endpoints, and availability may change. The
+              service may be interrupted, restricted, or discontinued at any time.
+            </p>
+          </section>
+
+          <section>
+            <h2>Third-party dependencies</h2>
+            <p>
+              The service depends on the configured API, hosting infrastructure,
+              content-delivery networks, software libraries, and other external
+              services. Their availability and behavior are outside the MCP
+              application's control and may be governed by separate terms.
+            </p>
+          </section>
+
+          <section>
+            <h2>Disclaimer of warranties</h2>
+            <p>
+              To the fullest extent permitted by applicable law, the service is
+              provided “as is” and “as available,” without warranties of any kind,
+              express or implied, including warranties of accuracy, reliability,
+              availability, fitness for a particular purpose, and non-infringement.
+            </p>
+          </section>
+
+          <section>
+            <h2>Limitation of liability</h2>
+            <p>
+              To the fullest extent permitted by applicable law, the service's
+              contributors and operators will not be liable for indirect,
+              incidental, special, consequential, or punitive damages, loss of
+              profits or data, or losses arising from use of or inability to use
+              the service. Rights that cannot legally be limited remain unaffected.
+            </p>
+          </section>
+
+          <section>
+            <h2>Changes and contact</h2>
+            <p>
+              These terms may be updated when the service changes. The date above
+              identifies the current version. Questions can be sent to
+              <a href="mailto:support@bitcoinresearchkit.org"
+                >support@bitcoinresearchkit.org</a
+              >.
+            </p>
+          </section>
+        </div>
+      </article>
+
+      <article class="support-view policy shell" aria-labelledby="support-title">
+        <header class="policy-header">
+          <p class="eyebrow">Help</p>
+          <h1 id="support-title">Support.</h1>
+          <p class="policy-meta">Bitcoin Research Kit</p>
+        </header>
+
+        <div class="policy-body">
+          <section>
+            <h2>Contact</h2>
+            <p>
+              For help with the BRK MCP software or its generated tools, email
+              <a href="mailto:support@bitcoinresearchkit.org"
+                >support@bitcoinresearchkit.org</a
+              >. There is no guaranteed response time.
+            </p>
+          </section>
+
+          <section>
+            <h2>Before contacting support</h2>
+            <p>Include only the details needed to reproduce the problem:</p>
+            <ul>
+              <li>the public MCP URL;</li>
+              <li>the MCP client name and version;</li>
+              <li>the tool name, without sensitive arguments;</li>
+              <li>the approximate timestamp and time zone;</li>
+              <li>the complete error message or HTTP status; and</li>
+              <li>whether the problem can be reproduced.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Never send secrets</h2>
+            <p>
+              Never send private keys, seed phrases, wallet descriptors, extended
+              public keys, authentication tokens, or other secrets. Redact addresses,
+              transaction identifiers, tool arguments, and other information that is
+              not necessary to investigate the problem.
+            </p>
+          </section>
+
+          <section>
+            <h2>Independent deployments</h2>
+            <p>
+              Bitcoin Research Kit can help with the open-source MCP software.
+              Hosting, networking, availability, logging configuration, and custom
+              changes made by an independent deployment remain the responsibility of
+              that deployment's operator.
+            </p>
+          </section>
+
+          <section>
+            <h2>Source and issues</h2>
+            <p>
+              The source code and public issue tracker are available on
+              <a href="https://github.com/bitcoinresearchkit/brk/issues">GitHub</a>.
+              Public issues must not contain secrets, private reports, or sensitive
+              operational information. Send security-sensitive reports by email.
+            </p>
+          </section>
+
+          <section>
+            <h2>Policies</h2>
+            <p>
+              Review the <a href="{{PUBLIC_URL}}privacy">privacy policy</a> and
+              <a href="{{PUBLIC_URL}}terms">terms of use</a> before using the
+              service.
+            </p>
+          </section>
+        </div>
+      </article>
     </main>
 
     <footer class="shell">
-      <span>Bitview / powered by Bitcoin Research Kit</span>
+      <span>{{DISPLAY_NAME}} / powered by Bitcoin Research Kit</span>
       <span>Public · free · open source</span>
     </footer>
   </body>

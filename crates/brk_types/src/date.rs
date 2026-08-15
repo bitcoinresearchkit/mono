@@ -1,7 +1,7 @@
 use std::{fmt, str::FromStr};
 
 use jiff::{Span, Zoned, civil::Date as Date_, tz::TimeZone};
-use schemars::JsonSchema;
+use schemars::{JsonSchema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 use vecdb::{Formattable, Pco};
 
@@ -10,8 +10,24 @@ use crate::ONE_DAY_IN_SEC_F64;
 use super::{Day1, Month1, Month3, Month6, Timestamp, Week1, Year1, Year10};
 
 /// Date in YYYYMMDD format stored as u32
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Pco, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Pco)]
 pub struct Date(u32);
+
+impl JsonSchema for Date {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Date".into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> schemars::Schema {
+        json_schema!({
+            "description": "Calendar date in YYYY-MM-DD format.",
+            "type": "string",
+            "format": "date",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "examples": ["2009-01-03", "2024-04-20"]
+        })
+    }
+}
 
 impl Date {
     pub const INDEX_ZERO: Self = Self(20090101);
@@ -442,5 +458,16 @@ mod tests {
         assert_eq!(date.year(), 2019);
         assert_eq!(date.month(), 1);
         assert_eq!(date.day(), 1);
+    }
+
+    #[test]
+    fn schema_matches_date_string_serialization() {
+        let date = Date::new(2024, 4, 20);
+        assert_eq!(serde_json::to_value(date).unwrap(), "2024-04-20");
+
+        let schema = serde_json::to_value(schemars::schema_for!(Date)).unwrap();
+        assert_eq!(schema["type"], "string");
+        assert_eq!(schema["format"], "date");
+        assert_eq!(schema["pattern"], r"^\d{4}-\d{2}-\d{2}$");
     }
 }

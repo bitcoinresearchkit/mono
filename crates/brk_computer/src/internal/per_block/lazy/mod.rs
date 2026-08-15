@@ -11,8 +11,11 @@ mod per_second;
 mod previous_delta;
 mod rolling_ratio;
 mod since_day;
+mod sparse_read;
 mod transform_last;
 mod window;
+
+use sparse_read::SparseRead;
 
 pub use base::*;
 pub use cached_block_count_ratio::*;

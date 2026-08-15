@@ -125,7 +125,10 @@ impl<T: JsonSchema, const N: usize> JsonSchema for Histogram<T, N> {
     }
 
     fn json_schema(generator: &mut SchemaGenerator) -> schemars::Schema {
-        Vec::<T>::json_schema(generator)
+        let mut schema = Vec::<T>::json_schema(generator);
+        schema.insert("minItems".to_owned(), N.into());
+        schema.insert("maxItems".to_owned(), N.into());
+        schema
     }
 
     /// Inline as a plain array rather than registering a named `Histogram_uintN`
@@ -156,5 +159,13 @@ mod tests {
         a.divide_by(2.0);
 
         assert_eq!(*a, [2.0, 3.0, 4.0]);
+    }
+
+    #[test]
+    fn schema_preserves_the_fixed_bin_count() {
+        let schema = serde_json::to_value(schemars::schema_for!(Histogram<u16, 3>)).unwrap();
+        assert_eq!(schema["type"], "array");
+        assert_eq!(schema["minItems"], 3);
+        assert_eq!(schema["maxItems"], 3);
     }
 }

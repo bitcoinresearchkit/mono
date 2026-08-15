@@ -134,6 +134,28 @@ impl ReadableVec<Height, Sats> for CachedDcaSats {
         })?;
         Ok(acc.unwrap())
     }
+
+    fn collect_one_at(&self, index: usize) -> Option<Sats> {
+        let days = self.days.snapshot();
+        let daily = self.daily.snapshot();
+        let day = days.get(index)?;
+        let last = daily.last().copied().unwrap_or_default();
+        Some(daily.get(day.to_usize()).copied().unwrap_or(last))
+    }
+
+    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<Sats>) {
+        let days = self.days.snapshot();
+        let daily = self.daily.snapshot();
+        let last = daily.last().copied().unwrap_or_default();
+
+        out.reserve(indices.len());
+        indices
+            .iter()
+            .take_while(|&&index| index < days.len())
+            .for_each(|&index| {
+                out.push(daily.get(days[index].to_usize()).copied().unwrap_or(last));
+            });
+    }
 }
 
 impl ReadOnlyClone for CachedDcaSats {
@@ -431,5 +453,11 @@ mod tests {
         let first = sats_from_dca(Dollars::mint(100.0));
         let third = first + sats_from_dca(Dollars::mint(200.0));
         assert_eq!(cached.collect(), [first, first, first, third, third]);
+        assert_eq!(cached.collect_one_at(3), Some(third));
+        assert_eq!(cached.collect_one_at(5), None);
+        assert_eq!(
+            cached.read_sorted_at(&[0, 2, 2, 4, 5]),
+            [first, first, first, third],
+        );
     }
 }

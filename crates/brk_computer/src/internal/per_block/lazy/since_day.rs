@@ -198,11 +198,57 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let indices = &indices[..indices.partition_point(|&index| index < self.len())];
+        if indices.is_empty() {
+            return;
+        }
+
+        let start = self.start_height();
+        let inactive_end = indices.partition_point(|&index| index < start);
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for _ in &indices[..inactive_end] {
+            out.push(T::default());
+        }
+        if inactive_end == indices.len() {
+            return;
+        }
+
+        let before = start
+            .checked_sub(1)
+            .and_then(|index| self.source.collect_one_at(index))
+            .unwrap_or_default();
+        let mut last: Option<(usize, Option<T>)> = None;
+        for &index in &indices[inactive_end..] {
+            if let Some((last_index, value)) = &last
+                && *last_index == index
+            {
+                if let Some(value) = value {
+                    out.push(value.clone());
+                }
+                continue;
+            }
+
+            let value = self
+                .source
+                .collect_one_at(index)
+                .map(|current| (self.compute)(current, before.clone()));
+            if let Some(value) = &value {
+                out.push(value.clone());
+            }
+            last = Some((index, value));
+        }
     }
 }
 
@@ -217,5 +263,68 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<Height, T, _>(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Day1, Height, StoredU64, Version};
+    use vecdb::{
+        AnyStoredVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec, ReadableCloneableVec,
+        ReadableVec, WritableVec,
+    };
+
+    use super::LazySinceDayVec;
+
+    #[test]
+    fn sorted_reads_reuse_the_fixed_start_and_handle_boundaries() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "brk-lazy-since-day-{}-{suffix}",
+            std::process::id()
+        ));
+        let db = Database::open(&path).unwrap();
+        let mut source: EagerVec<PcoVec<Height, StoredU64>> =
+            EagerVec::forced_import(&db, "source", Version::ONE).unwrap();
+        let mut days: EagerVec<PcoVec<Height, Day1>> =
+            EagerVec::forced_import(&db, "days", Version::ONE).unwrap();
+
+        for value in [10_u64, 30, 60, 100, 150] {
+            source.push(StoredU64::from(value));
+        }
+        for day in [0, 0, 1, 1, 2] {
+            days.push(Day1::from(day));
+        }
+        source.write().unwrap();
+        days.write().unwrap();
+
+        let days = CachedVec::wrap(days);
+        let since_day = LazySinceDayVec::new(
+            "since_day",
+            Version::ONE,
+            source.read_only_boxed_clone(),
+            days.read_only_cached_boxed_clone(),
+            Day1::from(1),
+            |current, before| current - before,
+        );
+
+        assert_eq!(
+            since_day.read_sorted_at(&[0, 1, 2, 2, 4, 5]),
+            [0_u64, 0, 30, 30, 120].map(StoredU64::from),
+        );
+        assert_eq!(
+            since_day.read_sorted_at(&[2]),
+            [30_u64].map(StoredU64::from),
+        );
+        assert_eq!(since_day.read_sorted_at(&[5]), []);
+
+        drop(since_day);
+        drop(days);
+        drop(source);
+        drop(db);
+        std::fs::remove_dir_all(path).unwrap();
     }
 }

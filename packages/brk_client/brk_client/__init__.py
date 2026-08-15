@@ -55,6 +55,8 @@ BlockTxIndex = int
 # snapshot). Same value as the mempool ETag. Opaque token: pass back
 # to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 NextBlockHash = int
+# Output type names used by Esplora and mempool.space.
+OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
 # BIP-141 sigop cost. The block-level budget is 80,000, so a `u32`
@@ -140,16 +142,19 @@ UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50"
 CpfpClusterTxIndex = int
 # Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
 VSize = int
-# Date in YYYYMMDD format stored as u32
-Date = int
 # Output format for API responses
 Format = Literal["json", "csv"]
 # Maximum number of results to return. Defaults to 100 if not specified.
 Limit = int
-# A range boundary: integer index, date, or timestamp.
-RangeIndex = Union[int, Date, Timestamp]
+# A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
+RangeIndex = Union[int, str, str]
+# Calendar date in YYYY-MM-DD format.
+Date = str
 Day1 = int
 Day3 = int
+# A single difficulty adjustment entry.
+# Serializes as array: [timestamp, height, difficulty, change_percent]
+DifficultyAdjustmentEntry = List[float]
 EmptyAddrIndex = TypeIndex
 EmptyOutputIndex = TypeIndex
 Epoch = int
@@ -711,13 +716,17 @@ class MempoolBlock(TypedDict):
 
 class TxOut(TypedDict):
     """
-    Transaction output
-
     Attributes:
-        scriptpubkey: Script pubkey (locking script)
-        value: Value of the output in satoshis
+        scriptpubkey: Script pubkey (locking script), encoded as hexadecimal.
+        scriptpubkey_asm: Script pubkey in assembly format.
+        scriptpubkey_type: Esplora/mempool.space script type.
+        scriptpubkey_address: Bitcoin address, omitted for scripts without an address.
+        value: Value of the output in satoshis.
     """
     scriptpubkey: str
+    scriptpubkey_asm: str
+    scriptpubkey_type: OutputTypeNormalized
+    scriptpubkey_address: Addr
     value: Sats
 
 class TxIn(TypedDict):
@@ -1009,22 +1018,6 @@ class DifficultyAdjustment(TypedDict):
     timeOffset: int
     expectedBlocks: float
 
-class DifficultyAdjustmentEntry(TypedDict):
-    """
-    A single difficulty adjustment entry.
-    Serializes as array: [timestamp, height, difficulty, change_percent]
-
-    Attributes:
-        timestamp: Unix timestamp of the adjustment
-        height: Block height of the adjustment
-        difficulty: Difficulty value
-        change_percent: Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
-    """
-    timestamp: Timestamp
-    height: Height
-    difficulty: float
-    change_percent: float
-
 class DifficultyEntry(TypedDict):
     """
     A single difficulty data point in the hashrate summary.
@@ -1257,7 +1250,7 @@ class MempoolInfo(TypedDict):
     count: int
     vsize: VSize
     total_fee: Sats
-    fee_histogram: dict[str, VSize]
+    fee_histogram: List[List[float]]
 
 class MempoolRecentTx(TypedDict):
     """
@@ -1651,9 +1644,9 @@ class RewardStats(TypedDict):
     """
     startBlock: Height
     endBlock: Height
-    totalReward: Sats
-    totalFee: Sats
-    totalTx: int
+    totalReward: str
+    totalFee: str
+    totalTx: str
 
 class SearchQuery(TypedDict):
     """
@@ -6400,35 +6393,6 @@ class SeriesTree_Frameworks_Cointime_Activity:
         self.vaultedness: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'vaultedness')
         self.ratio: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'activity_to_vaultedness')
 
-class SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated:
-    """Series tree node."""
-    
-    def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_coindays_created')
-        self._1h_to_1d: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_coindays_created')
-        self._1d_to_1w: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_coindays_created')
-        self._1w_to_1m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_coindays_created')
-        self._1m_to_2m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_coindays_created')
-        self._2m_to_3m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_coindays_created')
-        self._3m_to_4m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_coindays_created')
-        self._4m_to_5m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_coindays_created')
-        self._5m_to_6m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_coindays_created')
-        self._6m_to_9m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_coindays_created')
-        self._9m_to_1y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_coindays_created')
-        self._1y_to_18m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_coindays_created')
-        self._18m_to_2y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_coindays_created')
-        self._2y_to_3y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_coindays_created')
-        self._3y_to_4y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_coindays_created')
-        self._4y_to_5y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_coindays_created')
-        self._5y_to_6y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_coindays_created')
-        self._6y_to_7y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_coindays_created')
-        self._7y_to_8y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_coindays_created')
-        self._8y_to_10y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_coindays_created')
-        self._10y_to_12y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_coindays_created')
-        self._12y_to_15y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_coindays_created')
-        self.over_15y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_coindays_created')
-        self.cumulative: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'utxos_age_range_coindays_created_cumulative')
-
 class SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed:
     """Series tree node."""
     
@@ -6645,15 +6609,44 @@ class SeriesTree_Frameworks_Cointime_AgeRange_Supply:
         self.awake: SeriesTree_Frameworks_Cointime_AgeRange_Supply_Awake = SeriesTree_Frameworks_Cointime_AgeRange_Supply_Awake(client)
         self.dormant: SeriesTree_Frameworks_Cointime_AgeRange_Supply_Dormant = SeriesTree_Frameworks_Cointime_AgeRange_Supply_Dormant(client)
 
+class SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated:
+    """Series tree node."""
+    
+    def __init__(self, client: BrkClient, base_path: str = ''):
+        self.under_1h: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_coindays_created')
+        self._1h_to_1d: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_coindays_created')
+        self._1d_to_1w: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_coindays_created')
+        self._1w_to_1m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_coindays_created')
+        self._1m_to_2m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_coindays_created')
+        self._2m_to_3m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_coindays_created')
+        self._3m_to_4m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_coindays_created')
+        self._4m_to_5m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_coindays_created')
+        self._5m_to_6m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_coindays_created')
+        self._6m_to_9m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_coindays_created')
+        self._9m_to_1y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_coindays_created')
+        self._1y_to_18m: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_coindays_created')
+        self._18m_to_2y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_coindays_created')
+        self._2y_to_3y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_coindays_created')
+        self._3y_to_4y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_coindays_created')
+        self._4y_to_5y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_coindays_created')
+        self._5y_to_6y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_coindays_created')
+        self._6y_to_7y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_coindays_created')
+        self._7y_to_8y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_coindays_created')
+        self._8y_to_10y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_coindays_created')
+        self._10y_to_12y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_coindays_created')
+        self._12y_to_15y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_coindays_created')
+        self.over_15y: AverageBlockCumulativeSumPattern[StoredF64] = AverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_coindays_created')
+        self.cumulative: SeriesPattern18[StoredF64] = SeriesPattern18(client, 'utxos_age_range_coindays_created_cumulative')
+
 class SeriesTree_Frameworks_Cointime_AgeRange:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.coindays_created: SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated = SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated(client)
         self.coindays_consumed: SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed = SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed(client)
         self.coindays_stored: SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored = SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored(client)
         self.activity: SeriesTree_Frameworks_Cointime_AgeRange_Activity = SeriesTree_Frameworks_Cointime_AgeRange_Activity(client)
         self.supply: SeriesTree_Frameworks_Cointime_AgeRange_Supply = SeriesTree_Frameworks_Cointime_AgeRange_Supply(client)
+        self.coindays_created: SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated = SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated(client)
 
 class SeriesTree_Frameworks_Cointime_Awake_Supply:
     """Series tree node."""
@@ -15169,7 +15162,7 @@ class BrkClient(BrkClientBase):
         Endpoint: `GET /api/series`"""
         return self.get_json('/api/series')
 
-    def get_series_count(self) -> List[SeriesCount]:
+    def get_series_count(self) -> DetailedSeriesCount:
         """Series count.
 
         Returns the number of series available per index type.

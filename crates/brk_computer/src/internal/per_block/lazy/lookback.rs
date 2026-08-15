@@ -8,6 +8,8 @@ use vecdb::{
     VecValue, Version, short_type_name,
 };
 
+use super::SparseRead;
+
 /// Lazily combines values a fixed number of positions apart from one source.
 ///
 /// Current and previous ranges are read separately, so a large lookback does
@@ -179,11 +181,35 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let indices = &indices[..indices.partition_point(|&index| index < self.len())];
+        let source = SparseRead::new(
+            &*self.source,
+            indices.iter().flat_map(|&index| {
+                [Some(index), index.checked_sub(self.lookback)]
+                    .into_iter()
+                    .flatten()
+            }),
+        );
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            let current = source.at(index);
+            let previous = index
+                .checked_sub(self.lookback)
+                .map(|previous| source.at(previous));
+            out.push((self.compute)(current, previous));
+        }
     }
 }
 
@@ -199,5 +225,53 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<I, T, _>(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Height, StoredU64, Version};
+    use vecdb::{
+        AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadableCloneableVec, ReadableVec,
+        WritableVec,
+    };
+
+    use super::LazyLookbackVec;
+
+    #[test]
+    fn sorted_reads_batch_current_and_lookback_values() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("brk-lazy-lookback-{}-{suffix}", std::process::id()));
+        let db = Database::open(&path).unwrap();
+        let mut source: EagerVec<PcoVec<Height, StoredU64>> =
+            EagerVec::forced_import(&db, "source", Version::ONE).unwrap();
+
+        for value in [2_u64, 5, 9, 14, 20] {
+            source.push(StoredU64::from(value));
+        }
+        source.write().unwrap();
+
+        let lookback = LazyLookbackVec::new(
+            "lookback",
+            Version::ONE,
+            source.read_only_boxed_clone(),
+            2,
+            |current, previous| current - previous.unwrap_or_default(),
+        );
+
+        assert_eq!(
+            lookback.read_sorted_at(&[0, 2, 2, 4, 5]),
+            [2_u64, 7, 7, 11].map(StoredU64::from)
+        );
+        assert_eq!(lookback.read_sorted_at(&[4]), [11_u64].map(StoredU64::from));
+
+        drop(lookback);
+        drop(source);
+        drop(db);
+        std::fs::remove_dir_all(path).unwrap();
     }
 }

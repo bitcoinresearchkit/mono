@@ -10,6 +10,8 @@ use vecdb::{
     short_type_name,
 };
 
+use super::SparseRead;
+
 /// Rolling transform derived from one cumulative source and one cached
 /// cumulative operand.
 ///
@@ -315,11 +317,49 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let indices = &indices[..indices.partition_point(|&index| index < self.len())];
+        if indices.is_empty() {
+            return;
+        }
+
+        let cached = self.cached.snapshot();
+        let window_starts = self.window_starts.snapshot();
+        let source = SparseRead::new(
+            &*self.source,
+            indices.iter().flat_map(|&index| {
+                [Some(index), Self::previous_index(window_starts[index])]
+                    .into_iter()
+                    .flatten()
+            }),
+        );
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            let previous = Self::previous_index(window_starts[index]);
+            out.push(
+                self.compute(
+                    index,
+                    previous,
+                    source.at(index),
+                    previous.map(|index| source.at(index)).unwrap_or_default(),
+                    cached[index].clone(),
+                    previous
+                        .map(|index| cached[index].clone())
+                        .unwrap_or_default(),
+                ),
+            );
+        }
     }
 }
 
@@ -413,6 +453,19 @@ mod tests {
             ratio.collect_range(Height::new(3), Height::new(4)),
             [PartsPerMillion32::from(70.0 / 90.0)],
         );
+        assert_eq!(
+            ratio.read_sorted_at(&[0, 2, 2, 3, 4]),
+            [
+                PartsPerMillion32::from(0.5),
+                PartsPerMillion32::from(50.0 / 70.0),
+                PartsPerMillion32::from(50.0 / 70.0),
+                PartsPerMillion32::from(70.0 / 90.0),
+            ],
+        );
+        assert_eq!(
+            ratio.read_sorted_at(&[3]),
+            [PartsPerMillion32::from(70.0 / 90.0)],
+        );
 
         let transformed = LazyRollingRatioVec::<
             Sats,
@@ -432,6 +485,15 @@ mod tests {
             vec![
                 PartsPerMillion32::from(0.25),
                 PartsPerMillion32::from(0.3),
+                PartsPerMillion32::from(25.0 / 70.0),
+                PartsPerMillion32::from(35.0 / 90.0),
+            ],
+        );
+        assert_eq!(
+            transformed.read_sorted_at(&[0, 2, 2, 3, 4]),
+            [
+                PartsPerMillion32::from(0.25),
+                PartsPerMillion32::from(25.0 / 70.0),
                 PartsPerMillion32::from(25.0 / 70.0),
                 PartsPerMillion32::from(35.0 / 90.0),
             ],

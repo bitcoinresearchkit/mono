@@ -15,8 +15,8 @@ use brk_error::Result as BrkResult;
 use brk_query::{Query as BrkQuery, ResolvedQuery};
 use brk_traversable::TreeNode;
 use brk_types::{
-    DataRangeFormat, Format, IndexInfo, Output, PaginatedSeries, Pagination, SearchQuery,
-    SeriesCount, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesOutput, SeriesSelection,
+    DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, Output, PaginatedSeries, Pagination,
+    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesOutput, SeriesSelection,
     Version,
 };
 
@@ -87,6 +87,18 @@ async fn data_handler(
     .await
 }
 
+async fn data_bulk_handler(
+    uri: Uri,
+    headers: HeaderMap,
+    Query(params): Query<SeriesSelection>,
+    State(state): State<AppState>,
+) -> Result<Response> {
+    serve(state, uri, headers, params, |q, r| {
+        output_to_bytes(q.format_bulk(r)?)
+    })
+    .await
+}
+
 async fn data_raw_handler(
     uri: Uri,
     headers: HeaderMap,
@@ -139,7 +151,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .series_tag()
                     .summary("Series count")
                     .description("Returns the number of series available per index type.")
-                    .json_response::<Vec<SeriesCount>>()
+                    .json_response::<DetailedSeriesCount>()
                     .not_modified(),
             ),
         )
@@ -376,7 +388,9 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
             "/api/series/bulk",
             get_with(
                 |uri, headers, query, state| async move {
-                    data_handler(uri, headers, query, state).await.into_response()
+                    data_bulk_handler(uri, headers, query, state)
+                        .await
+                        .into_response()
                 },
                 |op| op
                     .id("get_series_bulk")

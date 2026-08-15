@@ -257,6 +257,10 @@ mod tests {
             block.collect_range_at(1, 3),
             [2_u64, 3].map(StoredU64::from)
         );
+        assert_eq!(
+            block.read_sorted_at(&[0, 2, 2, 3]),
+            [1_u64, 3, 3].map(StoredU64::from)
+        );
 
         let transformed =
             LazyPreviousDeltaVec::<Height, StoredU64, StoredU32, StoredU64ToStoredU32>::transformed(

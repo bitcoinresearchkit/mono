@@ -6,6 +6,7 @@ use vecdb::{
     ReadableVec, TypedVec, VecIndex, VecValue, Version, short_type_name,
 };
 
+use super::SparseRead;
 use crate::internal::CachedBlockCountReader;
 
 pub struct LazyRollingRatioWithCachedBlockCount<T, F>
@@ -233,11 +234,51 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let indices = &indices[..indices.partition_point(|&index| index < self.len())];
+        if indices.is_empty() {
+            return;
+        }
+
+        let window_starts = self.window_starts.snapshot();
+        let numerator = SparseRead::new(
+            &*self.numerator,
+            indices.iter().flat_map(|&index| {
+                [Some(index), Self::previous_index(window_starts[index])]
+                    .into_iter()
+                    .flatten()
+            }),
+        );
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            let start = window_starts[index];
+            let previous = Self::previous_index(start);
+            let Some(denominator) = self.denominator.rolling_sum_at(start.to_usize(), index) else {
+                continue;
+            };
+            out.push(F::apply(
+                numerator
+                    .at(index)
+                    .checked_sub(
+                        previous
+                            .map(|index| numerator.at(index))
+                            .unwrap_or_default(),
+                    )
+                    .unwrap_or_default(),
+                denominator,
+            ));
+        }
     }
 }
 
@@ -306,8 +347,20 @@ mod tests {
             [0.5, 0.6, 2.0 / 3.0, 5.0 / 7.0].map(PartsPerMillion32::from)
         );
         assert_eq!(
+            cumulative.read_sorted_at(&[0, 2, 2, 4]),
+            [0.5, 2.0 / 3.0, 2.0 / 3.0].map(PartsPerMillion32::from)
+        );
+        assert_eq!(
             rolling.collect_range_at(0, 4),
             [0.5, 0.6, 5.0 / 7.0, 7.0 / 9.0].map(PartsPerMillion32::from)
+        );
+        assert_eq!(
+            rolling.read_sorted_at(&[0, 2, 2, 3, 4]),
+            [0.5, 5.0 / 7.0, 5.0 / 7.0, 7.0 / 9.0].map(PartsPerMillion32::from)
+        );
+        assert_eq!(
+            rolling.read_sorted_at(&[3]),
+            [7.0 / 9.0].map(PartsPerMillion32::from)
         );
 
         drop(rolling);

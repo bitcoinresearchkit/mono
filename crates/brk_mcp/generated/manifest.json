@@ -289,6 +289,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -296,6 +299,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -414,13 +433,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -483,14 +500,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -499,7 +529,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -636,6 +672,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -643,6 +682,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -761,13 +816,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -830,14 +883,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -846,7 +912,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -1090,6 +1162,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -1097,6 +1172,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -1215,13 +1306,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -1284,14 +1373,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -1300,7 +1402,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -1423,6 +1531,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -1430,6 +1541,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -1548,13 +1675,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -1617,14 +1742,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -1633,7 +1771,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -2968,6 +3112,9 @@
           "$ref": "#/$defs/BlockTemplate",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -3063,6 +3210,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -3181,13 +3344,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -3250,14 +3411,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -3266,7 +3440,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -3378,6 +3558,9 @@
           "$ref": "#/$defs/BlockTemplateDiff",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -3439,6 +3622,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint64"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -3557,13 +3756,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -3626,14 +3823,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -3642,7 +3852,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -3935,6 +4151,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -3942,6 +4161,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -4060,13 +4295,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -4129,14 +4362,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -4145,7 +4391,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -4282,6 +4534,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -4289,6 +4544,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -4407,13 +4678,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -4476,14 +4745,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -4492,7 +4774,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -7086,47 +7374,13 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
-              "required": [
-                "timestamp",
-                "height",
-                "difficulty",
-                "change_percent"
-              ],
-              "type": "object",
-              "properties": {
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "difficulty": {
-                  "format": "double",
-                  "type": "number"
-                },
-                "change_percent": {
-                  "format": "double",
-                  "type": "number"
-                }
-              }
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
+              "maxItems": 4,
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "minItems": 4
             }
           }
         },
@@ -7187,47 +7441,13 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
-              "required": [
-                "timestamp",
-                "height",
-                "difficulty",
-                "change_percent"
-              ],
-              "type": "object",
-              "properties": {
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "difficulty": {
-                  "format": "double",
-                  "type": "number"
-                },
-                "change_percent": {
-                  "format": "double",
-                  "type": "number"
-                }
-              }
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
+              "maxItems": 4,
+              "type": "array",
+              "items": {
+                "type": "number",
+                "format": "double"
+              },
+              "minItems": 4
             }
           }
         },
@@ -8136,10 +8356,16 @@
                   ]
                 },
                 "fee_histogram": {
-                  "additionalProperties": {
-                    "$ref": "#/$defs/VSize"
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number",
+                      "format": "double"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
                   },
-                  "type": "object"
+                  "type": "array"
                 }
               }
             },
@@ -8468,6 +8694,8 @@
             "format": "uint32"
           },
           "type": "array",
+          "maxItems": 2400,
+          "minItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -8506,6 +8734,8 @@
             "format": "uint32"
           },
           "type": "array",
+          "maxItems": 2400,
+          "minItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -8551,6 +8781,8 @@
             "format": "uint16"
           },
           "type": "array",
+          "maxItems": 2400,
+          "minItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -8590,6 +8822,8 @@
             "format": "uint16"
           },
           "type": "array",
+          "maxItems": 2400,
+          "minItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -12147,30 +12381,15 @@
                   ]
                 },
                 "totalReward": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
+                  "type": "string"
                 },
                 "totalFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
+                  "type": "string"
                 },
                 "totalTx": {
-                  "minimum": 0,
-                  "type": "integer",
-                  "format": "uint64"
+                  "type": "string"
                 }
               }
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint64"
             }
           }
         },
@@ -12232,12 +12451,6 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Date": {
-              "description": "Date in YYYYMMDD format stored as u32",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
             "Format": {
               "description": "Output format for API responses",
               "type": "string",
@@ -12300,17 +12513,30 @@
               ]
             },
             "RangeIndex": {
-              "description": "A range boundary: integer index, date, or timestamp.",
+              "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
               "anyOf": [
                 {
                   "type": "integer",
-                  "format": "int64"
+                  "format": "int64",
+                  "examples": [
+                    0,
+                    -366
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Date"
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "examples": [
+                    "2025-08-15"
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Timestamp"
+                  "type": "string",
+                  "format": "date-time",
+                  "examples": [
+                    "2025-08-15T00:00:00Z"
+                  ]
                 }
               ]
             },
@@ -12321,19 +12547,6 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
-            },
-            "Timestamp": {
-              "description": "UNIX timestamp in seconds",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0,
-              "examples": [
-                1231006505,
-                1672531200,
-                1713571200,
-                1743631892,
-                1759000868
               ]
             }
           }
@@ -12520,12 +12733,6 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Date": {
-              "description": "Date in YYYYMMDD format stored as u32",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
             "Format": {
               "description": "Output format for API responses",
               "type": "string",
@@ -12588,17 +12795,30 @@
               ]
             },
             "RangeIndex": {
-              "description": "A range boundary: integer index, date, or timestamp.",
+              "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
               "anyOf": [
                 {
                   "type": "integer",
-                  "format": "int64"
+                  "format": "int64",
+                  "examples": [
+                    0,
+                    -366
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Date"
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "examples": [
+                    "2025-08-15"
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Timestamp"
+                  "type": "string",
+                  "format": "date-time",
+                  "examples": [
+                    "2025-08-15T00:00:00Z"
+                  ]
                 }
               ]
             },
@@ -12610,19 +12830,6 @@
                 "price_close",
                 "price_close,market_cap",
                 "realized_price,market_cap,mvrv"
-              ]
-            },
-            "Timestamp": {
-              "description": "UNIX timestamp in seconds",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0,
-              "examples": [
-                1231006505,
-                1672531200,
-                1713571200,
-                1743631892,
-                1759000868
               ]
             }
           }
@@ -12784,12 +12991,47 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
-          "items": {
-            "$ref": "#/$defs/SeriesCount"
-          },
-          "type": "array",
+          "$ref": "#/$defs/DetailedSeriesCount",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "DetailedSeriesCount": {
+              "required": [
+                "distinct",
+                "total",
+                "lazy",
+                "stored",
+                "by_db"
+              ],
+              "type": "object",
+              "properties": {
+                "distinct": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint"
+                },
+                "total": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint"
+                },
+                "lazy": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint"
+                },
+                "stored": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint"
+                },
+                "by_db": {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/SeriesCount"
+                  },
+                  "type": "object"
+                }
+              }
+            },
             "SeriesCount": {
               "required": [
                 "distinct",
@@ -12876,12 +13118,6 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Date": {
-              "description": "Date in YYYYMMDD format stored as u32",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0
-            },
             "Format": {
               "description": "Output format for API responses",
               "type": "string",
@@ -12944,17 +13180,30 @@
               ]
             },
             "RangeIndex": {
-              "description": "A range boundary: integer index, date, or timestamp.",
+              "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
               "anyOf": [
                 {
                   "type": "integer",
-                  "format": "int64"
+                  "format": "int64",
+                  "examples": [
+                    0,
+                    -366
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Date"
+                  "type": "string",
+                  "format": "date",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                  "examples": [
+                    "2025-08-15"
+                  ]
                 },
                 {
-                  "$ref": "#/$defs/Timestamp"
+                  "type": "string",
+                  "format": "date-time",
+                  "examples": [
+                    "2025-08-15T00:00:00Z"
+                  ]
                 }
               ]
             },
@@ -12965,19 +13214,6 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
-            },
-            "Timestamp": {
-              "description": "UNIX timestamp in seconds",
-              "type": "integer",
-              "format": "uint32",
-              "minimum": 0,
-              "examples": [
-                1231006505,
-                1672531200,
-                1713571200,
-                1743631892,
-                1759000868
               ]
             }
           }
@@ -13755,6 +13991,9 @@
           "$ref": "#/$defs/Transaction",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Addr": {
+              "type": "string"
+            },
             "BlockHash": {
               "type": "string"
             },
@@ -13762,6 +14001,22 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "OutputTypeNormalized": {
+              "enum": [
+                "p2pk",
+                "p2pkh",
+                "multisig",
+                "p2sh",
+                "op_return",
+                "v0_p2wpkh",
+                "v0_p2wsh",
+                "v1_p2tr",
+                "anchor",
+                "empty",
+                "unknown"
+              ],
+              "type": "string"
             },
             "RawLockTime": {
               "minimum": 0,
@@ -13880,13 +14135,11 @@
               "required": [
                 "txid",
                 "vout",
+                "prevout",
                 "scriptsig",
                 "scriptsig_asm",
-                "witness",
                 "is_coinbase",
-                "sequence",
-                "inner_redeemscript_asm",
-                "inner_witnessscript_asm"
+                "sequence"
               ],
               "type": "object",
               "properties": {
@@ -13949,14 +14202,27 @@
               "format": "uint32"
             },
             "TxOut": {
-              "required": [
-                "scriptpubkey",
-                "value"
-              ],
               "type": "object",
               "properties": {
                 "scriptpubkey": {
                   "type": "string"
+                },
+                "scriptpubkey_asm": {
+                  "type": "string"
+                },
+                "scriptpubkey_type": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/OutputTypeNormalized"
+                    }
+                  ]
+                },
+                "scriptpubkey_address": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Addr"
+                    }
+                  ]
                 },
                 "value": {
                   "allOf": [
@@ -13965,7 +14231,13 @@
                     }
                   ]
                 }
-              }
+              },
+              "required": [
+                "scriptpubkey",
+                "scriptpubkey_asm",
+                "scriptpubkey_type",
+                "value"
+              ]
             },
             "TxStatus": {
               "required": [
@@ -15088,9 +15360,9 @@
               "type": "string"
             },
             "Date": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+              "format": "date"
             },
             "Dollars": {
               "format": "double",
@@ -15375,9 +15647,9 @@
               "type": "string"
             },
             "Date": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+              "format": "date"
             },
             "Dollars": {
               "format": "double",
@@ -15800,9 +16072,9 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Date": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint32"
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string",
+              "format": "date"
             }
           }
         },

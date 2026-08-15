@@ -1,17 +1,46 @@
 use std::fmt;
 
-use schemars::JsonSchema;
+use schemars::{JsonSchema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer};
 
 use crate::{Date, Timestamp};
 
 /// A range boundary: integer index, date, or timestamp.
-#[derive(Debug, Clone, Copy, JsonSchema)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Copy)]
 pub enum RangeIndex {
     Int(i64),
     Date(Date),
     Timestamp(Timestamp),
+}
+
+impl JsonSchema for RangeIndex {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "RangeIndex".into()
+    }
+
+    fn json_schema(_: &mut SchemaGenerator) -> schemars::Schema {
+        json_schema!({
+            "description": "A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.",
+            "anyOf": [
+                {
+                    "type": "integer",
+                    "format": "int64",
+                    "examples": [0, -366]
+                },
+                {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "examples": ["2025-08-15"]
+                },
+                {
+                    "type": "string",
+                    "format": "date-time",
+                    "examples": ["2025-08-15T00:00:00Z"]
+                }
+            ]
+        })
+    }
 }
 
 impl From<i64> for RangeIndex {
@@ -82,4 +111,24 @@ fn parse_date(s: &str) -> Option<Date> {
     let month = s[5..7].parse().ok()?;
     let day = s[8..10].parse().ok()?;
     Some(Date::new(year, month, day))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RangeIndex;
+
+    #[test]
+    fn schema_matches_accepted_wire_forms() {
+        let schema = serde_json::to_value(schemars::schema_for!(RangeIndex))
+            .expect("RangeIndex schema should serialize");
+        let variants = schema["anyOf"]
+            .as_array()
+            .expect("RangeIndex schema should contain variants");
+
+        assert_eq!(variants[0]["type"], "integer");
+        assert_eq!(variants[1]["type"], "string");
+        assert_eq!(variants[1]["format"], "date");
+        assert_eq!(variants[2]["type"], "string");
+        assert_eq!(variants[2]["format"], "date-time");
+    }
 }

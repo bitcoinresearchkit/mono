@@ -67,6 +67,12 @@ macro_rules! column_ids {
 
 column_ids!(TestColumn, 3, Version::ONE, [First, Second, Third]);
 column_ids!(ChangedTestColumn, 3, Version::TWO, [First, Second, Third]);
+column_ids!(
+    RenamedTestColumn,
+    3,
+    Version::ONE,
+    [RenamedFirst, Second, Third]
+);
 column_ids!(TwoColumn, 2, Version::TWO, [First, Second]);
 column_ids!(
     FiveColumn,
@@ -491,6 +497,24 @@ fn column_schema_version_is_part_of_storage_version() -> Result<()> {
 
     assert!(Changed::import(&db, "column_schema", Version::ONE).is_err());
     let vec = Changed::forced_import(&db, "column_schema", Version::ONE)?;
+    assert!(vec.is_empty());
+    Ok(())
+}
+
+#[test]
+fn column_identity_is_part_of_storage_version() -> Result<()> {
+    type Original = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+    type Renamed = ColumnarVec<BytesVec<usize, u64>, RenamedTestColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = Original::forced_import(&db, "column_identity", Version::ONE)?;
+    vec.push(row(0));
+    vec.write()?;
+    drop(vec);
+
+    assert!(Renamed::import(&db, "column_identity", Version::ONE).is_err());
+    let vec = Renamed::forced_import(&db, "column_identity", Version::ONE)?;
     assert!(vec.is_empty());
     Ok(())
 }

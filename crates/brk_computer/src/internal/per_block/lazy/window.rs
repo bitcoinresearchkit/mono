@@ -8,6 +8,8 @@ use vecdb::{
     VecIndex, VecValue, Version, short_type_name,
 };
 
+use super::SparseRead;
+
 /// Lazily combines the current and window-start values of one metric source.
 ///
 /// `window_starts` is index metadata, not a second metric source. Reads are
@@ -217,11 +219,46 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        match indices {
+            [] => return,
+            &[index] => {
+                if let Some(value) = self.collect_one_at(index) {
+                    out.push(value);
+                }
+                return;
+            }
+            _ => {}
+        }
+
+        let window_starts = self.window_starts.snapshot();
+        let len = self.len().min(window_starts.len());
+        let indices = &indices[..indices.partition_point(|&index| index < len)];
+        if indices.is_empty() {
+            return;
+        }
+
+        let source = SparseRead::new(
+            &*self.source,
+            indices.iter().flat_map(|&index| {
+                [Some(index), self.ago_index(window_starts[index].to_usize())]
+                    .into_iter()
+                    .flatten()
+            }),
+        );
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            let start = window_starts[index].to_usize();
+            let previous = self
+                .ago_index(start)
+                .map(|index| source.at(index))
+                .unwrap_or_default();
+            out.push((self.compute)(
+                source.at(index),
+                previous,
+                self.count(index, start),
+            ));
+        }
     }
 }
 
@@ -237,5 +274,89 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<I, T, _>(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Height, StoredU64, Version};
+    use vecdb::{
+        AnyStoredVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec, ReadableCloneableVec,
+        ReadableVec, WritableVec,
+    };
+
+    use super::LazyWindowVec;
+
+    #[test]
+    fn sorted_reads_batch_inclusive_and_exclusive_windows() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("brk-lazy-window-{}-{suffix}", std::process::id()));
+        let db = Database::open(&path).unwrap();
+        let mut source: EagerVec<PcoVec<Height, StoredU64>> =
+            EagerVec::forced_import(&db, "source", Version::ONE).unwrap();
+        let mut starts: EagerVec<PcoVec<Height, Height>> =
+            EagerVec::forced_import(&db, "starts", Version::ONE).unwrap();
+
+        for value in [10_u64, 30, 60, 100] {
+            source.push(StoredU64::from(value));
+        }
+        for value in [0, 0, 1, 2] {
+            starts.push(Height::new(value));
+        }
+        source.write().unwrap();
+        starts.write().unwrap();
+
+        let starts = CachedVec::wrap(starts);
+        let compute = |current: StoredU64, previous: StoredU64, count: usize| {
+            StoredU64::from((*current - *previous) + count as u64 * 1_000)
+        };
+        let exclusive = LazyWindowVec::new(
+            "exclusive",
+            Version::ONE,
+            source.read_only_boxed_clone(),
+            starts.read_only_cached_boxed_clone(),
+            false,
+            compute,
+        );
+        let inclusive = LazyWindowVec::new(
+            "inclusive",
+            Version::ONE,
+            source.read_only_boxed_clone(),
+            starts.read_only_cached_boxed_clone(),
+            true,
+            compute,
+        );
+
+        assert_eq!(
+            exclusive.collect_range_at(0, 4),
+            [0_u64, 1_020, 1_030, 1_040].map(StoredU64::from),
+        );
+        assert_eq!(
+            exclusive.read_sorted_at(&[0, 2, 2, 3, 4]),
+            [0_u64, 1_030, 1_030, 1_040].map(StoredU64::from),
+        );
+        assert_eq!(
+            exclusive.read_sorted_at(&[3]),
+            [1_040_u64].map(StoredU64::from),
+        );
+        assert_eq!(
+            inclusive.collect_range_at(0, 4),
+            [1_010_u64, 2_030, 2_050, 2_070].map(StoredU64::from),
+        );
+        assert_eq!(
+            inclusive.read_sorted_at(&[0, 2, 2, 3, 4]),
+            [1_010_u64, 2_050, 2_050, 2_070].map(StoredU64::from),
+        );
+
+        drop(inclusive);
+        drop(exclusive);
+        drop(starts);
+        drop(source);
+        drop(db);
+        std::fs::remove_dir_all(path).unwrap();
     }
 }

@@ -8,6 +8,11 @@ The official public endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/). It is stateless, read-only, and
 requires no authentication.
 
+Each deployment also serves instance-specific pages at `/privacy`, `/terms`,
+and `/support`, plus its production icon at `/logo.png`. The landing page and
+all three pages are rendered from the same embedded HTML file. The icon is
+embedded in the server binary and advertised in MCP discovery metadata.
+
 ## Caching model
 
 `brk_mcp` does not cache API responses or retain MCP sessions. Point it at the
@@ -27,28 +32,45 @@ metadata.
 From the workspace:
 
 ```sh
-cargo run --bin brk_mcp -- bitview.space
+cargo run --bin brk_mcp -- \
+  --api https://bitview.space \
+  --url https://mcp.bitview.space/ \
+  --name Bitview
 ```
 
 Or run an installed binary:
 
 ```sh
-brk_mcp bitview.space
+brk_mcp \
+  --api https://api.example.com \
+  --url https://mcp.example.com/ \
+  --name "Example Node"
 ```
 
-A bare host tries HTTPS first and retries over HTTP only if the HTTPS request
-fails at the transport layer. An explicit origin uses only that origin:
+All three options are required:
+
+- `--api` is the upstream BRK REST origin. A bare host tries HTTPS first and
+  retries over HTTP only if HTTPS fails at the transport layer.
+- `--url` is this server's public MCP URL. It must be an absolute HTTP(S)
+  origin.
+- `--name` is the human-readable instance name shown on the landing page and
+  in MCP discovery metadata.
+
+For local development:
 
 ```sh
-brk_mcp http://127.0.0.1:3110
+brk_mcp \
+  --api http://127.0.0.1:3110 \
+  --url http://127.0.0.1:3111/ \
+  --name "Local BRK"
 ```
 
 The Streamable HTTP endpoint is `http://127.0.0.1:3111/` by default. If that
 port is unavailable, the server tries each port through `3211`. The server
 supports MCP protocol version `2026-07-28`.
 
-The REST URL or host is the only configuration. It must be an HTTP(S) origin
-without a path, query, or credentials.
+Both URLs must be origins without a path, query, or credentials. The public URL
+is normalized with a trailing slash.
 
 ## Generated catalog
 

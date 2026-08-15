@@ -484,9 +484,9 @@ ancestors and no descendants (matches mempool.space).
  * @property {Format=} format - Format of the output
  */
 /**
- * Date in YYYYMMDD format stored as u32
+ * Calendar date in YYYY-MM-DD format.
  *
- * @typedef {number} Date
+ * @typedef {string} Date
  */
 /** @typedef {number} Day1 */
 /** @typedef {number} Day3 */
@@ -521,11 +521,7 @@ ancestors and no descendants (matches mempool.space).
  * A single difficulty adjustment entry.
  * Serializes as array: [timestamp, height, difficulty, change_percent]
  *
- * @typedef {Object} DifficultyAdjustmentEntry
- * @property {Timestamp} timestamp - Unix timestamp of the adjustment
- * @property {Height} height - Block height of the adjustment
- * @property {number} difficulty - Difficulty value
- * @property {number} changePercent - Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
+ * @typedef {number[]} DifficultyAdjustmentEntry
  */
 /**
  * A single difficulty data point in the hashrate summary.
@@ -755,7 +751,7 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} count - Number of transactions in the mempool
  * @property {VSize} vsize - Total virtual size of all transactions in the mempool (vbytes)
  * @property {Sats} totalFee - Total fees of all transactions in the mempool (satoshis)
- * @property {{ [key: string]: VSize }} feeHistogram - Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
+ * @property {number[][]} feeHistogram - Fee histogram: `[[fee_rate, vsize], ...]` sorted by descending fee rate
  */
 /**
  * Simplified mempool transaction for the `/api/mempool/recent` endpoint.
@@ -837,6 +833,11 @@ ancestors and no descendants (matches mempool.space).
  * Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
  *
  * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2ms"|"p2sh"|"opreturn"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a"|"empty"|"unknown")} OutputType
+ */
+/**
+ * Output type names used by Esplora and mempool.space.
+ *
+ * @typedef {("p2pk"|"p2pkh"|"multisig"|"p2sh"|"op_return"|"v0_p2wpkh"|"v0_p2wsh"|"v1_p2tr"|"anchor"|"empty"|"unknown")} OutputTypeNormalized
  */
 /** @typedef {TypeIndex} P2AAddrIndex */
 /** @typedef {U8x2} P2ABytes */
@@ -1065,9 +1066,9 @@ ancestors and no descendants (matches mempool.space).
  * @property {Sats} _90pctTo100pctInLoss
  */
 /**
- * A range boundary: integer index, date, or timestamp.
+ * A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
  *
- * @typedef {(number|Date|Timestamp)} RangeIndex
+ * @typedef {(number|string|string)} RangeIndex
  */
 /**
  * Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
@@ -1130,9 +1131,9 @@ on serialization otherwise.
  * @typedef {Object} RewardStats
  * @property {Height} startBlock - First block in the range
  * @property {Height} endBlock - Last block in the range
- * @property {Sats} totalReward - Total coinbase rewards (subsidy + fees) in sats
- * @property {Sats} totalFee - Total transaction fees in sats
- * @property {number} totalTx - Total number of transactions
+ * @property {string} totalReward - Total coinbase rewards (subsidy + fees) in sats
+ * @property {string} totalFee - Total transaction fees in sats
+ * @property {string} totalTx - Total number of transactions
  */
 /**
  * Amount in satoshis (1 BTC = 100,000,000 sats)
@@ -1337,14 +1338,14 @@ on serialization otherwise.
  * @typedef {Object} TxIn
  * @property {Txid} txid - Transaction ID of the output being spent
  * @property {Vout} vout - Output index being spent (u16: coinbase is 65535, mempool.space uses u32: 4294967295)
- * @property {(TxOut|null)=} prevout - Information about the previous output being spent
+ * @property {(TxOut|null)} prevout - Information about the previous output being spent
  * @property {string} scriptsig - Signature script (hex, for non-SegWit inputs)
  * @property {string} scriptsigAsm - Signature script in assembly format
- * @property {Witness} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+ * @property {Witness=} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
  * @property {boolean} isCoinbase - Whether this input is a coinbase (block reward) input
  * @property {number} sequence - Input sequence number
- * @property {string} innerRedeemscriptAsm - Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
- * @property {string} innerWitnessscriptAsm - Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
+ * @property {string=} innerRedeemscriptAsm - Inner redeemscript in assembly (for P2SH-wrapped SegWit: scriptsig + witness both present)
+ * @property {string=} innerWitnessscriptAsm - Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
  */
 /** @typedef {number} TxInIndex */
 /**
@@ -1360,11 +1361,12 @@ on serialization otherwise.
  * @property {TxIndex} index
  */
 /**
- * Transaction output
- *
  * @typedef {Object} TxOut
- * @property {string} scriptpubkey - Script pubkey (locking script)
- * @property {Sats} value - Value of the output in satoshis
+ * @property {string} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
+ * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
+ * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
+ * @property {Addr=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address.
+ * @property {Sats} value - Value of the output in satoshis.
  */
 /** @typedef {number} TxOutIndex */
 /**
@@ -8622,39 +8624,11 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated} coindaysCreated
  * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed} coindaysConsumed
  * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored} coindaysStored
  * @property {SeriesTree_Frameworks_Cointime_AgeRange_Activity} activity
  * @property {SeriesTree_Frameworks_Cointime_AgeRange_Supply} supply
- */
-
-/**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
- * @property {SeriesPattern18<StoredF64>} cumulative
+ * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated} coindaysCreated
  */
 
 /**
@@ -8862,6 +8836,34 @@ function createMatrixPattern(client, acc) {
  * @property {BtcCentsSatsUsdPattern} _12yTo15y
  * @property {BtcCentsSatsUsdPattern} over15y
  * @property {SeriesPattern18<Sats>} height
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
+ * @property {SeriesPattern18<StoredF64>} cumulative
  */
 
 /**
@@ -17760,32 +17762,6 @@ class BrkClient extends BrkClientBase {
             ratio: createSeriesPattern1(this, 'activity_to_vaultedness'),
           },
           ageRange: {
-            coindaysCreated: {
-              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_created'),
-              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_created'),
-              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_created'),
-              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_created'),
-              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_created'),
-              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_created'),
-              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_created'),
-              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_created'),
-              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_created'),
-              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_created'),
-              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_created'),
-              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_created'),
-              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_created'),
-              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_created'),
-              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_created'),
-              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_created'),
-              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_created'),
-              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_created'),
-              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_created'),
-              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_created'),
-              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_created'),
-              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_created'),
-              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_created'),
-              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_created_cumulative'),
-            },
             coindaysConsumed: {
               under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_consumed'),
               _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_consumed'),
@@ -17969,6 +17945,32 @@ class BrkClient extends BrkClientBase {
                 over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_dormant_supply'),
                 height: createSeriesPattern18(this, 'utxos_age_range_dormant_supply_sats'),
               },
+            },
+            coindaysCreated: {
+              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_created'),
+              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_created'),
+              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_created'),
+              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_created'),
+              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_created'),
+              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_created'),
+              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_created'),
+              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_created'),
+              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_created'),
+              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_created'),
+              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_created'),
+              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_created'),
+              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_created'),
+              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_created'),
+              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_created'),
+              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_created'),
+              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_created'),
+              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_created'),
+              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_created'),
+              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_created'),
+              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_created'),
+              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_created'),
+              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_created'),
+              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_created_cumulative'),
             },
           },
           awake: {
@@ -23172,8 +23174,8 @@ class BrkClient extends BrkClientBase {
    * Returns the number of series available per index type.
    *
    * Endpoint: `GET /api/series/count`
-   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesCount[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<SeriesCount[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: DetailedSeriesCount) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<DetailedSeriesCount>}
    */
   async getSeriesCount({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/count`;

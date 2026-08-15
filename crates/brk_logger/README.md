@@ -13,7 +13,8 @@ Drop-in logging initialization that silences noisy dependencies (bitcoin, fjall,
 - **Per-level rate limit**: 100 writes/sec per level so a chatty level can't starve the others; combined file mirrors what the per-level files accept
 - **Auto-cleanup**: `*.txt` files older than 7 days are pruned on startup
 - **Log hooks**: Register callbacks to intercept log messages programmatically
-- **Sensible defaults**: Pre-configured filters silence common verbose libraries
+- **Sensible defaults**: Pre-configured filters silence common verbose libraries,
+  including RMCP transport lifecycle messages
 - **Timestamp formatting**: Uses system timezone via jiff
 
 ## Environment Variables

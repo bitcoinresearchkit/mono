@@ -259,7 +259,22 @@ impl Query {
 
     /// Format a resolved query (expensive).
     /// Call after ETag/cache checks to avoid unnecessary work.
+    #[inline]
     pub fn format(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+        self.format_json_shape::<false>(resolved)
+    }
+
+    /// Format a resolved bulk query, always returning a JSON array.
+    #[inline]
+    pub fn format_bulk(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+        self.format_json_shape::<true>(resolved)
+    }
+
+    #[inline]
+    fn format_json_shape<const ALWAYS_JSON_ARRAY: bool>(
+        &self,
+        resolved: ResolvedQuery,
+    ) -> Result<SeriesOutput> {
         let ResolvedQuery {
             vecs,
             format,
@@ -275,9 +290,16 @@ impl Query {
             Format::CSV => Output::CSV(Self::columns_to_csv(&vecs, start, end)?),
             Format::JSON => {
                 let count = end.saturating_sub(start);
-                Output::Json(Self::write_json_array(&vecs, count, 256, |v, buf| {
-                    SeriesData::serialize(v, index, start, end, buf)
-                })?)
+                let buf = if ALWAYS_JSON_ARRAY {
+                    Self::write_json_array_bulk(&vecs, count, 256, |v, buf| {
+                        SeriesData::serialize(*v, index, start, end, buf)
+                    })?
+                } else {
+                    Self::write_json_array(&vecs, count, 256, |v, buf| {
+                        SeriesData::serialize(*v, index, start, end, buf)
+                    })?
+                };
+                Output::Json(buf)
             }
         };
 
@@ -321,27 +343,49 @@ impl Query {
         })
     }
 
-    fn write_json_array(
-        vecs: &[&dyn AnyExportableVec],
+    #[inline]
+    fn write_json_array<T>(
+        values: &[T],
         cell_count: usize,
         wrapper_overhead: usize,
-        mut write_one: impl FnMut(&dyn AnyExportableVec, &mut Vec<u8>) -> vecdb::Result<()>,
+        mut write_one: impl FnMut(&T, &mut Vec<u8>) -> vecdb::Result<()>,
     ) -> Result<Vec<u8>> {
-        let multi = vecs.len() > 1;
         let mut buf =
-            Vec::with_capacity(cell_count * JSON_CELL_BYTES * vecs.len() + wrapper_overhead);
-        if multi {
+            Vec::with_capacity(cell_count * JSON_CELL_BYTES * values.len() + wrapper_overhead);
+        let wrap = values.len() > 1;
+        if wrap {
             buf.push(b'[');
         }
-        for (i, vec) in vecs.iter().enumerate() {
+        for (i, value) in values.iter().enumerate() {
             if i > 0 {
                 buf.push(b',');
             }
-            write_one(*vec, &mut buf)?;
+            write_one(value, &mut buf)?;
         }
-        if multi {
+        if wrap {
             buf.push(b']');
         }
+        Ok(buf)
+    }
+
+    #[inline]
+    fn write_json_array_bulk<T>(
+        values: &[T],
+        cell_count: usize,
+        wrapper_overhead: usize,
+        mut write_one: impl FnMut(&T, &mut Vec<u8>) -> vecdb::Result<()>,
+    ) -> Result<Vec<u8>> {
+        let mut buf =
+            Vec::with_capacity(cell_count * JSON_CELL_BYTES * values.len() + wrapper_overhead);
+        buf.push(b'[');
+        if let Some((first, rest)) = values.split_first() {
+            write_one(first, &mut buf)?;
+            for value in rest {
+                buf.push(b',');
+                write_one(value, &mut buf)?;
+            }
+        }
+        buf.push(b']');
         Ok(buf)
     }
 
@@ -502,5 +546,42 @@ impl ResolvedQuery {
     pub fn csv_filename(&self) -> String {
         let names: Vec<_> = self.vecs.iter().map(|v| v.name()).collect();
         format!("{}-{}.csv", names.join("_"), self.index)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Query;
+
+    #[test]
+    fn json_shape_is_stable_for_empty_single_and_multiple_values() {
+        let empty: [&[u8]; 0] = [];
+        let single_value = [b"{}".as_slice()];
+        let multiple_values = [b"{}".as_slice(), b"[]".as_slice()];
+        let write = |value: &&[u8], buf: &mut Vec<u8>| {
+            buf.extend_from_slice(value);
+            Ok(())
+        };
+
+        assert_eq!(
+            Query::write_json_array(&single_value, 0, 0, write).unwrap(),
+            b"{}"
+        );
+        assert_eq!(
+            Query::write_json_array(&multiple_values, 0, 0, write).unwrap(),
+            b"[{},[]]"
+        );
+        assert_eq!(
+            Query::write_json_array_bulk(&empty, 0, 0, write).unwrap(),
+            b"[]"
+        );
+        assert_eq!(
+            Query::write_json_array_bulk(&single_value, 0, 0, write).unwrap(),
+            b"[{}]"
+        );
+        assert_eq!(
+            Query::write_json_array_bulk(&multiple_values, 0, 0, write).unwrap(),
+            b"[{},[]]"
+        );
     }
 }

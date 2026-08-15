@@ -4,8 +4,8 @@ use brk_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CheckedSub, Formattable, Ident, ReadableBoxedVec, ReadableVec,
-    TypedVec, UnaryTransform, VecIndex, VecValue, Version, short_type_name,
+    AnyExportableVec, AnyVec, CheckedSub, Cursor, Formattable, Ident, ReadableBoxedVec,
+    ReadableVec, TypedVec, UnaryTransform, VecIndex, VecValue, Version, short_type_name,
 };
 
 /// Lazy `source[index] - source[index - 1]`, with zero before the first value.
@@ -186,11 +186,33 @@ where
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        let len = self.len();
+        let mut source = Cursor::new(&*self.source);
+        let mut cached: Option<(usize, T)> = None;
+
         out.reserve(indices.len());
-        indices
-            .iter()
-            .filter_map(|&index| self.collect_one_at(index))
-            .for_each(|value| out.push(value));
+        for &index in indices {
+            if index >= len {
+                break;
+            }
+            if let Some((cached_index, ref value)) = cached
+                && cached_index == index
+            {
+                out.push(value.clone());
+                continue;
+            }
+
+            let previous = index
+                .checked_sub(1)
+                .and_then(|index| source.get(index))
+                .unwrap_or_default();
+            let Some(current) = source.get(index) else {
+                continue;
+            };
+            let value = F::apply(current.checked_sub(previous).unwrap_or_default());
+            cached = Some((index, value.clone()));
+            out.push(value);
+        }
     }
 }
 

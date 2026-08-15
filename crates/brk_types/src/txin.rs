@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 
 /// Transaction input
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[schemars(transform = txin_wire_schema)]
 pub struct TxIn {
     /// Transaction ID of the output being spent
     #[schemars(example = "0000000000000000000000000000000000000000000000000000000000000000")]
@@ -15,7 +16,6 @@ pub struct TxIn {
     pub vout: Vout,
 
     /// Information about the previous output being spent
-    #[schemars(example = None as Option<TxOut>)]
     pub prevout: Option<TxOut>,
 
     /// Signature script (hex, for non-SegWit inputs)
@@ -44,6 +44,30 @@ pub struct TxIn {
     /// Inner witnessscript in assembly (for P2WSH: last witness item decoded as script)
     #[schemars(rename = "inner_witnessscript_asm", with = "String")]
     pub inner_witness_script_asm: (),
+}
+
+fn txin_wire_schema(schema: &mut schemars::Schema) {
+    let Some(required) = schema
+        .get_mut("required")
+        .and_then(serde_json::Value::as_array_mut)
+    else {
+        return;
+    };
+
+    required.retain(|field| {
+        !matches!(
+            field.as_str(),
+            Some("witness" | "inner_redeemscript_asm" | "inner_witnessscript_asm")
+        )
+    });
+
+    if !required.iter().any(|field| field == "prevout") {
+        let index = required
+            .iter()
+            .position(|field| field == "vout")
+            .map_or(required.len(), |index| index + 1);
+        required.insert(index, serde_json::json!("prevout"));
+    }
 }
 
 /// Reconstruct a canonical `bitcoin::TxIn` from the stored brk shape.
@@ -130,5 +154,38 @@ impl Serialize for TxIn {
         }
 
         state.end()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn schema_marks_only_unconditional_wire_fields_as_required() {
+        let schema = serde_json::to_value(schemars::schema_for!(TxIn)).unwrap();
+        let required = schema["required"].as_array().unwrap();
+        for field in [
+            "txid",
+            "vout",
+            "prevout",
+            "scriptsig",
+            "scriptsig_asm",
+            "is_coinbase",
+            "sequence",
+        ] {
+            assert!(
+                required.iter().any(|value| value == field),
+                "{field} should be required; schema: {schema}"
+            );
+        }
+        for field in [
+            "witness",
+            "inner_redeemscript_asm",
+            "inner_witnessscript_asm",
+        ] {
+            assert!(!required.iter().any(|value| value == field));
+            assert!(schema["properties"].get(field).is_some());
+        }
     }
 }

@@ -1,4 +1,6 @@
+mod arguments;
 mod config;
+mod logo;
 mod manifest;
 mod page;
 mod server;
@@ -8,7 +10,7 @@ mod upstream;
 
 use std::{env, error::Error, io, process};
 
-use config::api_bases;
+use arguments::Arguments;
 use manifest::Catalog;
 use tokio::net::TcpListener;
 use tracing::info;
@@ -20,18 +22,12 @@ const BIND_START: std::net::SocketAddr =
 async fn main() -> Result<(), Box<dyn Error>> {
     brk_logger::init_with_default_level(None, "info")?;
 
-    let mut arguments = env::args();
-    let _program = arguments.next();
-    let Some(api_base) = arguments.next() else {
-        usage();
-    };
-    if arguments.next().is_some() {
-        usage();
-    }
-    let api_bases = api_bases(&api_base).map_err(io::Error::other)?;
+    let arguments = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
+    let (api_bases, api_url, public_url, display_name) = arguments.into_parts();
     let catalog = Catalog::embedded().map_err(io::Error::other)?;
     let tool_count = catalog.tools().len();
-    let app = server::router(api_bases, catalog);
+    let pages = page::Pages::render(&display_name, &public_url, &api_url);
+    let app = server::router(api_bases, catalog, display_name, public_url, pages);
     let (listener, bind) = bind_available(BIND_START).await?;
 
     info!(%bind, tool_count, "Starting stateless BRK MCP server");
@@ -39,8 +35,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn usage() -> ! {
-    eprintln!("Usage: brk_mcp <REST_API_URL_OR_HOST>");
+fn usage(error: &str) -> ! {
+    eprintln!("Error: {error}");
+    eprintln!(
+        "Usage: brk_mcp --api <REST_API_URL_OR_HOST> --url <PUBLIC_MCP_URL> --name <DISPLAY_NAME>"
+    );
     process::exit(2);
 }
 

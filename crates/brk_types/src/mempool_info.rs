@@ -20,6 +20,7 @@ pub struct MempoolInfo {
         serialize_with = "serialize_fee_histogram",
         deserialize_with = "deserialize_fee_histogram"
     )]
+    #[schemars(with = "Vec<[f64; 2]>")]
     pub fee_histogram: BTreeMap<FeeRate, VSize>,
 }
 
@@ -61,4 +62,25 @@ fn deserialize_fee_histogram<'de, D: Deserializer<'de>>(
 ) -> Result<BTreeMap<FeeRate, VSize>, D::Error> {
     let vec: Vec<(FeeRate, VSize)> = Vec::deserialize(deserializer)?;
     Ok(vec.into_iter().collect())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fee_histogram_schema_matches_its_pair_array_serialization() {
+        let mut info = MempoolInfo::default();
+        info.fee_histogram
+            .insert(FeeRate::from(2.5), VSize::from(100_u64));
+        let value = serde_json::to_value(info).unwrap();
+        assert_eq!(value["fee_histogram"], serde_json::json!([[2.5, 100]]));
+
+        let schema = serde_json::to_value(schemars::schema_for!(MempoolInfo)).unwrap();
+        let histogram = &schema["properties"]["fee_histogram"];
+        assert_eq!(histogram["type"], "array");
+        assert_eq!(histogram["items"]["type"], "array");
+        assert_eq!(histogram["items"]["minItems"], 2);
+        assert_eq!(histogram["items"]["maxItems"], 2);
+    }
 }
