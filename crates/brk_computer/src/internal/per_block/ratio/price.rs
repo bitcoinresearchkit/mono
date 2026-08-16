@@ -10,10 +10,16 @@ use crate::{
 
 #[derive(Traversable)]
 pub struct PriceWithRatioPerBlock<M: StorageMode = Rw> {
+    /// Reported in USD per BTC.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in cents per BTC.
     pub cents: PerBlock<Cents, M>,
+    /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
     pub sats: LazyPerBlock<SatsFract, Dollars>,
+    /// Spot price divided by this price in parts per million; 1,000,000
+    /// represents a ratio of 1.0.
     pub ppm: LazyPerBlock<PartsPerMillion64>,
+    /// Spot price divided by this price as a unitless decimal ratio.
     pub ratio: LazyPerBlock<StoredF32, PartsPerMillion64>,
 }
 

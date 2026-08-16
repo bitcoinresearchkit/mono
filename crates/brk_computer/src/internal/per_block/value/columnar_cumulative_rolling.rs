@@ -21,7 +21,9 @@ where
     #[deref_mut]
     #[traversable(flatten)]
     pub series: S,
+    /// Reported in satoshis.
     pub sats: ColumnarPerBlockCumulativeRolling<StoredU64, C, (), M>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: ColumnarPerBlockCumulativeRolling<StoredU64, C, (), M>,
 }
 

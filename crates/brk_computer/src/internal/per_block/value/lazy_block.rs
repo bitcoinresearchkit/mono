@@ -7,9 +7,13 @@ use crate::internal::{CentsUnsignedToDollars, LazyPreviousDeltaVec, SatsToBitcoi
 /// Per-block amount data derived from stored cumulative sats and cents.
 #[derive(Clone, Traversable)]
 pub struct LazyValueBlock {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: LazyVec<Height, Bitcoin, Height, Sats>,
+    /// Reported in satoshis.
     pub sats: LazyPreviousDeltaVec<Height, Sats>,
+    /// Reported in US dollars.
     pub usd: LazyVec<Height, Dollars, Height, Cents>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyPreviousDeltaVec<Height, Cents>,
 }
 

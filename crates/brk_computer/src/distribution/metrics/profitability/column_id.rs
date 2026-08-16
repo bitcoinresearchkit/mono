@@ -64,25 +64,24 @@ impl TermProfitabilityRangeId {
         }
 
         let selected_term = aggregate.term();
-        let source = source.sum_columns(
-            name,
-            version,
-            TermId::ALL
-                .iter()
-                .copied()
-                .filter(move |&term| selected_term.is_none_or(|selected| selected == term))
-                .flat_map(|term| {
-                    ranges
+        CACHE_BUDGET
+            .wrap(
+                source.sum_columns(
+                    name,
+                    version,
+                    TermId::ALL
                         .iter()
                         .copied()
-                        .map(move |range| Self { term, range })
-                }),
-        );
-        if aggregate == UTXOAggregateId::All {
-            CACHE_BUDGET.wrap(source).read_only_boxed_clone()
-        } else {
-            source.read_only_boxed_clone()
-        }
+                        .filter(move |&term| selected_term.is_none_or(|selected| selected == term))
+                        .flat_map(|term| {
+                            ranges
+                                .iter()
+                                .copied()
+                                .map(move |range| Self { term, range })
+                        }),
+                ),
+            )
+            .read_only_boxed_clone()
     }
 }
 

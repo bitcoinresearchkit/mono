@@ -12,8 +12,11 @@ pub struct LazyColumnPrice<C>
 where
     C: ColumnId,
 {
+    /// Reported in USD per BTC.
     pub usd: LazyDailyMetric<Dollars, Cents>,
+    /// Reported in cents per BTC.
     pub cents: LazyColumnDailyMetric<Cents, C>,
+    /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
     pub sats: LazyDailyMetric<SatsFract, Dollars>,
 }
 

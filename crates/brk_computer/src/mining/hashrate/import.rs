@@ -19,10 +19,11 @@ impl Vecs {
     ) -> Result<Self> {
         let v4 = Version::new(4);
         let v5 = Version::new(5);
+        let v6 = Version::new(6);
 
         let price_ths = PerBlock::forced_import(db, "hash_price_ths", version + v4, indexes)?;
         let price_ths_min =
-            PerBlock::forced_import(db, "hash_price_ths_min", version + v4, indexes)?;
+            PerBlock::forced_import(db, "hash_price_ths_min", version + v6, indexes)?;
         let price_phs = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_price_phs",
             version + v4,
@@ -31,14 +32,14 @@ impl Vecs {
         );
         let price_phs_min = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_price_phs_min",
-            version + v4,
+            version + v6,
             price_ths_min.height.read_only_boxed_clone(),
             &price_ths_min,
         );
 
         let value_ths = PerBlock::forced_import(db, "hash_value_ths", version + v4, indexes)?;
         let value_ths_min =
-            PerBlock::forced_import(db, "hash_value_ths_min", version + v4, indexes)?;
+            PerBlock::forced_import(db, "hash_value_ths_min", version + v6, indexes)?;
         let value_phs = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_value_phs",
             version + v4,
@@ -47,7 +48,7 @@ impl Vecs {
         );
         let value_phs_min = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_value_phs_min",
-            version + v4,
+            version + v6,
             value_ths_min.height.read_only_boxed_clone(),
             &value_ths_min,
         );
@@ -77,7 +78,7 @@ impl Vecs {
                 rebound: PercentPerBlock::forced_import(
                     db,
                     "hash_price_rebound",
-                    version + v5,
+                    version + v6,
                     indexes,
                 )?,
             },
@@ -89,7 +90,7 @@ impl Vecs {
                 rebound: PercentPerBlock::forced_import(
                     db,
                     "hash_value_rebound",
-                    version + v5,
+                    version + v6,
                     indexes,
                 )?,
             },

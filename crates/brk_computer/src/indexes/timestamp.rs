@@ -24,6 +24,9 @@ pub use boundary::BoundaryTimestampVec;
 /// timestamp at each period's first block.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Timestamps<M: StorageMode = Rw> {
+    /// Nondecreasing Unix timestamp in seconds at each block height, computed as
+    /// the maximum of the current raw block-header timestamp and the preceding
+    /// monotonic timestamp.
     pub monotonic: CachedVec<M::Stored<EagerVec<PcoVec<Height, Timestamp>>>>,
     #[deref]
     #[deref_mut]

@@ -7,7 +7,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize, Serializer, de};
 use vecdb::{Bytes, Formattable};
 
-/// Block hash
+/// Double-SHA256 block-header hash, serialized in Bitcoin's conventional
+/// hexadecimal byte order.
 #[derive(Default, Debug, Deref, Clone, Copy, PartialEq, Eq, Hash, Bytes, JsonSchema)]
 #[repr(C)]
 #[schemars(

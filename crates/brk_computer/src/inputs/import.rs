@@ -30,6 +30,7 @@ impl Vecs {
         let by_type = ByTypeVecs::forced_import(&db, version, indexes, cached_starts)?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             value,
             count,

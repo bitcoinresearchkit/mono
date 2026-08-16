@@ -26,7 +26,7 @@ where
         f: F,
     ) -> Result<B, E> {
         let mapping_len = mapping.len();
-        let source_len = source.len();
+        let source_len = source.visible_len();
 
         let indices: Vec<usize> = (from..to.min(mapping_len))
             .map(|i| S1I::max_from(I::from(i), source_len))
@@ -44,7 +44,7 @@ where
         _mapping: &[S2T],
         index: usize,
     ) -> Option<O> {
-        let target = S1I::max_from(I::from(index), source.len());
+        let target = S1I::max_from(I::from(index), source.visible_len());
         source.collect_one_at(target)
     }
 }

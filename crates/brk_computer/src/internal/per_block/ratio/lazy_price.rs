@@ -15,11 +15,12 @@ pub struct LazyPriceWithRatioPerBlock {
     pub usd: LazyPerBlock<Dollars, Cents>,
     /// Reported in cents per BTC.
     pub cents: LazyPerBlock<Cents>,
-    /// Reported in sats per USD: 100,000,000 divided by the price in USD.
+    /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
     pub sats: LazyPerBlock<SatsFract, Dollars>,
-    /// Spot price divided by this price, expressed in parts per million.
+    /// Spot price divided by this price in parts per million; 1,000,000
+    /// represents a ratio of 1.0.
     pub ppm: LazyPerBlock<PartsPerMillion64>,
-    /// Spot price divided by this price.
+    /// Spot price divided by this price as a unitless decimal ratio.
     pub ratio: LazyPerBlock<StoredF32, PartsPerMillion64>,
 }
 

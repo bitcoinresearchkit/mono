@@ -58,6 +58,7 @@ impl Vecs {
         )?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             total,
             by_kind,

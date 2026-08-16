@@ -110,7 +110,7 @@ fn build_gbt(raw: GetBlockTemplate) -> Result<Vec<BlockTemplateTx>> {
 /// and trip `ceil_to(0.001)` downstream.
 fn build_min_fee(raw: GetMempoolInfo) -> FeeRate {
     let sat_per_kvb = (raw.mempool_min_fee * 100_000_000.0).round() as u64;
-    FeeRate::from(sat_per_kvb as f64 / 1000.0)
+    FeeRate::from_milli(sat_per_kvb)
 }
 
 impl Client {

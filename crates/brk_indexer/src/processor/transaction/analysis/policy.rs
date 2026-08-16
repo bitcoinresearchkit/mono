@@ -58,7 +58,7 @@ impl Accumulator {
             OutputType::P2SH => facts
                 .redeem_sigops()
                 .is_some_and(|count| count > MAX_P2SH_SIGOPS),
-            OutputType::P2A => self.height <= LAST_V2_POLICY_HEIGHT,
+            OutputType::P2A => p2a_spend_is_nonstandard(self.height),
             OutputType::P2TR => facts.witness.has_annex,
             OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => true,
             _ => false,
@@ -87,11 +87,11 @@ impl Accumulator {
         sigops: ComputedSigOps,
         flags: &mut TxFeatureFlags,
     ) {
-        self.nonstandard |= if self.height < FIRST_V30_POLICY_HEIGHT {
-            self.op_return_count > 1 || self.op_return_script_bytes > MAX_V29_OP_RETURN_SCRIPT_BYTES
-        } else {
-            self.op_return_script_bytes > MAX_V30_OP_RETURN_SCRIPT_BYTES
-        };
+        self.nonstandard |= op_return_is_nonstandard(
+            self.height,
+            self.op_return_count,
+            self.op_return_script_bytes,
+        );
         self.nonstandard |=
             has_unconditionally_nonstandard_dust(self.height, self.dust_output_count);
         self.nonstandard |= has_nonstandard_header(tx, sigops, self.height);
@@ -116,6 +116,20 @@ fn has_nonstandard_header(tx: &ComputedTx, sigops: ComputedSigOps, height: u32) 
         || u32::from(sigops.total) > MAX_STANDARD_TX_SIGOPS_COST
         || height >= FIRST_V30_POLICY_HEIGHT
             && u32::from(sigops.executed_legacy) > MAX_EXECUTED_LEGACY_SIGOP_COST
+}
+
+#[inline]
+fn p2a_spend_is_nonstandard(height: u32) -> bool {
+    height <= LAST_V2_POLICY_HEIGHT
+}
+
+#[inline]
+fn op_return_is_nonstandard(height: u32, count: usize, script_bytes: usize) -> bool {
+    if height < FIRST_V30_POLICY_HEIGHT {
+        count > 1 || script_bytes > MAX_V29_OP_RETURN_SCRIPT_BYTES
+    } else {
+        script_bytes > MAX_V30_OP_RETURN_SCRIPT_BYTES
+    }
 }
 
 fn has_unconditionally_nonstandard_dust(height: u32, dust_output_count: usize) -> bool {
@@ -218,10 +232,11 @@ mod tests {
     use super::super::input;
     use super::{
         FIRST_V29_POLICY_HEIGHT, FIRST_V30_POLICY_HEIGHT, LAST_V2_POLICY_HEIGHT,
+        MAX_V29_OP_RETURN_SCRIPT_BYTES, MAX_V30_OP_RETURN_SCRIPT_BYTES,
         has_nonstandard_p2wsh_witness, has_nonstandard_taproot_witness, has_nonstandard_version,
         has_nonstandard_witness, has_too_many_bare_multisig_keys,
         has_unconditionally_nonstandard_dust, is_dust, is_standard_unknown_witness,
-        tracks_executed_legacy_sigops,
+        op_return_is_nonstandard, p2a_spend_is_nonstandard, tracks_executed_legacy_sigops,
     };
 
     #[test]
@@ -242,6 +257,41 @@ mod tests {
         assert!(!has_nonstandard_version(2, LAST_V2_POLICY_HEIGHT));
         assert!(has_nonstandard_version(3, LAST_V2_POLICY_HEIGHT));
         assert!(!has_nonstandard_version(3, LAST_V2_POLICY_HEIGHT + 1));
+    }
+
+    #[test]
+    fn p2a_spending_starts_after_the_v2_policy_snapshot() {
+        assert!(p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT));
+        assert!(!p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT + 1));
+    }
+
+    #[test]
+    fn op_return_limits_switch_at_the_v30_policy_snapshot() {
+        assert!(!op_return_is_nonstandard(
+            FIRST_V30_POLICY_HEIGHT - 1,
+            1,
+            MAX_V29_OP_RETURN_SCRIPT_BYTES
+        ));
+        assert!(op_return_is_nonstandard(
+            FIRST_V30_POLICY_HEIGHT - 1,
+            2,
+            MAX_V29_OP_RETURN_SCRIPT_BYTES
+        ));
+        assert!(op_return_is_nonstandard(
+            FIRST_V30_POLICY_HEIGHT - 1,
+            1,
+            MAX_V29_OP_RETURN_SCRIPT_BYTES + 1
+        ));
+        assert!(!op_return_is_nonstandard(
+            FIRST_V30_POLICY_HEIGHT,
+            2,
+            MAX_V30_OP_RETURN_SCRIPT_BYTES
+        ));
+        assert!(op_return_is_nonstandard(
+            FIRST_V30_POLICY_HEIGHT,
+            1,
+            MAX_V30_OP_RETURN_SCRIPT_BYTES + 1
+        ));
     }
 
     #[test]

@@ -1,4 +1,5 @@
 mod compute;
+mod dormancy_vecs;
 mod gini;
 mod import;
 mod vecs;

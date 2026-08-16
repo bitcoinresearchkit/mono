@@ -8,11 +8,34 @@ use crate::parallel_import;
 
 #[derive(Traversable)]
 pub struct InputsVecs<M: StorageMode = Rw> {
+    /// Global zero-based transaction-input index in canonical blockchain order.
+    /// At `height`, this is where the block begins and equals the number of
+    /// inputs in preceding blocks; at `tx_index`, it identifies the
+    /// transaction's first input.
     pub first_txin_index: M::Stored<PcoVec<Height, TxInIndex>>,
+    /// Previous-output reference encoded as the global transaction index and
+    /// zero-based output position within that transaction. Coinbase inputs use
+    /// `u32::MAX` for both components.
     pub outpoint: M::Stored<PcoVec<TxInIndex, OutPoint>>,
+    /// Global zero-based transaction-output index in canonical blockchain order.
+    /// At `txout_index`, this is the identity value; at `txin_index`, it
+    /// identifies the previous output spent by the input, with `u64::MAX`
+    /// representing a coinbase input.
     pub txout_index: M::Stored<PcoVec<TxInIndex, TxOutIndex>>,
+    /// Global zero-based index of a transaction in canonical blockchain order.
+    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
+    /// the transaction containing the input; at type-specific output indexes,
+    /// it identifies the transaction containing that output.
     pub tx_index: M::Stored<PcoVec<TxInIndex, TxIndex>>,
+    /// BRK locking-script classification of an output. At `txout_index`, this
+    /// classifies the indexed output; at `txin_index`, it classifies the
+    /// previous output spent by the input. Coinbase inputs use `unknown`.
     pub output_type: M::Stored<PcoVec<TxInIndex, OutputType>>,
+    /// Zero-based index within the output's BRK type-specific collection. At
+    /// `txout_index`, this identifies the indexed output; at `txin_index`, it
+    /// identifies the previous output spent by the input. Address types index
+    /// distinct addresses, while other types index outputs in canonical order.
+    /// Coinbase inputs use `u32::MAX`.
     pub type_index: M::Stored<PcoVec<TxInIndex, TypeIndex>>,
 }
 

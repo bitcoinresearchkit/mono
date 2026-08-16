@@ -7,7 +7,9 @@ use crate::internal::{FiatType, LazyPerBlock, LazyPreviousDeltaVec};
 /// Per-block fiat data derived from stored cumulative cents.
 #[derive(Clone, Traversable)]
 pub struct LazyFiatBlock<C: FiatType> {
+    /// Reported in US dollars.
     pub usd: LazyVec<Height, Dollars, Height, C>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyPreviousDeltaVec<Height, C>,
 }
 

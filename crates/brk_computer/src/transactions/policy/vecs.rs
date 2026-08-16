@@ -1,17 +1,15 @@
 use brk_traversable::Traversable;
-use brk_types::{StoredBool, StoredU64, TxIndex};
+use brk_types::{StoredBool, TxIndex};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
-use crate::internal::PerBlockCumulativeRolling;
+mod count;
 
-/// Transactions that do not satisfy the standard relay policy at their height.
-#[derive(Traversable)]
-pub struct CountVecs<M: StorageMode = Rw> {
-    pub nonstandard: PerBlockCumulativeRolling<StoredU64, M>,
-}
+pub use count::CountVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub count: CountVecs<M>,
+    /// Whether the indexed transaction is classified as nonstandard under this
+    /// approximation.
     pub is_nonstandard: M::Stored<EagerVec<PcoVec<TxIndex, StoredBool>>>,
 }

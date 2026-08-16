@@ -143,7 +143,7 @@ fn legacy_sigops_for_output(output: &ProcessedOutput, script_pubkey: &Script) ->
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::{ScriptBuf, TxIn};
+    use bitcoin::{ScriptBuf, TxIn, Witness};
     use brk_types::{OutputType, SigOps};
 
     use super::{Accumulator, input};
@@ -188,5 +188,59 @@ mod tests {
         accumulator.scan_input(OutputType::P2TR, SigOps::ZERO, &facts);
 
         assert_eq!(u32::from(accumulator.finish().total), 4);
+    }
+
+    #[test]
+    fn scales_accurately_counted_p2sh_redeem_sigops_by_four() {
+        let input = TxIn {
+            // Push `OP_2 OP_3 OP_CHECKMULTISIG`; accurate counting uses the
+            // preceding OP_3 and therefore counts three sigops.
+            script_sig: ScriptBuf::from_hex("035253ae").unwrap(),
+            ..TxIn::default()
+        };
+        let facts = input::analyze(&input, OutputType::P2SH, &mut TxFeatureFlags::default());
+        let mut accumulator = Accumulator::new(false);
+
+        accumulator.scan_input(OutputType::P2SH, SigOps::ZERO, &facts);
+
+        assert_eq!(u32::from(accumulator.finish().total), 12);
+    }
+
+    #[test]
+    fn counts_segwit_v0_sigops_without_legacy_scaling() {
+        let p2wpkh = TxIn {
+            witness: Witness::from_slice(&[[0_u8; 71].as_slice(), [0_u8; 33].as_slice()]),
+            ..TxIn::default()
+        };
+        let facts = input::analyze(&p2wpkh, OutputType::P2WPKH, &mut TxFeatureFlags::default());
+        let mut accumulator = Accumulator::new(false);
+        accumulator.scan_input(OutputType::P2WPKH, SigOps::ZERO, &facts);
+        assert_eq!(u32::from(accumulator.finish().total), 1);
+
+        let witness_script = [0x52, 0x53, 0xae];
+        let p2wsh = TxIn {
+            witness: Witness::from_slice(&[[0_u8].as_slice(), witness_script.as_slice()]),
+            ..TxIn::default()
+        };
+        let facts = input::analyze(&p2wsh, OutputType::P2WSH, &mut TxFeatureFlags::default());
+        let mut accumulator = Accumulator::new(false);
+        accumulator.scan_input(OutputType::P2WSH, SigOps::ZERO, &facts);
+        assert_eq!(u32::from(accumulator.finish().total), 3);
+    }
+
+    #[test]
+    fn excludes_tapscript_from_bip141_sigop_cost() {
+        let tapscript = [0xac];
+        let control_block = [0xc0; 33];
+        let input = TxIn {
+            witness: Witness::from_slice(&[tapscript.as_slice(), control_block.as_slice()]),
+            ..TxIn::default()
+        };
+        let facts = input::analyze(&input, OutputType::P2TR, &mut TxFeatureFlags::default());
+        let mut accumulator = Accumulator::new(false);
+
+        accumulator.scan_input(OutputType::P2TR, SigOps::ZERO, &facts);
+
+        assert_eq!(u32::from(accumulator.finish().total), 0);
     }
 }

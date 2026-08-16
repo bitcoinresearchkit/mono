@@ -1016,7 +1016,7 @@ where
                 }
                 let extreme = compare(prev.as_ref().unwrap().clone(), v.clone());
 
-                prev.replace(if !exclude_default || extreme != V::T::default() {
+                let next = if !exclude_default || extreme != V::T::default() {
                     extreme.clone()
                 } else {
                     // Keep the non-default value for future comparisons
@@ -1025,8 +1025,9 @@ where
                     } else {
                         prev.as_ref().unwrap().clone()
                     }
-                });
-                (i, extreme)
+                };
+                prev.replace(next.clone());
+                (i, next)
             },
             exit,
         )

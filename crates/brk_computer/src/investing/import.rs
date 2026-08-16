@@ -8,8 +8,11 @@ use vecdb::{
 };
 
 use super::cached_dca_sats::CachedDcaSats;
-use super::vecs::{ClassVecs, DcaStack, LumpSumStack, PeriodVecs};
 use super::{ByDcaCagr, ByDcaClass, ByDcaPeriod, DCA_AMOUNT, Vecs};
+use super::{
+    class_vecs::ClassVecs, dca_stack::DcaStack, lump_sum_stack::LumpSumStack,
+    period_vecs::PeriodVecs,
+};
 use crate::{
     blocks, indexes,
     internal::{
@@ -207,6 +210,7 @@ impl Vecs {
             })?;
 
         Ok(Self {
+            plugin_gate: Default::default(),
             cached_dca_sats,
             sats_per_day,
             period: PeriodVecs {

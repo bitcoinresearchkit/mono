@@ -162,7 +162,8 @@ Matches mempool.space/bitcoin-cli behavior.
  * @property {Dollars} uSD - BTC/USD price at this height
  */
 /**
- * Block hash
+ * Double-SHA256 block-header hash, serialized in Bitcoin's conventional
+ * hexadecimal byte order.
  *
  * @typedef {string} BlockHash
  */
@@ -385,7 +386,11 @@ prior template's transactions or a full transaction body.
  * @typedef {("all"|"sth"|"lth"|"utxos_under_1h_old"|"utxos_1h_to_1d_old"|"utxos_1d_to_1w_old"|"utxos_1w_to_1m_old"|"utxos_1m_to_2m_old"|"utxos_2m_to_3m_old"|"utxos_3m_to_4m_old"|"utxos_4m_to_5m_old"|"utxos_5m_to_6m_old"|"utxos_6m_to_9m_old"|"utxos_9m_to_1y_old"|"utxos_1y_to_18m_old"|"utxos_18m_to_2y_old"|"utxos_2y_to_3y_old"|"utxos_3y_to_4y_old"|"utxos_4y_to_5y_old"|"utxos_5y_to_6y_old"|"utxos_6y_to_7y_old"|"utxos_7y_to_8y_old"|"utxos_8y_to_10y_old"|"utxos_10y_to_12y_old"|"utxos_12y_to_15y_old"|"utxos_over_15y_old")} Cohort
  */
 /**
- * Coinbase scriptSig tag for pool identification.
+ * Up to the first 100 bytes of a coinbase transaction's first-input
+ * `scriptSig`. Bytes are preserved for storage and exposed as a string by
+ * mapping each byte to the same-valued Unicode code point. Pool attribution
+ * may search this raw value, but the value itself is not a normalized pool
+ * label.
  *
  * Stored as a fixed 101-byte record (1 byte length + 100 bytes data).
  * Uses `[u8; 101]` internally so that `size_of::<CoinbaseTag>()` matches
@@ -575,7 +580,7 @@ ancestors and no descendants (matches mempool.space).
  * @typedef {Object} ExchangeRates
  */
 /**
- * Fee rate in sat/vB
+ * Fee rate stored in milli-sat/vB and exposed as sat/vB.
  *
  * @typedef {number} FeeRate
  */
@@ -590,12 +595,12 @@ ancestors and no descendants (matches mempool.space).
  * Kept compact because one value is stored for every funded address.
  *
  * @typedef {Object} FundedAddrData
+ * @property {Sats} received - Satoshis received by this address
+ * @property {Sats} sent - Satoshis sent by this address
+ * @property {number} realizedCapRaw - The realized capitalization: Σ(price × sats)
  * @property {number} txCount - Total transaction count
  * @property {number} fundedTxoCount - Number of transaction outputs funded to this address
  * @property {number} spentTxoCount - Number of transaction outputs spent by this address
- * @property {Sats} received - Satoshis received by this address
- * @property {Sats} sent - Satoshis sent by this address
- * @property {CentsSats} realizedCapRaw - The realized capitalization: Σ(price × sats)
  */
 /** @typedef {TypeIndex} FundedAddrIndex */
 /** @typedef {number} Halving */
@@ -1389,7 +1394,9 @@ on serialization otherwise.
  * @property {(Timestamp|null)=} blockTime - Block timestamp (only present if confirmed)
  */
 /**
- * Transaction version number
+ * Compact indexed transaction-version category. Values 1, 2, and 3 preserve
+ * those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+ * other version.
  *
  * @typedef {number} TxVersion
  */
@@ -1546,6 +1553,11 @@ on serialization otherwise.
  * Weight in weight units (WU). Max block weight is 4,000,000 WU.
  *
  * @typedef {number} Weight
+ */
+/**
+ * Weight in weight units with enough range for cumulative and rolling totals.
+ *
+ * @typedef {number} Weight64
  */
 /**
  * Transaction witness: a stack of byte arrays, one per witness item.
@@ -2581,31 +2593,31 @@ function createSeriesPattern35(client, name) { return /** @type {SeriesPattern35
 
 /**
  * @typedef {Object} _0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2
- * @property {AllLthSthPattern<Dollars>} _0pctTo10pctInLoss
- * @property {AllLthSthPattern<Dollars>} _0pctTo10pctInProfit
- * @property {AllLthSthPattern<Dollars>} _100pctTo200pctInProfit
- * @property {AllLthSthPattern<Dollars>} _10pctTo20pctInLoss
- * @property {AllLthSthPattern<Dollars>} _10pctTo20pctInProfit
- * @property {AllLthSthPattern<Dollars>} _200pctTo300pctInProfit
- * @property {AllLthSthPattern<Dollars>} _20pctTo30pctInLoss
- * @property {AllLthSthPattern<Dollars>} _20pctTo30pctInProfit
- * @property {AllLthSthPattern<Dollars>} _300pctTo500pctInProfit
- * @property {AllLthSthPattern<Dollars>} _30pctTo40pctInLoss
- * @property {AllLthSthPattern<Dollars>} _30pctTo40pctInProfit
- * @property {AllLthSthPattern<Dollars>} _40pctTo50pctInLoss
- * @property {AllLthSthPattern<Dollars>} _40pctTo50pctInProfit
- * @property {AllLthSthPattern<Dollars>} _500pctTo1000pctInProfit
- * @property {AllLthSthPattern<Dollars>} _50pctTo60pctInLoss
- * @property {AllLthSthPattern<Dollars>} _50pctTo60pctInProfit
- * @property {AllLthSthPattern<Dollars>} _60pctTo70pctInLoss
- * @property {AllLthSthPattern<Dollars>} _60pctTo70pctInProfit
- * @property {AllLthSthPattern<Dollars>} _70pctTo80pctInLoss
- * @property {AllLthSthPattern<Dollars>} _70pctTo80pctInProfit
- * @property {AllLthSthPattern<Dollars>} _80pctTo90pctInLoss
- * @property {AllLthSthPattern<Dollars>} _80pctTo90pctInProfit
- * @property {AllLthSthPattern<Dollars>} _90pctTo100pctInLoss
- * @property {AllLthSthPattern<Dollars>} _90pctTo100pctInProfit
- * @property {AllLthSthPattern<Dollars>} over1000pctInProfit
+ * @property {AllLthSthPattern4} _0pctTo10pctInLoss
+ * @property {AllLthSthPattern4} _0pctTo10pctInProfit
+ * @property {AllLthSthPattern4} _100pctTo200pctInProfit
+ * @property {AllLthSthPattern4} _10pctTo20pctInLoss
+ * @property {AllLthSthPattern4} _10pctTo20pctInProfit
+ * @property {AllLthSthPattern4} _200pctTo300pctInProfit
+ * @property {AllLthSthPattern4} _20pctTo30pctInLoss
+ * @property {AllLthSthPattern4} _20pctTo30pctInProfit
+ * @property {AllLthSthPattern4} _300pctTo500pctInProfit
+ * @property {AllLthSthPattern4} _30pctTo40pctInLoss
+ * @property {AllLthSthPattern4} _30pctTo40pctInProfit
+ * @property {AllLthSthPattern4} _40pctTo50pctInLoss
+ * @property {AllLthSthPattern4} _40pctTo50pctInProfit
+ * @property {AllLthSthPattern4} _500pctTo1000pctInProfit
+ * @property {AllLthSthPattern4} _50pctTo60pctInLoss
+ * @property {AllLthSthPattern4} _50pctTo60pctInProfit
+ * @property {AllLthSthPattern4} _60pctTo70pctInLoss
+ * @property {AllLthSthPattern4} _60pctTo70pctInProfit
+ * @property {AllLthSthPattern4} _70pctTo80pctInLoss
+ * @property {AllLthSthPattern4} _70pctTo80pctInProfit
+ * @property {AllLthSthPattern4} _80pctTo90pctInLoss
+ * @property {AllLthSthPattern4} _80pctTo90pctInProfit
+ * @property {AllLthSthPattern4} _90pctTo100pctInLoss
+ * @property {AllLthSthPattern4} _90pctTo100pctInProfit
+ * @property {AllLthSthPattern4} over1000pctInProfit
  */
 
 /**
@@ -2867,29 +2879,29 @@ function create_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern2(c
 
 /**
  * @typedef {Object} _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern13
- * @property {CentsUsdPattern3} _10yTo12y
- * @property {CentsUsdPattern3} _12yTo15y
- * @property {CentsUsdPattern3} _18mTo2y
- * @property {CentsUsdPattern3} _1dTo1w
- * @property {CentsUsdPattern3} _1hTo1d
- * @property {CentsUsdPattern3} _1mTo2m
- * @property {CentsUsdPattern3} _1wTo1m
- * @property {CentsUsdPattern3} _1yTo18m
- * @property {CentsUsdPattern3} _2mTo3m
- * @property {CentsUsdPattern3} _2yTo3y
- * @property {CentsUsdPattern3} _3mTo4m
- * @property {CentsUsdPattern3} _3yTo4y
- * @property {CentsUsdPattern3} _4mTo5m
- * @property {CentsUsdPattern3} _4yTo5y
- * @property {CentsUsdPattern3} _5mTo6m
- * @property {CentsUsdPattern3} _5yTo6y
- * @property {CentsUsdPattern3} _6mTo9m
- * @property {CentsUsdPattern3} _6yTo7y
- * @property {CentsUsdPattern3} _7yTo8y
- * @property {CentsUsdPattern3} _8yTo10y
- * @property {CentsUsdPattern3} _9mTo1y
- * @property {CentsUsdPattern3} over15y
- * @property {CentsUsdPattern3} under1h
+ * @property {CentsUsdPattern} _10yTo12y
+ * @property {CentsUsdPattern} _12yTo15y
+ * @property {CentsUsdPattern} _18mTo2y
+ * @property {CentsUsdPattern} _1dTo1w
+ * @property {CentsUsdPattern} _1hTo1d
+ * @property {CentsUsdPattern} _1mTo2m
+ * @property {CentsUsdPattern} _1wTo1m
+ * @property {CentsUsdPattern} _1yTo18m
+ * @property {CentsUsdPattern} _2mTo3m
+ * @property {CentsUsdPattern} _2yTo3y
+ * @property {CentsUsdPattern} _3mTo4m
+ * @property {CentsUsdPattern} _3yTo4y
+ * @property {CentsUsdPattern} _4mTo5m
+ * @property {CentsUsdPattern} _4yTo5y
+ * @property {CentsUsdPattern} _5mTo6m
+ * @property {CentsUsdPattern} _5yTo6y
+ * @property {CentsUsdPattern} _6mTo9m
+ * @property {CentsUsdPattern} _6yTo7y
+ * @property {CentsUsdPattern} _7yTo8y
+ * @property {CentsUsdPattern} _8yTo10y
+ * @property {CentsUsdPattern} _9mTo1y
+ * @property {CentsUsdPattern} over15y
+ * @property {CentsUsdPattern} under1h
  */
 
 /**
@@ -3237,50 +3249,50 @@ function create_10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern2(client, acc,
 
 /**
  * @typedef {Object} _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
- * @property {CentsUsdPattern3} _15y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _9m
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
+ * @property {CentsUsdPattern} _15y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _9m
  */
 
 /**
  * @typedef {Object} _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _1d
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _9m
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _1d
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _9m
  */
 
 /**
@@ -3561,24 +3573,24 @@ function create_2009201020112012201320142015201620172018201920202021202220232024
 
 /**
  * @typedef {Object} _200920102011201220132014201520162017201820192020202120222023202420252026Pattern13
- * @property {CentsUsdPattern3} _2009
- * @property {CentsUsdPattern3} _2010
- * @property {CentsUsdPattern3} _2011
- * @property {CentsUsdPattern3} _2012
- * @property {CentsUsdPattern3} _2013
- * @property {CentsUsdPattern3} _2014
- * @property {CentsUsdPattern3} _2015
- * @property {CentsUsdPattern3} _2016
- * @property {CentsUsdPattern3} _2017
- * @property {CentsUsdPattern3} _2018
- * @property {CentsUsdPattern3} _2019
- * @property {CentsUsdPattern3} _2020
- * @property {CentsUsdPattern3} _2021
- * @property {CentsUsdPattern3} _2022
- * @property {CentsUsdPattern3} _2023
- * @property {CentsUsdPattern3} _2024
- * @property {CentsUsdPattern3} _2025
- * @property {CentsUsdPattern3} _2026
+ * @property {CentsUsdPattern} _2009
+ * @property {CentsUsdPattern} _2010
+ * @property {CentsUsdPattern} _2011
+ * @property {CentsUsdPattern} _2012
+ * @property {CentsUsdPattern} _2013
+ * @property {CentsUsdPattern} _2014
+ * @property {CentsUsdPattern} _2015
+ * @property {CentsUsdPattern} _2016
+ * @property {CentsUsdPattern} _2017
+ * @property {CentsUsdPattern} _2018
+ * @property {CentsUsdPattern} _2019
+ * @property {CentsUsdPattern} _2020
+ * @property {CentsUsdPattern} _2021
+ * @property {CentsUsdPattern} _2022
+ * @property {CentsUsdPattern} _2023
+ * @property {CentsUsdPattern} _2024
+ * @property {CentsUsdPattern} _2025
+ * @property {CentsUsdPattern} _2026
  */
 
 /**
@@ -3869,20 +3881,20 @@ function create_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern9(
 
 /**
  * @typedef {Object} _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2
- * @property {AllLthSthPattern<Dollars>} _100pct
- * @property {AllLthSthPattern<Dollars>} _10pct
- * @property {AllLthSthPattern<Dollars>} _200pct
- * @property {AllLthSthPattern<Dollars>} _20pct
- * @property {AllLthSthPattern<Dollars>} _300pct
- * @property {AllLthSthPattern<Dollars>} _30pct
- * @property {AllLthSthPattern<Dollars>} _40pct
- * @property {AllLthSthPattern<Dollars>} _500pct
- * @property {AllLthSthPattern<Dollars>} _50pct
- * @property {AllLthSthPattern<Dollars>} _60pct
- * @property {AllLthSthPattern<Dollars>} _70pct
- * @property {AllLthSthPattern<Dollars>} _80pct
- * @property {AllLthSthPattern<Dollars>} _90pct
- * @property {AllLthSthPattern<Dollars>} all
+ * @property {AllLthSthPattern4} _100pct
+ * @property {AllLthSthPattern4} _10pct
+ * @property {AllLthSthPattern4} _200pct
+ * @property {AllLthSthPattern4} _20pct
+ * @property {AllLthSthPattern4} _300pct
+ * @property {AllLthSthPattern4} _30pct
+ * @property {AllLthSthPattern4} _40pct
+ * @property {AllLthSthPattern4} _500pct
+ * @property {AllLthSthPattern4} _50pct
+ * @property {AllLthSthPattern4} _60pct
+ * @property {AllLthSthPattern4} _70pct
+ * @property {AllLthSthPattern4} _80pct
+ * @property {AllLthSthPattern4} _90pct
+ * @property {AllLthSthPattern4} all
  */
 
 /**
@@ -4624,17 +4636,17 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10(
 
 /**
  * @typedef {Object} EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11
- * @property {CentsUsdPattern3} empty
- * @property {CentsUsdPattern3} p2a
- * @property {CentsUsdPattern3} p2ms
- * @property {CentsUsdPattern3} p2pk33
- * @property {CentsUsdPattern3} p2pk65
- * @property {CentsUsdPattern3} p2pkh
- * @property {CentsUsdPattern3} p2sh
- * @property {CentsUsdPattern3} p2tr
- * @property {CentsUsdPattern3} p2wpkh
- * @property {CentsUsdPattern3} p2wsh
- * @property {CentsUsdPattern3} unknown
+ * @property {CentsUsdPattern} empty
+ * @property {CentsUsdPattern} p2a
+ * @property {CentsUsdPattern} p2ms
+ * @property {CentsUsdPattern} p2pk33
+ * @property {CentsUsdPattern} p2pk65
+ * @property {CentsUsdPattern} p2pkh
+ * @property {CentsUsdPattern} p2sh
+ * @property {CentsUsdPattern} p2tr
+ * @property {CentsUsdPattern} p2wpkh
+ * @property {CentsUsdPattern} p2wsh
+ * @property {CentsUsdPattern} unknown
  */
 
 /**
@@ -4645,17 +4657,17 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10(
  */
 function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11(client, acc) {
   return {
-    empty: createCentsUsdPattern3(client, _p('empty_outputs', acc)),
-    p2a: createCentsUsdPattern3(client, _p('p2a', acc)),
-    p2ms: createCentsUsdPattern3(client, _p('p2ms', acc)),
-    p2pk33: createCentsUsdPattern3(client, _p('p2pk33', acc)),
-    p2pk65: createCentsUsdPattern3(client, _p('p2pk65', acc)),
-    p2pkh: createCentsUsdPattern3(client, _p('p2pkh', acc)),
-    p2sh: createCentsUsdPattern3(client, _p('p2sh', acc)),
-    p2tr: createCentsUsdPattern3(client, _p('p2tr', acc)),
-    p2wpkh: createCentsUsdPattern3(client, _p('p2wpkh', acc)),
-    p2wsh: createCentsUsdPattern3(client, _p('p2wsh', acc)),
-    unknown: createCentsUsdPattern3(client, _p('unknown_outputs', acc)),
+    empty: createCentsUsdPattern(client, _p('empty_outputs', acc)),
+    p2a: createCentsUsdPattern(client, _p('p2a', acc)),
+    p2ms: createCentsUsdPattern(client, _p('p2ms', acc)),
+    p2pk33: createCentsUsdPattern(client, _p('p2pk33', acc)),
+    p2pk65: createCentsUsdPattern(client, _p('p2pk65', acc)),
+    p2pkh: createCentsUsdPattern(client, _p('p2pkh', acc)),
+    p2sh: createCentsUsdPattern(client, _p('p2sh', acc)),
+    p2tr: createCentsUsdPattern(client, _p('p2tr', acc)),
+    p2wpkh: createCentsUsdPattern(client, _p('p2wpkh', acc)),
+    p2wsh: createCentsUsdPattern(client, _p('p2wsh', acc)),
+    unknown: createCentsUsdPattern(client, _p('unknown_outputs', acc)),
   };
 }
 
@@ -4693,45 +4705,6 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13(
     p2wpkh: create_1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wpkh_prevout')),
     p2wsh: create_1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wsh_prevout')),
     unknown: create_1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'unknown_outputs_prevout')),
-  };
-}
-
-/**
- * @template T
- * @typedef {Object} AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern
- * @property {_1m1w1y24hPattern<T>} average
- * @property {SeriesPattern18<T>} base
- * @property {SeriesPattern1<T>} cumulative
- * @property {_1m1w1y24hPattern<T>} max
- * @property {_1m1w1y24hPattern<T>} median
- * @property {_1m1w1y24hPattern<T>} min
- * @property {_1m1w1y24hPattern<T>} pct10
- * @property {_1m1w1y24hPattern<T>} pct25
- * @property {_1m1w1y24hPattern<T>} pct75
- * @property {_1m1w1y24hPattern<T>} pct90
- * @property {_1m1w1y24hPattern<T>} sum
- */
-
-/**
- * Create a AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern pattern node
- * @template T
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern<T>}
- */
-function createAverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(client, acc) {
-  return {
-    average: create_1m1w1y24hPattern(client, _m(acc, 'average')),
-    base: createSeriesPattern18(client, acc),
-    cumulative: createSeriesPattern1(client, _m(acc, 'cumulative')),
-    max: create_1m1w1y24hPattern(client, _m(acc, 'max')),
-    median: create_1m1w1y24hPattern(client, _m(acc, 'median')),
-    min: create_1m1w1y24hPattern(client, _m(acc, 'min')),
-    pct10: create_1m1w1y24hPattern(client, _m(acc, 'pct10')),
-    pct25: create_1m1w1y24hPattern(client, _m(acc, 'pct25')),
-    pct75: create_1m1w1y24hPattern(client, _m(acc, 'pct75')),
-    pct90: create_1m1w1y24hPattern(client, _m(acc, 'pct90')),
-    sum: create_1m1w1y24hPattern(client, _m(acc, 'sum')),
   };
 }
 
@@ -4804,15 +4777,15 @@ function createEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(c
 
 /**
  * @typedef {Object} _10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2
- * @property {AllLthSthPattern<Dollars>} _10pct
- * @property {AllLthSthPattern<Dollars>} _20pct
- * @property {AllLthSthPattern<Dollars>} _30pct
- * @property {AllLthSthPattern<Dollars>} _40pct
- * @property {AllLthSthPattern<Dollars>} _50pct
- * @property {AllLthSthPattern<Dollars>} _60pct
- * @property {AllLthSthPattern<Dollars>} _70pct
- * @property {AllLthSthPattern<Dollars>} _80pct
- * @property {AllLthSthPattern<Dollars>} all
+ * @property {AllLthSthPattern4} _10pct
+ * @property {AllLthSthPattern4} _20pct
+ * @property {AllLthSthPattern4} _30pct
+ * @property {AllLthSthPattern4} _40pct
+ * @property {AllLthSthPattern4} _50pct
+ * @property {AllLthSthPattern4} _60pct
+ * @property {AllLthSthPattern4} _70pct
+ * @property {AllLthSthPattern4} _80pct
+ * @property {AllLthSthPattern4} all
  */
 
 /**
@@ -5320,15 +5293,15 @@ function create_01234Pattern2(client, acc, disc) {
 
 /**
  * @typedef {Object} _01234Pattern13
- * @property {CentsUsdPattern3} _0
- * @property {CentsUsdPattern3} _1
- * @property {CentsUsdPattern3} _2
- * @property {CentsUsdPattern3} _3
- * @property {CentsUsdPattern3} _4
+ * @property {CentsUsdPattern} _0
+ * @property {CentsUsdPattern} _1
+ * @property {CentsUsdPattern} _2
+ * @property {CentsUsdPattern} _3
+ * @property {CentsUsdPattern} _4
  */
 
 /**
- * @typedef {Object} _1m1w1y24hHeightPattern3
+ * @typedef {Object} _1m1w1y24hHeightPattern2
  * @property {PercentPpmRatioPattern2} _1m
  * @property {PercentPpmRatioPattern2} _1w
  * @property {PercentPpmRatioPattern2} _1y
@@ -5337,12 +5310,12 @@ function create_01234Pattern2(client, acc, disc) {
  */
 
 /**
- * Create a _1m1w1y24hHeightPattern3 pattern node
+ * Create a _1m1w1y24hHeightPattern2 pattern node
  * @param {BrkClient} client
  * @param {string} acc - Accumulated series name
- * @returns {_1m1w1y24hHeightPattern3}
+ * @returns {_1m1w1y24hHeightPattern2}
  */
-function create_1m1w1y24hHeightPattern3(client, acc) {
+function create_1m1w1y24hHeightPattern2(client, acc) {
   return {
     _1m: createPercentPpmRatioPattern2(client, _m(acc, '1m')),
     _1w: createPercentPpmRatioPattern2(client, _m(acc, '1w')),
@@ -5418,31 +5391,6 @@ function create_1m1w1y24hBlockPattern(client, acc) {
  * @returns {_1m1w1y24hHeightPattern}
  */
 function create_1m1w1y24hHeightPattern(client, acc) {
-  return {
-    _1m: createSeriesPattern1(client, _m(acc, '1m')),
-    _1w: createSeriesPattern1(client, _m(acc, '1w')),
-    _1y: createSeriesPattern1(client, _m(acc, '1y')),
-    _24h: createSeriesPattern1(client, _m(acc, '24h')),
-    height: createSeriesPattern18(client, acc),
-  };
-}
-
-/**
- * @typedef {Object} _1m1w1y24hHeightPattern2
- * @property {SeriesPattern1<StoredF64>} _1m
- * @property {SeriesPattern1<StoredF64>} _1w
- * @property {SeriesPattern1<StoredF64>} _1y
- * @property {SeriesPattern1<StoredF64>} _24h
- * @property {SeriesPattern18<StoredF64[]>} height
- */
-
-/**
- * Create a _1m1w1y24hHeightPattern2 pattern node
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {_1m1w1y24hHeightPattern2}
- */
-function create_1m1w1y24hHeightPattern2(client, acc) {
   return {
     _1m: createSeriesPattern1(client, _m(acc, '1m')),
     _1w: createSeriesPattern1(client, _m(acc, '1w')),
@@ -5733,34 +5681,11 @@ function create_1m1w1y2wPattern(client, acc) {
 }
 
 /**
- * @typedef {Object} _1m1w1y24hPattern6
+ * @typedef {Object} _1m1w1y24hPattern7
  * @property {CentsUsdPattern} _1m
  * @property {CentsUsdPattern} _1w
  * @property {CentsUsdPattern} _1y
  * @property {CentsUsdPattern} _24h
- */
-
-/**
- * Create a _1m1w1y24hPattern6 pattern node
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {_1m1w1y24hPattern6}
- */
-function create_1m1w1y24hPattern6(client, acc) {
-  return {
-    _1m: createCentsUsdPattern(client, _m(acc, '1m')),
-    _1w: createCentsUsdPattern(client, _m(acc, '1w')),
-    _1y: createCentsUsdPattern(client, _m(acc, '1y')),
-    _24h: createCentsUsdPattern(client, _m(acc, '24h')),
-  };
-}
-
-/**
- * @typedef {Object} _1m1w1y24hPattern7
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _24h
  */
 
 /**
@@ -5771,10 +5696,33 @@ function create_1m1w1y24hPattern6(client, acc) {
  */
 function create_1m1w1y24hPattern7(client, acc) {
   return {
-    _1m: createCentsUsdPattern3(client, _m(acc, '1m')),
-    _1w: createCentsUsdPattern3(client, _m(acc, '1w')),
-    _1y: createCentsUsdPattern3(client, _m(acc, '1y')),
-    _24h: createCentsUsdPattern3(client, _m(acc, '24h')),
+    _1m: createCentsUsdPattern(client, _m(acc, '1m')),
+    _1w: createCentsUsdPattern(client, _m(acc, '1w')),
+    _1y: createCentsUsdPattern(client, _m(acc, '1y')),
+    _24h: createCentsUsdPattern(client, _m(acc, '24h')),
+  };
+}
+
+/**
+ * @typedef {Object} _1m1w1y24hPattern6
+ * @property {CentsUsdPattern2} _1m
+ * @property {CentsUsdPattern2} _1w
+ * @property {CentsUsdPattern2} _1y
+ * @property {CentsUsdPattern2} _24h
+ */
+
+/**
+ * Create a _1m1w1y24hPattern6 pattern node
+ * @param {BrkClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {_1m1w1y24hPattern6}
+ */
+function create_1m1w1y24hPattern6(client, acc) {
+  return {
+    _1m: createCentsUsdPattern2(client, _m(acc, '1m')),
+    _1w: createCentsUsdPattern2(client, _m(acc, '1w')),
+    _1y: createCentsUsdPattern2(client, _m(acc, '1y')),
+    _24h: createCentsUsdPattern2(client, _m(acc, '24h')),
   };
 }
 
@@ -5874,7 +5822,7 @@ function createAverageBlockCumulativeSumPattern2(client, acc) {
 /**
  * @typedef {Object} BlockCumulativeDeltaSumPattern
  * @property {CentsUsdPattern4} block
- * @property {CentsUsdPattern} cumulative
+ * @property {CentsUsdPattern2} cumulative
  * @property {AbsoluteRatePattern3} delta
  * @property {_1m1w1y24hPattern6} sum
  */
@@ -5888,7 +5836,7 @@ function createAverageBlockCumulativeSumPattern2(client, acc) {
 function createBlockCumulativeDeltaSumPattern(client, acc) {
   return {
     block: createCentsUsdPattern4(client, acc),
-    cumulative: createCentsUsdPattern(client, _m(acc, 'cumulative')),
+    cumulative: createCentsUsdPattern2(client, _m(acc, 'cumulative')),
     delta: createAbsoluteRatePattern3(client, _m(acc, 'delta')),
     sum: create_1m1w1y24hPattern6(client, _m(acc, 'sum')),
   };
@@ -5965,7 +5913,7 @@ function createBtcCentsSatsUsdPattern3(client, acc) {
 
 /**
  * @typedef {Object} CapHorizonPriceSupplyPattern2
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
  * @property {CentsPpmRatioSatsUsdPattern} price
  * @property {ImmobileMobilePattern3} supply
@@ -5973,7 +5921,7 @@ function createBtcCentsSatsUsdPattern3(client, acc) {
 
 /**
  * @typedef {Object} HeightLossProfitRangePattern2
- * @property {SeriesPattern18<Dollars>} height
+ * @property {SeriesPattern18<Cents>} height
  * @property {_10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2} loss
  * @property {_100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2} profit
  * @property {_0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2} range
@@ -6023,10 +5971,10 @@ function create_1m1w1y24hPattern(client, acc) {
 /**
  * @template T
  * @typedef {Object} AllHeightLthSthPattern5
- * @property {CentsUsdPattern3} all
+ * @property {CentsUsdPattern} all
  * @property {SeriesPattern18<T>} height
- * @property {CentsUsdPattern3} lth
- * @property {CentsUsdPattern3} sth
+ * @property {CentsUsdPattern} lth
+ * @property {CentsUsdPattern} sth
  */
 
 /**
@@ -6062,31 +6010,10 @@ function createAverageBlockCumulativeSumPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} AllLthSthPattern4
+ * @typedef {Object} AllLthSthPattern5
  * @property {BtcCentsDeltaSatsUsdPattern} all
  * @property {BtcCentsDeltaSatsUsdPattern} lth
  * @property {BtcCentsDeltaSatsUsdPattern} sth
- */
-
-/**
- * Create a AllLthSthPattern4 pattern node
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {AllLthSthPattern4}
- */
-function createAllLthSthPattern4(client, acc) {
-  return {
-    all: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'supply')),
-    lth: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'lth_supply')),
-    sth: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'sth_supply')),
-  };
-}
-
-/**
- * @typedef {Object} AllLthSthPattern5
- * @property {PercentPpmRatioPattern2} all
- * @property {PercentPpmRatioPattern2} lth
- * @property {PercentPpmRatioPattern2} sth
  */
 
 /**
@@ -6097,6 +6024,34 @@ function createAllLthSthPattern4(client, acc) {
  */
 function createAllLthSthPattern5(client, acc) {
   return {
+    all: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'supply')),
+    lth: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'lth_supply')),
+    sth: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'sth_supply')),
+  };
+}
+
+/**
+ * @typedef {Object} AllLthSthPattern4
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} lth
+ * @property {CentsUsdPattern} sth
+ */
+
+/**
+ * @typedef {Object} AllLthSthPattern6
+ * @property {PercentPpmRatioPattern2} all
+ * @property {PercentPpmRatioPattern2} lth
+ * @property {PercentPpmRatioPattern2} sth
+ */
+
+/**
+ * Create a AllLthSthPattern6 pattern node
+ * @param {BrkClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {AllLthSthPattern6}
+ */
+function createAllLthSthPattern6(client, acc) {
+  return {
     all: createPercentPpmRatioPattern2(client, _p('all', acc)),
     lth: createPercentPpmRatioPattern2(client, _p('lth', acc)),
     sth: createPercentPpmRatioPattern2(client, _p('sth', acc)),
@@ -6104,9 +6059,30 @@ function createAllLthSthPattern5(client, acc) {
 }
 
 /**
+ * @typedef {Object} AllLthSthPattern2
+ * @property {_1m1w1y24hHeightPattern} all
+ * @property {_1m1w1y24hHeightPattern} lth
+ * @property {_1m1w1y24hHeightPattern} sth
+ */
+
+/**
+ * Create a AllLthSthPattern2 pattern node
+ * @param {BrkClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {AllLthSthPattern2}
+ */
+function createAllLthSthPattern2(client, acc) {
+  return {
+    all: create_1m1w1y24hHeightPattern(client, _p('all', acc)),
+    lth: create_1m1w1y24hHeightPattern(client, _p('lth', acc)),
+    sth: create_1m1w1y24hHeightPattern(client, _p('sth', acc)),
+  };
+}
+
+/**
  * @typedef {Object} BlockCumulativeSumPattern
- * @property {CentsUsdPattern2} block
- * @property {CentsUsdPattern3} cumulative
+ * @property {CentsUsdPattern3} block
+ * @property {CentsUsdPattern} cumulative
  * @property {_1m1w1y24hPattern7} sum
  */
 
@@ -6118,8 +6094,8 @@ function createAllLthSthPattern5(client, acc) {
  */
 function createBlockCumulativeSumPattern(client, acc) {
   return {
-    block: createCentsUsdPattern2(client, acc),
-    cumulative: createCentsUsdPattern3(client, _m(acc, 'cumulative')),
+    block: createCentsUsdPattern3(client, acc),
+    cumulative: createCentsUsdPattern(client, _m(acc, 'cumulative')),
     sum: create_1m1w1y24hPattern7(client, _m(acc, 'sum')),
   };
 }
@@ -6168,7 +6144,7 @@ function createBlocksDominanceRewardsPattern(client, acc) {
 
 /**
  * @typedef {Object} CapPriceSupplyPattern
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  * @property {BtcCentsInSatsUsdPattern} supply
  */
@@ -6527,8 +6503,8 @@ function createRsiStochPattern(client, acc, disc) {
 
 /**
  * @typedef {Object} ToPattern2
- * @property {AllLthSthPattern5} toMcap
- * @property {AllLthSthPattern5} toOwnGrossPnl
+ * @property {AllLthSthPattern6} toMcap
+ * @property {AllLthSthPattern6} toOwnGrossPnl
  * @property {HeightLongShortPattern} toOwnMcap
  */
 
@@ -6554,14 +6530,6 @@ function create_6bBlockTxPattern(client, acc) {
     txIndex: createSeriesPattern19(client, acc),
   };
 }
-
-/**
- * @template T
- * @typedef {Object} AllLthSthPattern
- * @property {SeriesPattern1<T>} all
- * @property {SeriesPattern1<T>} lth
- * @property {SeriesPattern1<T>} sth
- */
 
 /**
  * @typedef {Object} AbsoluteRatePattern
@@ -6722,46 +6690,8 @@ function createBtcSatsPattern(client, acc) {
 }
 
 /**
- * @typedef {Object} CentsUsdPattern3
- * @property {SeriesPattern1<Cents>} cents
- * @property {SeriesPattern1<Dollars>} usd
- */
-
-/**
- * Create a CentsUsdPattern3 pattern node
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {CentsUsdPattern3}
- */
-function createCentsUsdPattern3(client, acc) {
-  return {
-    cents: createSeriesPattern1(client, _m(acc, 'cents')),
-    usd: createSeriesPattern1(client, acc),
-  };
-}
-
-/**
- * @typedef {Object} CentsUsdPattern2
- * @property {SeriesPattern18<Cents>} cents
- * @property {SeriesPattern18<Dollars>} usd
- */
-
-/**
- * Create a CentsUsdPattern2 pattern node
- * @param {BrkClient} client
- * @param {string} acc - Accumulated series name
- * @returns {CentsUsdPattern2}
- */
-function createCentsUsdPattern2(client, acc) {
-  return {
-    cents: createSeriesPattern18(client, _m(acc, 'cents')),
-    usd: createSeriesPattern18(client, acc),
-  };
-}
-
-/**
  * @typedef {Object} CentsUsdPattern
- * @property {SeriesPattern1<CentsSigned>} cents
+ * @property {SeriesPattern1<Cents>} cents
  * @property {SeriesPattern1<Dollars>} usd
  */
 
@@ -6772,6 +6702,44 @@ function createCentsUsdPattern2(client, acc) {
  * @returns {CentsUsdPattern}
  */
 function createCentsUsdPattern(client, acc) {
+  return {
+    cents: createSeriesPattern1(client, _m(acc, 'cents')),
+    usd: createSeriesPattern1(client, acc),
+  };
+}
+
+/**
+ * @typedef {Object} CentsUsdPattern3
+ * @property {SeriesPattern18<Cents>} cents
+ * @property {SeriesPattern18<Dollars>} usd
+ */
+
+/**
+ * Create a CentsUsdPattern3 pattern node
+ * @param {BrkClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {CentsUsdPattern3}
+ */
+function createCentsUsdPattern3(client, acc) {
+  return {
+    cents: createSeriesPattern18(client, _m(acc, 'cents')),
+    usd: createSeriesPattern18(client, acc),
+  };
+}
+
+/**
+ * @typedef {Object} CentsUsdPattern2
+ * @property {SeriesPattern1<CentsSigned>} cents
+ * @property {SeriesPattern1<Dollars>} usd
+ */
+
+/**
+ * Create a CentsUsdPattern2 pattern node
+ * @param {BrkClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {CentsUsdPattern2}
+ */
+function createCentsUsdPattern2(client, acc) {
   return {
     cents: createSeriesPattern1(client, _m(acc, 'cents')),
     usd: createSeriesPattern1(client, acc),
@@ -6894,8 +6862,8 @@ function createDiscountPremiumPattern12(client, acc) {
 
 /**
  * @typedef {Object} DiscountPremiumPattern13
- * @property {CentsUsdPattern3} discount
- * @property {CentsUsdPattern3} premium
+ * @property {CentsUsdPattern} discount
+ * @property {CentsUsdPattern} premium
  */
 
 /**
@@ -6906,8 +6874,8 @@ function createDiscountPremiumPattern12(client, acc) {
  */
 function createDiscountPremiumPattern13(client, acc) {
   return {
-    discount: createCentsUsdPattern3(client, _p('veteran', acc)),
-    premium: createCentsUsdPattern3(client, _p('rookie', acc)),
+    discount: createCentsUsdPattern(client, _p('veteran', acc)),
+    premium: createCentsUsdPattern(client, _p('rookie', acc)),
   };
 }
 
@@ -7001,8 +6969,8 @@ function createLongShortPattern13(client, acc) {
 
 /**
  * @typedef {Object} LongShortPattern14
- * @property {CentsUsdPattern3} long
- * @property {CentsUsdPattern3} short
+ * @property {CentsUsdPattern} long
+ * @property {CentsUsdPattern} short
  */
 
 /**
@@ -7013,8 +6981,8 @@ function createLongShortPattern13(client, acc) {
  */
 function createLongShortPattern14(client, acc) {
   return {
-    long: createCentsUsdPattern3(client, _p('lth', acc)),
-    short: createCentsUsdPattern3(client, _p('sth', acc)),
+    long: createCentsUsdPattern(client, _p('lth', acc)),
+    short: createCentsUsdPattern(client, _p('sth', acc)),
   };
 }
 
@@ -7166,7 +7134,7 @@ function createInPattern3(client, acc) {
 
 /**
  * @typedef {Object} SharePattern2
- * @property {AllLthSthPattern5} share
+ * @property {AllLthSthPattern6} share
  */
 
 /**
@@ -7177,7 +7145,7 @@ function createInPattern3(client, acc) {
  */
 function createSharePattern2(client, acc) {
   return {
-    share: createAllLthSthPattern5(client, acc),
+    share: createAllLthSthPattern6(client, acc),
   };
 }
 
@@ -7303,7 +7271,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Blocks_Difficulty} difficulty
  * @property {SeriesTree_Blocks_Time} time
  * @property {SeriesTree_Blocks_Size} size
- * @property {AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern<Weight>} weight
+ * @property {SeriesTree_Blocks_Weight} weight
  * @property {SeriesPattern18<StoredU32>} segwitTxs
  * @property {SeriesPattern18<StoredU64>} segwitSize
  * @property {SeriesPattern18<Weight>} segwitWeight
@@ -7343,6 +7311,21 @@ function createMatrixPattern(client, acc) {
  * @property {_1m1w1y24hPattern<StoredU64>} median
  * @property {_1m1w1y24hPattern<StoredU64>} pct75
  * @property {_1m1w1y24hPattern<StoredU64>} pct90
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Blocks_Weight
+ * @property {SeriesPattern18<Weight>} base
+ * @property {SeriesPattern1<Weight64>} cumulative
+ * @property {_1m1w1y24hPattern<Weight64>} sum
+ * @property {_1m1w1y24hPattern<StoredF32>} average
+ * @property {_1m1w1y24hPattern<Weight64>} min
+ * @property {_1m1w1y24hPattern<Weight64>} max
+ * @property {_1m1w1y24hPattern<Weight64>} pct10
+ * @property {_1m1w1y24hPattern<Weight64>} pct25
+ * @property {_1m1w1y24hPattern<Weight64>} median
+ * @property {_1m1w1y24hPattern<Weight64>} pct75
+ * @property {_1m1w1y24hPattern<Weight64>} pct90
  */
 
 /**
@@ -8870,7 +8853,7 @@ function createMatrixPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Frameworks_Cointime_Awake
  * @property {SeriesTree_Frameworks_Cointime_Awake_Supply} supply
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
@@ -8892,7 +8875,7 @@ function createMatrixPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Frameworks_Cointime_Sth_Awake
  * @property {SeriesTree_Frameworks_Cointime_Sth_Awake_Supply} supply
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
@@ -8914,7 +8897,7 @@ function createMatrixPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Frameworks_Cointime_Lth_Awake
  * @property {SeriesTree_Frameworks_Cointime_Lth_Awake_Supply} supply
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
@@ -8961,11 +8944,11 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Frameworks_Cointime_Cap
- * @property {CentsUsdPattern3} thermo
- * @property {CentsUsdPattern3} investor
- * @property {CentsUsdPattern3} vaulted
- * @property {CentsUsdPattern3} active
- * @property {CentsUsdPattern3} cointime
+ * @property {CentsUsdPattern} thermo
+ * @property {CentsUsdPattern} investor
+ * @property {CentsUsdPattern} vaulted
+ * @property {CentsUsdPattern} active
+ * @property {CentsUsdPattern} cointime
  * @property {PpmRatioPattern2} aviv
  */
 
@@ -8996,7 +8979,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Frameworks_Coinflow_AgeRange} ageRange
  * @property {SeriesTree_Frameworks_Coinflow_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  * @property {SeriesTree_Frameworks_Coinflow_Sth} sth
  * @property {SeriesTree_Frameworks_Coinflow_Lth} lth
@@ -9175,7 +9158,7 @@ function createMatrixPattern(client, acc) {
  * @typedef {Object} SeriesTree_Frameworks_Coinflow_Sth
  * @property {SeriesTree_Frameworks_Coinflow_Sth_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
@@ -9198,7 +9181,7 @@ function createMatrixPattern(client, acc) {
  * @typedef {Object} SeriesTree_Frameworks_Coinflow_Lth
  * @property {SeriesTree_Frameworks_Coinflow_Lth_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
- * @property {CentsUsdPattern3} cap
+ * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
@@ -11531,7 +11514,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Cohorts_Activity_TransferVolume} transferVolume
  * @property {SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed} coindaysDestroyed
  * @property {SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed} coinyearsDestroyed
- * @property {SeriesTree_Cohorts_Cohorts_Activity_Dormancy} dormancy
+ * @property {AllLthSthPattern2} dormancy
  */
 
 /**
@@ -11794,13 +11777,6 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Cohorts_Cohorts_Activity_Dormancy
- * @property {_1m1w1y24hHeightPattern} all
- * @property {_1m1w1y24hHeightPattern} sth
- * @property {_1m1w1y24hHeightPattern} lth
- */
-
-/**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Cap} cap
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Price} price
@@ -11817,7 +11793,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap} netPnlChange1mToRcap
  * @property {SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio} sellSideRiskRatio
  * @property {SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended} soprRatioExtended
- * @property {SeriesTree_Cohorts_Cohorts_Realized_ProfitToLossRatio} profitToLossRatio
+ * @property {AllLthSthPattern2} profitToLossRatio
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Mvrv} mvrv
  */
 
@@ -11838,7 +11814,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern18<Cents>} typeMatrix
  * @property {SeriesPattern18<Cents>} amountRangeMatrix
  * @property {SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance} addrBalance
- * @property {AllLthSthPattern5} toOwnMcap
+ * @property {AllLthSthPattern6} toOwnMcap
  */
 
 /**
@@ -13458,9 +13434,9 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio
- * @property {_1m1w1y24hHeightPattern3} all
- * @property {_1m1w1y24hHeightPattern3} sth
- * @property {_1m1w1y24hHeightPattern3} lth
+ * @property {_1m1w1y24hHeightPattern2} all
+ * @property {_1m1w1y24hHeightPattern2} sth
+ * @property {_1m1w1y24hHeightPattern2} lth
  */
 
 /**
@@ -13468,13 +13444,6 @@ function createMatrixPattern(client, acc) {
  * @property {_1m1w1yHeightPattern} all
  * @property {_1m1w1yHeightPattern} sth
  * @property {_1m1w1yHeightPattern} lth
- */
-
-/**
- * @typedef {Object} SeriesTree_Cohorts_Cohorts_Realized_ProfitToLossRatio
- * @property {_1m1w1y24hHeightPattern2} all
- * @property {_1m1w1y24hHeightPattern2} sth
- * @property {_1m1w1y24hHeightPattern2} lth
  */
 
 /**
@@ -13680,7 +13649,7 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit
- * @property {CentsUsdPattern3} all
+ * @property {CentsUsdPattern} all
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age} age
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch} epoch
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class} class
@@ -13703,113 +13672,113 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range
- * @property {CentsUsdPattern3} under1h
- * @property {CentsUsdPattern3} _1hTo1d
- * @property {CentsUsdPattern3} _1dTo1w
- * @property {CentsUsdPattern3} _1wTo1m
- * @property {CentsUsdPattern3} _1mTo2m
- * @property {CentsUsdPattern3} _2mTo3m
- * @property {CentsUsdPattern3} _3mTo4m
- * @property {CentsUsdPattern3} _4mTo5m
- * @property {CentsUsdPattern3} _5mTo6m
- * @property {CentsUsdPattern3} _6mTo9m
- * @property {CentsUsdPattern3} _9mTo1y
- * @property {CentsUsdPattern3} _1yTo18m
- * @property {CentsUsdPattern3} _18mTo2y
- * @property {CentsUsdPattern3} _2yTo3y
- * @property {CentsUsdPattern3} _3yTo4y
- * @property {CentsUsdPattern3} _4yTo5y
- * @property {CentsUsdPattern3} _5yTo6y
- * @property {CentsUsdPattern3} _6yTo7y
- * @property {CentsUsdPattern3} _7yTo8y
- * @property {CentsUsdPattern3} _8yTo10y
- * @property {CentsUsdPattern3} _10yTo12y
- * @property {CentsUsdPattern3} _12yTo15y
- * @property {CentsUsdPattern3} over15y
+ * @property {CentsUsdPattern} under1h
+ * @property {CentsUsdPattern} _1hTo1d
+ * @property {CentsUsdPattern} _1dTo1w
+ * @property {CentsUsdPattern} _1wTo1m
+ * @property {CentsUsdPattern} _1mTo2m
+ * @property {CentsUsdPattern} _2mTo3m
+ * @property {CentsUsdPattern} _3mTo4m
+ * @property {CentsUsdPattern} _4mTo5m
+ * @property {CentsUsdPattern} _5mTo6m
+ * @property {CentsUsdPattern} _6mTo9m
+ * @property {CentsUsdPattern} _9mTo1y
+ * @property {CentsUsdPattern} _1yTo18m
+ * @property {CentsUsdPattern} _18mTo2y
+ * @property {CentsUsdPattern} _2yTo3y
+ * @property {CentsUsdPattern} _3yTo4y
+ * @property {CentsUsdPattern} _4yTo5y
+ * @property {CentsUsdPattern} _5yTo6y
+ * @property {CentsUsdPattern} _6yTo7y
+ * @property {CentsUsdPattern} _7yTo8y
+ * @property {CentsUsdPattern} _8yTo10y
+ * @property {CentsUsdPattern} _10yTo12y
+ * @property {CentsUsdPattern} _12yTo15y
+ * @property {CentsUsdPattern} over15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _9m
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
- * @property {CentsUsdPattern3} _15y
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _9m
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
+ * @property {CentsUsdPattern} _15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over
- * @property {CentsUsdPattern3} _1d
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _9m
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
+ * @property {CentsUsdPattern} _1d
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _9m
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch
- * @property {CentsUsdPattern3} _0
- * @property {CentsUsdPattern3} _1
- * @property {CentsUsdPattern3} _2
- * @property {CentsUsdPattern3} _3
- * @property {CentsUsdPattern3} _4
+ * @property {CentsUsdPattern} _0
+ * @property {CentsUsdPattern} _1
+ * @property {CentsUsdPattern} _2
+ * @property {CentsUsdPattern} _3
+ * @property {CentsUsdPattern} _4
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class
- * @property {CentsUsdPattern3} _2009
- * @property {CentsUsdPattern3} _2010
- * @property {CentsUsdPattern3} _2011
- * @property {CentsUsdPattern3} _2012
- * @property {CentsUsdPattern3} _2013
- * @property {CentsUsdPattern3} _2014
- * @property {CentsUsdPattern3} _2015
- * @property {CentsUsdPattern3} _2016
- * @property {CentsUsdPattern3} _2017
- * @property {CentsUsdPattern3} _2018
- * @property {CentsUsdPattern3} _2019
- * @property {CentsUsdPattern3} _2020
- * @property {CentsUsdPattern3} _2021
- * @property {CentsUsdPattern3} _2022
- * @property {CentsUsdPattern3} _2023
- * @property {CentsUsdPattern3} _2024
- * @property {CentsUsdPattern3} _2025
- * @property {CentsUsdPattern3} _2026
+ * @property {CentsUsdPattern} _2009
+ * @property {CentsUsdPattern} _2010
+ * @property {CentsUsdPattern} _2011
+ * @property {CentsUsdPattern} _2012
+ * @property {CentsUsdPattern} _2013
+ * @property {CentsUsdPattern} _2014
+ * @property {CentsUsdPattern} _2015
+ * @property {CentsUsdPattern} _2016
+ * @property {CentsUsdPattern} _2017
+ * @property {CentsUsdPattern} _2018
+ * @property {CentsUsdPattern} _2019
+ * @property {CentsUsdPattern} _2020
+ * @property {CentsUsdPattern} _2021
+ * @property {CentsUsdPattern} _2022
+ * @property {CentsUsdPattern} _2023
+ * @property {CentsUsdPattern} _2024
+ * @property {CentsUsdPattern} _2025
+ * @property {CentsUsdPattern} _2026
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss
- * @property {CentsUsdPattern3} all
+ * @property {CentsUsdPattern} all
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age} age
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch} epoch
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class} class
@@ -13833,108 +13802,108 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range
- * @property {CentsUsdPattern3} under1h
- * @property {CentsUsdPattern3} _1hTo1d
- * @property {CentsUsdPattern3} _1dTo1w
- * @property {CentsUsdPattern3} _1wTo1m
- * @property {CentsUsdPattern3} _1mTo2m
- * @property {CentsUsdPattern3} _2mTo3m
- * @property {CentsUsdPattern3} _3mTo4m
- * @property {CentsUsdPattern3} _4mTo5m
- * @property {CentsUsdPattern3} _5mTo6m
- * @property {CentsUsdPattern3} _6mTo9m
- * @property {CentsUsdPattern3} _9mTo1y
- * @property {CentsUsdPattern3} _1yTo18m
- * @property {CentsUsdPattern3} _18mTo2y
- * @property {CentsUsdPattern3} _2yTo3y
- * @property {CentsUsdPattern3} _3yTo4y
- * @property {CentsUsdPattern3} _4yTo5y
- * @property {CentsUsdPattern3} _5yTo6y
- * @property {CentsUsdPattern3} _6yTo7y
- * @property {CentsUsdPattern3} _7yTo8y
- * @property {CentsUsdPattern3} _8yTo10y
- * @property {CentsUsdPattern3} _10yTo12y
- * @property {CentsUsdPattern3} _12yTo15y
- * @property {CentsUsdPattern3} over15y
+ * @property {CentsUsdPattern} under1h
+ * @property {CentsUsdPattern} _1hTo1d
+ * @property {CentsUsdPattern} _1dTo1w
+ * @property {CentsUsdPattern} _1wTo1m
+ * @property {CentsUsdPattern} _1mTo2m
+ * @property {CentsUsdPattern} _2mTo3m
+ * @property {CentsUsdPattern} _3mTo4m
+ * @property {CentsUsdPattern} _4mTo5m
+ * @property {CentsUsdPattern} _5mTo6m
+ * @property {CentsUsdPattern} _6mTo9m
+ * @property {CentsUsdPattern} _9mTo1y
+ * @property {CentsUsdPattern} _1yTo18m
+ * @property {CentsUsdPattern} _18mTo2y
+ * @property {CentsUsdPattern} _2yTo3y
+ * @property {CentsUsdPattern} _3yTo4y
+ * @property {CentsUsdPattern} _4yTo5y
+ * @property {CentsUsdPattern} _5yTo6y
+ * @property {CentsUsdPattern} _6yTo7y
+ * @property {CentsUsdPattern} _7yTo8y
+ * @property {CentsUsdPattern} _8yTo10y
+ * @property {CentsUsdPattern} _10yTo12y
+ * @property {CentsUsdPattern} _12yTo15y
+ * @property {CentsUsdPattern} over15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _9m
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
- * @property {CentsUsdPattern3} _15y
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _9m
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
+ * @property {CentsUsdPattern} _15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over
- * @property {CentsUsdPattern3} _1d
- * @property {CentsUsdPattern3} _1w
- * @property {CentsUsdPattern3} _1m
- * @property {CentsUsdPattern3} _2m
- * @property {CentsUsdPattern3} _3m
- * @property {CentsUsdPattern3} _4m
- * @property {CentsUsdPattern3} _5m
- * @property {CentsUsdPattern3} _6m
- * @property {CentsUsdPattern3} _9m
- * @property {CentsUsdPattern3} _1y
- * @property {CentsUsdPattern3} _18m
- * @property {CentsUsdPattern3} _2y
- * @property {CentsUsdPattern3} _3y
- * @property {CentsUsdPattern3} _4y
- * @property {CentsUsdPattern3} _5y
- * @property {CentsUsdPattern3} _6y
- * @property {CentsUsdPattern3} _7y
- * @property {CentsUsdPattern3} _8y
- * @property {CentsUsdPattern3} _10y
- * @property {CentsUsdPattern3} _12y
+ * @property {CentsUsdPattern} _1d
+ * @property {CentsUsdPattern} _1w
+ * @property {CentsUsdPattern} _1m
+ * @property {CentsUsdPattern} _2m
+ * @property {CentsUsdPattern} _3m
+ * @property {CentsUsdPattern} _4m
+ * @property {CentsUsdPattern} _5m
+ * @property {CentsUsdPattern} _6m
+ * @property {CentsUsdPattern} _9m
+ * @property {CentsUsdPattern} _1y
+ * @property {CentsUsdPattern} _18m
+ * @property {CentsUsdPattern} _2y
+ * @property {CentsUsdPattern} _3y
+ * @property {CentsUsdPattern} _4y
+ * @property {CentsUsdPattern} _5y
+ * @property {CentsUsdPattern} _6y
+ * @property {CentsUsdPattern} _7y
+ * @property {CentsUsdPattern} _8y
+ * @property {CentsUsdPattern} _10y
+ * @property {CentsUsdPattern} _12y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch
- * @property {CentsUsdPattern3} _0
- * @property {CentsUsdPattern3} _1
- * @property {CentsUsdPattern3} _2
- * @property {CentsUsdPattern3} _3
- * @property {CentsUsdPattern3} _4
+ * @property {CentsUsdPattern} _0
+ * @property {CentsUsdPattern} _1
+ * @property {CentsUsdPattern} _2
+ * @property {CentsUsdPattern} _3
+ * @property {CentsUsdPattern} _4
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class
- * @property {CentsUsdPattern3} _2009
- * @property {CentsUsdPattern3} _2010
- * @property {CentsUsdPattern3} _2011
- * @property {CentsUsdPattern3} _2012
- * @property {CentsUsdPattern3} _2013
- * @property {CentsUsdPattern3} _2014
- * @property {CentsUsdPattern3} _2015
- * @property {CentsUsdPattern3} _2016
- * @property {CentsUsdPattern3} _2017
- * @property {CentsUsdPattern3} _2018
- * @property {CentsUsdPattern3} _2019
- * @property {CentsUsdPattern3} _2020
- * @property {CentsUsdPattern3} _2021
- * @property {CentsUsdPattern3} _2022
- * @property {CentsUsdPattern3} _2023
- * @property {CentsUsdPattern3} _2024
- * @property {CentsUsdPattern3} _2025
- * @property {CentsUsdPattern3} _2026
+ * @property {CentsUsdPattern} _2009
+ * @property {CentsUsdPattern} _2010
+ * @property {CentsUsdPattern} _2011
+ * @property {CentsUsdPattern} _2012
+ * @property {CentsUsdPattern} _2013
+ * @property {CentsUsdPattern} _2014
+ * @property {CentsUsdPattern} _2015
+ * @property {CentsUsdPattern} _2016
+ * @property {CentsUsdPattern} _2017
+ * @property {CentsUsdPattern} _2018
+ * @property {CentsUsdPattern} _2019
+ * @property {CentsUsdPattern} _2020
+ * @property {CentsUsdPattern} _2021
+ * @property {CentsUsdPattern} _2022
+ * @property {CentsUsdPattern} _2023
+ * @property {CentsUsdPattern} _2024
+ * @property {CentsUsdPattern} _2025
+ * @property {CentsUsdPattern} _2026
  */
 
 /**
@@ -14063,7 +14032,7 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl
- * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern2} all
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age} age
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch} epoch
  * @property {SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class} class
@@ -14084,167 +14053,167 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range
- * @property {CentsUsdPattern} under1h
- * @property {CentsUsdPattern} _1hTo1d
- * @property {CentsUsdPattern} _1dTo1w
- * @property {CentsUsdPattern} _1wTo1m
- * @property {CentsUsdPattern} _1mTo2m
- * @property {CentsUsdPattern} _2mTo3m
- * @property {CentsUsdPattern} _3mTo4m
- * @property {CentsUsdPattern} _4mTo5m
- * @property {CentsUsdPattern} _5mTo6m
- * @property {CentsUsdPattern} _6mTo9m
- * @property {CentsUsdPattern} _9mTo1y
- * @property {CentsUsdPattern} _1yTo18m
- * @property {CentsUsdPattern} _18mTo2y
- * @property {CentsUsdPattern} _2yTo3y
- * @property {CentsUsdPattern} _3yTo4y
- * @property {CentsUsdPattern} _4yTo5y
- * @property {CentsUsdPattern} _5yTo6y
- * @property {CentsUsdPattern} _6yTo7y
- * @property {CentsUsdPattern} _7yTo8y
- * @property {CentsUsdPattern} _8yTo10y
- * @property {CentsUsdPattern} _10yTo12y
- * @property {CentsUsdPattern} _12yTo15y
- * @property {CentsUsdPattern} over15y
+ * @property {CentsUsdPattern2} under1h
+ * @property {CentsUsdPattern2} _1hTo1d
+ * @property {CentsUsdPattern2} _1dTo1w
+ * @property {CentsUsdPattern2} _1wTo1m
+ * @property {CentsUsdPattern2} _1mTo2m
+ * @property {CentsUsdPattern2} _2mTo3m
+ * @property {CentsUsdPattern2} _3mTo4m
+ * @property {CentsUsdPattern2} _4mTo5m
+ * @property {CentsUsdPattern2} _5mTo6m
+ * @property {CentsUsdPattern2} _6mTo9m
+ * @property {CentsUsdPattern2} _9mTo1y
+ * @property {CentsUsdPattern2} _1yTo18m
+ * @property {CentsUsdPattern2} _18mTo2y
+ * @property {CentsUsdPattern2} _2yTo3y
+ * @property {CentsUsdPattern2} _3yTo4y
+ * @property {CentsUsdPattern2} _4yTo5y
+ * @property {CentsUsdPattern2} _5yTo6y
+ * @property {CentsUsdPattern2} _6yTo7y
+ * @property {CentsUsdPattern2} _7yTo8y
+ * @property {CentsUsdPattern2} _8yTo10y
+ * @property {CentsUsdPattern2} _10yTo12y
+ * @property {CentsUsdPattern2} _12yTo15y
+ * @property {CentsUsdPattern2} over15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under
- * @property {CentsUsdPattern} _1w
- * @property {CentsUsdPattern} _1m
- * @property {CentsUsdPattern} _2m
- * @property {CentsUsdPattern} _3m
- * @property {CentsUsdPattern} _4m
- * @property {CentsUsdPattern} _5m
- * @property {CentsUsdPattern} _6m
- * @property {CentsUsdPattern} _9m
- * @property {CentsUsdPattern} _1y
- * @property {CentsUsdPattern} _18m
- * @property {CentsUsdPattern} _2y
- * @property {CentsUsdPattern} _3y
- * @property {CentsUsdPattern} _4y
- * @property {CentsUsdPattern} _5y
- * @property {CentsUsdPattern} _6y
- * @property {CentsUsdPattern} _7y
- * @property {CentsUsdPattern} _8y
- * @property {CentsUsdPattern} _10y
- * @property {CentsUsdPattern} _12y
- * @property {CentsUsdPattern} _15y
+ * @property {CentsUsdPattern2} _1w
+ * @property {CentsUsdPattern2} _1m
+ * @property {CentsUsdPattern2} _2m
+ * @property {CentsUsdPattern2} _3m
+ * @property {CentsUsdPattern2} _4m
+ * @property {CentsUsdPattern2} _5m
+ * @property {CentsUsdPattern2} _6m
+ * @property {CentsUsdPattern2} _9m
+ * @property {CentsUsdPattern2} _1y
+ * @property {CentsUsdPattern2} _18m
+ * @property {CentsUsdPattern2} _2y
+ * @property {CentsUsdPattern2} _3y
+ * @property {CentsUsdPattern2} _4y
+ * @property {CentsUsdPattern2} _5y
+ * @property {CentsUsdPattern2} _6y
+ * @property {CentsUsdPattern2} _7y
+ * @property {CentsUsdPattern2} _8y
+ * @property {CentsUsdPattern2} _10y
+ * @property {CentsUsdPattern2} _12y
+ * @property {CentsUsdPattern2} _15y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over
- * @property {CentsUsdPattern} _1d
- * @property {CentsUsdPattern} _1w
- * @property {CentsUsdPattern} _1m
- * @property {CentsUsdPattern} _2m
- * @property {CentsUsdPattern} _3m
- * @property {CentsUsdPattern} _4m
- * @property {CentsUsdPattern} _5m
- * @property {CentsUsdPattern} _6m
- * @property {CentsUsdPattern} _9m
- * @property {CentsUsdPattern} _1y
- * @property {CentsUsdPattern} _18m
- * @property {CentsUsdPattern} _2y
- * @property {CentsUsdPattern} _3y
- * @property {CentsUsdPattern} _4y
- * @property {CentsUsdPattern} _5y
- * @property {CentsUsdPattern} _6y
- * @property {CentsUsdPattern} _7y
- * @property {CentsUsdPattern} _8y
- * @property {CentsUsdPattern} _10y
- * @property {CentsUsdPattern} _12y
+ * @property {CentsUsdPattern2} _1d
+ * @property {CentsUsdPattern2} _1w
+ * @property {CentsUsdPattern2} _1m
+ * @property {CentsUsdPattern2} _2m
+ * @property {CentsUsdPattern2} _3m
+ * @property {CentsUsdPattern2} _4m
+ * @property {CentsUsdPattern2} _5m
+ * @property {CentsUsdPattern2} _6m
+ * @property {CentsUsdPattern2} _9m
+ * @property {CentsUsdPattern2} _1y
+ * @property {CentsUsdPattern2} _18m
+ * @property {CentsUsdPattern2} _2y
+ * @property {CentsUsdPattern2} _3y
+ * @property {CentsUsdPattern2} _4y
+ * @property {CentsUsdPattern2} _5y
+ * @property {CentsUsdPattern2} _6y
+ * @property {CentsUsdPattern2} _7y
+ * @property {CentsUsdPattern2} _8y
+ * @property {CentsUsdPattern2} _10y
+ * @property {CentsUsdPattern2} _12y
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch
- * @property {CentsUsdPattern} _0
- * @property {CentsUsdPattern} _1
- * @property {CentsUsdPattern} _2
- * @property {CentsUsdPattern} _3
- * @property {CentsUsdPattern} _4
+ * @property {CentsUsdPattern2} _0
+ * @property {CentsUsdPattern2} _1
+ * @property {CentsUsdPattern2} _2
+ * @property {CentsUsdPattern2} _3
+ * @property {CentsUsdPattern2} _4
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class
- * @property {CentsUsdPattern} _2009
- * @property {CentsUsdPattern} _2010
- * @property {CentsUsdPattern} _2011
- * @property {CentsUsdPattern} _2012
- * @property {CentsUsdPattern} _2013
- * @property {CentsUsdPattern} _2014
- * @property {CentsUsdPattern} _2015
- * @property {CentsUsdPattern} _2016
- * @property {CentsUsdPattern} _2017
- * @property {CentsUsdPattern} _2018
- * @property {CentsUsdPattern} _2019
- * @property {CentsUsdPattern} _2020
- * @property {CentsUsdPattern} _2021
- * @property {CentsUsdPattern} _2022
- * @property {CentsUsdPattern} _2023
- * @property {CentsUsdPattern} _2024
- * @property {CentsUsdPattern} _2025
- * @property {CentsUsdPattern} _2026
+ * @property {CentsUsdPattern2} _2009
+ * @property {CentsUsdPattern2} _2010
+ * @property {CentsUsdPattern2} _2011
+ * @property {CentsUsdPattern2} _2012
+ * @property {CentsUsdPattern2} _2013
+ * @property {CentsUsdPattern2} _2014
+ * @property {CentsUsdPattern2} _2015
+ * @property {CentsUsdPattern2} _2016
+ * @property {CentsUsdPattern2} _2017
+ * @property {CentsUsdPattern2} _2018
+ * @property {CentsUsdPattern2} _2019
+ * @property {CentsUsdPattern2} _2020
+ * @property {CentsUsdPattern2} _2021
+ * @property {CentsUsdPattern2} _2022
+ * @property {CentsUsdPattern2} _2023
+ * @property {CentsUsdPattern2} _2024
+ * @property {CentsUsdPattern2} _2025
+ * @property {CentsUsdPattern2} _2026
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry
- * @property {CentsUsdPattern} discount
- * @property {CentsUsdPattern} premium
+ * @property {CentsUsdPattern2} discount
+ * @property {CentsUsdPattern2} premium
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term
- * @property {CentsUsdPattern} short
- * @property {CentsUsdPattern} long
+ * @property {CentsUsdPattern2} short
+ * @property {CentsUsdPattern2} long
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl
- * @property {CentsUsdPattern3} all
- * @property {CentsUsdPattern3} sth
- * @property {CentsUsdPattern3} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  * @property {SeriesPattern18<Cents>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit
- * @property {CentsUsdPattern3} all
- * @property {CentsUsdPattern3} sth
- * @property {CentsUsdPattern3} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  * @property {SeriesPattern18<Cents>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss
- * @property {CentsUsdPattern3} all
- * @property {CentsUsdPattern3} sth
- * @property {CentsUsdPattern3} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  * @property {SeriesPattern18<Cents>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex
- * @property {CentsUsdPattern3} all
- * @property {CentsUsdPattern3} sth
- * @property {CentsUsdPattern3} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  * @property {SeriesPattern18<Cents>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex
- * @property {CentsUsdPattern3} all
- * @property {CentsUsdPattern3} sth
- * @property {CentsUsdPattern3} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  * @property {SeriesPattern18<Cents>} height
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment
- * @property {CentsUsdPattern} all
- * @property {CentsUsdPattern} sth
- * @property {CentsUsdPattern} lth
+ * @property {CentsUsdPattern2} all
+ * @property {CentsUsdPattern2} sth
+ * @property {CentsUsdPattern2} lth
  * @property {SeriesPattern18<CentsSigned>} height
  */
 
@@ -14489,9 +14458,9 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit
- * @property {AllLthSthPattern5} toMcap
+ * @property {AllLthSthPattern6} toMcap
  * @property {SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap} toOwnMcap
- * @property {AllLthSthPattern5} toOwnGrossPnl
+ * @property {AllLthSthPattern6} toOwnGrossPnl
  */
 
 /**
@@ -14503,9 +14472,9 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss
- * @property {AllLthSthPattern5} toMcap
+ * @property {AllLthSthPattern6} toMcap
  * @property {SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap} toOwnMcap
- * @property {AllLthSthPattern5} toOwnGrossPnl
+ * @property {AllLthSthPattern6} toOwnGrossPnl
  */
 
 /**
@@ -14584,62 +14553,62 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range
- * @property {AllLthSthPattern4} over1000pctInProfit
- * @property {AllLthSthPattern4} _500pctTo1000pctInProfit
- * @property {AllLthSthPattern4} _300pctTo500pctInProfit
- * @property {AllLthSthPattern4} _200pctTo300pctInProfit
- * @property {AllLthSthPattern4} _100pctTo200pctInProfit
- * @property {AllLthSthPattern4} _90pctTo100pctInProfit
- * @property {AllLthSthPattern4} _80pctTo90pctInProfit
- * @property {AllLthSthPattern4} _70pctTo80pctInProfit
- * @property {AllLthSthPattern4} _60pctTo70pctInProfit
- * @property {AllLthSthPattern4} _50pctTo60pctInProfit
- * @property {AllLthSthPattern4} _40pctTo50pctInProfit
- * @property {AllLthSthPattern4} _30pctTo40pctInProfit
- * @property {AllLthSthPattern4} _20pctTo30pctInProfit
- * @property {AllLthSthPattern4} _10pctTo20pctInProfit
- * @property {AllLthSthPattern4} _0pctTo10pctInProfit
- * @property {AllLthSthPattern4} _0pctTo10pctInLoss
- * @property {AllLthSthPattern4} _10pctTo20pctInLoss
- * @property {AllLthSthPattern4} _20pctTo30pctInLoss
- * @property {AllLthSthPattern4} _30pctTo40pctInLoss
- * @property {AllLthSthPattern4} _40pctTo50pctInLoss
- * @property {AllLthSthPattern4} _50pctTo60pctInLoss
- * @property {AllLthSthPattern4} _60pctTo70pctInLoss
- * @property {AllLthSthPattern4} _70pctTo80pctInLoss
- * @property {AllLthSthPattern4} _80pctTo90pctInLoss
- * @property {AllLthSthPattern4} _90pctTo100pctInLoss
+ * @property {AllLthSthPattern5} over1000pctInProfit
+ * @property {AllLthSthPattern5} _500pctTo1000pctInProfit
+ * @property {AllLthSthPattern5} _300pctTo500pctInProfit
+ * @property {AllLthSthPattern5} _200pctTo300pctInProfit
+ * @property {AllLthSthPattern5} _100pctTo200pctInProfit
+ * @property {AllLthSthPattern5} _90pctTo100pctInProfit
+ * @property {AllLthSthPattern5} _80pctTo90pctInProfit
+ * @property {AllLthSthPattern5} _70pctTo80pctInProfit
+ * @property {AllLthSthPattern5} _60pctTo70pctInProfit
+ * @property {AllLthSthPattern5} _50pctTo60pctInProfit
+ * @property {AllLthSthPattern5} _40pctTo50pctInProfit
+ * @property {AllLthSthPattern5} _30pctTo40pctInProfit
+ * @property {AllLthSthPattern5} _20pctTo30pctInProfit
+ * @property {AllLthSthPattern5} _10pctTo20pctInProfit
+ * @property {AllLthSthPattern5} _0pctTo10pctInProfit
+ * @property {AllLthSthPattern5} _0pctTo10pctInLoss
+ * @property {AllLthSthPattern5} _10pctTo20pctInLoss
+ * @property {AllLthSthPattern5} _20pctTo30pctInLoss
+ * @property {AllLthSthPattern5} _30pctTo40pctInLoss
+ * @property {AllLthSthPattern5} _40pctTo50pctInLoss
+ * @property {AllLthSthPattern5} _50pctTo60pctInLoss
+ * @property {AllLthSthPattern5} _60pctTo70pctInLoss
+ * @property {AllLthSthPattern5} _70pctTo80pctInLoss
+ * @property {AllLthSthPattern5} _80pctTo90pctInLoss
+ * @property {AllLthSthPattern5} _90pctTo100pctInLoss
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit
- * @property {AllLthSthPattern4} all
- * @property {AllLthSthPattern4} _10pct
- * @property {AllLthSthPattern4} _20pct
- * @property {AllLthSthPattern4} _30pct
- * @property {AllLthSthPattern4} _40pct
- * @property {AllLthSthPattern4} _50pct
- * @property {AllLthSthPattern4} _60pct
- * @property {AllLthSthPattern4} _70pct
- * @property {AllLthSthPattern4} _80pct
- * @property {AllLthSthPattern4} _90pct
- * @property {AllLthSthPattern4} _100pct
- * @property {AllLthSthPattern4} _200pct
- * @property {AllLthSthPattern4} _300pct
- * @property {AllLthSthPattern4} _500pct
+ * @property {AllLthSthPattern5} all
+ * @property {AllLthSthPattern5} _10pct
+ * @property {AllLthSthPattern5} _20pct
+ * @property {AllLthSthPattern5} _30pct
+ * @property {AllLthSthPattern5} _40pct
+ * @property {AllLthSthPattern5} _50pct
+ * @property {AllLthSthPattern5} _60pct
+ * @property {AllLthSthPattern5} _70pct
+ * @property {AllLthSthPattern5} _80pct
+ * @property {AllLthSthPattern5} _90pct
+ * @property {AllLthSthPattern5} _100pct
+ * @property {AllLthSthPattern5} _200pct
+ * @property {AllLthSthPattern5} _300pct
+ * @property {AllLthSthPattern5} _500pct
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss
- * @property {AllLthSthPattern4} all
- * @property {AllLthSthPattern4} _10pct
- * @property {AllLthSthPattern4} _20pct
- * @property {AllLthSthPattern4} _30pct
- * @property {AllLthSthPattern4} _40pct
- * @property {AllLthSthPattern4} _50pct
- * @property {AllLthSthPattern4} _60pct
- * @property {AllLthSthPattern4} _70pct
- * @property {AllLthSthPattern4} _80pct
+ * @property {AllLthSthPattern5} all
+ * @property {AllLthSthPattern5} _10pct
+ * @property {AllLthSthPattern5} _20pct
+ * @property {AllLthSthPattern5} _30pct
+ * @property {AllLthSthPattern5} _40pct
+ * @property {AllLthSthPattern5} _50pct
+ * @property {AllLthSthPattern5} _60pct
+ * @property {AllLthSthPattern5} _70pct
+ * @property {AllLthSthPattern5} _80pct
  */
 
 /**
@@ -14647,7 +14616,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range} range
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit} profit
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss} loss
- * @property {SeriesPattern18<Dollars>} height
+ * @property {SeriesPattern18<Cents>} height
  */
 
 /**
@@ -14681,177 +14650,177 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -14874,100 +14843,100 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -14985,65 +14954,65 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -15051,7 +15020,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range} range
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit} profit
  * @property {SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss} loss
- * @property {SeriesPattern18<Dollars>} height
+ * @property {SeriesPattern18<Cents>} height
  */
 
 /**
@@ -15085,177 +15054,177 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -15278,100 +15247,100 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -15389,65 +15358,65 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct
- * @property {SeriesPattern1<Dollars>} all
- * @property {SeriesPattern1<Dollars>} sth
- * @property {SeriesPattern1<Dollars>} lth
+ * @property {CentsUsdPattern} all
+ * @property {CentsUsdPattern} sth
+ * @property {CentsUsdPattern} lth
  */
 
 /**
@@ -16819,7 +16788,19 @@ class BrkClient extends BrkClientBase {
           pct75: create_1m1w1y24hPattern(this, 'block_size_pct75'),
           pct90: create_1m1w1y24hPattern(this, 'block_size_pct90'),
         },
-        weight: createAverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(this, 'block_weight'),
+        weight: {
+          base: createSeriesPattern18(this, 'block_weight'),
+          cumulative: createSeriesPattern1(this, 'block_weight_cumulative'),
+          sum: create_1m1w1y24hPattern(this, 'block_weight_sum'),
+          average: create_1m1w1y24hPattern(this, 'block_weight_average'),
+          min: create_1m1w1y24hPattern(this, 'block_weight_min'),
+          max: create_1m1w1y24hPattern(this, 'block_weight_max'),
+          pct10: create_1m1w1y24hPattern(this, 'block_weight_pct10'),
+          pct25: create_1m1w1y24hPattern(this, 'block_weight_pct25'),
+          median: create_1m1w1y24hPattern(this, 'block_weight_median'),
+          pct75: create_1m1w1y24hPattern(this, 'block_weight_pct75'),
+          pct90: create_1m1w1y24hPattern(this, 'block_weight_pct90'),
+        },
         segwitTxs: createSeriesPattern18(this, 'segwit_txs'),
         segwitSize: createSeriesPattern18(this, 'segwit_size'),
         segwitWeight: createSeriesPattern18(this, 'segwit_weight'),
@@ -17982,7 +17963,7 @@ class BrkClient extends BrkClientBase {
               cents: createSeriesPattern1(this, 'all_awake_supply_cents'),
               inLoss: createSharePattern3(this, 'all_awake_supply_in_loss_share'),
             },
-            cap: createCentsUsdPattern3(this, 'all_awake_cap'),
+            cap: createCentsUsdPattern(this, 'all_awake_cap'),
             price: createCentsPpmRatioSatsUsdPattern(this, 'all_awake_price'),
           },
           dormant: createSupplyPattern2(this, 'all_dormant_supply'),
@@ -17995,7 +17976,7 @@ class BrkClient extends BrkClientBase {
                 cents: createSeriesPattern1(this, 'sth_awake_supply_cents'),
                 inLoss: createSharePattern3(this, 'sth_awake_supply_in_loss_share'),
               },
-              cap: createCentsUsdPattern3(this, 'sth_awake_cap'),
+              cap: createCentsUsdPattern(this, 'sth_awake_cap'),
               price: createCentsPpmRatioSatsUsdPattern(this, 'sth_awake_price'),
             },
             dormant: createSupplyPattern2(this, 'sth_dormant_supply'),
@@ -18009,7 +17990,7 @@ class BrkClient extends BrkClientBase {
                 cents: createSeriesPattern1(this, 'lth_awake_supply_cents'),
                 inLoss: createSharePattern3(this, 'lth_awake_supply_in_loss_share'),
               },
-              cap: createCentsUsdPattern3(this, 'lth_awake_cap'),
+              cap: createCentsUsdPattern(this, 'lth_awake_cap'),
               price: createCentsPpmRatioSatsUsdPattern(this, 'lth_awake_price'),
             },
             dormant: createSupplyPattern2(this, 'lth_dormant_supply'),
@@ -18038,11 +18019,11 @@ class BrkClient extends BrkClientBase {
             vocdd: createAverageBlockCumulativeSumPattern(this, 'vocdd'),
           },
           cap: {
-            thermo: createCentsUsdPattern3(this, 'thermo_cap'),
-            investor: createCentsUsdPattern3(this, 'investor_cap'),
-            vaulted: createCentsUsdPattern3(this, 'vaulted_cap'),
-            active: createCentsUsdPattern3(this, 'active_cap'),
-            cointime: createCentsUsdPattern3(this, 'cointime_cap'),
+            thermo: createCentsUsdPattern(this, 'thermo_cap'),
+            investor: createCentsUsdPattern(this, 'investor_cap'),
+            vaulted: createCentsUsdPattern(this, 'vaulted_cap'),
+            active: createCentsUsdPattern(this, 'active_cap'),
+            cointime: createCentsUsdPattern(this, 'cointime_cap'),
             aviv: createPpmRatioPattern2(this, 'aviv_ratio'),
           },
           prices: {
@@ -18207,7 +18188,7 @@ class BrkClient extends BrkClientBase {
             immobile: createBtcCentsSatsUsdPattern(this, 'all_immobile_supply'),
           },
           horizon: create_1m1y2y3m4y6m8yPattern2(this, 'all_coinflow'),
-          cap: createCentsUsdPattern3(this, 'all_coinflow_cap'),
+          cap: createCentsUsdPattern(this, 'all_coinflow_cap'),
           price: createCentsPpmRatioSatsUsdPattern(this, 'all_coinflow_price'),
           sth: {
             supply: {
@@ -18221,7 +18202,7 @@ class BrkClient extends BrkClientBase {
               immobile: createBtcCentsSatsUsdPattern(this, 'sth_immobile_supply'),
             },
             horizon: create_1m1y2y3m4y6m8yPattern2(this, 'sth_coinflow'),
-            cap: createCentsUsdPattern3(this, 'sth_coinflow_cap'),
+            cap: createCentsUsdPattern(this, 'sth_coinflow_cap'),
             price: createCentsPpmRatioSatsUsdPattern(this, 'sth_coinflow_price'),
           },
           lth: {
@@ -18236,7 +18217,7 @@ class BrkClient extends BrkClientBase {
               immobile: createBtcCentsSatsUsdPattern(this, 'lth_immobile_supply'),
             },
             horizon: create_1m1y2y3m4y6m8yPattern2(this, 'lth_coinflow'),
-            cap: createCentsUsdPattern3(this, 'lth_coinflow_cap'),
+            cap: createCentsUsdPattern(this, 'lth_coinflow_cap'),
             price: createCentsPpmRatioSatsUsdPattern(this, 'lth_coinflow_price'),
           },
           aggregateSources: {
@@ -20246,11 +20227,7 @@ class BrkClient extends BrkClientBase {
               sth: createSeriesPattern1(this, 'sth_coinyears_destroyed'),
               lth: createSeriesPattern1(this, 'lth_coinyears_destroyed'),
             },
-            dormancy: {
-              all: create_1m1w1y24hHeightPattern(this, 'all_dormancy'),
-              sth: create_1m1w1y24hHeightPattern(this, 'sth_dormancy'),
-              lth: create_1m1w1y24hHeightPattern(this, 'lth_dormancy'),
-            },
+            dormancy: createAllLthSthPattern2(this, 'dormancy'),
           },
           realized: {
             cap: {
@@ -20391,7 +20368,7 @@ class BrkClient extends BrkClientBase {
                 over: create_100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern4(this, 'addrs_over'),
                 matrix: createSeriesPattern18(this, 'addrs_realized_cap_cents_by_balance_range'),
               },
-              toOwnMcap: createAllLthSthPattern5(this, 'realized_cap_to_own_mcap'),
+              toOwnMcap: createAllLthSthPattern6(this, 'realized_cap_to_own_mcap'),
             },
             price: {
               all: createCentsPpmRatioSatsUsdPattern(this, 'realized_price'),
@@ -21587,20 +21564,16 @@ class BrkClient extends BrkClientBase {
               height: createSeriesPattern18(this, 'net_pnl_change_1m_to_rcap_ppm_by_aggregate'),
             },
             sellSideRiskRatio: {
-              all: create_1m1w1y24hHeightPattern3(this, 'all_sell_side_risk_ratio'),
-              sth: create_1m1w1y24hHeightPattern3(this, 'sth_sell_side_risk_ratio'),
-              lth: create_1m1w1y24hHeightPattern3(this, 'lth_sell_side_risk_ratio'),
+              all: create_1m1w1y24hHeightPattern2(this, 'all_sell_side_risk_ratio'),
+              sth: create_1m1w1y24hHeightPattern2(this, 'sth_sell_side_risk_ratio'),
+              lth: create_1m1w1y24hHeightPattern2(this, 'lth_sell_side_risk_ratio'),
             },
             soprRatioExtended: {
               all: create_1m1w1yHeightPattern(this, 'all_sopr'),
               sth: create_1m1w1yHeightPattern(this, 'sth_sopr'),
               lth: create_1m1w1yHeightPattern(this, 'lth_sopr'),
             },
-            profitToLossRatio: {
-              all: create_1m1w1y24hHeightPattern2(this, 'all_realized_profit_to_loss_ratio'),
-              sth: create_1m1w1y24hHeightPattern2(this, 'sth_realized_profit_to_loss_ratio'),
-              lth: create_1m1w1y24hHeightPattern2(this, 'lth_realized_profit_to_loss_ratio'),
-            },
+            profitToLossRatio: createAllLthSthPattern2(this, 'realized_profit_to_loss_ratio'),
             mvrv: {
               all: createSeriesPattern1(this, 'mvrv'),
               age: {
@@ -21757,104 +21730,104 @@ class BrkClient extends BrkClientBase {
           },
           unrealized: {
             profit: {
-              all: createCentsUsdPattern3(this, 'unrealized_profit'),
+              all: createCentsUsdPattern(this, 'unrealized_profit'),
               age: {
                 range: {
-                  under1h: createCentsUsdPattern3(this, 'utxos_under_1h_old_unrealized_profit'),
-                  _1hTo1d: createCentsUsdPattern3(this, 'utxos_1h_to_1d_old_unrealized_profit'),
-                  _1dTo1w: createCentsUsdPattern3(this, 'utxos_1d_to_1w_old_unrealized_profit'),
-                  _1wTo1m: createCentsUsdPattern3(this, 'utxos_1w_to_1m_old_unrealized_profit'),
-                  _1mTo2m: createCentsUsdPattern3(this, 'utxos_1m_to_2m_old_unrealized_profit'),
-                  _2mTo3m: createCentsUsdPattern3(this, 'utxos_2m_to_3m_old_unrealized_profit'),
-                  _3mTo4m: createCentsUsdPattern3(this, 'utxos_3m_to_4m_old_unrealized_profit'),
-                  _4mTo5m: createCentsUsdPattern3(this, 'utxos_4m_to_5m_old_unrealized_profit'),
-                  _5mTo6m: createCentsUsdPattern3(this, 'utxos_5m_to_6m_old_unrealized_profit'),
-                  _6mTo9m: createCentsUsdPattern3(this, 'utxos_6m_to_9m_old_unrealized_profit'),
-                  _9mTo1y: createCentsUsdPattern3(this, 'utxos_9m_to_1y_old_unrealized_profit'),
-                  _1yTo18m: createCentsUsdPattern3(this, 'utxos_1y_to_18m_old_unrealized_profit'),
-                  _18mTo2y: createCentsUsdPattern3(this, 'utxos_18m_to_2y_old_unrealized_profit'),
-                  _2yTo3y: createCentsUsdPattern3(this, 'utxos_2y_to_3y_old_unrealized_profit'),
-                  _3yTo4y: createCentsUsdPattern3(this, 'utxos_3y_to_4y_old_unrealized_profit'),
-                  _4yTo5y: createCentsUsdPattern3(this, 'utxos_4y_to_5y_old_unrealized_profit'),
-                  _5yTo6y: createCentsUsdPattern3(this, 'utxos_5y_to_6y_old_unrealized_profit'),
-                  _6yTo7y: createCentsUsdPattern3(this, 'utxos_6y_to_7y_old_unrealized_profit'),
-                  _7yTo8y: createCentsUsdPattern3(this, 'utxos_7y_to_8y_old_unrealized_profit'),
-                  _8yTo10y: createCentsUsdPattern3(this, 'utxos_8y_to_10y_old_unrealized_profit'),
-                  _10yTo12y: createCentsUsdPattern3(this, 'utxos_10y_to_12y_old_unrealized_profit'),
-                  _12yTo15y: createCentsUsdPattern3(this, 'utxos_12y_to_15y_old_unrealized_profit'),
-                  over15y: createCentsUsdPattern3(this, 'utxos_over_15y_old_unrealized_profit'),
+                  under1h: createCentsUsdPattern(this, 'utxos_under_1h_old_unrealized_profit'),
+                  _1hTo1d: createCentsUsdPattern(this, 'utxos_1h_to_1d_old_unrealized_profit'),
+                  _1dTo1w: createCentsUsdPattern(this, 'utxos_1d_to_1w_old_unrealized_profit'),
+                  _1wTo1m: createCentsUsdPattern(this, 'utxos_1w_to_1m_old_unrealized_profit'),
+                  _1mTo2m: createCentsUsdPattern(this, 'utxos_1m_to_2m_old_unrealized_profit'),
+                  _2mTo3m: createCentsUsdPattern(this, 'utxos_2m_to_3m_old_unrealized_profit'),
+                  _3mTo4m: createCentsUsdPattern(this, 'utxos_3m_to_4m_old_unrealized_profit'),
+                  _4mTo5m: createCentsUsdPattern(this, 'utxos_4m_to_5m_old_unrealized_profit'),
+                  _5mTo6m: createCentsUsdPattern(this, 'utxos_5m_to_6m_old_unrealized_profit'),
+                  _6mTo9m: createCentsUsdPattern(this, 'utxos_6m_to_9m_old_unrealized_profit'),
+                  _9mTo1y: createCentsUsdPattern(this, 'utxos_9m_to_1y_old_unrealized_profit'),
+                  _1yTo18m: createCentsUsdPattern(this, 'utxos_1y_to_18m_old_unrealized_profit'),
+                  _18mTo2y: createCentsUsdPattern(this, 'utxos_18m_to_2y_old_unrealized_profit'),
+                  _2yTo3y: createCentsUsdPattern(this, 'utxos_2y_to_3y_old_unrealized_profit'),
+                  _3yTo4y: createCentsUsdPattern(this, 'utxos_3y_to_4y_old_unrealized_profit'),
+                  _4yTo5y: createCentsUsdPattern(this, 'utxos_4y_to_5y_old_unrealized_profit'),
+                  _5yTo6y: createCentsUsdPattern(this, 'utxos_5y_to_6y_old_unrealized_profit'),
+                  _6yTo7y: createCentsUsdPattern(this, 'utxos_6y_to_7y_old_unrealized_profit'),
+                  _7yTo8y: createCentsUsdPattern(this, 'utxos_7y_to_8y_old_unrealized_profit'),
+                  _8yTo10y: createCentsUsdPattern(this, 'utxos_8y_to_10y_old_unrealized_profit'),
+                  _10yTo12y: createCentsUsdPattern(this, 'utxos_10y_to_12y_old_unrealized_profit'),
+                  _12yTo15y: createCentsUsdPattern(this, 'utxos_12y_to_15y_old_unrealized_profit'),
+                  over15y: createCentsUsdPattern(this, 'utxos_over_15y_old_unrealized_profit'),
                 },
                 under: {
-                  _1w: createCentsUsdPattern3(this, 'utxos_under_1w_old_unrealized_profit'),
-                  _1m: createCentsUsdPattern3(this, 'utxos_under_1m_old_unrealized_profit'),
-                  _2m: createCentsUsdPattern3(this, 'utxos_under_2m_old_unrealized_profit'),
-                  _3m: createCentsUsdPattern3(this, 'utxos_under_3m_old_unrealized_profit'),
-                  _4m: createCentsUsdPattern3(this, 'utxos_under_4m_old_unrealized_profit'),
-                  _5m: createCentsUsdPattern3(this, 'utxos_under_5m_old_unrealized_profit'),
-                  _6m: createCentsUsdPattern3(this, 'utxos_under_6m_old_unrealized_profit'),
-                  _9m: createCentsUsdPattern3(this, 'utxos_under_9m_old_unrealized_profit'),
-                  _1y: createCentsUsdPattern3(this, 'utxos_under_1y_old_unrealized_profit'),
-                  _18m: createCentsUsdPattern3(this, 'utxos_under_18m_old_unrealized_profit'),
-                  _2y: createCentsUsdPattern3(this, 'utxos_under_2y_old_unrealized_profit'),
-                  _3y: createCentsUsdPattern3(this, 'utxos_under_3y_old_unrealized_profit'),
-                  _4y: createCentsUsdPattern3(this, 'utxos_under_4y_old_unrealized_profit'),
-                  _5y: createCentsUsdPattern3(this, 'utxos_under_5y_old_unrealized_profit'),
-                  _6y: createCentsUsdPattern3(this, 'utxos_under_6y_old_unrealized_profit'),
-                  _7y: createCentsUsdPattern3(this, 'utxos_under_7y_old_unrealized_profit'),
-                  _8y: createCentsUsdPattern3(this, 'utxos_under_8y_old_unrealized_profit'),
-                  _10y: createCentsUsdPattern3(this, 'utxos_under_10y_old_unrealized_profit'),
-                  _12y: createCentsUsdPattern3(this, 'utxos_under_12y_old_unrealized_profit'),
-                  _15y: createCentsUsdPattern3(this, 'utxos_under_15y_old_unrealized_profit'),
+                  _1w: createCentsUsdPattern(this, 'utxos_under_1w_old_unrealized_profit'),
+                  _1m: createCentsUsdPattern(this, 'utxos_under_1m_old_unrealized_profit'),
+                  _2m: createCentsUsdPattern(this, 'utxos_under_2m_old_unrealized_profit'),
+                  _3m: createCentsUsdPattern(this, 'utxos_under_3m_old_unrealized_profit'),
+                  _4m: createCentsUsdPattern(this, 'utxos_under_4m_old_unrealized_profit'),
+                  _5m: createCentsUsdPattern(this, 'utxos_under_5m_old_unrealized_profit'),
+                  _6m: createCentsUsdPattern(this, 'utxos_under_6m_old_unrealized_profit'),
+                  _9m: createCentsUsdPattern(this, 'utxos_under_9m_old_unrealized_profit'),
+                  _1y: createCentsUsdPattern(this, 'utxos_under_1y_old_unrealized_profit'),
+                  _18m: createCentsUsdPattern(this, 'utxos_under_18m_old_unrealized_profit'),
+                  _2y: createCentsUsdPattern(this, 'utxos_under_2y_old_unrealized_profit'),
+                  _3y: createCentsUsdPattern(this, 'utxos_under_3y_old_unrealized_profit'),
+                  _4y: createCentsUsdPattern(this, 'utxos_under_4y_old_unrealized_profit'),
+                  _5y: createCentsUsdPattern(this, 'utxos_under_5y_old_unrealized_profit'),
+                  _6y: createCentsUsdPattern(this, 'utxos_under_6y_old_unrealized_profit'),
+                  _7y: createCentsUsdPattern(this, 'utxos_under_7y_old_unrealized_profit'),
+                  _8y: createCentsUsdPattern(this, 'utxos_under_8y_old_unrealized_profit'),
+                  _10y: createCentsUsdPattern(this, 'utxos_under_10y_old_unrealized_profit'),
+                  _12y: createCentsUsdPattern(this, 'utxos_under_12y_old_unrealized_profit'),
+                  _15y: createCentsUsdPattern(this, 'utxos_under_15y_old_unrealized_profit'),
                 },
                 over: {
-                  _1d: createCentsUsdPattern3(this, 'utxos_over_1d_old_unrealized_profit'),
-                  _1w: createCentsUsdPattern3(this, 'utxos_over_1w_old_unrealized_profit'),
-                  _1m: createCentsUsdPattern3(this, 'utxos_over_1m_old_unrealized_profit'),
-                  _2m: createCentsUsdPattern3(this, 'utxos_over_2m_old_unrealized_profit'),
-                  _3m: createCentsUsdPattern3(this, 'utxos_over_3m_old_unrealized_profit'),
-                  _4m: createCentsUsdPattern3(this, 'utxos_over_4m_old_unrealized_profit'),
-                  _5m: createCentsUsdPattern3(this, 'utxos_over_5m_old_unrealized_profit'),
-                  _6m: createCentsUsdPattern3(this, 'utxos_over_6m_old_unrealized_profit'),
-                  _9m: createCentsUsdPattern3(this, 'utxos_over_9m_old_unrealized_profit'),
-                  _1y: createCentsUsdPattern3(this, 'utxos_over_1y_old_unrealized_profit'),
-                  _18m: createCentsUsdPattern3(this, 'utxos_over_18m_old_unrealized_profit'),
-                  _2y: createCentsUsdPattern3(this, 'utxos_over_2y_old_unrealized_profit'),
-                  _3y: createCentsUsdPattern3(this, 'utxos_over_3y_old_unrealized_profit'),
-                  _4y: createCentsUsdPattern3(this, 'utxos_over_4y_old_unrealized_profit'),
-                  _5y: createCentsUsdPattern3(this, 'utxos_over_5y_old_unrealized_profit'),
-                  _6y: createCentsUsdPattern3(this, 'utxos_over_6y_old_unrealized_profit'),
-                  _7y: createCentsUsdPattern3(this, 'utxos_over_7y_old_unrealized_profit'),
-                  _8y: createCentsUsdPattern3(this, 'utxos_over_8y_old_unrealized_profit'),
-                  _10y: createCentsUsdPattern3(this, 'utxos_over_10y_old_unrealized_profit'),
-                  _12y: createCentsUsdPattern3(this, 'utxos_over_12y_old_unrealized_profit'),
+                  _1d: createCentsUsdPattern(this, 'utxos_over_1d_old_unrealized_profit'),
+                  _1w: createCentsUsdPattern(this, 'utxos_over_1w_old_unrealized_profit'),
+                  _1m: createCentsUsdPattern(this, 'utxos_over_1m_old_unrealized_profit'),
+                  _2m: createCentsUsdPattern(this, 'utxos_over_2m_old_unrealized_profit'),
+                  _3m: createCentsUsdPattern(this, 'utxos_over_3m_old_unrealized_profit'),
+                  _4m: createCentsUsdPattern(this, 'utxos_over_4m_old_unrealized_profit'),
+                  _5m: createCentsUsdPattern(this, 'utxos_over_5m_old_unrealized_profit'),
+                  _6m: createCentsUsdPattern(this, 'utxos_over_6m_old_unrealized_profit'),
+                  _9m: createCentsUsdPattern(this, 'utxos_over_9m_old_unrealized_profit'),
+                  _1y: createCentsUsdPattern(this, 'utxos_over_1y_old_unrealized_profit'),
+                  _18m: createCentsUsdPattern(this, 'utxos_over_18m_old_unrealized_profit'),
+                  _2y: createCentsUsdPattern(this, 'utxos_over_2y_old_unrealized_profit'),
+                  _3y: createCentsUsdPattern(this, 'utxos_over_3y_old_unrealized_profit'),
+                  _4y: createCentsUsdPattern(this, 'utxos_over_4y_old_unrealized_profit'),
+                  _5y: createCentsUsdPattern(this, 'utxos_over_5y_old_unrealized_profit'),
+                  _6y: createCentsUsdPattern(this, 'utxos_over_6y_old_unrealized_profit'),
+                  _7y: createCentsUsdPattern(this, 'utxos_over_7y_old_unrealized_profit'),
+                  _8y: createCentsUsdPattern(this, 'utxos_over_8y_old_unrealized_profit'),
+                  _10y: createCentsUsdPattern(this, 'utxos_over_10y_old_unrealized_profit'),
+                  _12y: createCentsUsdPattern(this, 'utxos_over_12y_old_unrealized_profit'),
                 },
               },
               epoch: {
-                _0: createCentsUsdPattern3(this, 'epoch_0_unrealized_profit'),
-                _1: createCentsUsdPattern3(this, 'epoch_1_unrealized_profit'),
-                _2: createCentsUsdPattern3(this, 'epoch_2_unrealized_profit'),
-                _3: createCentsUsdPattern3(this, 'epoch_3_unrealized_profit'),
-                _4: createCentsUsdPattern3(this, 'epoch_4_unrealized_profit'),
+                _0: createCentsUsdPattern(this, 'epoch_0_unrealized_profit'),
+                _1: createCentsUsdPattern(this, 'epoch_1_unrealized_profit'),
+                _2: createCentsUsdPattern(this, 'epoch_2_unrealized_profit'),
+                _3: createCentsUsdPattern(this, 'epoch_3_unrealized_profit'),
+                _4: createCentsUsdPattern(this, 'epoch_4_unrealized_profit'),
               },
               class: {
-                _2009: createCentsUsdPattern3(this, 'class_2009_unrealized_profit'),
-                _2010: createCentsUsdPattern3(this, 'class_2010_unrealized_profit'),
-                _2011: createCentsUsdPattern3(this, 'class_2011_unrealized_profit'),
-                _2012: createCentsUsdPattern3(this, 'class_2012_unrealized_profit'),
-                _2013: createCentsUsdPattern3(this, 'class_2013_unrealized_profit'),
-                _2014: createCentsUsdPattern3(this, 'class_2014_unrealized_profit'),
-                _2015: createCentsUsdPattern3(this, 'class_2015_unrealized_profit'),
-                _2016: createCentsUsdPattern3(this, 'class_2016_unrealized_profit'),
-                _2017: createCentsUsdPattern3(this, 'class_2017_unrealized_profit'),
-                _2018: createCentsUsdPattern3(this, 'class_2018_unrealized_profit'),
-                _2019: createCentsUsdPattern3(this, 'class_2019_unrealized_profit'),
-                _2020: createCentsUsdPattern3(this, 'class_2020_unrealized_profit'),
-                _2021: createCentsUsdPattern3(this, 'class_2021_unrealized_profit'),
-                _2022: createCentsUsdPattern3(this, 'class_2022_unrealized_profit'),
-                _2023: createCentsUsdPattern3(this, 'class_2023_unrealized_profit'),
-                _2024: createCentsUsdPattern3(this, 'class_2024_unrealized_profit'),
-                _2025: createCentsUsdPattern3(this, 'class_2025_unrealized_profit'),
-                _2026: createCentsUsdPattern3(this, 'class_2026_unrealized_profit'),
+                _2009: createCentsUsdPattern(this, 'class_2009_unrealized_profit'),
+                _2010: createCentsUsdPattern(this, 'class_2010_unrealized_profit'),
+                _2011: createCentsUsdPattern(this, 'class_2011_unrealized_profit'),
+                _2012: createCentsUsdPattern(this, 'class_2012_unrealized_profit'),
+                _2013: createCentsUsdPattern(this, 'class_2013_unrealized_profit'),
+                _2014: createCentsUsdPattern(this, 'class_2014_unrealized_profit'),
+                _2015: createCentsUsdPattern(this, 'class_2015_unrealized_profit'),
+                _2016: createCentsUsdPattern(this, 'class_2016_unrealized_profit'),
+                _2017: createCentsUsdPattern(this, 'class_2017_unrealized_profit'),
+                _2018: createCentsUsdPattern(this, 'class_2018_unrealized_profit'),
+                _2019: createCentsUsdPattern(this, 'class_2019_unrealized_profit'),
+                _2020: createCentsUsdPattern(this, 'class_2020_unrealized_profit'),
+                _2021: createCentsUsdPattern(this, 'class_2021_unrealized_profit'),
+                _2022: createCentsUsdPattern(this, 'class_2022_unrealized_profit'),
+                _2023: createCentsUsdPattern(this, 'class_2023_unrealized_profit'),
+                _2024: createCentsUsdPattern(this, 'class_2024_unrealized_profit'),
+                _2025: createCentsUsdPattern(this, 'class_2025_unrealized_profit'),
+                _2026: createCentsUsdPattern(this, 'class_2026_unrealized_profit'),
               },
               entry: createDiscountPremiumPattern13(this, 'unrealized_profit'),
               term: createLongShortPattern14(this, 'unrealized_profit'),
@@ -21866,104 +21839,104 @@ class BrkClient extends BrkClientBase {
               typeMatrix: createSeriesPattern18(this, 'unrealized_profit_cents_by_type'),
             },
             loss: {
-              all: createCentsUsdPattern3(this, 'unrealized_loss'),
+              all: createCentsUsdPattern(this, 'unrealized_loss'),
               age: {
                 range: {
-                  under1h: createCentsUsdPattern3(this, 'utxos_under_1h_old_unrealized_loss'),
-                  _1hTo1d: createCentsUsdPattern3(this, 'utxos_1h_to_1d_old_unrealized_loss'),
-                  _1dTo1w: createCentsUsdPattern3(this, 'utxos_1d_to_1w_old_unrealized_loss'),
-                  _1wTo1m: createCentsUsdPattern3(this, 'utxos_1w_to_1m_old_unrealized_loss'),
-                  _1mTo2m: createCentsUsdPattern3(this, 'utxos_1m_to_2m_old_unrealized_loss'),
-                  _2mTo3m: createCentsUsdPattern3(this, 'utxos_2m_to_3m_old_unrealized_loss'),
-                  _3mTo4m: createCentsUsdPattern3(this, 'utxos_3m_to_4m_old_unrealized_loss'),
-                  _4mTo5m: createCentsUsdPattern3(this, 'utxos_4m_to_5m_old_unrealized_loss'),
-                  _5mTo6m: createCentsUsdPattern3(this, 'utxos_5m_to_6m_old_unrealized_loss'),
-                  _6mTo9m: createCentsUsdPattern3(this, 'utxos_6m_to_9m_old_unrealized_loss'),
-                  _9mTo1y: createCentsUsdPattern3(this, 'utxos_9m_to_1y_old_unrealized_loss'),
-                  _1yTo18m: createCentsUsdPattern3(this, 'utxos_1y_to_18m_old_unrealized_loss'),
-                  _18mTo2y: createCentsUsdPattern3(this, 'utxos_18m_to_2y_old_unrealized_loss'),
-                  _2yTo3y: createCentsUsdPattern3(this, 'utxos_2y_to_3y_old_unrealized_loss'),
-                  _3yTo4y: createCentsUsdPattern3(this, 'utxos_3y_to_4y_old_unrealized_loss'),
-                  _4yTo5y: createCentsUsdPattern3(this, 'utxos_4y_to_5y_old_unrealized_loss'),
-                  _5yTo6y: createCentsUsdPattern3(this, 'utxos_5y_to_6y_old_unrealized_loss'),
-                  _6yTo7y: createCentsUsdPattern3(this, 'utxos_6y_to_7y_old_unrealized_loss'),
-                  _7yTo8y: createCentsUsdPattern3(this, 'utxos_7y_to_8y_old_unrealized_loss'),
-                  _8yTo10y: createCentsUsdPattern3(this, 'utxos_8y_to_10y_old_unrealized_loss'),
-                  _10yTo12y: createCentsUsdPattern3(this, 'utxos_10y_to_12y_old_unrealized_loss'),
-                  _12yTo15y: createCentsUsdPattern3(this, 'utxos_12y_to_15y_old_unrealized_loss'),
-                  over15y: createCentsUsdPattern3(this, 'utxos_over_15y_old_unrealized_loss'),
+                  under1h: createCentsUsdPattern(this, 'utxos_under_1h_old_unrealized_loss'),
+                  _1hTo1d: createCentsUsdPattern(this, 'utxos_1h_to_1d_old_unrealized_loss'),
+                  _1dTo1w: createCentsUsdPattern(this, 'utxos_1d_to_1w_old_unrealized_loss'),
+                  _1wTo1m: createCentsUsdPattern(this, 'utxos_1w_to_1m_old_unrealized_loss'),
+                  _1mTo2m: createCentsUsdPattern(this, 'utxos_1m_to_2m_old_unrealized_loss'),
+                  _2mTo3m: createCentsUsdPattern(this, 'utxos_2m_to_3m_old_unrealized_loss'),
+                  _3mTo4m: createCentsUsdPattern(this, 'utxos_3m_to_4m_old_unrealized_loss'),
+                  _4mTo5m: createCentsUsdPattern(this, 'utxos_4m_to_5m_old_unrealized_loss'),
+                  _5mTo6m: createCentsUsdPattern(this, 'utxos_5m_to_6m_old_unrealized_loss'),
+                  _6mTo9m: createCentsUsdPattern(this, 'utxos_6m_to_9m_old_unrealized_loss'),
+                  _9mTo1y: createCentsUsdPattern(this, 'utxos_9m_to_1y_old_unrealized_loss'),
+                  _1yTo18m: createCentsUsdPattern(this, 'utxos_1y_to_18m_old_unrealized_loss'),
+                  _18mTo2y: createCentsUsdPattern(this, 'utxos_18m_to_2y_old_unrealized_loss'),
+                  _2yTo3y: createCentsUsdPattern(this, 'utxos_2y_to_3y_old_unrealized_loss'),
+                  _3yTo4y: createCentsUsdPattern(this, 'utxos_3y_to_4y_old_unrealized_loss'),
+                  _4yTo5y: createCentsUsdPattern(this, 'utxos_4y_to_5y_old_unrealized_loss'),
+                  _5yTo6y: createCentsUsdPattern(this, 'utxos_5y_to_6y_old_unrealized_loss'),
+                  _6yTo7y: createCentsUsdPattern(this, 'utxos_6y_to_7y_old_unrealized_loss'),
+                  _7yTo8y: createCentsUsdPattern(this, 'utxos_7y_to_8y_old_unrealized_loss'),
+                  _8yTo10y: createCentsUsdPattern(this, 'utxos_8y_to_10y_old_unrealized_loss'),
+                  _10yTo12y: createCentsUsdPattern(this, 'utxos_10y_to_12y_old_unrealized_loss'),
+                  _12yTo15y: createCentsUsdPattern(this, 'utxos_12y_to_15y_old_unrealized_loss'),
+                  over15y: createCentsUsdPattern(this, 'utxos_over_15y_old_unrealized_loss'),
                 },
                 under: {
-                  _1w: createCentsUsdPattern3(this, 'utxos_under_1w_old_unrealized_loss'),
-                  _1m: createCentsUsdPattern3(this, 'utxos_under_1m_old_unrealized_loss'),
-                  _2m: createCentsUsdPattern3(this, 'utxos_under_2m_old_unrealized_loss'),
-                  _3m: createCentsUsdPattern3(this, 'utxos_under_3m_old_unrealized_loss'),
-                  _4m: createCentsUsdPattern3(this, 'utxos_under_4m_old_unrealized_loss'),
-                  _5m: createCentsUsdPattern3(this, 'utxos_under_5m_old_unrealized_loss'),
-                  _6m: createCentsUsdPattern3(this, 'utxos_under_6m_old_unrealized_loss'),
-                  _9m: createCentsUsdPattern3(this, 'utxos_under_9m_old_unrealized_loss'),
-                  _1y: createCentsUsdPattern3(this, 'utxos_under_1y_old_unrealized_loss'),
-                  _18m: createCentsUsdPattern3(this, 'utxos_under_18m_old_unrealized_loss'),
-                  _2y: createCentsUsdPattern3(this, 'utxos_under_2y_old_unrealized_loss'),
-                  _3y: createCentsUsdPattern3(this, 'utxos_under_3y_old_unrealized_loss'),
-                  _4y: createCentsUsdPattern3(this, 'utxos_under_4y_old_unrealized_loss'),
-                  _5y: createCentsUsdPattern3(this, 'utxos_under_5y_old_unrealized_loss'),
-                  _6y: createCentsUsdPattern3(this, 'utxos_under_6y_old_unrealized_loss'),
-                  _7y: createCentsUsdPattern3(this, 'utxos_under_7y_old_unrealized_loss'),
-                  _8y: createCentsUsdPattern3(this, 'utxos_under_8y_old_unrealized_loss'),
-                  _10y: createCentsUsdPattern3(this, 'utxos_under_10y_old_unrealized_loss'),
-                  _12y: createCentsUsdPattern3(this, 'utxos_under_12y_old_unrealized_loss'),
-                  _15y: createCentsUsdPattern3(this, 'utxos_under_15y_old_unrealized_loss'),
+                  _1w: createCentsUsdPattern(this, 'utxos_under_1w_old_unrealized_loss'),
+                  _1m: createCentsUsdPattern(this, 'utxos_under_1m_old_unrealized_loss'),
+                  _2m: createCentsUsdPattern(this, 'utxos_under_2m_old_unrealized_loss'),
+                  _3m: createCentsUsdPattern(this, 'utxos_under_3m_old_unrealized_loss'),
+                  _4m: createCentsUsdPattern(this, 'utxos_under_4m_old_unrealized_loss'),
+                  _5m: createCentsUsdPattern(this, 'utxos_under_5m_old_unrealized_loss'),
+                  _6m: createCentsUsdPattern(this, 'utxos_under_6m_old_unrealized_loss'),
+                  _9m: createCentsUsdPattern(this, 'utxos_under_9m_old_unrealized_loss'),
+                  _1y: createCentsUsdPattern(this, 'utxos_under_1y_old_unrealized_loss'),
+                  _18m: createCentsUsdPattern(this, 'utxos_under_18m_old_unrealized_loss'),
+                  _2y: createCentsUsdPattern(this, 'utxos_under_2y_old_unrealized_loss'),
+                  _3y: createCentsUsdPattern(this, 'utxos_under_3y_old_unrealized_loss'),
+                  _4y: createCentsUsdPattern(this, 'utxos_under_4y_old_unrealized_loss'),
+                  _5y: createCentsUsdPattern(this, 'utxos_under_5y_old_unrealized_loss'),
+                  _6y: createCentsUsdPattern(this, 'utxos_under_6y_old_unrealized_loss'),
+                  _7y: createCentsUsdPattern(this, 'utxos_under_7y_old_unrealized_loss'),
+                  _8y: createCentsUsdPattern(this, 'utxos_under_8y_old_unrealized_loss'),
+                  _10y: createCentsUsdPattern(this, 'utxos_under_10y_old_unrealized_loss'),
+                  _12y: createCentsUsdPattern(this, 'utxos_under_12y_old_unrealized_loss'),
+                  _15y: createCentsUsdPattern(this, 'utxos_under_15y_old_unrealized_loss'),
                 },
                 over: {
-                  _1d: createCentsUsdPattern3(this, 'utxos_over_1d_old_unrealized_loss'),
-                  _1w: createCentsUsdPattern3(this, 'utxos_over_1w_old_unrealized_loss'),
-                  _1m: createCentsUsdPattern3(this, 'utxos_over_1m_old_unrealized_loss'),
-                  _2m: createCentsUsdPattern3(this, 'utxos_over_2m_old_unrealized_loss'),
-                  _3m: createCentsUsdPattern3(this, 'utxos_over_3m_old_unrealized_loss'),
-                  _4m: createCentsUsdPattern3(this, 'utxos_over_4m_old_unrealized_loss'),
-                  _5m: createCentsUsdPattern3(this, 'utxos_over_5m_old_unrealized_loss'),
-                  _6m: createCentsUsdPattern3(this, 'utxos_over_6m_old_unrealized_loss'),
-                  _9m: createCentsUsdPattern3(this, 'utxos_over_9m_old_unrealized_loss'),
-                  _1y: createCentsUsdPattern3(this, 'utxos_over_1y_old_unrealized_loss'),
-                  _18m: createCentsUsdPattern3(this, 'utxos_over_18m_old_unrealized_loss'),
-                  _2y: createCentsUsdPattern3(this, 'utxos_over_2y_old_unrealized_loss'),
-                  _3y: createCentsUsdPattern3(this, 'utxos_over_3y_old_unrealized_loss'),
-                  _4y: createCentsUsdPattern3(this, 'utxos_over_4y_old_unrealized_loss'),
-                  _5y: createCentsUsdPattern3(this, 'utxos_over_5y_old_unrealized_loss'),
-                  _6y: createCentsUsdPattern3(this, 'utxos_over_6y_old_unrealized_loss'),
-                  _7y: createCentsUsdPattern3(this, 'utxos_over_7y_old_unrealized_loss'),
-                  _8y: createCentsUsdPattern3(this, 'utxos_over_8y_old_unrealized_loss'),
-                  _10y: createCentsUsdPattern3(this, 'utxos_over_10y_old_unrealized_loss'),
-                  _12y: createCentsUsdPattern3(this, 'utxos_over_12y_old_unrealized_loss'),
+                  _1d: createCentsUsdPattern(this, 'utxos_over_1d_old_unrealized_loss'),
+                  _1w: createCentsUsdPattern(this, 'utxos_over_1w_old_unrealized_loss'),
+                  _1m: createCentsUsdPattern(this, 'utxos_over_1m_old_unrealized_loss'),
+                  _2m: createCentsUsdPattern(this, 'utxos_over_2m_old_unrealized_loss'),
+                  _3m: createCentsUsdPattern(this, 'utxos_over_3m_old_unrealized_loss'),
+                  _4m: createCentsUsdPattern(this, 'utxos_over_4m_old_unrealized_loss'),
+                  _5m: createCentsUsdPattern(this, 'utxos_over_5m_old_unrealized_loss'),
+                  _6m: createCentsUsdPattern(this, 'utxos_over_6m_old_unrealized_loss'),
+                  _9m: createCentsUsdPattern(this, 'utxos_over_9m_old_unrealized_loss'),
+                  _1y: createCentsUsdPattern(this, 'utxos_over_1y_old_unrealized_loss'),
+                  _18m: createCentsUsdPattern(this, 'utxos_over_18m_old_unrealized_loss'),
+                  _2y: createCentsUsdPattern(this, 'utxos_over_2y_old_unrealized_loss'),
+                  _3y: createCentsUsdPattern(this, 'utxos_over_3y_old_unrealized_loss'),
+                  _4y: createCentsUsdPattern(this, 'utxos_over_4y_old_unrealized_loss'),
+                  _5y: createCentsUsdPattern(this, 'utxos_over_5y_old_unrealized_loss'),
+                  _6y: createCentsUsdPattern(this, 'utxos_over_6y_old_unrealized_loss'),
+                  _7y: createCentsUsdPattern(this, 'utxos_over_7y_old_unrealized_loss'),
+                  _8y: createCentsUsdPattern(this, 'utxos_over_8y_old_unrealized_loss'),
+                  _10y: createCentsUsdPattern(this, 'utxos_over_10y_old_unrealized_loss'),
+                  _12y: createCentsUsdPattern(this, 'utxos_over_12y_old_unrealized_loss'),
                 },
               },
               epoch: {
-                _0: createCentsUsdPattern3(this, 'epoch_0_unrealized_loss'),
-                _1: createCentsUsdPattern3(this, 'epoch_1_unrealized_loss'),
-                _2: createCentsUsdPattern3(this, 'epoch_2_unrealized_loss'),
-                _3: createCentsUsdPattern3(this, 'epoch_3_unrealized_loss'),
-                _4: createCentsUsdPattern3(this, 'epoch_4_unrealized_loss'),
+                _0: createCentsUsdPattern(this, 'epoch_0_unrealized_loss'),
+                _1: createCentsUsdPattern(this, 'epoch_1_unrealized_loss'),
+                _2: createCentsUsdPattern(this, 'epoch_2_unrealized_loss'),
+                _3: createCentsUsdPattern(this, 'epoch_3_unrealized_loss'),
+                _4: createCentsUsdPattern(this, 'epoch_4_unrealized_loss'),
               },
               class: {
-                _2009: createCentsUsdPattern3(this, 'class_2009_unrealized_loss'),
-                _2010: createCentsUsdPattern3(this, 'class_2010_unrealized_loss'),
-                _2011: createCentsUsdPattern3(this, 'class_2011_unrealized_loss'),
-                _2012: createCentsUsdPattern3(this, 'class_2012_unrealized_loss'),
-                _2013: createCentsUsdPattern3(this, 'class_2013_unrealized_loss'),
-                _2014: createCentsUsdPattern3(this, 'class_2014_unrealized_loss'),
-                _2015: createCentsUsdPattern3(this, 'class_2015_unrealized_loss'),
-                _2016: createCentsUsdPattern3(this, 'class_2016_unrealized_loss'),
-                _2017: createCentsUsdPattern3(this, 'class_2017_unrealized_loss'),
-                _2018: createCentsUsdPattern3(this, 'class_2018_unrealized_loss'),
-                _2019: createCentsUsdPattern3(this, 'class_2019_unrealized_loss'),
-                _2020: createCentsUsdPattern3(this, 'class_2020_unrealized_loss'),
-                _2021: createCentsUsdPattern3(this, 'class_2021_unrealized_loss'),
-                _2022: createCentsUsdPattern3(this, 'class_2022_unrealized_loss'),
-                _2023: createCentsUsdPattern3(this, 'class_2023_unrealized_loss'),
-                _2024: createCentsUsdPattern3(this, 'class_2024_unrealized_loss'),
-                _2025: createCentsUsdPattern3(this, 'class_2025_unrealized_loss'),
-                _2026: createCentsUsdPattern3(this, 'class_2026_unrealized_loss'),
+                _2009: createCentsUsdPattern(this, 'class_2009_unrealized_loss'),
+                _2010: createCentsUsdPattern(this, 'class_2010_unrealized_loss'),
+                _2011: createCentsUsdPattern(this, 'class_2011_unrealized_loss'),
+                _2012: createCentsUsdPattern(this, 'class_2012_unrealized_loss'),
+                _2013: createCentsUsdPattern(this, 'class_2013_unrealized_loss'),
+                _2014: createCentsUsdPattern(this, 'class_2014_unrealized_loss'),
+                _2015: createCentsUsdPattern(this, 'class_2015_unrealized_loss'),
+                _2016: createCentsUsdPattern(this, 'class_2016_unrealized_loss'),
+                _2017: createCentsUsdPattern(this, 'class_2017_unrealized_loss'),
+                _2018: createCentsUsdPattern(this, 'class_2018_unrealized_loss'),
+                _2019: createCentsUsdPattern(this, 'class_2019_unrealized_loss'),
+                _2020: createCentsUsdPattern(this, 'class_2020_unrealized_loss'),
+                _2021: createCentsUsdPattern(this, 'class_2021_unrealized_loss'),
+                _2022: createCentsUsdPattern(this, 'class_2022_unrealized_loss'),
+                _2023: createCentsUsdPattern(this, 'class_2023_unrealized_loss'),
+                _2024: createCentsUsdPattern(this, 'class_2024_unrealized_loss'),
+                _2025: createCentsUsdPattern(this, 'class_2025_unrealized_loss'),
+                _2026: createCentsUsdPattern(this, 'class_2026_unrealized_loss'),
               },
               entry: createDiscountPremiumPattern13(this, 'unrealized_loss'),
               term: createLongShortPattern14(this, 'unrealized_loss'),
@@ -22079,112 +22052,112 @@ class BrkClient extends BrkClientBase {
               },
             },
             netPnl: {
-              all: createCentsUsdPattern(this, 'net_unrealized_pnl'),
+              all: createCentsUsdPattern2(this, 'net_unrealized_pnl'),
               age: {
                 range: {
-                  under1h: createCentsUsdPattern(this, 'utxos_under_1h_old_net_unrealized_pnl'),
-                  _1hTo1d: createCentsUsdPattern(this, 'utxos_1h_to_1d_old_net_unrealized_pnl'),
-                  _1dTo1w: createCentsUsdPattern(this, 'utxos_1d_to_1w_old_net_unrealized_pnl'),
-                  _1wTo1m: createCentsUsdPattern(this, 'utxos_1w_to_1m_old_net_unrealized_pnl'),
-                  _1mTo2m: createCentsUsdPattern(this, 'utxos_1m_to_2m_old_net_unrealized_pnl'),
-                  _2mTo3m: createCentsUsdPattern(this, 'utxos_2m_to_3m_old_net_unrealized_pnl'),
-                  _3mTo4m: createCentsUsdPattern(this, 'utxos_3m_to_4m_old_net_unrealized_pnl'),
-                  _4mTo5m: createCentsUsdPattern(this, 'utxos_4m_to_5m_old_net_unrealized_pnl'),
-                  _5mTo6m: createCentsUsdPattern(this, 'utxos_5m_to_6m_old_net_unrealized_pnl'),
-                  _6mTo9m: createCentsUsdPattern(this, 'utxos_6m_to_9m_old_net_unrealized_pnl'),
-                  _9mTo1y: createCentsUsdPattern(this, 'utxos_9m_to_1y_old_net_unrealized_pnl'),
-                  _1yTo18m: createCentsUsdPattern(this, 'utxos_1y_to_18m_old_net_unrealized_pnl'),
-                  _18mTo2y: createCentsUsdPattern(this, 'utxos_18m_to_2y_old_net_unrealized_pnl'),
-                  _2yTo3y: createCentsUsdPattern(this, 'utxos_2y_to_3y_old_net_unrealized_pnl'),
-                  _3yTo4y: createCentsUsdPattern(this, 'utxos_3y_to_4y_old_net_unrealized_pnl'),
-                  _4yTo5y: createCentsUsdPattern(this, 'utxos_4y_to_5y_old_net_unrealized_pnl'),
-                  _5yTo6y: createCentsUsdPattern(this, 'utxos_5y_to_6y_old_net_unrealized_pnl'),
-                  _6yTo7y: createCentsUsdPattern(this, 'utxos_6y_to_7y_old_net_unrealized_pnl'),
-                  _7yTo8y: createCentsUsdPattern(this, 'utxos_7y_to_8y_old_net_unrealized_pnl'),
-                  _8yTo10y: createCentsUsdPattern(this, 'utxos_8y_to_10y_old_net_unrealized_pnl'),
-                  _10yTo12y: createCentsUsdPattern(this, 'utxos_10y_to_12y_old_net_unrealized_pnl'),
-                  _12yTo15y: createCentsUsdPattern(this, 'utxos_12y_to_15y_old_net_unrealized_pnl'),
-                  over15y: createCentsUsdPattern(this, 'utxos_over_15y_old_net_unrealized_pnl'),
+                  under1h: createCentsUsdPattern2(this, 'utxos_under_1h_old_net_unrealized_pnl'),
+                  _1hTo1d: createCentsUsdPattern2(this, 'utxos_1h_to_1d_old_net_unrealized_pnl'),
+                  _1dTo1w: createCentsUsdPattern2(this, 'utxos_1d_to_1w_old_net_unrealized_pnl'),
+                  _1wTo1m: createCentsUsdPattern2(this, 'utxos_1w_to_1m_old_net_unrealized_pnl'),
+                  _1mTo2m: createCentsUsdPattern2(this, 'utxos_1m_to_2m_old_net_unrealized_pnl'),
+                  _2mTo3m: createCentsUsdPattern2(this, 'utxos_2m_to_3m_old_net_unrealized_pnl'),
+                  _3mTo4m: createCentsUsdPattern2(this, 'utxos_3m_to_4m_old_net_unrealized_pnl'),
+                  _4mTo5m: createCentsUsdPattern2(this, 'utxos_4m_to_5m_old_net_unrealized_pnl'),
+                  _5mTo6m: createCentsUsdPattern2(this, 'utxos_5m_to_6m_old_net_unrealized_pnl'),
+                  _6mTo9m: createCentsUsdPattern2(this, 'utxos_6m_to_9m_old_net_unrealized_pnl'),
+                  _9mTo1y: createCentsUsdPattern2(this, 'utxos_9m_to_1y_old_net_unrealized_pnl'),
+                  _1yTo18m: createCentsUsdPattern2(this, 'utxos_1y_to_18m_old_net_unrealized_pnl'),
+                  _18mTo2y: createCentsUsdPattern2(this, 'utxos_18m_to_2y_old_net_unrealized_pnl'),
+                  _2yTo3y: createCentsUsdPattern2(this, 'utxos_2y_to_3y_old_net_unrealized_pnl'),
+                  _3yTo4y: createCentsUsdPattern2(this, 'utxos_3y_to_4y_old_net_unrealized_pnl'),
+                  _4yTo5y: createCentsUsdPattern2(this, 'utxos_4y_to_5y_old_net_unrealized_pnl'),
+                  _5yTo6y: createCentsUsdPattern2(this, 'utxos_5y_to_6y_old_net_unrealized_pnl'),
+                  _6yTo7y: createCentsUsdPattern2(this, 'utxos_6y_to_7y_old_net_unrealized_pnl'),
+                  _7yTo8y: createCentsUsdPattern2(this, 'utxos_7y_to_8y_old_net_unrealized_pnl'),
+                  _8yTo10y: createCentsUsdPattern2(this, 'utxos_8y_to_10y_old_net_unrealized_pnl'),
+                  _10yTo12y: createCentsUsdPattern2(this, 'utxos_10y_to_12y_old_net_unrealized_pnl'),
+                  _12yTo15y: createCentsUsdPattern2(this, 'utxos_12y_to_15y_old_net_unrealized_pnl'),
+                  over15y: createCentsUsdPattern2(this, 'utxos_over_15y_old_net_unrealized_pnl'),
                 },
                 under: {
-                  _1w: createCentsUsdPattern(this, 'utxos_under_1w_old_net_unrealized_pnl'),
-                  _1m: createCentsUsdPattern(this, 'utxos_under_1m_old_net_unrealized_pnl'),
-                  _2m: createCentsUsdPattern(this, 'utxos_under_2m_old_net_unrealized_pnl'),
-                  _3m: createCentsUsdPattern(this, 'utxos_under_3m_old_net_unrealized_pnl'),
-                  _4m: createCentsUsdPattern(this, 'utxos_under_4m_old_net_unrealized_pnl'),
-                  _5m: createCentsUsdPattern(this, 'utxos_under_5m_old_net_unrealized_pnl'),
-                  _6m: createCentsUsdPattern(this, 'utxos_under_6m_old_net_unrealized_pnl'),
-                  _9m: createCentsUsdPattern(this, 'utxos_under_9m_old_net_unrealized_pnl'),
-                  _1y: createCentsUsdPattern(this, 'utxos_under_1y_old_net_unrealized_pnl'),
-                  _18m: createCentsUsdPattern(this, 'utxos_under_18m_old_net_unrealized_pnl'),
-                  _2y: createCentsUsdPattern(this, 'utxos_under_2y_old_net_unrealized_pnl'),
-                  _3y: createCentsUsdPattern(this, 'utxos_under_3y_old_net_unrealized_pnl'),
-                  _4y: createCentsUsdPattern(this, 'utxos_under_4y_old_net_unrealized_pnl'),
-                  _5y: createCentsUsdPattern(this, 'utxos_under_5y_old_net_unrealized_pnl'),
-                  _6y: createCentsUsdPattern(this, 'utxos_under_6y_old_net_unrealized_pnl'),
-                  _7y: createCentsUsdPattern(this, 'utxos_under_7y_old_net_unrealized_pnl'),
-                  _8y: createCentsUsdPattern(this, 'utxos_under_8y_old_net_unrealized_pnl'),
-                  _10y: createCentsUsdPattern(this, 'utxos_under_10y_old_net_unrealized_pnl'),
-                  _12y: createCentsUsdPattern(this, 'utxos_under_12y_old_net_unrealized_pnl'),
-                  _15y: createCentsUsdPattern(this, 'utxos_under_15y_old_net_unrealized_pnl'),
+                  _1w: createCentsUsdPattern2(this, 'utxos_under_1w_old_net_unrealized_pnl'),
+                  _1m: createCentsUsdPattern2(this, 'utxos_under_1m_old_net_unrealized_pnl'),
+                  _2m: createCentsUsdPattern2(this, 'utxos_under_2m_old_net_unrealized_pnl'),
+                  _3m: createCentsUsdPattern2(this, 'utxos_under_3m_old_net_unrealized_pnl'),
+                  _4m: createCentsUsdPattern2(this, 'utxos_under_4m_old_net_unrealized_pnl'),
+                  _5m: createCentsUsdPattern2(this, 'utxos_under_5m_old_net_unrealized_pnl'),
+                  _6m: createCentsUsdPattern2(this, 'utxos_under_6m_old_net_unrealized_pnl'),
+                  _9m: createCentsUsdPattern2(this, 'utxos_under_9m_old_net_unrealized_pnl'),
+                  _1y: createCentsUsdPattern2(this, 'utxos_under_1y_old_net_unrealized_pnl'),
+                  _18m: createCentsUsdPattern2(this, 'utxos_under_18m_old_net_unrealized_pnl'),
+                  _2y: createCentsUsdPattern2(this, 'utxos_under_2y_old_net_unrealized_pnl'),
+                  _3y: createCentsUsdPattern2(this, 'utxos_under_3y_old_net_unrealized_pnl'),
+                  _4y: createCentsUsdPattern2(this, 'utxos_under_4y_old_net_unrealized_pnl'),
+                  _5y: createCentsUsdPattern2(this, 'utxos_under_5y_old_net_unrealized_pnl'),
+                  _6y: createCentsUsdPattern2(this, 'utxos_under_6y_old_net_unrealized_pnl'),
+                  _7y: createCentsUsdPattern2(this, 'utxos_under_7y_old_net_unrealized_pnl'),
+                  _8y: createCentsUsdPattern2(this, 'utxos_under_8y_old_net_unrealized_pnl'),
+                  _10y: createCentsUsdPattern2(this, 'utxos_under_10y_old_net_unrealized_pnl'),
+                  _12y: createCentsUsdPattern2(this, 'utxos_under_12y_old_net_unrealized_pnl'),
+                  _15y: createCentsUsdPattern2(this, 'utxos_under_15y_old_net_unrealized_pnl'),
                 },
                 over: {
-                  _1d: createCentsUsdPattern(this, 'utxos_over_1d_old_net_unrealized_pnl'),
-                  _1w: createCentsUsdPattern(this, 'utxos_over_1w_old_net_unrealized_pnl'),
-                  _1m: createCentsUsdPattern(this, 'utxos_over_1m_old_net_unrealized_pnl'),
-                  _2m: createCentsUsdPattern(this, 'utxos_over_2m_old_net_unrealized_pnl'),
-                  _3m: createCentsUsdPattern(this, 'utxos_over_3m_old_net_unrealized_pnl'),
-                  _4m: createCentsUsdPattern(this, 'utxos_over_4m_old_net_unrealized_pnl'),
-                  _5m: createCentsUsdPattern(this, 'utxos_over_5m_old_net_unrealized_pnl'),
-                  _6m: createCentsUsdPattern(this, 'utxos_over_6m_old_net_unrealized_pnl'),
-                  _9m: createCentsUsdPattern(this, 'utxos_over_9m_old_net_unrealized_pnl'),
-                  _1y: createCentsUsdPattern(this, 'utxos_over_1y_old_net_unrealized_pnl'),
-                  _18m: createCentsUsdPattern(this, 'utxos_over_18m_old_net_unrealized_pnl'),
-                  _2y: createCentsUsdPattern(this, 'utxos_over_2y_old_net_unrealized_pnl'),
-                  _3y: createCentsUsdPattern(this, 'utxos_over_3y_old_net_unrealized_pnl'),
-                  _4y: createCentsUsdPattern(this, 'utxos_over_4y_old_net_unrealized_pnl'),
-                  _5y: createCentsUsdPattern(this, 'utxos_over_5y_old_net_unrealized_pnl'),
-                  _6y: createCentsUsdPattern(this, 'utxos_over_6y_old_net_unrealized_pnl'),
-                  _7y: createCentsUsdPattern(this, 'utxos_over_7y_old_net_unrealized_pnl'),
-                  _8y: createCentsUsdPattern(this, 'utxos_over_8y_old_net_unrealized_pnl'),
-                  _10y: createCentsUsdPattern(this, 'utxos_over_10y_old_net_unrealized_pnl'),
-                  _12y: createCentsUsdPattern(this, 'utxos_over_12y_old_net_unrealized_pnl'),
+                  _1d: createCentsUsdPattern2(this, 'utxos_over_1d_old_net_unrealized_pnl'),
+                  _1w: createCentsUsdPattern2(this, 'utxos_over_1w_old_net_unrealized_pnl'),
+                  _1m: createCentsUsdPattern2(this, 'utxos_over_1m_old_net_unrealized_pnl'),
+                  _2m: createCentsUsdPattern2(this, 'utxos_over_2m_old_net_unrealized_pnl'),
+                  _3m: createCentsUsdPattern2(this, 'utxos_over_3m_old_net_unrealized_pnl'),
+                  _4m: createCentsUsdPattern2(this, 'utxos_over_4m_old_net_unrealized_pnl'),
+                  _5m: createCentsUsdPattern2(this, 'utxos_over_5m_old_net_unrealized_pnl'),
+                  _6m: createCentsUsdPattern2(this, 'utxos_over_6m_old_net_unrealized_pnl'),
+                  _9m: createCentsUsdPattern2(this, 'utxos_over_9m_old_net_unrealized_pnl'),
+                  _1y: createCentsUsdPattern2(this, 'utxos_over_1y_old_net_unrealized_pnl'),
+                  _18m: createCentsUsdPattern2(this, 'utxos_over_18m_old_net_unrealized_pnl'),
+                  _2y: createCentsUsdPattern2(this, 'utxos_over_2y_old_net_unrealized_pnl'),
+                  _3y: createCentsUsdPattern2(this, 'utxos_over_3y_old_net_unrealized_pnl'),
+                  _4y: createCentsUsdPattern2(this, 'utxos_over_4y_old_net_unrealized_pnl'),
+                  _5y: createCentsUsdPattern2(this, 'utxos_over_5y_old_net_unrealized_pnl'),
+                  _6y: createCentsUsdPattern2(this, 'utxos_over_6y_old_net_unrealized_pnl'),
+                  _7y: createCentsUsdPattern2(this, 'utxos_over_7y_old_net_unrealized_pnl'),
+                  _8y: createCentsUsdPattern2(this, 'utxos_over_8y_old_net_unrealized_pnl'),
+                  _10y: createCentsUsdPattern2(this, 'utxos_over_10y_old_net_unrealized_pnl'),
+                  _12y: createCentsUsdPattern2(this, 'utxos_over_12y_old_net_unrealized_pnl'),
                 },
               },
               epoch: {
-                _0: createCentsUsdPattern(this, 'epoch_0_net_unrealized_pnl'),
-                _1: createCentsUsdPattern(this, 'epoch_1_net_unrealized_pnl'),
-                _2: createCentsUsdPattern(this, 'epoch_2_net_unrealized_pnl'),
-                _3: createCentsUsdPattern(this, 'epoch_3_net_unrealized_pnl'),
-                _4: createCentsUsdPattern(this, 'epoch_4_net_unrealized_pnl'),
+                _0: createCentsUsdPattern2(this, 'epoch_0_net_unrealized_pnl'),
+                _1: createCentsUsdPattern2(this, 'epoch_1_net_unrealized_pnl'),
+                _2: createCentsUsdPattern2(this, 'epoch_2_net_unrealized_pnl'),
+                _3: createCentsUsdPattern2(this, 'epoch_3_net_unrealized_pnl'),
+                _4: createCentsUsdPattern2(this, 'epoch_4_net_unrealized_pnl'),
               },
               class: {
-                _2009: createCentsUsdPattern(this, 'class_2009_net_unrealized_pnl'),
-                _2010: createCentsUsdPattern(this, 'class_2010_net_unrealized_pnl'),
-                _2011: createCentsUsdPattern(this, 'class_2011_net_unrealized_pnl'),
-                _2012: createCentsUsdPattern(this, 'class_2012_net_unrealized_pnl'),
-                _2013: createCentsUsdPattern(this, 'class_2013_net_unrealized_pnl'),
-                _2014: createCentsUsdPattern(this, 'class_2014_net_unrealized_pnl'),
-                _2015: createCentsUsdPattern(this, 'class_2015_net_unrealized_pnl'),
-                _2016: createCentsUsdPattern(this, 'class_2016_net_unrealized_pnl'),
-                _2017: createCentsUsdPattern(this, 'class_2017_net_unrealized_pnl'),
-                _2018: createCentsUsdPattern(this, 'class_2018_net_unrealized_pnl'),
-                _2019: createCentsUsdPattern(this, 'class_2019_net_unrealized_pnl'),
-                _2020: createCentsUsdPattern(this, 'class_2020_net_unrealized_pnl'),
-                _2021: createCentsUsdPattern(this, 'class_2021_net_unrealized_pnl'),
-                _2022: createCentsUsdPattern(this, 'class_2022_net_unrealized_pnl'),
-                _2023: createCentsUsdPattern(this, 'class_2023_net_unrealized_pnl'),
-                _2024: createCentsUsdPattern(this, 'class_2024_net_unrealized_pnl'),
-                _2025: createCentsUsdPattern(this, 'class_2025_net_unrealized_pnl'),
-                _2026: createCentsUsdPattern(this, 'class_2026_net_unrealized_pnl'),
+                _2009: createCentsUsdPattern2(this, 'class_2009_net_unrealized_pnl'),
+                _2010: createCentsUsdPattern2(this, 'class_2010_net_unrealized_pnl'),
+                _2011: createCentsUsdPattern2(this, 'class_2011_net_unrealized_pnl'),
+                _2012: createCentsUsdPattern2(this, 'class_2012_net_unrealized_pnl'),
+                _2013: createCentsUsdPattern2(this, 'class_2013_net_unrealized_pnl'),
+                _2014: createCentsUsdPattern2(this, 'class_2014_net_unrealized_pnl'),
+                _2015: createCentsUsdPattern2(this, 'class_2015_net_unrealized_pnl'),
+                _2016: createCentsUsdPattern2(this, 'class_2016_net_unrealized_pnl'),
+                _2017: createCentsUsdPattern2(this, 'class_2017_net_unrealized_pnl'),
+                _2018: createCentsUsdPattern2(this, 'class_2018_net_unrealized_pnl'),
+                _2019: createCentsUsdPattern2(this, 'class_2019_net_unrealized_pnl'),
+                _2020: createCentsUsdPattern2(this, 'class_2020_net_unrealized_pnl'),
+                _2021: createCentsUsdPattern2(this, 'class_2021_net_unrealized_pnl'),
+                _2022: createCentsUsdPattern2(this, 'class_2022_net_unrealized_pnl'),
+                _2023: createCentsUsdPattern2(this, 'class_2023_net_unrealized_pnl'),
+                _2024: createCentsUsdPattern2(this, 'class_2024_net_unrealized_pnl'),
+                _2025: createCentsUsdPattern2(this, 'class_2025_net_unrealized_pnl'),
+                _2026: createCentsUsdPattern2(this, 'class_2026_net_unrealized_pnl'),
               },
               entry: {
-                discount: createCentsUsdPattern(this, 'veteran_net_unrealized_pnl'),
-                premium: createCentsUsdPattern(this, 'rookie_net_unrealized_pnl'),
+                discount: createCentsUsdPattern2(this, 'veteran_net_unrealized_pnl'),
+                premium: createCentsUsdPattern2(this, 'rookie_net_unrealized_pnl'),
               },
               term: {
-                short: createCentsUsdPattern(this, 'sth_net_unrealized_pnl'),
-                long: createCentsUsdPattern(this, 'lth_net_unrealized_pnl'),
+                short: createCentsUsdPattern2(this, 'sth_net_unrealized_pnl'),
+                long: createCentsUsdPattern2(this, 'lth_net_unrealized_pnl'),
               },
               ageRangeMatrix: createSeriesPattern18(this, 'utxos_net_unrealized_pnl_cents_by_age_range'),
               epochMatrix: createSeriesPattern18(this, 'net_unrealized_pnl_cents_by_epoch'),
@@ -22192,41 +22165,41 @@ class BrkClient extends BrkClientBase {
               entryMatrix: createSeriesPattern18(this, 'net_unrealized_pnl_cents_by_entry'),
             },
             grossPnl: {
-              all: createCentsUsdPattern3(this, 'all_unrealized_gross_pnl'),
-              sth: createCentsUsdPattern3(this, 'sth_unrealized_gross_pnl'),
-              lth: createCentsUsdPattern3(this, 'lth_unrealized_gross_pnl'),
+              all: createCentsUsdPattern(this, 'all_unrealized_gross_pnl'),
+              sth: createCentsUsdPattern(this, 'sth_unrealized_gross_pnl'),
+              lth: createCentsUsdPattern(this, 'lth_unrealized_gross_pnl'),
               height: createSeriesPattern18(this, 'unrealized_gross_pnl_cents_by_term'),
             },
             investedCapitalInProfit: {
-              all: createCentsUsdPattern3(this, 'all_invested_capital_in_profit'),
-              sth: createCentsUsdPattern3(this, 'sth_invested_capital_in_profit'),
-              lth: createCentsUsdPattern3(this, 'lth_invested_capital_in_profit'),
+              all: createCentsUsdPattern(this, 'all_invested_capital_in_profit'),
+              sth: createCentsUsdPattern(this, 'sth_invested_capital_in_profit'),
+              lth: createCentsUsdPattern(this, 'lth_invested_capital_in_profit'),
               height: createSeriesPattern18(this, 'invested_capital_in_profit_cents_by_term'),
             },
             investedCapitalInLoss: {
-              all: createCentsUsdPattern3(this, 'all_invested_capital_in_loss'),
-              sth: createCentsUsdPattern3(this, 'sth_invested_capital_in_loss'),
-              lth: createCentsUsdPattern3(this, 'lth_invested_capital_in_loss'),
+              all: createCentsUsdPattern(this, 'all_invested_capital_in_loss'),
+              sth: createCentsUsdPattern(this, 'sth_invested_capital_in_loss'),
+              lth: createCentsUsdPattern(this, 'lth_invested_capital_in_loss'),
               height: createSeriesPattern18(this, 'invested_capital_in_loss_cents_by_term'),
             },
             capitalizedCapInProfitRaw: createMatrixPattern(this, 'capitalized_cap_in_profit_raw_by_term'),
             capitalizedCapInLossRaw: createMatrixPattern(this, 'capitalized_cap_in_loss_raw_by_term'),
             painIndex: {
-              all: createCentsUsdPattern3(this, 'all_pain_index'),
-              sth: createCentsUsdPattern3(this, 'sth_pain_index'),
-              lth: createCentsUsdPattern3(this, 'lth_pain_index'),
+              all: createCentsUsdPattern(this, 'all_pain_index'),
+              sth: createCentsUsdPattern(this, 'sth_pain_index'),
+              lth: createCentsUsdPattern(this, 'lth_pain_index'),
               height: createSeriesPattern18(this, 'pain_index_cents_by_aggregate'),
             },
             greedIndex: {
-              all: createCentsUsdPattern3(this, 'all_greed_index'),
-              sth: createCentsUsdPattern3(this, 'sth_greed_index'),
-              lth: createCentsUsdPattern3(this, 'lth_greed_index'),
+              all: createCentsUsdPattern(this, 'all_greed_index'),
+              sth: createCentsUsdPattern(this, 'sth_greed_index'),
+              lth: createCentsUsdPattern(this, 'lth_greed_index'),
               height: createSeriesPattern18(this, 'greed_index_cents_by_aggregate'),
             },
             netSentiment: {
-              all: createCentsUsdPattern(this, 'all_net_sentiment'),
-              sth: createCentsUsdPattern(this, 'sth_net_sentiment'),
-              lth: createCentsUsdPattern(this, 'lth_net_sentiment'),
+              all: createCentsUsdPattern2(this, 'all_net_sentiment'),
+              sth: createCentsUsdPattern2(this, 'sth_net_sentiment'),
+              lth: createCentsUsdPattern2(this, 'lth_net_sentiment'),
               height: createSeriesPattern18(this, 'net_sentiment_cents_by_aggregate'),
             },
             nupl: {
@@ -22413,22 +22386,22 @@ class BrkClient extends BrkClientBase {
             },
             unrealized: {
               profit: {
-                toMcap: createAllLthSthPattern5(this, 'unrealized_profit_to_mcap'),
+                toMcap: createAllLthSthPattern6(this, 'unrealized_profit_to_mcap'),
                 toOwnMcap: {
                   short: createPercentPpmRatioPattern2(this, 'sth_unrealized_profit_to_own_mcap'),
                   long: createPercentPpmRatioPattern2(this, 'lth_unrealized_profit_to_own_mcap'),
                   height: createSeriesPattern18(this, 'unrealized_profit_to_own_mcap_ppm_by_term'),
                 },
-                toOwnGrossPnl: createAllLthSthPattern5(this, 'unrealized_profit_to_own_gross_pnl'),
+                toOwnGrossPnl: createAllLthSthPattern6(this, 'unrealized_profit_to_own_gross_pnl'),
               },
               loss: {
-                toMcap: createAllLthSthPattern5(this, 'unrealized_loss_to_mcap'),
+                toMcap: createAllLthSthPattern6(this, 'unrealized_loss_to_mcap'),
                 toOwnMcap: {
                   short: createPercentPpmRatioPattern2(this, 'sth_unrealized_loss_to_own_mcap'),
                   long: createPercentPpmRatioPattern2(this, 'lth_unrealized_loss_to_own_mcap'),
                   height: createSeriesPattern18(this, 'unrealized_loss_to_own_mcap_ppm_by_term'),
                 },
-                toOwnGrossPnl: createAllLthSthPattern5(this, 'unrealized_loss_to_own_gross_pnl'),
+                toOwnGrossPnl: createAllLthSthPattern6(this, 'unrealized_loss_to_own_gross_pnl'),
               },
               netPnl: {
                 toOwnMcap: {
@@ -22464,306 +22437,306 @@ class BrkClient extends BrkClientBase {
           profitability: {
             supply: {
               range: {
-                over1000pctInProfit: createAllLthSthPattern4(this, 'utxos_over_1000pct_in_profit'),
-                _500pctTo1000pctInProfit: createAllLthSthPattern4(this, 'utxos_500pct_to_1000pct_in_profit'),
-                _300pctTo500pctInProfit: createAllLthSthPattern4(this, 'utxos_300pct_to_500pct_in_profit'),
-                _200pctTo300pctInProfit: createAllLthSthPattern4(this, 'utxos_200pct_to_300pct_in_profit'),
-                _100pctTo200pctInProfit: createAllLthSthPattern4(this, 'utxos_100pct_to_200pct_in_profit'),
-                _90pctTo100pctInProfit: createAllLthSthPattern4(this, 'utxos_90pct_to_100pct_in_profit'),
-                _80pctTo90pctInProfit: createAllLthSthPattern4(this, 'utxos_80pct_to_90pct_in_profit'),
-                _70pctTo80pctInProfit: createAllLthSthPattern4(this, 'utxos_70pct_to_80pct_in_profit'),
-                _60pctTo70pctInProfit: createAllLthSthPattern4(this, 'utxos_60pct_to_70pct_in_profit'),
-                _50pctTo60pctInProfit: createAllLthSthPattern4(this, 'utxos_50pct_to_60pct_in_profit'),
-                _40pctTo50pctInProfit: createAllLthSthPattern4(this, 'utxos_40pct_to_50pct_in_profit'),
-                _30pctTo40pctInProfit: createAllLthSthPattern4(this, 'utxos_30pct_to_40pct_in_profit'),
-                _20pctTo30pctInProfit: createAllLthSthPattern4(this, 'utxos_20pct_to_30pct_in_profit'),
-                _10pctTo20pctInProfit: createAllLthSthPattern4(this, 'utxos_10pct_to_20pct_in_profit'),
-                _0pctTo10pctInProfit: createAllLthSthPattern4(this, 'utxos_0pct_to_10pct_in_profit'),
-                _0pctTo10pctInLoss: createAllLthSthPattern4(this, 'utxos_0pct_to_10pct_in_loss'),
-                _10pctTo20pctInLoss: createAllLthSthPattern4(this, 'utxos_10pct_to_20pct_in_loss'),
-                _20pctTo30pctInLoss: createAllLthSthPattern4(this, 'utxos_20pct_to_30pct_in_loss'),
-                _30pctTo40pctInLoss: createAllLthSthPattern4(this, 'utxos_30pct_to_40pct_in_loss'),
-                _40pctTo50pctInLoss: createAllLthSthPattern4(this, 'utxos_40pct_to_50pct_in_loss'),
-                _50pctTo60pctInLoss: createAllLthSthPattern4(this, 'utxos_50pct_to_60pct_in_loss'),
-                _60pctTo70pctInLoss: createAllLthSthPattern4(this, 'utxos_60pct_to_70pct_in_loss'),
-                _70pctTo80pctInLoss: createAllLthSthPattern4(this, 'utxos_70pct_to_80pct_in_loss'),
-                _80pctTo90pctInLoss: createAllLthSthPattern4(this, 'utxos_80pct_to_90pct_in_loss'),
-                _90pctTo100pctInLoss: createAllLthSthPattern4(this, 'utxos_90pct_to_100pct_in_loss'),
+                over1000pctInProfit: createAllLthSthPattern5(this, 'utxos_over_1000pct_in_profit'),
+                _500pctTo1000pctInProfit: createAllLthSthPattern5(this, 'utxos_500pct_to_1000pct_in_profit'),
+                _300pctTo500pctInProfit: createAllLthSthPattern5(this, 'utxos_300pct_to_500pct_in_profit'),
+                _200pctTo300pctInProfit: createAllLthSthPattern5(this, 'utxos_200pct_to_300pct_in_profit'),
+                _100pctTo200pctInProfit: createAllLthSthPattern5(this, 'utxos_100pct_to_200pct_in_profit'),
+                _90pctTo100pctInProfit: createAllLthSthPattern5(this, 'utxos_90pct_to_100pct_in_profit'),
+                _80pctTo90pctInProfit: createAllLthSthPattern5(this, 'utxos_80pct_to_90pct_in_profit'),
+                _70pctTo80pctInProfit: createAllLthSthPattern5(this, 'utxos_70pct_to_80pct_in_profit'),
+                _60pctTo70pctInProfit: createAllLthSthPattern5(this, 'utxos_60pct_to_70pct_in_profit'),
+                _50pctTo60pctInProfit: createAllLthSthPattern5(this, 'utxos_50pct_to_60pct_in_profit'),
+                _40pctTo50pctInProfit: createAllLthSthPattern5(this, 'utxos_40pct_to_50pct_in_profit'),
+                _30pctTo40pctInProfit: createAllLthSthPattern5(this, 'utxos_30pct_to_40pct_in_profit'),
+                _20pctTo30pctInProfit: createAllLthSthPattern5(this, 'utxos_20pct_to_30pct_in_profit'),
+                _10pctTo20pctInProfit: createAllLthSthPattern5(this, 'utxos_10pct_to_20pct_in_profit'),
+                _0pctTo10pctInProfit: createAllLthSthPattern5(this, 'utxos_0pct_to_10pct_in_profit'),
+                _0pctTo10pctInLoss: createAllLthSthPattern5(this, 'utxos_0pct_to_10pct_in_loss'),
+                _10pctTo20pctInLoss: createAllLthSthPattern5(this, 'utxos_10pct_to_20pct_in_loss'),
+                _20pctTo30pctInLoss: createAllLthSthPattern5(this, 'utxos_20pct_to_30pct_in_loss'),
+                _30pctTo40pctInLoss: createAllLthSthPattern5(this, 'utxos_30pct_to_40pct_in_loss'),
+                _40pctTo50pctInLoss: createAllLthSthPattern5(this, 'utxos_40pct_to_50pct_in_loss'),
+                _50pctTo60pctInLoss: createAllLthSthPattern5(this, 'utxos_50pct_to_60pct_in_loss'),
+                _60pctTo70pctInLoss: createAllLthSthPattern5(this, 'utxos_60pct_to_70pct_in_loss'),
+                _70pctTo80pctInLoss: createAllLthSthPattern5(this, 'utxos_70pct_to_80pct_in_loss'),
+                _80pctTo90pctInLoss: createAllLthSthPattern5(this, 'utxos_80pct_to_90pct_in_loss'),
+                _90pctTo100pctInLoss: createAllLthSthPattern5(this, 'utxos_90pct_to_100pct_in_loss'),
               },
               profit: {
-                all: createAllLthSthPattern4(this, 'utxos_in_profit'),
-                _10pct: createAllLthSthPattern4(this, 'utxos_over_10pct_in_profit'),
-                _20pct: createAllLthSthPattern4(this, 'utxos_over_20pct_in_profit'),
-                _30pct: createAllLthSthPattern4(this, 'utxos_over_30pct_in_profit'),
-                _40pct: createAllLthSthPattern4(this, 'utxos_over_40pct_in_profit'),
-                _50pct: createAllLthSthPattern4(this, 'utxos_over_50pct_in_profit'),
-                _60pct: createAllLthSthPattern4(this, 'utxos_over_60pct_in_profit'),
-                _70pct: createAllLthSthPattern4(this, 'utxos_over_70pct_in_profit'),
-                _80pct: createAllLthSthPattern4(this, 'utxos_over_80pct_in_profit'),
-                _90pct: createAllLthSthPattern4(this, 'utxos_over_90pct_in_profit'),
-                _100pct: createAllLthSthPattern4(this, 'utxos_over_100pct_in_profit'),
-                _200pct: createAllLthSthPattern4(this, 'utxos_over_200pct_in_profit'),
-                _300pct: createAllLthSthPattern4(this, 'utxos_over_300pct_in_profit'),
-                _500pct: createAllLthSthPattern4(this, 'utxos_over_500pct_in_profit'),
+                all: createAllLthSthPattern5(this, 'utxos_in_profit'),
+                _10pct: createAllLthSthPattern5(this, 'utxos_over_10pct_in_profit'),
+                _20pct: createAllLthSthPattern5(this, 'utxos_over_20pct_in_profit'),
+                _30pct: createAllLthSthPattern5(this, 'utxos_over_30pct_in_profit'),
+                _40pct: createAllLthSthPattern5(this, 'utxos_over_40pct_in_profit'),
+                _50pct: createAllLthSthPattern5(this, 'utxos_over_50pct_in_profit'),
+                _60pct: createAllLthSthPattern5(this, 'utxos_over_60pct_in_profit'),
+                _70pct: createAllLthSthPattern5(this, 'utxos_over_70pct_in_profit'),
+                _80pct: createAllLthSthPattern5(this, 'utxos_over_80pct_in_profit'),
+                _90pct: createAllLthSthPattern5(this, 'utxos_over_90pct_in_profit'),
+                _100pct: createAllLthSthPattern5(this, 'utxos_over_100pct_in_profit'),
+                _200pct: createAllLthSthPattern5(this, 'utxos_over_200pct_in_profit'),
+                _300pct: createAllLthSthPattern5(this, 'utxos_over_300pct_in_profit'),
+                _500pct: createAllLthSthPattern5(this, 'utxos_over_500pct_in_profit'),
               },
               loss: {
-                all: createAllLthSthPattern4(this, 'utxos_in_loss'),
-                _10pct: createAllLthSthPattern4(this, 'utxos_over_10pct_in_loss'),
-                _20pct: createAllLthSthPattern4(this, 'utxos_over_20pct_in_loss'),
-                _30pct: createAllLthSthPattern4(this, 'utxos_over_30pct_in_loss'),
-                _40pct: createAllLthSthPattern4(this, 'utxos_over_40pct_in_loss'),
-                _50pct: createAllLthSthPattern4(this, 'utxos_over_50pct_in_loss'),
-                _60pct: createAllLthSthPattern4(this, 'utxos_over_60pct_in_loss'),
-                _70pct: createAllLthSthPattern4(this, 'utxos_over_70pct_in_loss'),
-                _80pct: createAllLthSthPattern4(this, 'utxos_over_80pct_in_loss'),
+                all: createAllLthSthPattern5(this, 'utxos_in_loss'),
+                _10pct: createAllLthSthPattern5(this, 'utxos_over_10pct_in_loss'),
+                _20pct: createAllLthSthPattern5(this, 'utxos_over_20pct_in_loss'),
+                _30pct: createAllLthSthPattern5(this, 'utxos_over_30pct_in_loss'),
+                _40pct: createAllLthSthPattern5(this, 'utxos_over_40pct_in_loss'),
+                _50pct: createAllLthSthPattern5(this, 'utxos_over_50pct_in_loss'),
+                _60pct: createAllLthSthPattern5(this, 'utxos_over_60pct_in_loss'),
+                _70pct: createAllLthSthPattern5(this, 'utxos_over_70pct_in_loss'),
+                _80pct: createAllLthSthPattern5(this, 'utxos_over_80pct_in_loss'),
               },
               height: createSeriesPattern18(this, 'profitability_supply_sats_by_term_and_range'),
             },
             realizedCap: {
               range: {
                 over1000pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_lth_realized_cap'),
                 },
                 _500pctTo1000pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_lth_realized_cap'),
                 },
                 _300pctTo500pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_lth_realized_cap'),
                 },
                 _200pctTo300pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_lth_realized_cap'),
                 },
                 _100pctTo200pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_lth_realized_cap'),
                 },
                 _90pctTo100pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_lth_realized_cap'),
                 },
                 _80pctTo90pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_lth_realized_cap'),
                 },
                 _70pctTo80pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_lth_realized_cap'),
                 },
                 _60pctTo70pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_lth_realized_cap'),
                 },
                 _50pctTo60pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_lth_realized_cap'),
                 },
                 _40pctTo50pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_lth_realized_cap'),
                 },
                 _30pctTo40pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_lth_realized_cap'),
                 },
                 _20pctTo30pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_lth_realized_cap'),
                 },
                 _10pctTo20pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_lth_realized_cap'),
                 },
                 _0pctTo10pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_lth_realized_cap'),
                 },
                 _0pctTo10pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_lth_realized_cap'),
                 },
                 _10pctTo20pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_lth_realized_cap'),
                 },
                 _20pctTo30pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_lth_realized_cap'),
                 },
                 _30pctTo40pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_lth_realized_cap'),
                 },
                 _40pctTo50pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_lth_realized_cap'),
                 },
                 _50pctTo60pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_lth_realized_cap'),
                 },
                 _60pctTo70pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_lth_realized_cap'),
                 },
                 _70pctTo80pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_lth_realized_cap'),
                 },
                 _80pctTo90pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_lth_realized_cap'),
                 },
                 _90pctTo100pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_lth_realized_cap'),
                 },
               },
               profit: {
                 all: {
-                  all: createSeriesPattern1(this, 'utxos_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_in_profit_lth_realized_cap'),
                 },
                 _10pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_lth_realized_cap'),
                 },
                 _20pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_lth_realized_cap'),
                 },
                 _30pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_lth_realized_cap'),
                 },
                 _40pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_lth_realized_cap'),
                 },
                 _50pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_lth_realized_cap'),
                 },
                 _60pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_lth_realized_cap'),
                 },
                 _70pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_lth_realized_cap'),
                 },
                 _80pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_lth_realized_cap'),
                 },
                 _90pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_lth_realized_cap'),
                 },
                 _100pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_lth_realized_cap'),
                 },
                 _200pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_lth_realized_cap'),
                 },
                 _300pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_lth_realized_cap'),
                 },
                 _500pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_lth_realized_cap'),
                 },
               },
               loss: {
                 all: {
-                  all: createSeriesPattern1(this, 'utxos_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_in_loss_lth_realized_cap'),
                 },
                 _10pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_lth_realized_cap'),
                 },
                 _20pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_lth_realized_cap'),
                 },
                 _30pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_lth_realized_cap'),
                 },
                 _40pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_lth_realized_cap'),
                 },
                 _50pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_lth_realized_cap'),
                 },
                 _60pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_lth_realized_cap'),
                 },
                 _70pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_lth_realized_cap'),
                 },
                 _80pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_realized_cap'),
-                  sth: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_sth_realized_cap'),
-                  lth: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_lth_realized_cap'),
+                  all: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_realized_cap'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_sth_realized_cap'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_lth_realized_cap'),
                 },
               },
               height: createSeriesPattern18(this, 'profitability_realized_cap_by_term_and_range'),
@@ -22771,248 +22744,248 @@ class BrkClient extends BrkClientBase {
             unrealizedPnl: {
               range: {
                 over1000pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_1000pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_1000pct_in_profit_lth_unrealized_pnl'),
                 },
                 _500pctTo1000pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_500pct_to_1000pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_500pct_to_1000pct_in_profit_lth_unrealized_pnl'),
                 },
                 _300pctTo500pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_300pct_to_500pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_300pct_to_500pct_in_profit_lth_unrealized_pnl'),
                 },
                 _200pctTo300pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_200pct_to_300pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_200pct_to_300pct_in_profit_lth_unrealized_pnl'),
                 },
                 _100pctTo200pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_100pct_to_200pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_100pct_to_200pct_in_profit_lth_unrealized_pnl'),
                 },
                 _90pctTo100pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_profit_lth_unrealized_pnl'),
                 },
                 _80pctTo90pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_profit_lth_unrealized_pnl'),
                 },
                 _70pctTo80pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_profit_lth_unrealized_pnl'),
                 },
                 _60pctTo70pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_profit_lth_unrealized_pnl'),
                 },
                 _50pctTo60pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_profit_lth_unrealized_pnl'),
                 },
                 _40pctTo50pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_profit_lth_unrealized_pnl'),
                 },
                 _30pctTo40pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_profit_lth_unrealized_pnl'),
                 },
                 _20pctTo30pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_profit_lth_unrealized_pnl'),
                 },
                 _10pctTo20pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_profit_lth_unrealized_pnl'),
                 },
                 _0pctTo10pctInProfit: {
-                  all: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_profit_lth_unrealized_pnl'),
                 },
                 _0pctTo10pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_0pct_to_10pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_0pct_to_10pct_in_loss_lth_unrealized_pnl'),
                 },
                 _10pctTo20pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_10pct_to_20pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_10pct_to_20pct_in_loss_lth_unrealized_pnl'),
                 },
                 _20pctTo30pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_20pct_to_30pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_20pct_to_30pct_in_loss_lth_unrealized_pnl'),
                 },
                 _30pctTo40pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_30pct_to_40pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_30pct_to_40pct_in_loss_lth_unrealized_pnl'),
                 },
                 _40pctTo50pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_40pct_to_50pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_40pct_to_50pct_in_loss_lth_unrealized_pnl'),
                 },
                 _50pctTo60pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_50pct_to_60pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_50pct_to_60pct_in_loss_lth_unrealized_pnl'),
                 },
                 _60pctTo70pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_60pct_to_70pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_60pct_to_70pct_in_loss_lth_unrealized_pnl'),
                 },
                 _70pctTo80pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_70pct_to_80pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_70pct_to_80pct_in_loss_lth_unrealized_pnl'),
                 },
                 _80pctTo90pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_80pct_to_90pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_80pct_to_90pct_in_loss_lth_unrealized_pnl'),
                 },
                 _90pctTo100pctInLoss: {
-                  all: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_90pct_to_100pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_90pct_to_100pct_in_loss_lth_unrealized_pnl'),
                 },
               },
               profit: {
                 all: {
-                  all: createSeriesPattern1(this, 'utxos_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_in_profit_lth_unrealized_pnl'),
                 },
                 _10pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_10pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_10pct_in_profit_lth_unrealized_pnl'),
                 },
                 _20pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_20pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_20pct_in_profit_lth_unrealized_pnl'),
                 },
                 _30pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_30pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_30pct_in_profit_lth_unrealized_pnl'),
                 },
                 _40pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_40pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_40pct_in_profit_lth_unrealized_pnl'),
                 },
                 _50pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_50pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_50pct_in_profit_lth_unrealized_pnl'),
                 },
                 _60pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_60pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_60pct_in_profit_lth_unrealized_pnl'),
                 },
                 _70pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_70pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_70pct_in_profit_lth_unrealized_pnl'),
                 },
                 _80pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_80pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_80pct_in_profit_lth_unrealized_pnl'),
                 },
                 _90pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_90pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_90pct_in_profit_lth_unrealized_pnl'),
                 },
                 _100pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_100pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_100pct_in_profit_lth_unrealized_pnl'),
                 },
                 _200pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_200pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_200pct_in_profit_lth_unrealized_pnl'),
                 },
                 _300pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_300pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_300pct_in_profit_lth_unrealized_pnl'),
                 },
                 _500pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_500pct_in_profit_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_500pct_in_profit_lth_unrealized_pnl'),
                 },
               },
               loss: {
                 all: {
-                  all: createSeriesPattern1(this, 'utxos_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_in_loss_lth_unrealized_pnl'),
                 },
                 _10pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_10pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_10pct_in_loss_lth_unrealized_pnl'),
                 },
                 _20pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_20pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_20pct_in_loss_lth_unrealized_pnl'),
                 },
                 _30pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_30pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_30pct_in_loss_lth_unrealized_pnl'),
                 },
                 _40pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_40pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_40pct_in_loss_lth_unrealized_pnl'),
                 },
                 _50pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_50pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_50pct_in_loss_lth_unrealized_pnl'),
                 },
                 _60pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_60pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_60pct_in_loss_lth_unrealized_pnl'),
                 },
                 _70pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_70pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_70pct_in_loss_lth_unrealized_pnl'),
                 },
                 _80pct: {
-                  all: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_unrealized_pnl'),
-                  sth: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_sth_unrealized_pnl'),
-                  lth: createSeriesPattern1(this, 'utxos_over_80pct_in_loss_lth_unrealized_pnl'),
+                  all: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_unrealized_pnl'),
+                  sth: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_sth_unrealized_pnl'),
+                  lth: createCentsUsdPattern(this, 'utxos_over_80pct_in_loss_lth_unrealized_pnl'),
                 },
               },
               height: createSeriesPattern18(this, 'profitability_unrealized_pnl_by_term_and_range'),

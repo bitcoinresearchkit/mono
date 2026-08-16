@@ -15,6 +15,46 @@ use crate::{
     internal::{ComputedVecValue, DistributionStats, NumericValue, PerBlock},
 };
 
+fn effective_range(first: usize, count: usize, skip_count: usize) -> std::ops::Range<usize> {
+    let start = first + skip_count.min(count);
+    start..first + count
+}
+
+fn merge_sorted<T: Copy + Ord>(window: &mut Vec<T>, block: &[T], buffer: &mut Vec<T>) {
+    buffer.clear();
+    buffer.reserve(window.len() + block.len());
+
+    let (mut wi, mut bi) = (0, 0);
+    while wi < window.len() && bi < block.len() {
+        if window[wi] <= block[bi] {
+            buffer.push(window[wi]);
+            wi += 1;
+        } else {
+            buffer.push(block[bi]);
+            bi += 1;
+        }
+    }
+    buffer.extend_from_slice(&window[wi..]);
+    buffer.extend_from_slice(&block[bi..]);
+    std::mem::swap(window, buffer);
+}
+
+fn remove_sorted<T: Copy + Ord>(window: &mut Vec<T>, block: &[T], buffer: &mut Vec<T>) {
+    buffer.clear();
+    buffer.reserve(window.len().saturating_sub(block.len()));
+
+    let mut bi = 0;
+    for &value in window.iter() {
+        if bi < block.len() && value == block[bi] {
+            bi += 1;
+        } else {
+            buffer.push(value);
+        }
+    }
+    debug_assert_eq!(bi, block.len());
+    std::mem::swap(window, buffer);
+}
+
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct PerBlockDistribution<T: ComputedVecValue + PartialOrd + JsonSchema, M: StorageMode = Rw>(
@@ -287,6 +327,7 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         Ok(())
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute_from_nblocks<A>(
         &mut self,
         max_from: Height,
@@ -295,11 +336,14 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         count_indexes: &impl ReadableVec<Height, StoredU64>,
         n_blocks: usize,
         exit: &Exit,
+        skip_count: usize,
     ) -> Result<()>
     where
         T: CheckedSub,
         A: VecIndex + VecValue + CheckedSub<A>,
     {
+        assert!(n_blocks > 0);
+
         let DistributionStats {
             min,
             max,
@@ -370,11 +414,16 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         for block_idx in window_start_of_first..start {
             let fi = first_indexes_batch[block_idx - batch_start].to_usize();
             let count = u64::from(count_indexes_all[block_idx - batch_start]) as usize;
-            if cursor.position() < fi {
-                cursor.advance(fi - cursor.position());
+            let range = effective_range(fi, count, skip_count);
+            if cursor.position() < range.start {
+                cursor.advance(range.start - cursor.position());
             }
-            let mut bv = Vec::with_capacity(count);
-            cursor.for_each(count, |v: T| bv.push(v));
+            let mut bv = Vec::with_capacity(range.len());
+            cursor.for_each(range.len(), |v: T| {
+                if skip_count == 0 || v > zero {
+                    bv.push(v);
+                }
+            });
             bv.sort_unstable();
             sorted_window.extend_from_slice(&bv);
             block_ring.push_back(bv);
@@ -389,29 +438,20 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
             // Read and sort new block's values
             let fi = first_indexes_batch[idx - batch_start].to_usize();
             let count = u64::from(count_indexes_all[idx - batch_start]) as usize;
-            if cursor.position() < fi {
-                cursor.advance(fi - cursor.position());
+            let range = effective_range(fi, count, skip_count);
+            if cursor.position() < range.start {
+                cursor.advance(range.start - cursor.position());
             }
-            let mut new_block = Vec::with_capacity(count);
-            cursor.for_each(count, |v: T| new_block.push(v));
+            let mut new_block = Vec::with_capacity(range.len());
+            cursor.for_each(range.len(), |v: T| {
+                if skip_count == 0 || v > zero {
+                    new_block.push(v);
+                }
+            });
             new_block.sort_unstable();
 
             // Merge-insert new sorted block into sorted_window: O(n+m)
-            merge_buf.clear();
-            merge_buf.reserve(sorted_window.len() + new_block.len());
-            let (mut si, mut ni) = (0, 0);
-            while si < sorted_window.len() && ni < new_block.len() {
-                if sorted_window[si] <= new_block[ni] {
-                    merge_buf.push(sorted_window[si]);
-                    si += 1;
-                } else {
-                    merge_buf.push(new_block[ni]);
-                    ni += 1;
-                }
-            }
-            merge_buf.extend_from_slice(&sorted_window[si..]);
-            merge_buf.extend_from_slice(&new_block[ni..]);
-            std::mem::swap(&mut sorted_window, &mut merge_buf);
+            merge_sorted(&mut sorted_window, &new_block, &mut merge_buf);
 
             block_ring.push_back(new_block);
 
@@ -419,17 +459,7 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
             if block_ring.len() > n_blocks {
                 let expired = block_ring.pop_front().unwrap();
 
-                merge_buf.clear();
-                merge_buf.reserve(sorted_window.len());
-                let mut ei = 0;
-                for &v in &sorted_window {
-                    if ei < expired.len() && v == expired[ei] {
-                        ei += 1;
-                    } else {
-                        merge_buf.push(v);
-                    }
-                }
-                std::mem::swap(&mut sorted_window, &mut merge_buf);
+                remove_sorted(&mut sorted_window, &expired, &mut merge_buf);
             }
 
             if sorted_window.is_empty() {
@@ -461,5 +491,250 @@ impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
         }
 
         Ok(())
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn compute_from_nblocks_weighted<A>(
+        &mut self,
+        max_from: Height,
+        source: &(impl ReadableVec<A, T> + Sized),
+        vsize_source: &(impl ReadableVec<A, VSize> + Sized),
+        first_indexes: &impl ReadableVec<Height, A>,
+        count_indexes: &impl ReadableVec<Height, StoredU64>,
+        n_blocks: usize,
+        exit: &Exit,
+        skip_count: usize,
+    ) -> Result<()>
+    where
+        T: CheckedSub,
+        A: VecIndex + VecValue + CheckedSub<A>,
+    {
+        assert!(n_blocks > 0);
+
+        let DistributionStats {
+            min,
+            max,
+            pct10,
+            pct25,
+            median,
+            pct75,
+            pct90,
+        } = &mut self.0;
+
+        let min = &mut min.height;
+        let max = &mut max.height;
+        let pct10 = &mut pct10.height;
+        let pct25 = &mut pct25.height;
+        let median = &mut median.height;
+        let pct75 = &mut pct75.height;
+        let pct90 = &mut pct90.height;
+
+        let combined_version = source.version()
+            + vsize_source.version()
+            + first_indexes.version()
+            + count_indexes.version();
+
+        let mut index = max_from;
+        for vec in [
+            &mut *min,
+            &mut *max,
+            &mut *median,
+            &mut *pct10,
+            &mut *pct25,
+            &mut *pct75,
+            &mut *pct90,
+        ] {
+            vec.validate_computed_version_or_reset(combined_version)?;
+            index = index.min(Height::from(vec.len()));
+        }
+
+        let start = index.to_usize();
+        let fi_len = first_indexes.len();
+        let batch_start = start.saturating_sub(n_blocks - 1);
+        let first_indexes_batch: Vec<A> = first_indexes.collect_range_at(batch_start, fi_len);
+        let count_indexes_all: Vec<StoredU64> = count_indexes.collect_range_at(batch_start, fi_len);
+        let zero = T::from(0_usize);
+
+        for vec in [
+            &mut *min,
+            &mut *max,
+            &mut *median,
+            &mut *pct10,
+            &mut *pct25,
+            &mut *pct75,
+            &mut *pct90,
+        ] {
+            vec.truncate_if_needed_at(start)?;
+        }
+
+        // Keep the six-block population incrementally sorted. Full tuples are
+        // ordered so an expired transaction can be removed exactly even when
+        // several transactions have the same fee rate but different vsizes.
+        let mut block_ring: VecDeque<Vec<(T, VSize)>> = VecDeque::with_capacity(n_blocks + 1);
+        let mut value_cursor = source.cursor();
+        let mut vsize_cursor = vsize_source.cursor();
+        let mut sorted_window: Vec<(T, VSize)> = Vec::new();
+        let mut merge_buf: Vec<(T, VSize)> = Vec::new();
+        let mut values: Vec<T> = Vec::new();
+
+        let mut read_block = |block_idx: usize| {
+            let fi = first_indexes_batch[block_idx - batch_start].to_usize();
+            let count = u64::from(count_indexes_all[block_idx - batch_start]) as usize;
+            let range = effective_range(fi, count, skip_count);
+
+            if value_cursor.position() < range.start {
+                value_cursor.advance(range.start - value_cursor.position());
+            }
+            if vsize_cursor.position() < range.start {
+                vsize_cursor.advance(range.start - vsize_cursor.position());
+            }
+
+            values.clear();
+            values.reserve(range.len());
+            value_cursor.for_each(range.len(), |value: T| values.push(value));
+            let mut values = values.iter().copied();
+            let mut block = Vec::with_capacity(range.len());
+            vsize_cursor.for_each(range.len(), |vsize: VSize| {
+                let value = values.next().unwrap();
+                if skip_count == 0 || value > zero {
+                    block.push((value, vsize));
+                }
+            });
+            block.sort_unstable();
+            block
+        };
+
+        let window_start_of_first = start.saturating_sub(n_blocks - 1);
+        for block_idx in window_start_of_first..start {
+            let block = read_block(block_idx);
+            sorted_window.extend_from_slice(&block);
+            block_ring.push_back(block);
+        }
+        sorted_window.sort();
+
+        for idx in start..fi_len {
+            let new_block = read_block(idx);
+            merge_sorted(&mut sorted_window, &new_block, &mut merge_buf);
+            block_ring.push_back(new_block);
+
+            if block_ring.len() > n_blocks {
+                let expired = block_ring.pop_front().unwrap();
+                remove_sorted(&mut sorted_window, &expired, &mut merge_buf);
+            }
+
+            if sorted_window.is_empty() {
+                for vec in [
+                    &mut *min,
+                    &mut *max,
+                    &mut *median,
+                    &mut *pct10,
+                    &mut *pct25,
+                    &mut *pct75,
+                    &mut *pct90,
+                ] {
+                    vec.push(zero);
+                }
+            } else {
+                max.push(sorted_window.last().unwrap().0);
+                pct90.push(get_weighted_percentile(&sorted_window, 0.90));
+                pct75.push(get_weighted_percentile(&sorted_window, 0.75));
+                median.push(get_weighted_percentile(&sorted_window, 0.50));
+                pct25.push(get_weighted_percentile(&sorted_window, 0.25));
+                pct10.push(get_weighted_percentile(&sorted_window, 0.10));
+                min.push(sorted_window.first().unwrap().0);
+            }
+        }
+
+        let _lock = exit.lock();
+        for vec in [min, max, median, pct10, pct25, pct75, pct90] {
+            vec.write()?;
+        }
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::VecDeque;
+
+    use brk_types::{VSize, get_weighted_percentile};
+
+    use super::{effective_range, merge_sorted, remove_sorted};
+
+    #[test]
+    fn rolling_helpers_preserve_duplicate_weighted_entries() {
+        let mut window = vec![(1, 100), (2, 100), (2, 200), (4, 100)];
+        let block = vec![(2, 150), (3, 100)];
+        let mut buffer = Vec::new();
+
+        merge_sorted(&mut window, &block, &mut buffer);
+        assert_eq!(
+            window,
+            vec![(1, 100), (2, 100), (2, 150), (2, 200), (3, 100), (4, 100)]
+        );
+
+        remove_sorted(&mut window, &[(2, 100), (2, 200)], &mut buffer);
+        assert_eq!(window, vec![(1, 100), (2, 150), (3, 100), (4, 100)]);
+    }
+
+    #[test]
+    fn effective_range_skips_each_blocks_coinbase() {
+        assert_eq!(effective_range(0, 4, 1), 1..4);
+        assert_eq!(effective_range(4, 3, 1), 5..7);
+        assert_eq!(effective_range(7, 0, 1), 7..7);
+        assert_eq!(effective_range(7, 2, 0), 7..9);
+    }
+
+    #[test]
+    fn incremental_weighted_window_matches_naive_six_block_population() {
+        let blocks = (0..32)
+            .map(|block| {
+                let mut values = vec![(0_u64, VSize::new(100))];
+                values.extend((0..9).map(|tx| {
+                    let rate = ((block * 7 + tx * 3) % 11) as u64;
+                    let vsize = VSize::new((50 + block * 5 + tx * 13) as u64);
+                    (rate, vsize)
+                }));
+                values
+            })
+            .collect::<Vec<_>>();
+
+        let mut ring = VecDeque::new();
+        let mut window = Vec::new();
+        let mut buffer = Vec::new();
+
+        for (height, raw_block) in blocks.iter().enumerate() {
+            let mut block = raw_block[1..]
+                .iter()
+                .copied()
+                .filter(|(rate, _)| *rate > 0)
+                .collect::<Vec<_>>();
+            block.sort_unstable();
+
+            merge_sorted(&mut window, &block, &mut buffer);
+            ring.push_back(block);
+            if ring.len() > 6 {
+                let expired = ring.pop_front().unwrap();
+                remove_sorted(&mut window, &expired, &mut buffer);
+            }
+
+            let first = height.saturating_sub(5);
+            let mut naive = blocks[first..=height]
+                .iter()
+                .flat_map(|block| block[1..].iter().copied())
+                .filter(|(rate, _)| *rate > 0)
+                .collect::<Vec<_>>();
+            naive.sort_unstable();
+
+            assert_eq!(window, naive, "wrong population at height {height}");
+            for percentile in [0.10, 0.25, 0.50, 0.75, 0.90] {
+                assert_eq!(
+                    get_weighted_percentile(&window, percentile),
+                    get_weighted_percentile(&naive, percentile),
+                    "wrong percentile {percentile} at height {height}"
+                );
+            }
+        }
     }
 }

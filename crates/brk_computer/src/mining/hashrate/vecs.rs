@@ -1,37 +1,22 @@
 use brk_traversable::Traversable;
-use brk_types::{PartsPerMillionSigned32, PartsPerMillionSigned64, StoredF32, StoredF64};
 use vecdb::{Rw, StorageMode};
 
-use crate::internal::{LazyPerBlock, PerBlock, PercentPerBlock};
+mod hash_price_value;
+mod hash_rate_sma;
+mod rate;
 
-#[derive(Traversable)]
-pub struct HashRateSmaVecs<M: StorageMode = Rw> {
-    pub _1w: PerBlock<StoredF64, M>,
-    pub _1m: PerBlock<StoredF64, M>,
-    pub _2m: PerBlock<StoredF64, M>,
-    pub _1y: PerBlock<StoredF64, M>,
-}
-
-#[derive(Traversable)]
-pub struct HashPriceValueVecs<M: StorageMode = Rw> {
-    pub ths: PerBlock<StoredF32, M>,
-    pub ths_min: PerBlock<StoredF32, M>,
-    pub phs: LazyPerBlock<StoredF32>,
-    pub phs_min: LazyPerBlock<StoredF32>,
-    pub rebound: PercentPerBlock<PartsPerMillionSigned64, M>,
-}
-
-#[derive(Traversable)]
-pub struct RateVecs<M: StorageMode = Rw> {
-    pub base: PerBlock<StoredF64, M>,
-    pub sma: HashRateSmaVecs<M>,
-    pub ath: PerBlock<StoredF64, M>,
-    pub drawdown: PercentPerBlock<PartsPerMillionSigned32, M>,
-}
+pub(super) use hash_price_value::HashPriceValueVecs;
+pub(super) use hash_rate_sma::HashRateSmaVecs;
+pub(super) use rate::RateVecs;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub rate: RateVecs<M>,
+    /// Estimated miner revenue over the trailing 24-hour window, with each
+    /// coinbase output valued in USD at its block's spot price, divided by the
+    /// current estimated network hash rate.
     pub price: HashPriceValueVecs<M>,
+    /// Coinbase output value in satoshis over the trailing 24-hour window,
+    /// divided by the current estimated network hash rate.
     pub value: HashPriceValueVecs<M>,
 }

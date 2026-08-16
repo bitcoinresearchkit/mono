@@ -12,7 +12,7 @@ use vecdb::{
 use super::terminal_len::TerminalLen;
 
 /// Inclusive cumulative count derived from the next value in one first-index
-/// source. The final value uses live terminal-length metadata.
+/// source. The final value uses the terminal length visible to the read.
 #[derive(Clone)]
 pub struct LazyCumulativeIndexVec<I, S>
 where

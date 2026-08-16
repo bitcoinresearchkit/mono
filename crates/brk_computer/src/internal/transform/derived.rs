@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use brk_types::{Cents, PartsPerMillionSigned64, StoredF32, StoredF64};
-use vecdb::{BinaryTransform, UnaryTransform, unlikely};
+use brk_types::{Cents, PartsPerMillionSigned64, StoredF32};
+use vecdb::{BinaryTransform, UnaryTransform};
 
 use crate::internal::FixedRatio;
 
@@ -65,30 +65,5 @@ impl<R: FixedRatio> BinaryTransform<Cents, R, Cents> for PriceTimesRatio<R> {
     #[inline(always)]
     fn apply(price: Cents, ratio: R) -> Cents {
         Cents::from(f64::from(price) * ratio.into())
-    }
-}
-
-pub struct RatioCents64;
-
-impl BinaryTransform<Cents, Cents, StoredF64> for RatioCents64 {
-    #[inline(always)]
-    fn apply(numerator: Cents, denominator: Cents) -> StoredF64 {
-        let denominator = f64::from(denominator);
-        if unlikely(denominator == 0.0) {
-            StoredF64::from(1.0)
-        } else {
-            StoredF64::from(f64::from(numerator) / denominator)
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cents_ratio_64_propagates_nan() {
-        assert!(RatioCents64::apply(Cents::NAN, Cents::new(100)).is_nan());
-        assert!(RatioCents64::apply(Cents::new(100), Cents::NAN).is_nan());
     }
 }

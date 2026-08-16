@@ -16,7 +16,7 @@ impl TerminalLen {
     {
         let version = source.version();
         Self {
-            get: Arc::new(move || source.len()),
+            get: Arc::new(move || source.visible_len()),
             version,
         }
     }

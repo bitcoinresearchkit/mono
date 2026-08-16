@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use brk_error::{Error, Result};
+use brk_plugin::PluginReadGuard;
 use brk_traversable::TreeNode;
 use brk_types::{
     BlockHashPrefix, CacheClass, Date, DetailedSeriesCount, Epoch, Format, Halving, Height, Index,
@@ -9,9 +10,9 @@ use brk_types::{
     SeriesSelection, Timestamp, Version,
 };
 use parking_lot::RwLock;
-use vecdb::{AnyExportableVec, ReadableVec};
+use vecdb::{AnyExportableVec, ReadBounds, ReadableVec};
 
-use crate::Query;
+use crate::{Query, vecs::SeriesEntry};
 
 /// Monotonic block timestamps → height. Lazily extended as new blocks are indexed.
 static HEIGHT_BY_MONOTONIC_TIMESTAMP: LazyLock<RwLock<RangeMap<Timestamp, Height>>> =
@@ -102,42 +103,58 @@ impl Query {
         Ok(csv)
     }
 
-    fn get_vec(&self, series: &SeriesName, index: Index) -> Result<&'static dyn AnyExportableVec> {
+    fn get_entry(&self, series: &SeriesName, index: Index) -> Result<SeriesEntry<'static>> {
         self.vecs()
-            .get(series, index)
+            .get_entry(series, index)
             .ok_or_else(|| self.series_not_found_error(series))
     }
 
     /// Returns the latest value for a single series as a JSON value.
     pub fn latest(&self, series: &SeriesName, index: Index) -> Result<serde_json::Value> {
-        let vec = self.get_vec(series, index)?;
-        let len = vec.len();
-        if len == 0 {
-            return Err(Error::NoData);
-        }
-        vec.last_json_value().ok_or(Error::NoData)
+        let entry = self.get_entry(series, index)?;
+        let vec = entry.vec();
+        let _guard = self.mutable_series_guard(&[entry]);
+        let bounds = self.read_bounds(self.safe_lengths());
+        bounds.scope(|| {
+            let len = vec.visible_len();
+            if len == 0 {
+                return Err(Error::NoData);
+            }
+            let mut value = Vec::new();
+            vec.write_json_value_at(len - 1, &mut value)?;
+            serde_json::from_slice(&value).map_err(Into::into)
+        })
     }
 
     /// Returns the length (total data points) for a single series.
     pub fn len(&self, series: &SeriesName, index: Index) -> Result<usize> {
-        Ok(self.get_vec(series, index)?.len())
+        let entry = self.get_entry(series, index)?;
+        let vec = entry.vec();
+        let _guard = self.mutable_series_guard(&[entry]);
+        let bounds = self.read_bounds(self.safe_lengths());
+        bounds.scope(|| Ok(vec.visible_len()))
     }
 
     /// Returns the version for a single series.
     pub fn version(&self, series: &SeriesName, index: Index) -> Result<Version> {
-        Ok(self.get_vec(series, index)?.version())
+        Ok(self.get_entry(series, index)?.vec().version())
     }
 
     /// Search for vecs matching the given series and index.
     /// Returns error if no series requested or any requested series is not found.
     pub fn search(&self, params: &SeriesSelection) -> Result<Vec<&'static dyn AnyExportableVec>> {
+        self.search_entries(params)
+            .map(|entries| entries.into_iter().map(SeriesEntry::vec).collect())
+    }
+
+    fn search_entries(&self, params: &SeriesSelection) -> Result<Vec<SeriesEntry<'static>>> {
         if params.series.is_empty() {
             return Err(Error::NoSeries);
         }
         params
             .series
             .iter()
-            .map(|s| self.get_vec(s, params.index))
+            .map(|series| self.get_entry(series, params.index))
             .collect()
     }
 
@@ -149,60 +166,84 @@ impl Query {
     /// Resolve query metadata without formatting (cheap).
     /// Use with `format` for lazy formatting after ETag check.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
-        let vecs = self.search(&params)?;
+        let entries = self.search_entries(&params)?;
+        let plugin_guard = self.mutable_series_guard(&entries);
+        let is_mutable = plugin_guard.is_some();
+        let vecs = entries
+            .into_iter()
+            .map(SeriesEntry::vec)
+            .collect::<Vec<_>>();
         let safe = self.safe_lengths();
-        let index = params.index;
+        let read_bounds = self.read_bounds(safe);
 
-        let total = vecs.iter().map(|vec| vec.len()).min().unwrap_or(0);
-        let version: Version = vecs.iter().map(|v| v.version()).sum();
+        read_bounds.clone().scope(|| {
+            let index = params.index;
 
-        let resolve_bound = |ri: RangeIndex| -> Result<usize> {
-            let i = self.range_index_to_i64(ri, index)?;
-            Ok(vecdb::i64_to_usize(i, total))
-        };
+            let total = vecs.iter().map(|vec| vec.visible_len()).min().unwrap_or(0);
+            let version: Version = vecs.iter().map(|v| v.version()).sum();
 
-        let start = match params.start() {
-            Some(ri) => resolve_bound(ri)?,
-            None => 0,
-        };
+            let resolve_bound = |ri: RangeIndex| -> Result<usize> {
+                let i = self.range_index_to_i64(ri, index)?;
+                Ok(vecdb::i64_to_usize(i, total))
+            };
 
-        let end = match params.end() {
-            Some(ri) => resolve_bound(ri)?,
-            None => params
-                .limit()
-                .map(|l| start.saturating_add(*l).min(total))
-                .unwrap_or(total),
-        };
+            let start = match params.start() {
+                Some(ri) => resolve_bound(ri)?,
+                None => 0,
+            };
 
-        let end = end.max(start);
-        let weight = Self::weight(&vecs, Some(start as i64), Some(end as i64));
-        if weight > max_weight {
-            return Err(Error::WeightExceeded {
-                requested: weight,
-                max: max_weight,
-            });
-        }
+            let end = match params.end() {
+                Some(ri) => resolve_bound(ri)?,
+                None => params
+                    .limit()
+                    .map(|l| start.saturating_add(*l).min(total))
+                    .unwrap_or(total),
+            };
 
-        let tip_height = safe.height.decremented().unwrap_or_default();
-        let tip_hash = safe
-            .height
-            .decremented()
-            .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
-            .unwrap_or_default();
-        let hash_prefix = BlockHashPrefix::from(&tip_hash);
-        let stable_count = self.stable_count(params.index, total, tip_height);
+            let end = end.max(start);
+            let weight = Self::weight(&vecs, Some(start as i64), Some(end as i64));
+            if weight > max_weight {
+                return Err(Error::WeightExceeded {
+                    requested: weight,
+                    max: max_weight,
+                });
+            }
 
-        Ok(ResolvedQuery {
-            vecs,
-            format: params.format(),
-            index: params.index,
-            version,
-            total,
-            start,
-            end,
-            hash_prefix,
-            stable_count,
+            let tip_height = safe.height.decremented().unwrap_or_default();
+            let tip_hash = safe
+                .height
+                .decremented()
+                .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
+                .unwrap_or_default();
+            let hash_prefix = BlockHashPrefix::from(&tip_hash);
+            let stable_count = (!is_mutable)
+                .then(|| self.stable_count(params.index, total, tip_height))
+                .flatten();
+
+            Ok(ResolvedQuery {
+                vecs,
+                format: params.format(),
+                index: params.index,
+                version,
+                total,
+                start,
+                end,
+                hash_prefix,
+                stable_count,
+                read_bounds,
+                _plugin_guard: plugin_guard,
+            })
         })
+    }
+
+    fn mutable_series_guard(&self, entries: &[SeriesEntry<'_>]) -> Option<PluginReadGuard> {
+        let plugins = entries
+            .iter()
+            .filter(|entry| entry.requires_gate())
+            .map(|entry| entry.plugin())
+            .collect::<Vec<_>>();
+
+        (!plugins.is_empty()).then(|| PluginReadGuard::acquire(&plugins))
     }
 
     /// Count of leading entries provably immutable across a 6-block reorg, used
@@ -275,6 +316,14 @@ impl Query {
         &self,
         resolved: ResolvedQuery,
     ) -> Result<SeriesOutput> {
+        let bounds = resolved.read_bounds.clone();
+        bounds.scope(|| self.format_json_shape_inner::<ALWAYS_JSON_ARRAY>(resolved))
+    }
+
+    fn format_json_shape_inner<const ALWAYS_JSON_ARRAY: bool>(
+        &self,
+        resolved: ResolvedQuery,
+    ) -> Result<SeriesOutput> {
         let ResolvedQuery {
             vecs,
             format,
@@ -316,6 +365,11 @@ impl Query {
     /// Single vec → `[v1,v2,...]`. Multi-vec → `[[v1,v2],[v3,v4],...]`.
     /// CSV output is identical to `format` (no wrapper distinction for CSV).
     pub fn format_raw(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
+        let bounds = resolved.read_bounds.clone();
+        bounds.scope(|| self.format_raw_inner(resolved))
+    }
+
+    fn format_raw_inner(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
         if resolved.format == Format::CSV {
             return self.format(resolved);
         }
@@ -467,6 +521,11 @@ impl Query {
 
     /// Deprecated - format a resolved query as legacy output (expensive).
     pub fn format_legacy(&self, resolved: ResolvedQuery) -> Result<SeriesOutputLegacy> {
+        let bounds = resolved.read_bounds.clone();
+        bounds.scope(|| self.format_legacy_inner(resolved))
+    }
+
+    fn format_legacy_inner(&self, resolved: ResolvedQuery) -> Result<SeriesOutputLegacy> {
         let ResolvedQuery {
             vecs,
             format,
@@ -528,8 +587,8 @@ impl Query {
 
 /// A resolved series query ready for formatting.
 /// Carries the vecs plus the metadata callers need to derive an etag or cache
-/// policy. `stable_count` is `None` for indexes whose entries can mutate
-/// retroactively (Funded/Empty addr).
+/// policy. `stable_count` is `None` when any selected series can mutate
+/// existing entries.
 pub struct ResolvedQuery {
     pub vecs: Vec<&'static dyn AnyExportableVec>,
     pub format: Format,
@@ -540,6 +599,8 @@ pub struct ResolvedQuery {
     pub end: usize,
     pub hash_prefix: BlockHashPrefix,
     pub stable_count: Option<usize>,
+    read_bounds: ReadBounds,
+    _plugin_guard: Option<PluginReadGuard>,
 }
 
 impl ResolvedQuery {

@@ -43,6 +43,12 @@ impl CentsSats {
         Cents::new((self.0 / Sats::ONE_BTC_U128) as u64)
     }
 
+    /// Convert to cents, rounding to the nearest cent.
+    #[inline(always)]
+    pub fn to_cents_rounded(self) -> Cents {
+        Cents::new(((self.0 + Sats::ONE_BTC_U128 / 2) / Sats::ONE_BTC_U128) as u64)
+    }
+
     /// Get the realized price (cents per BTC) given the sats amount.
     #[inline(always)]
     pub fn realized_price(self, sats: Sats) -> Cents {
@@ -135,5 +141,22 @@ impl Bytes for CentsSats {
 impl std::fmt::Display for CentsSats {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rounds_to_nearest_cent() {
+        assert_eq!(
+            CentsSats::new(Sats::ONE_BTC_U128 / 2 - 1).to_cents_rounded(),
+            Cents::ZERO
+        );
+        assert_eq!(
+            CentsSats::new(Sats::ONE_BTC_U128 / 2).to_cents_rounded(),
+            Cents::new(1)
+        );
     }
 }

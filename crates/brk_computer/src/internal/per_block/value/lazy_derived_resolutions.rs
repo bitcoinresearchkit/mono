@@ -44,9 +44,13 @@ where
 
 #[derive(Clone, Traversable)]
 pub struct LazyValueDerivedResolutions {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: DerivedResolutions<Bitcoin, Sats>,
+    /// Reported in satoshis.
     pub sats: DerivedResolutions<Sats, Sats>,
+    /// Reported in US dollars.
     pub usd: DerivedResolutions<Dollars, Dollars>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: DerivedResolutions<Cents, Cents>,
 }
 

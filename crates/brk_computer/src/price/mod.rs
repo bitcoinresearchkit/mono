@@ -7,6 +7,7 @@ use std::path::Path;
 
 use brk_error::Result;
 use brk_oracle::VERSION as ORACLE_VERSION;
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
@@ -29,11 +30,26 @@ pub const DB_NAME: &str = "price";
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
+    #[traversable(skip)]
     pub db: Database,
 
     pub split: SplitByUnit,
     pub ohlc: OhlcByUnit,
     pub spot: PriceByUnit<M>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
 }
 
 impl Vecs {
@@ -191,6 +207,7 @@ impl Vecs {
         };
 
         Ok(Self {
+            plugin_gate: Default::default(),
             db: db.clone(),
             split,
             ohlc,

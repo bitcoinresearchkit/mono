@@ -1,10 +1,12 @@
 use brk_error::{Error, Result};
+use brk_plugin::Plugin;
 use brk_types::{Addr, Height, TxIndex, TxStatus, Utxo, Vout};
 
 use crate::Query;
 
 impl Query {
     pub fn addr_utxos(&self, addr: Addr, max_utxos: usize) -> Result<Vec<Utxo>> {
+        let _guard = self.indexer().gate().read();
         let indexer = self.indexer();
         let stores = indexer.stores();
         let vecs = indexer.vecs();

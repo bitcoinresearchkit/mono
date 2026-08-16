@@ -11,7 +11,9 @@ use crate::{
 /// Zero extra stored vecs.
 #[derive(Clone, Traversable)]
 pub struct LazyFiatPerBlock<C: FiatType> {
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, C>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyPerBlock<C, C>,
 }
 

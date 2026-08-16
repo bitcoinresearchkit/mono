@@ -1,4 +1,4 @@
-use crate::{Stamp, Version, vec_region_name};
+use crate::{Stamp, Version, read_bounds, vec_region_name};
 
 /// Converts an i64 index to usize, supporting negative indexing.
 /// Negative indices count from the end.
@@ -16,6 +16,11 @@ pub trait AnyVec: Send + Sync {
     fn version(&self) -> Version;
     fn name(&self) -> &str;
     fn len(&self) -> usize;
+    /// Length visible inside the current published read snapshot.
+    #[inline]
+    fn visible_len(&self) -> usize {
+        read_bounds::visible_len(self.index_type_to_string(), self.len())
+    }
     #[inline]
     fn is_empty(&self) -> bool {
         self.len() == 0

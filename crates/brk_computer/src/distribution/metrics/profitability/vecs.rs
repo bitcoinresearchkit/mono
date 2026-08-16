@@ -6,7 +6,7 @@ use brk_cohort::{
 };
 use brk_error::Result;
 use brk_traversable::Traversable;
-use brk_types::{Bitcoin, Cents, Dollars, Height, PartsPerMillionSigned32, Sats, Version};
+use brk_types::{Cents, CentsSats, Height, PartsPerMillionSigned32, Sats, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, CachedBoxedVec, ColumnId, Database, PcoVec, PcoVecValue,
     ReadOnlyColumnarVec, ReadableBoxedVec, Rw, StorageMode,
@@ -15,14 +15,14 @@ use vecdb::{
 use crate::{
     indexes,
     internal::{
-        CachedWindowStartVec, ColumnarPerBlock, Identity, LazyColumnRatioPerBlock, LazyPerBlock,
+        CachedWindowStartVec, ColumnarPerBlock, LazyColumnRatioPerBlock, LazyFiatPerBlock,
         LazySpotValuePerBlockWithDeltas, Windows,
     },
 };
 
 use super::TermProfitabilityRangeId;
 
-const VERSION: Version = Version::new(7);
+const VERSION: Version = Version::new(8);
 
 #[derive(Traversable)]
 pub struct ProfitabilityVecs<M: StorageMode = Rw> {
@@ -33,15 +33,15 @@ pub struct ProfitabilityVecs<M: StorageMode = Rw> {
         M,
     >,
     pub realized_cap: ColumnarPerBlock<
-        Dollars,
+        Cents,
         TermProfitabilityRangeId,
-        ProfitabilityRow<UTXOAggregate<LazyPerBlock<Dollars>>>,
+        ProfitabilityRow<UTXOAggregate<LazyFiatPerBlock<Cents>>>,
         M,
     >,
     pub unrealized_pnl: ColumnarPerBlock<
-        Dollars,
+        Cents,
         TermProfitabilityRangeId,
-        ProfitabilityRow<UTXOAggregate<LazyPerBlock<Dollars>>>,
+        ProfitabilityRow<UTXOAggregate<LazyFiatPerBlock<Cents>>>,
         M,
     >,
     pub nupl: ColumnarPerBlock<
@@ -95,9 +95,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "realized_cap", version, |name, source| {
-                    LazyPerBlock::from_boxed_height_source::<Identity<Dollars>>(
-                        name, version, source, indexes,
-                    )
+                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, indexes)
                 })
             },
         )?;
@@ -107,9 +105,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "unrealized_pnl", version, |name, source| {
-                    LazyPerBlock::from_boxed_height_source::<Identity<Dollars>>(
-                        name, version, source, indexes,
-                    )
+                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, indexes)
                 })
             },
         )?;
@@ -172,7 +168,7 @@ impl ProfitabilityVecs {
         &mut self,
         spot: Cents,
         supply: ByTerm<ProfitabilityRange<Sats>>,
-        realized_cap: ByTerm<ProfitabilityRange<Dollars>>,
+        realized_cap: ByTerm<ProfitabilityRange<Cents>>,
     ) {
         let all_supply = Self::sum_terms(&supply);
         let all_realized_cap = Self::sum_terms(&realized_cap);
@@ -203,9 +199,9 @@ impl ProfitabilityVecs {
 
     fn unrealized_pnl_rows(
         spot: Cents,
-        cap: &ByTerm<ProfitabilityRange<Dollars>>,
+        cap: &ByTerm<ProfitabilityRange<Cents>>,
         supply: &ByTerm<ProfitabilityRange<Sats>>,
-    ) -> ByTerm<ProfitabilityRange<Dollars>> {
+    ) -> ByTerm<ProfitabilityRange<Cents>> {
         ByTerm {
             short: Self::unrealized_pnl_row(spot, &cap.short, &supply.short),
             long: Self::unrealized_pnl_row(spot, &cap.long, &supply.long),
@@ -214,26 +210,24 @@ impl ProfitabilityVecs {
 
     fn unrealized_pnl_row(
         spot: Cents,
-        cap: &ProfitabilityRange<Dollars>,
+        cap: &ProfitabilityRange<Cents>,
         supply: &ProfitabilityRange<Sats>,
-    ) -> ProfitabilityRange<Dollars> {
+    ) -> ProfitabilityRange<Cents> {
         ProfitabilityRangeId::from_fn(|column| {
             let market_value =
-                f64::from(Dollars::from(spot)) * f64::from(Bitcoin::from(*column.get(supply)));
-            let realized_cap = f64::from(*column.get(cap));
-            let pnl = if column.is_profit() {
-                market_value - realized_cap
+                CentsSats::from_price_sats(spot, *column.get(supply)).to_cents_rounded();
+            let realized_cap = *column.get(cap);
+            if column.is_profit() {
+                market_value.saturating_sub(realized_cap)
             } else {
-                realized_cap - market_value
+                realized_cap.saturating_sub(market_value)
             }
-            .max(0.0);
-            Dollars::from(pnl)
         })
     }
 
     fn nupl_row(
         spot: Cents,
-        cap: &ProfitabilityRange<Dollars>,
+        cap: &ProfitabilityRange<Cents>,
         supply: &ProfitabilityRange<Sats>,
     ) -> ProfitabilityRow<PartsPerMillionSigned32> {
         let cap = ProfitabilityRow::from_ranges(cap.clone());
@@ -244,8 +238,7 @@ impl ProfitabilityVecs {
             if spot == 0 || supply == 0 {
                 PartsPerMillionSigned32::ZERO
             } else {
-                let realized_price =
-                    Cents::from(*column.get(&cap)).as_u128() * Sats::ONE_BTC_U128 / supply;
+                let realized_price = column.get(&cap).as_u128() * Sats::ONE_BTC_U128 / supply;
                 PartsPerMillionSigned32::from((spot as f64 - realized_price as f64) / spot as f64)
             }
         })
@@ -257,7 +250,7 @@ mod tests {
     use brk_cohort::{
         ByTerm, PROFIT_COUNT, ProfitabilityId, ProfitabilityRangeId, ProfitabilityRow,
     };
-    use brk_types::{Cents, Dollars, PartsPerMillionSigned32, Sats};
+    use brk_types::{Cents, PartsPerMillionSigned32, Sats};
     use vecdb::ColumnId;
 
     use super::ProfitabilityVecs;
@@ -292,7 +285,7 @@ mod tests {
     fn derived_rows_preserve_profit_and_loss_polarity() {
         let supply = ProfitabilityRangeId::from_fn(|_| Sats::ONE_BTC);
         let cap = ProfitabilityRangeId::from_fn(|column| {
-            Dollars::from(if column.is_profit() { 1.0 } else { 3.0 })
+            Cents::from(if column.is_profit() { 100_u64 } else { 300_u64 })
         });
         let spot = Cents::from(200_u64);
 
@@ -310,8 +303,8 @@ mod tests {
         let nupl = ProfitabilityVecs::nupl_row(spot, &all_cap, &all_supply);
 
         for column in ProfitabilityRangeId::ALL {
-            assert_eq!(*column.get(&pnl.short), Dollars::from(1.0));
-            assert_eq!(*column.get(&pnl.long), Dollars::from(1.0));
+            assert_eq!(*column.get(&pnl.short), Cents::from(100_u64));
+            assert_eq!(*column.get(&pnl.long), Cents::from(100_u64));
         }
         for column in ProfitabilityId::ALL {
             assert_eq!(

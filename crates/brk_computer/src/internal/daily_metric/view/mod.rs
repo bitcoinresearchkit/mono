@@ -88,7 +88,7 @@ where
         let mapping = self
             .mapping
             .collect_range_dyn(from, S::mapping_end(to, mapping_len));
-        let source_len = self.source.len();
+        let source_len = self.source.visible_len();
         try_fold_mapped(
             &*self.source,
             0,
@@ -201,7 +201,7 @@ where
             .mapping
             .collect_range_dyn(index, S::mapping_end(index.saturating_add(1), mapping_len));
         Some(
-            S::source_index(&mapping, 0, self.source.len())
+            S::source_index(&mapping, 0, self.source.visible_len())
                 .and_then(|day| self.source.collect_one_at(day)),
         )
     }

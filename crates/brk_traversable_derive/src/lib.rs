@@ -149,7 +149,9 @@ fn with_description_fragment(
     quote! {{
         description_fragments.push(#description);
         #collect
-        debug_assert_eq!(description_fragments.pop(), Some(#description));
+        // The pop must remain unconditional: putting it inside `debug_assert_eq!`
+        // removes the state change from optimized builds.
+        assert_eq!(description_fragments.pop(), Some(#description));
     }}
 }
 

@@ -1,3 +1,4 @@
+mod block_bucket;
 mod block_fee_rates;
 mod block_fees;
 mod block_rewards;

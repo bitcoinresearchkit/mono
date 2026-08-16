@@ -12,6 +12,7 @@ use std::path::Path;
 
 use brk_error::Result;
 use brk_indexer::Indexer;
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{
     Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
@@ -38,6 +39,8 @@ pub const DB_NAME: &str = "indexes";
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
     db: Database,
     #[traversable(skip)]
     chain_counts: CachedChainCounts,
@@ -64,6 +67,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub txin_index: TxInIndexVecs,
     pub txout_index: TxOutIndexVecs,
     pub timestamp: Timestamps<M>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
 }
 
 impl Vecs {
@@ -156,6 +172,7 @@ impl Vecs {
         );
 
         let this = Self {
+            plugin_gate: Default::default(),
             chain_counts,
             tx_heights: TxHeights::init(indexer),
             addr,

@@ -38,7 +38,7 @@ AnyAddrIndex = TypeIndex
 Bitcoin = float
 # URL-friendly mining pool identifier
 PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
-# Fee rate in sat/vB
+# Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
 # Weight in weight units (WU). Max block weight is 4,000,000 WU.
 Weight = int
@@ -46,7 +46,8 @@ Weight = int
 Height = int
 # UNIX timestamp in seconds
 Timestamp = int
-# Block hash
+# Double-SHA256 block-header hash, serialized in Bitcoin's conventional
+# hexadecimal byte order.
 BlockHash = str
 # Position of a transaction within a single block (0 = coinbase).
 # Distinct from `TxIndex`, which is the chain-wide global tx index.
@@ -123,7 +124,11 @@ Close = Dollars
 # schemars enum value set; the type therefore proves "this is a valid
 # cohort name" wherever a `Cohort` is held.
 Cohort = Literal["all", "sth", "lth", "utxos_under_1h_old", "utxos_1h_to_1d_old", "utxos_1d_to_1w_old", "utxos_1w_to_1m_old", "utxos_1m_to_2m_old", "utxos_2m_to_3m_old", "utxos_3m_to_4m_old", "utxos_4m_to_5m_old", "utxos_5m_to_6m_old", "utxos_6m_to_9m_old", "utxos_9m_to_1y_old", "utxos_1y_to_18m_old", "utxos_18m_to_2y_old", "utxos_2y_to_3y_old", "utxos_3y_to_4y_old", "utxos_4y_to_5y_old", "utxos_5y_to_6y_old", "utxos_6y_to_7y_old", "utxos_7y_to_8y_old", "utxos_8y_to_10y_old", "utxos_10y_to_12y_old", "utxos_12y_to_15y_old", "utxos_over_15y_old"]
-# Coinbase scriptSig tag for pool identification.
+# Up to the first 100 bytes of a coinbase transaction's first-input
+# `scriptSig`. Bytes are preserved for storage and exposed as a string by
+# mapping each byte to the same-valued Unicode code point. Pool attribution
+# may search this raw value, but the value itself is not a normalized pool
+# label.
 # 
 # Stored as a fixed 101-byte record (1 byte length + 100 bytes data).
 # Uses `[u8; 101]` internally so that `size_of::<CoinbaseTag>()` matches
@@ -272,12 +277,16 @@ TxInIndex = int
 TxOutIndex = int
 # Input index in the spending transaction
 Vin = int
-# Transaction version number
+# Compact indexed transaction-version category. Values 1, 2, and 3 preserve
+# those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+# other version.
 TxVersion = int
 UnknownOutputIndex = TypeIndex
 # Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
 UrpdWeight = Literal["raw", "cointime", "coinflow"]
 Week1 = int
+# Weight in weight units with enough range for cumulative and rolling totals.
+Weight64 = int
 Year1 = int
 Year10 = int
 class AddrAfterTxidParam(TypedDict):
@@ -1086,19 +1095,19 @@ class FundedAddrData(TypedDict):
     Kept compact because one value is stored for every funded address.
 
     Attributes:
-        tx_count: Total transaction count
-        funded_txo_count: Number of transaction outputs funded to this address
-        spent_txo_count: Number of transaction outputs spent by this address
         received: Satoshis received by this address
         sent: Satoshis sent by this address
         realized_cap_raw: The realized capitalization: Σ(price × sats)
+        tx_count: Total transaction count
+        funded_txo_count: Number of transaction outputs funded to this address
+        spent_txo_count: Number of transaction outputs spent by this address
     """
+    received: Sats
+    sent: Sats
+    realized_cap_raw: int
     tx_count: int
     funded_txo_count: int
     spent_txo_count: int
-    received: Sats
-    sent: Sats
-    realized_cap_raw: CentsSats
 
 class HashrateEntry(TypedDict):
     """
@@ -3824,17 +3833,17 @@ class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.empty: CentsUsdPattern3 = CentsUsdPattern3(client, _p('empty_outputs', acc))
-        self.p2a: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2a', acc))
-        self.p2ms: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2ms', acc))
-        self.p2pk33: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2pk33', acc))
-        self.p2pk65: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2pk65', acc))
-        self.p2pkh: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2pkh', acc))
-        self.p2sh: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2sh', acc))
-        self.p2tr: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2tr', acc))
-        self.p2wpkh: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2wpkh', acc))
-        self.p2wsh: CentsUsdPattern3 = CentsUsdPattern3(client, _p('p2wsh', acc))
-        self.unknown: CentsUsdPattern3 = CentsUsdPattern3(client, _p('unknown_outputs', acc))
+        self.empty: CentsUsdPattern = CentsUsdPattern(client, _p('empty_outputs', acc))
+        self.p2a: CentsUsdPattern = CentsUsdPattern(client, _p('p2a', acc))
+        self.p2ms: CentsUsdPattern = CentsUsdPattern(client, _p('p2ms', acc))
+        self.p2pk33: CentsUsdPattern = CentsUsdPattern(client, _p('p2pk33', acc))
+        self.p2pk65: CentsUsdPattern = CentsUsdPattern(client, _p('p2pk65', acc))
+        self.p2pkh: CentsUsdPattern = CentsUsdPattern(client, _p('p2pkh', acc))
+        self.p2sh: CentsUsdPattern = CentsUsdPattern(client, _p('p2sh', acc))
+        self.p2tr: CentsUsdPattern = CentsUsdPattern(client, _p('p2tr', acc))
+        self.p2wpkh: CentsUsdPattern = CentsUsdPattern(client, _p('p2wpkh', acc))
+        self.p2wsh: CentsUsdPattern = CentsUsdPattern(client, _p('p2wsh', acc))
+        self.unknown: CentsUsdPattern = CentsUsdPattern(client, _p('unknown_outputs', acc))
 
 class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13:
     """Pattern struct for repeated tree structure."""
@@ -3852,23 +3861,6 @@ class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13:
         self.p2wpkh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wpkh_prevout'))
         self.p2wsh: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'p2wsh_prevout'))
         self.unknown: _1m1w1y24hPercentPpmRatioPattern = _1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'unknown_outputs_prevout'))
-
-class AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-    
-    def __init__(self, client: BrkClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self.average: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'average'))
-        self.base: SeriesPattern18[T] = SeriesPattern18(client, acc)
-        self.cumulative: SeriesPattern1[T] = SeriesPattern1(client, _m(acc, 'cumulative'))
-        self.max: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'max'))
-        self.median: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'median'))
-        self.min: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'min'))
-        self.pct10: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'pct10'))
-        self.pct25: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'pct25'))
-        self.pct75: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'pct75'))
-        self.pct90: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'pct90'))
-        self.sum: _1m1w1y24hPattern[T] = _1m1w1y24hPattern(client, _m(acc, 'sum'))
 
 class EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6(Generic[T]):
     """Pattern struct for repeated tree structure."""
@@ -4126,7 +4118,7 @@ class _01234Pattern13:
     """Pattern struct for repeated tree structure."""
     pass
 
-class _1m1w1y24hHeightPattern3:
+class _1m1w1y24hHeightPattern2:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4169,17 +4161,6 @@ class _1m1w1y24hHeightPattern:
         self._1y: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '1y'))
         self._24h: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, '24h'))
         self.height: SeriesPattern18[List[StoredF32]] = SeriesPattern18(client, acc)
-
-class _1m1w1y24hHeightPattern2:
-    """Pattern struct for repeated tree structure."""
-    
-    def __init__(self, client: BrkClient, acc: str):
-        """Create pattern node with accumulated series name."""
-        self._1m: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1m'))
-        self._1w: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1w'))
-        self._1y: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '1y'))
-        self._24h: SeriesPattern1[StoredF64] = SeriesPattern1(client, _m(acc, '24h'))
-        self.height: SeriesPattern18[List[StoredF64]] = SeriesPattern18(client, acc)
 
 class AverageBlockCumulativeFeeSumPattern:
     """Pattern struct for repeated tree structure."""
@@ -4303,7 +4284,7 @@ class _1m1w1y2wPattern:
         self._1y: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '1y'))
         self._2w: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, '2w'))
 
-class _1m1w1y24hPattern6:
+class _1m1w1y24hPattern7:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4313,15 +4294,15 @@ class _1m1w1y24hPattern6:
         self._1y: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '1y'))
         self._24h: CentsUsdPattern = CentsUsdPattern(client, _m(acc, '24h'))
 
-class _1m1w1y24hPattern7:
+class _1m1w1y24hPattern6:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self._1m: CentsUsdPattern3 = CentsUsdPattern3(client, _m(acc, '1m'))
-        self._1w: CentsUsdPattern3 = CentsUsdPattern3(client, _m(acc, '1w'))
-        self._1y: CentsUsdPattern3 = CentsUsdPattern3(client, _m(acc, '1y'))
-        self._24h: CentsUsdPattern3 = CentsUsdPattern3(client, _m(acc, '24h'))
+        self._1m: CentsUsdPattern2 = CentsUsdPattern2(client, _m(acc, '1m'))
+        self._1w: CentsUsdPattern2 = CentsUsdPattern2(client, _m(acc, '1w'))
+        self._1y: CentsUsdPattern2 = CentsUsdPattern2(client, _m(acc, '1y'))
+        self._24h: CentsUsdPattern2 = CentsUsdPattern2(client, _m(acc, '24h'))
 
 class _1m1w1y24hPattern2:
     """Pattern struct for repeated tree structure."""
@@ -4371,7 +4352,7 @@ class BlockCumulativeDeltaSumPattern:
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
         self.block: CentsUsdPattern4 = CentsUsdPattern4(client, acc)
-        self.cumulative: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'cumulative'))
+        self.cumulative: CentsUsdPattern2 = CentsUsdPattern2(client, _m(acc, 'cumulative'))
         self.delta: AbsoluteRatePattern3 = AbsoluteRatePattern3(client, _m(acc, 'delta'))
         self.sum: _1m1w1y24hPattern6 = _1m1w1y24hPattern6(client, _m(acc, 'sum'))
 
@@ -4449,7 +4430,7 @@ class AllCumulativeSthPattern:
     """Pattern struct for repeated tree structure."""
     pass
 
-class AllLthSthPattern4:
+class AllLthSthPattern5:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4458,7 +4439,11 @@ class AllLthSthPattern4:
         self.lth: BtcCentsDeltaSatsUsdPattern = BtcCentsDeltaSatsUsdPattern(client, _m(acc, 'lth_supply'))
         self.sth: BtcCentsDeltaSatsUsdPattern = BtcCentsDeltaSatsUsdPattern(client, _m(acc, 'sth_supply'))
 
-class AllLthSthPattern5:
+class AllLthSthPattern4:
+    """Pattern struct for repeated tree structure."""
+    pass
+
+class AllLthSthPattern6:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4467,13 +4452,22 @@ class AllLthSthPattern5:
         self.lth: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('lth', acc))
         self.sth: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, _p('sth', acc))
 
+class AllLthSthPattern2:
+    """Pattern struct for repeated tree structure."""
+    
+    def __init__(self, client: BrkClient, acc: str):
+        """Create pattern node with accumulated series name."""
+        self.all: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, _p('all', acc))
+        self.lth: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, _p('lth', acc))
+        self.sth: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, _p('sth', acc))
+
 class BlockCumulativeSumPattern:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.block: CentsUsdPattern2 = CentsUsdPattern2(client, acc)
-        self.cumulative: CentsUsdPattern3 = CentsUsdPattern3(client, _m(acc, 'cumulative'))
+        self.block: CentsUsdPattern3 = CentsUsdPattern3(client, acc)
+        self.cumulative: CentsUsdPattern = CentsUsdPattern(client, _m(acc, 'cumulative'))
         self.sum: _1m1w1y24hPattern7 = _1m1w1y24hPattern7(client, _m(acc, 'sum'))
 
 class BlockCumulativeSumPattern2:
@@ -4669,10 +4663,6 @@ class _6bBlockTxPattern(Generic[T]):
         self.block: MaxMedianMinPct10Pct25Pct75Pct90Pattern[T] = MaxMedianMinPct10Pct25Pct75Pct90Pattern(client, acc)
         self.tx_index: SeriesPattern19[T] = SeriesPattern19(client, acc)
 
-class AllLthSthPattern(Generic[T]):
-    """Pattern struct for repeated tree structure."""
-    pass
-
 class AbsoluteRatePattern:
     """Pattern struct for repeated tree structure."""
     
@@ -4741,7 +4731,7 @@ class BtcSatsPattern:
         self.btc: SeriesPattern1[Bitcoin] = SeriesPattern1(client, acc)
         self.sats: SeriesPattern1[SatsSigned] = SeriesPattern1(client, _m(acc, 'sats'))
 
-class CentsUsdPattern3:
+class CentsUsdPattern:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4749,7 +4739,7 @@ class CentsUsdPattern3:
         self.cents: SeriesPattern1[Cents] = SeriesPattern1(client, _m(acc, 'cents'))
         self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
 
-class CentsUsdPattern2:
+class CentsUsdPattern3:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4757,7 +4747,7 @@ class CentsUsdPattern2:
         self.cents: SeriesPattern18[Cents] = SeriesPattern18(client, _m(acc, 'cents'))
         self.usd: SeriesPattern18[Dollars] = SeriesPattern18(client, acc)
 
-class CentsUsdPattern:
+class CentsUsdPattern2:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BrkClient, acc: str):
@@ -4818,8 +4808,8 @@ class DiscountPremiumPattern13:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.discount: CentsUsdPattern3 = CentsUsdPattern3(client, _p('veteran', acc))
-        self.premium: CentsUsdPattern3 = CentsUsdPattern3(client, _p('rookie', acc))
+        self.discount: CentsUsdPattern = CentsUsdPattern(client, _p('veteran', acc))
+        self.premium: CentsUsdPattern = CentsUsdPattern(client, _p('rookie', acc))
 
 class FundedTotalPattern:
     """Pattern struct for repeated tree structure."""
@@ -4866,8 +4856,8 @@ class LongShortPattern14:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.long: CentsUsdPattern3 = CentsUsdPattern3(client, _p('lth', acc))
-        self.short: CentsUsdPattern3 = CentsUsdPattern3(client, _p('sth', acc))
+        self.long: CentsUsdPattern = CentsUsdPattern(client, _p('lth', acc))
+        self.short: CentsUsdPattern = CentsUsdPattern(client, _p('sth', acc))
 
 class PerPattern:
     """Pattern struct for repeated tree structure."""
@@ -4937,7 +4927,7 @@ class SharePattern2:
     
     def __init__(self, client: BrkClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.share: AllLthSthPattern5 = AllLthSthPattern5(client, acc)
+        self.share: AllLthSthPattern6 = AllLthSthPattern6(client, acc)
 
 class SharePattern3:
     """Pattern struct for repeated tree structure."""
@@ -5008,6 +4998,22 @@ class SeriesTree_Blocks_Size:
         self.median: _1m1w1y24hPattern[StoredU64] = _1m1w1y24hPattern(client, 'block_size_median')
         self.pct75: _1m1w1y24hPattern[StoredU64] = _1m1w1y24hPattern(client, 'block_size_pct75')
         self.pct90: _1m1w1y24hPattern[StoredU64] = _1m1w1y24hPattern(client, 'block_size_pct90')
+
+class SeriesTree_Blocks_Weight:
+    """Series tree node."""
+    
+    def __init__(self, client: BrkClient, base_path: str = ''):
+        self.base: SeriesPattern18[Weight] = SeriesPattern18(client, 'block_weight')
+        self.cumulative: SeriesPattern1[Weight64] = SeriesPattern1(client, 'block_weight_cumulative')
+        self.sum: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_sum')
+        self.average: _1m1w1y24hPattern[StoredF32] = _1m1w1y24hPattern(client, 'block_weight_average')
+        self.min: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_min')
+        self.max: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_max')
+        self.pct10: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_pct10')
+        self.pct25: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_pct25')
+        self.median: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_median')
+        self.pct75: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_pct75')
+        self.pct90: _1m1w1y24hPattern[Weight64] = _1m1w1y24hPattern(client, 'block_weight_pct90')
 
 class SeriesTree_Blocks_Count:
     """Series tree node."""
@@ -5100,7 +5106,7 @@ class SeriesTree_Blocks:
         self.difficulty: SeriesTree_Blocks_Difficulty = SeriesTree_Blocks_Difficulty(client)
         self.time: SeriesTree_Blocks_Time = SeriesTree_Blocks_Time(client)
         self.size: SeriesTree_Blocks_Size = SeriesTree_Blocks_Size(client)
-        self.weight: AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern[Weight] = AverageBaseCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern(client, 'block_weight')
+        self.weight: SeriesTree_Blocks_Weight = SeriesTree_Blocks_Weight(client)
         self.segwit_txs: SeriesPattern18[StoredU32] = SeriesPattern18(client, 'segwit_txs')
         self.segwit_size: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'segwit_size')
         self.segwit_weight: SeriesPattern18[Weight] = SeriesPattern18(client, 'segwit_weight')
@@ -6665,7 +6671,7 @@ class SeriesTree_Frameworks_Cointime_Awake:
     
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.supply: SeriesTree_Frameworks_Cointime_Awake_Supply = SeriesTree_Frameworks_Cointime_Awake_Supply(client)
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_awake_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'all_awake_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'all_awake_price')
 
 class SeriesTree_Frameworks_Cointime_Sth_Awake_Supply:
@@ -6683,7 +6689,7 @@ class SeriesTree_Frameworks_Cointime_Sth_Awake:
     
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.supply: SeriesTree_Frameworks_Cointime_Sth_Awake_Supply = SeriesTree_Frameworks_Cointime_Sth_Awake_Supply(client)
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_awake_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'sth_awake_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_awake_price')
 
 class SeriesTree_Frameworks_Cointime_Sth:
@@ -6708,7 +6714,7 @@ class SeriesTree_Frameworks_Cointime_Lth_Awake:
     
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.supply: SeriesTree_Frameworks_Cointime_Lth_Awake_Supply = SeriesTree_Frameworks_Cointime_Lth_Awake_Supply(client)
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_awake_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'lth_awake_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_awake_price')
 
 class SeriesTree_Frameworks_Cointime_Lth:
@@ -6758,11 +6764,11 @@ class SeriesTree_Frameworks_Cointime_Cap:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.thermo: CentsUsdPattern3 = CentsUsdPattern3(client, 'thermo_cap')
-        self.investor: CentsUsdPattern3 = CentsUsdPattern3(client, 'investor_cap')
-        self.vaulted: CentsUsdPattern3 = CentsUsdPattern3(client, 'vaulted_cap')
-        self.active: CentsUsdPattern3 = CentsUsdPattern3(client, 'active_cap')
-        self.cointime: CentsUsdPattern3 = CentsUsdPattern3(client, 'cointime_cap')
+        self.thermo: CentsUsdPattern = CentsUsdPattern(client, 'thermo_cap')
+        self.investor: CentsUsdPattern = CentsUsdPattern(client, 'investor_cap')
+        self.vaulted: CentsUsdPattern = CentsUsdPattern(client, 'vaulted_cap')
+        self.active: CentsUsdPattern = CentsUsdPattern(client, 'active_cap')
+        self.cointime: CentsUsdPattern = CentsUsdPattern(client, 'cointime_cap')
         self.aviv: PpmRatioPattern2 = PpmRatioPattern2(client, 'aviv_ratio')
 
 class SeriesTree_Frameworks_Cointime_Prices:
@@ -7008,7 +7014,7 @@ class SeriesTree_Frameworks_Coinflow_Sth:
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.supply: SeriesTree_Frameworks_Coinflow_Sth_Supply = SeriesTree_Frameworks_Coinflow_Sth_Supply(client)
         self.horizon: _1m1y2y3m4y6m8yPattern2 = _1m1y2y3m4y6m8yPattern2(client, 'sth_coinflow')
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_coinflow_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'sth_coinflow_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'sth_coinflow_price')
 
 class SeriesTree_Frameworks_Coinflow_Lth_Supply_Mobile:
@@ -7034,7 +7040,7 @@ class SeriesTree_Frameworks_Coinflow_Lth:
     def __init__(self, client: BrkClient, base_path: str = ''):
         self.supply: SeriesTree_Frameworks_Coinflow_Lth_Supply = SeriesTree_Frameworks_Coinflow_Lth_Supply(client)
         self.horizon: _1m1y2y3m4y6m8yPattern2 = _1m1y2y3m4y6m8yPattern2(client, 'lth_coinflow')
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_coinflow_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'lth_coinflow_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'lth_coinflow_price')
 
 class SeriesTree_Frameworks_Coinflow_AggregateSources_Supply:
@@ -7073,7 +7079,7 @@ class SeriesTree_Frameworks_Coinflow:
         self.age_range: SeriesTree_Frameworks_Coinflow_AgeRange = SeriesTree_Frameworks_Coinflow_AgeRange(client)
         self.supply: SeriesTree_Frameworks_Coinflow_Supply = SeriesTree_Frameworks_Coinflow_Supply(client)
         self.horizon: _1m1y2y3m4y6m8yPattern2 = _1m1y2y3m4y6m8yPattern2(client, 'all_coinflow')
-        self.cap: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_coinflow_cap')
+        self.cap: CentsUsdPattern = CentsUsdPattern(client, 'all_coinflow_cap')
         self.price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'all_coinflow_price')
         self.sth: SeriesTree_Frameworks_Coinflow_Sth = SeriesTree_Frameworks_Coinflow_Sth(client)
         self.lth: SeriesTree_Frameworks_Coinflow_Lth = SeriesTree_Frameworks_Coinflow_Lth(client)
@@ -9796,14 +9802,6 @@ class SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed:
         self.sth: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'sth_coinyears_destroyed')
         self.lth: SeriesPattern1[StoredF64] = SeriesPattern1(client, 'lth_coinyears_destroyed')
 
-class SeriesTree_Cohorts_Cohorts_Activity_Dormancy:
-    """Series tree node."""
-    
-    def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, 'all_dormancy')
-        self.sth: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, 'sth_dormancy')
-        self.lth: _1m1w1y24hHeightPattern = _1m1w1y24hHeightPattern(client, 'lth_dormancy')
-
 class SeriesTree_Cohorts_Cohorts_Activity:
     """Series tree node."""
     
@@ -9811,7 +9809,7 @@ class SeriesTree_Cohorts_Cohorts_Activity:
         self.transfer_volume: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume = SeriesTree_Cohorts_Cohorts_Activity_TransferVolume(client)
         self.coindays_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed = SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed(client)
         self.coinyears_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed = SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed(client)
-        self.dormancy: SeriesTree_Cohorts_Cohorts_Activity_Dormancy = SeriesTree_Cohorts_Cohorts_Activity_Dormancy(client)
+        self.dormancy: AllLthSthPattern2 = AllLthSthPattern2(client, 'dormancy')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range:
     """Series tree node."""
@@ -9998,7 +9996,7 @@ class SeriesTree_Cohorts_Cohorts_Realized_Cap:
         self.type_matrix: SeriesPattern18[Cents] = SeriesPattern18(client, 'realized_cap_cents_by_type')
         self.amount_range_matrix: SeriesPattern18[Cents] = SeriesPattern18(client, 'utxos_realized_cap_cents_by_amount_range')
         self.addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance = SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance(client)
-        self.to_own_mcap: AllLthSthPattern5 = AllLthSthPattern5(client, 'realized_cap_to_own_mcap')
+        self.to_own_mcap: AllLthSthPattern6 = AllLthSthPattern6(client, 'realized_cap_to_own_mcap')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range:
     """Series tree node."""
@@ -11557,9 +11555,9 @@ class SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: _1m1w1y24hHeightPattern3 = _1m1w1y24hHeightPattern3(client, 'all_sell_side_risk_ratio')
-        self.sth: _1m1w1y24hHeightPattern3 = _1m1w1y24hHeightPattern3(client, 'sth_sell_side_risk_ratio')
-        self.lth: _1m1w1y24hHeightPattern3 = _1m1w1y24hHeightPattern3(client, 'lth_sell_side_risk_ratio')
+        self.all: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'all_sell_side_risk_ratio')
+        self.sth: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'sth_sell_side_risk_ratio')
+        self.lth: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'lth_sell_side_risk_ratio')
 
 class SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended:
     """Series tree node."""
@@ -11568,14 +11566,6 @@ class SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended:
         self.all: _1m1w1yHeightPattern = _1m1w1yHeightPattern(client, 'all_sopr')
         self.sth: _1m1w1yHeightPattern = _1m1w1yHeightPattern(client, 'sth_sopr')
         self.lth: _1m1w1yHeightPattern = _1m1w1yHeightPattern(client, 'lth_sopr')
-
-class SeriesTree_Cohorts_Cohorts_Realized_ProfitToLossRatio:
-    """Series tree node."""
-    
-    def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'all_realized_profit_to_loss_ratio')
-        self.sth: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'sth_realized_profit_to_loss_ratio')
-        self.lth: _1m1w1y24hHeightPattern2 = _1m1w1y24hHeightPattern2(client, 'lth_realized_profit_to_loss_ratio')
 
 class SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range:
     """Series tree node."""
@@ -11792,86 +11782,86 @@ class SeriesTree_Cohorts_Cohorts_Realized:
         self.net_pnl_change_1m_to_rcap: SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap = SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap(client)
         self.sell_side_risk_ratio: SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio = SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio(client)
         self.sopr_ratio_extended: SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended = SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended(client)
-        self.profit_to_loss_ratio: SeriesTree_Cohorts_Cohorts_Realized_ProfitToLossRatio = SeriesTree_Cohorts_Cohorts_Realized_ProfitToLossRatio(client)
+        self.profit_to_loss_ratio: AllLthSthPattern2 = AllLthSthPattern2(client, 'realized_profit_to_loss_ratio')
         self.mvrv: SeriesTree_Cohorts_Cohorts_Realized_Mvrv = SeriesTree_Cohorts_Cohorts_Realized_Mvrv(client)
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1h_old_unrealized_profit')
-        self._1h_to_1d: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1h_to_1d_old_unrealized_profit')
-        self._1d_to_1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1d_to_1w_old_unrealized_profit')
-        self._1w_to_1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1w_to_1m_old_unrealized_profit')
-        self._1m_to_2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1m_to_2m_old_unrealized_profit')
-        self._2m_to_3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_2m_to_3m_old_unrealized_profit')
-        self._3m_to_4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_3m_to_4m_old_unrealized_profit')
-        self._4m_to_5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_4m_to_5m_old_unrealized_profit')
-        self._5m_to_6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_5m_to_6m_old_unrealized_profit')
-        self._6m_to_9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_6m_to_9m_old_unrealized_profit')
-        self._9m_to_1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_9m_to_1y_old_unrealized_profit')
-        self._1y_to_18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1y_to_18m_old_unrealized_profit')
-        self._18m_to_2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_18m_to_2y_old_unrealized_profit')
-        self._2y_to_3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_2y_to_3y_old_unrealized_profit')
-        self._3y_to_4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_3y_to_4y_old_unrealized_profit')
-        self._4y_to_5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_4y_to_5y_old_unrealized_profit')
-        self._5y_to_6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_5y_to_6y_old_unrealized_profit')
-        self._6y_to_7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_6y_to_7y_old_unrealized_profit')
-        self._7y_to_8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_7y_to_8y_old_unrealized_profit')
-        self._8y_to_10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_8y_to_10y_old_unrealized_profit')
-        self._10y_to_12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_10y_to_12y_old_unrealized_profit')
-        self._12y_to_15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_12y_to_15y_old_unrealized_profit')
-        self.over_15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_15y_old_unrealized_profit')
+        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_unrealized_profit')
+        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_unrealized_profit')
+        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_unrealized_profit')
+        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_unrealized_profit')
+        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_unrealized_profit')
+        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_unrealized_profit')
+        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_unrealized_profit')
+        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_unrealized_profit')
+        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_unrealized_profit')
+        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_unrealized_profit')
+        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_unrealized_profit')
+        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_unrealized_profit')
+        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_unrealized_profit')
+        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_unrealized_profit')
+        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_unrealized_profit')
+        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_unrealized_profit')
+        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_unrealized_profit')
+        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_unrealized_profit')
+        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_unrealized_profit')
+        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_unrealized_profit')
+        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_unrealized_profit')
+        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_unrealized_profit')
+        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_unrealized_profit')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1w_old_unrealized_profit')
-        self._1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1m_old_unrealized_profit')
-        self._2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_2m_old_unrealized_profit')
-        self._3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_3m_old_unrealized_profit')
-        self._4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_4m_old_unrealized_profit')
-        self._5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_5m_old_unrealized_profit')
-        self._6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_6m_old_unrealized_profit')
-        self._9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_9m_old_unrealized_profit')
-        self._1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1y_old_unrealized_profit')
-        self._18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_18m_old_unrealized_profit')
-        self._2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_2y_old_unrealized_profit')
-        self._3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_3y_old_unrealized_profit')
-        self._4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_4y_old_unrealized_profit')
-        self._5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_5y_old_unrealized_profit')
-        self._6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_6y_old_unrealized_profit')
-        self._7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_7y_old_unrealized_profit')
-        self._8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_8y_old_unrealized_profit')
-        self._10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_10y_old_unrealized_profit')
-        self._12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_12y_old_unrealized_profit')
-        self._15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_15y_old_unrealized_profit')
+        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1w_old_unrealized_profit')
+        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1m_old_unrealized_profit')
+        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2m_old_unrealized_profit')
+        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3m_old_unrealized_profit')
+        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4m_old_unrealized_profit')
+        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5m_old_unrealized_profit')
+        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6m_old_unrealized_profit')
+        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_9m_old_unrealized_profit')
+        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1y_old_unrealized_profit')
+        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_18m_old_unrealized_profit')
+        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2y_old_unrealized_profit')
+        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3y_old_unrealized_profit')
+        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4y_old_unrealized_profit')
+        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5y_old_unrealized_profit')
+        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6y_old_unrealized_profit')
+        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_7y_old_unrealized_profit')
+        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_8y_old_unrealized_profit')
+        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_10y_old_unrealized_profit')
+        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_12y_old_unrealized_profit')
+        self._15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_15y_old_unrealized_profit')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1d: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1d_old_unrealized_profit')
-        self._1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1w_old_unrealized_profit')
-        self._1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1m_old_unrealized_profit')
-        self._2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_2m_old_unrealized_profit')
-        self._3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_3m_old_unrealized_profit')
-        self._4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_4m_old_unrealized_profit')
-        self._5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_5m_old_unrealized_profit')
-        self._6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_6m_old_unrealized_profit')
-        self._9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_9m_old_unrealized_profit')
-        self._1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1y_old_unrealized_profit')
-        self._18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_18m_old_unrealized_profit')
-        self._2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_2y_old_unrealized_profit')
-        self._3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_3y_old_unrealized_profit')
-        self._4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_4y_old_unrealized_profit')
-        self._5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_5y_old_unrealized_profit')
-        self._6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_6y_old_unrealized_profit')
-        self._7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_7y_old_unrealized_profit')
-        self._8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_8y_old_unrealized_profit')
-        self._10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_10y_old_unrealized_profit')
-        self._12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_12y_old_unrealized_profit')
+        self._1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1d_old_unrealized_profit')
+        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1w_old_unrealized_profit')
+        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1m_old_unrealized_profit')
+        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2m_old_unrealized_profit')
+        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3m_old_unrealized_profit')
+        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4m_old_unrealized_profit')
+        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5m_old_unrealized_profit')
+        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6m_old_unrealized_profit')
+        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_9m_old_unrealized_profit')
+        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1y_old_unrealized_profit')
+        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_18m_old_unrealized_profit')
+        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2y_old_unrealized_profit')
+        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3y_old_unrealized_profit')
+        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4y_old_unrealized_profit')
+        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5y_old_unrealized_profit')
+        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6y_old_unrealized_profit')
+        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_7y_old_unrealized_profit')
+        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_8y_old_unrealized_profit')
+        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10y_old_unrealized_profit')
+        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_12y_old_unrealized_profit')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age:
     """Series tree node."""
@@ -11885,40 +11875,40 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._0: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_0_unrealized_profit')
-        self._1: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_1_unrealized_profit')
-        self._2: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_2_unrealized_profit')
-        self._3: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_3_unrealized_profit')
-        self._4: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_4_unrealized_profit')
+        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_unrealized_profit')
+        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_unrealized_profit')
+        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_unrealized_profit')
+        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_unrealized_profit')
+        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_unrealized_profit')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._2009: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2009_unrealized_profit')
-        self._2010: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2010_unrealized_profit')
-        self._2011: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2011_unrealized_profit')
-        self._2012: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2012_unrealized_profit')
-        self._2013: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2013_unrealized_profit')
-        self._2014: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2014_unrealized_profit')
-        self._2015: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2015_unrealized_profit')
-        self._2016: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2016_unrealized_profit')
-        self._2017: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2017_unrealized_profit')
-        self._2018: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2018_unrealized_profit')
-        self._2019: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2019_unrealized_profit')
-        self._2020: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2020_unrealized_profit')
-        self._2021: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2021_unrealized_profit')
-        self._2022: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2022_unrealized_profit')
-        self._2023: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2023_unrealized_profit')
-        self._2024: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2024_unrealized_profit')
-        self._2025: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2025_unrealized_profit')
-        self._2026: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2026_unrealized_profit')
+        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_unrealized_profit')
+        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_unrealized_profit')
+        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_unrealized_profit')
+        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_unrealized_profit')
+        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_unrealized_profit')
+        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_unrealized_profit')
+        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_unrealized_profit')
+        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_unrealized_profit')
+        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_unrealized_profit')
+        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_unrealized_profit')
+        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_unrealized_profit')
+        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_unrealized_profit')
+        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_unrealized_profit')
+        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_unrealized_profit')
+        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_unrealized_profit')
+        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_unrealized_profit')
+        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_unrealized_profit')
+        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_unrealized_profit')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Profit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'unrealized_profit')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'unrealized_profit')
         self.age: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age = SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age(client)
         self.epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch = SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch(client)
         self.class_: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class = SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class(client)
@@ -11935,79 +11925,79 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1h_old_unrealized_loss')
-        self._1h_to_1d: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1h_to_1d_old_unrealized_loss')
-        self._1d_to_1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1d_to_1w_old_unrealized_loss')
-        self._1w_to_1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1w_to_1m_old_unrealized_loss')
-        self._1m_to_2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1m_to_2m_old_unrealized_loss')
-        self._2m_to_3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_2m_to_3m_old_unrealized_loss')
-        self._3m_to_4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_3m_to_4m_old_unrealized_loss')
-        self._4m_to_5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_4m_to_5m_old_unrealized_loss')
-        self._5m_to_6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_5m_to_6m_old_unrealized_loss')
-        self._6m_to_9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_6m_to_9m_old_unrealized_loss')
-        self._9m_to_1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_9m_to_1y_old_unrealized_loss')
-        self._1y_to_18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_1y_to_18m_old_unrealized_loss')
-        self._18m_to_2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_18m_to_2y_old_unrealized_loss')
-        self._2y_to_3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_2y_to_3y_old_unrealized_loss')
-        self._3y_to_4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_3y_to_4y_old_unrealized_loss')
-        self._4y_to_5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_4y_to_5y_old_unrealized_loss')
-        self._5y_to_6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_5y_to_6y_old_unrealized_loss')
-        self._6y_to_7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_6y_to_7y_old_unrealized_loss')
-        self._7y_to_8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_7y_to_8y_old_unrealized_loss')
-        self._8y_to_10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_8y_to_10y_old_unrealized_loss')
-        self._10y_to_12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_10y_to_12y_old_unrealized_loss')
-        self._12y_to_15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_12y_to_15y_old_unrealized_loss')
-        self.over_15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_15y_old_unrealized_loss')
+        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_unrealized_loss')
+        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_unrealized_loss')
+        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_unrealized_loss')
+        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_unrealized_loss')
+        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_unrealized_loss')
+        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_unrealized_loss')
+        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_unrealized_loss')
+        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_unrealized_loss')
+        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_unrealized_loss')
+        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_unrealized_loss')
+        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_unrealized_loss')
+        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_unrealized_loss')
+        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_unrealized_loss')
+        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_unrealized_loss')
+        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_unrealized_loss')
+        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_unrealized_loss')
+        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_unrealized_loss')
+        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_unrealized_loss')
+        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_unrealized_loss')
+        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_unrealized_loss')
+        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_unrealized_loss')
+        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_unrealized_loss')
+        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_unrealized_loss')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1w_old_unrealized_loss')
-        self._1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1m_old_unrealized_loss')
-        self._2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_2m_old_unrealized_loss')
-        self._3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_3m_old_unrealized_loss')
-        self._4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_4m_old_unrealized_loss')
-        self._5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_5m_old_unrealized_loss')
-        self._6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_6m_old_unrealized_loss')
-        self._9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_9m_old_unrealized_loss')
-        self._1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_1y_old_unrealized_loss')
-        self._18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_18m_old_unrealized_loss')
-        self._2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_2y_old_unrealized_loss')
-        self._3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_3y_old_unrealized_loss')
-        self._4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_4y_old_unrealized_loss')
-        self._5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_5y_old_unrealized_loss')
-        self._6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_6y_old_unrealized_loss')
-        self._7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_7y_old_unrealized_loss')
-        self._8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_8y_old_unrealized_loss')
-        self._10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_10y_old_unrealized_loss')
-        self._12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_12y_old_unrealized_loss')
-        self._15y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_under_15y_old_unrealized_loss')
+        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1w_old_unrealized_loss')
+        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1m_old_unrealized_loss')
+        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2m_old_unrealized_loss')
+        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3m_old_unrealized_loss')
+        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4m_old_unrealized_loss')
+        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5m_old_unrealized_loss')
+        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6m_old_unrealized_loss')
+        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_9m_old_unrealized_loss')
+        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1y_old_unrealized_loss')
+        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_18m_old_unrealized_loss')
+        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2y_old_unrealized_loss')
+        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3y_old_unrealized_loss')
+        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4y_old_unrealized_loss')
+        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5y_old_unrealized_loss')
+        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6y_old_unrealized_loss')
+        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_7y_old_unrealized_loss')
+        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_8y_old_unrealized_loss')
+        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_10y_old_unrealized_loss')
+        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_12y_old_unrealized_loss')
+        self._15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_15y_old_unrealized_loss')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1d: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1d_old_unrealized_loss')
-        self._1w: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1w_old_unrealized_loss')
-        self._1m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1m_old_unrealized_loss')
-        self._2m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_2m_old_unrealized_loss')
-        self._3m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_3m_old_unrealized_loss')
-        self._4m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_4m_old_unrealized_loss')
-        self._5m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_5m_old_unrealized_loss')
-        self._6m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_6m_old_unrealized_loss')
-        self._9m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_9m_old_unrealized_loss')
-        self._1y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_1y_old_unrealized_loss')
-        self._18m: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_18m_old_unrealized_loss')
-        self._2y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_2y_old_unrealized_loss')
-        self._3y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_3y_old_unrealized_loss')
-        self._4y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_4y_old_unrealized_loss')
-        self._5y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_5y_old_unrealized_loss')
-        self._6y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_6y_old_unrealized_loss')
-        self._7y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_7y_old_unrealized_loss')
-        self._8y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_8y_old_unrealized_loss')
-        self._10y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_10y_old_unrealized_loss')
-        self._12y: CentsUsdPattern3 = CentsUsdPattern3(client, 'utxos_over_12y_old_unrealized_loss')
+        self._1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1d_old_unrealized_loss')
+        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1w_old_unrealized_loss')
+        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1m_old_unrealized_loss')
+        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2m_old_unrealized_loss')
+        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3m_old_unrealized_loss')
+        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4m_old_unrealized_loss')
+        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5m_old_unrealized_loss')
+        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6m_old_unrealized_loss')
+        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_9m_old_unrealized_loss')
+        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1y_old_unrealized_loss')
+        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_18m_old_unrealized_loss')
+        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2y_old_unrealized_loss')
+        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3y_old_unrealized_loss')
+        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4y_old_unrealized_loss')
+        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5y_old_unrealized_loss')
+        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6y_old_unrealized_loss')
+        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_7y_old_unrealized_loss')
+        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_8y_old_unrealized_loss')
+        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10y_old_unrealized_loss')
+        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_12y_old_unrealized_loss')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age:
     """Series tree node."""
@@ -12021,34 +12011,34 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._0: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_0_unrealized_loss')
-        self._1: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_1_unrealized_loss')
-        self._2: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_2_unrealized_loss')
-        self._3: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_3_unrealized_loss')
-        self._4: CentsUsdPattern3 = CentsUsdPattern3(client, 'epoch_4_unrealized_loss')
+        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_unrealized_loss')
+        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_unrealized_loss')
+        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_unrealized_loss')
+        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_unrealized_loss')
+        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_unrealized_loss')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._2009: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2009_unrealized_loss')
-        self._2010: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2010_unrealized_loss')
-        self._2011: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2011_unrealized_loss')
-        self._2012: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2012_unrealized_loss')
-        self._2013: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2013_unrealized_loss')
-        self._2014: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2014_unrealized_loss')
-        self._2015: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2015_unrealized_loss')
-        self._2016: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2016_unrealized_loss')
-        self._2017: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2017_unrealized_loss')
-        self._2018: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2018_unrealized_loss')
-        self._2019: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2019_unrealized_loss')
-        self._2020: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2020_unrealized_loss')
-        self._2021: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2021_unrealized_loss')
-        self._2022: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2022_unrealized_loss')
-        self._2023: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2023_unrealized_loss')
-        self._2024: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2024_unrealized_loss')
-        self._2025: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2025_unrealized_loss')
-        self._2026: CentsUsdPattern3 = CentsUsdPattern3(client, 'class_2026_unrealized_loss')
+        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_unrealized_loss')
+        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_unrealized_loss')
+        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_unrealized_loss')
+        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_unrealized_loss')
+        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_unrealized_loss')
+        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_unrealized_loss')
+        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_unrealized_loss')
+        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_unrealized_loss')
+        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_unrealized_loss')
+        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_unrealized_loss')
+        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_unrealized_loss')
+        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_unrealized_loss')
+        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_unrealized_loss')
+        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_unrealized_loss')
+        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_unrealized_loss')
+        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_unrealized_loss')
+        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_unrealized_loss')
+        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_unrealized_loss')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range:
     """Series tree node."""
@@ -12185,7 +12175,7 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_Loss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'unrealized_loss')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'unrealized_loss')
         self.age: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age = SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age(client)
         self.epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch = SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch(client)
         self.class_: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class = SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class(client)
@@ -12203,79 +12193,79 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.under_1h: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1h_old_net_unrealized_pnl')
-        self._1h_to_1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1h_to_1d_old_net_unrealized_pnl')
-        self._1d_to_1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1d_to_1w_old_net_unrealized_pnl')
-        self._1w_to_1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1w_to_1m_old_net_unrealized_pnl')
-        self._1m_to_2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1m_to_2m_old_net_unrealized_pnl')
-        self._2m_to_3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2m_to_3m_old_net_unrealized_pnl')
-        self._3m_to_4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3m_to_4m_old_net_unrealized_pnl')
-        self._4m_to_5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4m_to_5m_old_net_unrealized_pnl')
-        self._5m_to_6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5m_to_6m_old_net_unrealized_pnl')
-        self._6m_to_9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6m_to_9m_old_net_unrealized_pnl')
-        self._9m_to_1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_9m_to_1y_old_net_unrealized_pnl')
-        self._1y_to_18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_1y_to_18m_old_net_unrealized_pnl')
-        self._18m_to_2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_18m_to_2y_old_net_unrealized_pnl')
-        self._2y_to_3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_2y_to_3y_old_net_unrealized_pnl')
-        self._3y_to_4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_3y_to_4y_old_net_unrealized_pnl')
-        self._4y_to_5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_4y_to_5y_old_net_unrealized_pnl')
-        self._5y_to_6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_5y_to_6y_old_net_unrealized_pnl')
-        self._6y_to_7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_6y_to_7y_old_net_unrealized_pnl')
-        self._7y_to_8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_7y_to_8y_old_net_unrealized_pnl')
-        self._8y_to_10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_8y_to_10y_old_net_unrealized_pnl')
-        self._10y_to_12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10y_to_12y_old_net_unrealized_pnl')
-        self._12y_to_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_12y_to_15y_old_net_unrealized_pnl')
-        self.over_15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_15y_old_net_unrealized_pnl')
+        self.under_1h: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_1h_old_net_unrealized_pnl')
+        self._1h_to_1d: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_1h_to_1d_old_net_unrealized_pnl')
+        self._1d_to_1w: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_1d_to_1w_old_net_unrealized_pnl')
+        self._1w_to_1m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_1w_to_1m_old_net_unrealized_pnl')
+        self._1m_to_2m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_1m_to_2m_old_net_unrealized_pnl')
+        self._2m_to_3m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_2m_to_3m_old_net_unrealized_pnl')
+        self._3m_to_4m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_3m_to_4m_old_net_unrealized_pnl')
+        self._4m_to_5m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_4m_to_5m_old_net_unrealized_pnl')
+        self._5m_to_6m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_5m_to_6m_old_net_unrealized_pnl')
+        self._6m_to_9m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_6m_to_9m_old_net_unrealized_pnl')
+        self._9m_to_1y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_9m_to_1y_old_net_unrealized_pnl')
+        self._1y_to_18m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_1y_to_18m_old_net_unrealized_pnl')
+        self._18m_to_2y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_18m_to_2y_old_net_unrealized_pnl')
+        self._2y_to_3y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_2y_to_3y_old_net_unrealized_pnl')
+        self._3y_to_4y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_3y_to_4y_old_net_unrealized_pnl')
+        self._4y_to_5y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_4y_to_5y_old_net_unrealized_pnl')
+        self._5y_to_6y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_5y_to_6y_old_net_unrealized_pnl')
+        self._6y_to_7y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_6y_to_7y_old_net_unrealized_pnl')
+        self._7y_to_8y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_7y_to_8y_old_net_unrealized_pnl')
+        self._8y_to_10y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_8y_to_10y_old_net_unrealized_pnl')
+        self._10y_to_12y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_10y_to_12y_old_net_unrealized_pnl')
+        self._12y_to_15y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_12y_to_15y_old_net_unrealized_pnl')
+        self.over_15y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_15y_old_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1w_old_net_unrealized_pnl')
-        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1m_old_net_unrealized_pnl')
-        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2m_old_net_unrealized_pnl')
-        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3m_old_net_unrealized_pnl')
-        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4m_old_net_unrealized_pnl')
-        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5m_old_net_unrealized_pnl')
-        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6m_old_net_unrealized_pnl')
-        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_9m_old_net_unrealized_pnl')
-        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_1y_old_net_unrealized_pnl')
-        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_18m_old_net_unrealized_pnl')
-        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_2y_old_net_unrealized_pnl')
-        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_3y_old_net_unrealized_pnl')
-        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_4y_old_net_unrealized_pnl')
-        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_5y_old_net_unrealized_pnl')
-        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_6y_old_net_unrealized_pnl')
-        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_7y_old_net_unrealized_pnl')
-        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_8y_old_net_unrealized_pnl')
-        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_10y_old_net_unrealized_pnl')
-        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_12y_old_net_unrealized_pnl')
-        self._15y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_under_15y_old_net_unrealized_pnl')
+        self._1w: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_1w_old_net_unrealized_pnl')
+        self._1m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_1m_old_net_unrealized_pnl')
+        self._2m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_2m_old_net_unrealized_pnl')
+        self._3m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_3m_old_net_unrealized_pnl')
+        self._4m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_4m_old_net_unrealized_pnl')
+        self._5m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_5m_old_net_unrealized_pnl')
+        self._6m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_6m_old_net_unrealized_pnl')
+        self._9m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_9m_old_net_unrealized_pnl')
+        self._1y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_1y_old_net_unrealized_pnl')
+        self._18m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_18m_old_net_unrealized_pnl')
+        self._2y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_2y_old_net_unrealized_pnl')
+        self._3y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_3y_old_net_unrealized_pnl')
+        self._4y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_4y_old_net_unrealized_pnl')
+        self._5y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_5y_old_net_unrealized_pnl')
+        self._6y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_6y_old_net_unrealized_pnl')
+        self._7y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_7y_old_net_unrealized_pnl')
+        self._8y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_8y_old_net_unrealized_pnl')
+        self._10y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_10y_old_net_unrealized_pnl')
+        self._12y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_12y_old_net_unrealized_pnl')
+        self._15y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_under_15y_old_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._1d: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1d_old_net_unrealized_pnl')
-        self._1w: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1w_old_net_unrealized_pnl')
-        self._1m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1m_old_net_unrealized_pnl')
-        self._2m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2m_old_net_unrealized_pnl')
-        self._3m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3m_old_net_unrealized_pnl')
-        self._4m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4m_old_net_unrealized_pnl')
-        self._5m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5m_old_net_unrealized_pnl')
-        self._6m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6m_old_net_unrealized_pnl')
-        self._9m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_9m_old_net_unrealized_pnl')
-        self._1y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1y_old_net_unrealized_pnl')
-        self._18m: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_18m_old_net_unrealized_pnl')
-        self._2y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_2y_old_net_unrealized_pnl')
-        self._3y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_3y_old_net_unrealized_pnl')
-        self._4y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_4y_old_net_unrealized_pnl')
-        self._5y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_5y_old_net_unrealized_pnl')
-        self._6y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_6y_old_net_unrealized_pnl')
-        self._7y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_7y_old_net_unrealized_pnl')
-        self._8y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_8y_old_net_unrealized_pnl')
-        self._10y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10y_old_net_unrealized_pnl')
-        self._12y: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_12y_old_net_unrealized_pnl')
+        self._1d: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_1d_old_net_unrealized_pnl')
+        self._1w: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_1w_old_net_unrealized_pnl')
+        self._1m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_1m_old_net_unrealized_pnl')
+        self._2m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_2m_old_net_unrealized_pnl')
+        self._3m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_3m_old_net_unrealized_pnl')
+        self._4m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_4m_old_net_unrealized_pnl')
+        self._5m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_5m_old_net_unrealized_pnl')
+        self._6m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_6m_old_net_unrealized_pnl')
+        self._9m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_9m_old_net_unrealized_pnl')
+        self._1y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_1y_old_net_unrealized_pnl')
+        self._18m: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_18m_old_net_unrealized_pnl')
+        self._2y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_2y_old_net_unrealized_pnl')
+        self._3y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_3y_old_net_unrealized_pnl')
+        self._4y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_4y_old_net_unrealized_pnl')
+        self._5y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_5y_old_net_unrealized_pnl')
+        self._6y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_6y_old_net_unrealized_pnl')
+        self._7y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_7y_old_net_unrealized_pnl')
+        self._8y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_8y_old_net_unrealized_pnl')
+        self._10y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_10y_old_net_unrealized_pnl')
+        self._12y: CentsUsdPattern2 = CentsUsdPattern2(client, 'utxos_over_12y_old_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age:
     """Series tree node."""
@@ -12289,54 +12279,54 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._0: CentsUsdPattern = CentsUsdPattern(client, 'epoch_0_net_unrealized_pnl')
-        self._1: CentsUsdPattern = CentsUsdPattern(client, 'epoch_1_net_unrealized_pnl')
-        self._2: CentsUsdPattern = CentsUsdPattern(client, 'epoch_2_net_unrealized_pnl')
-        self._3: CentsUsdPattern = CentsUsdPattern(client, 'epoch_3_net_unrealized_pnl')
-        self._4: CentsUsdPattern = CentsUsdPattern(client, 'epoch_4_net_unrealized_pnl')
+        self._0: CentsUsdPattern2 = CentsUsdPattern2(client, 'epoch_0_net_unrealized_pnl')
+        self._1: CentsUsdPattern2 = CentsUsdPattern2(client, 'epoch_1_net_unrealized_pnl')
+        self._2: CentsUsdPattern2 = CentsUsdPattern2(client, 'epoch_2_net_unrealized_pnl')
+        self._3: CentsUsdPattern2 = CentsUsdPattern2(client, 'epoch_3_net_unrealized_pnl')
+        self._4: CentsUsdPattern2 = CentsUsdPattern2(client, 'epoch_4_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self._2009: CentsUsdPattern = CentsUsdPattern(client, 'class_2009_net_unrealized_pnl')
-        self._2010: CentsUsdPattern = CentsUsdPattern(client, 'class_2010_net_unrealized_pnl')
-        self._2011: CentsUsdPattern = CentsUsdPattern(client, 'class_2011_net_unrealized_pnl')
-        self._2012: CentsUsdPattern = CentsUsdPattern(client, 'class_2012_net_unrealized_pnl')
-        self._2013: CentsUsdPattern = CentsUsdPattern(client, 'class_2013_net_unrealized_pnl')
-        self._2014: CentsUsdPattern = CentsUsdPattern(client, 'class_2014_net_unrealized_pnl')
-        self._2015: CentsUsdPattern = CentsUsdPattern(client, 'class_2015_net_unrealized_pnl')
-        self._2016: CentsUsdPattern = CentsUsdPattern(client, 'class_2016_net_unrealized_pnl')
-        self._2017: CentsUsdPattern = CentsUsdPattern(client, 'class_2017_net_unrealized_pnl')
-        self._2018: CentsUsdPattern = CentsUsdPattern(client, 'class_2018_net_unrealized_pnl')
-        self._2019: CentsUsdPattern = CentsUsdPattern(client, 'class_2019_net_unrealized_pnl')
-        self._2020: CentsUsdPattern = CentsUsdPattern(client, 'class_2020_net_unrealized_pnl')
-        self._2021: CentsUsdPattern = CentsUsdPattern(client, 'class_2021_net_unrealized_pnl')
-        self._2022: CentsUsdPattern = CentsUsdPattern(client, 'class_2022_net_unrealized_pnl')
-        self._2023: CentsUsdPattern = CentsUsdPattern(client, 'class_2023_net_unrealized_pnl')
-        self._2024: CentsUsdPattern = CentsUsdPattern(client, 'class_2024_net_unrealized_pnl')
-        self._2025: CentsUsdPattern = CentsUsdPattern(client, 'class_2025_net_unrealized_pnl')
-        self._2026: CentsUsdPattern = CentsUsdPattern(client, 'class_2026_net_unrealized_pnl')
+        self._2009: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2009_net_unrealized_pnl')
+        self._2010: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2010_net_unrealized_pnl')
+        self._2011: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2011_net_unrealized_pnl')
+        self._2012: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2012_net_unrealized_pnl')
+        self._2013: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2013_net_unrealized_pnl')
+        self._2014: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2014_net_unrealized_pnl')
+        self._2015: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2015_net_unrealized_pnl')
+        self._2016: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2016_net_unrealized_pnl')
+        self._2017: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2017_net_unrealized_pnl')
+        self._2018: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2018_net_unrealized_pnl')
+        self._2019: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2019_net_unrealized_pnl')
+        self._2020: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2020_net_unrealized_pnl')
+        self._2021: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2021_net_unrealized_pnl')
+        self._2022: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2022_net_unrealized_pnl')
+        self._2023: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2023_net_unrealized_pnl')
+        self._2024: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2024_net_unrealized_pnl')
+        self._2025: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2025_net_unrealized_pnl')
+        self._2026: CentsUsdPattern2 = CentsUsdPattern2(client, 'class_2026_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.discount: CentsUsdPattern = CentsUsdPattern(client, 'veteran_net_unrealized_pnl')
-        self.premium: CentsUsdPattern = CentsUsdPattern(client, 'rookie_net_unrealized_pnl')
+        self.discount: CentsUsdPattern2 = CentsUsdPattern2(client, 'veteran_net_unrealized_pnl')
+        self.premium: CentsUsdPattern2 = CentsUsdPattern2(client, 'rookie_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.short: CentsUsdPattern = CentsUsdPattern(client, 'sth_net_unrealized_pnl')
-        self.long: CentsUsdPattern = CentsUsdPattern(client, 'lth_net_unrealized_pnl')
+        self.short: CentsUsdPattern2 = CentsUsdPattern2(client, 'sth_net_unrealized_pnl')
+        self.long: CentsUsdPattern2 = CentsUsdPattern2(client, 'lth_net_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern = CentsUsdPattern(client, 'net_unrealized_pnl')
+        self.all: CentsUsdPattern2 = CentsUsdPattern2(client, 'net_unrealized_pnl')
         self.age: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age = SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age(client)
         self.epoch: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch = SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch(client)
         self.class_: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class = SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class(client)
@@ -12351,54 +12341,54 @@ class SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_unrealized_gross_pnl')
-        self.sth: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_unrealized_gross_pnl')
-        self.lth: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_unrealized_gross_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_unrealized_gross_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_unrealized_gross_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_unrealized_gross_pnl')
         self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'unrealized_gross_pnl_cents_by_term')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_invested_capital_in_profit')
-        self.sth: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_invested_capital_in_profit')
-        self.lth: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_invested_capital_in_profit')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_invested_capital_in_profit')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_invested_capital_in_profit')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_invested_capital_in_profit')
         self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'invested_capital_in_profit_cents_by_term')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_invested_capital_in_loss')
-        self.sth: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_invested_capital_in_loss')
-        self.lth: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_invested_capital_in_loss')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_invested_capital_in_loss')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_invested_capital_in_loss')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_invested_capital_in_loss')
         self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'invested_capital_in_loss_cents_by_term')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_pain_index')
-        self.sth: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_pain_index')
-        self.lth: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_pain_index')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_pain_index')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_pain_index')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_pain_index')
         self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'pain_index_cents_by_aggregate')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern3 = CentsUsdPattern3(client, 'all_greed_index')
-        self.sth: CentsUsdPattern3 = CentsUsdPattern3(client, 'sth_greed_index')
-        self.lth: CentsUsdPattern3 = CentsUsdPattern3(client, 'lth_greed_index')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_greed_index')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_greed_index')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_greed_index')
         self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'greed_index_cents_by_aggregate')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: CentsUsdPattern = CentsUsdPattern(client, 'all_net_sentiment')
-        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'sth_net_sentiment')
-        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'lth_net_sentiment')
+        self.all: CentsUsdPattern2 = CentsUsdPattern2(client, 'all_net_sentiment')
+        self.sth: CentsUsdPattern2 = CentsUsdPattern2(client, 'sth_net_sentiment')
+        self.lth: CentsUsdPattern2 = CentsUsdPattern2(client, 'lth_net_sentiment')
         self.height: SeriesPattern18[CentsSigned] = SeriesPattern18(client, 'net_sentiment_cents_by_aggregate')
 
 class SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range:
@@ -12671,9 +12661,9 @@ class SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.to_mcap: AllLthSthPattern5 = AllLthSthPattern5(client, 'unrealized_profit_to_mcap')
+        self.to_mcap: AllLthSthPattern6 = AllLthSthPattern6(client, 'unrealized_profit_to_mcap')
         self.to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap = SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap(client)
-        self.to_own_gross_pnl: AllLthSthPattern5 = AllLthSthPattern5(client, 'unrealized_profit_to_own_gross_pnl')
+        self.to_own_gross_pnl: AllLthSthPattern6 = AllLthSthPattern6(client, 'unrealized_profit_to_own_gross_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap:
     """Series tree node."""
@@ -12687,9 +12677,9 @@ class SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.to_mcap: AllLthSthPattern5 = AllLthSthPattern5(client, 'unrealized_loss_to_mcap')
+        self.to_mcap: AllLthSthPattern6 = AllLthSthPattern6(client, 'unrealized_loss_to_mcap')
         self.to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap = SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap(client)
-        self.to_own_gross_pnl: AllLthSthPattern5 = AllLthSthPattern5(client, 'unrealized_loss_to_own_gross_pnl')
+        self.to_own_gross_pnl: AllLthSthPattern6 = AllLthSthPattern6(client, 'unrealized_loss_to_own_gross_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap:
     """Series tree node."""
@@ -12770,64 +12760,64 @@ class SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.over_1000pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_1000pct_in_profit')
-        self._500pct_to_1000pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_500pct_to_1000pct_in_profit')
-        self._300pct_to_500pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_300pct_to_500pct_in_profit')
-        self._200pct_to_300pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_200pct_to_300pct_in_profit')
-        self._100pct_to_200pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_100pct_to_200pct_in_profit')
-        self._90pct_to_100pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_90pct_to_100pct_in_profit')
-        self._80pct_to_90pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_80pct_to_90pct_in_profit')
-        self._70pct_to_80pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_70pct_to_80pct_in_profit')
-        self._60pct_to_70pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_60pct_to_70pct_in_profit')
-        self._50pct_to_60pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_50pct_to_60pct_in_profit')
-        self._40pct_to_50pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_40pct_to_50pct_in_profit')
-        self._30pct_to_40pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_30pct_to_40pct_in_profit')
-        self._20pct_to_30pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_20pct_to_30pct_in_profit')
-        self._10pct_to_20pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_10pct_to_20pct_in_profit')
-        self._0pct_to_10pct_in_profit: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_0pct_to_10pct_in_profit')
-        self._0pct_to_10pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_0pct_to_10pct_in_loss')
-        self._10pct_to_20pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_10pct_to_20pct_in_loss')
-        self._20pct_to_30pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_20pct_to_30pct_in_loss')
-        self._30pct_to_40pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_30pct_to_40pct_in_loss')
-        self._40pct_to_50pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_40pct_to_50pct_in_loss')
-        self._50pct_to_60pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_50pct_to_60pct_in_loss')
-        self._60pct_to_70pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_60pct_to_70pct_in_loss')
-        self._70pct_to_80pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_70pct_to_80pct_in_loss')
-        self._80pct_to_90pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_80pct_to_90pct_in_loss')
-        self._90pct_to_100pct_in_loss: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_90pct_to_100pct_in_loss')
+        self.over_1000pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_1000pct_in_profit')
+        self._500pct_to_1000pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_500pct_to_1000pct_in_profit')
+        self._300pct_to_500pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_300pct_to_500pct_in_profit')
+        self._200pct_to_300pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_200pct_to_300pct_in_profit')
+        self._100pct_to_200pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_100pct_to_200pct_in_profit')
+        self._90pct_to_100pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_90pct_to_100pct_in_profit')
+        self._80pct_to_90pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_80pct_to_90pct_in_profit')
+        self._70pct_to_80pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_70pct_to_80pct_in_profit')
+        self._60pct_to_70pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_60pct_to_70pct_in_profit')
+        self._50pct_to_60pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_50pct_to_60pct_in_profit')
+        self._40pct_to_50pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_40pct_to_50pct_in_profit')
+        self._30pct_to_40pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_30pct_to_40pct_in_profit')
+        self._20pct_to_30pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_20pct_to_30pct_in_profit')
+        self._10pct_to_20pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_10pct_to_20pct_in_profit')
+        self._0pct_to_10pct_in_profit: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_0pct_to_10pct_in_profit')
+        self._0pct_to_10pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_0pct_to_10pct_in_loss')
+        self._10pct_to_20pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_10pct_to_20pct_in_loss')
+        self._20pct_to_30pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_20pct_to_30pct_in_loss')
+        self._30pct_to_40pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_30pct_to_40pct_in_loss')
+        self._40pct_to_50pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_40pct_to_50pct_in_loss')
+        self._50pct_to_60pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_50pct_to_60pct_in_loss')
+        self._60pct_to_70pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_60pct_to_70pct_in_loss')
+        self._70pct_to_80pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_70pct_to_80pct_in_loss')
+        self._80pct_to_90pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_80pct_to_90pct_in_loss')
+        self._90pct_to_100pct_in_loss: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_90pct_to_100pct_in_loss')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_in_profit')
-        self._10pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_10pct_in_profit')
-        self._20pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_20pct_in_profit')
-        self._30pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_30pct_in_profit')
-        self._40pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_40pct_in_profit')
-        self._50pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_50pct_in_profit')
-        self._60pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_60pct_in_profit')
-        self._70pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_70pct_in_profit')
-        self._80pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_80pct_in_profit')
-        self._90pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_90pct_in_profit')
-        self._100pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_100pct_in_profit')
-        self._200pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_200pct_in_profit')
-        self._300pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_300pct_in_profit')
-        self._500pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_500pct_in_profit')
+        self.all: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_in_profit')
+        self._10pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_10pct_in_profit')
+        self._20pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_20pct_in_profit')
+        self._30pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_30pct_in_profit')
+        self._40pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_40pct_in_profit')
+        self._50pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_50pct_in_profit')
+        self._60pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_60pct_in_profit')
+        self._70pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_70pct_in_profit')
+        self._80pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_80pct_in_profit')
+        self._90pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_90pct_in_profit')
+        self._100pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_100pct_in_profit')
+        self._200pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_200pct_in_profit')
+        self._300pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_300pct_in_profit')
+        self._500pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_500pct_in_profit')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_in_loss')
-        self._10pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_10pct_in_loss')
-        self._20pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_20pct_in_loss')
-        self._30pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_30pct_in_loss')
-        self._40pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_40pct_in_loss')
-        self._50pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_50pct_in_loss')
-        self._60pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_60pct_in_loss')
-        self._70pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_70pct_in_loss')
-        self._80pct: AllLthSthPattern4 = AllLthSthPattern4(client, 'utxos_over_80pct_in_loss')
+        self.all: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_in_loss')
+        self._10pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_10pct_in_loss')
+        self._20pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_20pct_in_loss')
+        self._30pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_30pct_in_loss')
+        self._40pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_40pct_in_loss')
+        self._50pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_50pct_in_loss')
+        self._60pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_60pct_in_loss')
+        self._70pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_70pct_in_loss')
+        self._80pct: AllLthSthPattern5 = AllLthSthPattern5(client, 'utxos_over_80pct_in_loss')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_Supply:
     """Series tree node."""
@@ -12842,201 +12832,201 @@ class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInPr
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range:
     """Series tree node."""
@@ -13072,113 +13062,113 @@ class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit:
     """Series tree node."""
@@ -13203,73 +13193,73 @@ class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_realized_cap')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_sth_realized_cap')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_lth_realized_cap')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_realized_cap')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_sth_realized_cap')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_lth_realized_cap')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss:
     """Series tree node."""
@@ -13292,207 +13282,207 @@ class SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap:
         self.range: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range = SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range(client)
         self.profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit = SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit(client)
         self.loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss = SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss(client)
-        self.height: SeriesPattern18[Dollars] = SeriesPattern18(client, 'profitability_realized_cap_by_term_and_range')
+        self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'profitability_realized_cap_by_term_and_range')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_1000pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_1000pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_500pct_to_1000pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_500pct_to_1000pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_300pct_to_500pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_300pct_to_500pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_200pct_to_300pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_200pct_to_300pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_100pct_to_200pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_100pct_to_200pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_0pct_to_10pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_0pct_to_10pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_10pct_to_20pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_10pct_to_20pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_20pct_to_30pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_20pct_to_30pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_30pct_to_40pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_30pct_to_40pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_40pct_to_50pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_40pct_to_50pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_50pct_to_60pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_50pct_to_60pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_60pct_to_70pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_60pct_to_70pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_70pct_to_80pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_70pct_to_80pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_80pct_to_90pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_80pct_to_90pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_90pct_to_100pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_90pct_to_100pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range:
     """Series tree node."""
@@ -13528,113 +13518,113 @@ class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_90pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_90pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_100pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_100pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_200pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_200pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_300pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_300pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_500pct_in_profit_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_500pct_in_profit_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit:
     """Series tree node."""
@@ -13659,73 +13649,73 @@ class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_10pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_10pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_20pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_20pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_30pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_30pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_40pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_40pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_50pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_50pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_60pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_60pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_70pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_70pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct:
     """Series tree node."""
     
     def __init__(self, client: BrkClient, base_path: str = ''):
-        self.all: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_unrealized_pnl')
-        self.sth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_sth_unrealized_pnl')
-        self.lth: SeriesPattern1[Dollars] = SeriesPattern1(client, 'utxos_over_80pct_in_loss_lth_unrealized_pnl')
+        self.all: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_unrealized_pnl')
+        self.sth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_sth_unrealized_pnl')
+        self.lth: CentsUsdPattern = CentsUsdPattern(client, 'utxos_over_80pct_in_loss_lth_unrealized_pnl')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss:
     """Series tree node."""
@@ -13748,7 +13738,7 @@ class SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl:
         self.range: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range = SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range(client)
         self.profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit = SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit(client)
         self.loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss = SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss(client)
-        self.height: SeriesPattern18[Dollars] = SeriesPattern18(client, 'profitability_unrealized_pnl_by_term_and_range')
+        self.height: SeriesPattern18[Cents] = SeriesPattern18(client, 'profitability_unrealized_pnl_by_term_and_range')
 
 class SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range:
     """Series tree node."""

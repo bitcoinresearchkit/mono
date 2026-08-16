@@ -1,16 +1,16 @@
 use brk_cohort::ByTerm;
-use brk_types::{Dollars, Sats};
+use brk_types::{Cents, CentsSats, Sats};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ProfitabilityRangeResult {
     pub supply: ByTerm<Sats>,
-    pub realized_cap: ByTerm<Dollars>,
+    pub realized_cap: ByTerm<Cents>,
 }
 
 impl ProfitabilityRangeResult {
     pub fn from_all_and_sth(all_sats: u64, all_usd: u128, sth_sats: u64, sth_usd: u128) -> Self {
-        let all_realized_cap = Self::dollars(all_usd);
-        let short_realized_cap = Self::dollars(sth_usd);
+        let all_realized_cap = Self::cents(all_usd);
+        let short_realized_cap = Self::cents(sth_usd);
         Self {
             supply: ByTerm {
                 short: Sats::from(sth_sats),
@@ -24,7 +24,7 @@ impl ProfitabilityRangeResult {
     }
 
     #[inline(always)]
-    fn dollars(raw: u128) -> Dollars {
-        Dollars::from(raw as f64 / 1e10)
+    fn cents(raw: u128) -> Cents {
+        CentsSats::new(raw).to_cents_rounded()
     }
 }

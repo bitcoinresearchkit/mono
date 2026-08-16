@@ -9,6 +9,21 @@ use crate::{
     internal::RatioDiffF32,
 };
 
+#[inline]
+fn estimated_network_hash_rate(block_count_24h: f64, difficulty_hash_rate: f64) -> f64 {
+    (block_count_24h / TARGET_BLOCKS_PER_DAY_F64) * difficulty_hash_rate
+}
+
+#[inline]
+fn reward_per_ths(reward_24h: f64, hash_rate: f64) -> StoredF32 {
+    let hash_rate_ths = hash_rate / ONE_TERA_HASH;
+    if hash_rate_ths == 0.0 {
+        StoredF32::NAN
+    } else {
+        StoredF32::from(reward_24h / hash_rate_ths)
+    }
+}
+
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
@@ -30,10 +45,10 @@ impl Vecs {
             |(i, block_count_sum, difficulty_as_hash, ..)| {
                 (
                     i,
-                    StoredF64::from(
-                        (f64::from(block_count_sum) / TARGET_BLOCKS_PER_DAY_F64)
-                            * f64::from(difficulty_as_hash),
-                    ),
+                    StoredF64::from(estimated_network_hash_rate(
+                        f64::from(block_count_sum),
+                        f64::from(difficulty_as_hash),
+                    )),
                 )
             },
             exit,
@@ -67,13 +82,7 @@ impl Vecs {
             coinbase_usd_24h_sum,
             &self.rate.base.height,
             |(i, coinbase_sum, hashrate, ..)| {
-                let hashrate_ths = *hashrate / ONE_TERA_HASH;
-                let price = if hashrate_ths == 0.0 {
-                    StoredF32::NAN
-                } else {
-                    (*coinbase_sum / hashrate_ths).into()
-                };
-                (i, price)
+                (i, reward_per_ths(f64::from(coinbase_sum), *hashrate))
             },
             exit,
         )?;
@@ -83,13 +92,7 @@ impl Vecs {
             coinbase_sats_24h_sum,
             &self.rate.base.height,
             |(i, coinbase_sum, hashrate, ..)| {
-                let hashrate_ths = *hashrate / ONE_TERA_HASH;
-                let value = if hashrate_ths == 0.0 {
-                    StoredF32::NAN
-                } else {
-                    StoredF32::from(*coinbase_sum as f64 / hashrate_ths)
-                };
-                (i, value)
+                (i, reward_per_ths(f64::from(coinbase_sum), *hashrate))
             },
             exit,
         )?;
@@ -120,5 +123,44 @@ impl Vecs {
             )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{PartsPerMillionSigned64, StoredF32};
+    use vecdb::{BinaryTransform, UnaryTransform};
+
+    use super::{estimated_network_hash_rate, reward_per_ths};
+    use crate::internal::{RatioDiffF32, ThsToPhsF32};
+
+    #[test]
+    fn network_hash_rate_scales_with_trailing_block_count() {
+        let difficulty_hash_rate = 600_000_000_000_000_000.0;
+        assert_eq!(
+            estimated_network_hash_rate(144.0, difficulty_hash_rate),
+            difficulty_hash_rate
+        );
+        assert_eq!(
+            estimated_network_hash_rate(72.0, difficulty_hash_rate),
+            difficulty_hash_rate / 2.0
+        );
+    }
+
+    #[test]
+    fn hash_revenue_units_and_rebound_are_exact() {
+        let ths = reward_per_ths(1_000.0, 100.0 * 1_000_000_000_000.0);
+        assert_eq!(*ths, 10.0);
+
+        let phs = ThsToPhsF32::apply(ths);
+        assert_eq!(*phs, 10_000.0);
+
+        let rebound = RatioDiffF32::<PartsPerMillionSigned64>::apply(
+            StoredF32::from(15.0),
+            StoredF32::from(10.0),
+        );
+        assert_eq!(rebound.inner(), 500_000);
+
+        assert!(reward_per_ths(1_000.0, 0.0).is_nan());
     }
 }

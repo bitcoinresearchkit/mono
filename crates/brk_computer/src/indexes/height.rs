@@ -9,21 +9,52 @@ use crate::internal::LazyPreviousDeltaVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Zero-based 10-minute UTC period containing the block's monotonic
+    /// timestamp, counted from 2009-01-01 00:00:00 UTC.
     pub minute10: LazyVec<Height, Minute10, Height, Timestamp>,
+    /// Zero-based 30-minute UTC period containing the block's monotonic
+    /// timestamp, counted from 2009-01-01 00:00:00 UTC.
     pub minute30: LazyVec<Height, Minute30, Height, Timestamp>,
+    /// Zero-based one-hour UTC period containing the block's monotonic timestamp,
+    /// counted from 2009-01-01 00:00:00 UTC.
     pub hour1: LazyVec<Height, Hour1, Height, Timestamp>,
+    /// Zero-based four-hour UTC period containing the block's monotonic
+    /// timestamp, counted from 2009-01-01 00:00:00 UTC.
     pub hour4: LazyVec<Height, Hour4, Height, Timestamp>,
+    /// Zero-based 12-hour UTC period containing the block's monotonic timestamp,
+    /// counted from 2009-01-01 00:00:00 UTC.
     pub hour12: LazyVec<Height, Hour12, Height, Timestamp>,
+    /// Zero-based UTC calendar day containing the block's monotonic timestamp,
+    /// with 2009-01-01 equal to 0.
     pub day1: CachedVec<LazyVec<Height, Day1, Height, Timestamp>>,
+    /// Zero-based three-day UTC period containing the block's monotonic
+    /// timestamp, with period 1 beginning on 2009-01-03.
     pub day3: LazyVec<Height, Day3, Height, Timestamp>,
+    /// Zero-based Bitcoin difficulty-adjustment epoch: block height divided by
+    /// 2,016 using integer division.
     pub epoch: LazyVec<Height, Epoch, Height, Timestamp>,
+    /// Zero-based Bitcoin subsidy-halving epoch: block height divided by 210,000
+    /// using integer division.
     pub halving: LazyVec<Height, Halving, Height, Timestamp>,
+    /// Zero-based ISO week containing the block's monotonic timestamp, counted
+    /// from ISO week 1 of 2009.
     pub week1: LazyVec<Height, Week1, Height, Timestamp>,
+    /// Zero-based UTC calendar month containing the block's monotonic timestamp,
+    /// with January 2009 equal to 0.
     pub month1: LazyVec<Height, Month1, Height, Timestamp>,
+    /// Zero-based UTC calendar quarter containing the block's monotonic
+    /// timestamp, with Q1 2009 equal to 0.
     pub month3: LazyVec<Height, Month3, Height, Timestamp>,
+    /// Zero-based UTC calendar half-year containing the block's monotonic
+    /// timestamp, with the first half of 2009 equal to 0.
     pub month6: LazyVec<Height, Month6, Height, Timestamp>,
+    /// Zero-based UTC calendar year containing the block's monotonic timestamp,
+    /// with 2009 equal to 0.
     pub year1: LazyVec<Height, Year1, Height, Timestamp>,
+    /// Zero-based ten-year UTC period containing the block's monotonic timestamp,
+    /// with 2009 through 2018 equal to 0.
     pub year10: LazyVec<Height, Year10, Height, Timestamp>,
+    /// Number of transactions in the indexed block, including coinbase.
     pub tx_index_count: LazyPreviousDeltaVec<Height, StoredU64>,
 }
 

@@ -6,5 +6,6 @@ use crate::internal::PerBlockFullFromCumulative;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Number of transactions, including the coinbase transaction.
     pub total: PerBlockFullFromCumulative<StoredU64, M>,
 }

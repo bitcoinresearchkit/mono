@@ -36,6 +36,7 @@ impl Vecs {
         let halving = HalvingVecs::new(version, indexes);
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             count,
             lookback,

@@ -12,6 +12,8 @@ where
     S: VecValue,
     C: FiatType,
 {
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, C>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyDeltaFromHeight<S, C, DeltaChange>,
 }

@@ -380,6 +380,26 @@ where
         );
     }
 
+    let mut source_with_default: EagerVec<V> =
+        EagerVec::forced_import(&db, "source_with_default", Version::ONE)?;
+    for v in [0, 10, 5, 0, 12, 3, 0, 2] {
+        source_with_default.push(v);
+    }
+    source_with_default.flush()?;
+
+    let mut excluding_default: EagerVec<V> =
+        EagerVec::forced_import(&db, "excluding_default", Version::ONE)?;
+    excluding_default.compute_all_time_low_(0, &source_with_default, &exit, true)?;
+    excluding_default.flush()?;
+
+    for (i, expected) in [0, 10, 5, 5, 5, 3, 3, 2].into_iter().enumerate() {
+        assert_eq!(
+            excluding_default.collect_one(i).unwrap(),
+            expected,
+            "Excluded default leaked into all-time low at index {i}"
+        );
+    }
+
     Ok(())
 }
 

@@ -1,33 +1,99 @@
 use brk_error::{Error, Result};
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
-use vecdb::{Bytes, Formattable, unlikely};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use vecdb::{Bytes, Formattable, Result as VecDBResult, unlikely};
 
-use crate::{Cents, CentsSats, CentsSquaredSats, EmptyAddrData, OutputType, Sats, SupplyState};
+use crate::{Cents, CentsSats, EmptyAddrData, OutputType, Sats};
 
-/// Snapshot of cost basis related state.
-/// Uses CentsSats (u64) for single-UTXO values, CentsSquaredSats (u128) for capitalized cap.
-#[derive(Clone, Debug)]
-pub struct CostBasisSnapshot {
-    pub realized_price: Cents,
-    pub supply_state: SupplyState,
-    /// price × sats (fits u64 for individual UTXOs)
-    pub price_sats: CentsSats,
-    /// price² × sats (needs u128)
-    pub capitalized_cap_raw: CentsSquaredSats,
+const CENTS_SATS_96_LIMIT: u128 = 1_u128 << 96;
+
+#[derive(Clone, Copy, Default, JsonSchema)]
+#[schemars(transparent, with = "u128")]
+struct CentsSats96([u32; 3]);
+
+impl CentsSats96 {
+    const ZERO: Self = Self([0; 3]);
+
+    #[inline(always)]
+    fn from_wide(value: CentsSats) -> Self {
+        let value = value.as_u128();
+        debug_assert!(value < CENTS_SATS_96_LIMIT);
+        Self([value as u32, (value >> 32) as u32, (value >> 64) as u32])
+    }
+
+    #[inline(always)]
+    fn widen(self) -> CentsSats {
+        CentsSats::new(
+            u128::from(self.0[0]) | (u128::from(self.0[1]) << 32) | (u128::from(self.0[2]) << 64),
+        )
+    }
+
+    #[inline(always)]
+    fn add(&mut self, value: CentsSats) {
+        let value = value.as_u128();
+        let low = u64::from(self.0[0]) | (u64::from(self.0[1]) << 32);
+        let (low, carry) = low.overflowing_add(value as u64);
+        let value_high = (value >> 64) as u64;
+        let high = u64::from(self.0[2]) + value_high + u64::from(carry);
+        debug_assert!(value_high <= u64::from(u32::MAX));
+        debug_assert!(high <= u64::from(u32::MAX));
+        self.0 = [low as u32, (low >> 32) as u32, high as u32];
+    }
+
+    #[inline(always)]
+    fn subtract(&mut self, value: CentsSats) {
+        let value = value.as_u128();
+        let low = u64::from(self.0[0]) | (u64::from(self.0[1]) << 32);
+        let (low, borrow) = low.overflowing_sub(value as u64);
+        let value_high = (value >> 64) as u64 + u64::from(borrow);
+        let high = u64::from(self.0[2]);
+        debug_assert!(value_high <= u64::from(u32::MAX));
+        debug_assert!(high >= value_high);
+        self.0 = [
+            low as u32,
+            (low >> 32) as u32,
+            high.wrapping_sub(value_high) as u32,
+        ];
+    }
+
+    #[inline]
+    fn to_bytes(self) -> [u8; 12] {
+        let mut bytes = [0; 12];
+        bytes[0..4].copy_from_slice(&self.0[0].to_le_bytes());
+        bytes[4..8].copy_from_slice(&self.0[1].to_le_bytes());
+        bytes[8..12].copy_from_slice(&self.0[2].to_le_bytes());
+        bytes
+    }
+
+    #[inline]
+    fn from_bytes(bytes: &[u8]) -> VecDBResult<Self> {
+        Ok(Self([
+            u32::from_bytes(&bytes[0..4])?,
+            u32::from_bytes(&bytes[4..8])?,
+            u32::from_bytes(&bytes[8..12])?,
+        ]))
+    }
 }
 
-impl CostBasisSnapshot {
-    /// Create from a single UTXO (computes caps from price × value)
-    #[inline]
-    pub fn from_utxo(price: Cents, supply: &SupplyState) -> Self {
-        let price_sats = CentsSats::from_price_sats(price, supply.value);
-        Self {
-            realized_price: price,
-            supply_state: *supply,
-            price_sats,
-            capitalized_cap_raw: price_sats.to_capitalized_cap(price),
+impl std::fmt::Debug for CentsSats96 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.widen().fmt(f)
+    }
+}
+
+impl Serialize for CentsSats96 {
+    fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
+        self.widen().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for CentsSats96 {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> std::result::Result<Self, D::Error> {
+        let value = CentsSats::deserialize(deserializer)?;
+        if value.as_u128() >= CENTS_SATS_96_LIMIT {
+            return Err(de::Error::custom("realized cap exceeds 96 bits"));
         }
+        Ok(Self::from_wide(value))
     }
 }
 
@@ -37,20 +103,18 @@ impl CostBasisSnapshot {
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[repr(C)]
 pub struct FundedAddrData {
+    /// Satoshis received by this address
+    pub received: Sats,
+    /// Satoshis sent by this address
+    pub sent: Sats,
+    /// The realized capitalization: Σ(price × sats)
+    realized_cap_raw: CentsSats96,
     /// Total transaction count
     pub tx_count: u32,
     /// Number of transaction outputs funded to this address
     pub funded_txo_count: u32,
     /// Number of transaction outputs spent by this address
     pub spent_txo_count: u32,
-    #[serde(skip)]
-    padding: u32,
-    /// Satoshis received by this address
-    pub received: Sats,
-    /// Satoshis sent by this address
-    pub sent: Sats,
-    /// The realized capitalization: Σ(price × sats)
-    pub realized_cap_raw: CentsSats,
 }
 
 impl FundedAddrData {
@@ -59,7 +123,12 @@ impl FundedAddrData {
     }
 
     pub fn realized_price(&self) -> Cents {
-        self.realized_cap_raw.realized_price(self.balance())
+        self.realized_cap_raw().realized_price(self.balance())
+    }
+
+    #[inline(always)]
+    pub fn realized_cap_raw(&self) -> CentsSats {
+        self.realized_cap_raw.widen()
     }
 
     #[inline]
@@ -173,7 +242,7 @@ impl FundedAddrData {
         self.received += amount;
         self.funded_txo_count += output_count;
         let ps = CentsSats::from_price_sats(price, amount);
-        self.realized_cap_raw += ps;
+        self.realized_cap_raw.add(ps);
         ps
     }
 
@@ -185,7 +254,7 @@ impl FundedAddrData {
         self.sent += amount;
         self.spent_txo_count += 1;
         let ps = CentsSats::from_price_sats(previous_price, amount);
-        self.realized_cap_raw -= ps;
+        self.realized_cap_raw.subtract(ps);
         Ok(ps)
     }
 }
@@ -201,13 +270,12 @@ impl From<&EmptyAddrData> for FundedAddrData {
     #[inline]
     fn from(value: &EmptyAddrData) -> Self {
         Self {
+            received: value.transfered,
+            sent: value.transfered,
+            realized_cap_raw: CentsSats96::ZERO,
             tx_count: value.tx_count,
             funded_txo_count: value.funded_txo_count,
             spent_txo_count: value.funded_txo_count,
-            padding: 0,
-            received: value.transfered,
-            sent: value.transfered,
-            realized_cap_raw: CentsSats::ZERO,
         }
     }
 }
@@ -222,7 +290,7 @@ impl std::fmt::Display for FundedAddrData {
             self.spent_txo_count,
             self.received,
             self.sent,
-            self.realized_cap_raw,
+            self.realized_cap_raw(),
         )
     }
 }
@@ -257,36 +325,52 @@ impl Bytes for FundedAddrData {
 
     fn to_bytes(&self) -> Self::Array {
         let mut arr = [0u8; size_of::<Self>()];
-        arr[0..4].copy_from_slice(self.tx_count.to_bytes().as_ref());
-        arr[4..8].copy_from_slice(self.funded_txo_count.to_bytes().as_ref());
-        arr[8..12].copy_from_slice(self.spent_txo_count.to_bytes().as_ref());
-        arr[12..16].copy_from_slice(self.padding.to_bytes().as_ref());
-        arr[16..24].copy_from_slice(self.received.to_bytes().as_ref());
-        arr[24..32].copy_from_slice(self.sent.to_bytes().as_ref());
-        arr[32..48].copy_from_slice(self.realized_cap_raw.to_bytes().as_ref());
+        arr[0..8].copy_from_slice(self.received.to_bytes().as_ref());
+        arr[8..16].copy_from_slice(self.sent.to_bytes().as_ref());
+        arr[16..28].copy_from_slice(&self.realized_cap_raw.to_bytes());
+        arr[28..32].copy_from_slice(self.tx_count.to_bytes().as_ref());
+        arr[32..36].copy_from_slice(self.funded_txo_count.to_bytes().as_ref());
+        arr[36..40].copy_from_slice(self.spent_txo_count.to_bytes().as_ref());
         arr
     }
 
     fn from_bytes(bytes: &[u8]) -> vecdb::Result<Self> {
         Ok(Self {
-            tx_count: u32::from_bytes(&bytes[0..4])?,
-            funded_txo_count: u32::from_bytes(&bytes[4..8])?,
-            spent_txo_count: u32::from_bytes(&bytes[8..12])?,
-            padding: u32::from_bytes(&bytes[12..16])?,
-            received: Sats::from_bytes(&bytes[16..24])?,
-            sent: Sats::from_bytes(&bytes[24..32])?,
-            realized_cap_raw: CentsSats::from_bytes(&bytes[32..48])?,
+            received: Sats::from_bytes(&bytes[0..8])?,
+            sent: Sats::from_bytes(&bytes[8..16])?,
+            realized_cap_raw: CentsSats96::from_bytes(&bytes[16..28])?,
+            tx_count: u32::from_bytes(&bytes[28..32])?,
+            funded_txo_count: u32::from_bytes(&bytes[32..36])?,
+            spent_txo_count: u32::from_bytes(&bytes[36..40])?,
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::SupplyState;
+
     use super::*;
 
     #[test]
+    fn compact_realized_cap_carries_borrows_and_roundtrips() {
+        let mut value = CentsSats96::from_wide(CentsSats::new(u64::MAX as u128));
+        value.add(CentsSats::new(1));
+        assert_eq!(value.widen(), CentsSats::new(1_u128 << 64));
+
+        value.subtract(CentsSats::new(1));
+        assert_eq!(value.widen(), CentsSats::new(u64::MAX as u128));
+
+        let max = CentsSats96::from_wide(CentsSats::new(CENTS_SATS_96_LIMIT - 1));
+        assert_eq!(
+            CentsSats96::from_bytes(&max.to_bytes()).unwrap().widen(),
+            max.widen()
+        );
+    }
+
+    #[test]
     fn funded_addr_data_stays_compact_and_roundtrips() {
-        assert_eq!(size_of::<FundedAddrData>(), 48);
+        assert_eq!(size_of::<FundedAddrData>(), 40);
 
         let mut data = FundedAddrData::default();
         data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 2);
@@ -299,7 +383,7 @@ mod tests {
         assert_eq!(decoded.spent_txo_count, data.spent_txo_count);
         assert_eq!(decoded.received, data.received);
         assert_eq!(decoded.sent, data.sent);
-        assert_eq!(decoded.realized_cap_raw, data.realized_cap_raw);
+        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
         assert_eq!(
             SupplyState::from(&decoded).utxo_count,
             SupplyState::from(&data).utxo_count
@@ -308,5 +392,19 @@ mod tests {
             SupplyState::from(&decoded).value,
             SupplyState::from(&data).value
         );
+    }
+
+    #[test]
+    fn funded_addr_data_keeps_realized_cap_logical_in_json() {
+        let mut data = FundedAddrData::default();
+        data.receive(Sats::ONE_BTC, Cents::new(10_000));
+
+        let json = serde_json::to_value(&data).unwrap();
+        assert_eq!(json["realized_cap_raw"], 1_000_000_000_000_u64);
+        assert!(json.get("padding").is_none());
+        assert!(json.get("0").is_none());
+
+        let decoded: FundedAddrData = serde_json::from_value(json).unwrap();
+        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
     }
 }

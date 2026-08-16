@@ -47,6 +47,7 @@ impl Vecs {
             TechnicalVecs::forced_import(&db, version, indexes, &returns.periods._24h.ratio)?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             ath,
             lookback,

@@ -16,9 +16,13 @@ use crate::{
 /// Stored cumulative value whose sats source owns a pinned in-memory cache.
 #[derive(Traversable)]
 pub struct CachedValuePerBlock<M: StorageMode = Rw> {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: LazyPerBlock<Bitcoin, Sats>,
+    /// Reported in satoshis.
     pub sats: CachedPerBlock<Sats, M>,
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: PerBlock<Cents, M>,
 }
 

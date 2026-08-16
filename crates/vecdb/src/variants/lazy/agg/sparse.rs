@@ -16,7 +16,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, SI, T> for Sparse {
         init: B,
         mut f: F,
     ) -> Result<B, E> {
-        let source_len = source.len();
+        let source_len = source.visible_len();
 
         let mut indices: Vec<usize> = Vec::with_capacity(to - from);
         let mut slot_map: Vec<Option<u32>> = Vec::with_capacity(to - from);
@@ -51,7 +51,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, SI, T> for Sparse {
         mapping: &[SI],
         index: usize,
     ) -> Option<Option<T>> {
-        let source_len = source.len();
+        let source_len = source.visible_len();
         let current_first = mapping[index].to_usize();
         let next_first = mapping
             .get(index + 1)
@@ -69,7 +69,7 @@ impl<T: VecValue, SI: VecIndex> AggFold<Option<T>, SI, SI, T> for Sparse {
 #[cfg(test)]
 mod tests {
     use super::Sparse;
-    use crate::{AggFold, BytesVec, ImportableVec, Version, WritableVec};
+    use crate::{AggFold, BytesVec, ImportableVec, ReadBounds, Version, WritableVec};
 
     #[test]
     fn clamps_partial_final_range_to_source_length() {
@@ -98,5 +98,28 @@ mod tests {
         assert_eq!(values, [Some(20), Some(30), None]);
         assert_eq!(Sparse::collect_one(&source, &mapping, 1), Some(Some(30)));
         assert_eq!(Sparse::collect_one(&source, &mapping, 2), Some(None));
+    }
+
+    #[test]
+    fn final_range_uses_the_published_source_bound() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = crate::Database::open(temp.path()).unwrap();
+        let mut source: BytesVec<usize, u64> =
+            BytesVec::forced_import(&db, "bounded_source", Version::ONE).unwrap();
+
+        for value in [10, 20, 30] {
+            source.push(value);
+        }
+
+        let mut bounds = ReadBounds::new();
+        bounds.set("usize", 2);
+        let values = bounds.scope(|| {
+            Sparse::fold(&source, &[0], 0, 1, Vec::new(), |mut values, value| {
+                values.push(value);
+                values
+            })
+        });
+
+        assert_eq!(values, [Some(20)]);
     }
 }

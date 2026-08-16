@@ -1,3 +1,4 @@
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{StoredF32, StoredI8, StoredU16, Version};
 
@@ -10,6 +11,8 @@ pub const DB_NAME: &str = "constants";
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
     pub _0: ConstantVecs<StoredU16>,
     pub _1: ConstantVecs<StoredU16>,
     pub _2: ConstantVecs<StoredU16>,
@@ -30,11 +33,22 @@ pub struct Vecs {
     pub _minus_4: ConstantVecs<StoredI8>,
 }
 
+impl Plugin for Vecs {
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
+}
+
 impl Vecs {
     pub(crate) fn new(version: Version, indexes: &indexes::Vecs) -> Self {
         let v = version;
 
         Self {
+            plugin_gate: Default::default(),
             _0: ConstantVecs::new::<ReturnU16<0>>("constant_0", v, indexes),
             _1: ConstantVecs::new::<ReturnU16<1>>("constant_1", v, indexes),
             _2: ConstantVecs::new::<ReturnU16<2>>("constant_2", v, indexes),

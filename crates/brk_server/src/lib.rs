@@ -12,7 +12,6 @@ use aide::axum::ApiRouter;
 use axum::{
     Extension, ServiceExt,
     body::Body,
-    extract::State,
     http::{
         Request, Response, StatusCode, Uri,
         header::{ALLOW, CONTENT_TYPE, VARY},
@@ -209,37 +208,13 @@ impl Server {
             )
             .on_eos(());
 
-        let state_layer = axum::middleware::from_fn_with_state(
-            state.query.clone(),
-            async |State(query): State<AsyncQuery>, request: Request<Body>, next: Next| {
-                let unavailable = || {
-                    Error::new(
-                        StatusCode::SERVICE_UNAVAILABLE,
-                        "state_updating",
-                        "State is updating; retry the request",
-                    )
-                    .into_response()
-                };
-                let Some(generation) = query.generation() else {
-                    return unavailable();
-                };
-
-                let response = next.run(request).await;
-                if query.generation() == Some(generation) {
-                    response
-                } else {
-                    unavailable()
-                }
-            },
-        );
         let website_router = brk_website::router(state.website.clone());
         let mut router = ApiRouter::new()
             .add_api_routes()
             .layer(TimeoutLayer::with_status_code(
                 StatusCode::GATEWAY_TIMEOUT,
                 REQUEST_TIMEOUT,
-            ))
-            .layer(state_layer);
+            ));
         if !state.website.is_enabled() {
             router = router.route("/", get(Redirect::temporary("/api")));
         }

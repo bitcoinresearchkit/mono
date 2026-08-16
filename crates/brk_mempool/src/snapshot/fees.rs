@@ -5,14 +5,14 @@ use super::block_stats::BlockStats;
 /// Output rounding granularity in sat/vB. mempool.space's
 /// `/api/v1/fees/recommended` uses `1.0`, their `/precise`
 /// variant uses `0.001`. bitview always emits precise.
-const MIN_INCREMENT: FeeRate = FeeRate::new(0.001);
+const MIN_INCREMENT: FeeRate = FeeRate::from_milli(1);
 /// `getPreciseRecommendedFee` adds this to `fastestFee` and
 /// half of it to `halfHourFee`, then floors them. Compensates
 /// for sub-1-sat/vB fees mined by hashrate that ignores the
 /// relay floor.
-const PRIORITY_FACTOR: FeeRate = FeeRate::new(0.5);
-const MIN_FASTEST_FEE: FeeRate = FeeRate::new(1.0);
-const MIN_HALF_HOUR_FEE: FeeRate = FeeRate::new(0.5);
+const PRIORITY_FACTOR: FeeRate = FeeRate::from_milli(500);
+const MIN_FASTEST_FEE: FeeRate = FeeRate::from_milli(1_000);
+const MIN_HALF_HOUR_FEE: FeeRate = FeeRate::from_milli(500);
 /// At or below this projected-block vsize, the block carries no fee
 /// signal and the tier collapses to `min_fee`.
 const EMPTY_BLOCK_VSIZE: u64 = 500_000;

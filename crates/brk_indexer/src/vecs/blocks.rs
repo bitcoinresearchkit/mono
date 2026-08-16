@@ -28,8 +28,15 @@ where
 
 #[derive(Traversable)]
 pub struct BlocksVecs<M: StorageMode = Rw> {
+    /// Double-SHA256 hash of the block header, displayed in Bitcoin's
+    /// conventional hexadecimal byte order.
     pub blockhash: CachedVec<M::Stored<BytesVec<Height, BlockHash>>>,
+    /// First 100 bytes of the coinbase transaction's first-input `scriptSig`,
+    /// exposed as a string by mapping each byte to the same-valued Unicode code
+    /// point. This is raw coinbase data, not a normalized mining-pool label.
     pub coinbase_tag: M::Stored<BytesVec<Height, CoinbaseTag>>,
+    /// Mining difficulty encoded by the block header, calculated as Bitcoin's
+    /// maximum target divided by this block's proof-of-work target.
     #[traversable(wrap = "difficulty", rename = "value")]
     pub difficulty: M::Stored<PcoVec<Height, StoredF64>>,
     /// Unix timestamp in seconds associated with the indexed block or time
@@ -37,14 +44,25 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// consecutive heights.
     #[traversable(wrap = "time")]
     pub timestamp: CachedVec<M::Stored<PcoVec<Height, Timestamp>>>,
+    /// Total serialized size in bytes, including witness data. At `tx_index`,
+    /// this is the byte length of the transaction's consensus serialization. At
+    /// `height`, this is the entire block: its 80-byte header, transaction-count
+    /// CompactSize, and every serialized transaction.
     #[traversable(wrap = "size", rename = "base")]
     pub total: M::Stored<PcoVec<Height, StoredU64>>,
+    /// BIP-141 block weight in weight units: non-witness bytes count as four
+    /// weight units and witness bytes count as one.
     #[traversable(wrap = "weight", rename = "base")]
     pub weight: M::Stored<PcoVec<Height, Weight>>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,
+    /// Number of non-coinbase transactions using SegWit serialization.
     pub segwit_txs: M::Stored<PcoVec<Height, StoredU32>>,
+    /// Combined total serialized size in bytes of the block's non-coinbase
+    /// SegWit transactions; excludes block overhead and all other transactions.
     pub segwit_size: M::Stored<PcoVec<Height, StoredU64>>,
+    /// Combined BIP-141 weight in weight units of the block's non-coinbase
+    /// SegWit transactions; excludes block overhead and all other transactions.
     pub segwit_weight: M::Stored<PcoVec<Height, Weight>>,
 }
 

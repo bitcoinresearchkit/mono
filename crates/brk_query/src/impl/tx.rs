@@ -3,6 +3,7 @@ use bitcoin::{
     hex::DisplayHex,
 };
 use brk_error::{Error, OptionData, Result};
+use brk_plugin::Plugin;
 use brk_types::{
     BlockHash, Height, MerkleProof, Timestamp, Transaction, TxInIndex, TxIndex, TxOutIndex,
     TxOutspend, TxStatus, Txid, TxidPrefix, Vin, Vout,
@@ -154,6 +155,7 @@ impl Query {
         if self.mempool().is_some_and(|m| m.contains_txid(txid)) {
             return Ok(self.mempool_outspend(txid, vout));
         }
+        let _guard = self.computer().outputs.gate().read();
         let (_, first_txout, output_count) = self.resolve_tx_outputs(txid)?;
         if usize::from(vout) >= output_count {
             return Ok(TxOutspend::UNSPENT);
@@ -173,6 +175,7 @@ impl Query {
                 .map(|i| self.mempool_outspend(txid, Vout::from(i)))
                 .collect());
         }
+        let _guard = self.computer().outputs.gate().read();
         let (_, first_txout, output_count) = self.resolve_tx_outputs(txid)?;
         let mut spends = self.resolve_outspends(first_txout, output_count)?;
         for (i, spend) in spends.iter_mut().enumerate() {

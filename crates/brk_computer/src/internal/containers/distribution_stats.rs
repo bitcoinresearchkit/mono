@@ -5,12 +5,19 @@ use brk_traversable::Traversable;
 
 #[derive(Clone, Traversable)]
 pub struct DistributionStats<A> {
+    /// Minimum value in the represented distribution.
     pub min: A,
+    /// Maximum value in the represented distribution.
     pub max: A,
+    /// 10th percentile of the represented distribution.
     pub pct10: A,
+    /// 25th percentile of the represented distribution.
     pub pct25: A,
+    /// Median of the represented distribution.
     pub median: A,
+    /// 75th percentile of the represented distribution.
     pub pct75: A,
+    /// 90th percentile of the represented distribution.
     pub pct90: A,
 }
 

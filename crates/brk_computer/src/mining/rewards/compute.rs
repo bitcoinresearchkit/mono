@@ -6,6 +6,23 @@ use vecdb::{Exit, ReadableVec, VecIndex};
 use super::Vecs;
 use crate::{blocks, indexes, price, transactions};
 
+fn derived_subsidy(height: brk_types::Height, coinbase: Sats, fees: Sats) -> Sats {
+    coinbase
+        .checked_sub(fees)
+        .unwrap_or_else(|| panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}"))
+}
+
+fn scheduled_subsidy(height: brk_types::Height) -> Sats {
+    let halving = Halving::from(height);
+    Sats::FIFTY_BTC / 2_usize.pow(halving.to_usize() as u32)
+}
+
+fn unclaimed_rewards(height: brk_types::Height, subsidy: Sats) -> Sats {
+    scheduled_subsidy(height)
+        .checked_sub(subsidy)
+        .unwrap_or_else(|| panic!("derived subsidy {subsidy:?} exceeds schedule at {height:?}"))
+}
+
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn compute(
@@ -74,11 +91,7 @@ impl Vecs {
             prices,
             &self.coinbase.block.sats,
             &self.fees.block.sats,
-            |height, coinbase, fees| {
-                coinbase.checked_sub(fees).unwrap_or_else(|| {
-                    panic!("coinbase {coinbase:?} < fees {fees:?} at {height:?}")
-                })
-            },
+            derived_subsidy,
             exit,
         )?;
 
@@ -93,14 +106,45 @@ impl Vecs {
             starting_height,
             prices,
             &self.subsidy.block.sats,
-            |height, subsidy| {
-                let halving = Halving::from(height);
-                let expected = Sats::FIFTY_BTC / 2_usize.pow(halving.to_usize() as u32);
-                expected.checked_sub(subsidy).unwrap()
-            },
+            unclaimed_rewards,
             exit,
         )?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Height, Sats};
+
+    use super::{derived_subsidy, scheduled_subsidy, unclaimed_rewards};
+
+    #[test]
+    fn reward_components_match_the_available_reward_equation() {
+        let height = Height::from(0_u32);
+        let fees = Sats::ONE_BTC;
+
+        let fully_claimed_coinbase = Sats::FIFTY_BTC + fees;
+        let subsidy = derived_subsidy(height, fully_claimed_coinbase, fees);
+        assert_eq!(subsidy, Sats::FIFTY_BTC);
+        assert_eq!(unclaimed_rewards(height, subsidy), Sats::ZERO);
+
+        let underclaimed_coinbase = Sats::FIFTY_BTC;
+        let subsidy = derived_subsidy(height, underclaimed_coinbase, fees);
+        assert_eq!(subsidy, Sats::FIFTY_BTC - fees);
+        assert_eq!(unclaimed_rewards(height, subsidy), fees);
+    }
+
+    #[test]
+    fn scheduled_subsidy_halves_at_210_000_blocks() {
+        assert_eq!(
+            scheduled_subsidy(Height::from(209_999_u32)),
+            Sats::FIFTY_BTC
+        );
+        assert_eq!(
+            scheduled_subsidy(Height::from(210_000_u32)),
+            Sats::FIFTY_BTC / 2
+        );
     }
 }

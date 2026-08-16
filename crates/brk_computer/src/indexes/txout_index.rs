@@ -5,6 +5,10 @@ use vecdb::{LazyVec, ReadableCloneableVec};
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Global zero-based transaction-output index in canonical blockchain order.
+    /// At `txout_index`, this is the identity value; at `txin_index`, it
+    /// identifies the previous output spent by the input, with `u64::MAX`
+    /// representing a coinbase input.
     pub identity: LazyVec<TxOutIndex, TxOutIndex, TxOutIndex, Sats>,
 }
 

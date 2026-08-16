@@ -4,6 +4,7 @@ mod output;
 mod policy;
 mod sigops;
 
+use bitcoin::Sequence;
 use brk_types::{OutputType, SigOps};
 use rayon::prelude::*;
 use vecdb::{likely, unlikely};
@@ -16,6 +17,11 @@ pub(super) struct TransactionAnalysis {
     pub(super) total_sigop_cost: SigOps,
     pub(super) explicitly_rbf: bool,
     pub(super) features: TxFeatureFlags,
+}
+
+#[inline(always)]
+fn record_explicit_rbf_signal(explicitly_rbf: &mut bool, sequence: Sequence) {
+    *explicitly_rbf |= sequence.is_rbf();
 }
 
 impl BlockProcessor<'_> {
@@ -47,11 +53,11 @@ impl BlockProcessor<'_> {
 
                 if unlikely(is_coinbase) {
                     let input = &tx.tx.input[0];
-                    explicitly_rbf = input.sequence.is_rbf();
+                    record_explicit_rbf_signal(&mut explicitly_rbf, input.sequence);
                     sigops.scan_coinbase_input(input);
                 } else {
                     for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
-                        explicitly_rbf |= input.sequence.is_rbf();
+                        record_explicit_rbf_signal(&mut explicitly_rbf, input.sequence);
                         let (output_type, legacy_sigops) = resolved_output_facts(source, txouts);
                         let facts = input::analyze(input, output_type, &mut flags);
                         sigops.scan_input(output_type, legacy_sigops, &facts);
@@ -94,5 +100,34 @@ fn resolved_output_facts(source: &InputSource, txouts: &[ProcessedOutput]) -> (O
             (output.output_type, output.legacy_sigops)
         }
         InputSource::Coinbase => unreachable!(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bitcoin::Sequence;
+
+    use super::record_explicit_rbf_signal;
+
+    #[test]
+    fn explicit_rbf_uses_the_exact_sequence_boundary() {
+        for (raw, expected) in [
+            (0xffff_fffd, true),
+            (0xffff_fffe, false),
+            (0xffff_ffff, false),
+        ] {
+            let mut explicitly_rbf = false;
+            record_explicit_rbf_signal(&mut explicitly_rbf, Sequence::from_consensus(raw));
+            assert_eq!(explicitly_rbf, expected, "sequence {raw:#010x}");
+        }
+    }
+
+    #[test]
+    fn any_signaling_input_marks_the_transaction_once() {
+        let mut explicitly_rbf = false;
+        for raw in [0xffff_ffff, 0xffff_fffd, 0, 0xffff_fffe] {
+            record_explicit_rbf_signal(&mut explicitly_rbf, Sequence::from_consensus(raw));
+        }
+        assert!(explicitly_rbf);
     }
 }

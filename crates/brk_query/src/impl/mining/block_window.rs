@@ -1,13 +1,10 @@
-use std::{
-    collections::BTreeMap,
-    iter::Sum,
-    ops::{Deref, Div},
-};
+use std::collections::BTreeMap;
 
 use brk_error::{Error, Result};
 use brk_types::{Height, TimePeriod, Timestamp};
 use vecdb::{ReadableVec, VecValue};
 
+use super::block_bucket::BlockBucket;
 use crate::Query;
 
 /// Time-bucket divisor in seconds: blocks are grouped by `timestamp / div`.
@@ -27,44 +24,8 @@ fn time_div(period: TimePeriod) -> u32 {
 }
 
 /// Round-half-up integer division, matching MySQL's `CAST(AVG(...) AS INT)`.
-const fn round_half_up(sum: u64, n: u64) -> u64 {
+pub const fn round_half_up(sum: u64, n: u64) -> u64 {
     (sum + n / 2) / n
-}
-
-/// One time-bucket of blocks in a `BlockWindow`.
-pub struct BlockBucket {
-    pub avg_height: Height,
-    pub avg_timestamp: Timestamp,
-    /// Offsets into the parent `BlockWindow`'s prefetched `[start, end)` slice.
-    offsets: Vec<usize>,
-}
-
-impl BlockBucket {
-    /// Float arithmetic mean of `values[offset]` across this bucket's blocks.
-    /// Use for float-backed types like `FeeRate`. Soundness: `offsets.len() >= 1`
-    /// is guaranteed by `BlockWindow::new` (only non-empty groups become buckets),
-    /// and indexing `values[i]` is in range when `values` was obtained via
-    /// `BlockWindow::read` (which validates `values.len() >= window.len`).
-    pub fn mean<T>(&self, values: &[T]) -> T
-    where
-        T: Copy + Sum + Div<usize, Output = T>,
-    {
-        self.offsets.iter().map(|&i| values[i]).sum::<T>() / self.offsets.len()
-    }
-
-    /// Round-half-up arithmetic mean for u64-backed integer types: returns
-    /// `T::from((sum + n/2) / n)`. Use when truncating integer division would
-    /// bias rolling averages downward. Soundness: `offsets.len() >= 1` is
-    /// guaranteed by `BlockWindow::new`, and `values[i]` is in range when
-    /// `values` was obtained via `BlockWindow::read`.
-    pub fn mean_rounded<T>(&self, values: &[T]) -> T
-    where
-        T: Copy + Deref<Target = u64> + From<u64>,
-    {
-        let n = self.offsets.len() as u64;
-        let sum: u64 = self.offsets.iter().map(|&i| *values[i]).sum();
-        T::from(round_half_up(sum, n))
-    }
 }
 
 /// Mempool-compatible time-bucketed block window. Groups blocks by
@@ -112,11 +73,11 @@ impl BlockWindow {
                 let n = offsets.len() as u64;
                 let sum_h: u64 = offsets.iter().map(|&i| u64::from(start + i)).sum();
                 let sum_ts: u64 = offsets.iter().map(|&i| u64::from(timestamps[i])).sum();
-                BlockBucket {
-                    avg_height: Height::from(round_half_up(sum_h, n)),
-                    avg_timestamp: Timestamp::from(round_half_up(sum_ts, n) as u32),
+                BlockBucket::new(
+                    Height::from(round_half_up(sum_h, n)),
+                    Timestamp::from(round_half_up(sum_ts, n) as u32),
                     offsets,
-                }
+                )
             })
             .collect();
 

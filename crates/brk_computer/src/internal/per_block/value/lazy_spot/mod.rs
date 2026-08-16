@@ -19,9 +19,13 @@ pub use pinned::PinnedSpotValuePerBlock;
 /// Fully lazy point-in-time value backed by one sats source.
 #[derive(Clone, Traversable)]
 pub struct LazySpotValuePerBlock {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: LazyPerBlock<Bitcoin, Sats>,
+    /// Reported in satoshis.
     pub sats: LazyPerBlock<Sats>,
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyPerBlock<Cents>,
 }
 

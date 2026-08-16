@@ -1,7 +1,11 @@
 mod by_class;
 mod by_period;
 mod cached_dca_sats;
+mod class_vecs;
+mod dca_stack;
 mod import;
+mod lump_sum_stack;
+mod period_vecs;
 mod vecs;
 
 pub use by_class::*;

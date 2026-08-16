@@ -37,6 +37,7 @@ impl Vecs {
         let coinflow = coinflow::Vecs::forced_import(&db, parent_version, indexes, prices)?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             cointime,
             coinflow,

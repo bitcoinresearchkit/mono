@@ -68,9 +68,15 @@ impl ColumnId for VersionId {
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Transactions whose version is exactly 1.
     pub v1: LazyColumnPerBlockCumulativeRolling<StoredU64, VersionId>,
+    /// Transactions whose version is exactly 2.
     pub v2: LazyColumnPerBlockCumulativeRolling<StoredU64, VersionId>,
+    /// Transactions whose version is exactly 3.
     pub v3: LazyColumnPerBlockCumulativeRolling<StoredU64, VersionId>,
+    /// Transactions whose version is not 1, 2, or 3. This category combines
+    /// every other value; use individual raw transaction data to inspect the
+    /// original version.
     pub other: LazyColumnPerBlockCumulativeRolling<StoredU64, VersionId>,
     #[deref]
     #[deref_mut]

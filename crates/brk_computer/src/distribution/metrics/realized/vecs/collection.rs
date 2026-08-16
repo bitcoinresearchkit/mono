@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{
     Cents, CentsSats, CentsSigned, CentsSquaredSats, Height, PartsPerMillion32, PartsPerMillion64,
-    PartsPerMillionSigned64, StoredF32, StoredF64, Version,
+    PartsPerMillionSigned64, StoredF32, Version,
 };
 use vecdb::{
     AnyStoredVec, BinaryTransform, CachedBoxedVec, ColumnId, Database, Exit, LazyVec,
@@ -27,7 +27,7 @@ use crate::{
         CACHE_BUDGET, CachedWindowStartVec, ColumnarPercentRollingWindows, ColumnarRollingWindows,
         ColumnarRollingWindowsFrom1w, Identity, LazyFiatPerBlockCumulativeWithSums,
         LazyFiatPerBlockWithDeltas, LazyPerBlock, LazyPercentPerBlock, NegCentsUnsignedToDollars,
-        RatioCents, RatioCents64, RatioCentsSignedCents, SoprRatio, Windows,
+        RatioCents, RatioCentsF32, RatioCentsSignedCents, SoprRatio, Windows,
     },
 };
 
@@ -72,7 +72,7 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     pub net_pnl_change_1m_to_rcap: AggregatePercentPerBlock<PartsPerMillionSigned64, M>,
     pub sell_side_risk_ratio: UTXOAggregate<ColumnarPercentRollingWindows<PartsPerMillion32, M>>,
     pub sopr_ratio_extended: UTXOAggregate<ColumnarRollingWindowsFrom1w<StoredF32, M>>,
-    pub profit_to_loss_ratio: UTXOAggregate<ColumnarRollingWindows<StoredF64, M>>,
+    pub profit_to_loss_ratio: UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>,
     pub mvrv: UTXOGroups<LazyPerBlock<StoredF32>>,
     #[traversable(wrap = "loss", rename = "negative")]
     pub negative_loss: UTXOGroupsWithoutAmountOrType<NegRealizedLoss>,
@@ -142,7 +142,7 @@ impl RealizedVecs {
             ColumnarRollingWindows::forced_import(
                 db,
                 &Self::aggregate_metric_name(id, "realized_profit_to_loss_ratio"),
-                Self::aggregate_metric_version(version, id, Version::ONE),
+                Self::aggregate_metric_version(version, id, Version::TWO),
                 indexes,
             )
         })?;
@@ -499,7 +499,7 @@ impl RealizedVecs {
                 max_from,
                 |window| &window.select(&realized.profit.sum).cents.height,
                 |window| &window.select(&realized.loss.sum).cents.height,
-                |_, profit, loss| RatioCents64::apply(profit, loss),
+                |_, profit, loss| RatioCentsF32::apply(profit, loss),
                 exit,
             )?;
         }

@@ -5,14 +5,27 @@ use std::{
 
 use brk_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
 use brk_error::{Error, Result};
+use brk_plugin::PluginReadGuard;
 use brk_types::{Cohort, Date, Day1, Urpd, UrpdAggregation, UrpdRaw, UrpdWeight};
 use vecdb::ReadableOptionVec;
 
 use crate::Query;
 
 impl Query {
+    fn urpd_read_guard(&self) -> PluginReadGuard {
+        PluginReadGuard::acquire(&[
+            self.computer().distribution.as_ref(),
+            self.computer().models.as_ref(),
+        ])
+    }
+
     /// Available cohorts for URPD.
     pub fn urpd_cohorts(&self) -> Result<Vec<Cohort>> {
+        let _guard = self.urpd_read_guard();
+        self.urpd_cohorts_inner()
+    }
+
+    fn urpd_cohorts_inner(&self) -> Result<Vec<Cohort>> {
         let states_path = &self.computer().distribution.states_path;
 
         let mut cohorts: Vec<Cohort> = fs::read_dir(states_path)?
@@ -35,7 +48,7 @@ impl Query {
 
         if !dir.exists() {
             let valid = self
-                .urpd_cohorts()
+                .urpd_cohorts_inner()
                 .unwrap_or_default()
                 .iter()
                 .map(|c| c.to_string())
@@ -56,6 +69,15 @@ impl Query {
 
     /// Available dates for a cohort and weighting.
     pub fn urpd_dates_with_weight(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<Vec<Date>> {
+        let _guard = self.urpd_read_guard();
+        self.urpd_dates_with_weight_inner(cohort, weight)
+    }
+
+    fn urpd_dates_with_weight_inner(
+        &self,
+        cohort: &Cohort,
+        weight: UrpdWeight,
+    ) -> Result<Vec<Date>> {
         let dir = self.urpd_dir(cohort)?;
 
         if weight == UrpdWeight::Raw {
@@ -82,6 +104,16 @@ impl Query {
 
     /// Raw URPD data with an optional Bedrock weighting.
     pub fn urpd_raw_with_weight(
+        &self,
+        cohort: &Cohort,
+        date: Date,
+        weight: UrpdWeight,
+    ) -> Result<UrpdRaw> {
+        let _guard = self.urpd_read_guard();
+        self.urpd_raw_with_weight_inner(cohort, date, weight)
+    }
+
+    fn urpd_raw_with_weight_inner(
         &self,
         cohort: &Cohort,
         date: Date,
@@ -139,7 +171,18 @@ impl Query {
         agg: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<Urpd> {
-        let raw = self.urpd_raw_with_weight(cohort, date, weight)?;
+        let _guard = self.urpd_read_guard();
+        self.urpd_at_with_weight_inner(cohort, date, agg, weight)
+    }
+
+    fn urpd_at_with_weight_inner(
+        &self,
+        cohort: &Cohort,
+        date: Date,
+        agg: UrpdAggregation,
+        weight: UrpdWeight,
+    ) -> Result<Urpd> {
+        let raw = self.urpd_raw_with_weight_inner(cohort, date, weight)?;
         let day1 = Day1::try_from(date)?;
         let close = self
             .computer()
@@ -165,13 +208,14 @@ impl Query {
         agg: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<Urpd> {
-        let dates = self.urpd_dates_with_weight(cohort, weight)?;
+        let _guard = self.urpd_read_guard();
+        let dates = self.urpd_dates_with_weight_inner(cohort, weight)?;
         let date = *dates.last().ok_or_else(|| {
             Error::NotFound(format!(
                 "No {weight}-weighted URPD available for cohort '{cohort}'"
             ))
         })?;
-        self.urpd_at_with_weight(cohort, date, agg, weight)
+        self.urpd_at_with_weight_inner(cohort, date, agg, weight)
     }
 
     fn weighted_urpd_dir(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<PathBuf> {

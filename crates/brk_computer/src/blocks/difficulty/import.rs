@@ -91,3 +91,34 @@ impl Vecs {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Height, PartsPerMillionSigned32, StoredF64, StoredU32};
+    use vecdb::UnaryTransform;
+
+    use super::{blocks_left_to_retarget, difficulty_adjustment};
+    use crate::internal::{BlocksToDaysF32, DifficultyToHashF64};
+
+    #[test]
+    fn formulas_match_public_difficulty_series_contracts() {
+        for (height, expected) in [(0_u32, 2_016_u32), (1, 2_015), (2_015, 1), (2_016, 2_016)] {
+            assert_eq!(
+                blocks_left_to_retarget(Height::from(height), Default::default()),
+                StoredU32::new(expected)
+            );
+        }
+
+        assert!(difficulty_adjustment(StoredF64::from(1.0), None).is_nan());
+        assert_eq!(
+            difficulty_adjustment(StoredF64::from(110.0), Some(StoredF64::from(100.0))),
+            PartsPerMillionSigned32::from(0.1)
+        );
+
+        let hashrate = DifficultyToHashF64::apply(StoredF64::from(1.0));
+        assert_eq!(*hashrate, 4_294_967_296.0 / 600.0);
+
+        let days = BlocksToDaysF32::apply(StoredU32::new(2_016));
+        assert_eq!(*days, 14.0);
+    }
+}

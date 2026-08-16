@@ -1,37 +1,21 @@
+mod script_type;
+mod script_type_with_sigops;
+
+pub use script_type::ScriptTypeVecs;
+pub use script_type_with_sigops::ScriptTypeWithSigOpsVecs;
+
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{
-    EmptyOutputIndex, Height, OutputType, P2MSOutputIndex, SigOps, TxIndex, TypeIndex,
-    UnknownOutputIndex, Version,
+    EmptyOutputIndex, Height, OutputType, P2MSOutputIndex, SigOps, TypeIndex, UnknownOutputIndex,
+    Version,
 };
 use rayon::prelude::*;
-use schemars::JsonSchema;
-use serde::Serialize;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, Formattable, ImportableVec, PcoVec, PcoVecValue, Rw, Stamp,
-    StorageMode, VecIndex, WritableVec,
+    AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
 };
 
 use crate::parallel_import;
-
-#[derive(Traversable)]
-pub struct ScriptTypeVecs<
-    I: VecIndex + PcoVecValue + Formattable + Serialize + JsonSchema,
-    M: StorageMode = Rw,
-> {
-    pub first_index: M::Stored<PcoVec<Height, I>>,
-    pub to_tx_index: M::Stored<PcoVec<I, TxIndex>>,
-}
-
-#[derive(Traversable)]
-pub struct ScriptTypeWithSigOpsVecs<
-    I: VecIndex + PcoVecValue + Formattable + Serialize + JsonSchema,
-    M: StorageMode = Rw,
-> {
-    pub first_index: M::Stored<PcoVec<Height, I>>,
-    pub to_tx_index: M::Stored<PcoVec<I, TxIndex>>,
-    pub legacy_sigops: M::Stored<BytesVec<I, SigOps>>,
-}
 
 #[derive(Traversable)]
 pub struct ScriptsVecs<M: StorageMode = Rw> {

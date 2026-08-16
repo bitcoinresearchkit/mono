@@ -86,7 +86,7 @@ impl Vecs {
             dormancy_24h,
             |_, dormancy, supply| Self::dormancy_flow(dormancy, supply),
         );
-        let dormancy = super::vecs::DormancyVecs {
+        let dormancy = super::dormancy_vecs::DormancyVecs {
             supply_adj: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "dormancy_supply_adj",
                 v,
@@ -115,6 +115,7 @@ impl Vecs {
         let seller_exhaustion = PerBlock::forced_import(&db, "seller_exhaustion", v, indexes)?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             puell_multiple,
             nvt,

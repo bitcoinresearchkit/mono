@@ -3,6 +3,7 @@
 mod confirmed;
 
 use brk_error::{Error, Result};
+use brk_plugin::Plugin;
 use brk_types::{FeeRate, Txid, TxidPrefix};
 use vecdb::ReadableVec;
 
@@ -16,6 +17,7 @@ impl Query {
         if let Some(info) = self.mempool().and_then(|m| m.cpfp_info(&prefix)) {
             return Ok(info);
         }
+        let _guard = self.computer().outputs.gate().read();
         self.confirmed_cpfp(txid)
     }
 
@@ -29,7 +31,7 @@ impl Query {
             return Ok(rate);
         }
 
-        if let Ok(index) = self.resolve_tx_index(txid)
+        if let Ok(index) = self.resolve_tx_index_bounded(txid)
             && let Some(rate) = self
                 .computer()
                 .transactions

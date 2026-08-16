@@ -28,7 +28,9 @@ impl FiatType for CentsSigned {
 /// Generic over `C` to support both `Cents` (unsigned) and `CentsSigned` (signed).
 #[derive(Traversable)]
 pub struct FiatPerBlock<C: FiatType, M: StorageMode = Rw> {
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, C>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: PerBlock<C, M>,
 }
 

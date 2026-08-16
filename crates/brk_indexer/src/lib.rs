@@ -9,6 +9,7 @@ use std::{
 };
 
 use brk_error::{Error, Result};
+use brk_plugin::{Plugin, PluginGate};
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use tracing::{debug, error, info};
@@ -51,6 +52,7 @@ struct IndexerInner<M: StorageMode> {
     stores: Stores,
     buffers: BlockBuffers,
     state: State,
+    plugin_gate: PluginGate,
 }
 
 enum ImportValidation {
@@ -159,10 +161,6 @@ impl<M: StorageMode> Indexer<M> {
         self.inner.state.lengths()
     }
 
-    pub fn generation(&self) -> Option<usize> {
-        self.inner.state.generation()
-    }
-
     pub fn reader(&self) -> &Reader {
         &self.inner.reader
     }
@@ -208,7 +206,7 @@ impl Indexer {
     }
 
     pub fn begin_update(&self) {
-        self.inner.state.begin_update();
+        self.inner.plugin_gate.begin_update();
     }
 
     /// Publish disk state as the new safe-lengths snapshot. Drains pending
@@ -244,6 +242,7 @@ impl IndexerInner<Rw> {
                 stores,
                 buffers: BlockBuffers::default(),
                 state: State::new(),
+                plugin_gate: PluginGate::new(),
             })
         };
 
@@ -556,6 +555,7 @@ impl IndexerInner<Rw> {
             }
         };
         self.state.finish_update(lengths);
+        self.plugin_gate.finish_update();
         Ok(())
     }
 }
@@ -571,8 +571,22 @@ impl ReadOnlyClone for Indexer {
                 stores: self.inner.stores.clone(),
                 buffers: BlockBuffers::default(),
                 state: self.inner.state.clone(),
+                plugin_gate: self.inner.plugin_gate.clone(),
             },
         }
+    }
+}
+
+impl<M: StorageMode> Plugin for Indexer<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        "indexer"
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.inner.plugin_gate
     }
 }
 

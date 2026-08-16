@@ -11,7 +11,9 @@ use crate::{
 
 #[derive(Traversable)]
 pub struct RatioPerBlock<R: FixedRatio, M: StorageMode = Rw> {
+    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
     pub ppm: PerBlock<R, M>,
+    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
     pub ratio: LazyPerBlock<StoredF32, R>,
 }
 

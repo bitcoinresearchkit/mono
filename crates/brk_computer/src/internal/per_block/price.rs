@@ -22,8 +22,11 @@ use crate::{
 /// Generic price metric with cents, USD, and sats representations.
 #[derive(Clone, Traversable)]
 pub struct Price<C> {
+    /// Reported in USD per BTC.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in cents per BTC.
     pub cents: C,
+    /// Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.
     pub sats: LazyPerBlock<SatsFract, Dollars>,
 }
 

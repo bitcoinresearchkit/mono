@@ -1,7 +1,7 @@
 use brk_types::{Height, StoredU64, Version};
 use vecdb::{
-    AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadableCloneableVec, ReadableVec,
-    WritableVec,
+    AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, ReadBounds, ReadableCloneableVec,
+    ReadableVec, WritableVec,
 };
 
 use super::{LazyCumulativeIndexVec, LazyIndexCountVec};
@@ -66,6 +66,16 @@ fn next_boundaries_produce_cumulative_and_per_item_counts() {
         count.read_sorted_at(&[0, 2, 2, 3]),
         [2_u64, 1, 1].map(StoredU64::from)
     );
+
+    let mut bounds = ReadBounds::new();
+    bounds.set("height", 5);
+    bounds.scope(|| {
+        assert_eq!(
+            cumulative.collect_one(Height::new(2)),
+            Some(StoredU64::new(5))
+        );
+        assert_eq!(count.collect_one(Height::new(2)), Some(StoredU64::new(0)));
+    });
 
     drop(count);
     drop(cumulative);

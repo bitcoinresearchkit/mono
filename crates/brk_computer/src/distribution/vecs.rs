@@ -6,6 +6,7 @@ use std::{
 use brk_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
 use brk_error::Result;
 use brk_indexer::Indexer;
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
@@ -43,6 +44,8 @@ const COINDAYS_CREATED_VERSION: Version = Version::ONE;
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
+    #[traversable(skip)]
     inner: Inner,
     #[traversable(skip)]
     pub states_path: PathBuf,
@@ -72,9 +75,39 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub addrs: AddrVecs<M>,
 }
 
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
+
+    fn mutates_existing(&self, vec: &dyn AnyVec) -> bool {
+        [
+            &self.any_addr_indexes.p2a as &dyn AnyVec,
+            &self.any_addr_indexes.p2pk33,
+            &self.any_addr_indexes.p2pk65,
+            &self.any_addr_indexes.p2pkh,
+            &self.any_addr_indexes.p2sh,
+            &self.any_addr_indexes.p2tr,
+            &self.any_addr_indexes.p2wpkh,
+            &self.any_addr_indexes.p2wsh,
+            &self.addrs_data.funded,
+            &self.addrs_data.empty,
+        ]
+        .into_iter()
+        .any(|mutable| std::ptr::addr_eq(vec, mutable))
+    }
+}
+
 const SAVED_STAMPED_CHANGES: u16 = 10;
 /// Version of the fixed-width `FundedAddrData` record layout.
-const FUNDED_ADDR_DATA_VERSION: Version = Version::ONE;
+const FUNDED_ADDR_DATA_VERSION: Version = Version::TWO;
 
 impl Vecs {
     pub fn all_chain_sources(&self) -> AllChainSources {
@@ -192,6 +225,7 @@ impl Vecs {
         )?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             supply_state: BytesVec::forced_import_with(
                 ImportOptions::new(&db, "supply_state", version)
                     .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),

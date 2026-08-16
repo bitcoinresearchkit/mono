@@ -13,6 +13,7 @@ bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["fjall", "vecdb"] }
 brk_cohort = { workspace = true }
 brk_logger = { workspace = true }
+brk_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_store = { workspace = true }

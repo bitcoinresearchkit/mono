@@ -13,7 +13,9 @@ where
     R: FixedRatio,
     C: ColumnId,
 {
+    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
     pub ppm: LazyColumnPerBlock<R, C>,
+    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
     pub ratio: LazyPerBlock<StoredF32, R>,
 }
 

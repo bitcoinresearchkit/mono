@@ -2,6 +2,7 @@ use std::{collections::BTreeMap, path::Path};
 
 use brk_error::Result;
 use brk_indexer::Indexer;
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{
     Addr, AddrBytes, Height, OutputType, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex,
@@ -32,6 +33,8 @@ pub const DB_NAME: &str = "pools";
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
     db: Database,
     pools: &'static Pools,
 
@@ -40,6 +43,19 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub pool_heights: PoolHeights,
     pub major: BTreeMap<PoolSlug, major::Vecs<M>>,
     pub minor: BTreeMap<PoolSlug, minor::Vecs>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
 }
 
 impl Vecs {
@@ -91,6 +107,7 @@ impl Vecs {
         }
 
         let this = Self {
+            plugin_gate: Default::default(),
             pool,
             pool_heights,
             major: major_map,

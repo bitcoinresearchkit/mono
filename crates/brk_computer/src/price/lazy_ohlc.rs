@@ -45,8 +45,9 @@ impl<I: VecIndex> LazyOhlcVec<I> {
         }
 
         let prices = self.prices.snapshot();
+        let prices = &prices[..self.prices.visible_len().min(prices.len())];
         for index in from..to {
-            each(Self::candle_at(index, &prices, &first_heights).unwrap())?;
+            each(Self::candle_at(index, prices, &first_heights).unwrap())?;
         }
 
         Ok(())
@@ -162,17 +163,19 @@ impl<I: VecIndex> ReadableVec<I, OHLCCents> for LazyOhlcVec<I> {
 
     fn collect_one_at(&self, index: usize) -> Option<OHLCCents> {
         let prices = self.prices.snapshot();
+        let prices = &prices[..self.prices.visible_len().min(prices.len())];
         let first_heights = self.first_heights.snapshot();
-        Self::candle_at(index, &prices, &first_heights)
+        Self::candle_at(index, prices, &first_heights)
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<OHLCCents>) {
         let prices = self.prices.snapshot();
+        let prices = &prices[..self.prices.visible_len().min(prices.len())];
         let first_heights = self.first_heights.snapshot();
         out.reserve(indices.len());
         indices
             .iter()
-            .filter_map(|&index| Self::candle_at(index, &prices, &first_heights))
+            .filter_map(|&index| Self::candle_at(index, prices, &first_heights))
             .for_each(|candle| out.push(candle));
     }
 }

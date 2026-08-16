@@ -3,6 +3,7 @@ mod currency;
 mod derived;
 mod fixed_ratio;
 mod ratio;
+mod ratio_cents_f32;
 mod sopr_ratio;
 mod specialized;
 
@@ -17,14 +18,13 @@ pub use currency::{
     CentsUnsignedToSats, DollarsToSatsFract, NegCentsUnsignedToDollars, SatsSignedToBitcoin,
     SatsToBitcoin, SatsToCents, StoredU64ToCents, StoredU64ToSats,
 };
-pub use derived::{
-    Cagr, Days1, Days7, Days30, Days365, DaysToYears, PriceTimesRatio, RatioCents64, TimesSqrt,
-};
+pub use derived::{Cagr, Days1, Days7, Days30, Days365, DaysToYears, PriceTimesRatio, TimesSqrt};
 pub use fixed_ratio::{FixedToPercent, FixedToRatio};
 pub use ratio::{
     RatioBytes, RatioCents, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars, RatioDiffF32,
     RatioDollars, RatioSats, RatioU64,
 };
+pub use ratio_cents_f32::*;
 pub use sopr_ratio::SoprRatio;
 pub use specialized::{
     BlockCountTarget1m, BlockCountTarget1w, BlockCountTarget1y, BlockCountTarget24h,

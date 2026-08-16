@@ -74,7 +74,7 @@ impl AddrCohortState {
         self.addr_count += 1;
         let supply = SupplyState::from(addr_data);
         self.inner
-            .increment_addr(&supply, addr_data.realized_cap_raw);
+            .increment_addr(&supply, addr_data.realized_cap_raw());
     }
 
     pub fn subtract(&mut self, addr_data: &FundedAddrData) {
@@ -123,7 +123,7 @@ impl AddrCohortState {
         });
 
         self.inner
-            .decrement_addr(&supply, addr_data.realized_cap_raw);
+            .decrement_addr(&supply, addr_data.realized_cap_raw());
     }
 }
 

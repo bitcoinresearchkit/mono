@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use brk_error::{Error, Result};
+use brk_plugin::Plugin;
 use brk_types::{
     Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, AnyAddrDataIndexEnum, Dollars,
     OutputType, TypeIndex,
@@ -11,6 +12,7 @@ use crate::Query;
 
 impl Query {
     pub fn addr(&self, addr: Addr) -> Result<AddrStats> {
+        let _guard = self.computer().distribution.gate().read();
         let bytes = AddrBytes::from_str(&addr)?;
         let output_type = OutputType::from(&bytes);
         let hash = AddrHash::from(&bytes);

@@ -10,9 +10,22 @@ use crate::parallel_import;
 
 #[derive(Traversable)]
 pub struct OutputsVecs<M: StorageMode = Rw> {
+    /// Global zero-based transaction-output index in canonical blockchain
+    /// order. At `height`, this is where the block begins and equals the number
+    /// of outputs in preceding blocks; at `tx_index`, it identifies the
+    /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex>>,
+    /// Value of the indexed transaction output in satoshis.
     pub value: M::Stored<BytesVec<TxOutIndex, Sats>>,
+    /// BRK locking-script classification of an output. At `txout_index`, this
+    /// classifies the indexed output; at `txin_index`, it classifies the
+    /// previous output spent by the input. Coinbase inputs use `unknown`.
     pub output_type: M::Stored<BytesVec<TxOutIndex, OutputType>>,
+    /// Zero-based index within the output's BRK type-specific collection. At
+    /// `txout_index`, this identifies the indexed output; at `txin_index`, it
+    /// identifies the previous output spent by the input. Address types index
+    /// distinct addresses, while other types index outputs in canonical order.
+    /// Coinbase inputs use `u32::MAX`.
     pub type_index: M::Stored<BytesVec<TxOutIndex, TypeIndex>>,
 }
 

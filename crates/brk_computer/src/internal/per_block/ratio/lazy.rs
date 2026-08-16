@@ -15,7 +15,9 @@ where
     R: FixedRatio,
     S: NumericValue + JsonSchema,
 {
+    /// Unitless ratio in parts per million; 1,000,000 represents 1.0.
     pub ppm: LazyPerBlock<R, S>,
+    /// Unitless decimal ratio derived as parts per million divided by 1,000,000.
     pub ratio: LazyPerBlock<StoredF32, R>,
 }
 

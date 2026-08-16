@@ -9,9 +9,13 @@ use crate::internal::SpotValueSource;
 /// All fields are lazy transforms from existing sources - no storage.
 #[derive(Clone, Traversable)]
 pub struct LazyValue<I: VecIndex> {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: LazyVec<I, Bitcoin, I, Sats>,
+    /// Reported in satoshis.
     pub sats: LazyVec<I, Sats, I, Sats>,
+    /// Reported in US dollars.
     pub usd: LazyVec<I, Dollars, I, Dollars>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyVec<I, Cents, I, Cents>,
 }
 

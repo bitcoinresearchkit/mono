@@ -5,7 +5,9 @@ use vecdb::{Formattable, Pco};
 
 use super::StoredU8;
 
-/// Transaction version number
+/// Compact indexed transaction-version category. Values 1, 2, and 3 preserve
+/// those exact signed 32-bit Bitcoin transaction versions; 255 represents every
+/// other version.
 #[derive(
     Debug,
     Deref,
@@ -68,5 +70,28 @@ impl Formattable for TxVersion {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = itoa::Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use bitcoin::transaction::Version;
+
+    use super::TxVersion;
+
+    #[test]
+    fn groups_signed_raw_versions_without_misclassifying_boundaries() {
+        for (raw, expected) in [
+            (i32::MIN, TxVersion::NON_STANDARD),
+            (-1, TxVersion::NON_STANDARD),
+            (0, TxVersion::NON_STANDARD),
+            (1, TxVersion::ONE),
+            (2, TxVersion::TWO),
+            (3, TxVersion::THREE),
+            (4, TxVersion::NON_STANDARD),
+            (i32::MAX, TxVersion::NON_STANDARD),
+        ] {
+            assert_eq!(TxVersion::from(Version(raw)), expected, "raw version {raw}");
+        }
     }
 }

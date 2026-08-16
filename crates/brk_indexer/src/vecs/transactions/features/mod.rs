@@ -1,10 +1,11 @@
 mod counts;
 mod flags;
 mod schema;
+mod transaction_counts;
 
 pub use counts::TransactionCountVecs;
-pub(crate) use counts::TransactionCounts;
 pub(crate) use flags::TxFeatureFlags;
+pub(crate) use transaction_counts::TransactionCounts;
 
 use brk_error::Result;
 use brk_traversable::Traversable;

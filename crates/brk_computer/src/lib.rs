@@ -5,6 +5,7 @@ use std::{fs, path::Path, thread, time::Instant};
 
 use brk_error::Result;
 use brk_indexer::Indexer;
+use brk_plugin::Plugin;
 use brk_traversable::Traversable;
 use brk_types::{Height, Version};
 use tracing::info;
@@ -336,18 +337,24 @@ impl Computer {
 
         let compute_start = Instant::now();
 
+        self.indexes.gate().begin_update();
         timed("Computed indexes", || self.indexes.compute(indexer, exit))?;
 
         thread::scope(|scope| -> Result<()> {
+            self.blocks.gate().begin_update();
             timed("Computed blocks", || self.blocks.compute(indexer, exit))?;
 
             let (inputs_result, prices_result) = rayon::join(
                 || {
+                    self.inputs.gate().begin_update();
                     timed("Computed inputs", || {
                         self.inputs.compute(indexer, &self.blocks, exit)
                     })
                 },
-                || timed("Computed price", || self.price.compute(indexer, exit)),
+                || {
+                    self.price.gate().begin_update();
+                    timed("Computed price", || self.price.compute(indexer, exit))
+                },
             );
             inputs_result?;
             prices_result?;
@@ -355,6 +362,7 @@ impl Computer {
             // market, outputs, and (transactions → mining + OP_RETURN) are pairwise
             // independent. Run all three in parallel.
             let market = scope.spawn(|| {
+                self.market.gate().begin_update();
                 timed("Computed market", || {
                     self.market
                         .compute(indexer, &self.price, &self.indexes, &self.blocks, exit)
@@ -362,6 +370,7 @@ impl Computer {
             });
 
             let tx_mining_op_return = scope.spawn(|| -> Result<()> {
+                self.transactions.gate().begin_update();
                 timed("Computed transactions", || {
                     self.transactions.compute(
                         indexer,
@@ -375,6 +384,7 @@ impl Computer {
 
                 let (mining, op_return) = rayon::join(
                     || {
+                        self.mining.gate().begin_update();
                         timed("Computed mining", || {
                             self.mining.compute(
                                 indexer,
@@ -387,6 +397,7 @@ impl Computer {
                         })
                     },
                     || {
+                        self.op_return.gate().begin_update();
                         timed("Computed OP_RETURN", || {
                             self.op_return
                                 .compute(indexer, &self.transactions.fees, exit)
@@ -398,6 +409,7 @@ impl Computer {
                 Ok(())
             });
 
+            self.outputs.gate().begin_update();
             timed("Computed outputs", || {
                 self.outputs
                     .compute(indexer, &self.inputs, &self.blocks, &self.price, exit)
@@ -408,16 +420,19 @@ impl Computer {
             Ok(())
         })?;
 
+        self.investing.gate().begin_update();
         self.investing.invalidate_cache();
 
         let utxo_states = thread::scope(|scope| -> Result<UTXOStates> {
             let pools = scope.spawn(|| {
+                self.pools.gate().begin_update();
                 timed("Computed pools", || {
                     self.pools
                         .compute(indexer, &self.indexes, &self.price, &self.mining, exit)
                 })
             });
 
+            self.distribution.gate().begin_update();
             let utxo_states = timed("Computed distribution", || {
                 self.distribution.compute(
                     indexer,
@@ -438,6 +453,7 @@ impl Computer {
         // the background alongside their sequential computation.
         thread::scope(|scope| -> Result<()> {
             let indicators = scope.spawn(|| {
+                self.indicators.gate().begin_update();
                 timed("Computed indicators", || {
                     self.indicators.compute(
                         indexer,
@@ -449,11 +465,13 @@ impl Computer {
                 })
             });
 
+            self.supply.gate().begin_update();
             timed("Computed supply", || {
                 self.supply
                     .compute(indexer, &self.outputs, &self.mining, &self.price, exit)
             })?;
 
+            self.frameworks.gate().begin_update();
             timed("Computed frameworks", || {
                 self.frameworks.compute(
                     indexer,
@@ -466,6 +484,7 @@ impl Computer {
                 )
             })?;
 
+            self.models.gate().begin_update();
             timed("Computed models", || {
                 self.models.compute(
                     indexer,
@@ -484,9 +503,29 @@ impl Computer {
         })?;
 
         indexer.finish_update()?;
+        self.finish_update();
 
         info!("Total compute time: {:?}", compute_start.elapsed());
         Ok(())
+    }
+
+    fn finish_update(&self) {
+        self.blocks.gate().finish_update();
+        self.mining.gate().finish_update();
+        self.transactions.gate().finish_update();
+        self.frameworks.gate().finish_update();
+        self.models.gate().finish_update();
+        self.indexes.gate().finish_update();
+        self.indicators.gate().finish_update();
+        self.investing.gate().finish_update();
+        self.market.gate().finish_update();
+        self.pools.gate().finish_update();
+        self.price.gate().finish_update();
+        self.distribution.gate().finish_update();
+        self.supply.gate().finish_update();
+        self.inputs.gate().finish_update();
+        self.outputs.gate().finish_update();
+        self.op_return.gate().finish_update();
     }
 }
 
@@ -499,33 +538,25 @@ impl Computer<Ro> {
     }
 }
 
-macro_rules! impl_iter_named {
+macro_rules! impl_iter_plugins {
     ($($field:ident),+ $(,)?) => {
-        impl_iter_named!(@mode Ro, $($field),+);
-        impl_iter_named!(@mode Rw, $($field),+);
+        impl_iter_plugins!(@mode Ro, $($field),+);
+        impl_iter_plugins!(@mode Rw, $($field),+);
     };
     (@mode $mode:ty, $($field:ident),+) => {
         impl Computer<$mode> {
-            pub fn iter_named_exportable(
+            pub fn iter_plugin_visible(
                 &self,
-            ) -> impl Iterator<Item = (&'static str, &dyn AnyExportableVec)> {
+            ) -> impl Iterator<Item = (&dyn Plugin, &dyn AnyExportableVec)> {
                 use brk_traversable::Traversable;
                 std::iter::empty()
-                    $(.chain(self.$field.iter_any_exportable().map(|v| ($field::DB_NAME, v))))+
-            }
-
-            pub fn iter_named_visible(
-                &self,
-            ) -> impl Iterator<Item = (&'static str, &dyn AnyExportableVec)> {
-                use brk_traversable::Traversable;
-                std::iter::empty()
-                    $(.chain(self.$field.iter_any_visible().map(|v| ($field::DB_NAME, v))))+
+                    $(.chain(self.$field.iter_any_visible().map(|v| (self.$field.as_ref() as &dyn Plugin, v))))+
             }
         }
     };
 }
 
-impl_iter_named!(
+impl_iter_plugins!(
     blocks,
     mining,
     transactions,

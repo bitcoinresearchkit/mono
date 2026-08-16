@@ -17,9 +17,13 @@ pub struct LazyColumnSpotValuePerBlock<C>
 where
     C: ColumnId,
 {
+    /// Reported in BTC; one BTC equals 100,000,000 satoshis.
     pub btc: LazyPerBlock<Bitcoin, Sats>,
+    /// Reported in satoshis.
     pub sats: LazyColumnPerBlock<Sats, C>,
+    /// Reported in US dollars.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in US cents; 100 cents equal one US dollar.
     pub cents: LazyPerBlock<Cents>,
 }
 

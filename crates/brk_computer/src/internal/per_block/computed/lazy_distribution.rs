@@ -14,12 +14,19 @@ where
     T: ComputedVecValue + JsonSchema,
     S1T: ComputedVecValue,
 {
+    /// Minimum value in the represented distribution.
     pub min: LazyVec<I, T, I, S1T>,
+    /// Maximum value in the represented distribution.
     pub max: LazyVec<I, T, I, S1T>,
+    /// 10th percentile of the represented distribution.
     pub pct10: LazyVec<I, T, I, S1T>,
+    /// 25th percentile of the represented distribution.
     pub pct25: LazyVec<I, T, I, S1T>,
+    /// Median of the represented distribution.
     pub median: LazyVec<I, T, I, S1T>,
+    /// 75th percentile of the represented distribution.
     pub pct75: LazyVec<I, T, I, S1T>,
+    /// 90th percentile of the represented distribution.
     pub pct90: LazyVec<I, T, I, S1T>,
 }
 

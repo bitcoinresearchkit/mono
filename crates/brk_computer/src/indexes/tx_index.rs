@@ -7,8 +7,15 @@ use crate::internal::LazyIndexCountVec;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Global zero-based index of a transaction in canonical blockchain order.
+    /// At `tx_index`, this is the identity value; at `txin_index`, it identifies
+    /// the transaction containing the input; at type-specific output indexes,
+    /// it identifies the transaction containing that output.
     pub identity: LazyVec<TxIndex, TxIndex, TxIndex, Txid>,
+    /// Number of inputs in the indexed transaction, including the coinbase
+    /// transaction's single input.
     pub input_count: LazyIndexCountVec<TxIndex, TxInIndex>,
+    /// Number of outputs in the indexed transaction.
     pub output_count: LazyIndexCountVec<TxIndex, TxOutIndex>,
 }
 

@@ -109,13 +109,14 @@ where
             &indexes.height.tx_index_count,
             6,
             exit,
+            skip_count,
         )?;
 
         Ok(())
     }
 
-    /// Like `derive_from_with_skip` but uses vsize-weighted percentiles for the
-    /// per-block distribution. The rolling 6-block distribution stays count-based.
+    /// Like `derive_from_with_skip` but uses vsize-weighted percentiles for both
+    /// the per-block and rolling six-block distributions.
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn derive_from_with_skip_weighted(
         &mut self,
@@ -141,13 +142,15 @@ where
             skip_count,
         )?;
 
-        self.distribution._6b.compute_from_nblocks(
+        self.distribution._6b.compute_from_nblocks_weighted(
             starting_lengths.height,
             tx_index_source,
+            vsize_source,
             &indexer.vecs().transactions.first_tx_index,
             &indexes.height.tx_index_count,
             6,
             exit,
+            skip_count,
         )?;
 
         Ok(())

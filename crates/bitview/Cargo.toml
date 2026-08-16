@@ -1,0 +1,10 @@
+[package]
+name = "bitview"
+description = "A self-hostable Bitcoin data platform built on BRK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true
+readme = "README.md"
+keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]

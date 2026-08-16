@@ -1,3 +1,7 @@
+mod addr_type;
+
+pub use addr_type::AddrTypeVecs;
+
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{
@@ -7,34 +11,30 @@ use brk_types::{
     Version,
 };
 use rayon::prelude::*;
-use schemars::JsonSchema;
-use serde::Serialize;
 use vecdb::{
-    AnyStoredVec, BytesVec, BytesVecValue, Database, Formattable, ImportableVec, PcoVec,
-    PcoVecValue, ReadableVec, Ro, Rw, Stamp, StorageMode, VecIndex, WritableVec,
+    AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, ReadableVec, Ro, Rw, Stamp,
+    StorageMode, WritableVec,
 };
 
 use crate::{parallel_import, readers::AddrReaders};
 
 #[derive(Traversable)]
-pub struct AddrTypeVecs<
-    I: VecIndex + PcoVecValue + Formattable + Serialize + JsonSchema,
-    B: BytesVecValue + Formattable + Serialize + JsonSchema,
-    M: StorageMode = Rw,
-> {
-    pub first_index: M::Stored<PcoVec<Height, I>>,
-    pub bytes: M::Stored<BytesVec<I, B>>,
-}
-
-#[derive(Traversable)]
 pub struct AddrsVecs<M: StorageMode = Rw> {
+    /// Pay-to-public-key outputs containing uncompressed 65-byte public keys.
     pub p2pk65: AddrTypeVecs<P2PK65AddrIndex, P2PK65Bytes, M>,
+    /// Pay-to-public-key outputs containing compressed 33-byte public keys.
     pub p2pk33: AddrTypeVecs<P2PK33AddrIndex, P2PK33Bytes, M>,
+    /// Pay-to-public-key-hash outputs.
     pub p2pkh: AddrTypeVecs<P2PKHAddrIndex, P2PKHBytes, M>,
+    /// Pay-to-script-hash outputs.
     pub p2sh: AddrTypeVecs<P2SHAddrIndex, P2SHBytes, M>,
+    /// Version-0 pay-to-witness-public-key-hash outputs.
     pub p2wpkh: AddrTypeVecs<P2WPKHAddrIndex, P2WPKHBytes, M>,
+    /// Version-0 pay-to-witness-script-hash outputs.
     pub p2wsh: AddrTypeVecs<P2WSHAddrIndex, P2WSHBytes, M>,
+    /// Pay-to-Taproot outputs.
     pub p2tr: AddrTypeVecs<P2TRAddrIndex, P2TRBytes, M>,
+    /// Pay-to-Anchor outputs matching `OP_1 PUSHBYTES_2 0x4e73`.
     pub p2a: AddrTypeVecs<P2AAddrIndex, P2ABytes, M>,
 }
 

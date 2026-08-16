@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use brk_types::{
     Bitcoin, Cents, Dollars, PartsPerMillion32, Sats, StoredF32, StoredF64, StoredI8, StoredU16,
-    StoredU32, StoredU64, VSize, Weight,
+    StoredU32, StoredU64, VSize, Weight, Weight64,
 };
 use vecdb::{BinaryTransform, UnaryTransform, VecValue};
 
@@ -188,10 +188,10 @@ impl UnaryTransform<PartsPerMillion32, PartsPerMillion32> for OneMinusPpm {
 
 pub struct VBytesToWeight;
 
-impl UnaryTransform<StoredU64, Weight> for VBytesToWeight {
+impl UnaryTransform<StoredU64, Weight64> for VBytesToWeight {
     #[inline(always)]
-    fn apply(vbytes: StoredU64) -> Weight {
-        Weight::from(VSize::new(*vbytes))
+    fn apply(vbytes: StoredU64) -> Weight64 {
+        Weight64::from(VSize::new(*vbytes))
     }
 }
 

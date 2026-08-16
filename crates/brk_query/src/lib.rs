@@ -13,8 +13,8 @@ use brk_mempool::Mempool;
 use brk_oracle::Oracle;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::{BlockHash, BlockHashPrefix, Height, SyncStatus};
-use vecdb::{ReadOnlyClone, ReadableVec, Ro};
+use brk_types::{BlockHash, BlockHashPrefix, Epoch, Halving, Height, Index, SyncStatus};
+use vecdb::{ReadBounds, ReadOnlyClone, ReadableVec, Ro};
 
 #[cfg(feature = "tokio")]
 mod r#async;
@@ -70,6 +70,57 @@ impl Query {
     /// multiple bound fields should call this once at entry and reuse.
     pub(crate) fn safe_lengths(&self) -> Lengths {
         self.indexer().safe_lengths()
+    }
+
+    pub(crate) fn read_bounds(&self, safe: Lengths) -> ReadBounds {
+        let mut bounds = ReadBounds::new();
+
+        bounds.set(Index::Height.name(), safe.height.into());
+        bounds.set(Index::TxIndex.name(), safe.tx_index.into());
+        bounds.set(Index::TxInIndex.name(), safe.txin_index.into());
+        bounds.set(Index::TxOutIndex.name(), safe.txout_index.into());
+        bounds.set(
+            Index::EmptyOutputIndex.name(),
+            safe.empty_output_index.into(),
+        );
+        bounds.set(Index::OpReturnIndex.name(), safe.op_return_index.into());
+        bounds.set(Index::P2AAddrIndex.name(), safe.p2a_addr_index.into());
+        bounds.set(Index::P2MSOutputIndex.name(), safe.p2ms_output_index.into());
+        bounds.set(Index::P2PK33AddrIndex.name(), safe.p2pk33_addr_index.into());
+        bounds.set(Index::P2PK65AddrIndex.name(), safe.p2pk65_addr_index.into());
+        bounds.set(Index::P2PKHAddrIndex.name(), safe.p2pkh_addr_index.into());
+        bounds.set(Index::P2SHAddrIndex.name(), safe.p2sh_addr_index.into());
+        bounds.set(Index::P2TRAddrIndex.name(), safe.p2tr_addr_index.into());
+        bounds.set(Index::P2WPKHAddrIndex.name(), safe.p2wpkh_addr_index.into());
+        bounds.set(Index::P2WSHAddrIndex.name(), safe.p2wsh_addr_index.into());
+        bounds.set(
+            Index::UnknownOutputIndex.name(),
+            safe.unknown_output_index.into(),
+        );
+
+        let tip = safe.height.decremented();
+        bounds.set(
+            Index::Epoch.name(),
+            tip.map(|height| usize::from(Epoch::from(height)) + 1)
+                .unwrap_or(0),
+        );
+        bounds.set(
+            Index::Halving.name(),
+            tip.map(|height| usize::from(Halving::from(height)) + 1)
+                .unwrap_or(0),
+        );
+
+        let timestamp =
+            tip.and_then(|height| self.indexer().vecs().blocks.timestamp.collect_one(height));
+        for index in Index::all().into_iter().filter(Index::is_date_based) {
+            let len = timestamp
+                .and_then(|timestamp| index.timestamp_to_index(timestamp))
+                .map(|last| last + 1)
+                .unwrap_or(0);
+            bounds.set(index.name(), len);
+        }
+
+        bounds
     }
 
     /// Tip block hash at the pipeline-safe ceiling.

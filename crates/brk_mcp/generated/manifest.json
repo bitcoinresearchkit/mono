@@ -594,7 +594,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {
@@ -977,7 +977,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {
@@ -1467,7 +1467,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {
@@ -1836,7 +1836,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {
@@ -2046,7 +2046,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -2169,7 +2169,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -2629,7 +2629,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -2911,7 +2911,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -2952,7 +2952,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -3097,7 +3097,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -3162,7 +3162,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -3492,7 +3492,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {
@@ -3543,7 +3543,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
-              "description": "Block hash",
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
@@ -4104,7 +4104,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -4254,7 +4254,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -4420,7 +4420,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -5008,7 +5008,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -5612,7 +5612,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -5868,7 +5868,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -8511,7 +8511,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -9296,7 +9296,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             }
           }
         },
@@ -12264,7 +12264,7 @@
             "Weight": {
               "minimum": 0,
               "type": "integer",
-              "format": "uint64"
+              "format": "uint32"
             },
             "Witness": {
               "items": {

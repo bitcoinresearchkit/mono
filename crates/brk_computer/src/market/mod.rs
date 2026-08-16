@@ -8,6 +8,7 @@ pub mod returns;
 pub mod technical;
 pub mod volatility;
 
+use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -23,6 +24,8 @@ pub const DB_NAME: &str = "market";
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
+    pub(crate) plugin_gate: PluginGate,
+    #[traversable(skip)]
     pub(crate) db: Database,
     pub ath: AthVecs<M>,
     pub lookback: LookbackVecs,
@@ -31,4 +34,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub range: RangeVecs<M>,
     pub moving_average: MovingAverageVecs<M>,
     pub technical: TechnicalVecs<M>,
+}
+
+impl<M: StorageMode> Plugin for Vecs<M>
+where
+    Self: Send + Sync,
+{
+    fn id(&self) -> &'static str {
+        DB_NAME
+    }
+
+    fn gate(&self) -> &PluginGate {
+        &self.plugin_gate
+    }
 }

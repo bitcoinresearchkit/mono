@@ -45,10 +45,6 @@ impl AsyncQuery {
         f(&self.0)
     }
 
-    pub fn generation(&self) -> Option<usize> {
-        self.0.indexer().generation()
-    }
-
     #[inline]
     pub fn inner(&self) -> &Query {
         &self.0

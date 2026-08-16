@@ -32,6 +32,7 @@ impl Vecs {
         let value = ValueVecs::forced_import(&db, version, indexes)?;
 
         let this = Self {
+            plugin_gate: Default::default(),
             db,
             spent,
             count,

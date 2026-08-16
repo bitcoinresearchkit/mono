@@ -71,7 +71,8 @@ impl CacheParams {
     ///
     /// `stable_count` is the count of leading entries provably immutable across
     /// a 6-block reorg (per `Index::cache_class()` + `Query::stable_count`).
-    /// `None` (Funded/Empty addr indexes) forces the tail branch for every range.
+    /// `None` (any series with mutable existing entries) forces the tail branch
+    /// for every range.
     ///
     /// Etag shapes:
     /// - historical (`end <= stable_count`): `s{v}-h{start}-{end}`. Pure

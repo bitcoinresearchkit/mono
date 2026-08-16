@@ -1,93 +1,47 @@
 use brk_traversable::Traversable;
-use brk_types::{FeeRate, Sats, StoredBool, StoredU64, TxIndex, Version};
+use brk_types::{FeeRate, Sats, StoredBool, TxIndex};
 use derive_more::{Deref, DerefMut};
-use vecdb::{
-    ColumnId, ColumnarVec, EagerVec, LazyColumnVec, PcoVec, ReadOnlyColumnarVec, Rw, StorageMode,
-    VecValue,
-};
+use vecdb::{ColumnarVec, EagerVec, LazyColumnVec, PcoVec, ReadOnlyColumnarVec, Rw, StorageMode};
 
-use crate::internal::{
-    ColumnarPerBlockCumulativeRolling, LazyColumnPerBlockCumulativeRolling, PerTxDistribution,
-};
+use crate::internal::PerTxDistribution;
 
-const CPFP_ROLE_COUNT: usize = 2;
+mod count;
+mod cpfp_flags;
+mod cpfp_role_id;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CpfpRoleId {
-    Parent,
-    Child,
-}
-
-const CPFP_ROLE_IDS: [CpfpRoleId; CPFP_ROLE_COUNT] = [CpfpRoleId::Parent, CpfpRoleId::Child];
-
-impl ColumnId for CpfpRoleId {
-    type Row<T>
-        = [T; CPFP_ROLE_COUNT]
-    where
-        T: VecValue;
-
-    const VERSION: Version = Version::ONE;
-    const ALL: &'static [Self] = &CPFP_ROLE_IDS;
-
-    #[inline]
-    fn index(self) -> usize {
-        self as usize
-    }
-
-    #[inline]
-    fn get<T: VecValue>(self, row: &Self::Row<T>) -> &T {
-        &row[self.index()]
-    }
-
-    #[inline]
-    fn get_mut<T: VecValue>(self, row: &mut Self::Row<T>) -> &mut T {
-        &mut row[self.index()]
-    }
-
-    #[inline]
-    fn from_fn<T, F>(mut create: F) -> Self::Row<T>
-    where
-        T: VecValue,
-        F: FnMut(Self) -> T,
-    {
-        std::array::from_fn(|index| create(CPFP_ROLE_IDS[index]))
-    }
-
-    #[inline]
-    fn map<T, U, F>(row: Self::Row<T>, create: F) -> Self::Row<U>
-    where
-        T: VecValue,
-        U: VecValue,
-        F: FnMut(T) -> U,
-    {
-        row.map(create)
-    }
-}
-
-#[derive(Clone, Traversable)]
-pub struct CpfpFlags<V> {
-    pub is_cpfp_parent: V,
-    pub is_cpfp_child: V,
-}
-
-/// Confirmed transactions participating in same-block CPFP clusters.
-#[derive(Deref, DerefMut, Traversable)]
-pub struct CountVecs<M: StorageMode = Rw> {
-    pub cpfp_parent: LazyColumnPerBlockCumulativeRolling<StoredU64, CpfpRoleId>,
-    pub cpfp_child: LazyColumnPerBlockCumulativeRolling<StoredU64, CpfpRoleId>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(hidden)]
-    pub source: ColumnarPerBlockCumulativeRolling<StoredU64, CpfpRoleId, (), M>,
-}
+pub use count::CountVecs;
+pub use cpfp_flags::CpfpFlags;
+pub use cpfp_role_id::CpfpRoleId;
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub count: CountVecs<M>,
+    /// Sum of the transaction's referenced previous-output values, in
+    /// satoshis. Coinbase uses `Sats::MAX` as a sentinel because it has no
+    /// previous outputs to spend.
     pub input_value: M::Stored<EagerVec<PcoVec<TxIndex, Sats>>>,
+    /// Sum of the transaction's output values, in satoshis.
     pub output_value: M::Stored<EagerVec<PcoVec<TxIndex, Sats>>>,
+    /// Transaction fee in satoshis: input value minus output value; coinbase is
+    /// zero. The transaction-index series includes zero-fee transactions.
+    /// Distribution series count every included transaction equally and
+    /// exclude coinbase and zero-fee transactions, either in the represented
+    /// block or the six-block window ending there; time-period indexes take the
+    /// value from the period's final block.
     pub fee: PerTxDistribution<Sats, M>,
+    /// Raw transaction fee rate in sat/vB: fee divided by virtual size and
+    /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
+    /// transactions are zero.
     pub fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
+    /// Effective transaction fee rate in sat/vB after applying Bitcoin Core's
+    /// Single Fee Linearization independently to each same-block dependency
+    /// component. Every transaction in an ancestor-closed SFL chunk receives
+    /// the chunk's combined fees divided by combined virtual size, rounded
+    /// upward to the nearest 0.001 sat/vB. The transaction-index series
+    /// includes zero effective rates. Distribution series exclude coinbase and
+    /// zero effective rates and weight percentile ranks by transaction virtual
+    /// size, either in the represented block or the six-block window ending
+    /// there; time-period indexes take the value from the period's final block.
     pub effective_fee_rate: PerTxDistribution<FeeRate, M>,
     #[deref]
     #[deref_mut]
@@ -98,20 +52,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub cpfp_flags_source:
         M::Stored<EagerVec<ColumnarVec<PcoVec<TxIndex, StoredBool>, CpfpRoleId>>>,
-}
-
-#[cfg(test)]
-mod tests {
-    use vecdb::ColumnId;
-
-    use super::{CPFP_ROLE_IDS, CpfpRoleId};
-
-    #[test]
-    fn cpfp_role_columns_match_public_field_order() {
-        assert_eq!(CpfpRoleId::ALL, CPFP_ROLE_IDS);
-        assert_eq!(
-            CpfpRoleId::from_fn(|role| role),
-            [CpfpRoleId::Parent, CpfpRoleId::Child]
-        );
-    }
 }

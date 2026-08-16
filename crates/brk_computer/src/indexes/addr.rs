@@ -1,3 +1,6 @@
+mod address;
+mod identity;
+
 use brk_indexer::Indexer;
 use brk_traversable::Traversable;
 use brk_types::{
@@ -8,88 +11,47 @@ use brk_types::{
 };
 use vecdb::{LazyVec, ReadableCloneableVec};
 
+use self::{address::AddressVecs, identity::IdentityVecs};
+
+pub type P2PK33Vecs = AddressVecs<P2PK33AddrIndex, P2PK33Bytes>;
+pub type P2PK65Vecs = AddressVecs<P2PK65AddrIndex, P2PK65Bytes>;
+pub type P2PKHVecs = AddressVecs<P2PKHAddrIndex, P2PKHBytes>;
+pub type P2SHVecs = AddressVecs<P2SHAddrIndex, P2SHBytes>;
+pub type P2TRVecs = AddressVecs<P2TRAddrIndex, P2TRBytes>;
+pub type P2WPKHVecs = AddressVecs<P2WPKHAddrIndex, P2WPKHBytes>;
+pub type P2WSHVecs = AddressVecs<P2WSHAddrIndex, P2WSHBytes>;
+pub type P2AVecs = AddressVecs<P2AAddrIndex, P2ABytes>;
+pub type P2MSVecs = IdentityVecs<P2MSOutputIndex, TxIndex>;
+pub type EmptyVecs = IdentityVecs<EmptyOutputIndex, TxIndex>;
+pub type UnknownVecs = IdentityVecs<UnknownOutputIndex, TxIndex>;
+pub type OpReturnVecs = IdentityVecs<OpReturnIndex, TxIndex>;
+
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Pay-to-public-key outputs containing compressed 33-byte public keys.
     pub p2pk33: P2PK33Vecs,
+    /// Pay-to-public-key outputs containing uncompressed 65-byte public keys.
     pub p2pk65: P2PK65Vecs,
+    /// Pay-to-public-key-hash outputs.
     pub p2pkh: P2PKHVecs,
+    /// Pay-to-script-hash outputs.
     pub p2sh: P2SHVecs,
+    /// Pay-to-Taproot outputs.
     pub p2tr: P2TRVecs,
+    /// Version-0 pay-to-witness-public-key-hash outputs.
     pub p2wpkh: P2WPKHVecs,
+    /// Version-0 pay-to-witness-script-hash outputs.
     pub p2wsh: P2WSHVecs,
+    /// Pay-to-Anchor outputs matching `OP_1 PUSHBYTES_2 0x4e73`.
     pub p2a: P2AVecs,
+    /// Bare multisig outputs recognized by Bitcoin script parsing.
     pub p2ms: P2MSVecs,
+    /// Outputs with an empty locking script.
     pub empty: EmptyVecs,
+    /// Outputs not matching another recognized locking-script type.
     pub unknown: UnknownVecs,
+    /// Outputs whose locking script begins with `OP_RETURN`.
     pub op_return: OpReturnVecs,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2PK33Vecs {
-    pub identity: LazyVec<P2PK33AddrIndex, P2PK33AddrIndex, P2PK33AddrIndex, P2PK33Bytes>,
-    pub addr: LazyVec<P2PK33AddrIndex, Addr, P2PK33AddrIndex, P2PK33Bytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2PK65Vecs {
-    pub identity: LazyVec<P2PK65AddrIndex, P2PK65AddrIndex, P2PK65AddrIndex, P2PK65Bytes>,
-    pub addr: LazyVec<P2PK65AddrIndex, Addr, P2PK65AddrIndex, P2PK65Bytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2PKHVecs {
-    pub identity: LazyVec<P2PKHAddrIndex, P2PKHAddrIndex, P2PKHAddrIndex, P2PKHBytes>,
-    pub addr: LazyVec<P2PKHAddrIndex, Addr, P2PKHAddrIndex, P2PKHBytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2SHVecs {
-    pub identity: LazyVec<P2SHAddrIndex, P2SHAddrIndex, P2SHAddrIndex, P2SHBytes>,
-    pub addr: LazyVec<P2SHAddrIndex, Addr, P2SHAddrIndex, P2SHBytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2TRVecs {
-    pub identity: LazyVec<P2TRAddrIndex, P2TRAddrIndex, P2TRAddrIndex, P2TRBytes>,
-    pub addr: LazyVec<P2TRAddrIndex, Addr, P2TRAddrIndex, P2TRBytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2WPKHVecs {
-    pub identity: LazyVec<P2WPKHAddrIndex, P2WPKHAddrIndex, P2WPKHAddrIndex, P2WPKHBytes>,
-    pub addr: LazyVec<P2WPKHAddrIndex, Addr, P2WPKHAddrIndex, P2WPKHBytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2WSHVecs {
-    pub identity: LazyVec<P2WSHAddrIndex, P2WSHAddrIndex, P2WSHAddrIndex, P2WSHBytes>,
-    pub addr: LazyVec<P2WSHAddrIndex, Addr, P2WSHAddrIndex, P2WSHBytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2AVecs {
-    pub identity: LazyVec<P2AAddrIndex, P2AAddrIndex, P2AAddrIndex, P2ABytes>,
-    pub addr: LazyVec<P2AAddrIndex, Addr, P2AAddrIndex, P2ABytes>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct P2MSVecs {
-    pub identity: LazyVec<P2MSOutputIndex, P2MSOutputIndex, P2MSOutputIndex, TxIndex>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct EmptyVecs {
-    pub identity: LazyVec<EmptyOutputIndex, EmptyOutputIndex, EmptyOutputIndex, TxIndex>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct UnknownVecs {
-    pub identity: LazyVec<UnknownOutputIndex, UnknownOutputIndex, UnknownOutputIndex, TxIndex>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct OpReturnVecs {
-    pub identity: LazyVec<OpReturnIndex, OpReturnIndex, OpReturnIndex, TxIndex>,
 }
 
 impl Vecs {
