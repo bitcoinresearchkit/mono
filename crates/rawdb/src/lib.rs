@@ -26,7 +26,6 @@ mod mmap;
 mod reader;
 mod region;
 mod region_metadata;
-mod region_state;
 mod regions;
 
 pub use disk_usage::*;
@@ -39,7 +38,6 @@ use rayon::prelude::*;
 pub use reader::*;
 pub use region::*;
 pub use region_metadata::*;
-use region_state::*;
 use regions::*;
 
 pub const PAGE_SIZE: usize = 4096;
@@ -197,14 +195,18 @@ impl Database {
             return Ok(region);
         }
 
-        let start = if let Some(start) = layout.find_smallest_adequate_hole(PAGE_SIZE) {
-            layout.remove_or_compress_hole(start, PAGE_SIZE)?;
-            start
-        } else {
-            layout.len()
-        };
+        let (start, reused_hole) =
+            if let Some(start) = layout.find_smallest_adequate_hole(PAGE_SIZE) {
+                layout.remove_or_compress_hole(start, PAGE_SIZE)?;
+                (start, true)
+            } else {
+                (layout.len(), false)
+            };
 
         let region = regions.create(self, id.to_owned(), start)?;
+        if reused_hole {
+            region.meta_mut().mark_tail_needs_punch();
+        }
         layout.insert_region(start, &region);
         Ok(region)
     }
@@ -310,7 +312,8 @@ impl Database {
         DiskUsage::from_file(&self.file())
     }
 
-    /// Flushes all dirty data and metadata to disk. Returns number of flushed regions.
+    /// Flushes all dirty data and metadata to disk.
+    /// Returns the number of regions whose data was flushed.
     pub fn flush(&self) -> Result<usize> {
         let dirty_regions: Vec<(Region, Vec<(usize, usize)>)> = self
             .regions()
@@ -319,19 +322,13 @@ impl Database {
             .flatten()
             .filter_map(|r| {
                 let ranges = r.take_dirty_ranges();
-                if !ranges.is_empty() || r.meta().needs_flush() {
+                if !ranges.is_empty() {
                     Some((r.clone(), ranges))
                 } else {
                     None
                 }
             })
             .collect();
-
-        if dirty_regions.is_empty() {
-            debug!("{}: flush (no dirty)", self);
-            self.layout_mut().promote_pending_holes(self.name());
-            return Ok(0);
-        }
 
         let mut flush_ranges = dirty_regions
             .iter()
@@ -402,24 +399,37 @@ impl Database {
             for &(start, end) in &merged_ranges {
                 if let Err(error) = mmap.flush_async_range(start, end - start) {
                     drop(mmap);
-                    for (region, ranges) in dirty_regions {
-                        region.restore_dirty_ranges(&ranges);
+                    for (region, ranges) in &dirty_regions {
+                        region.restore_dirty_ranges(ranges);
                     }
                     return Err(error.into());
                 }
             }
+
+            if let Err(error) = self.file().sync_data() {
+                for (region, ranges) in &dirty_regions {
+                    region.restore_dirty_ranges(ranges);
+                }
+                return Err(error.into());
+            }
         }
 
-        // Data must be durable before metadata (crash safety).
-        self.regions().flush()?;
-        self.file().sync_data()?;
-        self.regions().sync_data()?;
-        for (region, _) in &dirty_regions {
-            region.meta().mark_clean();
+        // Data must be durable before metadata can expose it. Holding layout
+        // prevents a new pending hole from appearing between metadata sync and
+        // promotion.
+        let mut layout = self.layout_mut();
+        let metadata_flushed = self.regions().flush()?;
+        layout.promote_pending_holes(self.name());
+        if dirty_regions.is_empty() && !metadata_flushed {
+            debug!("{}: flush (no dirty)", self);
+            return Ok(0);
         }
-
-        debug!("{}: flushed {} regions", self, dirty_regions.len());
-        self.layout_mut().promote_pending_holes(self.name());
+        debug!(
+            "{}: flushed {} data regions (metadata: {})",
+            self,
+            dirty_regions.len(),
+            metadata_flushed
+        );
         Ok(dirty_regions.len())
     }
 
@@ -493,7 +503,7 @@ impl Database {
     }
 
     fn punch_holes(&self) -> Result<()> {
-        let layout = self.layout();
+        let mut layout = self.layout_mut();
 
         let regions_to_check: Vec<Region> = {
             let regions = self.regions();
@@ -505,21 +515,16 @@ impl Database {
                 .collect()
         };
 
-        // Collect layout holes (protected by layout READ - can punch in parallel)
-        let layout_holes: Vec<(usize, usize)> = layout
-            .start_to_hole()
-            .iter()
-            .map(|(&start, &hole)| (start, hole))
-            .collect();
-
         let file = self.file();
         let mut punched = 0usize;
 
-        // Punch region reserved space. We MUST hold meta WRITE before checking,
-        // because write_with does db.write() BEFORE updating meta. If we only
-        // acquire WRITE after checking, a concurrent write could be in progress.
+        // Keep each region boundary stable while deriving and punching its tail.
         for region in &regions_to_check {
-            let meta = region.meta_mut();
+            let mut meta = region.meta_mut();
+            if !meta.tail_needs_punch() {
+                continue;
+            }
+
             let rstart = meta.start();
             let len = meta.len();
             let reserved = meta.reserved();
@@ -528,27 +533,23 @@ impl Database {
             if ceil_len < reserved {
                 let start = rstart + ceil_len;
                 let hole = reserved - ceil_len;
-                if Self::approx_has_punchable_data(&file, start, hole) {
-                    HolePunch::punch(&file, start, hole)?;
-                    punched += 1;
-                }
+                HolePunch::punch(&file, start, hole)?;
+                punched += 1;
             }
+
+            meta.mark_tail_punched();
         }
 
-        // Punch layout holes in parallel (safe - layout READ prevents allocation)
-        // No per-region lock needed since these are unallocated holes.
-        let layout_punched: usize = layout_holes
-            .par_iter()
-            .filter_map(|&(start, hole)| {
-                if Self::approx_has_punchable_data(&file, start, hole) {
-                    HolePunch::punch(&file, start, hole).ok()?;
-                    Some(1)
-                } else {
-                    None
-                }
-            })
-            .sum();
-        punched += layout_punched;
+        if layout.holes_need_punch() {
+            // The layout write lock prevents holes from being allocated while
+            // they are punched. No per-region lock is needed for free space.
+            layout
+                .start_to_hole()
+                .par_iter()
+                .try_for_each(|(&start, &hole)| HolePunch::punch(&file, start, hole))?;
+            punched += layout.start_to_hole().len();
+            layout.mark_holes_punched();
+        }
 
         drop(file);
         drop(layout);
@@ -561,63 +562,6 @@ impl Database {
         }
 
         Ok(())
-    }
-
-    /// Samples a few bytes via pread to check if a hole has non-zero data.
-    fn approx_has_punchable_data(file: &File, start: usize, len: usize) -> bool {
-        use std::os::unix::io::AsRawFd;
-
-        assert!(start.is_multiple_of(PAGE_SIZE));
-        assert!(len.is_multiple_of(PAGE_SIZE));
-
-        let fd = file.as_raw_fd();
-        let mut buf = [0u8; 1];
-
-        let mut check_page = |page_start: usize| -> bool {
-            let n = unsafe {
-                libc::pread(
-                    fd,
-                    buf.as_mut_ptr() as *mut libc::c_void,
-                    1,
-                    page_start as libc::off_t,
-                )
-            };
-            if n == 1 && buf[0] != 0 {
-                return true;
-            }
-
-            let page_end = page_start + PAGE_SIZE - 1;
-            let n = unsafe {
-                libc::pread(
-                    fd,
-                    buf.as_mut_ptr() as *mut libc::c_void,
-                    1,
-                    page_end as libc::off_t,
-                )
-            };
-            n == 1 && buf[0] != 0
-        };
-
-        if check_page(start) {
-            return true;
-        }
-
-        let last_page_start = start + len - PAGE_SIZE;
-        if last_page_start != start && check_page(last_page_start) {
-            return true;
-        }
-
-        if len > GiB {
-            let num_gb_checks = len / GiB;
-            for i in 1..num_gb_checks {
-                let gb_boundary = start + i * GiB;
-                if check_page(gb_boundary) {
-                    return true;
-                }
-            }
-        }
-
-        false
     }
 
     #[inline(always)]

@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Error, GiB, PAGE_SIZE, RegionState, Regions, Result};
+use crate::{Error, GiB, PAGE_SIZE, Regions, Result};
 
 pub const SIZE_OF_REGION_METADATA: usize = PAGE_SIZE; // 4096 bytes for atomic writes
 const SIZE_OF_U64: usize = std::mem::size_of::<u64>();
@@ -14,7 +14,10 @@ pub struct RegionMetadata {
     len: usize,
     reserved: usize,
     id: String,
-    state: RegionState,
+    /// Runtime-only state for serializing field changes into `Regions`.
+    needs_write: bool,
+    /// Runtime-only reclamation state; intentionally absent from `to_bytes`.
+    tail_needs_punch: bool,
 }
 
 impl RegionMetadata {
@@ -43,7 +46,8 @@ impl RegionMetadata {
             len,
             reserved,
             start,
-            state: RegionState::new_dirty(), // New region needs write
+            needs_write: true,
+            tail_needs_punch: false,
         }
     }
 
@@ -55,7 +59,9 @@ impl RegionMetadata {
     #[inline]
     pub fn set_start(&mut self, start: usize) {
         assert!(start.is_multiple_of(PAGE_SIZE));
-        Self::update_value_if_different(&mut self.start, start, &self.state)
+        if Self::update_value_if_different(&mut self.start, start, &mut self.needs_write) {
+            self.tail_needs_punch = true;
+        }
     }
 
     #[allow(clippy::len_without_is_empty)]
@@ -67,7 +73,10 @@ impl RegionMetadata {
     #[inline]
     pub fn set_len(&mut self, len: usize) {
         assert!(len <= self.reserved());
-        Self::update_value_if_different(&mut self.len, len, &self.state)
+        if len < self.len {
+            self.tail_needs_punch = true;
+        }
+        Self::update_value_if_different(&mut self.len, len, &mut self.needs_write);
     }
 
     #[inline(always)]
@@ -82,7 +91,7 @@ impl RegionMetadata {
 
     pub fn set_id(&mut self, id: String) {
         Self::validate_id(&id);
-        Self::update_value_if_different(&mut self.id, id, &self.state)
+        Self::update_value_if_different(&mut self.id, id, &mut self.needs_write);
     }
 
     pub fn set_reserved(&mut self, reserved: usize) {
@@ -91,18 +100,38 @@ impl RegionMetadata {
         assert!(reserved.is_multiple_of(PAGE_SIZE));
         assert!(reserved <= MAX_RESERVED_SIZE);
 
-        Self::update_value_if_different(&mut self.reserved, reserved, &self.state)
+        if Self::update_value_if_different(&mut self.reserved, reserved, &mut self.needs_write) {
+            self.tail_needs_punch = true;
+        }
     }
 
     #[inline]
-    fn update_value_if_different<T>(own: &mut T, other: T, state: &RegionState)
+    pub(crate) fn tail_needs_punch(&self) -> bool {
+        self.tail_needs_punch
+    }
+
+    #[inline]
+    pub(crate) fn mark_tail_needs_punch(&mut self) {
+        self.tail_needs_punch = true;
+    }
+
+    #[inline]
+    pub(crate) fn mark_tail_punched(&mut self) {
+        self.tail_needs_punch = false;
+    }
+
+    #[inline]
+    fn update_value_if_different<T>(own: &mut T, other: T, needs_write: &mut bool) -> bool
     where
         T: Eq,
     {
-        if own != &other {
-            *own = other;
-            state.set_needs_write();
+        if own == &other {
+            return false;
         }
+
+        *own = other;
+        *needs_write = true;
+        true
     }
 
     #[inline(always)]
@@ -110,37 +139,13 @@ impl RegionMetadata {
         self.reserved - self.len
     }
 
-    pub(crate) fn write_if_dirty(&self, index: usize, regions: &Regions) {
-        let state = &self.state;
-        if state.needs_write() {
-            regions.write_at(index, &self.to_bytes());
-            state.set_needs_flush();
+    pub(crate) fn write_if_dirty(&mut self, index: usize, regions: &Regions) {
+        if !self.needs_write {
+            return;
         }
-    }
 
-    pub(crate) fn flush(&self, index: usize, regions: &Regions) -> Result<bool> {
-        let state = &self.state;
-        if state.is_clean() {
-            return Ok(false);
-        } else if state.needs_write() {
-            return Err(Error::RegionMetadataUnwritten);
-        }
-        // Schedule writeback, then mark clean. Caller ensures durability via sync_data().
-        regions
-            .mmap()
-            .flush_async_range(index * SIZE_OF_REGION_METADATA, SIZE_OF_REGION_METADATA)?;
-        state.set_is_clean();
-        Ok(true)
-    }
-
-    #[inline]
-    pub(crate) fn needs_flush(&self) -> bool {
-        self.state.needs_flush()
-    }
-
-    #[inline]
-    pub(crate) fn mark_clean(&self) {
-        self.state.set_is_clean();
+        regions.write_at(index, &self.to_bytes());
+        self.needs_write = false;
     }
 
     fn to_bytes(&self) -> [u8; SIZE_OF_REGION_METADATA] {
@@ -230,7 +235,8 @@ impl RegionMetadata {
             start,
             len,
             reserved,
-            state: RegionState::new_clean(), // Loaded from disk
+            needs_write: false,
+            tail_needs_punch: true,
         })
     }
 }
@@ -242,7 +248,8 @@ impl Clone for RegionMetadata {
             len: self.len,
             reserved: self.reserved,
             id: self.id.clone(),
-            state: RegionState::new_clean(),
+            needs_write: false,
+            tail_needs_punch: self.tail_needs_punch,
         }
     }
 }

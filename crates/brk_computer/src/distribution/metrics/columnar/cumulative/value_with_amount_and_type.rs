@@ -120,12 +120,12 @@ impl CumulativeUTXOValueColumnarMetric {
         ReadableBoxedVec<Height, Cents>,
     )> {
         let columns = CumulativeUTXOValueColumnarMetricWithoutAmountOrType::age_columns(filter)?;
-        Some(if matches!(filter, Filter::All) {
-            self.age_range
-                .budgeted_sources(&format!("{name}_cumulative"), version, columns)
-        } else {
-            Self::matrix_sources(&self.age_range, name, version, columns)
-        })
+        Some(Self::matrix_sources(
+            &self.age_range,
+            name,
+            version,
+            columns,
+        ))
     }
 
     fn matrix_sources<C>(

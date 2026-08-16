@@ -15,7 +15,12 @@ use crate::{
 /// Lazy rolling sums for all 4 windows, for Amount (sats + btc + cents + usd).
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyRollingSumsAmountFromHeight(pub Windows<LazyRollingSumAmountFromHeight>);
+pub struct LazyRollingSumsAmountFromHeight(
+    /// Total of the per-block values over the trailing window ending at the
+    /// represented block. At time-period indexes, the value is taken at the
+    /// period's final block.
+    pub Windows<LazyRollingSumAmountFromHeight>,
+);
 
 impl LazyRollingSumsAmountFromHeight {
     pub fn new(

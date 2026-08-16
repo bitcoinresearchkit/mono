@@ -30,6 +30,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_oracle_price")
                         .oracle_tag()
+                        .mcp_ignore()
                         .summary("Live BTC/USD price")
                         .description(
                             "Current BTC/USD price in dollars. Same value as \

@@ -23998,7 +23998,7 @@ impl BrkClient {
 
     /// Get series info
     ///
-    /// Returns the supported indexes and value type for the specified series.
+    /// Returns the optional description, supported indexes, and value type for the specified series.
     ///
     /// Endpoint: `GET /api/series/{series}`
     pub fn get_series_info(&self, series: SeriesName) -> Result<SeriesInfo> {
@@ -24663,9 +24663,9 @@ impl BrkClient {
         self.base.get_json(&format!("/api/v1/fees/recommended"))
     }
 
-    /// Precise recommended fees
+    /// Recommended fee rates (precise)
     ///
-    /// Recommended fee rates with sub-integer precision.
+    /// Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
     ///

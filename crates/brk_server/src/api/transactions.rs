@@ -243,6 +243,7 @@ impl TxRoutes for ApiRouter<AppState> {
                 |op| op
                     .id("get_tx_raw")
                     .transactions_tag()
+                    .mcp_ignore()
                     .summary("Transaction raw")
                     .description("Returns a transaction as binary data.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-raw)*")
                     .binary_response()
@@ -307,6 +308,7 @@ impl TxRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("post_tx")
                         .transactions_tag()
+                        .mcp_ignore()
                         .summary("Broadcast transaction")
                         .description("Broadcast a raw transaction to the network. The transaction should be provided as hex in the request body. The txid will be returned on success.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*")
                         .json_response::<Txid>()

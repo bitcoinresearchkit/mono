@@ -6,6 +6,7 @@ use crate::internal::PerBlockCumulativeRolling;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Total BIP-141 sigop cost, not a raw opcode count.
+    /// BIP-141 signature-operation cost, rather than a raw signature-opcode
+    /// count.
     pub total: PerBlockCumulativeRolling<StoredU64, M>,
 }

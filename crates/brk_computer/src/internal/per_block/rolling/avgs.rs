@@ -18,7 +18,12 @@ use super::LazyRollingAvgFromHeight;
 /// `LazyDeltaVec<Height, T, f64, DeltaAvg>`: `(cum[h] - cum[start-1]) / (h - start + 1)`.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyRollingAvgsFromHeight<T>(pub Windows<LazyRollingAvgFromHeight<T>>)
+pub struct LazyRollingAvgsFromHeight<T>(
+    /// Arithmetic mean of the per-block values over the trailing window ending
+    /// at the represented block; each block has equal weight. At time-period
+    /// indexes, the value is taken at the period's final block.
+    pub Windows<LazyRollingAvgFromHeight<T>>,
+)
 where
     T: NumericValue + JsonSchema;
 

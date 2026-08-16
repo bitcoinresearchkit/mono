@@ -126,6 +126,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 |op| op
                     .id("get_series_tree")
                     .series_tag()
+                    .mcp_ignore()
                     .summary("Series catalog")
                     .description(
                         "Returns the complete hierarchical catalog of available series organized as a tree structure. \
@@ -237,7 +238,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .series_tag()
                     .summary("Get series info")
                     .description(
-                        "Returns the supported indexes and value type for the specified series."
+                        "Returns the optional description, supported indexes, and value type for the specified series."
                     )
                     .json_response::<SeriesInfo>()
                     .not_modified()
@@ -298,6 +299,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 |op| op
                     .id("get_series_data")
                     .series_tag()
+                    .mcp_ignore()
                     .summary("Get raw series data")
                     .description(
                         "Returns just the data array without the SeriesData wrapper. \

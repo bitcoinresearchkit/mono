@@ -537,11 +537,11 @@ impl Region {
         Ok(())
     }
 
-    /// Flushes dirty data and metadata to disk. Returns whether anything was flushed.
+    /// Flushes this region's dirty data and all pending metadata.
+    /// Returns whether anything was flushed.
     pub fn flush(&self) -> Result<bool> {
         let db = self.db();
         let dirty_ranges = self.take_dirty_ranges();
-        let regions = db.regions();
 
         let data_flushed = if !dirty_ranges.is_empty() {
             let region_start = self.meta().start();
@@ -558,17 +558,16 @@ impl Region {
             false
         };
 
-        let meta = self.meta();
-        let meta_flushed = meta.flush(self.index(), &regions)?;
-
         // Data MUST be durable before metadata — if we crash after metadata sync
         // but before data sync, metadata could reference unwritten data.
-        if data_flushed || meta_flushed {
-            db.file().sync_data()?;
-            regions.sync_data()?;
+        if data_flushed && let Err(error) = db.file().sync_data() {
+            self.restore_dirty_ranges(&dirty_ranges);
+            return Err(error.into());
         }
 
-        Ok(data_flushed || meta_flushed)
+        let metadata_flushed = db.regions().flush()?;
+
+        Ok(data_flushed || metadata_flushed)
     }
 
     #[inline(always)]

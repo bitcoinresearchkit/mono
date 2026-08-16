@@ -35,6 +35,8 @@ pub struct Endpoint {
     pub json_response_schema: Option<Value>,
     /// Whether this endpoint is deprecated
     pub deprecated: bool,
+    /// Whether this endpoint is explicitly excluded from MCP tool generation.
+    pub mcp_ignored: bool,
     /// Whether this endpoint supports CSV format (text/csv content type)
     pub supports_csv: bool,
 }

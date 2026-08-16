@@ -3509,7 +3509,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:11637](https://github.com
 
 Get series info
 
-Returns the supported indexes and value type for the specified series.
+Returns the optional description, supported indexes, and value type for the specified series.
 
 Endpoint: `GET /api/series/{series}`
 

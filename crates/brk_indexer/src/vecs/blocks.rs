@@ -32,7 +32,9 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     pub coinbase_tag: M::Stored<BytesVec<Height, CoinbaseTag>>,
     #[traversable(wrap = "difficulty", rename = "value")]
     pub difficulty: M::Stored<PcoVec<Height, StoredF64>>,
-    /// Doesn't guarantee continuity due to possible reorgs and more generally the nature of mining
+    /// Unix timestamp in seconds associated with the indexed block or time
+    /// period. Block-header timestamps are not guaranteed to increase between
+    /// consecutive heights.
     #[traversable(wrap = "time")]
     pub timestamp: CachedVec<M::Stored<PcoVec<Height, Timestamp>>>,
     #[traversable(wrap = "size", rename = "base")]

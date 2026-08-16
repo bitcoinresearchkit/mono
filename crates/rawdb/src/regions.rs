@@ -7,6 +7,7 @@ use std::{
 
 use log::debug;
 use memmap2::MmapMut;
+use parking_lot::Mutex;
 
 use crate::{
     Database, Error, PAGE_SIZE, RegionMetadata, Result, SIZE_OF_REGION_METADATA, create_mmap,
@@ -19,6 +20,8 @@ pub struct Regions {
     index_to_region: Vec<Option<Region>>,
     file: File,
     mmap: MmapMut,
+    /// Whether the metadata mmap differs from its durable file.
+    dirty: Mutex<bool>,
 }
 
 impl Regions {
@@ -40,6 +43,7 @@ impl Regions {
             index_to_region: vec![],
             file,
             mmap,
+            dirty: Mutex::new(false),
         })
     }
 
@@ -110,6 +114,8 @@ impl Regions {
             return Err(Error::RegionAlreadyExists);
         }
 
+        region.meta_mut().write_if_dirty(index, self);
+
         Ok(region)
     }
 
@@ -173,21 +179,26 @@ impl Regions {
         Ok(())
     }
 
-    /// Schedules metadata writeback. Caller must follow with `sync_data()`.
-    pub(crate) fn flush(&self) -> Result<()> {
-        self.mmap.flush_async()?;
-        Ok(())
-    }
+    /// Makes every completed metadata write preceding this call durable.
+    pub(crate) fn flush(&self) -> Result<bool> {
+        let mut dirty = self.dirty.lock();
+        if !*dirty {
+            return Ok(false);
+        }
 
-    pub(crate) fn sync_data(&self) -> Result<()> {
+        self.mmap.flush_async()?;
         self.file.sync_data()?;
-        Ok(())
+        *dirty = false;
+
+        Ok(true)
     }
 
     pub(crate) fn write_at(&self, index: usize, data: &[u8]) {
         debug_assert_eq!(data.len(), SIZE_OF_REGION_METADATA);
         let offset = index * SIZE_OF_REGION_METADATA;
+        let mut dirty = self.dirty.lock();
         write_to_mmap(&self.mmap, offset, data);
+        *dirty = true;
     }
 
     #[inline]
@@ -203,10 +214,5 @@ impl Regions {
     #[inline]
     pub fn len(&self) -> usize {
         self.id_to_index.len()
-    }
-
-    #[inline]
-    pub(crate) fn mmap(&self) -> &MmapMut {
-        &self.mmap
     }
 }

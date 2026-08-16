@@ -21,7 +21,12 @@ use super::LazyRollingSumFromHeight;
 /// the same tree structure as the old `RollingWindows<T>`.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyRollingSumsFromHeight<T>(pub Windows<LazyRollingSumFromHeight<T>>)
+pub struct LazyRollingSumsFromHeight<T>(
+    /// Total of the per-block values over the trailing window ending at the
+    /// represented block. At time-period indexes, the value is taken at the
+    /// period's final block.
+    pub Windows<LazyRollingSumFromHeight<T>>,
+)
 where
     T: NumericValue + JsonSchema;
 

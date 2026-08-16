@@ -15,7 +15,12 @@ use super::LazyRollingSumFiatFromHeight;
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyRollingSumsFiatFromHeight<C: FiatType>(pub Windows<LazyRollingSumFiatFromHeight<C>>);
+pub struct LazyRollingSumsFiatFromHeight<C: FiatType>(
+    /// Total of the per-block values over the trailing window ending at the
+    /// represented block. At time-period indexes, the value is taken at the
+    /// period's final block.
+    pub Windows<LazyRollingSumFiatFromHeight<C>>,
+);
 
 impl<C: FiatType> LazyRollingSumsFiatFromHeight<C> {
     pub fn new(

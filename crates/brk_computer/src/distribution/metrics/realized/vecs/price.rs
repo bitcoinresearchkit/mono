@@ -12,6 +12,7 @@ use crate::{
 pub struct RealizedPriceByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub cohorts: UTXOGroups<LazyPriceWithRatioPerBlock>,
+    /// Reported in cents per BTC.
     #[traversable(flatten)]
     pub matrices: ExactUTXOColumnarMetric<Cents, M>,
 }

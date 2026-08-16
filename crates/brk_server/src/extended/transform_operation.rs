@@ -21,6 +21,8 @@ pub trait TransformResponseExtended<'t> {
 
     /// Mark operation as deprecated
     fn deprecated(self) -> Self;
+    /// Keep the REST operation public while excluding it from generated MCP tools.
+    fn mcp_ignore(self) -> Self;
 
     /// 200
     fn json_response<R>(self) -> Self
@@ -107,6 +109,13 @@ impl<'t> TransformResponseExtended<'t> for TransformOperation<'t> {
 
     fn deprecated(mut self) -> Self {
         self.inner_mut().deprecated = true;
+        self
+    }
+
+    fn mcp_ignore(mut self) -> Self {
+        self.inner_mut()
+            .extensions
+            .insert("x-mcp-ignore".to_owned(), true.into());
         self
     }
 

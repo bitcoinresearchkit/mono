@@ -47,6 +47,7 @@ impl FeesRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_recommended_fees")
                         .fees_tag()
+                        .mcp_ignore()
                         .summary("Recommended fees")
                         .description("Recommended fee rates by confirmation target.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*")
                         .json_response::<RecommendedFees>()
@@ -68,8 +69,8 @@ impl FeesRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_precise_fees")
                         .fees_tag()
-                        .summary("Precise recommended fees")
-                        .description("Recommended fee rates with sub-integer precision.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*")
+                        .summary("Recommended fee rates (precise)")
+                        .description("Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*")
                         .json_response::<RecommendedFees>()
                         .not_modified()
                         .server_error()

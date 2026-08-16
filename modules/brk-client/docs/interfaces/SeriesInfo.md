@@ -10,6 +10,16 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1106](https://github.com/
 
 ## Properties
 
+### description?
+
+> `optional` **description?**: `string` \| `null`
+
+Defined in: [Developer/brk/modules/brk-client/index.js:1179](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1179)
+
+Human-readable metric definition, when documented
+
+***
+
 ### indexes
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]

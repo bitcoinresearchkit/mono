@@ -15,7 +15,12 @@ use crate::{
 /// Lazy rolling averages for all 4 windows, for Amount (sats + btc + cents + usd), all as f64.
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyRollingAvgsAmountFromHeight(pub Windows<LazyRollingAvgAmountFromHeight>);
+pub struct LazyRollingAvgsAmountFromHeight(
+    /// Arithmetic mean of the per-block values over the trailing window ending
+    /// at the represented block; each block has equal weight. At time-period
+    /// indexes, the value is taken at the period's final block.
+    pub Windows<LazyRollingAvgAmountFromHeight>,
+);
 
 impl LazyRollingAvgsAmountFromHeight {
     pub fn new(

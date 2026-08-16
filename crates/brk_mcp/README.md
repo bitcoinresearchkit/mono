@@ -1,8 +1,8 @@
 # brk_mcp
 
 `brk_mcp` is a thin, stateless, read-only MCP adapter for the BRK REST API. It
-exposes the generated OpenAPI operations as MCP tools and forwards every tool
-call to the configured public REST origin as a `GET` request.
+exposes the MCP-visible OpenAPI operations as generated tools and forwards
+every tool call to the configured public REST origin as a `GET` request.
 
 The official public endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/). It is stateless, read-only, and

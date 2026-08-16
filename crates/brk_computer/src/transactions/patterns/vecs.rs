@@ -79,11 +79,15 @@ pub struct Flags<V> {
 /// These are heuristic classifications of transactions, not protocol labels.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {
-    /// CoinJoin candidates with repeated output values and no address reuse.
+    /// Counts transactions heuristically classified as CoinJoin candidates:
+    /// at least five inputs and outputs, neither count five times the other,
+    /// sufficiently repeated input/output values, no recognized address reuse,
+    /// and no detected `OP_RETURN` or inscription.
     pub coinjoin: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
-    /// Transactions with at least five times as many inputs as outputs.
+    /// Counts transactions with at least five times as many inputs as outputs.
     pub consolidation: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
-    /// Non-coinbase transactions with at least five times as many outputs as inputs.
+    /// Counts non-coinbase transactions with at least five times as many outputs
+    /// as inputs.
     pub batch_payout: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
     #[deref]
     #[deref_mut]

@@ -19,6 +19,8 @@ where
     #[deref_mut]
     #[traversable(flatten)]
     pub series: S,
+    /// Cumulative value through the represented block. At time-period indexes,
+    /// the value is taken at the period's final block.
     pub cumulative: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, C>>>,
     #[traversable(skip)]
     last_cumulative: Option<(usize, C::Row<T>)>,

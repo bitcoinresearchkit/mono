@@ -125,7 +125,7 @@ where
         version: Version,
     ) -> Option<ReadableBoxedVec<Height, T>> {
         match filter {
-            Filter::All => Some(Self::budgeted_sum(
+            Filter::All => Some(Self::sum(
                 age_range_matrix,
                 name,
                 version,
@@ -179,20 +179,6 @@ where
     }
 
     pub fn sum<C>(
-        source: &ReadOnlyColumnarVec<PcoVec<Height, T>, C>,
-        name: &str,
-        version: Version,
-        columns: impl IntoIterator<Item = C>,
-    ) -> ReadableBoxedVec<Height, T>
-    where
-        C: ColumnId,
-    {
-        source
-            .sum_columns(name, version, columns)
-            .read_only_boxed_clone()
-    }
-
-    fn budgeted_sum<C>(
         source: &ReadOnlyColumnarVec<PcoVec<Height, T>, C>,
         name: &str,
         version: Version,

@@ -56,10 +56,18 @@ struct FieldInfo<'a> {
     rename: Option<String>,
     wrap: Option<String>,
     hidden: bool,
+    description: Option<String>,
 }
 
-/// Returns None for skip, Some((attr, rename, wrap, hidden)) for normal/flatten/hidden.
-fn get_field_attr(field: &syn::Field) -> Option<(FieldAttr, Option<String>, Option<String>, bool)> {
+struct ParsedFieldAttr {
+    attr: FieldAttr,
+    rename: Option<String>,
+    wrap: Option<String>,
+    hidden: bool,
+}
+
+/// Returns `None` for skipped fields and parsed traversal metadata otherwise.
+fn get_field_attr(field: &syn::Field) -> Option<ParsedFieldAttr> {
     let mut attr_type = FieldAttr::Normal;
     let mut rename = None;
     let mut wrap = None;
@@ -70,36 +78,79 @@ fn get_field_attr(field: &syn::Field) -> Option<(FieldAttr, Option<String>, Opti
             continue;
         }
 
-        if let Ok(ident) = attr.parse_args::<syn::Ident>() {
-            match ident.to_string().as_str() {
-                "skip" => return None,
-                "flatten" => attr_type = FieldAttr::Flatten,
-                "hidden" => hidden = true,
-                _ => {}
-            }
+        let Ok(metas) = attr.parse_args_with(
+            syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
+        ) else {
             continue;
-        }
+        };
 
-        if let Ok(metas) = attr.parse_args_with(
-            syn::punctuated::Punctuated::<syn::MetaNameValue, syn::Token![,]>::parse_terminated,
-        ) {
-            for meta in metas {
-                if let syn::Expr::Lit(syn::ExprLit {
-                    lit: syn::Lit::Str(lit_str),
-                    ..
-                }) = &meta.value
-                {
-                    if meta.path.is_ident("rename") {
-                        rename = Some(lit_str.value());
-                    } else if meta.path.is_ident("wrap") {
-                        wrap = Some(lit_str.value());
+        for meta in metas {
+            match meta {
+                syn::Meta::Path(path) if path.is_ident("skip") => return None,
+                syn::Meta::Path(path) if path.is_ident("flatten") => {
+                    attr_type = FieldAttr::Flatten;
+                }
+                syn::Meta::Path(path) if path.is_ident("hidden") => hidden = true,
+                syn::Meta::NameValue(meta) => {
+                    if let syn::Expr::Lit(syn::ExprLit {
+                        lit: syn::Lit::Str(lit_str),
+                        ..
+                    }) = &meta.value
+                    {
+                        if meta.path.is_ident("rename") {
+                            rename = Some(lit_str.value());
+                        } else if meta.path.is_ident("wrap") {
+                            wrap = Some(lit_str.value());
+                        }
                     }
                 }
+                _ => {}
             }
         }
     }
 
-    Some((attr_type, rename, wrap, hidden))
+    Some(ParsedFieldAttr {
+        attr: attr_type,
+        rename,
+        wrap,
+        hidden,
+    })
+}
+
+fn get_doc_comment(field: &syn::Field) -> Option<String> {
+    let lines = field
+        .attrs
+        .iter()
+        .filter(|attr| attr.path().is_ident("doc"))
+        .filter_map(|attr| match &attr.meta {
+            syn::Meta::NameValue(meta) => match &meta.value {
+                syn::Expr::Lit(syn::ExprLit {
+                    lit: syn::Lit::Str(value),
+                    ..
+                }) => Some(value.value()),
+                _ => None,
+            },
+            _ => None,
+        })
+        .map(|line| line.trim().to_string())
+        .collect::<Vec<_>>();
+
+    (!lines.is_empty()).then(|| lines.join(" "))
+}
+
+fn with_description_fragment(
+    description: Option<&str>,
+    collect: proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    let Some(description) = description else {
+        return collect;
+    };
+
+    quote! {{
+        description_fragments.push(#description);
+        #collect
+        debug_assert_eq!(description_fragments.pop(), Some(#description));
+    }}
 }
 
 fn is_field_skipped(field: &syn::Field) -> bool {
@@ -237,8 +288,15 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
     if let Fields::Unnamed(fields) = &data.fields
         && fields.unnamed.len() == 1
     {
-        let field_ty = &fields.unnamed.first().unwrap().ty;
+        let field = fields.unnamed.first().unwrap();
+        let field_ty = &field.ty;
         let where_clause = build_where_clause(generics, &[], &[field_ty]);
+        let collect_description = with_description_fragment(
+            get_doc_comment(field).as_deref(),
+            quote! {
+                self.0.collect_series_descriptions(description_fragments, descriptions);
+            },
+        );
         let to_tree_node_body = if let Some(wrap_key) = &struct_attr.wrap {
             quote! { brk_traversable::TreeNode::wrap(#wrap_key, self.0.to_tree_node()) }
         } else {
@@ -257,6 +315,14 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
                 fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
                     self.0.iter_any_visible()
                 }
+
+                fn collect_series_descriptions<'a>(
+                    &'a self,
+                    description_fragments: &mut Vec<&'static str>,
+                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+                ) {
+                    #collect_description
+                }
             }
         };
     }
@@ -272,6 +338,12 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
                 fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
                     std::iter::empty()
                 }
+
+                fn collect_series_descriptions<'a>(
+                    &'a self,
+                    _description_fragments: &mut Vec<&'static str>,
+                    _descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+                ) {}
             }
         };
     };
@@ -288,6 +360,12 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
             .expect("named field must have ident");
         let field_ty = &first_field.ty;
         let where_clause = build_where_clause(generics, &[], &[field_ty]);
+        let collect_description = with_description_fragment(
+            get_doc_comment(first_field).as_deref(),
+            quote! {
+                self.#field_name.collect_series_descriptions(description_fragments, descriptions);
+            },
+        );
         return quote! {
             impl #impl_generics Traversable for #name #ty_generics #where_clause {
                 fn to_tree_node(&self) -> brk_traversable::TreeNode {
@@ -301,6 +379,14 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
                 fn iter_any_visible(&self) -> impl Iterator<Item = &dyn vecdb::AnyExportableVec> {
                     self.#field_name.iter_any_visible()
                 }
+
+                fn collect_series_descriptions<'a>(
+                    &'a self,
+                    description_fragments: &mut Vec<&'static str>,
+                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+                ) {
+                    #collect_description
+                }
             }
         };
     }
@@ -312,6 +398,7 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
 
     let field_traversals = generate_field_traversals(&field_infos, struct_attr.merge);
     let iterator_impl = generate_iterator_impl(&field_infos, struct_attr.hidden);
+    let description_impl = generate_description_impl(&field_infos, struct_attr.hidden);
     let where_clause = build_where_clause(
         generics,
         &generics_needing_traversable,
@@ -331,6 +418,7 @@ fn gen_traversable(input: &DeriveInput) -> proc_macro2::TokenStream {
             }
 
             #iterator_impl
+            #description_impl
         }
     }
 }
@@ -344,13 +432,13 @@ fn analyze_fields<'a>(
     let mut field_traversable_types = Vec::new();
 
     for field in &fields.named {
-        let Some((attr, rename, wrap, hidden)) = get_field_attr(field) else {
+        let Some(parsed) = get_field_attr(field) else {
             continue;
         };
 
         // Hidden fields stay out of the public tree but must remain in
         // exportable traversal for storage retention.
-        if !hidden && !matches!(field.vis, syn::Visibility::Public(_)) {
+        if !parsed.hidden && !matches!(field.vis, syn::Visibility::Public(_)) {
             continue;
         }
 
@@ -379,10 +467,11 @@ fn analyze_fields<'a>(
         field_infos.push(FieldInfo {
             name: field_name,
             is_option,
-            attr,
-            rename,
-            wrap,
-            hidden,
+            attr: parsed.attr,
+            rename: parsed.rename,
+            wrap: parsed.wrap,
+            hidden: parsed.hidden,
+            description: get_doc_comment(field),
         });
     }
 
@@ -630,6 +719,46 @@ fn generate_iterator_impl(infos: &[FieldInfo], struct_hidden: bool) -> proc_macr
             #exportable_body
         }
         #visible_impl
+    }
+}
+
+fn generate_description_impl(infos: &[FieldInfo], struct_hidden: bool) -> proc_macro2::TokenStream {
+    if struct_hidden {
+        return quote! {
+            fn collect_series_descriptions<'a>(
+                &'a self,
+                _description_fragments: &mut Vec<&'static str>,
+                _descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+            ) {}
+        };
+    }
+
+    let fields = infos.iter().filter(|info| !info.hidden).map(|info| {
+        let field_name = info.name;
+        let collect = if info.is_option {
+            quote! {
+                if let Some(field) = &self.#field_name {
+                    field.collect_series_descriptions(description_fragments, descriptions);
+                }
+            }
+        } else {
+            quote! {
+                self.#field_name
+                    .collect_series_descriptions(description_fragments, descriptions);
+            }
+        };
+
+        with_description_fragment(info.description.as_deref(), collect)
+    });
+
+    quote! {
+        fn collect_series_descriptions<'a>(
+            &'a self,
+            description_fragments: &mut Vec<&'static str>,
+            descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+        ) {
+            #(#fields)*
+        }
     }
 }
 

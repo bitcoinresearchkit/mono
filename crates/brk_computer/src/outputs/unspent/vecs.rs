@@ -6,6 +6,6 @@ use crate::internal::PerBlock;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// UTXO count per block: `total - inputs - op_return - genesis`.
+    /// Number of transaction outputs tracked as unspent after each block.
     pub count: PerBlock<StoredU64, M>,
 }

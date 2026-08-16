@@ -1176,6 +1176,7 @@ on serialization otherwise.
  * Metadata about a series
  *
  * @typedef {Object} SeriesInfo
+ * @property {?string=} description - Human-readable metric definition, when documented
  * @property {Index[]} indexes - Available indexes
  * @property {string} type - Value type (e.g. "f32", "u64", "Sats")
  */
@@ -23241,7 +23242,7 @@ class BrkClient extends BrkClientBase {
   /**
    * Get series info
    *
-   * Returns the supported indexes and value type for the specified series.
+   * Returns the optional description, supported indexes, and value type for the specified series.
    *
    * Endpoint: `GET /api/series/{series}`
    *
@@ -24300,9 +24301,9 @@ address payload bytes.
   }
 
   /**
-   * Precise recommended fees
+   * Recommended fee rates (precise)
    *
-   * Recommended fee rates with sub-integer precision.
+   * Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *

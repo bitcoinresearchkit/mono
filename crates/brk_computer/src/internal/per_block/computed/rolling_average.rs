@@ -16,6 +16,8 @@ where
     T: NumericValue + JsonSchema,
     C: NumericValue + JsonSchema,
 {
+    /// Value for the represented block. At time-period indexes, the value is
+    /// taken from the period's final block.
     pub block: M::Stored<EagerVec<PcoVec<Height, T>>>,
     #[traversable(hidden)]
     cumulative: M::Stored<EagerVec<PcoVec<Height, C>>>,

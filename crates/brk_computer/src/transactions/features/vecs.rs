@@ -82,17 +82,21 @@ impl ColumnId for FeatureId {
 pub struct CountVecs<M: StorageMode = Rw> {
     pub inscription: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     pub annex: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
-    /// Transactions containing at least one `SIGHASH_ALL` signature.
+    /// Counts transactions containing at least one detected `SIGHASH_ALL`
+    /// signature.
     pub sighash_all: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
-    /// Transactions containing at least one `SIGHASH_NONE` signature.
+    /// Counts transactions containing at least one detected `SIGHASH_NONE`
+    /// signature.
     pub sighash_none: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
-    /// Transactions containing at least one `SIGHASH_SINGLE` signature.
+    /// Counts transactions containing at least one detected `SIGHASH_SINGLE`
+    /// signature.
     pub sighash_single: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
-    /// Transactions containing at least one Taproot `SIGHASH_DEFAULT` signature.
+    /// Counts transactions containing at least one detected Taproot
+    /// `SIGHASH_DEFAULT` signature.
     pub sighash_default: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
-    /// Transactions containing at least one `SIGHASH_ANYONECANPAY` signature.
-    ///
-    /// This modifier is counted independently from ALL, NONE, and SINGLE.
+    /// Counts transactions containing at least one detected signature with the
+    /// `SIGHASH_ANYONECANPAY` modifier. This is counted independently from
+    /// `SIGHASH_ALL`, `SIGHASH_NONE`, and `SIGHASH_SINGLE`.
     pub sighash_anyone_can_pay: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     pub dust_output: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     #[deref]

@@ -11,10 +11,15 @@ use super::price::price_ratio;
 
 #[derive(Clone, Traversable)]
 pub struct LazyPriceWithRatioPerBlock {
+    /// Reported in USD per BTC.
     pub usd: LazyPerBlock<Dollars, Cents>,
+    /// Reported in cents per BTC.
     pub cents: LazyPerBlock<Cents>,
+    /// Reported in sats per USD: 100,000,000 divided by the price in USD.
     pub sats: LazyPerBlock<SatsFract, Dollars>,
+    /// Spot price divided by this price, expressed in parts per million.
     pub ppm: LazyPerBlock<PartsPerMillion64>,
+    /// Spot price divided by this price.
     pub ratio: LazyPerBlock<StoredF32, PartsPerMillion64>,
 }
 

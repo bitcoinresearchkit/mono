@@ -69,6 +69,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_mempool_txids")
                         .mempool_tag()
+                        .mcp_ignore()
                         .summary("Mempool transaction IDs")
                         .description("Get all transaction IDs currently in the mempool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*")
                         .json_response::<Vec<Txid>>()
@@ -151,6 +152,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_block_template")
                         .mempool_tag()
+                        .mcp_ignore()
                         .summary("Projected next block template")
                         .description("Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.")
                         .json_response::<BlockTemplate>()
@@ -176,6 +178,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_block_template_diff")
                         .mempool_tag()
+                        .mcp_ignore()
                         .summary("Block template diff since hash")
                         .description("Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.")
                         .json_response::<BlockTemplateDiff>()
@@ -196,6 +199,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_live_price")
                         .mempool_tag()
+                        .mcp_ignore()
                         .summary("Live BTC/USD price")
                         .description(
                             "Returns the current BTC/USD price in dollars, derived from \

@@ -1662,9 +1662,11 @@ class SeriesInfo(TypedDict):
     Metadata about a series
 
     Attributes:
+        description: Human-readable metric definition, when documented
         indexes: Available indexes
         type: Value type (e.g. "f32", "u64", "Sats")
     """
+    description: Optional[str]
     indexes: List[Index]
     type: str
 
@@ -15207,7 +15209,7 @@ class BrkClient(BrkClientBase):
     def get_series_info(self, series: SeriesName) -> SeriesInfo:
         """Get series info.
 
-        Returns the supported indexes and value type for the specified series.
+        Returns the optional description, supported indexes, and value type for the specified series.
 
         Endpoint: `GET /api/series/{series}`"""
         return self.get_json(f'/api/series/{series}')
@@ -15808,9 +15810,9 @@ class BrkClient(BrkClientBase):
         return self.get_json('/api/v1/fees/recommended')
 
     def get_precise_fees(self) -> RecommendedFees:
-        """Precise recommended fees.
+        """Recommended fee rates (precise).
 
-        Recommended fee rates with sub-integer precision.
+        Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
 

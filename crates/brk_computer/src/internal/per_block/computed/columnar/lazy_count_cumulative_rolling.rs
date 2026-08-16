@@ -15,7 +15,11 @@ use crate::{
 
 #[derive(Clone, Traversable)]
 pub struct LazyColumnCountPerBlockCumulativeRolling {
+    /// Value for the represented block. At time-period indexes, the value is
+    /// taken from the period's final block.
     pub block: LazyVec<Height, StoredU64, Height, StoredU16>,
+    /// Cumulative value through the represented block. At time-period indexes,
+    /// the value is taken at the period's final block.
     pub cumulative: LazyPerBlock<StoredU64>,
     pub sum: LazyRollingSumsFromHeight<StoredU64>,
     pub average: LazyRollingAvgsFromHeight<StoredU64>,

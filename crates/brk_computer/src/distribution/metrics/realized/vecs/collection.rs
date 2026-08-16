@@ -43,6 +43,9 @@ use super::{
 #[derive(Traversable)]
 pub struct RealizedVecs<M: StorageMode = Rw> {
     pub cap: RealizedCapByCohort<M>,
+    /// The sats-weighted average USD creation price of the unspent outputs in
+    /// the selected cohort: Σ(creation price × unspent sats) / Σ(unspent sats).
+    /// Returns zero when the cohort has no unspent supply.
     pub price: RealizedPriceByCohort<M>,
     pub profit: CumulativeRealizedByCohort<M>,
     #[traversable(wrap = "profit", rename = "addr_balance")]

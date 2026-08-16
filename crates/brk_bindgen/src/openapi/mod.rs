@@ -145,6 +145,7 @@ fn extract_endpoint(
         response_kind,
         json_response_schema,
         deprecated: operation.deprecated.unwrap_or(false),
+        mcp_ignored: operation.extensions.get("mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,
     })
 }
@@ -392,5 +393,36 @@ fn single_type_to_name(t: &SchemaType, schema: &ObjectSchema) -> Option<String> 
         }
         SchemaType::Object => Some("Object".to_string()),
         SchemaType::Null => Some("null".to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extracts_mcp_ignore_without_disabling_client_generation() {
+        let spec = parse_openapi_json(
+            r#"{
+                "openapi": "3.1.0",
+                "info": { "title": "Test", "version": "1" },
+                "paths": {
+                    "/api/items": {
+                        "get": {
+                            "operationId": "get_items",
+                            "x-mcp-ignore": true,
+                            "responses": {
+                                "200": { "description": "Successful response" }
+                            }
+                        }
+                    }
+                }
+            }"#,
+        )
+        .unwrap();
+        let endpoint = extract_endpoints(&spec).into_iter().next().unwrap();
+
+        assert!(endpoint.mcp_ignored);
+        assert!(endpoint.should_generate());
     }
 }

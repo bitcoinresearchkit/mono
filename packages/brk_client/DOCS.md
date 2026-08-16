@@ -418,7 +418,7 @@ def get_series_info(series: SeriesName) -> SeriesInfo
 
 Get series info.
 
-Returns the supported indexes and value type for the specified series.
+Returns the optional description, supported indexes, and value type for the specified series.
 
 Endpoint: `GET /api/series/{series}`
 
@@ -1795,4 +1795,3 @@ Compact OpenAPI specification.
 Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
 
 Endpoint: `GET /api.json`
-

@@ -465,6 +465,7 @@ mod tests {
                 "$ref": "#/components/schemas/Thing"
             })),
             deprecated: false,
+            mcp_ignored: false,
             supports_csv: false,
         }
     }

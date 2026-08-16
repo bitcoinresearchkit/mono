@@ -21,6 +21,8 @@ pub struct CachedPerBlockRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema,
 {
+    /// Cumulative value through the represented block. At time-period indexes,
+    /// the value is taken at the period's final block.
     pub cumulative: CachedPerBlock<T, M>,
     #[traversable(flatten)]
     pub rolling: RollingComplete<T, M>,

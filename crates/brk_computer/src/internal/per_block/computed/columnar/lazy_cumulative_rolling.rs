@@ -18,7 +18,11 @@ where
     T: NumericValue + JsonSchema,
     C: ColumnId,
 {
+    /// Value for the represented block. At time-period indexes, the value is
+    /// taken from the period's final block.
     pub block: LazyPreviousDeltaVec<Height, T>,
+    /// Cumulative value through the represented block. At time-period indexes,
+    /// the value is taken at the period's final block.
     pub cumulative: LazyColumnPerBlock<T, C>,
     pub sum: LazyRollingSumsFromHeight<T>,
     pub average: LazyRollingAvgsFromHeight<T>,

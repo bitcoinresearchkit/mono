@@ -23,6 +23,33 @@ pub trait Traversable {
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.iter_any_exportable()
     }
+
+    /// Collects public series description fragments from documented field paths.
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        if description_fragments.is_empty() {
+            return;
+        }
+
+        for vec in self.iter_any_visible() {
+            match descriptions.entry(vec.name()) {
+                std::collections::btree_map::Entry::Vacant(entry) => {
+                    entry.insert(description_fragments.clone());
+                }
+                std::collections::btree_map::Entry::Occupied(entry) => {
+                    assert_eq!(
+                        entry.get(),
+                        description_fragments,
+                        "Conflicting descriptions for series {}",
+                        entry.key()
+                    );
+                }
+            }
+        }
+    }
 }
 
 /// Creates a series leaf, including its value schema, from a vector.
@@ -307,6 +334,15 @@ impl<V: TypedVec + Traversable> Traversable for CachedVec<V> {
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         self.inner.iter_any_visible()
     }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        self.inner
+            .collect_series_descriptions(description_fragments, descriptions);
+    }
 }
 
 impl<T: Traversable + ?Sized> Traversable for Box<T> {
@@ -320,6 +356,14 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
         (**self).iter_any_visible()
+    }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        (**self).collect_series_descriptions(description_fragments, descriptions);
     }
 }
 
@@ -344,6 +388,16 @@ impl<T: Traversable> Traversable for Option<T> {
             Some(inner) => Box::new(inner.iter_any_visible())
                 as Box<dyn Iterator<Item = &dyn AnyExportableVec>>,
             None => Box::new(std::iter::empty()),
+        }
+    }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        if let Some(inner) = self {
+            inner.collect_series_descriptions(description_fragments, descriptions);
         }
     }
 }
@@ -373,6 +427,16 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
             iter = Box::new(iter.chain(v.iter_any_visible()));
         }
         iter
+    }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        for value in self.values() {
+            value.collect_series_descriptions(description_fragments, descriptions);
+        }
     }
 }
 

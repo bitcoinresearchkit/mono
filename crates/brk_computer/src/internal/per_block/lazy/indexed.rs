@@ -4,8 +4,8 @@ use brk_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{
-    AnyExportableVec, AnyVec, CachedBoxedVec, Cursor, Formattable, ReadableBoxedVec, ReadableVec,
-    TypedVec, VecIndex, VecValue, Version, short_type_name,
+    AnyExportableVec, AnyVec, CachedBoxedVec, Formattable, ReadableBoxedVec, ReadableVec, TypedVec,
+    VecIndex, VecValue, Version, short_type_name,
 };
 
 /// Lazily transforms one metric source with aligned index metadata.
@@ -172,16 +172,11 @@ where
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
         let metadata = self.metadata.snapshot();
         let len = self.source.len().min(metadata.len());
-        let mut source = Cursor::new(&*self.source);
+        let indices = &indices[..indices.partition_point(|&index| index < len)];
+        let source = self.source.read_sorted_at(indices);
 
-        out.reserve(indices.len());
-        for &index in indices {
-            if index >= len {
-                break;
-            }
-            let Some(value) = source.get(index) else {
-                continue;
-            };
+        out.reserve(source.len());
+        for (&index, value) in indices.iter().zip(source) {
             out.push((self.compute)(
                 I::from(index),
                 value,

@@ -15,6 +15,8 @@ pub struct Layout {
     start_to_reserved: BTreeMap<usize, usize>,
     /// Holes from region moves, reusable after flush.
     pending_holes: BTreeMap<usize, usize>,
+    /// Runtime-only reclamation state for reusable holes.
+    holes_need_punch: bool,
 }
 
 impl From<&Regions> for Layout {
@@ -32,6 +34,7 @@ impl From<&Regions> for Layout {
             start_to_reserved: BTreeMap::default(),
             pending_holes: BTreeMap::default(),
             start_to_region: BTreeMap::default(),
+            holes_need_punch: false,
         };
 
         let mut prev_end = 0;
@@ -44,6 +47,7 @@ impl From<&Regions> for Layout {
         }
 
         layout.start_to_region = start_to_region;
+        layout.holes_need_punch = !layout.start_to_hole.is_empty();
         layout
     }
 }
@@ -73,6 +77,16 @@ impl Layout {
 
     pub fn start_to_hole(&self) -> &BTreeMap<usize, usize> {
         &self.start_to_hole
+    }
+
+    #[inline]
+    pub fn holes_need_punch(&self) -> bool {
+        self.holes_need_punch
+    }
+
+    #[inline]
+    pub fn mark_holes_punched(&mut self) {
+        self.holes_need_punch = false;
     }
 
     pub fn len(&self) -> usize {
@@ -222,5 +236,6 @@ impl Layout {
 
             self.insert_hole(final_start, size);
         }
+        self.holes_need_punch |= count > 0;
     }
 }

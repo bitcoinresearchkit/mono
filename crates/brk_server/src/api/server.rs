@@ -50,6 +50,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_health")
                         .server_tag()
+                        .mcp_ignore()
                         .summary("Health check")
                         .description("Liveness probe. Returns server identity, uptime, and indexed/computed heights from local state only (no bitcoind round-trip). For real chain-tip catch-up, request `GET /api/server/sync`.")
                         .json_response::<Health>()
@@ -69,6 +70,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_version")
                         .server_tag()
+                        .mcp_ignore()
                         .summary("API version")
                         .description("Returns the current version of the API server")
                         .json_response::<String>()
@@ -116,6 +118,7 @@ impl ServerRoutes for ApiRouter<AppState> {
                 |op| {
                     op.id("get_disk_usage")
                         .server_tag()
+                        .mcp_ignore()
                         .summary("Disk usage")
                         .description(
                             "Returns the disk space used by BRK and Bitcoin data.",

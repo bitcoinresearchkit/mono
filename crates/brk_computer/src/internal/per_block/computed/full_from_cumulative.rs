@@ -18,7 +18,11 @@ pub struct PerBlockFullFromCumulative<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema,
 {
+    /// Value for the represented block. At time-period indexes, the value is
+    /// taken from the period's final block.
     pub block: LazyPreviousDeltaVec<Height, T>,
+    /// Cumulative value through the represented block. At time-period indexes,
+    /// the value is taken at the period's final block.
     pub cumulative: LazyPerBlock<T>,
     #[traversable(flatten)]
     pub rolling: RollingComplete<T, M>,

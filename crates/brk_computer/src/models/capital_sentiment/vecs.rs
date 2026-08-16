@@ -10,9 +10,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub(super) phase_code: DailyMetric<StoredU8, M>,
 
-    /// BRK Signal position: `true` is long and `false` is short.
+    /// Whether the stateful capital-sentiment strategy is long for the indexed
+    /// day. It enters when spot crosses from below to at or above the STH
+    /// capitalized price and exits when the phase is classified as sell.
     pub is_long: DailyMetric<StoredBool, M>,
-    /// Lazy complement of `is_long`.
+    /// Whether the stateful capital-sentiment strategy is short for the indexed
+    /// day; exactly the complement of `is_long`.
     pub is_short: LazyDailyMetric<StoredBool, StoredBool>,
     pub phase: LazyDailyMetric<Option<CapitalSentimentPhase>, StoredU8>,
     pub score: LazyDailyMetric<Option<StoredI8>, Option<CapitalSentimentPhase>>,

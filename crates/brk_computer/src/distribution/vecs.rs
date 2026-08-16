@@ -55,8 +55,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub addrs_data: AddrsDataVecs<M>,
     #[traversable(wrap = "cohorts")]
     pub cohorts: CohortMetrics<M>,
-    /// Computed and stored with distribution, but presented beside the other
-    /// age-range cointime series to preserve the public series tree.
+    // Computed and stored with distribution, but presented beside the other
+    // age-range cointime series to preserve the public series tree.
+    /// Coin days accrued by unspent supply between block timestamps, allocated
+    /// to the age range in which they accrue. One coin day is one BTC remaining
+    /// unspent for one day.
     #[traversable(wrap = "frameworks/cointime/age_range")]
     pub coindays_created: ColumnarPerBlockCumulativeRolling<
         StoredF64,

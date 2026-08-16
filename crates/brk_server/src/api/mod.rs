@@ -72,6 +72,7 @@ impl ApiRoutes for ApiRouter<AppState> {
                     |op| {
                         op.id("get_openapi")
                             .server_tag()
+                            .mcp_ignore()
                             .summary("OpenAPI specification")
                             .description("Full OpenAPI 3.1 specification for this API.")
                     },
@@ -88,6 +89,7 @@ impl ApiRoutes for ApiRouter<AppState> {
                     |op| {
                         op.id("get_api")
                             .server_tag()
+                            .mcp_ignore()
                             .summary("Compact OpenAPI specification")
                             .description(
                                 "Compact OpenAPI specification optimized for LLM consumption. \

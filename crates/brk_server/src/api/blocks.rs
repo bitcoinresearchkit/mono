@@ -151,6 +151,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     |op| {
                         op.id("get_block_raw")
                             .blocks_tag()
+                            .mcp_ignore()
                             .summary("Raw block")
                             .description(
                                 "Returns the raw block data in binary format.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-raw)*",
@@ -259,6 +260,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     |op| {
                         op.id("get_block_txids")
                             .blocks_tag()
+                            .mcp_ignore()
                             .summary("Block transaction IDs")
                             .description(
                                 "Retrieve all transaction IDs in a block. Returns an array of txids in block order.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*",
@@ -284,6 +286,7 @@ impl BlockRoutes for ApiRouter<AppState> {
                     |op| {
                         op.id("get_block_txs")
                             .blocks_tag()
+                            .mcp_ignore()
                             .summary("Block transactions")
                             .description(&format!(
                                 "Retrieve transactions in a block by block hash. Returns up to {} transactions starting from index 0.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",

@@ -418,9 +418,9 @@ curl -s "https://bitview.space/api/v1/fees/mempool-blocks"
 
 #### GET `/api/v1/fees/precise`
 
-Precise recommended fees
+Recommended fee rates (precise)
 
-Recommended fee rates with sub-integer precision. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
+Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
 
 Returns: JSON `RecommendedFees`
 
@@ -1039,7 +1039,7 @@ curl -s "https://bitview.space/api/series/search?q=<q>&limit=<limit>"
 
 Get series info
 
-Returns the supported indexes and value type for the specified series.
+Returns the optional description, supported indexes, and value type for the specified series.
 
 Parameters:
 - `series` (path, SeriesName, required)
@@ -1949,6 +1949,7 @@ curl -s "https://bitview.space/version"
 
 ### `SeriesInfo`
 
+- `description`: `object` — Human-readable metric definition, when documented
 - `indexes`: `Index[]` (required) — Available indexes
 - `type`: `string` (required) — Value type (e.g. "f32", "u64", "Sats")
 

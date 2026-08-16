@@ -764,6 +764,7 @@ dependencies = [
  "rustc-hash",
  "serde_json",
  "smallvec",
+ "tempfile",
  "tokio",
  "vecdb",
 ]

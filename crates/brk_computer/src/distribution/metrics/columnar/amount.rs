@@ -11,6 +11,8 @@ use vecdb::{
     ReadableColumnarVec, ReadableVec, Rw, StorageMode, WritableVec,
 };
 
+use crate::internal::CACHE_BUDGET;
+
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ColumnarAmount<T, S: Clone, M: StorageMode = Rw>
 where
@@ -47,8 +49,8 @@ where
                 Some(column) => source
                     .column(&name, version, column)
                     .read_only_boxed_clone(),
-                None => source
-                    .sum_columns(&name, version, AmountRangeId::included_by(&filter))
+                None => CACHE_BUDGET
+                    .wrap(source.sum_columns(&name, version, AmountRangeId::included_by(&filter)))
                     .read_only_boxed_clone(),
             };
             build(&name, source)

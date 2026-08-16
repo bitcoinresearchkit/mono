@@ -51,7 +51,7 @@ struct ManifestToolAnnotations {
 
 #[derive(Serialize)]
 struct ManifestHttpOperation {
-    method: &'static str,
+    method: String,
     path: String,
     parameters: Vec<ManifestParameter>,
 }
@@ -70,9 +70,8 @@ enum ParameterLocation {
 }
 
 /// Generate the immutable machine-readable tool catalog in the LLM bundle.
-/// Every non-deprecated GET operation is included; all other methods are
-/// excluded structurally because the current consumer is a read-only cache
-/// bridge.
+/// Every MCP-visible, non-deprecated operation is included. Operations marked
+/// with `x-mcp-ignore: true` are excluded regardless of their HTTP method.
 pub(super) fn generate_tool_manifest(
     endpoints: &[Endpoint],
     schemas: &TypeSchemas,
@@ -86,7 +85,7 @@ fn render_tool_manifest(endpoints: &[Endpoint], schemas: &TypeSchemas) -> io::Re
     let mut names = BTreeSet::new();
     let mut operations = endpoints
         .iter()
-        .filter(|endpoint| endpoint.method == "GET" && !endpoint.deprecated)
+        .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
         .map(|endpoint| operation_from_endpoint(endpoint, schemas, &mut names))
         .collect::<io::Result<Vec<_>>>()?;
 
@@ -111,8 +110,8 @@ fn operation_from_endpoint(
         io::Error::new(
             io::ErrorKind::InvalidData,
             format!(
-                "MCP generation requires a stable operationId for GET {}",
-                endpoint.path
+                "MCP generation requires a stable operationId for {} {}",
+                endpoint.method, endpoint.path
             ),
         )
     })?;
@@ -153,7 +152,7 @@ fn operation_from_endpoint(
             },
         },
         http: ManifestHttpOperation {
-            method: "GET",
+            method: endpoint.method.clone(),
             path: endpoint.path.clone(),
             parameters,
         },
@@ -488,16 +487,20 @@ mod tests {
                 "$ref": "#/components/schemas/Item"
             })),
             deprecated: false,
+            mcp_ignored: false,
             supports_csv: false,
         }
     }
 
     #[test]
-    fn emits_only_active_gets_in_name_order() {
+    fn emits_all_mcp_visible_active_operations_in_name_order() {
         let mut post = endpoint("post_item", "POST");
         post.path = "/api/items".to_string();
         let mut deprecated = endpoint("old_item", "GET");
         deprecated.deprecated = true;
+        let mut ignored = endpoint("ignored_item", "GET");
+        ignored.mcp_ignored = true;
+        assert!(ignored.should_generate());
         let get = endpoint("get_item", "GET");
         let schemas = BTreeMap::from([
             ("ItemId".to_string(), json!({ "type": "integer" })),
@@ -520,16 +523,22 @@ mod tests {
             ),
         ]);
 
-        let manifest = render_tool_manifest(&[post, deprecated, get], &schemas).unwrap();
+        let manifest = render_tool_manifest(&[post, deprecated, ignored, get], &schemas).unwrap();
         let value: Value = serde_json::from_str(&manifest).unwrap();
         let operations = value["operations"].as_array().unwrap();
 
-        assert_eq!(operations.len(), 1);
+        assert_eq!(operations.len(), 2);
         assert_eq!(operations[0]["tool"]["name"], "get_item");
         assert_eq!(operations[0]["http"]["method"], "GET");
         assert_eq!(
             operations[0]["tool"]["description"],
             "Returns one item.\n\nREST operation: `GET /api/items/{id}`."
+        );
+        assert_eq!(operations[1]["tool"]["name"], "post_item");
+        assert_eq!(operations[1]["http"]["method"], "POST");
+        assert_eq!(
+            operations[1]["tool"]["description"],
+            "Returns one item.\n\nREST operation: `POST /api/items`."
         );
         assert_eq!(
             operations[0]["tool"]["inputSchema"]["properties"]["id"]["$ref"],

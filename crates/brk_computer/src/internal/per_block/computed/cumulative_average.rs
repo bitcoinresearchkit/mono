@@ -23,6 +23,8 @@ where
     C: NumericValue + JsonSchema,
     F: UnaryTransform<C, T>,
 {
+    /// Value for the represented block. At time-period indexes, the value is
+    /// taken from the period's final block.
     pub block: LazyPreviousDeltaVec<Height, C, T, F>,
     #[traversable(hidden)]
     cumulative: M::Stored<EagerVec<PcoVec<Height, C>>>,

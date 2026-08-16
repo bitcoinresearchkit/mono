@@ -547,4 +547,79 @@ mod tests {
                 .is_err()
         );
     }
+
+    #[test]
+    fn generated_catalog_keeps_only_the_precise_fee_tool() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_precise_fees").is_some());
+        assert!(catalog.operation("get_recommended_fees").is_none());
+        assert!(catalog.operation("post_tx").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_keeps_only_the_structured_current_price_tool() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_prices").is_some());
+        assert!(catalog.operation("get_live_price").is_none());
+        assert!(catalog.operation("get_oracle_price").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_excludes_rest_contract_documents() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_api").is_none());
+        assert!(catalog.operation("get_openapi").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_keeps_only_the_useful_server_status_tool() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_sync_status").is_some());
+        assert!(catalog.operation("get_health").is_none());
+        assert!(catalog.operation("get_version").is_none());
+        assert!(catalog.operation("get_disk_usage").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_excludes_binary_blockchain_blobs() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_block").is_some());
+        assert!(catalog.operation("get_tx").is_some());
+        assert!(catalog.operation("get_tx_hex").is_some());
+        assert!(catalog.operation("get_block_header").is_some());
+        assert!(catalog.operation("get_block_raw").is_none());
+        assert!(catalog.operation("get_tx_raw").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_keeps_only_the_generalized_block_transaction_page() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_block_txs_from_index").is_some());
+        assert!(catalog.operation("get_block_txid").is_some());
+        assert!(catalog.operation("get_block_txs").is_none());
+        assert!(catalog.operation("get_block_txids").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_excludes_oversized_mempool_transfers() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_mempool").is_some());
+        assert!(catalog.operation("get_mempool_blocks").is_some());
+        assert!(catalog.operation("get_mempool_hash").is_some());
+        assert!(catalog.operation("get_mempool_txids").is_none());
+        assert!(catalog.operation("get_block_template").is_none());
+        assert!(catalog.operation("get_block_template_diff").is_none());
+    }
+
+    #[test]
+    fn generated_catalog_keeps_bounded_contextual_series_tools() {
+        let catalog = Catalog::embedded().unwrap();
+        assert!(catalog.operation("get_series").is_some());
+        assert!(catalog.operation("list_series").is_some());
+        assert!(catalog.operation("search_series").is_some());
+        assert!(catalog.operation("get_series_count").is_some());
+        assert!(catalog.operation("get_series_version").is_some());
+        assert!(catalog.operation("get_series_data").is_none());
+        assert!(catalog.operation("get_series_tree").is_none());
+    }
 }
