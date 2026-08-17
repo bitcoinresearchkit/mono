@@ -114,10 +114,10 @@ impl ExactOrderStats {
         unreachable!("order-statistics index out of bounds")
     }
 
-    /// Resolve sorted, unique ranks in one pass through the underlying blocks.
+    /// Resolve sorted ranks in one pass through the underlying blocks.
     pub(crate) fn values_at(&self, ranks: &[usize], out: &mut [f64]) {
         debug_assert_eq!(ranks.len(), out.len());
-        debug_assert!(ranks.windows(2).all(|pair| pair[0] < pair[1]));
+        debug_assert!(ranks.windows(2).all(|pair| pair[0] <= pair[1]));
         debug_assert!(ranks.last().is_none_or(|&rank| rank < self.len));
         let mut rank_index = 0;
         let mut block_start = 0;
@@ -191,9 +191,9 @@ mod tests {
         assert_eq!(stats.kth(3), 3.0);
         assert_eq!(stats.count_lt(2.0), 1);
         assert_eq!(stats.count_le(2.0), 3);
-        let mut values = [0.0; 3];
-        stats.values_at(&[0, 2, 3], &mut values);
-        assert_eq!(values, [1.0, 2.0, 3.0]);
+        let mut values = [0.0; 5];
+        stats.values_at(&[0, 0, 2, 3, 3], &mut values);
+        assert_eq!(values, [1.0, 1.0, 2.0, 3.0, 3.0]);
     }
 
     #[test]

@@ -23,6 +23,10 @@ pub struct QuickMatchConfig {
     /// - High (9-15): Slower, more accurate fuzzy matching
     /// - Max: 20
     trigram_budget: usize,
+    /// Whether disjoint known query words fall back to their union.
+    ///
+    /// Default: true
+    union_fallback: bool,
     /// Minimum trigram score required for fuzzy matches.
     /// Higher values require more trigram overlap, reducing noise.
     ///
@@ -37,6 +41,7 @@ impl Default for QuickMatchConfig {
             separators: DEFAULT_SEPARATORS,
             limit: DEFAULT_LIMIT,
             trigram_budget: DEFAULT_TRIGRAM_BUDGET,
+            union_fallback: true,
             min_score: DEFAULT_MIN_SCORE,
         }
     }
@@ -57,6 +62,11 @@ impl QuickMatchConfig {
         self
     }
 
+    pub fn with_union_fallback(mut self, union_fallback: bool) -> Self {
+        self.union_fallback = union_fallback;
+        self
+    }
+
     pub fn with_separators(mut self, separators: &'static [char]) -> Self {
         self.separators = separators;
         self
@@ -73,6 +83,10 @@ impl QuickMatchConfig {
 
     pub fn trigram_budget(&self) -> usize {
         self.trigram_budget
+    }
+
+    pub fn union_fallback(&self) -> bool {
+        self.union_fallback
     }
 
     pub fn separators(&self) -> &[char] {

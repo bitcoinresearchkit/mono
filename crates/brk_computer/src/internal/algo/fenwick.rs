@@ -25,14 +25,12 @@ impl FenwickNode for f64 {
 pub(crate) struct FenwickTree<N: FenwickNode> {
     /// 1-indexed tree array. Position 0 is unused.
     tree: Vec<N>,
-    size: usize,
 }
 
 impl<N: FenwickNode> FenwickTree<N> {
     pub fn new(size: usize) -> Self {
         Self {
             tree: vec![N::default(); size + 1],
-            size,
         }
     }
 
@@ -44,7 +42,7 @@ impl<N: FenwickNode> FenwickTree<N> {
     #[inline]
     pub fn add(&mut self, bucket: usize, delta: &N) {
         let mut i = bucket + 1;
-        while i <= self.size {
+        while i < self.tree.len() {
             self.tree[i].add_assign(delta);
             i += i & i.wrapping_neg();
         }
@@ -54,6 +52,7 @@ impl<N: FenwickNode> FenwickTree<N> {
     pub fn prefix_sum(&self, bucket: usize) -> N {
         let mut result = N::default();
         let mut i = bucket + 1;
+        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
         while i > 0 {
             result.add_assign(&self.tree[i]);
             i -= i & i.wrapping_neg();
@@ -74,21 +73,22 @@ impl<N: FenwickNode> FenwickTree<N> {
         V: Copy + PartialOrd + std::ops::SubAssign,
         F: Fn(&N) -> V,
     {
-        let k = sorted_targets.len();
-        debug_assert_eq!(out.len(), k);
-        debug_assert!(self.size > 0);
+        assert_eq!(out.len(), sorted_targets.len());
+        let len = self.tree.len();
+        assert!(len > 1, "cannot search an empty Fenwick tree");
+        let size = len - 1;
         out.fill(0);
         // Copy targets so we can subtract in-place
         let mut remaining: smallvec::SmallVec<[V; 24]> = sorted_targets.into();
-        let mut bit = 1usize << (usize::BITS - 1 - self.size.leading_zeros());
+        let mut bit = 1usize << (usize::BITS - 1 - size.leading_zeros());
         while bit > 0 {
-            for i in 0..k {
-                let next = out[i] + bit;
-                if next <= self.size {
+            for (remaining, out) in remaining.iter_mut().zip(out.iter_mut()) {
+                let next = *out + bit;
+                if next < len {
                     let val = field_fn(&self.tree[next]);
-                    if remaining[i] >= val {
-                        remaining[i] -= val;
-                        out[i] = next;
+                    if *remaining >= val {
+                        *remaining -= val;
+                        *out = next;
                     }
                 }
             }
@@ -100,14 +100,17 @@ impl<N: FenwickNode> FenwickTree<N> {
     /// Call [`build_in_place`] after all raw writes.
     #[inline]
     pub fn add_raw(&mut self, bucket: usize, delta: &N) {
-        self.tree[bucket + 1].add_assign(delta);
+        let i = bucket + 1;
+        assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
+        self.tree[i].add_assign(delta);
     }
 
     /// Convert raw frequencies (written via [`add_raw`]) into a valid Fenwick tree. O(size).
     pub fn build_in_place(&mut self) {
-        for i in 1..=self.size {
+        let len = self.tree.len();
+        for i in 1..len {
             let parent = i + (i & i.wrapping_neg());
-            if parent <= self.size {
+            if parent < len {
                 let child = self.tree[i];
                 self.tree[parent].add_assign(&child);
             }

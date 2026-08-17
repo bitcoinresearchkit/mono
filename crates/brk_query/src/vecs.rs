@@ -12,6 +12,9 @@ use quickmatch::{QuickMatch, QuickMatchConfig};
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::{AnyExportableVec, Ro};
 
+type SeriesId = u32;
+
+mod cohort_query;
 mod index_to_vec;
 mod series_entry;
 mod series_to_vec;
@@ -29,7 +32,35 @@ pub struct Vecs<'a> {
     pub counts_by_db: BTreeMap<String, SeriesCount>,
     catalog: TreeNode,
     matcher: QuickMatch<'a>,
+    description_search: DescriptionSearch,
     series_to_indexes: BTreeMap<&'a str, Vec<Index>>,
+}
+
+struct DescriptionSearch {
+    matcher: QuickMatch<'static>,
+    series_by_description: Vec<Box<[SeriesId]>>,
+}
+
+#[derive(Default)]
+struct SearchCandidate {
+    normalized_rank: Option<usize>,
+    expanded_rank: Option<usize>,
+    description_rank: Option<usize>,
+    direct_words: usize,
+    description_words: usize,
+}
+
+struct RankedCandidate<'a> {
+    name: &'a str,
+    normalized_exact: bool,
+    expanded_exact: bool,
+    cohort_words: usize,
+    semantic_words: usize,
+    name_words: usize,
+    description_words: usize,
+    documented: bool,
+    description_rank: Option<usize>,
+    direct_rank: Option<usize>,
 }
 
 impl<'a> Vecs<'a> {
@@ -121,6 +152,7 @@ impl<'a> Vecs<'a> {
 
         let mut series = series_to_index_to_vec.keys().copied().collect::<Vec<_>>();
         sort_ids(&mut series);
+        let description_search = DescriptionSearch::new(&series, &series_to_index_to_vec);
 
         let indexes = index_to_series_to_vec
             .keys()
@@ -161,6 +193,7 @@ impl<'a> Vecs<'a> {
             counts_by_db,
             catalog,
             matcher,
+            description_search,
             series_to_indexes,
         }
     }
@@ -211,14 +244,226 @@ impl<'a> Vecs<'a> {
         if limit.is_zero() {
             return Vec::new();
         }
-        self.matcher
-            .matches_with(series, &QuickMatchConfig::new().with_limit(*limit))
+        if self
+            .series_to_index_to_vec
+            .contains_key(series.normalize().as_ref())
+        {
+            return self
+                .matcher
+                .matches_with_ids_and_matched_words(
+                    series,
+                    &QuickMatchConfig::new().with_limit(*limit),
+                )
+                .into_iter()
+                .map(|(id, _)| self.series[id as usize])
+                .collect();
+        }
+
+        let query = cohort_query::expand(series);
+        let normalized_name = query.normalized.replace(' ', "_");
+        if self
+            .series_to_index_to_vec
+            .contains_key(normalized_name.as_str())
+        {
+            return self
+                .matcher
+                .matches_with_ids_and_matched_words(
+                    &query.normalized,
+                    &QuickMatchConfig::new().with_limit(*limit),
+                )
+                .into_iter()
+                .map(|(id, _)| self.series[id as usize])
+                .collect();
+        }
+
+        let direct_limit = (*limit).max(64);
+        let is_expanded = query.expanded != query.normalized;
+        let normalized = if is_expanded {
+            Vec::new()
+        } else {
+            self.matcher.matches_with_ids_and_matched_words(
+                &query.normalized,
+                &QuickMatchConfig::new()
+                    .with_limit(direct_limit)
+                    .with_union_fallback(false),
+            )
+        };
+        let expanded = if is_expanded {
+            self.matcher.matches_with_ids_and_matched_words(
+                &query.expanded,
+                &QuickMatchConfig::new()
+                    .with_limit(direct_limit)
+                    .with_union_fallback(false),
+            )
+        } else {
+            Vec::new()
+        };
+
+        let mut candidates: FxHashMap<SeriesId, SearchCandidate> = FxHashMap::default();
+        for (rank, (id, matched_words)) in normalized.into_iter().enumerate() {
+            let candidate = candidates.entry(id).or_default();
+            candidate.normalized_rank = Some(rank);
+            candidate.direct_words = candidate.direct_words.max(matched_words as usize);
+        }
+        for (rank, (id, matched_words)) in expanded.into_iter().enumerate() {
+            let candidate = candidates.entry(id).or_default();
+            candidate.expanded_rank = Some(rank);
+            candidate.direct_words = candidate.direct_words.max(matched_words as usize);
+        }
+        if query.semantic.is_empty() {
+            return rank_candidates(&self.series, candidates, &query, *limit);
+        }
+
+        let descriptions = self
+            .description_search
+            .matcher
+            .matches_with_ids_and_matched_words(
+                &query.semantic,
+                &QuickMatchConfig::new()
+                    .with_limit(self.description_search.series_by_description.len()),
+            );
+        if descriptions.is_empty() {
+            return rank_candidates(&self.series, candidates, &query, *limit);
+        }
+        let best_matched_words = descriptions[0].1;
+        for (rank, (description_id, matched_words)) in descriptions
+            .into_iter()
+            .take_while(|(_, matched_words)| *matched_words == best_matched_words)
+            .enumerate()
+        {
+            let series = &self.description_search.series_by_description[description_id as usize];
+            for &id in series {
+                let candidate = candidates.entry(id).or_default();
+                candidate.description_rank = Some(rank);
+                candidate.description_words = matched_words as usize;
+            }
+        }
+        rank_candidates(&self.series, candidates, &query, *limit)
     }
 
     pub fn get_entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
         self.series_to_index_to_vec
             .get(series.normalize().as_ref())
             .and_then(|index_to_vec| index_to_vec.get(&index).copied())
+    }
+}
+
+impl DescriptionSearch {
+    fn new<'a>(
+        series: &[&'a str],
+        series_to_index_to_vec: &BTreeMap<&'a str, IndexToVec<'a>>,
+    ) -> Self {
+        assert!(SeriesId::try_from(series.len()).is_ok(), "Too many series");
+        let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
+
+        for (id, name) in series.iter().copied().enumerate() {
+            let Some(description) = series_to_index_to_vec[name].description() else {
+                continue;
+            };
+            let description = cohort_query::normalize(description);
+            if description.is_empty() {
+                continue;
+            }
+            ids_by_description
+                .entry(description)
+                .or_default()
+                .push(id as SeriesId);
+        }
+
+        let mut descriptions = Vec::with_capacity(ids_by_description.len());
+        let mut series_by_description = Vec::with_capacity(ids_by_description.len());
+        for (description, ids) in ids_by_description {
+            descriptions.push(description);
+            series_by_description.push(ids.into_boxed_slice());
+        }
+
+        Self {
+            matcher: QuickMatch::new_owned(descriptions),
+            series_by_description,
+        }
+    }
+}
+
+fn search_words(text: &str) -> Vec<&str> {
+    text.split(['_', '-', ' ', ':', '/'])
+        .filter(|word| !word.is_empty())
+        .collect()
+}
+
+fn matching_words_in(query: &[&str], name: &[&str]) -> usize {
+    query
+        .iter()
+        .filter(|query| name.iter().any(|name| name.starts_with(**query)))
+        .count()
+}
+
+fn rank_candidates<'a>(
+    series: &[&'a str],
+    candidates: FxHashMap<SeriesId, SearchCandidate>,
+    query: &cohort_query::ExpandedQuery,
+    limit: usize,
+) -> Vec<&'a str> {
+    let normalized_words = search_words(&query.normalized);
+    let expanded_words = search_words(&query.expanded);
+    let cohort_words = search_words(&query.cohorts);
+    let mut candidates = candidates
+        .into_iter()
+        .map(|(id, candidate)| {
+            let name = series[id as usize];
+            let words = search_words(name);
+            let cohort_words = matching_words_in(&cohort_words, &words);
+            let name_words = candidate.direct_words.saturating_sub(cohort_words);
+            RankedCandidate {
+                name,
+                normalized_exact: normalized_words == words,
+                expanded_exact: expanded_words == words,
+                cohort_words,
+                semantic_words: name_words.max(candidate.description_words),
+                name_words,
+                description_words: candidate.description_words,
+                documented: candidate.description_rank.is_some(),
+                description_rank: candidate.description_rank,
+                direct_rank: candidate
+                    .normalized_rank
+                    .into_iter()
+                    .chain(candidate.expanded_rank)
+                    .min(),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if candidates.len() > limit {
+        candidates.select_nth_unstable_by(limit, RankedCandidate::cmp);
+        candidates.truncate(limit);
+    }
+    candidates.sort_unstable_by(RankedCandidate::cmp);
+    candidates
+        .into_iter()
+        .map(|candidate| candidate.name)
+        .collect()
+}
+
+impl RankedCandidate<'_> {
+    fn cmp(a: &Self, b: &Self) -> std::cmp::Ordering {
+        b.normalized_exact
+            .cmp(&a.normalized_exact)
+            .then_with(|| b.expanded_exact.cmp(&a.expanded_exact))
+            .then_with(|| b.cohort_words.cmp(&a.cohort_words))
+            .then_with(|| b.semantic_words.cmp(&a.semantic_words))
+            .then_with(|| b.name_words.cmp(&a.name_words))
+            .then_with(|| b.description_words.cmp(&a.description_words))
+            .then_with(|| b.documented.cmp(&a.documented))
+            .then_with(|| {
+                if a.documented && b.documented {
+                    a.name.len().cmp(&b.name.len())
+                } else {
+                    a.direct_rank.cmp(&b.direct_rank)
+                }
+            })
+            .then(a.description_rank.cmp(&b.description_rank))
+            .then(a.direct_rank.cmp(&b.direct_rank))
+            .then(a.name.len().cmp(&b.name.len()))
+            .then(a.name.cmp(b.name))
     }
 }
 
@@ -278,7 +523,7 @@ mod tests {
     use brk_indexer::Indexer;
     use brk_reader::Reader;
     use brk_rpc::{Auth, Client};
-    use brk_types::{Index, SeriesName, pools};
+    use brk_types::{Index, Limit, SeriesName, pools};
 
     use super::Vecs;
 
@@ -1497,7 +1742,6 @@ mod tests {
                 "wrong description for {name}"
             );
         }
-
         for suffix in [
             "1h", "24h", "3d", "1w", "8d", "9d", "12d", "13d", "2w", "21d", "26d", "1m", "34d",
             "50d", "55d", "2m", "9w", "12w", "89d", "3m", "14w", "111d", "144d", "6m", "26w",
@@ -1882,7 +2126,6 @@ mod tests {
                 }
             }
         }
-
         let info = vecs
             .series_info(&SeriesName::from("is_nonstandard"))
             .unwrap();
@@ -2204,7 +2447,6 @@ mod tests {
                 );
             }
         }
-
         let info = vecs.series_info(&SeriesName::from("date")).unwrap();
         assert_eq!(info.description.as_deref(), Some(DATE_DESCRIPTION));
         assert_eq!(
@@ -2501,7 +2743,6 @@ mod tests {
             undocumented_small_plugins.is_empty(),
             "undocumented small-plugin series: {undocumented_small_plugins:#?}"
         );
-
         let mut audited_model_roots = 0;
         for (mode, mode_description) in BEDROCK_MODE_DESCRIPTIONS {
             for percentile in ["pct95", "pct98", "pct99", "pct99_5", "pct99_9"] {
@@ -2673,7 +2914,6 @@ mod tests {
             generic_only_frameworks.is_empty(),
             "frameworks series with only generic descriptions: {generic_only_frameworks:#?}"
         );
-
         let mut audited_framework_roots = 0;
         let mut assert_framework_description = |name: &str, expected: &str| {
             let info = vecs.series_info(&SeriesName::from(name)).unwrap();
@@ -2909,7 +3149,6 @@ mod tests {
             generic_only_pools.is_empty(),
             "pools series with only generic descriptions: {generic_only_pools:#?}"
         );
-
         let windows = ["24h", "1w", "1m", "1y"]
             .into_iter()
             .zip(WINDOW_DESCRIPTIONS);
@@ -3058,7 +3297,6 @@ mod tests {
             generic_only_distribution.is_empty(),
             "distribution series with only generic descriptions: {generic_only_distribution:#?}"
         );
-
         let distribution_root_semantics = [
             (
                 "supply_state",
@@ -3207,7 +3445,6 @@ mod tests {
             })
             .count();
         assert_eq!(actual_distribution_series, 49_940);
-
         let documented = vecs
             .series_to_index_to_vec
             .iter()
@@ -3222,6 +3459,122 @@ mod tests {
             unexpected.is_empty(),
             "unexpected documented series: {unexpected:#?}"
         );
+        let search_cases = [
+            ("price", "price"),
+            ("realized price", "realized_price"),
+            ("realized price.", "realized_price"),
+            ("realized_price", "realized_price"),
+            ("supply in profit", "supply_in_profit"),
+            ("short-term holder realized price", "sth_realized_price"),
+            ("long term holder realized price", "lth_realized_price"),
+            (
+                "1 year to 18 months old realized price",
+                "utxos_1y_to_18m_old_realized_price",
+            ),
+            ("sats weighted average creation price", "realized_price"),
+            ("bip 141 signature operation cost", "total_sigop_cost"),
+            (
+                "number of non coinbase transactions using segwit serialization",
+                "segwit_txs",
+            ),
+            (
+                "theoretical hash rate implied by difficulty",
+                "difficulty_hashrate",
+            ),
+        ];
+        for (query, expected) in search_cases {
+            let matches = vecs.matches(&SeriesName::from(query), Limit::from(10));
+            assert_eq!(
+                matches.first().copied(),
+                Some(expected),
+                "wrong first search result for {query}: {matches:#?}"
+            );
+        }
+
+        let rarity_matches = vecs.matches(
+            &SeriesName::from("0.025% historical tail"),
+            Limit::from(100),
+        );
+        for expected in [
+            "rarity_meter_seller_exhaustion_threshold",
+            "rarity_meter_peak_regret_threshold",
+            "rarity_meter_profit_taking_threshold",
+        ] {
+            assert!(
+                rarity_matches.contains(&expected),
+                "description-family cutoff lost {expected}: {rarity_matches:#?}"
+            );
+        }
+
+        for query in ["price", "realized price", "realized_price"] {
+            let limit = 100;
+            assert_eq!(
+                vecs.matches(&SeriesName::from(query), Limit::from(limit)),
+                vecs.matcher.matches_with(
+                    query,
+                    &quickmatch::QuickMatchConfig::new().with_limit(limit),
+                ),
+                "exact-name fast path changed existing search results for {query}"
+            );
+        }
+
+        let stress_queries = [
+            "historical tail",
+            "price in usd",
+            "value for the represented block",
+            "rolling average",
+            "histtorical tail",
+            "sats weighted averge creation price",
+        ];
+        let benchmark_queries = || {
+            search_cases
+                .iter()
+                .map(|(query, _)| *query)
+                .chain(stress_queries)
+        };
+        let search_limits = [1, 10, 100];
+        for limit in search_limits {
+            for query in benchmark_queries() {
+                std::hint::black_box(vecs.matches(&SeriesName::from(query), Limit::from(limit)));
+            }
+        }
+        let started = std::time::Instant::now();
+        for _ in 0..100 {
+            for limit in search_limits {
+                for query in benchmark_queries() {
+                    std::hint::black_box(
+                        vecs.matches(&SeriesName::from(query), Limit::from(limit)),
+                    );
+                }
+            }
+        }
+        let elapsed = started.elapsed();
+        let searches =
+            100 * (search_cases.len() + stress_queries.len()) as u32 * search_limits.len() as u32;
+        eprintln!(
+            "semantic series search averaged {:?} across {searches} searches",
+            elapsed / searches
+        );
+        assert!(
+            elapsed < std::time::Duration::from_secs(4),
+            "semantic series search averaged {:?}",
+            elapsed / searches
+        );
+
+        if std::env::var_os("BRK_SEARCH_BENCH").is_some() {
+            const SAMPLES: u32 = 1_000;
+            for query in benchmark_queries() {
+                for limit in search_limits {
+                    let started = std::time::Instant::now();
+                    for _ in 0..SAMPLES {
+                        std::hint::black_box(
+                            vecs.matches(&SeriesName::from(query), Limit::from(limit)),
+                        );
+                    }
+                    eprintln!("{query:?} limit {limit}: {:?}", started.elapsed() / SAMPLES);
+                }
+            }
+        }
     }
 
     fn is_audited_description(mut description: &str) -> bool {

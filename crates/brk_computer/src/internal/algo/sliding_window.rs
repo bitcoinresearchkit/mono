@@ -91,63 +91,64 @@ impl SlidingWindowSorted {
 
     /// Extract multiple percentiles in a single pass through the sorted blocks.
     /// Percentiles must be sorted ascending. Returns interpolated values.
-    pub fn percentiles<const N: usize>(&self, ps: &[f64; N]) -> [f64; N] {
+    pub fn percentiles(&self, ps: &[f64; 5]) -> [f64; 5] {
         let len = self.sorted.len();
         if len == 0 {
-            return [0.0; N];
+            return [0.0; 5];
         }
         if len == 1 {
-            return [self.sorted.kth(0); N];
+            return [self.sorted.kth(0); 5];
         }
 
-        // Collect all unique ranks needed (lo and hi for each percentile)
         let last = (len - 1) as f64;
-        let mut rank_set: [usize; 10] = [0; 10];
-        let mut rank_count = 0;
-        let mut lo_hi: [(usize, usize, f64); N] = [(0, 0, 0.0); N];
+        let mut requests = [(0, 0); 10];
+        let mut fractions = [0.0; 5];
 
         for (i, &p) in ps.iter().enumerate() {
             let rank = p * last;
             let lo = rank.floor() as usize;
             let hi = rank.ceil() as usize;
-            lo_hi[i] = (lo, hi, rank - lo as f64);
-
-            rank_set[rank_count] = lo;
-            rank_count += 1;
-            if hi != lo {
-                rank_set[rank_count] = hi;
-                rank_count += 1;
-            }
+            requests[2 * i] = (lo, 2 * i);
+            requests[2 * i + 1] = (hi, 2 * i + 1);
+            fractions[i] = rank - lo as f64;
         }
+        requests.sort_unstable_by_key(|request| request.0);
 
-        // Sort and deduplicate (interleaved lo/hi values aren't necessarily sorted)
-        rank_set[..rank_count].sort_unstable();
-        let mut w = 1;
-        for r in 1..rank_count {
-            if rank_set[r] != rank_set[w - 1] {
-                rank_set[w] = rank_set[r];
-                w += 1;
-            }
+        let ranks = requests.map(|request| request.0);
+        let mut sorted_values = [0.0; 10];
+        self.sorted.values_at(&ranks, &mut sorted_values);
+
+        let mut values = [0.0; 10];
+        for ((_, destination), value) in requests.into_iter().zip(sorted_values) {
+            values[destination] = value;
         }
-        rank_count = w;
+        std::array::from_fn(|i| {
+            let fraction = fractions[i];
+            values[2 * i] * (1.0 - fraction) + values[2 * i + 1] * fraction
+        })
+    }
+}
 
-        // Single pass through blocks to get all values
-        let ranks = &rank_set[..rank_count];
-        let mut values = [0.0f64; 10];
-        self.sorted.values_at(ranks, &mut values[..rank_count]);
+#[cfg(test)]
+mod tests {
+    use super::SlidingWindowSorted;
 
-        // Interpolate results
-        let mut out = [0.0; N];
-        for (i, &(lo, hi, frac)) in lo_hi.iter().enumerate() {
-            if lo == hi {
-                let ri = ranks.partition_point(|&r| r < lo);
-                out[i] = values[ri];
-            } else {
-                let lo_ri = ranks.partition_point(|&r| r < lo);
-                let hi_ri = ranks.partition_point(|&r| r < hi);
-                out[i] = values[lo_ri] * (1.0 - frac) + values[hi_ri] * frac;
-            }
+    #[test]
+    fn batched_percentiles_match_individual_queries() {
+        let percentiles = [0.10, 0.25, 0.50, 0.75, 0.90];
+
+        for values in [
+            vec![],
+            vec![1.0],
+            vec![3.0, 1.0, 2.0, 2.0],
+            (0..100).map(f64::from).collect(),
+        ] {
+            let mut window = SlidingWindowSorted::with_capacity(values.len());
+            window.reconstruct(&values, 0, values.len());
+            assert_eq!(
+                window.percentiles(&percentiles),
+                percentiles.map(|percentile| window.percentile(percentile))
+            );
         }
-        out
     }
 }

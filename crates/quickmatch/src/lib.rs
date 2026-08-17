@@ -1,10 +1,12 @@
-use std::{iter, marker::PhantomData};
+use std::{borrow::Cow, iter};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod config;
 
 pub use config::*;
+
+type ItemId = u32;
 
 /// Instant search over a list of strings.
 ///
@@ -13,16 +15,14 @@ pub use config::*;
 /// Results are ranked: exact matches first, then by specificity.
 pub struct QuickMatch<'a> {
     config: QuickMatchConfig,
+    items: Vec<Cow<'a, str>>,
+    item_rank: Vec<ItemId>,
     max_word_count: usize,
     max_word_len: usize,
     max_query_len: usize,
-    word_index: FxHashMap<String, FxHashSet<*const str>>,
-    trigram_index: FxHashMap<[char; 3], FxHashSet<*const str>>,
-    _phantom: PhantomData<&'a str>,
+    word_index: FxHashMap<String, FxHashSet<ItemId>>,
+    trigram_index: FxHashMap<[char; 3], FxHashSet<ItemId>>,
 }
-
-unsafe impl Send for QuickMatch<'_> {}
-unsafe impl Sync for QuickMatch<'_> {}
 
 impl<'a> QuickMatch<'a> {
     /// Expect the items to be pre-formatted (lowercase)
@@ -32,14 +32,22 @@ impl<'a> QuickMatch<'a> {
 
     /// Expect the items to be pre-formatted (lowercase)
     pub fn new_with(items: &[&'a str], config: QuickMatchConfig) -> Self {
-        let mut word_index: FxHashMap<String, FxHashSet<*const str>> = FxHashMap::default();
-        let mut trigram_index: FxHashMap<[char; 3], FxHashSet<*const str>> = FxHashMap::default();
+        Self::build(items.iter().copied().map(Cow::Borrowed).collect(), config)
+    }
+
+    fn build(items: Vec<Cow<'a, str>>, config: QuickMatchConfig) -> Self {
+        assert!(ItemId::try_from(items.len()).is_ok(), "Too many items");
+
+        let mut word_index: FxHashMap<String, FxHashSet<ItemId>> = FxHashMap::default();
+        let mut trigram_index: FxHashMap<[char; 3], FxHashSet<ItemId>> = FxHashMap::default();
         let mut max_word_len = 0;
         let mut max_query_len = 0;
         let mut max_words = 0;
         let sep = sep_table(config.separators());
 
-        for &item in items {
+        for (id, item) in items.iter().enumerate() {
+            let id = id as ItemId;
+            let item = item.as_ref();
             max_query_len = max_query_len.max(item.len());
             let item_words: Vec<&str> = words(item, &sep).collect();
             max_words = max_words.max(item_words.len());
@@ -51,13 +59,13 @@ impl<'a> QuickMatch<'a> {
                     word_index
                         .entry(word[..len].to_string())
                         .or_default()
-                        .insert(item);
+                        .insert(id);
                 }
 
                 let mut chars = word.chars();
                 if let (Some(mut a), Some(mut b)) = (chars.next(), chars.next()) {
                     for c in chars {
-                        trigram_index.entry([a, b, c]).or_default().insert(item);
+                        trigram_index.entry([a, b, c]).or_default().insert(id);
                         a = b;
                         b = c;
                     }
@@ -75,29 +83,76 @@ impl<'a> QuickMatch<'a> {
                     word_index
                         .entry(compound[..len].to_string())
                         .or_default()
-                        .insert(item);
+                        .insert(id);
                 }
             }
         }
+
+        let item_rank = if items
+            .windows(2)
+            .all(|pair| item_order(pair[0].as_ref(), pair[1].as_ref()).is_le())
+        {
+            (0..items.len() as ItemId).collect()
+        } else {
+            let mut ranked_ids = (0..items.len() as ItemId).collect::<Vec<_>>();
+            ranked_ids.sort_unstable_by(|a, b| {
+                item_order(items[*a as usize].as_ref(), items[*b as usize].as_ref())
+            });
+            let mut item_rank = vec![0; items.len()];
+            for (rank, id) in ranked_ids.into_iter().enumerate() {
+                item_rank[id as usize] = rank as ItemId;
+            }
+            item_rank
+        };
 
         Self {
             max_query_len: max_query_len + 6,
             max_word_len: max_word_len + 4,
             max_word_count: max_words + 2,
+            items,
+            item_rank,
             word_index,
             trigram_index,
             config,
-            _phantom: PhantomData,
         }
     }
 
-    pub fn matches(&self, query: &str) -> Vec<&'a str> {
+    pub fn matches(&self, query: &str) -> Vec<&str> {
         self.matches_with(query, &self.config)
     }
 
-    pub fn matches_with(&self, query: &str, config: &QuickMatchConfig) -> Vec<&'a str> {
-        let limit = config.limit();
+    pub fn matches_with(&self, query: &str, config: &QuickMatchConfig) -> Vec<&str> {
+        self.matches_with_matched_words(query, config)
+            .into_iter()
+            .map(|(item, _)| item)
+            .collect()
+    }
+
+    /// Matches with the number of query words found in each result.
+    pub fn matches_with_matched_words(
+        &self,
+        query: &str,
+        config: &QuickMatchConfig,
+    ) -> Vec<(&str, usize)> {
+        self.matches_with_ids_and_matched_words(query, config)
+            .into_iter()
+            .map(|(id, matched_words)| (self.item(id), matched_words as usize))
+            .collect()
+    }
+
+    /// Matches and returns each result's compact zero-based position in the
+    /// original item slice and matched query-word count.
+    pub fn matches_with_ids_and_matched_words(
+        &self,
+        query: &str,
+        config: &QuickMatchConfig,
+    ) -> Vec<(u32, u32)> {
+        let limit = config.limit().min(self.items.len());
         let trigram_budget = config.trigram_budget();
+
+        if limit == 0 {
+            return vec![];
+        }
 
         let query: String = query
             .trim()
@@ -124,7 +179,7 @@ impl<'a> QuickMatch<'a> {
         }
 
         let mut unknown_words: Vec<&str> = vec![];
-        let mut known_sets: Vec<&FxHashSet<*const str>> = vec![];
+        let mut known_sets: Vec<&FxHashSet<ItemId>> = vec![];
 
         for &word in &query_words {
             if let Some(items) = self.word_index.get(word) {
@@ -142,7 +197,7 @@ impl<'a> QuickMatch<'a> {
             let (scores, hit_count) =
                 self.score_trigrams(&unknown_words, trigram_budget, pool.as_ref(), min_len);
             let min_score = hit_count.div_ceil(2).max(config.min_score());
-            let results = Self::rank(
+            let results = self.rank(
                 scores.into_iter().filter(|(_, s)| *s >= min_score),
                 &query_words,
                 &sep,
@@ -155,9 +210,15 @@ impl<'a> QuickMatch<'a> {
         }
 
         // Rank known candidates (intersection, or union as fallback)
-        let candidates = pool.unwrap_or_else(|| Self::union_sets(&known_sets));
-        Self::rank(
-            candidates.into_iter().map(|p| (p, 0)),
+        let candidates = pool.unwrap_or_else(|| {
+            if config.union_fallback() {
+                Self::union_sets(&known_sets)
+            } else {
+                FxHashSet::default()
+            }
+        });
+        self.rank(
+            candidates.into_iter().map(|id| (id, 0)),
             &query_words,
             &sep,
             limit,
@@ -167,7 +228,7 @@ impl<'a> QuickMatch<'a> {
     /// Intersection of all sets, or `None` when there are no sets or no
     /// overlap. Clones the smallest set, then narrows it against the rest;
     /// the clone's own source set is skipped since it would change nothing.
-    fn intersect_sets(sets: &[&FxHashSet<*const str>]) -> Option<FxHashSet<*const str>> {
+    fn intersect_sets(sets: &[&FxHashSet<ItemId>]) -> Option<FxHashSet<ItemId>> {
         let (smallest_idx, smallest) = sets
             .iter()
             .copied()
@@ -189,44 +250,54 @@ impl<'a> QuickMatch<'a> {
     }
 
     /// Union of all sets.
-    fn union_sets(sets: &[&FxHashSet<*const str>]) -> FxHashSet<*const str> {
+    fn union_sets(sets: &[&FxHashSet<ItemId>]) -> FxHashSet<ItemId> {
         sets.iter().flat_map(|s| s.iter().copied()).collect()
     }
 
     /// Bucket by matched-word count, then sort each needed bucket by fuzzy
     /// score, match position, and length.
     fn rank(
-        candidates: impl IntoIterator<Item = (*const str, usize)>,
+        &self,
+        candidates: impl IntoIterator<Item = (ItemId, usize)>,
         query_words: &[&str],
         sep: &[bool; 256],
         limit: usize,
-    ) -> Vec<&'a str> {
-        let mut buckets: Vec<Vec<(&str, usize, usize)>> = vec![vec![]; query_words.len() + 1];
+    ) -> Vec<(ItemId, u32)> {
+        let mut buckets: Vec<Vec<(ItemId, usize, usize, ItemId)>> =
+            vec![vec![]; query_words.len() + 1];
 
         for (item, fuzzy) in candidates {
-            let s = unsafe { &*item as &'a str };
+            let s = self.item(item);
             let (matched, position) = word_match(s, query_words, sep);
-            buckets[matched].push((s, fuzzy, position));
+            buckets[matched].push((item, fuzzy, position, self.item_rank[item as usize]));
         }
 
         let mut results = Vec::with_capacity(limit);
-        for bucket in buckets.iter_mut().rev() {
+        for (matched, bucket) in buckets.iter_mut().enumerate().rev() {
             if bucket.is_empty() {
                 continue;
             }
             bucket.sort_unstable_by(|a, b| {
                 b.1.cmp(&a.1) // fuzzy score, desc
                     .then(a.2.cmp(&b.2)) // match position, asc
-                    .then(a.0.len().cmp(&b.0.len())) // item length, asc
-                    .then(a.0.cmp(b.0)) // item text, asc (total order)
+                    .then(a.3.cmp(&b.3)) // item length then text, asc
             });
-            results.extend(bucket.iter().take(limit - results.len()).map(|&(s, ..)| s));
+            results.extend(
+                bucket
+                    .iter()
+                    .take(limit - results.len())
+                    .map(|&(id, ..)| (id, matched as u32)),
+            );
             if results.len() >= limit {
                 break;
             }
         }
 
         results
+    }
+
+    fn item(&self, id: ItemId) -> &str {
+        self.items[id as usize].as_ref()
     }
 
     /// Builds per-item trigram-overlap scores for the unknown (typo) words.
@@ -237,10 +308,10 @@ impl<'a> QuickMatch<'a> {
         &self,
         unknown_words: &[&str],
         trigram_budget: usize,
-        pool: Option<&FxHashSet<*const str>>,
+        pool: Option<&FxHashSet<ItemId>>,
         min_len: usize,
-    ) -> (FxHashMap<*const str, usize>, usize) {
-        let mut scores: FxHashMap<*const str, usize> = FxHashMap::default();
+    ) -> (FxHashMap<ItemId, usize>, usize) {
+        let mut scores: FxHashMap<ItemId, usize> = FxHashMap::default();
         scores.reserve(256);
         if let Some(pool) = pool {
             for &item in pool {
@@ -287,7 +358,7 @@ impl<'a> QuickMatch<'a> {
                     }
                 } else {
                     for &item in items {
-                        if unsafe { &*item }.len() >= min_len {
+                        if self.item(item).len() >= min_len {
                             *scores.entry(item).or_default() += 1;
                         }
                     }
@@ -297,6 +368,22 @@ impl<'a> QuickMatch<'a> {
 
         (scores, hit_count)
     }
+}
+
+impl QuickMatch<'static> {
+    /// Builds a matcher that owns its pre-formatted (lowercase) items.
+    pub fn new_owned(items: Vec<String>) -> Self {
+        Self::new_owned_with(items, QuickMatchConfig::default())
+    }
+
+    /// Builds a matcher that owns its pre-formatted (lowercase) items.
+    pub fn new_owned_with(items: Vec<String>, config: QuickMatchConfig) -> Self {
+        Self::build(items.into_iter().map(Cow::Owned).collect(), config)
+    }
+}
+
+fn item_order(a: &str, b: &str) -> std::cmp::Ordering {
+    a.len().cmp(&b.len()).then_with(|| a.cmp(b))
 }
 
 /// Builds a byte lookup table from the configured separator chars. Separators
@@ -377,5 +464,80 @@ fn trigram_position(len: usize, round: usize) -> Option<usize> {
         None
     } else {
         Some(pos)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ITEMS: &[&str] = &[
+        "hash_rate",
+        "realized_price",
+        "supply_in_profit",
+        "sth_realized_price",
+        "dominance",
+    ];
+
+    #[test]
+    fn owned_and_borrowed_matchers_are_equivalent() {
+        let borrowed = QuickMatch::new(ITEMS);
+        let owned = QuickMatch::new_owned(ITEMS.iter().map(|item| (*item).to_string()).collect());
+        let config = QuickMatchConfig::new().with_limit(ITEMS.len());
+
+        for query in [
+            "hashrate",
+            "realized price",
+            "suply",
+            "dom",
+            "sth realized price",
+            "missing",
+        ] {
+            assert_eq!(
+                borrowed.matches_with_matched_words(query, &config),
+                owned.matches_with_matched_words(query, &config),
+                "owned matcher changed results for {query}"
+            );
+
+            let indexed = borrowed.matches_with_ids_and_matched_words(query, &config);
+            let resolved = indexed
+                .iter()
+                .map(|&(id, matched)| (ITEMS[id as usize], matched as usize))
+                .collect::<Vec<_>>();
+            assert_eq!(
+                resolved,
+                borrowed.matches_with_matched_words(query, &config),
+                "indexed API changed results for {query}"
+            );
+        }
+
+        assert_eq!(borrowed.matches("hashrate")[0], "hash_rate");
+        assert_eq!(borrowed.matches("realized price")[0], "realized_price");
+        assert_eq!(borrowed.matches("suply")[0], "supply_in_profit");
+        assert_eq!(borrowed.matches("dom")[0], "dominance");
+    }
+
+    #[test]
+    fn union_fallback_remains_configurable() {
+        let items = ["alpha_x", "beta_y"];
+        let matcher = QuickMatch::new(&items);
+        let union = QuickMatchConfig::new().with_limit(2);
+        let intersection_only = QuickMatchConfig::new()
+            .with_limit(2)
+            .with_union_fallback(false);
+
+        assert_eq!(matcher.matches_with("alpha beta", &union).len(), 2);
+        assert!(
+            matcher
+                .matches_with("alpha beta", &intersection_only)
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn matcher_is_naturally_send_and_sync() {
+        fn assert_send_sync<T: Send + Sync>() {}
+
+        assert_send_sync::<QuickMatch<'static>>();
     }
 }
