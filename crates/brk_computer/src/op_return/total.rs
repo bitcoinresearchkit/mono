@@ -15,8 +15,14 @@ use crate::{
 #[derive(Traversable)]
 pub struct Total<M: StorageMode = Rw> {
     pub data_bytes: CachedPerBlockCumulativeRolling<Bytes, M>,
+    /// Number of transactions containing at least one `OP_RETURN` output; each
+    /// transaction is counted once regardless of how many such outputs it has.
     pub tx_count: PerBlockCumulativeRolling<StoredU64, M>,
+    /// Sum of the full virtual sizes of transactions containing at least one
+    /// `OP_RETURN` output; each transaction is included once.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
+    /// Sum of the full fees of transactions containing at least one `OP_RETURN`
+    /// output; each transaction is included once.
     pub fees: PerBlockCumulativeRolling<Sats, M>,
     pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
     pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,

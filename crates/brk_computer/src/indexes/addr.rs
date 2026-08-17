@@ -28,9 +28,11 @@ pub type OpReturnVecs = IdentityVecs<OpReturnIndex, TxIndex>;
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    /// Pay-to-public-key outputs containing compressed 33-byte public keys.
+    /// P2PK-shaped outputs containing a 33-byte key field; the field is not
+    /// required to be a valid compressed public key.
     pub p2pk33: P2PK33Vecs,
-    /// Pay-to-public-key outputs containing uncompressed 65-byte public keys.
+    /// P2PK-shaped outputs containing a 65-byte key field; the field is not
+    /// required to be a valid uncompressed public key.
     pub p2pk65: P2PK65Vecs,
     /// Pay-to-public-key-hash outputs.
     pub p2pkh: P2PKHVecs,

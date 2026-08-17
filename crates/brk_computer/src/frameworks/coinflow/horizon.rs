@@ -99,12 +99,19 @@ impl HorizonId {
 
 #[derive(Clone, Copy, Traversable)]
 pub struct Horizons<T> {
+    /// Uses an eight-year forward spending horizon.
     pub _8y: T,
+    /// Uses a four-year forward spending horizon.
     pub _4y: T,
+    /// Uses a two-year forward spending horizon.
     pub _2y: T,
+    /// Uses a one-year forward spending horizon.
     pub _1y: T,
+    /// Uses a 180-day forward spending horizon.
     pub _6m: T,
+    /// Uses a 90-day forward spending horizon.
     pub _3m: T,
+    /// Uses a 30-day forward spending horizon.
     pub _1m: T,
 }
 

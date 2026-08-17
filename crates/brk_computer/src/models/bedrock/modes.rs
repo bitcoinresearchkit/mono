@@ -5,6 +5,7 @@ use super::{ModeId, WeightedModes};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Modes<T> {
+    /// Uses the unweighted all-chain URPD and raw all-chain supply-in-loss share.
     pub raw: T,
     #[deref]
     #[deref_mut]

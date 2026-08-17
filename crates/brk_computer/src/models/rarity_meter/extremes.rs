@@ -11,10 +11,31 @@ const VERSION: Version = Version::new(7);
 
 #[derive(Traversable)]
 pub struct Extremes<M: StorageMode = Rw> {
+    /// Upper-tail extremeness of total all-chain supply in loss, in BTC, using
+    /// all prior finite positive observations. Outputs require 210,000 accepted
+    /// historical observations; thresholds exclude the current block, while
+    /// the reported tail share includes it as one observation.
     pub coins_in_loss: Extreme<Bitcoin, M>,
+    /// Upper-tail extremeness of trailing-24-hour all-chain realized profit, in
+    /// USD, using all prior finite observations. Outputs require 210,000
+    /// accepted historical observations; thresholds exclude the current block,
+    /// while the reported tail share includes it as one observation.
     pub profit_taking: Extreme<Dollars, M>,
+    /// Upper-tail extremeness of trailing-24-hour all-chain realized loss, in
+    /// USD, using all prior finite observations. Outputs require 210,000
+    /// accepted historical observations; thresholds exclude the current block,
+    /// while the reported tail share includes it as one observation.
     pub capitulation: Extreme<Dollars, M>,
+    /// Upper-tail extremeness of trailing-24-hour all-chain realized peak
+    /// regret, in USD, using all prior finite observations. Outputs require
+    /// 210,000 accepted historical observations; thresholds exclude the current
+    /// block, while the reported tail share includes it as one observation.
     pub peak_regret: Extreme<Dollars, M>,
+    /// Lower-tail extremeness of the trailing-24-hour all-chain sell-side risk
+    /// ratio, expressed as a percentage, using the most recent 210,000 finite
+    /// positive observations. Outputs require a full 210,000-observation
+    /// history; thresholds exclude the current block, while the reported tail
+    /// share includes it as one observation.
     pub seller_exhaustion: Extreme<StoredF32, M>,
 }
 

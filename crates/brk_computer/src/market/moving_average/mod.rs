@@ -1,4 +1,5 @@
 mod compute;
+mod ema_vecs;
 mod import;
 mod lazy_sma;
 mod sma;

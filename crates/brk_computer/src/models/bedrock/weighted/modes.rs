@@ -4,14 +4,39 @@ use super::WeightedModeId;
 
 #[derive(Traversable)]
 pub struct WeightedModes<T> {
+    /// Weights age cohorts by cointime wakefulness and calibrates against active
+    /// supply in loss share.
     pub cointime: T,
+    /// Weights age cohorts by coinflow mobility and calibrates against
+    /// coinflow-weighted supply in loss share.
     pub coinflow: T,
+    /// Weights age cohorts by their probability of spending within eight years,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_8y: T,
+    /// Weights age cohorts by their probability of spending within four years,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_4y: T,
+    /// Weights age cohorts by their probability of spending within two years,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_2y: T,
+    /// Weights age cohorts by their probability of spending within one year,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_1y: T,
+    /// Weights age cohorts by their probability of spending within six months,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_6m: T,
+    /// Weights age cohorts by their probability of spending within three months,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_3m: T,
+    /// Weights age cohorts by their probability of spending within one month,
+    /// derived from coinflow spending rates, and calibrates against the
+    /// corresponding horizon supply-in-loss share.
     pub coinflow_1m: T,
 }
 

@@ -2,6 +2,7 @@ use brk_traversable::Traversable;
 use brk_types::{Cents, Version};
 use vecdb::{ColumnId, Rw, StorageMode, VecValue};
 
+use super::ema_vecs::EmaVecs;
 use crate::internal::{ColumnarPerBlock, LazyColumnPriceWithRatioPerBlock};
 
 const EMA_PERIOD_COUNT: usize = 16;
@@ -154,29 +155,14 @@ impl ColumnId for EmaPeriodId {
     }
 }
 
-#[derive(Clone, Traversable)]
-pub struct EmaVecs<T> {
-    pub _1w: T,
-    pub _8d: T,
-    pub _12d: T,
-    pub _13d: T,
-    pub _21d: T,
-    pub _26d: T,
-    pub _1m: T,
-    pub _34d: T,
-    pub _55d: T,
-    pub _89d: T,
-    pub _144d: T,
-    pub _200d: T,
-    pub _1y: T,
-    pub _2y: T,
-    pub _200w: T,
-    pub _4y: T,
-}
-
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub sma: super::sma::SmaVecs,
+    /// Exponential moving averages of spot price in cents per BTC. Each period
+    /// recursively applies `alpha = 2 / (span + 1)`, where `span` is the number
+    /// of blocks from the trailing period's monotonic-time start through the
+    /// current block. Periods are 7, 8, 12, 13, 21, 26, 30, 34, 55, 89, 144,
+    /// 200, 365, 730, 1,400, and 1,460 days, in column order.
     pub ema: ColumnarPerBlock<
         Cents,
         EmaPeriodId,

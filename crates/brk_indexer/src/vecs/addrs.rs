@@ -20,9 +20,11 @@ use crate::{parallel_import, readers::AddrReaders};
 
 #[derive(Traversable)]
 pub struct AddrsVecs<M: StorageMode = Rw> {
-    /// Pay-to-public-key outputs containing uncompressed 65-byte public keys.
+    /// P2PK-shaped outputs containing a 65-byte key field; the field is not
+    /// required to be a valid uncompressed public key.
     pub p2pk65: AddrTypeVecs<P2PK65AddrIndex, P2PK65Bytes, M>,
-    /// Pay-to-public-key outputs containing compressed 33-byte public keys.
+    /// P2PK-shaped outputs containing a 33-byte key field; the field is not
+    /// required to be a valid compressed public key.
     pub p2pk33: AddrTypeVecs<P2PK33AddrIndex, P2PK33Bytes, M>,
     /// Pay-to-public-key-hash outputs.
     pub p2pkh: AddrTypeVecs<P2PKHAddrIndex, P2PKHBytes, M>,

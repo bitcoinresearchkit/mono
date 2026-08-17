@@ -12,6 +12,10 @@ pub struct Vecs {
     pub(crate) plugin_gate: PluginGate,
     #[traversable(skip)]
     pub(super) cached_dca_sats: CachedDcaSats,
+    /// Satoshis purchased by investing 100 USD at each UTC daily close newly
+    /// crossed at this block. It is zero within a day, includes every
+    /// intervening daily purchase when block time skips days, and treats a
+    /// missing or zero daily close as a zero purchase.
     pub sats_per_day: LazyPreviousDeltaVec<Height, Sats>,
     pub period: PeriodVecs,
     pub class: ClassVecs,

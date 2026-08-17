@@ -78,6 +78,10 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
+    /// Historical source-value boundaries for 0.1%, 0.05%, and 0.025% tail
+    /// shares, in that column order. Boundaries use the configured history
+    /// before the current observation and the tail direction specified by the
+    /// series' extreme model.
     pub thresholds: ColumnarPerBlock<
         T,
         ExtremeThresholdId,
@@ -85,6 +89,10 @@ where
         M,
     >,
     pub tail: PercentPerBlock<PartsPerMillion32, M>,
+    /// Discrete extremeness rank: 3 at or beyond the 0.025% tail boundary, 2 at
+    /// or beyond 0.05%, 1 at or beyond 0.1%, and 0 otherwise or while the model
+    /// is unavailable. Boundary direction is upper or lower as specified by the
+    /// series' extreme model.
     pub rank: PerBlock<StoredU8, M>,
 
     #[traversable(skip)]

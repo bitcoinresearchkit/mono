@@ -1,12 +1,12 @@
 use brk_traversable::Traversable;
-use brk_types::{StoredBool, StoredU64, TxIndex, Version};
+use brk_types::{StoredBool, TxIndex, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
     ColumnId, ColumnarVec, EagerVec, LazyColumnVec, PcoVec, ReadOnlyColumnarVec, Rw, StorageMode,
     VecValue,
 };
 
-use crate::internal::{ColumnarPerBlockCumulativeRolling, LazyColumnPerBlockCumulativeRolling};
+use super::{CountVecs, Flags};
 
 const PATTERN_COUNT: usize = 3;
 
@@ -65,34 +65,6 @@ impl ColumnId for PatternId {
     {
         row.map(create)
     }
-}
-
-#[derive(Clone, Traversable)]
-pub struct Flags<V> {
-    pub is_coinjoin: V,
-    pub is_consolidation: V,
-    pub is_batch_payout: V,
-}
-
-/// Transaction counts by detected structural pattern.
-///
-/// These are heuristic classifications of transactions, not protocol labels.
-#[derive(Deref, DerefMut, Traversable)]
-pub struct CountVecs<M: StorageMode = Rw> {
-    /// Counts transactions heuristically classified as CoinJoin candidates:
-    /// at least five inputs and outputs, neither count five times the other,
-    /// sufficiently repeated input/output values, no recognized address reuse,
-    /// and no detected `OP_RETURN` or inscription.
-    pub coinjoin: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
-    /// Counts transactions with at least five times as many inputs as outputs.
-    pub consolidation: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
-    /// Counts non-coinbase transactions with at least five times as many outputs
-    /// as inputs.
-    pub batch_payout: LazyColumnPerBlockCumulativeRolling<StoredU64, PatternId>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(hidden)]
-    pub source: ColumnarPerBlockCumulativeRolling<StoredU64, PatternId, (), M>,
 }
 
 #[derive(Deref, DerefMut, Traversable)]

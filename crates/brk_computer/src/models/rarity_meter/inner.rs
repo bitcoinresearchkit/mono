@@ -14,13 +14,26 @@ use super::{COMPUTE_BATCH_SIZE, Component, percentiles::RarityPercentiles};
 #[derive(Traversable)]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
     #[traversable(flatten)]
+    /// Combined rarity price bands in cents per BTC. Each lower boundary from
+    /// 0.1% through 5% is the maximum of that boundary across the selected
+    /// components; each upper boundary from 95% through 99.9% is the minimum.
+    /// The 10th through 90th percentiles are logarithmically interpolated
+    /// between the combined 5th and 95th boundaries when both are positive,
+    /// otherwise linearly interpolated. Column order follows the 19 rarity
+    /// percentiles from 0.1% through 99.9%.
     pub prices: ColumnarPerBlock<
         Cents,
         RarityPercentileId,
         RarityPercentiles<Price<LazyColumnPerBlock<Cents, RarityPercentileId>>>,
         M,
     >,
+    /// Position of spot price against the ten combined boundary bands: number
+    /// of upper boundaries exceeded minus number of lower boundaries not
+    /// reached. Ranges from -5 through 5.
     pub index: PerBlock<StoredI8, M>,
+    /// Sum of the per-component rarity indexes, each calculated against that
+    /// component's own ten boundary bands. Each selected component contributes
+    /// from -5 through 5.
     pub score: PerBlock<StoredI8, M>,
 }
 

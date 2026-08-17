@@ -19,8 +19,24 @@ use crate::{indexes, internal::LazyColumnRatioPerBlock};
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
     #[traversable(flatten)]
+    /// Block-decay-weighted historical percentile bands of spot price divided
+    /// by the component price named by the series. Observations begin at height
+    /// 210,000, include the current block, and receive twice the weight every
+    /// 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios
+    /// are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded.
+    /// Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90,
+    /// 95, 98, 99, 99.5, and 99.9 percent. Each price band is the component price
+    /// multiplied by its percentile ratio.
     pub bands: RarityPercentiles<Band>,
 
+    /// Block-decay-weighted historical percentiles of spot price divided by the
+    /// component price named by the series, stored in parts per million.
+    /// Observations begin at height 210,000, include the current block, and
+    /// receive twice the weight every 210,000 blocks, equivalent to a
+    /// 210,000-block backward half-life. Ratios are rounded to 0.001, clamped
+    /// from 0 through 43, and NaNs are excluded. Column order is 0.1, 0.5, 1, 2,
+    /// 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9
+    /// percent.
     pub ratios:
         M::Stored<EagerVec<ColumnarVec<PcoVec<Height, PartsPerMillion32>, RarityPercentileId>>>,
 

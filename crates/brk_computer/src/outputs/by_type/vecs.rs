@@ -11,6 +11,9 @@ use crate::internal::{
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Per-block counts of transaction outputs, including coinbase, partitioned
+    /// by BRK locking-script type. Column order is P2PK65, P2PK33, P2PKH, P2MS,
+    /// P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown, empty, and `OP_RETURN`.
     pub output_count: ColumnarPerBlock<
         StoredU16,
         OutputTypeId,

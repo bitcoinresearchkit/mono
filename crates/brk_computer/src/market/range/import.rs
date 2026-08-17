@@ -2,7 +2,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, StoredF32, Version};
 use vecdb::{Database, ReadableCloneableVec};
 
-use super::{Vecs, vecs::PriceMinMaxVecs};
+use super::{Vecs, price_min_max_vecs::PriceMinMaxVecs};
 use crate::{
     indexes,
     internal::{

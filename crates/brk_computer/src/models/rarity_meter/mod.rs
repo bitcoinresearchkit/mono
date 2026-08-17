@@ -34,8 +34,16 @@ use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
 pub struct RarityMeter<M: StorageMode = Rw> {
     pub components: Components<M>,
     pub extremes: Extremes<M>,
+    /// Combined from ten component models: under-four-month, under-six-month,
+    /// over-four-month, and over-six-month realized price; STH and LTH realized
+    /// and capitalized price; and all-chain realized and capitalized price.
     pub full: RarityMeterInner<M>,
+    /// Combined from four young-coin models: under-four-month and
+    /// under-six-month realized price plus STH realized and capitalized price.
     pub local: RarityMeterInner<M>,
+    /// Combined from six old-coin and all-chain models: over-four-month and
+    /// over-six-month realized price, all-chain realized and capitalized price,
+    /// and LTH realized and capitalized price.
     pub cycle: RarityMeterInner<M>,
 }
 

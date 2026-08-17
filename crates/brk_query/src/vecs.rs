@@ -424,10 +424,8 @@ mod tests {
     const TX_INDEX_COUNT_DESCRIPTION: &str =
         "Number of transactions in the indexed block, including coinbase.";
     const MONOTONIC_TIMESTAMP_DESCRIPTION: &str = "Nondecreasing Unix timestamp in seconds at each block height, computed as the maximum of the current raw block-header timestamp and the preceding monotonic timestamp.";
-    const P2PK33_DESCRIPTION: &str =
-        "Pay-to-public-key outputs containing compressed 33-byte public keys.";
-    const P2PK65_DESCRIPTION: &str =
-        "Pay-to-public-key outputs containing uncompressed 65-byte public keys.";
+    const P2PK33_DESCRIPTION: &str = "P2PK-shaped outputs containing a 33-byte key field; the field is not required to be a valid compressed public key.";
+    const P2PK65_DESCRIPTION: &str = "P2PK-shaped outputs containing a 65-byte key field; the field is not required to be a valid uncompressed public key.";
     const P2PKH_DESCRIPTION: &str = "Pay-to-public-key-hash outputs.";
     const P2SH_DESCRIPTION: &str = "Pay-to-script-hash outputs.";
     const P2TR_DESCRIPTION: &str = "Pay-to-Taproot outputs.";
@@ -660,6 +658,393 @@ mod tests {
             "value",
             "Value of the indexed transaction output in satoshis.",
         ),
+    ];
+    const MACD_DESCRIPTION: &str = "MACD chains at base intervals of 1, 7, and 30 days. Each chain uses fast, slow, and signal durations of 12, 26, and 9 times its base interval, respectively.";
+    const MACD_EMA_FAST_DESCRIPTION: &str = "EMA of spot price in USD per BTC using the chain's fast span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
+    const MACD_EMA_SLOW_DESCRIPTION: &str = "EMA of spot price in USD per BTC using the chain's slow span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
+    const MACD_LINE_DESCRIPTION: &str = "Fast EMA minus slow EMA, in USD per BTC.";
+    const MACD_SIGNAL_DESCRIPTION: &str = "EMA of the MACD line using the chain's signal span, in USD per BTC. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
+    const MACD_HISTOGRAM_DESCRIPTION: &str = "MACD line minus signal line, in USD per BTC.";
+    const SMALL_PLUGIN_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
+        (
+            "coindays_destroyed_supply_adj",
+            "Trailing 24-hour coin days destroyed divided by the current all-chain supply in BTC. Returns zero when supply is zero.",
+        ),
+        (
+            "coinyears_destroyed_supply_adj",
+            "Trailing 365-day total of coin days destroyed divided by the current all-chain supply in BTC. Despite the series name, the numerator is not divided by 365. Returns zero when supply is zero.",
+        ),
+        (
+            "constant_0",
+            "Constant numeric value 0 at every supported index.",
+        ),
+        (
+            "constant_1",
+            "Constant numeric value 1 at every supported index.",
+        ),
+        (
+            "constant_2",
+            "Constant numeric value 2 at every supported index.",
+        ),
+        (
+            "constant_3",
+            "Constant numeric value 3 at every supported index.",
+        ),
+        (
+            "constant_4",
+            "Constant numeric value 4 at every supported index.",
+        ),
+        (
+            "constant_20",
+            "Constant numeric value 20 at every supported index.",
+        ),
+        (
+            "constant_30",
+            "Constant numeric value 30 at every supported index.",
+        ),
+        (
+            "constant_38_2",
+            "Constant numeric value 38.2 at every supported index.",
+        ),
+        (
+            "constant_50",
+            "Constant numeric value 50 at every supported index.",
+        ),
+        (
+            "constant_61_8",
+            "Constant numeric value 61.8 at every supported index.",
+        ),
+        (
+            "constant_70",
+            "Constant numeric value 70 at every supported index.",
+        ),
+        (
+            "constant_80",
+            "Constant numeric value 80 at every supported index.",
+        ),
+        (
+            "constant_100",
+            "Constant numeric value 100 at every supported index.",
+        ),
+        (
+            "constant_600",
+            "Constant numeric value 600 at every supported index.",
+        ),
+        (
+            "constant_minus_1",
+            "Constant numeric value -1 at every supported index.",
+        ),
+        (
+            "constant_minus_2",
+            "Constant numeric value -2 at every supported index.",
+        ),
+        (
+            "constant_minus_3",
+            "Constant numeric value -3 at every supported index.",
+        ),
+        (
+            "constant_minus_4",
+            "Constant numeric value -4 at every supported index.",
+        ),
+        (
+            "days_since_price_ath",
+            "Fractional days, using monotonic block time, since the latest block whose spot price equaled the running all-time high. Resets to zero at equality.",
+        ),
+        (
+            "years_since_price_ath",
+            "`days_since_price_ath` divided by 365.",
+        ),
+        (
+            "max_days_between_price_ath",
+            "Running maximum of `days_since_price_ath`, including the current unfinished interval between all-time highs.",
+        ),
+        (
+            "max_years_between_price_ath",
+            "`max_days_between_price_ath` divided by 365.",
+        ),
+        (
+            "price_true_range",
+            "Absolute difference in cents per BTC between the current and previous block's spot prices. The first block is zero; this is not an OHLC range.",
+        ),
+        (
+            "price_true_range_sum_2w",
+            "Sum of `price_true_range` over the trailing 14-day monotonic-time window, in cents per BTC. This measures the spot-price path length over the window, not its high-low range.",
+        ),
+        (
+            "price_ema_cents",
+            "Exponential moving averages of spot price in cents per BTC. Each period recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks from the trailing period's monotonic-time start through the current block. Periods are 7, 8, 12, 13, 21, 26, 30, 34, 55, 89, 144, 200, 365, 730, 1,400, and 1,460 days, in column order.",
+        ),
+        (
+            "dca_sats_per_day",
+            "Satoshis purchased by investing 100 USD at each UTC daily close newly crossed at this block. It is zero within a day, includes every intervening daily purchase when block time skips days, and treats a missing or zero daily close as a zero purchase.",
+        ),
+        (
+            "is_coinjoin",
+            "Whether the transaction is heuristically classified as a CoinJoin candidate: at least five inputs and outputs, neither count five times the other, sufficiently repeated input/output values, no recognized address reuse, and no detected `OP_RETURN` or inscription.",
+        ),
+        (
+            "is_consolidation",
+            "Whether the transaction has at least five times as many inputs as outputs.",
+        ),
+        (
+            "is_batch_payout",
+            "Whether the transaction is non-coinbase and has at least five times as many outputs as inputs.",
+        ),
+        (
+            "op_return_tx_count",
+            "Number of transactions containing at least one `OP_RETURN` output; each transaction is counted once regardless of how many such outputs it has.",
+        ),
+        (
+            "op_return_tx_vsize",
+            "Sum of the full virtual sizes of transactions containing at least one `OP_RETURN` output; each transaction is included once.",
+        ),
+        (
+            "op_return_fees",
+            "Sum of the full fees of transactions containing at least one `OP_RETURN` output; each transaction is included once.",
+        ),
+        (
+            "prevout_count_by_type",
+            "Per-block counts of non-coinbase transaction inputs, partitioned by the BRK output type of the previous output they spend. Column order is P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown, and empty; `OP_RETURN` is excluded because it is unspendable.",
+        ),
+        (
+            "output_count_by_type",
+            "Per-block counts of transaction outputs, including coinbase, partitioned by BRK locking-script type. Column order is P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown, empty, and `OP_RETURN`.",
+        ),
+        (
+            "velocity_btc",
+            "Trailing 365-day transfer volume in satoshis divided by current all-chain supply in satoshis. Returns zero when supply is zero.",
+        ),
+        (
+            "velocity_usd",
+            "Trailing 365-day transfer volume valued in cents divided by current all-chain market capitalization in cents. Returns zero when market capitalization is zero.",
+        ),
+        (
+            "dormancy_supply_adj",
+            "Trailing 24-hour dormancy divided by the current all-chain supply in BTC. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when supply is zero.",
+        ),
+        (
+            "dormancy_flow",
+            "Current all-chain supply in BTC divided by trailing 24-hour dormancy. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when dormancy is zero.",
+        ),
+        (
+            "stock_to_flow",
+            "Current all-chain supply in satoshis divided by the current block's derived subsidy component annualized at 52,560 blocks. Returns zero when the annualized flow is zero.",
+        ),
+        (
+            "seller_exhaustion",
+            "Current all-chain supply-in-profit share multiplied by the population standard deviation of per-block trailing-24-hour spot-price returns over the trailing 30-day monotonic-time window, scaled by the square root of 30. Returns zero when total supply is zero.",
+        ),
+    ];
+    const CAPITAL_SENTIMENT_PHASE_DESCRIPTION: &str = "Daily investor phase classified from the final available block's spot price relative to the all, STH, and LTH capitalized prices, with the one-year spot-price SMA used only for confirmation and disambiguation. Values are `raging_bull`, `bull`, `cautious_bull`, `hopeful_bull`, `early_bull`, `weak_bull`, `limbo`, `deep_bear`, `bear`, or `early_bear`. Missing when spot or any capitalized-price input is absent, nonpositive, or non-finite; the SMA itself may be unavailable.";
+    const CAPITAL_SENTIMENT_SCORE_DESCRIPTION: &str = "Coarse directional score derived from `capital_sentiment_phase`: `raging_bull`, `bull`, and `early_bull` map to 2; `cautious_bull`, `hopeful_bull`, and `weak_bull` map to 1; `limbo` maps to -1; and `deep_bear`, `bear`, and `early_bear` map to -2. Missing when the phase is missing.";
+    const BEDROCK_MODE_DESCRIPTIONS: &[(&str, &str)] = &[
+        (
+            "raw",
+            "Uses the unweighted all-chain URPD and raw all-chain supply-in-loss share.",
+        ),
+        (
+            "cointime",
+            "Weights age cohorts by cointime wakefulness and calibrates against active supply in loss share.",
+        ),
+        (
+            "coinflow",
+            "Weights age cohorts by coinflow mobility and calibrates against coinflow-weighted supply in loss share.",
+        ),
+        (
+            "coinflow_8y",
+            "Weights age cohorts by their probability of spending within eight years, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_4y",
+            "Weights age cohorts by their probability of spending within four years, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_2y",
+            "Weights age cohorts by their probability of spending within two years, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_1y",
+            "Weights age cohorts by their probability of spending within one year, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_6m",
+            "Weights age cohorts by their probability of spending within six months, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_3m",
+            "Weights age cohorts by their probability of spending within three months, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+        (
+            "coinflow_1m",
+            "Weights age cohorts by their probability of spending within one month, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
+        ),
+    ];
+    const BEDROCK_LOSS_THRESHOLD_DESCRIPTION: &str = "Linearly interpolated 95th, 98th, 99th, 99.5th, and 99.9th percentiles of the mode's prior finite daily supply-in-loss shares, in that column order. The current day is excluded from its calibration history and a value is unavailable until the current loss share exists and at least 365 prior observations are available. Stored as unitless decimal shares.";
+    const BEDROCK_PRICE_BANDS_DESCRIPTION: &str = "Daily price bands derived from the mode's URPD. The five floor bands are the first ascending creation prices where the share of supply remaining above the price is at or below the corresponding calibrated loss threshold. The nine level bands are the 10th through 90th percentiles of supply at or above the 95th-percentile floor. The stored matrix column order is the five floors followed by the nine levels.";
+    const RARITY_COMPONENT_BANDS_DESCRIPTION: &str = "Block-decay-weighted historical percentile bands of spot price divided by the component price named by the series. Observations begin at height 210,000, include the current block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent. Each price band is the component price multiplied by its percentile ratio.";
+    const RARITY_COMPONENT_RATIOS_DESCRIPTION: &str = "Block-decay-weighted historical percentiles of spot price divided by the component price named by the series, stored in parts per million. Observations begin at height 210,000, include the current block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. Column order is 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent.";
+    const RARITY_INNER_DESCRIPTIONS: &[(&str, &str)] = &[
+        (
+            "rarity_meter",
+            "Combined from ten component models: under-four-month, under-six-month, over-four-month, and over-six-month realized price; STH and LTH realized and capitalized price; and all-chain realized and capitalized price.",
+        ),
+        (
+            "local_rarity_meter",
+            "Combined from four young-coin models: under-four-month and under-six-month realized price plus STH realized and capitalized price.",
+        ),
+        (
+            "cycle_rarity_meter",
+            "Combined from six old-coin and all-chain models: over-four-month and over-six-month realized price, all-chain realized and capitalized price, and LTH realized and capitalized price.",
+        ),
+    ];
+    const RARITY_PRICES_DESCRIPTION: &str = "Combined rarity price bands in cents per BTC. Each lower boundary from 0.1% through 5% is the maximum of that boundary across the selected components; each upper boundary from 95% through 99.9% is the minimum. The 10th through 90th percentiles are logarithmically interpolated between the combined 5th and 95th boundaries when both are positive, otherwise linearly interpolated. Column order follows the 19 rarity percentiles from 0.1% through 99.9%.";
+    const RARITY_INDEX_DESCRIPTION: &str = "Position of spot price against the ten combined boundary bands: number of upper boundaries exceeded minus number of lower boundaries not reached. Ranges from -5 through 5.";
+    const RARITY_SCORE_DESCRIPTION: &str = "Sum of the per-component rarity indexes, each calculated against that component's own ten boundary bands. Each selected component contributes from -5 through 5.";
+    const RARITY_EXTREME_DESCRIPTIONS: &[(&str, &str)] = &[
+        (
+            "rarity_meter_coins_in_loss",
+            "Upper-tail extremeness of total all-chain supply in loss, in BTC, using all prior finite positive observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        ),
+        (
+            "rarity_meter_profit_taking",
+            "Upper-tail extremeness of trailing-24-hour all-chain realized profit, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        ),
+        (
+            "rarity_meter_capitulation",
+            "Upper-tail extremeness of trailing-24-hour all-chain realized loss, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        ),
+        (
+            "rarity_meter_peak_regret",
+            "Upper-tail extremeness of trailing-24-hour all-chain realized peak regret, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        ),
+        (
+            "rarity_meter_seller_exhaustion",
+            "Lower-tail extremeness of the trailing-24-hour all-chain sell-side risk ratio, expressed as a percentage, using the most recent 210,000 finite positive observations. Outputs require a full 210,000-observation history; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        ),
+    ];
+    const RARITY_EXTREME_THRESHOLDS_DESCRIPTION: &str = "Historical source-value boundaries for 0.1%, 0.05%, and 0.025% tail shares, in that column order. Boundaries use the configured history before the current observation and the tail direction specified by the series' extreme model.";
+    const RARITY_THRESHOLD_PCT0_1_DESCRIPTION: &str =
+        "Source-value boundary for a 0.1% historical tail share.";
+    const RARITY_THRESHOLD_PCT0_05_DESCRIPTION: &str =
+        "Source-value boundary for a 0.05% historical tail share.";
+    const RARITY_THRESHOLD_PCT0_025_DESCRIPTION: &str = "Source-value boundary for a 0.025% historical tail share. The public scalar series uses the unsuffixed `threshold` name.";
+    const RARITY_EXTREME_RANK_DESCRIPTION: &str = "Discrete extremeness rank: 3 at or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond 0.1%, and 0 otherwise or while the model is unavailable. Boundary direction is upper or lower as specified by the series' extreme model.";
+    const COINBLOCKS_CREATED_DESCRIPTION: &str = "Coinblocks created by each block, equal to the circulating supply in BTC at that height. One coinblock is one BTC held for one block interval.";
+    const COINBLOCKS_STORED_DESCRIPTION: &str = "Net coinblocks stored. Its cumulative value is cumulative coinblocks created minus cumulative coinblocks destroyed; its per-block value is the change in that cumulative stock.";
+    const LIVELINESS_DESCRIPTION: &str =
+        "Cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+    const VAULTEDNESS_DESCRIPTION: &str = "One minus liveliness.";
+    const ACTIVITY_TO_VAULTEDNESS_DESCRIPTION: &str = "Liveliness divided by vaultedness.";
+    const COINTIME_ADJ_INFLATION_DESCRIPTION: &str =
+        "Supply inflation rate multiplied by the activity-to-vaultedness ratio.";
+    const COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION: &str =
+        "Native transaction velocity multiplied by the activity-to-vaultedness ratio.";
+    const COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION: &str =
+        "Fiat transaction velocity multiplied by the activity-to-vaultedness ratio.";
+    const THERMO_CAP_DESCRIPTION: &str = "Cumulative USD value, at each block's spot price, of the derived subsidy component equal to coinbase output value minus transaction fees.";
+    const INVESTOR_CAP_DESCRIPTION: &str = "Realized capitalization minus thermo capitalization.";
+    const VAULTED_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by vaultedness.";
+    const ACTIVE_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by liveliness.";
+    const COINTIME_CAP_DESCRIPTION: &str = "Cumulative cointime value destroyed multiplied by circulating supply, then divided by cumulative coinblocks stored.";
+    const AVIV_DESCRIPTION: &str = "Active capitalization divided by investor capitalization.";
+    const VAULTED_PRICE_DESCRIPTION: &str = "Realized price divided by vaultedness.";
+    const ACTIVE_PRICE_DESCRIPTION: &str = "Realized price divided by liveliness.";
+    const TRUE_MARKET_MEAN_DESCRIPTION: &str =
+        "Investor capitalization divided by active supply in BTC.";
+    const COINTIME_PRICE_DESCRIPTION: &str =
+        "Cointime capitalization divided by circulating supply in BTC.";
+    const RESERVE_RISK_DESCRIPTION: &str = "Spot price in USD divided by the HODL bank.";
+    const VOCDD_MEDIAN_1Y_DESCRIPTION: &str = "Median per-block value of coin days destroyed over the trailing one-year timestamp window.";
+    const HODL_BANK_DESCRIPTION: &str = "Cumulative sum of spot price in USD minus the trailing one-year median value of coin days destroyed.";
+    const COINTIME_VALUE_DESTROYED_DESCRIPTION: &str =
+        "Spot price in USD multiplied by coinblocks destroyed by the block.";
+    const COINTIME_VALUE_CREATED_DESCRIPTION: &str =
+        "Spot price in USD multiplied by coinblocks created by the block.";
+    const COINTIME_VALUE_STORED_DESCRIPTION: &str =
+        "Spot price in USD multiplied by net coinblocks stored by the block.";
+    const VOCDD_DESCRIPTION: &str = "Supply-adjusted value of coin days destroyed: spot price in USD multiplied by the block's coin days destroyed and divided by circulating supply in BTC. Returns zero when circulating supply is zero.";
+    const VAULTED_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by vaultedness.";
+    const ACTIVE_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by liveliness.";
+    const COINTIME_AWAKE_LOSS_DESCRIPTION: &str = "Share of awake supply that is in loss: the sum of supply in loss multiplied by wakefulness divided by the sum of total supply multiplied by wakefulness. Returns NaN when the weighted supply is zero.";
+    const COINDAYS_CONSUMED_DESCRIPTION: &str = "Coin days destroyed by spent outputs, allocated across every age range the outputs traversed. The portion above a spent output's age-range lower bound remains in that range; each fully traversed younger range receives spent BTC multiplied by that range's duration. The allocation preserves total coin days destroyed.";
+    const COINDAYS_STORED_DESCRIPTION: &str = "Cumulative coin days created in each age range minus cumulative coin days consumed from that range.";
+    const WAKEFULNESS_DESCRIPTION: &str = "Wakefulness for each UTXO age range: cumulative coin days consumed from the range divided by cumulative coin days created in the range.";
+    const DORMANCY_DESCRIPTION: &str = "One minus wakefulness for the selected age range.";
+    const WAKEFULNESS_TO_DORMANCY_DESCRIPTION: &str =
+        "Wakefulness divided by dormancy for the selected age range.";
+    const AGE_AWAKE_SUPPLY_DESCRIPTION: &str = "Supply in each UTXO age range multiplied by that range's wakefulness. Each result is rounded down to whole satoshis.";
+    const AGE_DORMANT_SUPPLY_DESCRIPTION: &str = "Supply in each UTXO age range multiplied by one minus that range's wakefulness. Each result is rounded down to whole satoshis.";
+    const AGGREGATE_AWAKE_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by wakefulness across the selected UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
+    const AGGREGATE_DORMANT_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by one minus wakefulness across the selected UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
+    const AGGREGATE_AWAKE_CAP_DESCRIPTION: &str = "Sum of realized capitalization multiplied by wakefulness across the selected UTXO age ranges.";
+    const AGGREGATE_AWAKE_PRICE_DESCRIPTION: &str = "Awake capitalization divided by awake supply in BTC. Returns zero when awake supply is zero.";
+    const SPENDING_RATE_DESCRIPTION: &str = "Empirical daily spending hazard for each UTXO age range: cumulative transfer volume in BTC divided by cumulative coin days created in that range. Returns zero when cumulative coin days created is zero.";
+    const SPENDING_EXPOSURE_DESCRIPTION: &str = "Estimated remaining-lifetime spending exposure for each UTXO age range. It integrates observed positive spending hazards from the range midpoint through subsequent complete ranges, then integrates an exponential tail fitted by duration-weighted regression of log hazard on age. Returns zero when a decreasing finite tail cannot be fitted.";
+    const MOBILITY_DESCRIPTION: &str = "Estimated probability that supply in the selected age range will ever be spent: one minus exp of negative spending exposure. Nonpositive or NaN exposure returns zero; positive results are capped just below one.";
+    const MOBILE_SUPPLY_DESCRIPTION: &str = "Supply multiplied by the estimated remaining-lifetime probability of spending for its UTXO age range. Each age-range contribution is rounded down to whole satoshis before aggregation.";
+    const IMMOBILE_SUPPLY_DESCRIPTION: &str = "Supply multiplied by one minus the estimated remaining-lifetime probability of spending for its UTXO age range. Each age-range contribution is rounded down to whole satoshis before aggregation.";
+    const COINFLOW_LOSS_DESCRIPTION: &str = "Share of estimated mobile supply that is in loss: the sum of supply in loss multiplied by remaining-lifetime spending probability divided by the sum of total supply multiplied by that probability. Returns NaN when the weighted supply is zero.";
+    const COINFLOW_HORIZON_LOSS_DESCRIPTION: &str = "Share of supply likely to move within the named forward horizon that is currently in loss. Each age range is weighted by one minus exp of the negative sum of its observed spending hazards times days across that horizon. Returns NaN when the weighted supply is zero.";
+    const COINFLOW_CAP_DESCRIPTION: &str = "Sum of realized capitalization multiplied by remaining-lifetime spending probability across the selected UTXO age ranges.";
+    const COINFLOW_PRICE_DESCRIPTION: &str = "Coinflow capitalization divided by estimated mobile supply in BTC. Returns zero when mobile supply is zero.";
+    const HORIZON_DESCRIPTIONS: [&str; 7] = [
+        "Uses an eight-year forward spending horizon.",
+        "Uses a four-year forward spending horizon.",
+        "Uses a two-year forward spending horizon.",
+        "Uses a one-year forward spending horizon.",
+        "Uses a 180-day forward spending horizon.",
+        "Uses a 90-day forward spending horizon.",
+        "Uses a 30-day forward spending horizon.",
+    ];
+    const FRAMEWORK_SEMANTIC_DESCRIPTIONS: &[&str] = &[
+        COINBLOCKS_CREATED_DESCRIPTION,
+        COINBLOCKS_STORED_DESCRIPTION,
+        LIVELINESS_DESCRIPTION,
+        VAULTEDNESS_DESCRIPTION,
+        ACTIVITY_TO_VAULTEDNESS_DESCRIPTION,
+        COINTIME_ADJ_INFLATION_DESCRIPTION,
+        COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION,
+        COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION,
+        THERMO_CAP_DESCRIPTION,
+        INVESTOR_CAP_DESCRIPTION,
+        VAULTED_CAP_DESCRIPTION,
+        ACTIVE_CAP_DESCRIPTION,
+        COINTIME_CAP_DESCRIPTION,
+        AVIV_DESCRIPTION,
+        VAULTED_PRICE_DESCRIPTION,
+        ACTIVE_PRICE_DESCRIPTION,
+        TRUE_MARKET_MEAN_DESCRIPTION,
+        COINTIME_PRICE_DESCRIPTION,
+        RESERVE_RISK_DESCRIPTION,
+        VOCDD_MEDIAN_1Y_DESCRIPTION,
+        HODL_BANK_DESCRIPTION,
+        COINTIME_VALUE_DESTROYED_DESCRIPTION,
+        COINTIME_VALUE_CREATED_DESCRIPTION,
+        COINTIME_VALUE_STORED_DESCRIPTION,
+        VOCDD_DESCRIPTION,
+        VAULTED_SUPPLY_DESCRIPTION,
+        ACTIVE_SUPPLY_DESCRIPTION,
+        COINTIME_AWAKE_LOSS_DESCRIPTION,
+        COINDAYS_CONSUMED_DESCRIPTION,
+        COINDAYS_STORED_DESCRIPTION,
+        WAKEFULNESS_DESCRIPTION,
+        DORMANCY_DESCRIPTION,
+        WAKEFULNESS_TO_DORMANCY_DESCRIPTION,
+        AGE_AWAKE_SUPPLY_DESCRIPTION,
+        AGE_DORMANT_SUPPLY_DESCRIPTION,
+        AGGREGATE_AWAKE_SUPPLY_DESCRIPTION,
+        AGGREGATE_DORMANT_SUPPLY_DESCRIPTION,
+        AGGREGATE_AWAKE_CAP_DESCRIPTION,
+        AGGREGATE_AWAKE_PRICE_DESCRIPTION,
+        SPENDING_RATE_DESCRIPTION,
+        SPENDING_EXPOSURE_DESCRIPTION,
+        MOBILITY_DESCRIPTION,
+        MOBILE_SUPPLY_DESCRIPTION,
+        IMMOBILE_SUPPLY_DESCRIPTION,
+        COINFLOW_LOSS_DESCRIPTION,
+        COINFLOW_HORIZON_LOSS_DESCRIPTION,
+        COINFLOW_CAP_DESCRIPTION,
+        COINFLOW_PRICE_DESCRIPTION,
     ];
     const TIMESTAMP_DESCRIPTION: &str = "Unix timestamp in seconds associated with the indexed block or time period. Block-header timestamps are not guaranteed to increase between consecutive heights.";
     const BLOCK_DESCRIPTION: &str = "Value for the represented block. At time-period indexes, the value is taken from the period's final block.";
@@ -1888,6 +2273,438 @@ mod tests {
             "undocumented indexer series: {undocumented_indexer:#?}"
         );
 
+        assert_eq!(SMALL_PLUGIN_DIRECT_DESCRIPTIONS.len(), 42);
+        assert_eq!(SMALL_PLUGIN_DIRECT_DESCRIPTIONS.len() + 3 * 5, 57);
+        for (name, description) in SMALL_PLUGIN_DIRECT_DESCRIPTIONS {
+            let info = vecs.series_info(&SeriesName::from(*name)).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(*description),
+                "wrong description for {name}"
+            );
+        }
+
+        for suffix in ["24h", "1w", "1m"] {
+            for (field, detail) in [
+                ("ema_fast", MACD_EMA_FAST_DESCRIPTION),
+                ("ema_slow", MACD_EMA_SLOW_DESCRIPTION),
+                ("line", MACD_LINE_DESCRIPTION),
+                ("signal", MACD_SIGNAL_DESCRIPTION),
+                ("histogram", MACD_HISTOGRAM_DESCRIPTION),
+            ] {
+                let name = format!("macd_{field}_{suffix}");
+                let expected = format!("{MACD_DESCRIPTION} {detail}");
+                let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+                assert_eq!(
+                    info.description.as_deref(),
+                    Some(expected.as_str()),
+                    "wrong description for {name}"
+                );
+            }
+        }
+
+        let small_plugins = [
+            "constants",
+            "indicators",
+            "inputs",
+            "investing",
+            "market",
+            "op_return",
+            "outputs",
+            "supply",
+            "transactions",
+        ];
+        let mut undocumented_small_plugins = Vec::new();
+        for (name, index_to_vec) in &vecs.series_to_index_to_vec {
+            if index_to_vec.description().is_some() {
+                continue;
+            }
+            for plugin in small_plugins {
+                if index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == plugin)
+                {
+                    undocumented_small_plugins.push((plugin, *name));
+                }
+            }
+        }
+        assert!(
+            undocumented_small_plugins.is_empty(),
+            "undocumented small-plugin series: {undocumented_small_plugins:#?}"
+        );
+
+        let mut audited_model_roots = 0;
+        for (mode, mode_description) in BEDROCK_MODE_DESCRIPTIONS {
+            for percentile in ["pct95", "pct98", "pct99", "pct99_5", "pct99_9"] {
+                let name = format!("bedrock_{mode}_loss_threshold_{percentile}");
+                let expected = format!("{mode_description} {BEDROCK_LOSS_THRESHOLD_DESCRIPTION}");
+                let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+                assert_eq!(
+                    info.description.as_deref(),
+                    Some(expected.as_str()),
+                    "wrong description for {name}"
+                );
+                audited_model_roots += 1;
+            }
+        }
+
+        for component in [
+            "realized_price",
+            "capitalized_price",
+            "sth_realized_price",
+            "sth_capitalized_price",
+            "lth_realized_price",
+            "lth_capitalized_price",
+            "over_6m_realized_price",
+            "over_4m_realized_price",
+            "under_4m_realized_price",
+            "under_6m_realized_price",
+            "vaulted_price",
+            "active_price",
+            "true_market_mean_price",
+            "cointime_price",
+            "coinflow_price",
+        ] {
+            let name = format!("{component}_ratios_ppm");
+            let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(RARITY_COMPONENT_RATIOS_DESCRIPTION),
+                "wrong description for {name}"
+            );
+            audited_model_roots += 1;
+        }
+
+        for (name, description) in [
+            (
+                "capital_sentiment_phase",
+                CAPITAL_SENTIMENT_PHASE_DESCRIPTION,
+            ),
+            (
+                "capital_sentiment_score",
+                CAPITAL_SENTIMENT_SCORE_DESCRIPTION,
+            ),
+        ] {
+            let info = vecs.series_info(&SeriesName::from(name)).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(description),
+                "wrong description for {name}"
+            );
+            audited_model_roots += 1;
+        }
+
+        for (prefix, context) in RARITY_INNER_DESCRIPTIONS {
+            for (suffix, detail) in [
+                ("percentiles_cents", RARITY_PRICES_DESCRIPTION),
+                ("index", RARITY_INDEX_DESCRIPTION),
+                ("score", RARITY_SCORE_DESCRIPTION),
+            ] {
+                let name = format!("{prefix}_{suffix}");
+                let expected = format!("{context} {detail}");
+                let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+                assert_eq!(
+                    info.description.as_deref(),
+                    Some(expected.as_str()),
+                    "wrong description for {name}"
+                );
+                audited_model_roots += 1;
+            }
+        }
+
+        for (prefix, context) in RARITY_EXTREME_DESCRIPTIONS {
+            for (suffix, detail) in [
+                ("thresholds", None),
+                (
+                    "threshold_pct0_1",
+                    Some(RARITY_THRESHOLD_PCT0_1_DESCRIPTION),
+                ),
+                (
+                    "threshold_pct0_05",
+                    Some(RARITY_THRESHOLD_PCT0_05_DESCRIPTION),
+                ),
+                ("threshold", Some(RARITY_THRESHOLD_PCT0_025_DESCRIPTION)),
+            ] {
+                let name = format!("{prefix}_{suffix}");
+                let expected = match detail {
+                    Some(detail) => {
+                        format!("{context} {RARITY_EXTREME_THRESHOLDS_DESCRIPTION} {detail}")
+                    }
+                    None => format!("{context} {RARITY_EXTREME_THRESHOLDS_DESCRIPTION}"),
+                };
+                let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+                assert_eq!(
+                    info.description.as_deref(),
+                    Some(expected.as_str()),
+                    "wrong description for {name}"
+                );
+                audited_model_roots += 1;
+            }
+
+            let name = format!("{prefix}_rank");
+            let expected = format!("{context} {RARITY_EXTREME_RANK_DESCRIPTION}");
+            let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(expected.as_str()),
+                "wrong description for {name}"
+            );
+            audited_model_roots += 1;
+        }
+        assert_eq!(audited_model_roots, 101);
+
+        let undocumented_models = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec.description().is_none()
+                    && index_to_vec
+                        .values()
+                        .any(|entry| entry.plugin().id() == "models")
+            })
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>();
+        assert!(
+            undocumented_models.is_empty(),
+            "undocumented models series: {undocumented_models:#?}"
+        );
+
+        let undocumented_frameworks = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec.description().is_none()
+                    && index_to_vec
+                        .values()
+                        .any(|entry| entry.plugin().id() == "frameworks")
+            })
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>();
+        assert!(
+            undocumented_frameworks.is_empty(),
+            "undocumented frameworks series: {undocumented_frameworks:#?}"
+        );
+
+        let generic_only_frameworks = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == "frameworks")
+                    && index_to_vec.description().is_some_and(|description| {
+                        !FRAMEWORK_SEMANTIC_DESCRIPTIONS
+                            .iter()
+                            .any(|semantic| description.contains(semantic))
+                    })
+            })
+            .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
+            .collect::<Vec<_>>();
+        assert!(
+            generic_only_frameworks.is_empty(),
+            "frameworks series with only generic descriptions: {generic_only_frameworks:#?}"
+        );
+
+        let mut audited_framework_roots = 0;
+        let mut assert_framework_description = |name: &str, expected: &str| {
+            let info = vecs.series_info(&SeriesName::from(name)).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(expected),
+                "wrong description for {name}"
+            );
+            audited_framework_roots += 1;
+        };
+
+        for age in [
+            "under_1h",
+            "1h_to_1d",
+            "1d_to_1w",
+            "1w_to_1m",
+            "1m_to_2m",
+            "2m_to_3m",
+            "3m_to_4m",
+            "4m_to_5m",
+            "5m_to_6m",
+            "6m_to_9m",
+            "9m_to_1y",
+            "1y_to_18m",
+            "18m_to_2y",
+            "2y_to_3y",
+            "3y_to_4y",
+            "4y_to_5y",
+            "5y_to_6y",
+            "6y_to_7y",
+            "7y_to_8y",
+            "8y_to_10y",
+            "10y_to_12y",
+            "12y_to_15y",
+            "over_15y",
+        ] {
+            let prefix = format!("utxos_{age}_old");
+            for (suffix, expected) in [
+                ("wakefulness", WAKEFULNESS_DESCRIPTION.to_owned()),
+                (
+                    "dormancy",
+                    format!("{WAKEFULNESS_DESCRIPTION} {DORMANCY_DESCRIPTION}"),
+                ),
+                (
+                    "wakefulness_to_dormancy",
+                    format!("{WAKEFULNESS_DESCRIPTION} {WAKEFULNESS_TO_DORMANCY_DESCRIPTION}"),
+                ),
+                ("spending_rate", SPENDING_RATE_DESCRIPTION.to_owned()),
+                (
+                    "spending_exposure",
+                    SPENDING_EXPOSURE_DESCRIPTION.to_owned(),
+                ),
+                (
+                    "mobility",
+                    format!("{SPENDING_EXPOSURE_DESCRIPTION} {MOBILITY_DESCRIPTION}"),
+                ),
+            ] {
+                assert_framework_description(&format!("{prefix}_{suffix}"), &expected);
+            }
+        }
+
+        for (name, expected) in [
+            ("utxos_age_range_wakefulness", WAKEFULNESS_DESCRIPTION),
+            (
+                "utxos_age_range_awake_supply_sats",
+                AGE_AWAKE_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "utxos_age_range_dormant_supply_sats",
+                AGE_DORMANT_SUPPLY_DESCRIPTION,
+            ),
+            ("utxos_age_range_spending_rate", SPENDING_RATE_DESCRIPTION),
+            (
+                "utxos_age_range_spending_exposure",
+                SPENDING_EXPOSURE_DESCRIPTION,
+            ),
+            (
+                "utxos_age_range_mobile_supply_sats",
+                MOBILE_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "utxos_age_range_immobile_supply_sats",
+                IMMOBILE_SUPPLY_DESCRIPTION,
+            ),
+            ("coinblocks_created", COINBLOCKS_CREATED_DESCRIPTION),
+            ("coinblocks_stored", COINBLOCKS_STORED_DESCRIPTION),
+            ("liveliness", LIVELINESS_DESCRIPTION),
+            ("vaultedness", VAULTEDNESS_DESCRIPTION),
+            (
+                "activity_to_vaultedness",
+                ACTIVITY_TO_VAULTEDNESS_DESCRIPTION,
+            ),
+            (
+                "cointime_adj_tx_velocity_btc",
+                COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION,
+            ),
+            (
+                "cointime_adj_tx_velocity_usd",
+                COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION,
+            ),
+            (
+                "cointime_awake_supply_sats_by_term",
+                AGGREGATE_AWAKE_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "cointime_dormant_supply_sats_by_term",
+                AGGREGATE_DORMANT_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "cointime_awake_cap_cents_by_term",
+                AGGREGATE_AWAKE_CAP_DESCRIPTION,
+            ),
+            (
+                "cointime_awake_price_cents_by_aggregate",
+                AGGREGATE_AWAKE_PRICE_DESCRIPTION,
+            ),
+            (
+                "cointime_awake_supply_in_loss_share_by_term",
+                COINTIME_AWAKE_LOSS_DESCRIPTION,
+            ),
+            (
+                "all_awake_supply_in_loss_share",
+                COINTIME_AWAKE_LOSS_DESCRIPTION,
+            ),
+            (
+                "sth_awake_supply_in_loss_share",
+                COINTIME_AWAKE_LOSS_DESCRIPTION,
+            ),
+            (
+                "lth_awake_supply_in_loss_share",
+                COINTIME_AWAKE_LOSS_DESCRIPTION,
+            ),
+            (
+                "cointime_supply_in_loss_share",
+                COINTIME_AWAKE_LOSS_DESCRIPTION,
+            ),
+            (
+                "cointime_value_destroyed",
+                COINTIME_VALUE_DESTROYED_DESCRIPTION,
+            ),
+            ("cointime_value_created", COINTIME_VALUE_CREATED_DESCRIPTION),
+            ("cointime_value_stored", COINTIME_VALUE_STORED_DESCRIPTION),
+            ("vocdd", VOCDD_DESCRIPTION),
+            ("reserve_risk", RESERVE_RISK_DESCRIPTION),
+            ("vocdd_median_1y", VOCDD_MEDIAN_1Y_DESCRIPTION),
+            ("hodl_bank", HODL_BANK_DESCRIPTION),
+        ] {
+            assert_framework_description(name, expected);
+        }
+
+        for aggregate in ["all", "sth", "lth"] {
+            assert_framework_description(
+                &format!("{aggregate}_coinflow_supply_in_loss_share"),
+                COINFLOW_LOSS_DESCRIPTION,
+            );
+            for (horizon, horizon_description) in ["8y", "4y", "2y", "1y", "6m", "3m", "1m"]
+                .into_iter()
+                .zip(HORIZON_DESCRIPTIONS)
+            {
+                let expected = format!("{COINFLOW_HORIZON_LOSS_DESCRIPTION} {horizon_description}");
+                assert_framework_description(
+                    &format!("{aggregate}_coinflow_{horizon}_supply_in_loss_share"),
+                    &expected,
+                );
+            }
+        }
+
+        for (name, expected) in [
+            (
+                "coinflow_mobile_supply_sats_by_term",
+                MOBILE_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "coinflow_immobile_supply_sats_by_term",
+                IMMOBILE_SUPPLY_DESCRIPTION,
+            ),
+            (
+                "coinflow_supply_in_loss_share_by_aggregate",
+                COINFLOW_LOSS_DESCRIPTION,
+            ),
+            ("coinflow_cap_cents_by_term", COINFLOW_CAP_DESCRIPTION),
+            (
+                "coinflow_price_cents_by_aggregate",
+                COINFLOW_PRICE_DESCRIPTION,
+            ),
+        ] {
+            assert_framework_description(name, expected);
+        }
+        for (horizon, horizon_description) in ["8y", "4y", "2y", "1y", "6m", "3m", "1m"]
+            .into_iter()
+            .zip(HORIZON_DESCRIPTIONS)
+        {
+            let expected = format!("{COINFLOW_HORIZON_LOSS_DESCRIPTION} {horizon_description}");
+            assert_framework_description(
+                &format!("coinflow_{horizon}_supply_in_loss_share_by_aggregate"),
+                &expected,
+            );
+        }
+        assert_eq!(audited_framework_roots, 204);
+
         let documented = vecs
             .series_to_index_to_vec
             .iter()
@@ -2060,14 +2877,56 @@ mod tests {
             MEDIAN_DESCRIPTION,
             PCT75_DESCRIPTION,
             PCT90_DESCRIPTION,
+            MACD_DESCRIPTION,
+            MACD_EMA_FAST_DESCRIPTION,
+            MACD_EMA_SLOW_DESCRIPTION,
+            MACD_LINE_DESCRIPTION,
+            MACD_SIGNAL_DESCRIPTION,
+            MACD_HISTOGRAM_DESCRIPTION,
+            CAPITAL_SENTIMENT_PHASE_DESCRIPTION,
+            CAPITAL_SENTIMENT_SCORE_DESCRIPTION,
+            BEDROCK_LOSS_THRESHOLD_DESCRIPTION,
+            BEDROCK_PRICE_BANDS_DESCRIPTION,
+            RARITY_COMPONENT_BANDS_DESCRIPTION,
+            RARITY_COMPONENT_RATIOS_DESCRIPTION,
+            RARITY_PRICES_DESCRIPTION,
+            RARITY_INDEX_DESCRIPTION,
+            RARITY_SCORE_DESCRIPTION,
+            RARITY_EXTREME_THRESHOLDS_DESCRIPTION,
+            RARITY_THRESHOLD_PCT0_1_DESCRIPTION,
+            RARITY_THRESHOLD_PCT0_05_DESCRIPTION,
+            RARITY_THRESHOLD_PCT0_025_DESCRIPTION,
+            RARITY_EXTREME_RANK_DESCRIPTION,
         ];
 
         while !description.is_empty() {
             let Some(fragment) = fragments
                 .iter()
                 .copied()
+                .chain(FRAMEWORK_SEMANTIC_DESCRIPTIONS.iter().copied())
+                .chain(HORIZON_DESCRIPTIONS.iter().copied())
                 .chain(
                     INDEXER_DIRECT_DESCRIPTIONS
+                        .iter()
+                        .map(|(_, description)| *description),
+                )
+                .chain(
+                    SMALL_PLUGIN_DIRECT_DESCRIPTIONS
+                        .iter()
+                        .map(|(_, description)| *description),
+                )
+                .chain(
+                    BEDROCK_MODE_DESCRIPTIONS
+                        .iter()
+                        .map(|(_, description)| *description),
+                )
+                .chain(
+                    RARITY_INNER_DESCRIPTIONS
+                        .iter()
+                        .map(|(_, description)| *description),
+                )
+                .chain(
+                    RARITY_EXTREME_DESCRIPTIONS
                         .iter()
                         .map(|(_, description)| *description),
                 )

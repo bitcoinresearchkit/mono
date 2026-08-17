@@ -11,6 +11,10 @@ use crate::internal::{
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Per-block counts of non-coinbase transaction inputs, partitioned by the
+    /// BRK output type of the previous output they spend. Column order is
+    /// P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown,
+    /// and empty; `OP_RETURN` is excluded because it is unspendable.
     pub input_count: ColumnarPerBlock<
         StoredU16,
         SpendableTypeId,
