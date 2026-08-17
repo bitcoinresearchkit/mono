@@ -26,24 +26,34 @@ const VERSION: Version = Version::new(8);
 
 #[derive(Traversable)]
 pub struct ProfitabilityVecs<M: StorageMode = Rw> {
+    /// Unspent supply grouped by short- or long-term ownership and by the
+    /// output's percentage profit or loss relative to spot price.
     pub supply: ColumnarPerBlock<
         Sats,
         TermProfitabilityRangeId,
         ProfitabilityRow<UTXOAggregate<LazySpotValuePerBlockWithDeltas>>,
         M,
     >,
+    /// Creation-date value of unspent supply grouped by short- or long-term
+    /// ownership and by percentage profit or loss relative to spot price.
     pub realized_cap: ColumnarPerBlock<
         Cents,
         TermProfitabilityRangeId,
         ProfitabilityRow<UTXOAggregate<LazyFiatPerBlock<Cents>>>,
         M,
     >,
+    /// Absolute unrealized profit or loss of unspent supply grouped by short-
+    /// or long-term ownership and by percentage profit or loss relative to
+    /// spot price.
     pub unrealized_pnl: ColumnarPerBlock<
         Cents,
         TermProfitabilityRangeId,
         ProfitabilityRow<UTXOAggregate<LazyFiatPerBlock<Cents>>>,
         M,
     >,
+    /// Net unrealized profit/loss as a share of market cap for the selected
+    /// profitability range: spot price minus aggregate realized price, divided
+    /// by spot price.
     pub nupl: ColumnarPerBlock<
         PartsPerMillionSigned32,
         ProfitabilityId,

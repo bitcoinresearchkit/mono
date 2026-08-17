@@ -3,7 +3,8 @@ use brk_traversable::Traversable;
 use brk_types::{Height, OutputType, Sats, TxOutIndex, TypeIndex, Version};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, ImportableVec, PcoVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyStoredVec, BytesVec, Database, ImportableVec, OverflowVec, PcoVec, Rw, Stamp, StorageMode,
+    WritableVec,
 };
 
 use crate::parallel_import;
@@ -16,7 +17,7 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex>>,
     /// Value of the indexed transaction output in satoshis.
-    pub value: M::Stored<BytesVec<TxOutIndex, Sats>>,
+    pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
     /// previous output spent by the input. Coinbase inputs use `unknown`.
@@ -33,7 +34,7 @@ impl OutputsVecs {
     pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
         let (first_txout_index, value, output_type, type_index) = parallel_import! {
             first_txout_index = PcoVec::forced_import(db, "first_txout_index", version),
-            value = BytesVec::forced_import(db, "value", version),
+            value = OverflowVec::forced_import(db, "value", version),
             output_type = BytesVec::forced_import(db, "output_type", version),
             type_index = BytesVec::forced_import(db, "type_index", version),
         };

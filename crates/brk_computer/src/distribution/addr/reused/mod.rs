@@ -49,8 +49,12 @@ pub use state::ReusedAddrState;
 pub struct ReusedAddrVecs<M: StorageMode = Rw> {
     pub count: AddrCountFundedTotalVecs<M>,
     pub events: AddrEventsVecs<M>,
+    /// Balance held by currently funded addresses that satisfy the selected
+    /// address predicate.
     pub supply: AddrSupplyVecs<M>,
     #[traversable(wrap = "supply", rename = "share")]
+    /// Balance held by addresses satisfying the selected predicate as a share
+    /// of total supply; per-type variants divide by that address type's supply.
     pub supply_share: AddrSupplyShareVecs<M>,
 }
 

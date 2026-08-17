@@ -11,19 +11,35 @@ use super::{
 
 #[derive(Traversable)]
 pub struct AddrVecs<M: StorageMode = Rw> {
+    /// Addresses that currently hold at least one unspent output.
     pub funded: FundedAddrCountsVecs<M>,
+    /// Previously seen addresses that currently hold no unspent outputs.
     pub empty: AddrCountsVecs<M>,
     pub activity: AddrActivityVecs<M>,
+    /// All previously seen addresses, equal to funded addresses plus empty
+    /// addresses.
     pub total: TotalAddrCountVecs<M>,
+    /// Addresses first observed in each block, derived from the increase in
+    /// total address count.
     pub new: NewAddrCountVecs,
+    /// Addresses that have received more than one output over their lifetime.
     pub reused: ReusedAddrVecs<M>,
+    /// Addresses from which more than one output has been spent over their
+    /// lifetime.
     pub respent: ReusedAddrVecs<M>,
+    /// Addresses whose public key or spending script has appeared on-chain.
+    /// P2PK and P2TR are exposed when funded; hashed script types become
+    /// exposed when spent; P2A is excluded.
     pub exposed: ExposedAddrVecs<M>,
+    /// Change in funded address count over the named trailing window, with the
+    /// percentage change measured against the window's starting count.
     pub delta: DeltaVecs,
     pub avg_amount: AvgAmountVecs<M>,
     #[traversable(wrap = "indexes", rename = "funded")]
+    /// Identity index for the persisted funded-address state table.
     pub funded_index: LazyVec<FundedAddrIndex, FundedAddrIndex, FundedAddrIndex, FundedAddrData>,
     #[traversable(wrap = "indexes", rename = "empty")]
+    /// Identity index for the persisted empty-address state table.
     pub empty_index: LazyVec<EmptyAddrIndex, EmptyAddrIndex, EmptyAddrIndex, EmptyAddrData>,
 }
 

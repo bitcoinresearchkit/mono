@@ -38,6 +38,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     pools: &'static Pools,
 
+    /// Mining pool attributed to each block. BRK first scans address-bearing
+    /// outputs of the coinbase transaction for a known pool payout address; if
+    /// none matches, it performs case-insensitive substring matching against
+    /// known coinbase tags. Unmatched blocks are classified as `unknown`.
     pub pool: M::Stored<BytesVec<Height, PoolSlug>>,
     #[traversable(skip)]
     pub pool_heights: PoolHeights,

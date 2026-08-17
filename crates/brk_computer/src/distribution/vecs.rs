@@ -11,8 +11,8 @@ use brk_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
 use vecdb::{
-    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, LazyVec, ReadableCloneableVec,
-    ReadableVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, LazyVec, OverflowVec,
+    ReadableCloneableVec, ReadableVec, Rw, Stamp, StorageMode, WritableVec,
 };
 
 use crate::{
@@ -51,6 +51,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub states_path: PathBuf,
 
     #[traversable(wrap = "supply", rename = "state")]
+    /// Serialized distribution state used to resume cohort computation at each
+    /// block height.
     pub supply_state: M::Stored<BytesVec<Height, SupplyState>>,
     #[traversable(wrap = "addrs", rename = "indexes")]
     pub any_addr_indexes: AnyAddrIndexesVecs<M>,
@@ -71,6 +73,8 @@ pub struct Vecs<M: StorageMode = Rw> {
         M,
     >,
     #[traversable(wrap = "cointime/activity")]
+    /// Coin blocks destroyed by spent outputs: each spent output's value in
+    /// BTC multiplied by its age in blocks, summed over the represented block.
     pub coinblocks_destroyed: PerBlockCumulativeRolling<StoredF64, M>,
     pub addrs: AddrVecs<M>,
 }
@@ -106,8 +110,8 @@ where
 }
 
 const SAVED_STAMPED_CHANGES: u16 = 10;
-/// Version of the fixed-width `FundedAddrData` record layout.
-const FUNDED_ADDR_DATA_VERSION: Version = Version::TWO;
+/// Version of the persisted funded-address data layout.
+const FUNDED_ADDR_DATA_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub fn all_chain_sources(&self) -> AllChainSources {
@@ -135,13 +139,13 @@ impl Vecs {
         let cohorts =
             CohortMetrics::forced_import(&db, version, indexes, cached_starts, &spot_price)?;
 
-        // Create address data BytesVecs first so we can also use them for identity mappings
+        // Create address data vecs first so we can also use them for identity mappings.
         let funded_addr_data_version = version + FUNDED_ADDR_DATA_VERSION;
-        let funded_addr_index_to_funded_addr_data = BytesVec::forced_import_with(
+        let funded_addr_index_to_funded_addr_data = OverflowVec::forced_import_with(
             ImportOptions::new(&db, "funded_addr_data", funded_addr_data_version)
                 .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),
         )?;
-        let empty_addr_index_to_empty_addr_data = BytesVec::forced_import_with(
+        let empty_addr_index_to_empty_addr_data = OverflowVec::forced_import_with(
             ImportOptions::new(&db, "empty_addr_data", version)
                 .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),
         )?;

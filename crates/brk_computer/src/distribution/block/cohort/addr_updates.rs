@@ -48,9 +48,8 @@ pub fn process_funded_addrs(
     }
 
     // Phase 2: Updates (in-place)
-    for (index, data) in updates {
-        addrs_data.funded.update(index, data)?;
-    }
+    updates.sort_unstable_by_key(|(index, _)| *index);
+    addrs_data.funded.update_many(updates)?;
 
     // Phase 3: Pushes (fill holes first, then pure pushes)
     let mut result = AddrTypeToTypeIndexMap::with_capacity(pushes.len() / 4);
@@ -118,9 +117,8 @@ pub fn process_empty_addrs(
     }
 
     // Phase 2: Updates (in-place)
-    for (index, data) in updates {
-        addrs_data.empty.update(index, data)?;
-    }
+    updates.sort_unstable_by_key(|(index, _)| *index);
+    addrs_data.empty.update_many(updates)?;
 
     // Phase 3: Pushes (fill holes first, then pure pushes)
     let mut result = AddrTypeToTypeIndexMap::with_capacity(pushes.len() / 4);

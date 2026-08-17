@@ -17,14 +17,22 @@ use super::{AddrTypeToActivityCounts, BlockActivityCounts};
 
 #[derive(Traversable)]
 pub struct AddrActivityVecs<M: StorageMode = Rw> {
+    /// Distinct addresses that received after previously being empty in the
+    /// represented block.
     pub reactivated:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    /// Distinct addresses that sent bitcoin in the represented block.
     pub sending:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    /// Distinct addresses that received bitcoin in the represented block.
     pub receiving:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    /// Distinct addresses that both sent and received bitcoin in the
+    /// represented block.
     pub bidirectional:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
+    /// Distinct addresses active in the represented block: sending plus
+    /// receiving minus bidirectional addresses.
     pub active:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
 

@@ -66,6 +66,9 @@ where
                 info!("Resetting {}...", options.name);
                 options
                     .db
+                    .remove_region_if_exists(&Self::holes_region_name_with(options.name))?;
+                options
+                    .db
                     .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;
                 Self::import_with(options, format)
             }

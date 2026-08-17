@@ -67,6 +67,10 @@ use super::state::AddrTypeToAddrEventCount;
 /// cumulative count remains an internal source for the lazy views.
 #[derive(Traversable)]
 pub struct AddrEventsVecs<M: StorageMode = Rw> {
+    /// Outputs classified by the selected address event rule. Reuse counts
+    /// every output after an address's first lifetime receive; respending counts
+    /// outputs to addresses with more than one prior lifetime spend. Multiple
+    /// qualifying outputs to one address are counted separately.
     pub output_to_reused_addr_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
         AddrTypeId,
@@ -76,8 +80,16 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
         >,
         M,
     >,
+    /// Share of outputs classified by the selected address event rule, using
+    /// the matching output type as denominator.
     pub output_to_reused_addr_share: WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    /// Share of spendable outputs classified by the selected address event
+    /// rule; `OP_RETURN` outputs are excluded from the denominator.
     pub spendable_output_to_reused_addr_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
+    /// Inputs spending from addresses that satisfied the selected predicate
+    /// before that input: more than one prior lifetime receive for reuse, or
+    /// more than one prior lifetime spend for respending. Multiple qualifying
+    /// inputs from one address are counted separately.
     pub input_from_reused_addr_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
         AddrTypeId,
@@ -87,9 +99,15 @@ pub struct AddrEventsVecs<M: StorageMode = Rw> {
         >,
         M,
     >,
+    /// Share of inputs spending from addresses that satisfy the selected
+    /// predicate, using the matching input type as denominator.
     pub input_from_reused_addr_share:
         WithAddrTypes<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    /// Distinct active addresses in the represented block that satisfy the
+    /// selected predicate after that block's events.
     pub active_reused_addr_count: CountPerBlockRollingAverage<M>,
+    /// Share of distinct active addresses in the represented block that
+    /// satisfy the selected predicate after that block's events.
     pub active_reused_addr_share: PerBlockRollingAverage<StoredF32, StoredF32, M>,
 }
 

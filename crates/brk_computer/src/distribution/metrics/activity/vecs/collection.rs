@@ -5,14 +5,16 @@ use brk_cohort::{
 use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
-use vecdb::{AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode};
+use vecdb::{
+    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode, UnaryTransform,
+};
 
 use crate::{
     distribution::metrics::UTXORows,
     indexes,
     internal::{
-        CACHE_BUDGET, CachedWindowStartVec, ColumnarRollingWindows, Identity, LazyPerBlock,
-        SatsToCents, Windows,
+        CACHE_BUDGET, CachedWindowStartVec, ColumnarRollingWindows, LazyPerBlock, SatsToCents,
+        Windows,
     },
 };
 
@@ -21,15 +23,39 @@ use super::{
     CumulativeValueByCohort,
 };
 
+const COINYEARS_DESTROYED_VERSION: Version = Version::ONE;
+
+struct CoinDaysToCoinYears;
+
+impl UnaryTransform<StoredF64, StoredF64> for CoinDaysToCoinYears {
+    #[inline(always)]
+    fn apply(coin_days: StoredF64) -> StoredF64 {
+        StoredF64::from(*coin_days / 365.0)
+    }
+}
+
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
+    /// Value of outputs from the selected cohort spent in each block. BTC
+    /// representations use the spent output value; USD representations value
+    /// it at the spending block's spot price.
     pub transfer_volume: Box<CumulativeValueByCohort<M>>,
+    /// Coin days destroyed by outputs from the selected cohort: each spent
+    /// output's BTC value multiplied by its age in days.
     pub coindays_destroyed: CoindaysDestroyedByCohort<M>,
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
+    /// Transfer volume whose spending price is greater than or equal to the
+    /// spent outputs' creation price.
     pub transfer_volume_in_profit: Box<CoreCumulativeValueByCohort<M>>,
     #[traversable(wrap = "transfer_volume", rename = "in_loss")]
+    /// Transfer volume whose spending price is below the spent outputs'
+    /// creation price.
     pub transfer_volume_in_loss: Box<CoreCumulativeValueByCohort<M>>,
+    /// Coin years destroyed over the trailing 365-day window: the window's
+    /// total coin days destroyed divided by 365.
     pub coinyears_destroyed: UTXOAggregate<LazyPerBlock<StoredF64, StoredF64>>,
+    /// Average age in days of transferred bitcoin over the named trailing
+    /// window: coin days destroyed divided by transfer volume in BTC.
     pub dormancy: UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>,
 }
 
@@ -77,9 +103,9 @@ impl ActivityVecs {
                 .height
                 .clone();
             let source = CACHE_BUDGET.wrap(source);
-            LazyPerBlock::from_height_source::<Identity<StoredF64>>(
+            LazyPerBlock::from_height_source::<CoinDaysToCoinYears>(
                 &name,
-                Self::aggregate_version(aggregate_version, id),
+                Self::aggregate_version(aggregate_version, id) + COINYEARS_DESTROYED_VERSION,
                 source,
                 indexes,
             )
@@ -211,5 +237,23 @@ impl ActivityVecs {
             )?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn converts_trailing_coin_days_to_coin_years() {
+        assert_eq!(
+            CoinDaysToCoinYears::apply(StoredF64::from(365.0)),
+            StoredF64::from(1.0),
+        );
+        assert_eq!(
+            CoinDaysToCoinYears::apply(StoredF64::from(182.5)),
+            StoredF64::from(0.5),
+        );
+        assert!(CoinDaysToCoinYears::apply(StoredF64::NAN).is_nan());
     }
 }

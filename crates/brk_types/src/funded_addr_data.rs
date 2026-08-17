@@ -1,9 +1,9 @@
 use brk_error::{Error, Result};
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-use vecdb::{Bytes, Formattable, Result as VecDBResult, unlikely};
+use vecdb::{Bytes, Formattable, OverflowVecValue, Result as VecDBResult, Version, unlikely};
 
-use crate::{Cents, CentsSats, EmptyAddrData, OutputType, Sats};
+use crate::{Cents, CentsSats, EmptyAddrData, FundedAddrDataCompact, OutputType, Sats};
 
 const CENTS_SATS_96_LIMIT: u128 = 1_u128 << 96;
 
@@ -346,6 +346,48 @@ impl Bytes for FundedAddrData {
     }
 }
 
+impl OverflowVecValue for FundedAddrData {
+    type Compact = FundedAddrDataCompact;
+
+    const VERSION: Version = Version::ONE;
+
+    #[inline(always)]
+    fn to_compact(&self) -> Option<Self::Compact> {
+        FundedAddrDataCompact::new(
+            self.received.into(),
+            self.sent.into(),
+            self.realized_cap_raw().into(),
+            self.tx_count,
+            self.funded_txo_count,
+            self.spent_txo_count,
+        )
+    }
+
+    #[inline(always)]
+    fn from_compact(compact: Self::Compact) -> Self {
+        Self {
+            received: Sats::from(compact.received()),
+            sent: Sats::from(compact.sent()),
+            realized_cap_raw: CentsSats96::from_wide(CentsSats::new(u128::from(
+                compact.realized_cap_raw(),
+            ))),
+            tx_count: compact.tx_count(),
+            funded_txo_count: compact.funded_txo_count(),
+            spent_txo_count: compact.spent_txo_count(),
+        }
+    }
+
+    #[inline(always)]
+    fn overflow_index(compact: Self::Compact) -> Option<usize> {
+        compact.overflow_index()
+    }
+
+    #[inline(always)]
+    fn from_overflow_index(index: usize) -> Self::Compact {
+        FundedAddrDataCompact::from_overflow_index(index)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::SupplyState;
@@ -392,6 +434,24 @@ mod tests {
             SupplyState::from(&decoded).value,
             SupplyState::from(&data).value
         );
+    }
+
+    #[test]
+    fn overflow_compact_roundtrips_and_rejects_wide_values() {
+        let mut data = FundedAddrData::default();
+        data.receive_outputs(Sats::ONE_BTC, Cents::new(10_000), 2);
+        data.tx_count = 3;
+
+        let decoded = FundedAddrData::from_compact(data.to_compact().unwrap());
+        assert_eq!(decoded.received, data.received);
+        assert_eq!(decoded.sent, data.sent);
+        assert_eq!(decoded.realized_cap_raw(), data.realized_cap_raw());
+        assert_eq!(decoded.tx_count, data.tx_count);
+        assert_eq!(decoded.funded_txo_count, data.funded_txo_count);
+        assert_eq!(decoded.spent_txo_count, data.spent_txo_count);
+
+        data.realized_cap_raw = CentsSats96::from_wide(CentsSats::new(u128::from(u64::MAX) + 1));
+        assert!(data.to_compact().is_none());
     }
 
     #[test]

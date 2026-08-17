@@ -15,6 +15,7 @@ use crate::{
 };
 
 const VERSION: Version = Version::new(1);
+const COINYEARS_DESTROYED_SUPPLY_ADJ_VERSION: Version = Version::ONE;
 
 impl Vecs {
     pub(crate) fn forced_import(
@@ -61,15 +62,16 @@ impl Vecs {
             cdd_source,
             indexes,
         );
+        let cyd_version = v + COINYEARS_DESTROYED_SUPPLY_ADJ_VERSION;
         let cyd_source = all_chain.with_supply(
             "coinyears_destroyed_supply_adj_source",
-            v,
+            cyd_version,
             &activity.coinyears_destroyed.all.height,
             |_, cyd, supply| Self::supply_adjusted(f64::from(cyd), supply),
         );
         let coinyears_destroyed_supply_adj = LazyPerBlock::from_height_source::<Identity<StoredF32>>(
             "coinyears_destroyed_supply_adj",
-            v,
+            cyd_version,
             cyd_source,
             indexes,
         );

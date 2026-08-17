@@ -10,9 +10,9 @@ use serde::Serialize;
 use vecdb::{
     AggFold, AnyExportableVec, AnyVec, BytesVec, BytesVecValue, CachedVec, ColumnId, ColumnarVec,
     CompressionStrategy, DeltaOp, EagerVec, Formattable, LazyAggVec, LazyColumnSumVec,
-    LazyColumnVec, LazyColumnarVec, LazyDeltaVec, LazyVec, RawStrategy, ReadOnlyColumnarVec,
-    ReadOnlyCompressedVec, ReadOnlyRawVec, ReadableColumnarVec, StoredVec, TypedVec, VecIndex,
-    VecValue,
+    LazyColumnVec, LazyColumnarVec, LazyDeltaVec, LazyVec, OverflowVec, OverflowVecValue,
+    RawStrategy, ReadOnlyColumnarVec, ReadOnlyCompressedVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
+    ReadableColumnarVec, StoredVec, TypedVec, VecIndex, VecValue,
 };
 
 pub trait Traversable {
@@ -191,6 +191,34 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<V::I, C::Row<V::T>, _>(self)
+    }
+}
+
+impl<I, T> Traversable for OverflowVec<I, T>
+where
+    I: VecIndex,
+    T: OverflowVecValue + Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<I, T, _>(self)
+    }
+}
+
+impl<I, T> Traversable for ReadOnlyOverflowVec<I, T>
+where
+    I: VecIndex,
+    T: OverflowVecValue + Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<I, T, _>(self)
     }
 }
 

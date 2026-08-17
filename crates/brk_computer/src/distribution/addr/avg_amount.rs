@@ -18,7 +18,11 @@ use crate::{
 
 #[derive(Traversable)]
 pub struct AvgAmountVecs<M: StorageMode = Rw> {
+    /// Mean value of a currently unspent output: unspent supply divided by
+    /// unspent output count.
     pub utxo: WithAddrTypes<LazyColumnSpotValuePerBlock<AddrTypeId>, LazySpotValuePerBlock>,
+    /// Mean balance of a funded address: unspent supply divided by funded
+    /// address count.
     pub addr: WithAddrTypes<LazyColumnSpotValuePerBlock<AddrTypeId>, LazySpotValuePerBlock>,
     #[traversable(hidden)]
     utxo_source: ColumnarPerBlock<Sats, AddrTypeId, (), M>,

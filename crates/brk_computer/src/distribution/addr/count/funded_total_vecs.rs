@@ -13,7 +13,11 @@ use super::{AddrCountsVecs, AddrTypeToAddrCount};
 /// `"total_{name}_addr_count"` (total).
 #[derive(Traversable)]
 pub struct AddrCountFundedTotalVecs<M: StorageMode = Rw> {
+    /// Number of addresses that currently hold unspent outputs and satisfy the
+    /// selected address predicate.
     pub funded: AddrCountsVecs<M>,
+    /// Number of addresses that have ever satisfied the selected address
+    /// predicate, whether or not they currently hold unspent outputs.
     pub total: AddrCountsVecs<M>,
 }
 

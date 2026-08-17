@@ -2,13 +2,17 @@ use brk_error::Result;
 use brk_traversable::Traversable;
 use brk_types::{EmptyAddrData, EmptyAddrIndex, FundedAddrData, FundedAddrIndex, Height};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, BytesVec, Rw, Stamp, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, OverflowVec, Rw, Stamp, StorageMode, WritableVec};
 
 /// Storage for both funded and empty address data.
 #[derive(Traversable)]
 pub struct AddrsDataVecs<M: StorageMode = Rw> {
-    pub funded: M::Stored<BytesVec<FundedAddrIndex, FundedAddrData>>,
-    pub empty: M::Stored<BytesVec<EmptyAddrIndex, EmptyAddrData>>,
+    /// Persisted state record for each address that currently holds at least
+    /// one unspent output.
+    pub funded: M::Stored<OverflowVec<FundedAddrIndex, FundedAddrData>>,
+    /// Persisted state record for each previously seen address that currently
+    /// holds no unspent outputs.
+    pub empty: M::Stored<OverflowVec<EmptyAddrIndex, EmptyAddrData>>,
 }
 
 impl AddrsDataVecs {

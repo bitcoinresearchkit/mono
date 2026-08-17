@@ -14,7 +14,11 @@ use super::super::{PoolHeights, pool_heights::PoolCumulativeVec};
 
 #[derive(Clone, Traversable)]
 pub struct BlocksMined {
+    /// One when the represented block is attributed to the selected pool;
+    /// otherwise zero.
     pub block: LazyPreviousDeltaVec<Height, StoredU64>,
+    /// Number of blocks attributed to the selected pool from genesis through
+    /// the represented height, inclusive.
     pub cumulative: LazyPerBlock<StoredU64>,
     pub sum: LazyRollingSumsFromHeight<StoredU64>,
 }

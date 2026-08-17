@@ -24,7 +24,11 @@ macro_rules! define_any_addr_indexes_vecs {
     ($(($field:ident, $variant:ident, $index:ty)),* $(,)?) => {
         #[derive(Traversable)]
         pub struct AnyAddrIndexesVecs<M: StorageMode = Rw> {
-            $(pub $field: M::Stored<BytesVec<$index, AnyAddrIndex>>,)*
+            $(
+                /// Maps an address-type-specific index to the corresponding
+                /// unified address index.
+                pub $field: M::Stored<BytesVec<$index, AnyAddrIndex>>,
+            )*
         }
 
         impl AnyAddrIndexesVecs {

@@ -17,6 +17,7 @@ use super::{AddrCountsVecs, AddrTypeToAddrCount};
 pub struct FundedAddrCountsVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub counts: AddrCountsVecs<M>,
+    /// Number of funded addresses in the selected balance range.
     pub balance: ColumnarAmount<
         StoredU64,
         LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,

@@ -278,7 +278,7 @@ mod tests {
     use brk_indexer::Indexer;
     use brk_reader::Reader;
     use brk_rpc::{Auth, Client};
-    use brk_types::{Index, SeriesName};
+    use brk_types::{Index, SeriesName, pools};
 
     use super::Vecs;
 
@@ -672,7 +672,7 @@ mod tests {
         ),
         (
             "coinyears_destroyed_supply_adj",
-            "Trailing 365-day total of coin days destroyed divided by the current all-chain supply in BTC. Despite the series name, the numerator is not divided by 365. Returns zero when supply is zero.",
+            "Trailing 365-day coin years destroyed divided by the current all-chain supply in BTC. Returns zero when supply is zero.",
         ),
         (
             "constant_0",
@@ -1046,6 +1046,138 @@ mod tests {
         COINFLOW_CAP_DESCRIPTION,
         COINFLOW_PRICE_DESCRIPTION,
     ];
+    const DISTRIBUTION_SEMANTIC_DESCRIPTIONS: &[&str] = &[
+        "Serialized distribution state used to resume cohort computation at each block height.",
+        "Maps an address-type-specific index to the corresponding unified address index.",
+        "Coin blocks destroyed by spent outputs: each spent output's value in BTC multiplied by its age in blocks, summed over the represented block.",
+        "Amount of bitcoin held in unspent transaction outputs in the selected cohort.",
+        "Amount of unspent bitcoin that crosses out of the selected exact age range during the represented block interval.",
+        "One half of the selected cohort's unspent supply.",
+        "Unspent supply whose creation price is less than or equal to the current spot price.",
+        "Unspent supply whose creation price is greater than the current spot price.",
+        "Change in the selected cohort's unspent supply over the named trailing window, with the percentage change measured against the window's starting value.",
+        "Change in unspent supply controlled by addresses in the selected balance cohort over the named trailing window, with the percentage change measured against the window's starting value.",
+        "Share of all unspent supply held by the selected cohort.",
+        "Share of all unspent supply controlled by addresses in the selected balance cohort.",
+        "Number of currently unspent transaction outputs in the selected cohort.",
+        "Number of transaction outputs from the selected cohort spent in each block.",
+        "Value of outputs from the selected cohort spent in each block. BTC representations use the spent output value; USD representations value it at the spending block's spot price.",
+        "Coin days destroyed by outputs from the selected cohort: each spent output's BTC value multiplied by its age in days.",
+        "Transfer volume whose spending price is greater than or equal to the spent outputs' creation price.",
+        "Transfer volume whose spending price is below the spent outputs' creation price.",
+        "Coin years destroyed over the trailing 365-day window: the window's total coin days destroyed divided by 365.",
+        "Average age in days of transferred bitcoin over the named trailing window: coin days destroyed divided by transfer volume in BTC.",
+        "Creation-date value of the unspent outputs in the selected cohort: the sum of each output's creation price multiplied by its BTC value.",
+        "Profit realized by outputs from the selected cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
+        "Profit realized by addresses in the selected pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
+        "Loss realized by outputs from the selected cohort when spent: creation-date value minus spending value, counted only for losing spends.",
+        "Loss realized by addresses in the selected pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
+        "Net realized profit and loss of outputs from the selected cohort when spent: realized profit minus realized loss.",
+        "Creation-date value destroyed by spent outputs from the selected cohort: the sum of each spent output's creation price multiplied by its BTC value.",
+        "24-hour spent output profit ratio for the selected cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
+        "Adjusted spent output profit ratio: SOPR after excluding outputs younger than one hour, computed over the named trailing window. Returns one when creation-date value is zero.",
+        "Creation-date value of unspent outputs controlled by funded addresses in the selected current balance range.",
+        "Gross realized profit and loss of the selected aggregate cohort: realized profit plus realized loss.",
+        "Capital-weighted creation price of unspent outputs in the selected aggregate cohort: sum of creation price squared times sats divided by sum of creation price times sats.",
+        "Sum of creation price times unspent sats for the selected aggregate cohort. This raw numerator underlies realized cap and realized price.",
+        "Sum of creation price squared times unspent sats for the selected aggregate cohort. This raw numerator underlies capitalized price.",
+        "Value forgone relative to the historical peak price of each spent output: peak price minus spending price, multiplied by spent BTC value.",
+        "One-month change in net realized profit and loss divided by the selected cohort's realized cap.",
+        "Gross realized profit and loss over the named trailing window divided by the selected cohort's current realized cap.",
+        "Spent output profit ratio over the named trailing window: spending value divided by creation-date value for outputs spent from the selected cohort. Returns one when creation-date value is zero.",
+        "Realized profit divided by realized loss over the named trailing window for the selected cohort.",
+        "Market-value-to-realized-value ratio for the selected cohort: spot price divided by its realized price.",
+        "Realized loss expressed as a negative value.",
+        "Realized cap divided by the selected cohort's own market cap; the reciprocal of its MVRV.",
+        "One-month change in the selected cohort's net realized profit and loss divided by total Bitcoin market cap.",
+        "Unrealized profit of unspent outputs in the selected cohort: current market value minus creation-date value, summed only where spot price is above creation price.",
+        "Unrealized loss of unspent outputs in the selected cohort: creation-date value minus current market value, summed only where spot price is below creation price.",
+        "Net unrealized profit and loss of the selected cohort: unrealized profit minus unrealized loss.",
+        "Gross unrealized profit and loss of the selected aggregate cohort: unrealized profit plus unrealized loss.",
+        "Creation-date value of unspent supply currently in profit.",
+        "Creation-date value of unspent supply currently in loss.",
+        "Sum of creation price squared times unspent sats for supply currently in profit. This raw numerator underlies the profit-side capitalized price.",
+        "Sum of creation price squared times unspent sats for supply currently in loss. This raw numerator underlies the loss-side capitalized price.",
+        "Spot price minus the capital-weighted creation price of unspent supply currently in loss.",
+        "Spot price minus the capital-weighted creation price of unspent supply currently in profit.",
+        "Greed index minus pain index for the selected aggregate cohort.",
+        "Net unrealized profit/loss as a share of market cap. It is derived from MVRV as `1 - 1 / MVRV`.",
+        "Unrealized loss expressed as a negative value.",
+        "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+        "Share of the selected cohort's unspent supply whose creation price is greater than spot price.",
+        "Unrealized profit of the selected cohort divided by total Bitcoin market cap.",
+        "Unrealized loss of the selected cohort divided by total Bitcoin market cap.",
+        "Unrealized profit divided by the selected term cohort's own market cap.",
+        "Unrealized loss divided by the selected term cohort's own market cap.",
+        "Net unrealized profit and loss divided by the selected term cohort's own market cap.",
+        "Creation-date value of unspent supply currently in profit divided by the selected cohort's realized cap.",
+        "Creation-date value of unspent supply currently in loss divided by the selected cohort's realized cap.",
+        "Unrealized profit divided by gross unrealized profit and loss for the selected cohort.",
+        "Unrealized loss divided by gross unrealized profit and loss for the selected cohort.",
+        "Net unrealized profit and loss divided by gross unrealized profit and loss for the selected cohort.",
+        "Unspent supply grouped by short- or long-term ownership and by the output's percentage profit or loss relative to spot price.",
+        "Creation-date value of unspent supply grouped by short- or long-term ownership and by percentage profit or loss relative to spot price.",
+        "Absolute unrealized profit or loss of unspent supply grouped by short- or long-term ownership and by percentage profit or loss relative to spot price.",
+        "Net unrealized profit/loss as a share of market cap for the selected profitability range: spot price minus aggregate realized price, divided by spot price.",
+        "Lowest creation price represented by an unspent output in the selected cohort.",
+        "Highest creation price represented by an unspent output in the selected cohort.",
+        "Creation-price percentiles weighted by unspent satoshis in the selected cohort.",
+        "Creation-price percentiles weighted by creation-date USD value in the selected cohort.",
+        "Share of the selected cohort's unspent supply with a creation price within 5% above or below spot price.",
+        "Satoshi-weighted mean creation price of the selected profit or loss side of the cohort. Returns spot price when that side has no supply.",
+        "Creation-value-weighted mean creation price of the selected profit or loss side of the cohort. Returns spot price when that side has no invested value.",
+        "Addresses that currently hold at least one unspent output.",
+        "Previously seen addresses that currently hold no unspent outputs.",
+        "All previously seen addresses, equal to funded addresses plus empty addresses.",
+        "Addresses first observed in each block, derived from the increase in total address count.",
+        "Addresses that have received more than one output over their lifetime.",
+        "Addresses from which more than one output has been spent over their lifetime.",
+        "Addresses whose public key or spending script has appeared on-chain. P2PK and P2TR are exposed when funded; hashed script types become exposed when spent; P2A is excluded.",
+        "Change in funded address count over the named trailing window, with the percentage change measured against the window's starting count.",
+        "Identity index for the persisted funded-address state table.",
+        "Identity index for the persisted empty-address state table.",
+        "Number of funded addresses in the selected balance range.",
+        "Number of addresses that currently hold unspent outputs and satisfy the selected address predicate.",
+        "Number of addresses that have ever satisfied the selected address predicate, whether or not they currently hold unspent outputs.",
+        "Persisted state record for each address that currently holds at least one unspent output.",
+        "Persisted state record for each previously seen address that currently holds no unspent outputs.",
+        "Balance held by currently funded addresses that satisfy the exposure predicate.",
+        "Exposed-address balance as a share of total supply; per-type variants divide by that address type's supply.",
+        "Balance held by currently funded addresses that satisfy the selected address predicate.",
+        "Balance held by addresses satisfying the selected predicate as a share of total supply; per-type variants divide by that address type's supply.",
+        "Distinct addresses that received after previously being empty in the represented block.",
+        "Distinct addresses that sent bitcoin in the represented block.",
+        "Distinct addresses that received bitcoin in the represented block.",
+        "Distinct addresses that both sent and received bitcoin in the represented block.",
+        "Distinct addresses active in the represented block: sending plus receiving minus bidirectional addresses.",
+        "Mean value of a currently unspent output: unspent supply divided by unspent output count.",
+        "Mean balance of a funded address: unspent supply divided by funded address count.",
+        "Outputs classified by the selected address event rule. Reuse counts every output after an address's first lifetime receive; respending counts outputs to addresses with more than one prior lifetime spend. Multiple qualifying outputs to one address are counted separately.",
+        "Share of outputs classified by the selected address event rule, using the matching output type as denominator.",
+        "Share of spendable outputs classified by the selected address event rule; `OP_RETURN` outputs are excluded from the denominator.",
+        "Inputs spending from addresses that satisfied the selected predicate before that input: more than one prior lifetime receive for reuse, or more than one prior lifetime spend for respending. Multiple qualifying inputs from one address are counted separately.",
+        "Share of inputs spending from addresses that satisfy the selected predicate, using the matching input type as denominator.",
+        "Distinct active addresses in the represented block that satisfy the selected predicate after that block's events.",
+        "Share of distinct active addresses in the represented block that satisfy the selected predicate after that block's events.",
+    ];
+    const POOL_ATTRIBUTION_DESCRIPTION: &str = "Mining pool attributed to each block. BRK first scans address-bearing outputs of the coinbase transaction for a known pool payout address; if none matches, it performs case-insensitive substring matching against known coinbase tags. Unmatched blocks are classified as `unknown`.";
+    const POOL_BLOCKS_DESCRIPTION: &str =
+        "Block counts for the selected mining pool, using the per-height pool attribution series.";
+    const POOL_BLOCK_DESCRIPTION: &str =
+        "One when the represented block is attributed to the selected pool; otherwise zero.";
+    const POOL_BLOCKS_CUMULATIVE_DESCRIPTION: &str = "Number of blocks attributed to the selected pool from genesis through the represented height, inclusive.";
+    const POOL_DOMINANCE_DESCRIPTION: &str = "Share of all blocks from genesis through the represented height attributed to the selected pool: cumulative pool block count divided by block height plus one.";
+    const POOL_REWARDS_DESCRIPTION: &str = "Coinbase transaction output value for blocks attributed to the selected pool, and zero for other blocks. USD and cents representations value each included reward at that block's spot price.";
+    const POOL_ROLLING_DOMINANCE_DESCRIPTION: &str = "Share of blocks in the named trailing timestamp window attributed to the selected pool: pool block count divided by total chain block count in that window.";
+    const POOL_SEMANTIC_DESCRIPTIONS: &[&str] = &[
+        POOL_ATTRIBUTION_DESCRIPTION,
+        POOL_BLOCKS_DESCRIPTION,
+        POOL_BLOCK_DESCRIPTION,
+        POOL_BLOCKS_CUMULATIVE_DESCRIPTION,
+        POOL_DOMINANCE_DESCRIPTION,
+        POOL_REWARDS_DESCRIPTION,
+        POOL_ROLLING_DOMINANCE_DESCRIPTION,
+    ];
     const TIMESTAMP_DESCRIPTION: &str = "Unix timestamp in seconds associated with the indexed block or time period. Block-header timestamps are not guaranteed to increase between consecutive heights.";
     const BLOCK_DESCRIPTION: &str = "Value for the represented block. At time-period indexes, the value is taken from the period's final block.";
     const CUMULATIVE_DESCRIPTION: &str = "Cumulative value through the represented block. At time-period indexes, the value is taken at the period's final block.";
@@ -1153,10 +1285,6 @@ mod tests {
             ("price_close", USD_DESCRIPTION),
             ("price_close_cents", CENTS_DESCRIPTION),
             ("price_close_sats", SATS_DESCRIPTION),
-            ("supply_in_profit", AMOUNT_BTC_DESCRIPTION),
-            ("supply_in_profit_sats", AMOUNT_SATS_DESCRIPTION),
-            ("supply_in_profit_usd", AMOUNT_USD_DESCRIPTION),
-            ("supply_in_profit_cents", AMOUNT_CENTS_DESCRIPTION),
             ("dca_stack_from_2020", AMOUNT_BTC_DESCRIPTION),
             ("dca_stack_from_2020_sats", AMOUNT_SATS_DESCRIPTION),
             ("dca_stack_from_2020_usd", AMOUNT_USD_DESCRIPTION),
@@ -1165,12 +1293,6 @@ mod tests {
             ("lump_sum_stack_1y_sats", AMOUNT_SATS_DESCRIPTION),
             ("lump_sum_stack_1y_usd", AMOUNT_USD_DESCRIPTION),
             ("lump_sum_stack_1y_cents", AMOUNT_CENTS_DESCRIPTION),
-            ("all_supply_in_profit_share_ppm", GENERIC_PPM_DESCRIPTION),
-            (
-                "all_supply_in_profit_share_ratio",
-                GENERIC_RATIO_DESCRIPTION,
-            ),
-            ("all_supply_in_profit_share", PERCENT_DESCRIPTION),
         ] {
             let info = vecs
                 .series_info(&SeriesName::from(name))
@@ -1178,6 +1300,53 @@ mod tests {
             assert_eq!(
                 info.description.as_deref(),
                 Some(description),
+                "wrong description for {name}"
+            );
+        }
+
+        for (name, semantic, representation) in [
+            (
+                "supply_in_profit",
+                "Unspent supply whose creation price is less than or equal to the current spot price.",
+                AMOUNT_BTC_DESCRIPTION,
+            ),
+            (
+                "supply_in_profit_sats",
+                "Unspent supply whose creation price is less than or equal to the current spot price.",
+                AMOUNT_SATS_DESCRIPTION,
+            ),
+            (
+                "supply_in_profit_usd",
+                "Unspent supply whose creation price is less than or equal to the current spot price.",
+                AMOUNT_USD_DESCRIPTION,
+            ),
+            (
+                "supply_in_profit_cents",
+                "Unspent supply whose creation price is less than or equal to the current spot price.",
+                AMOUNT_CENTS_DESCRIPTION,
+            ),
+            (
+                "all_supply_in_profit_share_ppm",
+                "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+                GENERIC_PPM_DESCRIPTION,
+            ),
+            (
+                "all_supply_in_profit_share_ratio",
+                "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+                GENERIC_RATIO_DESCRIPTION,
+            ),
+            (
+                "all_supply_in_profit_share",
+                "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+                PERCENT_DESCRIPTION,
+            ),
+        ] {
+            let info = vecs
+                .series_info(&SeriesName::from(name))
+                .unwrap_or_else(|| panic!("missing series {name}"));
+            assert_eq!(
+                info.description.as_deref(),
+                Some(format!("{semantic} {representation}").as_str()),
                 "wrong description for {name}"
             );
         }
@@ -2705,6 +2874,340 @@ mod tests {
         }
         assert_eq!(audited_framework_roots, 204);
 
+        let undocumented_pools = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec.description().is_none()
+                    && index_to_vec
+                        .values()
+                        .any(|entry| entry.plugin().id() == "pools")
+            })
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>();
+        assert!(
+            undocumented_pools.is_empty(),
+            "undocumented pools series: {undocumented_pools:#?}"
+        );
+
+        let generic_only_pools = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == "pools")
+                    && index_to_vec.description().is_some_and(|description| {
+                        !POOL_SEMANTIC_DESCRIPTIONS
+                            .iter()
+                            .any(|semantic| description.contains(semantic))
+                    })
+            })
+            .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
+            .collect::<Vec<_>>();
+        assert!(
+            generic_only_pools.is_empty(),
+            "pools series with only generic descriptions: {generic_only_pools:#?}"
+        );
+
+        let windows = ["24h", "1w", "1m", "1y"]
+            .into_iter()
+            .zip(WINDOW_DESCRIPTIONS);
+        let amount_units = [
+            ("", AMOUNT_BTC_DESCRIPTION),
+            ("_sats", AMOUNT_SATS_DESCRIPTION),
+            ("_usd", AMOUNT_USD_DESCRIPTION),
+            ("_cents", AMOUNT_CENTS_DESCRIPTION),
+        ];
+        let percent_units = [
+            ("_ppm", GENERIC_PPM_DESCRIPTION),
+            ("_ratio", GENERIC_RATIO_DESCRIPTION),
+            ("", PERCENT_DESCRIPTION),
+        ];
+
+        let mut audited_pool_series = 0;
+        let mut formerly_undocumented_pool_roots = 0;
+        let mut assert_pool_description = |name: &str, expected: &str| {
+            let info = vecs.series_info(&SeriesName::from(name)).unwrap();
+            assert_eq!(
+                info.description.as_deref(),
+                Some(expected),
+                "wrong description for {name}"
+            );
+            audited_pool_series += 1;
+        };
+        assert_pool_description("pool", POOL_ATTRIBUTION_DESCRIPTION);
+        formerly_undocumented_pool_roots += 1;
+        let mut pool_count = 0;
+        let mut major_pool_count = 0;
+        for pool in pools().iter() {
+            pool_count += 1;
+            let slug = pool.slug.to_string();
+            assert_pool_description(
+                &format!("{slug}_blocks_mined"),
+                &format!("{POOL_BLOCKS_DESCRIPTION} {POOL_BLOCK_DESCRIPTION}"),
+            );
+            assert_pool_description(
+                &format!("{slug}_blocks_mined_cumulative"),
+                &format!("{POOL_BLOCKS_DESCRIPTION} {POOL_BLOCKS_CUMULATIVE_DESCRIPTION}"),
+            );
+            formerly_undocumented_pool_roots += 2;
+
+            for (window, window_description) in windows.clone() {
+                let name = format!("{slug}_blocks_mined_sum_{window}");
+                let expected = format!(
+                    "{POOL_BLOCKS_DESCRIPTION} {ROLLING_SUM_DESCRIPTION} {window_description}"
+                );
+                assert_pool_description(&name, &expected);
+            }
+
+            for (suffix, unit) in percent_units {
+                let name = format!("{slug}_dominance{suffix}");
+                let expected = format!("{POOL_DOMINANCE_DESCRIPTION} {unit}");
+                assert_pool_description(&name, &expected);
+            }
+
+            if !pool.slug.is_major() {
+                continue;
+            }
+            major_pool_count += 1;
+
+            for (suffix, unit) in amount_units {
+                let block_name = format!("{slug}_rewards{suffix}");
+                let block_expected =
+                    format!("{POOL_REWARDS_DESCRIPTION} {BLOCK_DESCRIPTION} {unit}");
+                assert_pool_description(&block_name, &block_expected);
+
+                let cumulative_name = format!("{slug}_rewards_cumulative{suffix}");
+                let cumulative_expected =
+                    format!("{POOL_REWARDS_DESCRIPTION} {CUMULATIVE_DESCRIPTION} {unit}");
+                assert_pool_description(&cumulative_name, &cumulative_expected);
+            }
+
+            for (window, window_description) in windows.clone() {
+                for (kind, aggregate_description) in [
+                    ("sum", ROLLING_SUM_DESCRIPTION),
+                    ("average", ROLLING_AVERAGE_DESCRIPTION),
+                ] {
+                    for (suffix, unit) in amount_units {
+                        let name = format!("{slug}_rewards_{kind}_{window}{suffix}");
+                        let expected = format!(
+                            "{POOL_REWARDS_DESCRIPTION} {aggregate_description} {window_description} {unit}"
+                        );
+                        assert_pool_description(&name, &expected);
+                    }
+                }
+
+                for (suffix, unit) in percent_units {
+                    let name = format!("{slug}_dominance_{window}{suffix}");
+                    let expected =
+                        format!("{POOL_ROLLING_DOMINANCE_DESCRIPTION} {window_description} {unit}");
+                    assert_pool_description(&name, &expected);
+                }
+            }
+        }
+        assert_eq!(pool_count, 166);
+        assert_eq!(major_pool_count, 22);
+        assert_eq!(formerly_undocumented_pool_roots, 333);
+        assert_eq!(audited_pool_series, 2_639);
+        let actual_pool_series = vecs
+            .series_to_index_to_vec
+            .values()
+            .filter(|index_to_vec| {
+                index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == "pools")
+            })
+            .count();
+        assert_eq!(audited_pool_series, actual_pool_series);
+
+        let undocumented_distribution = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec.description().is_none()
+                    && index_to_vec
+                        .values()
+                        .any(|entry| entry.plugin().id() == "distribution")
+            })
+            .map(|(name, _)| *name)
+            .collect::<Vec<_>>();
+        assert!(
+            undocumented_distribution.is_empty(),
+            "undocumented distribution series: {undocumented_distribution:#?}"
+        );
+
+        let generic_only_distribution = vecs
+            .series_to_index_to_vec
+            .iter()
+            .filter(|(_, index_to_vec)| {
+                index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == "distribution")
+                    && index_to_vec.description().is_some_and(|description| {
+                        !DISTRIBUTION_SEMANTIC_DESCRIPTIONS
+                            .iter()
+                            .copied()
+                            .chain([REALIZED_PRICE_DESCRIPTION, COINDAYS_CREATED_DESCRIPTION])
+                            .any(|semantic| description.contains(semantic))
+                    })
+            })
+            .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
+            .collect::<Vec<_>>();
+        assert!(
+            generic_only_distribution.is_empty(),
+            "distribution series with only generic descriptions: {generic_only_distribution:#?}"
+        );
+
+        let distribution_root_semantics = [
+            (
+                "supply_state",
+                "Serialized distribution state used to resume cohort computation at each block height.",
+            ),
+            (
+                "any_addr_index",
+                "Maps an address-type-specific index to the corresponding unified address index.",
+            ),
+            (
+                "funded_addr_data",
+                "Persisted state record for each address that currently holds at least one unspent output.",
+            ),
+            (
+                "empty_addr_data",
+                "Persisted state record for each previously seen address that currently holds no unspent outputs.",
+            ),
+            (
+                "coinblocks_destroyed",
+                "Coin blocks destroyed by spent outputs: each spent output's value in BTC multiplied by its age in blocks, summed over the represented block.",
+            ),
+            (
+                "supply_sats_by_class",
+                "Amount of bitcoin held in unspent transaction outputs in the selected cohort.",
+            ),
+            (
+                "supply_in_profit_sats_by_class",
+                "Unspent supply whose creation price is less than or equal to the current spot price.",
+            ),
+            (
+                "supply_in_loss_sats_by_class",
+                "Unspent supply whose creation price is greater than the current spot price.",
+            ),
+            (
+                "utxo_count_by_class",
+                "Number of currently unspent transaction outputs in the selected cohort.",
+            ),
+            (
+                "all_coinyears_destroyed",
+                "Coin years destroyed over the trailing 365-day window: the window's total coin days destroyed divided by 365.",
+            ),
+            (
+                "all_dormancy",
+                "Average age in days of transferred bitcoin over the named trailing window: coin days destroyed divided by transfer volume in BTC.",
+            ),
+            (
+                "realized_cap_cents_by_class",
+                "Creation-date value of the unspent outputs in the selected cohort: the sum of each output's creation price multiplied by its BTC value.",
+            ),
+            (
+                "realized_profit_cumulative_cents_by_class",
+                "Profit realized by outputs from the selected cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
+            ),
+            (
+                "realized_loss_cumulative_cents_by_class",
+                "Loss realized by outputs from the selected cohort when spent: creation-date value minus spending value, counted only for losing spends.",
+            ),
+            (
+                "sopr_24h_by_class",
+                "24-hour spent output profit ratio for the selected cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
+            ),
+            (
+                "capitalized_price_cents_by_aggregate",
+                "Capital-weighted creation price of unspent outputs in the selected aggregate cohort: sum of creation price squared times sats divided by sum of creation price times sats.",
+            ),
+            (
+                "mvrv",
+                "Market-value-to-realized-value ratio for the selected cohort: spot price divided by its realized price.",
+            ),
+            (
+                "realized_loss_neg",
+                "Realized loss expressed as a negative value.",
+            ),
+            (
+                "unrealized_loss_neg",
+                "Unrealized loss expressed as a negative value.",
+            ),
+            (
+                "profitability_nupl_ppm",
+                "Net unrealized profit/loss as a share of market cap for the selected profitability range: spot price minus aggregate realized price, divided by spot price.",
+            ),
+            (
+                "addr_count",
+                "Addresses that currently hold at least one unspent output.",
+            ),
+            (
+                "empty_addr_count",
+                "Previously seen addresses that currently hold no unspent outputs.",
+            ),
+            (
+                "total_addr_count",
+                "All previously seen addresses, equal to funded addresses plus empty addresses.",
+            ),
+            (
+                "reused_addr_count",
+                "Addresses that have received more than one output over their lifetime.",
+            ),
+            (
+                "total_reused_addr_count",
+                "Addresses that have received more than one output over their lifetime.",
+            ),
+            (
+                "respent_addr_count",
+                "Addresses from which more than one output has been spent over their lifetime.",
+            ),
+            (
+                "exposed_addr_count",
+                "Addresses whose public key or spending script has appeared on-chain. P2PK and P2TR are exposed when funded; hashed script types become exposed when spent; P2A is excluded.",
+            ),
+            (
+                "addrs_addr_count_by_balance_range",
+                "Addresses that currently hold at least one unspent output.",
+            ),
+            (
+                "addrs_realized_cap_cents_by_balance_range",
+                "Creation-date value of unspent outputs controlled by funded addresses in the selected current balance range.",
+            ),
+            (
+                "addrs_realized_profit_cumulative_cents_by_balance_range",
+                "Profit realized by addresses in the selected pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
+            ),
+            (
+                "addrs_realized_loss_cumulative_cents_by_balance_range",
+                "Loss realized by addresses in the selected pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
+            ),
+        ];
+        for (name, semantic) in distribution_root_semantics {
+            let description = vecs
+                .series_info(&SeriesName::from(name))
+                .unwrap_or_else(|| panic!("missing distribution series {name}"))
+                .description
+                .unwrap_or_else(|| panic!("missing distribution description for {name}"));
+            assert!(
+                description.contains(semantic),
+                "wrong semantic description for {name}: {description}"
+            );
+        }
+
+        let actual_distribution_series = vecs
+            .series_to_index_to_vec
+            .values()
+            .filter(|index_to_vec| {
+                index_to_vec
+                    .values()
+                    .any(|entry| entry.plugin().id() == "distribution")
+            })
+            .count();
+        assert_eq!(actual_distribution_series, 49_940);
+
         let documented = vecs
             .series_to_index_to_vec
             .iter()
@@ -2904,6 +3407,8 @@ mod tests {
                 .iter()
                 .copied()
                 .chain(FRAMEWORK_SEMANTIC_DESCRIPTIONS.iter().copied())
+                .chain(DISTRIBUTION_SEMANTIC_DESCRIPTIONS.iter().copied())
+                .chain(POOL_SEMANTIC_DESCRIPTIONS.iter().copied())
                 .chain(HORIZON_DESCRIPTIONS.iter().copied())
                 .chain(
                     INDEXER_DIRECT_DESCRIPTIONS

@@ -27,19 +27,43 @@ use super::{
 
 #[derive(Traversable)]
 pub struct UnrealizedVecs<M: StorageMode = Rw> {
+    /// Unrealized profit of unspent outputs in the selected cohort: current
+    /// market value minus creation-date value, summed only where spot price is
+    /// above creation price.
     pub profit: UnrealizedByCohort<Cents, M>,
+    /// Unrealized loss of unspent outputs in the selected cohort: creation-date
+    /// value minus current market value, summed only where spot price is below
+    /// creation price.
     pub loss: UnrealizedByCohort<Cents, M>,
+    /// Net unrealized profit and loss of the selected cohort: unrealized profit
+    /// minus unrealized loss.
     pub net_pnl: NetUnrealizedByCohort<M>,
+    /// Gross unrealized profit and loss of the selected aggregate cohort:
+    /// unrealized profit plus unrealized loss.
     pub gross_pnl: AdditiveAggregateFiatPerBlock<Cents, M>,
+    /// Creation-date value of unspent supply currently in profit.
     pub invested_capital_in_profit: AdditiveAggregateFiatPerBlock<Cents, M>,
+    /// Creation-date value of unspent supply currently in loss.
     pub invested_capital_in_loss: AdditiveAggregateFiatPerBlock<Cents, M>,
+    /// Sum of creation price squared times unspent sats for supply currently in
+    /// profit. This raw numerator underlies the profit-side capitalized price.
     pub capitalized_cap_in_profit_raw: AdditiveUTXORawVec<CentsSquaredSats, M>,
+    /// Sum of creation price squared times unspent sats for supply currently in
+    /// loss. This raw numerator underlies the loss-side capitalized price.
     pub capitalized_cap_in_loss_raw: AdditiveUTXORawVec<CentsSquaredSats, M>,
+    /// Spot price minus the capital-weighted creation price of unspent supply
+    /// currently in loss.
     pub pain_index: AggregateFiatPerBlock<Cents, M>,
+    /// Spot price minus the capital-weighted creation price of unspent supply
+    /// currently in profit.
     pub greed_index: AggregateFiatPerBlock<Cents, M>,
+    /// Greed index minus pain index for the selected aggregate cohort.
     pub net_sentiment: AggregateFiatPerBlock<CentsSigned, M>,
+    /// Net unrealized profit/loss as a share of market cap. It is derived from
+    /// MVRV as `1 - 1 / MVRV`.
     pub nupl: UTXOGroups<LazyRatioPerBlock<PartsPerMillionSigned32, PartsPerMillion64>>,
     #[traversable(wrap = "loss", rename = "negative")]
+    /// Unrealized loss expressed as a negative value.
     pub negative_loss: UTXOGroupsWithoutAmount<LazyPerBlock<Dollars, Cents>>,
 }
 

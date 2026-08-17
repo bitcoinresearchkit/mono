@@ -3,7 +3,7 @@ use brk_types::{
     P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex,
     P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex,
 };
-use vecdb::BytesVecReader;
+use vecdb::{BytesVecReader, OverflowVecReader};
 
 use crate::distribution::addr::{AddrsDataVecs, AnyAddrIndexesVecs};
 
@@ -17,8 +17,8 @@ pub struct AddrReaders {
     p2tr: BytesVecReader<P2TRAddrIndex, AnyAddrIndex>,
     p2wpkh: BytesVecReader<P2WPKHAddrIndex, AnyAddrIndex>,
     p2wsh: BytesVecReader<P2WSHAddrIndex, AnyAddrIndex>,
-    funded: BytesVecReader<FundedAddrIndex, FundedAddrData>,
-    empty: BytesVecReader<EmptyAddrIndex, EmptyAddrData>,
+    funded: OverflowVecReader<FundedAddrIndex, FundedAddrData>,
+    empty: OverflowVecReader<EmptyAddrIndex, EmptyAddrData>,
 }
 
 impl AddrReaders {

@@ -19,7 +19,12 @@ fn pool_dominance(height: Height, blocks_mined: StoredU64) -> PartsPerMillion32 
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Block counts for the selected mining pool, using the per-height pool
+    /// attribution series.
     pub blocks_mined: BlocksMined,
+    /// Share of all blocks from genesis through the represented height
+    /// attributed to the selected pool: cumulative pool block count divided by
+    /// block height plus one.
     pub dominance: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

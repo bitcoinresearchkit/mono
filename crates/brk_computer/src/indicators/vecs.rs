@@ -20,9 +20,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Trailing 24-hour coin days destroyed divided by the current all-chain
     /// supply in BTC. Returns zero when supply is zero.
     pub coindays_destroyed_supply_adj: LazyPerBlock<StoredF32>,
-    /// Trailing 365-day total of coin days destroyed divided by the current
-    /// all-chain supply in BTC. Despite the series name, the numerator is not
-    /// divided by 365. Returns zero when supply is zero.
+    /// Trailing 365-day coin years destroyed divided by the current all-chain
+    /// supply in BTC. Returns zero when supply is zero.
     pub coinyears_destroyed_supply_adj: LazyPerBlock<StoredF32>,
     pub dormancy: DormancyVecs,
     /// Current all-chain supply in satoshis divided by the current block's

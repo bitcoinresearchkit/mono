@@ -42,43 +42,95 @@ use super::{
 
 #[derive(Traversable)]
 pub struct RealizedVecs<M: StorageMode = Rw> {
+    /// Creation-date value of the unspent outputs in the selected cohort: the
+    /// sum of each output's creation price multiplied by its BTC value.
     pub cap: RealizedCapByCohort<M>,
     /// The sats-weighted average USD creation price of the unspent outputs in
     /// the selected cohort: Σ(creation price × unspent sats) / Σ(unspent sats).
     /// Returns zero when the cohort has no unspent supply.
     pub price: RealizedPriceByCohort<M>,
+    /// Profit realized by outputs from the selected cohort when spent: spending
+    /// value minus creation-date value, counted only for profitable spends.
     pub profit: CumulativeRealizedByCohort<M>,
     #[traversable(wrap = "profit", rename = "addr_balance")]
+    /// Profit realized by addresses in the selected pre-spend balance range:
+    /// spending value minus creation-date value, counted only for profitable
+    /// spends.
     pub addr_balance_profit: ColumnarAmount<Cents, LazyFiatPerBlockCumulativeWithSums<Cents>, M>,
+    /// Loss realized by outputs from the selected cohort when spent:
+    /// creation-date value minus spending value, counted only for losing spends.
     pub loss: CumulativeRealizedByCohort<M>,
     #[traversable(wrap = "loss", rename = "addr_balance")]
+    /// Loss realized by addresses in the selected pre-spend balance range:
+    /// creation-date value minus spending value, counted only for losing
+    /// spends.
     pub addr_balance_loss: ColumnarAmount<Cents, LazyFiatPerBlockCumulativeWithSums<Cents>, M>,
+    /// Net realized profit and loss of outputs from the selected cohort when
+    /// spent: realized profit minus realized loss.
     pub net_pnl: CumulativeNetRealizedByCohort<M>,
     #[traversable(wrap = "sopr")]
+    /// Creation-date value destroyed by spent outputs from the selected cohort:
+    /// the sum of each spent output's creation price multiplied by its BTC
+    /// value.
     pub value_destroyed: CumulativeValueDestroyedByCohort<M>,
+    /// 24-hour spent output profit ratio for the selected cohort: spending
+    /// value divided by creation-date value for outputs spent over the trailing
+    /// 24 hours. Returns one when creation-date value is zero.
     pub sopr: Sopr24hVecs<M>,
+    /// Adjusted spent output profit ratio: SOPR after excluding outputs younger
+    /// than one hour, computed over the named trailing window. Returns one when
+    /// creation-date value is zero.
     pub adjusted_sopr: AdjustedSoprVecs<M>,
     #[traversable(wrap = "cap", rename = "addr_balance")]
+    /// Creation-date value of unspent outputs controlled by funded addresses in
+    /// the selected current balance range.
     pub addr_balance_cap: ColumnarAmount<
         Cents,
         LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
         M,
     >,
+    /// Gross realized profit and loss of the selected aggregate cohort:
+    /// realized profit plus realized loss.
     pub gross_pnl: AdditiveAggregateFiatPerBlockCumulativeWithSums<Cents, M>,
+    /// Capital-weighted creation price of unspent outputs in the selected
+    /// aggregate cohort: sum of creation price squared times sats divided by
+    /// sum of creation price times sats.
     pub capitalized_price: AggregatePriceWithRatioPerBlock<M>,
+    /// Sum of creation price times unspent sats for the selected aggregate
+    /// cohort. This raw numerator underlies realized cap and realized price.
     pub cap_raw: AdditiveUTXORawVec<CentsSats, M>,
+    /// Sum of creation price squared times unspent sats for the selected
+    /// aggregate cohort. This raw numerator underlies capitalized price.
     pub capitalized_cap_raw: AdditiveUTXORawVec<CentsSquaredSats, M>,
+    /// Value forgone relative to the historical peak price of each spent
+    /// output: peak price minus spending price, multiplied by spent BTC value.
     pub peak_regret: AdditiveAggregateFiatPerBlockCumulativeWithSums<Cents, M>,
+    /// One-month change in net realized profit and loss divided by the selected
+    /// cohort's realized cap.
     pub net_pnl_change_1m_to_rcap: AggregatePercentPerBlock<PartsPerMillionSigned64, M>,
+    /// Gross realized profit and loss over the named trailing window divided by
+    /// the selected cohort's current realized cap.
     pub sell_side_risk_ratio: UTXOAggregate<ColumnarPercentRollingWindows<PartsPerMillion32, M>>,
+    /// Spent output profit ratio over the named trailing window: spending value
+    /// divided by creation-date value for outputs spent from the selected
+    /// cohort. Returns one when creation-date value is zero.
     pub sopr_ratio_extended: UTXOAggregate<ColumnarRollingWindowsFrom1w<StoredF32, M>>,
+    /// Realized profit divided by realized loss over the named trailing window
+    /// for the selected cohort.
     pub profit_to_loss_ratio: UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>,
+    /// Market-value-to-realized-value ratio for the selected cohort: spot price
+    /// divided by its realized price.
     pub mvrv: UTXOGroups<LazyPerBlock<StoredF32>>,
     #[traversable(wrap = "loss", rename = "negative")]
+    /// Realized loss expressed as a negative value.
     pub negative_loss: UTXOGroupsWithoutAmountOrType<NegRealizedLoss>,
     #[traversable(wrap = "cap", rename = "to_own_mcap")]
+    /// Realized cap divided by the selected cohort's own market cap; the
+    /// reciprocal of its MVRV.
     pub cap_to_own_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "net_pnl/change_1m", rename = "to_mcap")]
+    /// One-month change in the selected cohort's net realized profit and loss
+    /// divided by total Bitcoin market cap.
     pub net_pnl_change_1m_to_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillionSigned64>>,
 }
 

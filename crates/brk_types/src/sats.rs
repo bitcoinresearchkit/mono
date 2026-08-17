@@ -7,7 +7,7 @@ use bitcoin::Amount;
 use derive_more::Deref;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use vecdb::{CheckedSub, Formattable, Pco, SaturatingAdd};
+use vecdb::{CheckedSub, Formattable, OverflowVecValue, Pco, SaturatingAdd, Version};
 
 use crate::{StoredF64, StoredU64};
 
@@ -38,6 +38,33 @@ use super::{Bitcoin, Cents, Dollars, Height};
     example = &2_100_000_000_000_000_u64
 )]
 pub struct Sats(u64);
+
+impl OverflowVecValue for Sats {
+    type Compact = u32;
+
+    const VERSION: Version = Version::ONE;
+
+    #[inline(always)]
+    fn to_compact(&self) -> Option<Self::Compact> {
+        (self.0 < 1_u64 << 31).then_some(self.0 as u32)
+    }
+
+    #[inline(always)]
+    fn from_compact(compact: Self::Compact) -> Self {
+        Self(u64::from(compact))
+    }
+
+    #[inline(always)]
+    fn overflow_index(compact: Self::Compact) -> Option<usize> {
+        (compact & (1 << 31) != 0).then_some((compact & !(1 << 31)) as usize)
+    }
+
+    #[inline(always)]
+    fn from_overflow_index(index: usize) -> Self::Compact {
+        assert!(index < 1 << 31, "overflow sidecar index is too large");
+        (1 << 31) | index as u32
+    }
+}
 
 #[allow(clippy::inconsistent_digit_grouping)]
 impl Sats {
@@ -357,5 +384,28 @@ impl Formattable for Sats {
     fn write_to(&self, buf: &mut Vec<u8>) {
         let mut b = itoa::Buffer::new();
         buf.extend_from_slice(b.format(self.0).as_bytes());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overflow_encoding_preserves_inline_values_and_sidecar_indexes() {
+        for value in [0, (1_u64 << 31) - 1] {
+            let value = Sats::from(value);
+            let compact = value.to_compact().unwrap();
+            assert_eq!(Sats::overflow_index(compact), None);
+            assert_eq!(Sats::from_compact(compact), value);
+        }
+
+        assert_eq!(Sats::from(1_u64 << 31).to_compact(), None);
+        assert_eq!(Sats::MAX.to_compact(), None);
+
+        for index in [0, (1_usize << 31) - 1] {
+            let compact = Sats::from_overflow_index(index);
+            assert_eq!(Sats::overflow_index(compact), Some(index));
+        }
     }
 }

@@ -23,10 +23,15 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub supply_profitability_shares: SupplyProfitabilityShares<M>,
     #[traversable(wrap = "unrealized/profit", rename = "to_mcap")]
+    /// Unrealized profit of the selected cohort divided by total Bitcoin market
+    /// cap.
     pub unrealized_profit_to_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/loss", rename = "to_mcap")]
+    /// Unrealized loss of the selected cohort divided by total Bitcoin market
+    /// cap.
     pub unrealized_loss_to_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/profit", rename = "to_own_mcap")]
+    /// Unrealized profit divided by the selected term cohort's own market cap.
     pub unrealized_profit_to_own_mcap: ColumnarPerBlock<
         PartsPerMillion32,
         TermId,
@@ -34,6 +39,7 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
         M,
     >,
     #[traversable(wrap = "unrealized/loss", rename = "to_own_mcap")]
+    /// Unrealized loss divided by the selected term cohort's own market cap.
     pub unrealized_loss_to_own_mcap: ColumnarPerBlock<
         PartsPerMillion32,
         TermId,
@@ -41,12 +47,18 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
         M,
     >,
     #[traversable(wrap = "unrealized/net_pnl", rename = "to_own_mcap")]
+    /// Net unrealized profit and loss divided by the selected term cohort's own
+    /// market cap.
     pub net_unrealized_pnl_to_own_mcap: ByTerm<LazyPercentPerBlock<PartsPerMillionSigned32>>,
     #[traversable(flatten)]
     pub gross_pnl_composition: GrossPnlComposition<M>,
     #[traversable(wrap = "invested_capital/in_profit", rename = "share")]
+    /// Creation-date value of unspent supply currently in profit divided by the
+    /// selected cohort's realized cap.
     pub invested_capital_in_profit_share: AggregatePercentPerBlock<PartsPerMillion32, M>,
     #[traversable(wrap = "invested_capital/in_loss", rename = "share")]
+    /// Creation-date value of unspent supply currently in loss divided by the
+    /// selected cohort's realized cap.
     pub invested_capital_in_loss_share: AggregatePercentPerBlock<PartsPerMillion32, M>,
 }
 
