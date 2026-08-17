@@ -17,7 +17,7 @@ use vecdb::{
 
 use crate::{
     distribution::{
-        compute::{StartMode, determine_start_mode, process_blocks, reset_state},
+        compute::{StartMode, determine_start_mode, process_blocks},
         state::{AddrStates, BlockState},
     },
     indexes, inputs,
@@ -297,6 +297,20 @@ impl Vecs {
         self.inner.reset();
     }
 
+    fn reset_state(
+        &mut self,
+        utxo_states: &mut UTXOStates,
+        addr_states: &mut AddrStates,
+    ) -> Result<()> {
+        self.supply_state.reset()?;
+        self.addrs.reset_height()?;
+        self.any_addr_indexes.reset()?;
+        self.addrs_data.reset()?;
+        utxo_states.reset()?;
+        addr_states.reset()?;
+        Ok(())
+    }
+
     /// Main computation loop.
     ///
     /// Processes blocks to compute UTXO and address cohort metrics:
@@ -413,14 +427,7 @@ impl Vecs {
         }
 
         if needs_fresh_start {
-            self.supply_state.reset()?;
-            self.addrs.reset_height()?;
-            reset_state(
-                &mut self.any_addr_indexes,
-                &mut self.addrs_data,
-                &mut utxo_states,
-                &mut addr_states,
-            )?;
+            self.reset_state(&mut utxo_states, &mut addr_states)?;
             info!("State recovery: fresh start");
         }
 

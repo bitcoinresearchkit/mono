@@ -6,7 +6,7 @@ use tracing::{debug, warn};
 use vecdb::{Result as VecdbResult, Stamp};
 
 use super::super::{
-    AddrsDataVecs, AnyAddrIndexesVecs, Vecs,
+    Vecs,
     state::{AddrStates, UTXOStates},
 };
 
@@ -114,28 +114,6 @@ impl Vecs {
             starting_height: consistent_height,
         })
     }
-}
-
-/// Reset all state for fresh start.
-///
-/// Resets all state vectors and cohort states.
-pub fn reset_state(
-    any_addr_indexes: &mut AnyAddrIndexesVecs,
-    addrs_data: &mut AddrsDataVecs,
-    utxo_states: &mut UTXOStates,
-    addr_states: &mut AddrStates,
-) -> Result<RecoveredState> {
-    // Reset address state
-    any_addr_indexes.reset()?;
-    addrs_data.reset()?;
-
-    // Reset cohort state.
-    utxo_states.reset()?;
-    addr_states.reset()?;
-
-    Ok(RecoveredState {
-        starting_height: Height::ZERO,
-    })
 }
 
 /// Check if we can resume from a checkpoint or need to start fresh.

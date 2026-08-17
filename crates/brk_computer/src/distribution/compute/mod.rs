@@ -9,7 +9,7 @@ pub use block_loop::process_blocks;
 pub use context::ComputeContext;
 pub use price_range_max::PriceRangeMax;
 pub use readers::{AddrReaders, IndexToTxIndexBuf, TxInReaders, TxOutData, TxOutReaders};
-pub use recover::{StartMode, determine_start_mode, reset_state};
+pub use recover::{StartMode, determine_start_mode};
 
 /// Flush checkpoint interval (every N blocks).
 pub const FLUSH_INTERVAL: usize = 10_000;

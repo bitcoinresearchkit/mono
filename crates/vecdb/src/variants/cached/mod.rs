@@ -196,7 +196,7 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
                 0
             };
 
-            let data = Arc::new(self.inner.collect_range_dyn(0, len));
+            let data = self.inner.collect_range_dyn(0, len);
             let mut cache = self.cache.write();
             if cache.generation != generation
                 || self.inner.len() != len
@@ -205,6 +205,10 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
                 self.budget.release(reserved_bytes);
                 continue;
             }
+            debug_assert_eq!(data.len(), len);
+            debug_assert!(size_of::<V::T>() == 0 || data.capacity() == len);
+
+            let data = Arc::new(data);
             self.record_cache_access();
             self.resident_bytes.store(reserved_bytes, Relaxed);
             cache.replace(len, version, data.clone());

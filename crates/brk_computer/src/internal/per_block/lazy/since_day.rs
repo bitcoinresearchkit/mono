@@ -229,25 +229,8 @@ where
             .checked_sub(1)
             .and_then(|index| self.source.collect_one_at(index))
             .unwrap_or_default();
-        let mut last: Option<(usize, Option<T>)> = None;
-        for &index in &indices[inactive_end..] {
-            if let Some((last_index, value)) = &last
-                && *last_index == index
-            {
-                if let Some(value) = value {
-                    out.push(value.clone());
-                }
-                continue;
-            }
-
-            let value = self
-                .source
-                .collect_one_at(index)
-                .map(|current| (self.compute)(current, before.clone()));
-            if let Some(value) = &value {
-                out.push(value.clone());
-            }
-            last = Some((index, value));
+        for current in self.source.read_sorted_at(&indices[inactive_end..]) {
+            out.push((self.compute)(current, before.clone()));
         }
     }
 }
