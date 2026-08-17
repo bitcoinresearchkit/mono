@@ -11,7 +11,10 @@ use super::period_suffix;
 #[derive(Traversable)]
 pub struct StdDevPerBlock<M: StorageMode = Rw> {
     days: usize,
+    /// Arithmetic mean of the source values in the selected trailing window.
     pub sma: PerBlock<StoredF32, M>,
+    /// Population standard deviation of the source values in the selected
+    /// trailing window.
     pub sd: PerBlock<StoredF32, M>,
 }
 

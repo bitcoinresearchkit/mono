@@ -6,12 +6,12 @@
 
 # Interface: SharePattern
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5686](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5686)
+Defined in: [Developer/brk/modules/brk-client/index.js:7131](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7131)
 
 ## Properties
 
 ### share
 
-> **share**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
+> **share**: [`AllHeightLthSthPattern4`](AllHeightLthSthPattern4.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5687](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5687)
+Defined in: [Developer/brk/modules/brk-client/index.js:7132](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7132)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Models
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6933](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6933)
+Defined in: [Developer/brk/modules/brk-client/index.js:9230](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9230)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6933](https://github.com/
 
 > **bedrock**: [`SeriesTree_Models_Bedrock`](SeriesTree_Models_Bedrock.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6934](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6934)
+Defined in: [Developer/brk/modules/brk-client/index.js:9231](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9231)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6934](https://github.com/
 
 > **capitalSentiment**: [`SeriesTree_Models_CapitalSentiment`](SeriesTree_Models_CapitalSentiment.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6935](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6935)
+Defined in: [Developer/brk/modules/brk-client/index.js:9232](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9232)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6935](https://github.com/
 
 > **rarityMeter**: [`SeriesTree_Models_RarityMeter`](SeriesTree_Models_RarityMeter.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6936](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6936)
+Defined in: [Developer/brk/modules/brk-client/index.js:9233](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9233)

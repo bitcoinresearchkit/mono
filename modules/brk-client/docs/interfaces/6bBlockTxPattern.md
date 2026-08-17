@@ -6,7 +6,7 @@
 
 # Interface: \_6bBlockTxPattern\<T\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5045](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5045)
+Defined in: [Developer/brk/modules/brk-client/index.js:6513](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6513)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5045](https://github.com/
 
 > **\_6b**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5046](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5046)
+Defined in: [Developer/brk/modules/brk-client/index.js:6514](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6514)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5046](https://github.com/
 
 > **block**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5047](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5047)
+Defined in: [Developer/brk/modules/brk-client/index.js:6515](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6515)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5047](https://github.com/
 
 > **txIndex**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5048](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5048)
+Defined in: [Developer/brk/modules/brk-client/index.js:6516](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6516)

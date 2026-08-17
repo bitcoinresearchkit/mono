@@ -6,15 +6,15 @@
 
 # Interface: SeriesSelectionLegacy
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1152](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1152)
+Defined in: [Developer/brk/modules/brk-client/index.js:1230](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1230)
 
 ## Properties
 
 ### end?
 
-> `optional` **end?**: `number` \| `null`
+> `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1156](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1156)
+Defined in: [Developer/brk/modules/brk-client/index.js:1234](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1234)
 
 Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
 
@@ -24,7 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1158](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1158)
+Defined in: [Developer/brk/modules/brk-client/index.js:1236](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1236)
 
 Format of the output
 
@@ -34,7 +34,7 @@ Format of the output
 
 > **ids**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1154](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1154)
+Defined in: [Developer/brk/modules/brk-client/index.js:1232](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1232)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1154](https://github.com/
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1153](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1153)
+Defined in: [Developer/brk/modules/brk-client/index.js:1231](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1231)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1153](https://github.com/
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1157](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1157)
+Defined in: [Developer/brk/modules/brk-client/index.js:1235](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1235)
 
 Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
 
@@ -58,8 +58,8 @@ Maximum number of values to return (ignored if `end` is set). Aliases: `count`, 
 
 ### start?
 
-> `optional` **start?**: `number` \| `null`
+> `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1155](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1155)
+Defined in: [Developer/brk/modules/brk-client/index.js:1233](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1233)
 
 Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`

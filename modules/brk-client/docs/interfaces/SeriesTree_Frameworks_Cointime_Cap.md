@@ -6,15 +6,15 @@
 
 # Interface: SeriesTree\_Frameworks\_Cointime\_Cap
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6802](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6802)
+Defined in: [Developer/brk/modules/brk-client/index.js:8946](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8946)
 
 ## Properties
 
 ### active
 
-> **active**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **active**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6806](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6806)
+Defined in: [Developer/brk/modules/brk-client/index.js:8950](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8950)
 
 ***
 
@@ -22,36 +22,36 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6806](https://github.com/
 
 > **aviv**: [`PpmRatioPattern2`](PpmRatioPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6808](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6808)
+Defined in: [Developer/brk/modules/brk-client/index.js:8952](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8952)
 
 ***
 
 ### cointime
 
-> **cointime**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **cointime**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6807](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6807)
+Defined in: [Developer/brk/modules/brk-client/index.js:8951](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8951)
 
 ***
 
 ### investor
 
-> **investor**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **investor**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6804](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6804)
+Defined in: [Developer/brk/modules/brk-client/index.js:8948](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8948)
 
 ***
 
 ### thermo
 
-> **thermo**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **thermo**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6803](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6803)
+Defined in: [Developer/brk/modules/brk-client/index.js:8947](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8947)
 
 ***
 
 ### vaulted
 
-> **vaulted**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **vaulted**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6805](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6805)
+Defined in: [Developer/brk/modules/brk-client/index.js:8949](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8949)

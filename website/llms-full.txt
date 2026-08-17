@@ -1023,7 +1023,7 @@ curl -s "https://bitview.space/api/series/list?page=<page>&per_page=<per_page>"
 
 Search series
 
-Fuzzy search for series by name. Supports partial matches and typos.
+Search series by name or descriptive terms. Matches metric names, descriptions, formulas, cohort aliases, partial words, and common typos.
 
 Parameters:
 - `q` (query, SeriesName, required): Search query string

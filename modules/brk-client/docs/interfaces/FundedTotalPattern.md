@@ -6,20 +6,20 @@
 
 # Interface: FundedTotalPattern
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5397](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5397)
+Defined in: [Developer/brk/modules/brk-client/index.js:6883](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6883)
 
 ## Properties
 
 ### funded
 
-> **funded**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4.md)
+> **funded**: [`AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5398](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5398)
+Defined in: [Developer/brk/modules/brk-client/index.js:6884](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6884)
 
 ***
 
 ### total
 
-> **total**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern4.md)
+> **total**: [`AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5399](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5399)
+Defined in: [Developer/brk/modules/brk-client/index.js:6885](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6885)

@@ -6,15 +6,23 @@
 
 # Interface: SeriesTree\_Models\_RarityMeter\_Extremes\_SellerExhaustion
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7008](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7008)
+Defined in: [Developer/brk/modules/brk-client/index.js:9306](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9306)
 
 ## Properties
+
+### height
+
+> **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`[]\>
+
+Defined in: [Developer/brk/modules/brk-client/index.js:9310](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9310)
+
+***
 
 ### rank
 
 > **rank**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7013](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7013)
+Defined in: [Developer/brk/modules/brk-client/index.js:9312](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9312)
 
 ***
 
@@ -22,7 +30,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7013](https://github.com/
 
 > **tail**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7012](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7012)
+Defined in: [Developer/brk/modules/brk-client/index.js:9311](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9311)
 
 ***
 
@@ -30,7 +38,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7012](https://github.com/
 
 > **thresholdPct0025**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7011](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7011)
+Defined in: [Developer/brk/modules/brk-client/index.js:9309](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9309)
 
 ***
 
@@ -38,7 +46,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7011](https://github.com/
 
 > **thresholdPct005**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7010](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7010)
+Defined in: [Developer/brk/modules/brk-client/index.js:9308](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9308)
 
 ***
 
@@ -46,4 +54,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7010](https://github.com/
 
 > **thresholdPct01**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7009](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7009)
+Defined in: [Developer/brk/modules/brk-client/index.js:9307](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9307)

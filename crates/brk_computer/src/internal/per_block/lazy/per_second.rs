@@ -9,7 +9,13 @@ use crate::internal::{
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
-pub struct LazyPerSecondWindows(pub Windows<LazyPerBlock<StoredF32, StoredU64>>);
+pub struct LazyPerSecondWindows(
+    /// Per-second average over the named trailing window: the window's total
+    /// count divided by its fixed duration in seconds. The divisor remains the
+    /// full duration before enough history exists. At time-period indexes, the
+    /// value is taken from the period's final block.
+    pub Windows<LazyPerBlock<StoredF32, StoredU64>>,
+);
 
 impl LazyPerSecondWindows {
     pub(crate) fn new(

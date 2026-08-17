@@ -6,7 +6,7 @@
 
 # Interface: AwakeDormantPattern2
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5201](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5201)
+Defined in: [Developer/brk/modules/brk-client/index.js:6592](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6592)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5201](https://github.com/
 
 > **awake**: [`CapPriceSupplyPattern`](CapPriceSupplyPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5202](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5202)
+Defined in: [Developer/brk/modules/brk-client/index.js:6593](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6593)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5202](https://github.com/
 
 > **dormant**: [`SupplyPattern2`](SupplyPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5203](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5203)
+Defined in: [Developer/brk/modules/brk-client/index.js:6594](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6594)

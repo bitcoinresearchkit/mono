@@ -6,15 +6,15 @@
 
 # Interface: SeriesTree\_Models\_RarityMeter\_Extremes
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6990](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6990)
+Defined in: [Developer/brk/modules/brk-client/index.js:9287](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9287)
 
 ## Properties
 
 ### capitulation
 
-> **capitulation**: [`RankTailThresholdPattern`](RankTailThresholdPattern.md)
+> **capitulation**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6993](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6993)
+Defined in: [Developer/brk/modules/brk-client/index.js:9290](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9290)
 
 ***
 
@@ -22,23 +22,23 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6993](https://github.com/
 
 > **coinsInLoss**: [`SeriesTree_Models_RarityMeter_Extremes_CoinsInLoss`](SeriesTree_Models_RarityMeter_Extremes_CoinsInLoss.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6991](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6991)
+Defined in: [Developer/brk/modules/brk-client/index.js:9288](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9288)
 
 ***
 
 ### peakRegret
 
-> **peakRegret**: [`RankTailThresholdPattern`](RankTailThresholdPattern.md)
+> **peakRegret**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6994](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6994)
+Defined in: [Developer/brk/modules/brk-client/index.js:9291](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9291)
 
 ***
 
 ### profitTaking
 
-> **profitTaking**: [`RankTailThresholdPattern`](RankTailThresholdPattern.md)
+> **profitTaking**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6992](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6992)
+Defined in: [Developer/brk/modules/brk-client/index.js:9289](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9289)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6992](https://github.com/
 
 > **sellerExhaustion**: [`SeriesTree_Models_RarityMeter_Extremes_SellerExhaustion`](SeriesTree_Models_RarityMeter_Extremes_SellerExhaustion.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6995](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6995)
+Defined in: [Developer/brk/modules/brk-client/index.js:9292](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9292)

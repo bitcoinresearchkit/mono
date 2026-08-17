@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Models\_Bedrock
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6940](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6940)
+Defined in: [Developer/brk/modules/brk-client/index.js:9237](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9237)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6940](https://github.com/
 
 > **coinflow**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6943](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6943)
+Defined in: [Developer/brk/modules/brk-client/index.js:9240](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9240)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6943](https://github.com/
 
 > **coinflow1m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6950](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6950)
+Defined in: [Developer/brk/modules/brk-client/index.js:9247](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9247)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6950](https://github.com/
 
 > **coinflow1y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6947](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6947)
+Defined in: [Developer/brk/modules/brk-client/index.js:9244](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9244)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6947](https://github.com/
 
 > **coinflow2y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6946](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6946)
+Defined in: [Developer/brk/modules/brk-client/index.js:9243](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9243)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6946](https://github.com/
 
 > **coinflow3m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6949](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6949)
+Defined in: [Developer/brk/modules/brk-client/index.js:9246](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9246)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6949](https://github.com/
 
 > **coinflow4y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6945](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6945)
+Defined in: [Developer/brk/modules/brk-client/index.js:9242](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9242)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6945](https://github.com/
 
 > **coinflow6m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6948](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6948)
+Defined in: [Developer/brk/modules/brk-client/index.js:9245](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9245)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6948](https://github.com/
 
 > **coinflow8y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6944](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6944)
+Defined in: [Developer/brk/modules/brk-client/index.js:9241](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9241)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6944](https://github.com/
 
 > **cointime**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6942](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6942)
+Defined in: [Developer/brk/modules/brk-client/index.js:9239](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9239)
 
 ***
 
@@ -86,4 +86,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6942](https://github.com/
 
 > **raw**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6941](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6941)
+Defined in: [Developer/brk/modules/brk-client/index.js:9238](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9238)

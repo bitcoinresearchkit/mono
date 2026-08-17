@@ -8,6 +8,6 @@
 
 > **P2TRBytes** = [`U8x32`](U8x32.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:836](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L836)
+Defined in: [Developer/brk/modules/brk-client/index.js:859](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L859)
 
 ## Type Parameters

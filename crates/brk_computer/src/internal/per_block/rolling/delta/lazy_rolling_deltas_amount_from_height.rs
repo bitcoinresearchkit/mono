@@ -20,7 +20,12 @@ where
     C: AmountType,
     B: FixedRatio,
 {
+    /// Absolute change from the start of the named trailing window through the
+    /// represented block.
     pub absolute: Windows<LazyDeltaAmountFromHeight<S, C>>,
+    /// Relative change from the start of the named trailing window through the
+    /// represented block, divided by the starting value. Returns zero when the
+    /// starting value is zero.
     pub rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 

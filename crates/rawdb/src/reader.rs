@@ -5,7 +5,7 @@ use crate::{Database, Region};
 
 /// Zero-copy reader with a snapshot of region start/len.
 ///
-/// Drop as soon as possible — blocks file growth and compaction while held.
+/// Drop as soon as possible — blocks mmap remapping while held.
 #[must_use = "Reader holds locks and should be used for reading"]
 pub struct Reader {
     // SAFETY: Drop order matters. `mmap` (the lock guard) must drop before `_db`
@@ -41,8 +41,7 @@ impl Reader {
         }
     }
 
-    /// # Safety
-    /// Caller must ensure `offset + len <= self.len()`.
+    /// Reads without checking the region boundary. The mmap boundary remains checked.
     #[inline(always)]
     pub fn unchecked_read(&self, offset: usize, len: usize) -> &[u8] {
         let start = self.start() + offset;

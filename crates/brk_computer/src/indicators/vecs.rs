@@ -12,10 +12,24 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) plugin_gate: PluginGate,
     #[traversable(skip)]
     pub(crate) db: Database,
+    /// Current block's derived subsidy value in USD divided by its trailing
+    /// 365-day per-block arithmetic mean.
     pub puell_multiple: RatioPerBlock<PartsPerMillion64, M>,
+    /// Network Value to Transactions ratio: market capitalization divided by
+    /// trailing-24-hour transfer volume, both valued in USD. Returns zero when
+    /// the ratio is not finite.
     pub nvt: LazyRatioPerBlock<PartsPerMillion64>,
+    /// Approximate Gini coefficient of UTXO-held supply, derived from the
+    /// Lorenz curve across ordered UTXO-amount cohorts. Zero means equal
+    /// distribution; larger values mean greater concentration.
     pub gini: PercentPerBlock<PartsPerMillion32, M>,
+    /// Realized HODL ratio: realized capitalization of 1-day-to-1-week-old
+    /// UTXOs divided by that of 1-to-2-year-old UTXOs. Returns zero when the
+    /// ratio is not finite.
     pub rhodl_ratio: RatioPerBlock<PartsPerMillion64, M>,
+    /// Market capitalization divided by thermo capitalization, the cumulative
+    /// USD value of derived block subsidies. Returns zero when the ratio is not
+    /// finite.
     pub thermo_cap_multiple: LazyRatioPerBlock<PartsPerMillion64>,
     /// Trailing 24-hour coin days destroyed divided by the current all-chain
     /// supply in BTC. Returns zero when supply is zero.

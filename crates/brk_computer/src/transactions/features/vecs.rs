@@ -80,7 +80,13 @@ impl ColumnId for FeatureId {
 /// individual occurrences. A transaction can contribute to multiple metrics.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {
+    /// Counts transactions containing at least one Taproot script-path input
+    /// whose tapscript contains the Ordinals envelope prefix
+    /// `OP_0 OP_IF PUSH 'ord'`.
     pub inscription: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
+    /// Counts transactions containing at least one Taproot input with more
+    /// than one witness element whose final element begins with annex prefix
+    /// byte `0x50`.
     pub annex: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected `SIGHASH_ALL`
     /// signature.
@@ -98,6 +104,8 @@ pub struct CountVecs<M: StorageMode = Rw> {
     /// `SIGHASH_ANYONECANPAY` modifier. This is counted independently from
     /// `SIGHASH_ALL`, `SIGHASH_NONE`, and `SIGHASH_SINGLE`.
     pub sighash_anyone_can_pay: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
+    /// Counts non-coinbase transactions containing at least one output below
+    /// BRK's type-specific minimal non-dust value; `OP_RETURN` is excluded.
     pub dust_output: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     #[deref]
     #[deref_mut]

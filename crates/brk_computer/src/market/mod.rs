@@ -30,6 +30,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub ath: AthVecs<M>,
     pub lookback: LookbackVecs,
     pub returns: ReturnsVecs<M>,
+    /// Population standard deviation of per-block trailing-24-hour spot-price
+    /// returns over the named trailing monotonic-time window, multiplied by the
+    /// square root of that window's day count.
     pub volatility: VolatilityVecs,
     pub range: RangeVecs<M>,
     pub moving_average: MovingAverageVecs<M>,

@@ -213,7 +213,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     .id("search_series")
                     .series_tag()
                     .summary("Search series")
-                    .description("Fuzzy search for series by name. Supports partial matches and typos.")
+                    .description("Search series by name or descriptive terms. Matches metric names, descriptions, formulas, cohort aliases, partial words, and common typos.")
                     .json_response::<Vec<&str>>()
                     .not_modified()
                     .server_error(),

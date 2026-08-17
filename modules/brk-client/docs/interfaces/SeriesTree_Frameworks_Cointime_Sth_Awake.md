@@ -6,15 +6,15 @@
 
 # Interface: SeriesTree\_Frameworks\_Cointime\_Sth\_Awake
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6741](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6741)
+Defined in: [Developer/brk/modules/brk-client/index.js:8876](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8876)
 
 ## Properties
 
 ### cap
 
-> **cap**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **cap**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6743](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6743)
+Defined in: [Developer/brk/modules/brk-client/index.js:8878](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8878)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6743](https://github.com/
 
 > **price**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6744](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6744)
+Defined in: [Developer/brk/modules/brk-client/index.js:8879](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8879)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6744](https://github.com/
 
 > **supply**: [`SeriesTree_Frameworks_Cointime_Sth_Awake_Supply`](SeriesTree_Frameworks_Cointime_Sth_Awake_Supply.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6742](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6742)
+Defined in: [Developer/brk/modules/brk-client/index.js:8877](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8877)

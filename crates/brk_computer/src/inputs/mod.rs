@@ -24,8 +24,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     pub(crate) db: Database,
 
+    /// Value in satoshis of the previous output spent by the indexed input.
+    /// Coinbase inputs use `Sats::MAX` as a sentinel because they have no
+    /// previous output.
     pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
     pub count: CountVecs<M>,
+    /// Transaction-input rate, including one coinbase input per block.
     pub per_sec: LazyPerSecondWindows,
     pub by_type: ByTypeVecs<M>,
 }

@@ -6,76 +6,44 @@
 
 # Interface: SeriesTree\_Addrs\_Activity
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6364](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6364)
+Defined in: [Developer/brk/modules/brk-client/index.js:7945](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7945)
 
 ## Properties
 
-### all
+### active
 
-> **all**: [`SeriesTree_Addrs_Activity_All`](SeriesTree_Addrs_Activity_All.md)
+> **active**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6365](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6365)
-
-***
-
-### p2a
-
-> **p2a**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6373](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6373)
+Defined in: [Developer/brk/modules/brk-client/index.js:7950](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7950)
 
 ***
 
-### p2pk33
+### bidirectional
 
-> **p2pk33**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
+> **bidirectional**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6367](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6367)
-
-***
-
-### p2pk65
-
-> **p2pk65**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6366](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6366)
+Defined in: [Developer/brk/modules/brk-client/index.js:7949](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7949)
 
 ***
 
-### p2pkh
+### reactivated
 
-> **p2pkh**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
+> **reactivated**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6368](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6368)
-
-***
-
-### p2sh
-
-> **p2sh**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6369](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6369)
+Defined in: [Developer/brk/modules/brk-client/index.js:7946](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7946)
 
 ***
 
-### p2tr
+### receiving
 
-> **p2tr**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
+> **receiving**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6372](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6372)
-
-***
-
-### p2wpkh
-
-> **p2wpkh**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6370](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6370)
+Defined in: [Developer/brk/modules/brk-client/index.js:7948](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7948)
 
 ***
 
-### p2wsh
+### sending
 
-> **p2wsh**: [`ActiveBidirectionalReactivatedReceivingSendingPattern`](ActiveBidirectionalReactivatedReceivingSendingPattern.md)
+> **sending**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6371](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6371)
+Defined in: [Developer/brk/modules/brk-client/index.js:7947](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7947)

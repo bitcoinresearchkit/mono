@@ -35,7 +35,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub db: Database,
 
     pub split: SplitByUnit,
+    /// OHLC candles formed from block-level Bitcoin spot prices within each
+    /// supported time period. Empty periods carry the previous close as all
+    /// four candle values.
     pub ohlc: OhlcByUnit,
+    /// Bitcoin spot price assigned to each block.
     pub spot: PriceByUnit<M>,
 }
 

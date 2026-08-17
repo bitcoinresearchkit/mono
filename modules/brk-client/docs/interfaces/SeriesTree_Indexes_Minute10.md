@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Indexes\_Minute10
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7178](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7178)
+Defined in: [Developer/brk/modules/brk-client/index.js:9477](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9477)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7178](https://github.com/
 
 > **firstHeight**: [`SeriesPattern3`](../type-aliases/SeriesPattern3.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7179](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7179)
+Defined in: [Developer/brk/modules/brk-client/index.js:9478](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9478)

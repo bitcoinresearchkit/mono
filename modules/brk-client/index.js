@@ -23194,7 +23194,7 @@ class BrkClient extends BrkClientBase {
   /**
    * Search series
    *
-   * Fuzzy search for series by name. Supports partial matches and typos.
+   * Search series by name or descriptive terms. Matches metric names, descriptions, formulas, cohort aliases, partial words, and common typos.
    *
    * Endpoint: `GET /api/series/search`
    *

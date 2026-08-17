@@ -23,13 +23,20 @@ const RATIO_VERSION: Version = Version::ONE;
 
 #[derive(Traversable)]
 pub struct AdjustedSoprVecs<M: StorageMode = Rw> {
+    /// Adjusted spent output profit ratio over the named trailing window:
+    /// spending-date value divided by creation-date value for outputs at least
+    /// one hour old. Returns one when creation-date value is zero.
     pub ratio: UTXOAllAndSth<ColumnarRollingWindows<StoredF32, M>>,
+    /// Spending-date USD value of outputs at least one hour old spent from the
+    /// selected all-chain or short-term-holder cohort.
     pub transfer_volume: ColumnarPerBlockCumulativeRolling<
         Cents,
         UTXOAllAndSthId,
         UTXOAllAndSth<LazyColumnPerBlockCumulativeRolling<Cents, UTXOAllAndSthId>>,
         M,
     >,
+    /// Creation-date USD value of outputs at least one hour old spent from the
+    /// selected all-chain or short-term-holder cohort.
     pub value_destroyed: ColumnarPerBlockCumulativeRolling<
         Cents,
         UTXOAllAndSthId,

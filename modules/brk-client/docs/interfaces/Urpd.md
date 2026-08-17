@@ -6,7 +6,7 @@
 
 # Interface: Urpd
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1377](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1377)
+Defined in: [Developer/brk/modules/brk-client/index.js:1458](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1458)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1377](https://github.com/
 
 > **aggregation**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1381](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1381)
+Defined in: [Developer/brk/modules/brk-client/index.js:1462](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1462)
 
 Aggregation strategy applied to the buckets.
 
@@ -24,7 +24,7 @@ Aggregation strategy applied to the buckets.
 
 > **buckets**: [`UrpdBucket`](UrpdBucket.md)[]
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1384](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1384)
+Defined in: [Developer/brk/modules/brk-client/index.js:1465](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1465)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1384](https://github.com/
 
 > **close**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1382](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1382)
+Defined in: [Developer/brk/modules/brk-client/index.js:1463](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1463)
 
 Close price on `date`, in USD. Anchor for `unrealized_pnl`.
 
@@ -42,15 +42,15 @@ Close price on `date`, in USD. Anchor for `unrealized_pnl`.
 
 > **cohort**: [`Cohort`](../type-aliases/Cohort.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1378](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1378)
+Defined in: [Developer/brk/modules/brk-client/index.js:1459](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1459)
 
 ***
 
 ### date
 
-> **date**: `number`
+> **date**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1379](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1379)
+Defined in: [Developer/brk/modules/brk-client/index.js:1460](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1460)
 
 ***
 
@@ -58,7 +58,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1379](https://github.com/
 
 > **totalSupply**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1383](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1383)
+Defined in: [Developer/brk/modules/brk-client/index.js:1464](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1464)
 
 Sum of `supply` across all buckets, in BTC.
 
@@ -68,6 +68,6 @@ Sum of `supply` across all buckets, in BTC.
 
 > **weight**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1380](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1380)
+Defined in: [Developer/brk/modules/brk-client/index.js:1461](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1461)
 
 Weighting applied to the source supply.

@@ -6,7 +6,7 @@
 
 # Interface: UrpdBucket
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1396](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1396)
+Defined in: [Developer/brk/modules/brk-client/index.js:1477](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1477)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1396](https://github.com/
 
 > **priceFloor**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1397](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1397)
+Defined in: [Developer/brk/modules/brk-client/index.js:1478](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1478)
 
 Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
 
@@ -24,7 +24,7 @@ Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
 
 > **realizedCap**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1399](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1399)
+Defined in: [Developer/brk/modules/brk-client/index.js:1480](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1480)
 
 Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
 
@@ -34,7 +34,7 @@ Realized cap contribution in USD: sum of `realized_price * supply` over the coin
 
 > **supply**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1398](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1398)
+Defined in: [Developer/brk/modules/brk-client/index.js:1479](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1479)
 
 Supply held with a last-move price inside this bucket, in BTC.
 
@@ -44,6 +44,6 @@ Supply held with a last-move price inside this bucket, in BTC.
 
 > **unrealizedPnl**: `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1400](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1400)
+Defined in: [Developer/brk/modules/brk-client/index.js:1481](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1481)
 
 Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.

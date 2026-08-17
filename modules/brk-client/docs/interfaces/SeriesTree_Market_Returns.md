@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Returns
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7420](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7420)
+Defined in: [Developer/brk/modules/brk-client/index.js:9719](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9719)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7420](https://github.com/
 
 > **cagr**: [`_10y2y3y4y5y6y8yPattern`](10y2y3y4y5y6y8yPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7422](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7422)
+Defined in: [Developer/brk/modules/brk-client/index.js:9721](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9721)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7422](https://github.com/
 
 > **periods**: [`SeriesTree_Market_Returns_Periods`](SeriesTree_Market_Returns_Periods.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7421](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7421)
+Defined in: [Developer/brk/modules/brk-client/index.js:9720](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9720)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7421](https://github.com/
 
 > **sd24h**: [`SeriesTree_Market_Returns_Sd24h`](SeriesTree_Market_Returns_Sd24h.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7423](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7423)
+Defined in: [Developer/brk/modules/brk-client/index.js:9722](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9722)

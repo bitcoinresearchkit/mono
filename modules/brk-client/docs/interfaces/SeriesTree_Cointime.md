@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime
 
-Defined in: [Developer/brk/modules/brk-client/index.js:8341](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L8341)
+Defined in: [Developer/brk/modules/brk-client/index.js:15491](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L15491)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:8341](https://github.com/
 
 > **activity**: [`SeriesTree_Cointime_Activity`](SeriesTree_Cointime_Activity.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:8342](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L8342)
+Defined in: [Developer/brk/modules/brk-client/index.js:15492](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L15492)

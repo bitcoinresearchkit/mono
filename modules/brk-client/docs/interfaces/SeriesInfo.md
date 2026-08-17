@@ -6,7 +6,7 @@
 
 # Interface: SeriesInfo
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1106](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1106)
+Defined in: [Developer/brk/modules/brk-client/index.js:1183](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1183)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1106](https://github.com/
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1179](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1179)
+Defined in: [Developer/brk/modules/brk-client/index.js:1184](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1184)
 
 Human-readable metric definition, when documented
 
@@ -24,7 +24,7 @@ Human-readable metric definition, when documented
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1107](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1107)
+Defined in: [Developer/brk/modules/brk-client/index.js:1185](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1185)
 
 Available indexes
 
@@ -34,6 +34,6 @@ Available indexes
 
 > **type**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1108](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1108)
+Defined in: [Developer/brk/modules/brk-client/index.js:1186](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1186)
 
 Value type (e.g. "f32", "u64", "Sats")

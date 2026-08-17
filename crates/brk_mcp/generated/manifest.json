@@ -13997,7 +13997,7 @@
       "tool": {
         "name": "search_series",
         "title": "Search series",
-        "description": "Fuzzy search for series by name. Supports partial matches and typos.\n\nREST operation: `GET /api/series/search`.",
+        "description": "Search series by name or descriptive terms. Matches metric names, descriptions, formulas, cohort aliases, partial words, and common typos.\n\nREST operation: `GET /api/series/search`.",
         "inputSchema": {
           "type": "object",
           "properties": {

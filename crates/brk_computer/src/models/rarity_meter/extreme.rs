@@ -88,6 +88,9 @@ where
         ThresholdVecs<LazyColumnPerBlock<T, ExtremeThresholdId>>,
         M,
     >,
+    /// Share of accepted observations at least as extreme as the current
+    /// source value, in the model's configured upper or lower tail. The current
+    /// observation is included in both the numerator and denominator.
     pub tail: PercentPerBlock<PartsPerMillion32, M>,
     /// Discrete extremeness rank: 3 at or beyond the 0.025% tail boundary, 2 at
     /// or beyond 0.05%, 1 at or beyond 0.1%, and 0 otherwise or while the model

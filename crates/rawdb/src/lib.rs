@@ -4,6 +4,7 @@ use std::{
     collections::HashSet,
     fmt,
     fs::{self, File, OpenOptions},
+    mem::ManuallyDrop,
     path::{Path, PathBuf},
     sync::{
         Arc, Weak,
@@ -290,7 +291,7 @@ impl Database {
         }
 
         for region in regions_to_remove {
-            let ref_count = std::sync::Arc::strong_count(region.arc());
+            let ref_count = Arc::strong_count(region.arc());
             debug!(
                 "{}: removing '{}' (arc count: {})",
                 self,
@@ -332,7 +333,6 @@ impl Database {
 
         let mut flush_ranges = dirty_regions
             .iter()
-            .filter(|(region, _)| region.uses_sparse_flush())
             .flat_map(|(region, ranges)| {
                 let region_start = region.meta().start();
                 ranges
@@ -340,47 +340,6 @@ impl Database {
                     .map(move |&(start, end)| (region_start + start, region_start + end))
             })
             .collect::<Vec<_>>();
-
-        let (regular_start, regular_end) = dirty_regions
-            .iter()
-            .filter(|(region, _)| !region.uses_sparse_flush())
-            .flat_map(|(region, ranges)| {
-                let region_start = region.meta().start();
-                ranges
-                    .iter()
-                    .map(move |&(start, end)| (region_start + start, region_start + end))
-            })
-            .fold((usize::MAX, 0), |(min, max), (start, end)| {
-                (min.min(start), max.max(end))
-            });
-
-        if regular_start < regular_end {
-            let mut cursor = regular_start;
-            let mut sparse_regions = self
-                .regions()
-                .index_to_region()
-                .iter()
-                .flatten()
-                .filter(|region| region.uses_sparse_flush())
-                .map(|region| {
-                    let meta = region.meta();
-                    (meta.start(), meta.start() + meta.reserved())
-                })
-                .collect::<Vec<_>>();
-            sparse_regions.sort_unstable();
-            for (start, end) in sparse_regions {
-                if end <= cursor || start >= regular_end {
-                    continue;
-                }
-                if cursor < start {
-                    flush_ranges.push((cursor, start.min(regular_end)));
-                }
-                cursor = cursor.max(end);
-            }
-            if cursor < regular_end {
-                flush_ranges.push((cursor, regular_end));
-            }
-        }
 
         flush_ranges.sort_unstable();
         let mut merged_ranges: Vec<(usize, usize)> = Vec::with_capacity(flush_ranges.len());
@@ -479,7 +438,6 @@ impl Database {
     /// so `strong_count` reflects only real owners.
     /// Call `sync_bg_tasks()` before the next write to this database.
     pub fn run_bg(&self, f: impl FnOnce(&Self) -> Result<()> + Send + 'static) {
-        use std::mem::ManuallyDrop;
         // Safety: sync_bg_tasks (called explicitly or from Drop at strong_count == 1)
         // joins this thread before the Arc is deallocated.
         // ManuallyDrop prevents the refcount decrement we never incremented.

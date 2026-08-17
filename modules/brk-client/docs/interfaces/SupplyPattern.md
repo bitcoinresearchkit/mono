@@ -6,7 +6,7 @@
 
 # Interface: SupplyPattern
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5737](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5737)
+Defined in: [Developer/brk/modules/brk-client/index.js:7187](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7187)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:5737](https://github.com/
 
 > **supply**: [`InPattern3`](InPattern3.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5738](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5738)
+Defined in: [Developer/brk/modules/brk-client/index.js:7188](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7188)

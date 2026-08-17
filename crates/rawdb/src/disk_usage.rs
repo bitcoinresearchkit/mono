@@ -1,4 +1,7 @@
-use std::fs::File;
+use std::{fmt, fs::File, io, mem};
+
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
 
 use crate::Result;
 
@@ -9,12 +12,10 @@ pub struct DiskUsage(u64);
 impl DiskUsage {
     #[cfg(unix)]
     pub fn from_file(file: &File) -> Result<Self> {
-        use std::os::unix::io::AsRawFd;
-
-        let mut stat: libc::stat = unsafe { std::mem::zeroed() };
+        let mut stat: libc::stat = unsafe { mem::zeroed() };
         let result = unsafe { libc::fstat(file.as_raw_fd(), &mut stat) };
         if result == -1 {
-            return Err(std::io::Error::last_os_error().into());
+            return Err(io::Error::last_os_error().into());
         }
         Ok(Self(stat.st_blocks as u64 * 512))
     }
@@ -30,8 +31,8 @@ impl DiskUsage {
     }
 }
 
-impl std::fmt::Display for DiskUsage {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for DiskUsage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         const KIB: u64 = 1024;
         const MIB: u64 = KIB * 1024;
         const GIB: u64 = MIB * 1024;

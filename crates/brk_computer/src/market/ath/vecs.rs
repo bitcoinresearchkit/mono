@@ -6,7 +6,10 @@ use crate::internal::{LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Running all-time high of the Bitcoin spot price through the current
+    /// block.
     pub high: Price<PerBlock<Cents, M>>,
+    /// Bitcoin spot price divided by its running all-time high, minus one.
     pub drawdown: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.

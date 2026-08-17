@@ -6,20 +6,20 @@
 
 # Interface: CentsUsdPattern3
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5302](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5302)
+Defined in: [Developer/brk/modules/brk-client/index.js:6712](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6712)
 
 ## Properties
 
 ### cents
 
-> **cents**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
+> **cents**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5303](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5303)
+Defined in: [Developer/brk/modules/brk-client/index.js:6713](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6713)
 
 ***
 
 ### usd
 
-> **usd**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
+> **usd**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5304](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5304)
+Defined in: [Developer/brk/modules/brk-client/index.js:6714](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L6714)

@@ -6,7 +6,7 @@
 
 # Interface: BlockCumulativeDeltaSumPattern
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4299](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4299)
+Defined in: [Developer/brk/modules/brk-client/index.js:5823](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5823)
 
 ## Properties
 
@@ -14,28 +14,28 @@ Defined in: [Developer/brk/modules/brk-client/index.js:4299](https://github.com/
 
 > **block**: [`CentsUsdPattern4`](CentsUsdPattern4.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4300](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4300)
+Defined in: [Developer/brk/modules/brk-client/index.js:5824](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5824)
 
 ***
 
 ### cumulative
 
-> **cumulative**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **cumulative**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4301](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4301)
+Defined in: [Developer/brk/modules/brk-client/index.js:5825](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5825)
 
 ***
 
 ### delta
 
-> **delta**: [`AbsoluteRatePattern2`](AbsoluteRatePattern2.md)
+> **delta**: [`AbsoluteRatePattern3`](AbsoluteRatePattern3.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4302](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4302)
+Defined in: [Developer/brk/modules/brk-client/index.js:5826](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5826)
 
 ***
 
 ### sum
 
-> **sum**: [`_1m1w1y24hPattern5`](1m1w1y24hPattern5.md)
+> **sum**: [`_1m1w1y24hPattern6`](1m1w1y24hPattern6.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4303](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4303)
+Defined in: [Developer/brk/modules/brk-client/index.js:5827](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5827)

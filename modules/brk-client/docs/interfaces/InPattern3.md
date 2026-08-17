@@ -6,12 +6,12 @@
 
 # Interface: InPattern3
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5635](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5635)
+Defined in: [Developer/brk/modules/brk-client/index.js:7114](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7114)
 
 ## Properties
 
 ### inLoss
 
-> **inLoss**: [`SharePattern2`](SharePattern2.md)
+> **inLoss**: [`SharePattern3`](SharePattern3.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5636](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5636)
+Defined in: [Developer/brk/modules/brk-client/index.js:7115](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7115)

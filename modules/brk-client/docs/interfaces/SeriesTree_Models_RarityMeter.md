@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Models\_RarityMeter
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6962](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6962)
+Defined in: [Developer/brk/modules/brk-client/index.js:9259](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9259)
 
 ## Properties
 
@@ -14,15 +14,15 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6962](https://github.com/
 
 > **components**: [`SeriesTree_Models_RarityMeter_Components`](SeriesTree_Models_RarityMeter_Components.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6963](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6963)
+Defined in: [Developer/brk/modules/brk-client/index.js:9260](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9260)
 
 ***
 
 ### cycle
 
-> **cycle**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+> **cycle**: [`HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6967](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6967)
+Defined in: [Developer/brk/modules/brk-client/index.js:9264](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9264)
 
 ***
 
@@ -30,20 +30,20 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6967](https://github.com/
 
 > **extremes**: [`SeriesTree_Models_RarityMeter_Extremes`](SeriesTree_Models_RarityMeter_Extremes.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6964](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6964)
+Defined in: [Developer/brk/modules/brk-client/index.js:9261](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9261)
 
 ***
 
 ### full
 
-> **full**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+> **full**: [`HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6965](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6965)
+Defined in: [Developer/brk/modules/brk-client/index.js:9262](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9262)
 
 ***
 
 ### local
 
-> **local**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+> **local**: [`HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6966](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6966)
+Defined in: [Developer/brk/modules/brk-client/index.js:9263](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9263)

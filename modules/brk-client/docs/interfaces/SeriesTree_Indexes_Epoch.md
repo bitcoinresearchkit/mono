@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Indexes\_Epoch
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7168](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7168)
+Defined in: [Developer/brk/modules/brk-client/index.js:9467](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9467)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7168](https://github.com/
 
 > **firstHeight**: [`SeriesPattern17`](../type-aliases/SeriesPattern17.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7169](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7169)
+Defined in: [Developer/brk/modules/brk-client/index.js:9468](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9468)

@@ -356,7 +356,7 @@ Endpoint: `GET /api/series`
 #### get\_series\_count
 
 ```python
-def get_series_count() -> List[SeriesCount]
+def get_series_count() -> DetailedSeriesCount
 ```
 
 Series count.
@@ -404,7 +404,7 @@ def search_series(q: SeriesName, limit: Optional[Limit] = None) -> List[str]
 
 Search series.
 
-Fuzzy search for series by name. Supports partial matches and typos.
+Search series by name or descriptive terms. Matches metric names, descriptions, formulas, cohort aliases, partial words, and common typos.
 
 Endpoint: `GET /api/series/search`
 
@@ -1348,9 +1348,9 @@ Endpoint: `GET /api/v1/fees/recommended`
 def get_precise_fees() -> RecommendedFees
 ```
 
-Precise recommended fees.
+Recommended fee rates (precise).
 
-Recommended fee rates with sub-integer precision.
+Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
 
@@ -1795,3 +1795,4 @@ Compact OpenAPI specification.
 Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
 
 Endpoint: `GET /api.json`
+

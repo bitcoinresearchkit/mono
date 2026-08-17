@@ -7,4 +7,8 @@ use vecdb::{Rw, StorageMode};
 use crate::internal::PerBlockAggregated;
 
 #[derive(Deref, DerefMut, Traversable)]
-pub struct Vecs<M: StorageMode = Rw>(#[traversable(flatten)] pub PerBlockAggregated<StoredU64, M>);
+pub struct Vecs<M: StorageMode = Rw>(
+    /// Number of transaction inputs, including one coinbase input per block.
+    #[traversable(flatten)]
+    pub PerBlockAggregated<StoredU64, M>,
+);

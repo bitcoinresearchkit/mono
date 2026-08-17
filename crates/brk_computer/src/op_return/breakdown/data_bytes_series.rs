@@ -14,7 +14,11 @@ pub struct DataBytesSeries<C: ColumnId> {
     #[deref_mut]
     #[traversable(flatten)]
     pub data_bytes: LazyColumnPerBlockCumulativeRolling<Bytes, C>,
+    /// Cumulative `OP_RETURN` data bytes in the selected bucket divided by
+    /// cumulative data bytes across all `OP_RETURN` outputs.
     pub data_share: LazyPercentPerBlock<PartsPerMillion32>,
+    /// Cumulative `OP_RETURN` data bytes in the selected bucket divided by
+    /// cumulative serialized block bytes.
     pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

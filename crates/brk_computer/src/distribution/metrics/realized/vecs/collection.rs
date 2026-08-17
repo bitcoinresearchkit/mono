@@ -77,9 +77,8 @@ pub struct RealizedVecs<M: StorageMode = Rw> {
     /// value divided by creation-date value for outputs spent over the trailing
     /// 24 hours. Returns one when creation-date value is zero.
     pub sopr: Sopr24hVecs<M>,
-    /// Adjusted spent output profit ratio: SOPR after excluding outputs younger
-    /// than one hour, computed over the named trailing window. Returns one when
-    /// creation-date value is zero.
+    /// Adjusted SOPR inputs and ratios for the all-chain and short-term-holder
+    /// cohorts after excluding outputs younger than one hour.
     pub adjusted_sopr: AdjustedSoprVecs<M>,
     #[traversable(wrap = "cap", rename = "addr_balance")]
     /// Creation-date value of unspent outputs controlled by funded addresses in

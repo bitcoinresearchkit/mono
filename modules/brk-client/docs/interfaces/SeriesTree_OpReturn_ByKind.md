@@ -6,188 +6,44 @@
 
 # Interface: SeriesTree\_OpReturn\_ByKind
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6554](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6554)
+Defined in: [Developer/brk/modules/brk-client/index.js:8303](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8303)
 
 ## Properties
 
-### ascribe
+### dataBytes
 
-> **ascribe**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
+> **dataBytes**: [`SeriesTree_OpReturn_ByKind_DataBytes`](SeriesTree_OpReturn_ByKind_DataBytes.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6571](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6571)
-
-***
-
-### bareHash
-
-> **bareHash**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6574](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6574)
+Defined in: [Developer/brk/modules/brk-client/index.js:8305](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8305)
 
 ***
 
-### bitproof
+### fees
 
-> **bitproof**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
+> **fees**: [`SeriesTree_OpReturn_ByKind_Fees`](SeriesTree_OpReturn_ByKind_Fees.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6570](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6570)
-
-***
-
-### blockstack
-
-> **blockstack**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6559](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6559)
+Defined in: [Developer/brk/modules/brk-client/index.js:8308](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8308)
 
 ***
 
-### coinSpark
+### outputCount
 
-> **coinSpark**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
+> **outputCount**: [`SeriesTree_OpReturn_ByKind_OutputCount`](SeriesTree_OpReturn_ByKind_OutputCount.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6563](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6563)
-
-***
-
-### colu
-
-> **colu**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6560](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6560)
+Defined in: [Developer/brk/modules/brk-client/index.js:8304](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8304)
 
 ***
 
-### docproof
+### txCount
 
-> **docproof**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
+> **txCount**: [`SeriesTree_OpReturn_ByKind_TxCount`](SeriesTree_OpReturn_ByKind_TxCount.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6565](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6565)
-
-***
-
-### empty
-
-> **empty**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6576](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6576)
+Defined in: [Developer/brk/modules/brk-client/index.js:8306](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8306)
 
 ***
 
-### epobc
+### txVsize
 
-> **epobc**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
+> **txVsize**: [`SeriesTree_OpReturn_ByKind_TxVsize`](SeriesTree_OpReturn_ByKind_TxVsize.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6573](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6573)
-
-***
-
-### eternityWall
-
-> **eternityWall**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6568](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6568)
-
-***
-
-### factom
-
-> **factom**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6567](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6567)
-
-***
-
-### komodo
-
-> **komodo**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6562](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6562)
-
-***
-
-### memo
-
-> **memo**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6569](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6569)
-
-***
-
-### omni
-
-> **omni**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6557](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6557)
-
-***
-
-### openAssets
-
-> **openAssets**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6561](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6561)
-
-***
-
-### openTimestamps
-
-> **openTimestamps**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6566](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6566)
-
-***
-
-### poet
-
-> **poet**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6564](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6564)
-
-***
-
-### runes
-
-> **runes**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6555](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6555)
-
-***
-
-### stacks
-
-> **stacks**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6558](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6558)
-
-***
-
-### stampery
-
-> **stampery**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6572](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6572)
-
-***
-
-### text
-
-> **text**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6575](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6575)
-
-***
-
-### unknown
-
-> **unknown**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6577](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6577)
-
-***
-
-### veriBlock
-
-> **veriBlock**: [`ChainDataFeeFeesOutputTxPattern`](ChainDataFeeFeesOutputTxPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6556](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6556)
+Defined in: [Developer/brk/modules/brk-client/index.js:8307](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8307)

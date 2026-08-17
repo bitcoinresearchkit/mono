@@ -6,36 +6,36 @@
 
 # Interface: \_1m1w1y24hPattern7
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4115](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4115)
+Defined in: [Developer/brk/modules/brk-client/index.js:5684](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5684)
 
 ## Properties
 
 ### \_1m
 
-> **\_1m**: [`BtcSatsPattern`](BtcSatsPattern.md)
+> **\_1m**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4116](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4116)
+Defined in: [Developer/brk/modules/brk-client/index.js:5685](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5685)
 
 ***
 
 ### \_1w
 
-> **\_1w**: [`BtcSatsPattern`](BtcSatsPattern.md)
+> **\_1w**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4117](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4117)
+Defined in: [Developer/brk/modules/brk-client/index.js:5686](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5686)
 
 ***
 
 ### \_1y
 
-> **\_1y**: [`BtcSatsPattern`](BtcSatsPattern.md)
+> **\_1y**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4118](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4118)
+Defined in: [Developer/brk/modules/brk-client/index.js:5687](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5687)
 
 ***
 
 ### \_24h
 
-> **\_24h**: [`BtcSatsPattern`](BtcSatsPattern.md)
+> **\_24h**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4119](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4119)
+Defined in: [Developer/brk/modules/brk-client/index.js:5688](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5688)

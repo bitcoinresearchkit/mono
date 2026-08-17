@@ -6,7 +6,7 @@
 
 # Interface: HistoricalPrice
 
-Defined in: [Developer/brk/modules/brk-client/index.js:673](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L673)
+Defined in: [Developer/brk/modules/brk-client/index.js:675](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L675)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:673](https://github.com/b
 
 > **exchangeRates**: `Object`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:675](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L675)
+Defined in: [Developer/brk/modules/brk-client/index.js:677](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L677)
 
 Exchange rates (currently empty)
 
@@ -24,6 +24,6 @@ Exchange rates (currently empty)
 
 > **prices**: [`HistoricalPriceEntry`](HistoricalPriceEntry.md)[]
 
-Defined in: [Developer/brk/modules/brk-client/index.js:674](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L674)
+Defined in: [Developer/brk/modules/brk-client/index.js:676](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L676)
 
 Price data points

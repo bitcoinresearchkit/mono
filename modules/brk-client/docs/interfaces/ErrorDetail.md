@@ -6,7 +6,7 @@
 
 # Interface: ErrorDetail
 
-Defined in: [Developer/brk/modules/brk-client/index.js:569](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L569)
+Defined in: [Developer/brk/modules/brk-client/index.js:571](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L571)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:569](https://github.com/b
 
 > **code**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:571](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L571)
+Defined in: [Developer/brk/modules/brk-client/index.js:573](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L573)
 
 Machine-readable error code (e.g. "invalid_addr", "series_not_found")
 
@@ -24,7 +24,7 @@ Machine-readable error code (e.g. "invalid_addr", "series_not_found")
 
 > **docUrl**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:573](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L573)
+Defined in: [Developer/brk/modules/brk-client/index.js:575](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L575)
 
 Link to API documentation
 
@@ -34,7 +34,7 @@ Link to API documentation
 
 > **message**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:572](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L572)
+Defined in: [Developer/brk/modules/brk-client/index.js:574](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L574)
 
 Human-readable description
 
@@ -44,6 +44,6 @@ Human-readable description
 
 > **type**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:570](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L570)
+Defined in: [Developer/brk/modules/brk-client/index.js:572](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L572)
 
 Error category: "invalid_request", "forbidden", "not_found", "unavailable", or "internal"

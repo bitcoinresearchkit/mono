@@ -6,12 +6,12 @@
 
 # Interface: SharePattern2
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5703](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5703)
+Defined in: [Developer/brk/modules/brk-client/index.js:7136](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7136)
 
 ## Properties
 
 ### share
 
-> **share**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
+> **share**: [`AllLthSthPattern6`](AllLthSthPattern6.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:5704](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L5704)
+Defined in: [Developer/brk/modules/brk-client/index.js:7137](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7137)

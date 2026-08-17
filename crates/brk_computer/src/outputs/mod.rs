@@ -30,6 +30,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     pub spent: SpentVecs<M>,
     pub count: CountVecs<M>,
+    /// Transaction-output rate, including coinbase outputs.
     pub per_sec: LazyPerSecondWindows,
     pub unspent: UnspentVecs<M>,
     pub by_type: ByTypeVecs<M>,

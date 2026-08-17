@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining\_Rewards\_Fees\_ToSubsidy
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6630](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6630)
+Defined in: [Developer/brk/modules/brk-client/index.js:8547](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8547)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6630](https://github.com/
 
 > **\_1m**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6633](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6633)
+Defined in: [Developer/brk/modules/brk-client/index.js:8550](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8550)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6633](https://github.com/
 
 > **\_1w**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6632](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6632)
+Defined in: [Developer/brk/modules/brk-client/index.js:8549](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8549)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6632](https://github.com/
 
 > **\_1y**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6634](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6634)
+Defined in: [Developer/brk/modules/brk-client/index.js:8551](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8551)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6634](https://github.com/
 
 > **\_24h**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6631](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6631)
+Defined in: [Developer/brk/modules/brk-client/index.js:8548](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8548)

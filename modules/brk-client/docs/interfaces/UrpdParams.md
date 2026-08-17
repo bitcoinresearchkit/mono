@@ -6,7 +6,7 @@
 
 # Interface: UrpdParams
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1411](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1411)
+Defined in: [Developer/brk/modules/brk-client/index.js:1492](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1492)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1411](https://github.com/
 
 > **cohort**: [`Cohort`](../type-aliases/Cohort.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1412](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1412)
+Defined in: [Developer/brk/modules/brk-client/index.js:1493](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1493)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [Developer/brk/modules/brk-client/index.js:1412](https://github.com/
 
 > **date**: `string`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:1413](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L1413)
+Defined in: [Developer/brk/modules/brk-client/index.js:1494](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L1494)
 
 Calendar date of the URPD snapshot in `YYYY-MM-DD` format.

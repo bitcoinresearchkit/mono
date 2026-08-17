@@ -6,188 +6,44 @@
 
 # Interface: SeriesTree\_Frameworks\_Cointime\_AgeRange
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6692](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6692)
+Defined in: [Developer/brk/modules/brk-client/index.js:8610](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8610)
 
 ## Properties
 
-### \_10yTo12y
+### activity
 
-> **\_10yTo12y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
+> **activity**: [`SeriesTree_Frameworks_Cointime_AgeRange_Activity`](SeriesTree_Frameworks_Cointime_AgeRange_Activity.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6713](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6713)
-
-***
-
-### \_12yTo15y
-
-> **\_12yTo15y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6714](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6714)
+Defined in: [Developer/brk/modules/brk-client/index.js:8613](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8613)
 
 ***
 
-### \_18mTo2y
+### coindaysConsumed
 
-> **\_18mTo2y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
+> **coindaysConsumed**: [`SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed`](SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6705](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6705)
-
-***
-
-### \_1dTo1w
-
-> **\_1dTo1w**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6695](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6695)
+Defined in: [Developer/brk/modules/brk-client/index.js:8611](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8611)
 
 ***
 
-### \_1hTo1d
+### coindaysCreated
 
-> **\_1hTo1d**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
+> **coindaysCreated**: [`SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated`](SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6694](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6694)
-
-***
-
-### \_1mTo2m
-
-> **\_1mTo2m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6697](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6697)
+Defined in: [Developer/brk/modules/brk-client/index.js:8615](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8615)
 
 ***
 
-### \_1wTo1m
+### coindaysStored
 
-> **\_1wTo1m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
+> **coindaysStored**: [`SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored`](SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6696](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6696)
-
-***
-
-### \_1yTo18m
-
-> **\_1yTo18m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6704](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6704)
+Defined in: [Developer/brk/modules/brk-client/index.js:8612](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8612)
 
 ***
 
-### \_2mTo3m
+### supply
 
-> **\_2mTo3m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
+> **supply**: [`SeriesTree_Frameworks_Cointime_AgeRange_Supply`](SeriesTree_Frameworks_Cointime_AgeRange_Supply.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6698](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6698)
-
-***
-
-### \_2yTo3y
-
-> **\_2yTo3y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6706](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6706)
-
-***
-
-### \_3mTo4m
-
-> **\_3mTo4m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6699](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6699)
-
-***
-
-### \_3yTo4y
-
-> **\_3yTo4y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6707](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6707)
-
-***
-
-### \_4mTo5m
-
-> **\_4mTo5m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6700](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6700)
-
-***
-
-### \_4yTo5y
-
-> **\_4yTo5y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6708](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6708)
-
-***
-
-### \_5mTo6m
-
-> **\_5mTo6m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6701](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6701)
-
-***
-
-### \_5yTo6y
-
-> **\_5yTo6y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6709](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6709)
-
-***
-
-### \_6mTo9m
-
-> **\_6mTo9m**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6702](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6702)
-
-***
-
-### \_6yTo7y
-
-> **\_6yTo7y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6710](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6710)
-
-***
-
-### \_7yTo8y
-
-> **\_7yTo8y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6711](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6711)
-
-***
-
-### \_8yTo10y
-
-> **\_8yTo10y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6712](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6712)
-
-***
-
-### \_9mTo1y
-
-> **\_9mTo1y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6703](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6703)
-
-***
-
-### over15y
-
-> **over15y**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6715](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6715)
-
-***
-
-### under1h
-
-> **under1h**: [`CoindaysDormancySupplyWakefulnessPattern`](CoindaysDormancySupplyWakefulnessPattern.md)
-
-Defined in: [Developer/brk/modules/brk-client/index.js:6693](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6693)
+Defined in: [Developer/brk/modules/brk-client/index.js:8614](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8614)

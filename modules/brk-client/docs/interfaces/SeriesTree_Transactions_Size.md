@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Size
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6030](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6030)
+Defined in: [Developer/brk/modules/brk-client/index.js:7500](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7500)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6030](https://github.com/
 
 > **vsize**: [`SeriesTree_Transactions_Size_Vsize`](SeriesTree_Transactions_Size_Vsize.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6031](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6031)
+Defined in: [Developer/brk/modules/brk-client/index.js:7501](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7501)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6031](https://github.com/
 
 > **weight**: [`SeriesTree_Transactions_Size_Weight`](SeriesTree_Transactions_Size_Weight.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6032](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6032)
+Defined in: [Developer/brk/modules/brk-client/index.js:7502](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L7502)

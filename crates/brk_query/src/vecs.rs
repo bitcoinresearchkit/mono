@@ -276,23 +276,21 @@ impl<'a> Vecs<'a> {
                 .collect();
         }
 
-        let direct_limit = (*limit).max(64);
         let is_expanded = query.expanded != query.normalized;
-        let normalized = if is_expanded {
-            Vec::new()
-        } else {
-            self.matcher.matches_with_ids_and_matched_words(
-                &query.normalized,
-                &QuickMatchConfig::new()
-                    .with_limit(direct_limit)
-                    .with_union_fallback(false),
-            )
-        };
+        let mut normalized_config = QuickMatchConfig::new()
+            .with_limit(self.series.len())
+            .with_union_fallback(false);
+        if is_expanded {
+            normalized_config = normalized_config.with_trigram_budget(0);
+        }
+        let normalized = self
+            .matcher
+            .matches_with_ids_and_matched_words(&query.normalized, &normalized_config);
         let expanded = if is_expanded {
             self.matcher.matches_with_ids_and_matched_words(
                 &query.expanded,
                 &QuickMatchConfig::new()
-                    .with_limit(direct_limit)
+                    .with_limit(self.series.len())
                     .with_union_fallback(false),
             )
         } else {
@@ -311,7 +309,14 @@ impl<'a> Vecs<'a> {
             candidate.direct_words = candidate.direct_words.max(matched_words as usize);
         }
         if query.semantic.is_empty() {
-            return rank_candidates(&self.series, candidates, &query, *limit);
+            return rank_candidates(
+                &self.series,
+                candidates,
+                std::iter::empty(),
+                0,
+                &query,
+                *limit,
+            );
         }
 
         let descriptions = self
@@ -323,22 +328,42 @@ impl<'a> Vecs<'a> {
                     .with_limit(self.description_search.series_by_description.len()),
             );
         if descriptions.is_empty() {
-            return rank_candidates(&self.series, candidates, &query, *limit);
+            return rank_candidates(
+                &self.series,
+                candidates,
+                std::iter::empty(),
+                0,
+                &query,
+                *limit,
+            );
         }
         let best_matched_words = descriptions[0].1;
-        for (rank, (description_id, matched_words)) in descriptions
+        let descriptions = descriptions
             .into_iter()
             .take_while(|(_, matched_words)| *matched_words == best_matched_words)
-            .enumerate()
-        {
-            let series = &self.description_search.series_by_description[description_id as usize];
-            for &id in series {
-                let candidate = candidates.entry(id).or_default();
-                candidate.description_rank = Some(rank);
-                candidate.description_words = matched_words as usize;
-            }
-        }
-        rank_candidates(&self.series, candidates, &query, *limit)
+            .collect::<Vec<_>>();
+        let described_series = descriptions
+            .iter()
+            .map(|(description_id, _)| {
+                self.description_search.series_by_description[*description_id as usize].len()
+            })
+            .sum();
+        let description_candidates = descriptions.into_iter().enumerate().flat_map(
+            |(rank, (description_id, matched_words))| {
+                self.description_search.series_by_description[description_id as usize]
+                    .iter()
+                    .copied()
+                    .map(move |id| (id, rank, matched_words as usize))
+            },
+        );
+        rank_candidates(
+            &self.series,
+            candidates,
+            description_candidates,
+            described_series,
+            &query,
+            *limit,
+        )
     }
 
     pub fn get_entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
@@ -384,53 +409,65 @@ impl DescriptionSearch {
     }
 }
 
-fn search_words(text: &str) -> Vec<&str> {
+fn search_words(text: &str) -> impl Iterator<Item = &str> {
     text.split(['_', '-', ' ', ':', '/'])
         .filter(|word| !word.is_empty())
-        .collect()
 }
 
-fn matching_words_in(query: &[&str], name: &[&str]) -> usize {
+fn matching_words_in_name(query: &[&str], name: &str) -> usize {
     query
         .iter()
-        .filter(|query| name.iter().any(|name| name.starts_with(**query)))
+        .filter(|query| search_words(name).any(|name| name.starts_with(**query)))
         .count()
 }
 
 fn rank_candidates<'a>(
     series: &[&'a str],
-    candidates: FxHashMap<SeriesId, SearchCandidate>,
+    mut direct_candidates: FxHashMap<SeriesId, SearchCandidate>,
+    description_candidates: impl Iterator<Item = (SeriesId, usize, usize)>,
+    description_candidate_count: usize,
     query: &cohort_query::ExpandedQuery,
     limit: usize,
 ) -> Vec<&'a str> {
-    let normalized_words = search_words(&query.normalized);
-    let expanded_words = search_words(&query.expanded);
-    let cohort_words = search_words(&query.cohorts);
-    let mut candidates = candidates
-        .into_iter()
-        .map(|(id, candidate)| {
-            let name = series[id as usize];
-            let words = search_words(name);
-            let cohort_words = matching_words_in(&cohort_words, &words);
-            let name_words = candidate.direct_words.saturating_sub(cohort_words);
-            RankedCandidate {
-                name,
-                normalized_exact: normalized_words == words,
-                expanded_exact: expanded_words == words,
-                cohort_words,
-                semantic_words: name_words.max(candidate.description_words),
-                name_words,
-                description_words: candidate.description_words,
-                documented: candidate.description_rank.is_some(),
-                description_rank: candidate.description_rank,
-                direct_rank: candidate
-                    .normalized_rank
-                    .into_iter()
-                    .chain(candidate.expanded_rank)
-                    .min(),
-            }
-        })
-        .collect::<Vec<_>>();
+    let normalized_words = search_words(&query.normalized).collect::<Vec<_>>();
+    let expanded_words = search_words(&query.expanded).collect::<Vec<_>>();
+    let cohort_words = search_words(&query.cohorts).collect::<Vec<_>>();
+    let rank = |id: SeriesId, candidate: SearchCandidate| {
+        let name = series[id as usize];
+        let cohort_words = matching_words_in_name(&cohort_words, name);
+        let name_words = candidate.direct_words.saturating_sub(cohort_words);
+        RankedCandidate {
+            name,
+            normalized_exact: candidate.normalized_rank.is_some()
+                && normalized_words.iter().copied().eq(search_words(name)),
+            expanded_exact: candidate.expanded_rank.is_some()
+                && expanded_words.iter().copied().eq(search_words(name)),
+            cohort_words,
+            semantic_words: name_words.max(candidate.description_words),
+            name_words,
+            description_words: candidate.description_words,
+            documented: candidate.description_rank.is_some(),
+            description_rank: candidate.description_rank,
+            direct_rank: candidate
+                .normalized_rank
+                .into_iter()
+                .chain(candidate.expanded_rank)
+                .min(),
+        }
+    };
+
+    let mut candidates = Vec::with_capacity(direct_candidates.len() + description_candidate_count);
+    for (id, description_rank, description_words) in description_candidates {
+        let mut candidate = direct_candidates.remove(&id).unwrap_or_default();
+        candidate.description_rank = Some(description_rank);
+        candidate.description_words = description_words;
+        candidates.push(rank(id, candidate));
+    }
+    candidates.extend(
+        direct_candidates
+            .into_iter()
+            .map(|(id, candidate)| rank(id, candidate)),
+    );
 
     if candidates.len() > limit {
         candidates.select_nth_unstable_by(limit, RankedCandidate::cmp);
@@ -532,6 +569,10 @@ mod tests {
     const CENTS_DESCRIPTION: &str = "Reported in cents per BTC.";
     const SATS_DESCRIPTION: &str =
         "Reported in sats per USD: 100,000,000 divided by the price in USD per BTC.";
+    const OPEN_PRICE_DESCRIPTION: &str = "Opening Bitcoin price for each supported time period, including daily periods. A populated period uses its first block-level price; an empty period carries forward the previous close.";
+    const HIGH_PRICE_DESCRIPTION: &str = "Highest Bitcoin price for each supported time period, including daily periods. A populated period uses its maximum block-level price; an empty period carries forward the previous close.";
+    const LOW_PRICE_DESCRIPTION: &str = "Lowest Bitcoin price for each supported time period, including daily periods. A populated period uses its minimum block-level price; an empty period carries forward the previous close.";
+    const CLOSE_PRICE_DESCRIPTION: &str = "Closing Bitcoin price for each supported time period, including daily periods. A populated period uses its final block-level price; an empty period is null.";
     const PPM_DESCRIPTION: &str = "Spot price divided by this price in parts per million; 1,000,000 represents a ratio of 1.0.";
     const RATIO_DESCRIPTION: &str = "Spot price divided by this price as a unitless decimal ratio.";
     const AMOUNT_BTC_DESCRIPTION: &str = "Reported in BTC; one BTC equals 100,000,000 satoshis.";
@@ -1527,9 +1568,6 @@ mod tests {
             ("price", USD_DESCRIPTION),
             ("price_cents", CENTS_DESCRIPTION),
             ("price_sats", SATS_DESCRIPTION),
-            ("price_close", USD_DESCRIPTION),
-            ("price_close_cents", CENTS_DESCRIPTION),
-            ("price_close_sats", SATS_DESCRIPTION),
             ("dca_stack_from_2020", AMOUNT_BTC_DESCRIPTION),
             ("dca_stack_from_2020_sats", AMOUNT_SATS_DESCRIPTION),
             ("dca_stack_from_2020_usd", AMOUNT_USD_DESCRIPTION),
@@ -1547,6 +1585,29 @@ mod tests {
                 Some(description),
                 "wrong description for {name}"
             );
+        }
+
+        for (base, semantic) in [
+            ("price_open", OPEN_PRICE_DESCRIPTION),
+            ("price_high", HIGH_PRICE_DESCRIPTION),
+            ("price_low", LOW_PRICE_DESCRIPTION),
+            ("price_close", CLOSE_PRICE_DESCRIPTION),
+        ] {
+            for (suffix, representation) in [
+                ("", USD_DESCRIPTION),
+                ("_cents", CENTS_DESCRIPTION),
+                ("_sats", SATS_DESCRIPTION),
+            ] {
+                let name = format!("{base}{suffix}");
+                let info = vecs
+                    .series_info(&SeriesName::from(name.as_str()))
+                    .unwrap_or_else(|| panic!("missing series {name}"));
+                assert_eq!(
+                    info.description.as_deref(),
+                    Some(format!("{semantic} {representation}").as_str()),
+                    "wrong description for {name}"
+                );
+            }
         }
 
         for (name, semantic, representation) in [
@@ -3461,10 +3522,15 @@ mod tests {
         );
         let search_cases = [
             ("price", "price"),
+            ("daily bitcoin opening price", "price_open"),
+            ("daily bitcoin highest price", "price_high"),
+            ("daily bitcoin lowest price", "price_low"),
+            ("daily bitcoin closing price", "price_close"),
             ("realized price", "realized_price"),
             ("realized price.", "realized_price"),
             ("realized_price", "realized_price"),
             ("supply in profit", "supply_in_profit"),
+            ("supply in profit share", "all_supply_in_profit_share"),
             ("short-term holder realized price", "sth_realized_price"),
             ("long term holder realized price", "lth_realized_price"),
             (
@@ -3646,6 +3712,10 @@ mod tests {
             USD_DESCRIPTION,
             CENTS_DESCRIPTION,
             SATS_DESCRIPTION,
+            OPEN_PRICE_DESCRIPTION,
+            HIGH_PRICE_DESCRIPTION,
+            LOW_PRICE_DESCRIPTION,
+            CLOSE_PRICE_DESCRIPTION,
             PPM_DESCRIPTION,
             RATIO_DESCRIPTION,
             AMOUNT_BTC_DESCRIPTION,

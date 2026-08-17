@@ -1,10 +1,7 @@
 use std::{
     fs::File,
     mem,
-    sync::{
-        Arc,
-        atomic::{AtomicBool, Ordering},
-    },
+    sync::{Arc, OnceLock},
 };
 
 use log::{debug, trace};
@@ -14,6 +11,11 @@ use crate::{
     Database, Error, HolePunch, PAGE_SIZE, PAGE_SIZE_MINUS_1, Reader, RegionMetadata, Result,
     WeakDatabase,
 };
+
+const RESIDENCY_SAMPLE_BYTES: usize = 16 * 1024 * 1024;
+
+#[cfg(unix)]
+static VM_PAGE_SIZE: OnceLock<usize> = OnceLock::new();
 
 /// Named, dynamically-sized region within a database.
 #[derive(Debug, Clone)]
@@ -27,7 +29,6 @@ pub(crate) struct RegionInner {
     meta: RwLock<RegionMetadata>,
     /// Sorted, merged dirty byte ranges relative to the region start.
     dirty_ranges: Mutex<Vec<(usize, usize)>>,
-    sparse_flush: AtomicBool,
 }
 
 impl Region {
@@ -44,7 +45,6 @@ impl Region {
             index,
             meta: RwLock::new(RegionMetadata::new(id, start, len, reserved)),
             dirty_ranges: Mutex::new(Vec::new()),
-            sparse_flush: AtomicBool::new(false),
         }))
     }
 
@@ -54,7 +54,6 @@ impl Region {
             index,
             meta: RwLock::new(meta),
             dirty_ranges: Mutex::new(Vec::new()),
-            sparse_flush: AtomicBool::new(false),
         }))
     }
 
@@ -81,6 +80,92 @@ impl Region {
 
     pub fn open_db_read_only_file(&self) -> Result<File> {
         self.db().open_read_only_file()
+    }
+
+    /// Conservatively samples whether a region-relative byte range is resident in memory.
+    ///
+    /// This is a read-strategy hint only: it samples the first and last pages plus
+    /// one page per 16 MiB. Any missing sample or probing error returns `false`.
+    #[cfg(unix)]
+    pub fn is_likely_fully_resident(&self, offset: usize, len: usize) -> bool {
+        if len == 0 {
+            return true;
+        }
+
+        let meta = self.meta();
+        let Some(end) = offset.checked_add(len) else {
+            return false;
+        };
+        if end > meta.len() {
+            return false;
+        }
+        let Some(absolute_start) = meta.start().checked_add(offset) else {
+            return false;
+        };
+        drop(meta);
+
+        let page_size = *VM_PAGE_SIZE.get_or_init(|| {
+            let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
+            usize::try_from(page_size).expect("valid virtual-memory page size")
+        });
+        let start = absolute_start / page_size * page_size;
+        let Some(absolute_end) = absolute_start.checked_add(len) else {
+            return false;
+        };
+        let Some(end) = absolute_end
+            .checked_add(page_size - 1)
+            .map(|end| end / page_size * page_size)
+        else {
+            return false;
+        };
+        let sampled_len = end - start;
+
+        let db = self.db();
+        let mmap = db.mmap();
+        if end > mmap.len() {
+            return false;
+        }
+
+        let is_resident = |at: usize| {
+            let mut state = 0i8;
+            let result = unsafe {
+                libc::mincore(
+                    mmap.as_ptr().add(at).cast_mut().cast(),
+                    page_size,
+                    &mut state,
+                )
+            };
+            result == 0 && state & 1 != 0
+        };
+
+        if !is_resident(start) || !is_resident(end - page_size) {
+            return false;
+        }
+
+        let chunks = sampled_len.div_ceil(RESIDENCY_SAMPLE_BYTES);
+        let mut state = (start as u64)
+            .wrapping_mul(0x9e37_79b9_7f4a_7c15)
+            .wrapping_add(sampled_len as u64);
+        for chunk in 0..chunks {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+
+            let chunk_start = chunk * RESIDENCY_SAMPLE_BYTES;
+            let chunk_len = (sampled_len - chunk_start).min(RESIDENCY_SAMPLE_BYTES);
+            let pages = chunk_len / page_size;
+            let page = state as usize % pages;
+            if !is_resident(start + chunk_start + page * page_size) {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    #[cfg(not(unix))]
+    pub fn is_likely_fully_resident(&self, _offset: usize, len: usize) -> bool {
+        len == 0
     }
 
     /// Ensures the region has at least `capacity` bytes of reserved space.
@@ -204,18 +289,6 @@ impl Region {
     #[inline]
     pub fn write_at_grow(&self, data: &[u8], at: usize) -> Result<()> {
         self.write_with(data, Some(at), false, true)
-    }
-
-    /// Prevents database-wide flush coalescing from spanning this region's
-    /// intentionally sparse internal layout.
-    #[doc(hidden)]
-    pub fn use_sparse_flush(&self) {
-        self.0.sparse_flush.store(true, Ordering::Relaxed);
-    }
-
-    #[inline]
-    pub(crate) fn uses_sparse_flush(&self) -> bool {
-        self.0.sparse_flush.load(Ordering::Relaxed)
     }
 
     /// Deallocates initialized but unused bytes inside this region without

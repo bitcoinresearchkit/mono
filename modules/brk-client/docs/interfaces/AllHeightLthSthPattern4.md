@@ -1,0 +1,41 @@
+[**brk-client**](../README.md)
+
+***
+
+[brk-client](../globals.md) / AllHeightLthSthPattern4
+
+# Interface: AllHeightLthSthPattern4
+
+Defined in: [Developer/brk/modules/brk-client/index.js:5792](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5792)
+
+## Properties
+
+### all
+
+> **all**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
+
+Defined in: [Developer/brk/modules/brk-client/index.js:5793](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5793)
+
+***
+
+### height
+
+> **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
+
+Defined in: [Developer/brk/modules/brk-client/index.js:5794](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5794)
+
+***
+
+### lth
+
+> **lth**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
+
+Defined in: [Developer/brk/modules/brk-client/index.js:5795](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5795)
+
+***
+
+### sth
+
+> **sth**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
+
+Defined in: [Developer/brk/modules/brk-client/index.js:5796](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5796)

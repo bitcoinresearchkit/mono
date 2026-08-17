@@ -8,6 +8,6 @@
 
 > **CapitalSentimentPhase** = `"raging_bull"` \| `"bull"` \| `"cautious_bull"` \| `"hopeful_bull"` \| `"early_bull"` \| `"weak_bull"` \| `"limbo"` \| `"deep_bear"` \| `"bear"` \| `"early_bear"`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:344](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L344)
+Defined in: [Developer/brk/modules/brk-client/index.js:346](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L346)
 
 ## Type Parameters

@@ -9,10 +9,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// total output value plus transaction fees and is not adjusted to estimate
     /// economic payment volume.
     pub transfer_volume: ValuePerBlockCumulativeRolling<M>,
-    /// Number of transactions, including coinbase, in the trailing fixed
-    /// window divided by that window's full duration in seconds. The divisor
-    /// remains the full duration before enough chain history exists. At
-    /// time-period indexes, the value is taken from the period's final block.
+    /// Transaction rate, including coinbase transactions.
     pub tx_per_sec: LazyPerSecondWindows,
 }
 

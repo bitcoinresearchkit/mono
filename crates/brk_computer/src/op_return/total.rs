@@ -14,6 +14,8 @@ use crate::{
 
 #[derive(Traversable)]
 pub struct Total<M: StorageMode = Rw> {
+    /// Number of script bytes following the `OP_RETURN` opcode across all
+    /// `OP_RETURN` outputs.
     pub data_bytes: CachedPerBlockCumulativeRolling<Bytes, M>,
     /// Number of transactions containing at least one `OP_RETURN` output; each
     /// transaction is counted once regardless of how many such outputs it has.
@@ -24,7 +26,11 @@ pub struct Total<M: StorageMode = Rw> {
     /// Sum of the full fees of transactions containing at least one `OP_RETURN`
     /// output; each transaction is included once.
     pub fees: PerBlockCumulativeRolling<Sats, M>,
+    /// Cumulative `OP_RETURN` data bytes divided by cumulative serialized block
+    /// bytes through the represented block.
     pub chain_share: LazyPercentPerBlock<PartsPerMillion32>,
+    /// Fees of transactions carrying `OP_RETURN` divided by all transaction
+    /// fees over the same cumulative or trailing window.
     pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 

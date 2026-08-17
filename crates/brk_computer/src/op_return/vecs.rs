@@ -12,8 +12,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) plugin_gate: PluginGate,
     #[traversable(skip)]
     pub(crate) db: Database,
+    /// Metrics across every `OP_RETURN` output and every transaction carrying
+    /// at least one such output.
     pub total: Total<M>,
+    /// Metrics split by detected `OP_RETURN` payload kind. Output bytes belong
+    /// to one kind, while transaction counts, full virtual sizes, and full fees
+    /// are counted once for every kind present in a transaction, so those
+    /// metrics can overlap across kinds.
     pub by_kind: BreakdownVecs<OpReturnKind, M>,
+    /// Metrics split by pre-v30 `OP_RETURN` relay-policy shape. `oversized` and
+    /// `multiple` can overlap, and both are subsets of `pre_v30_nonstandard`;
+    /// `pre_v30_standard` is the complementary category.
     pub policy: BreakdownVecs<OpReturnPolicyId, M>,
 }
 

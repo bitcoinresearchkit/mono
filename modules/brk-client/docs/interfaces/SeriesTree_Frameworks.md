@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Frameworks
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6661](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6661)
+Defined in: [Developer/brk/modules/brk-client/index.js:8578](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8578)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6661](https://github.com/
 
 > **coinflow**: [`SeriesTree_Frameworks_Coinflow`](SeriesTree_Frameworks_Coinflow.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6663](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6663)
+Defined in: [Developer/brk/modules/brk-client/index.js:8580](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8580)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:6663](https://github.com/
 
 > **cointime**: [`SeriesTree_Frameworks_Cointime`](SeriesTree_Frameworks_Cointime.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:6662](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L6662)
+Defined in: [Developer/brk/modules/brk-client/index.js:8579](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L8579)

@@ -8,6 +8,6 @@
 
 > **CentsSats** = `number`
 
-Defined in: [Developer/brk/modules/brk-client/index.js:357](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L357)
+Defined in: [Developer/brk/modules/brk-client/index.js:359](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L359)
 
 ## Type Parameters

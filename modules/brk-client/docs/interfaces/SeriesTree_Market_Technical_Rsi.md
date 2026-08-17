@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Technical\_Rsi
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7559](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7559)
+Defined in: [Developer/brk/modules/brk-client/index.js:9860](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9860)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7559](https://github.com/
 
 > **\_1m**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7562](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7562)
+Defined in: [Developer/brk/modules/brk-client/index.js:9863](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9863)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7562](https://github.com/
 
 > **\_1w**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7561](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7561)
+Defined in: [Developer/brk/modules/brk-client/index.js:9862](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9862)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7561](https://github.com/
 
 > **\_24h**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7560](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7560)
+Defined in: [Developer/brk/modules/brk-client/index.js:9861](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9861)

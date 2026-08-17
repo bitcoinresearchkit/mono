@@ -6,36 +6,36 @@
 
 # Interface: \_1m1w1y24hPattern6
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4184](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4184)
+Defined in: [Developer/brk/modules/brk-client/index.js:5707](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5707)
 
 ## Properties
 
 ### \_1m
 
-> **\_1m**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **\_1m**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4185](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4185)
+Defined in: [Developer/brk/modules/brk-client/index.js:5708](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5708)
 
 ***
 
 ### \_1w
 
-> **\_1w**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **\_1w**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4186](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4186)
+Defined in: [Developer/brk/modules/brk-client/index.js:5709](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5709)
 
 ***
 
 ### \_1y
 
-> **\_1y**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **\_1y**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4187](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4187)
+Defined in: [Developer/brk/modules/brk-client/index.js:5710](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5710)
 
 ***
 
 ### \_24h
 
-> **\_24h**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
+> **\_24h**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:4188](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L4188)
+Defined in: [Developer/brk/modules/brk-client/index.js:5711](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L5711)

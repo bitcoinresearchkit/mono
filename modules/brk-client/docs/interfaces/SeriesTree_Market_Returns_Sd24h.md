@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Returns\_Sd24h
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7444](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7444)
+Defined in: [Developer/brk/modules/brk-client/index.js:9743](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9743)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7444](https://github.com/
 
 > **\_1m**: [`SeriesTree_Market_Returns_Sd24h_1m`](SeriesTree_Market_Returns_Sd24h_1m.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7447](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7447)
+Defined in: [Developer/brk/modules/brk-client/index.js:9746](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9746)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7447](https://github.com/
 
 > **\_1w**: [`SeriesTree_Market_Returns_Sd24h_1w`](SeriesTree_Market_Returns_Sd24h_1w.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7446](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7446)
+Defined in: [Developer/brk/modules/brk-client/index.js:9745](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9745)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7446](https://github.com/
 
 > **\_1y**: [`SeriesTree_Market_Returns_Sd24h_1y`](SeriesTree_Market_Returns_Sd24h_1y.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7448](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7448)
+Defined in: [Developer/brk/modules/brk-client/index.js:9747](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9747)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7448](https://github.com/
 
 > **\_24h**: [`SeriesTree_Market_Returns_Sd24h_24h`](SeriesTree_Market_Returns_Sd24h_24h.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7445](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7445)
+Defined in: [Developer/brk/modules/brk-client/index.js:9744](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L9744)

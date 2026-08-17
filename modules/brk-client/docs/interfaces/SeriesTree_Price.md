@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Price
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7781](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7781)
+Defined in: [Developer/brk/modules/brk-client/index.js:10082](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L10082)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7781](https://github.com/
 
 > **ohlc**: [`SeriesTree_Price_Ohlc`](SeriesTree_Price_Ohlc.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7783](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7783)
+Defined in: [Developer/brk/modules/brk-client/index.js:10084](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L10084)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7783](https://github.com/
 
 > **split**: [`SeriesTree_Price_Split`](SeriesTree_Price_Split.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7782](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7782)
+Defined in: [Developer/brk/modules/brk-client/index.js:10083](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L10083)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/brk-client/index.js:7782](https://github.com/
 
 > **spot**: [`SeriesTree_Price_Spot`](SeriesTree_Price_Spot.md)
 
-Defined in: [Developer/brk/modules/brk-client/index.js:7784](https://github.com/bitcoinresearchkit/brk/blob/51e058e08ee90a54012facf825ef4a1944101a66/modules/brk-client/index.js#L7784)
+Defined in: [Developer/brk/modules/brk-client/index.js:10085](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/brk-client/index.js#L10085)

@@ -19,8 +19,11 @@ use crate::parallel_import;
 
 #[derive(Traversable)]
 pub struct ScriptsVecs<M: StorageMode = Rw> {
+    /// Outputs whose locking script is empty.
     pub empty: ScriptTypeVecs<EmptyOutputIndex, M>,
+    /// Outputs whose locking script is recognized as bare multisig (P2MS).
     pub p2ms: ScriptTypeWithSigOpsVecs<P2MSOutputIndex, M>,
+    /// Outputs whose locking script does not match any other recognized output type.
     pub unknown: ScriptTypeWithSigOpsVecs<UnknownOutputIndex, M>,
 }
 
