@@ -81,12 +81,20 @@ fn render_llms(title: &str, version: &str, metric_count: usize, endpoints: &[&En
 ## API\n\n\
 - Version: `{version}`\n\
 - Base URL: {BASE_URL}\n\
+- Authentication: None\n\
+- Browser access: Permissive CORS\n\
 - [Full plain-text reference]({BASE_URL}/llms-full.txt)\n\
 - [Compact OpenAPI]({BASE_URL}/api.json)\n\
 - [Full OpenAPI]({BASE_URL}/openapi.json)\n\
 - [Series catalog]({BASE_URL}/api/series)\n\
 - [Interactive documentation]({BASE_URL}/api)\n\n\
-Use OpenAPI for tool construction, `/api/series` for complete series metadata, and `llms-full.txt` for a readable reference.\n\n\
+Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.\n\n\
+## Series workflow\n\n\
+Never invent a series identifier.\n\n\
+1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.\n\
+2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, and value type.\n\
+3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.\n\
+4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.\n\n\
 ## MCP\n\n\
 - Endpoint: {MCP_URL}\n\
 - Transport: Streamable HTTP\n\
@@ -489,7 +497,7 @@ mod tests {
     }
 
     #[test]
-    fn discovery_lists_the_official_mcp_endpoint() {
+    fn discovery_routes_api_and_mcp_users() {
         let first = endpoint("/api/thing/{id}", "GET");
         let endpoints = [&first];
         let output = render_llms("BRK", "v1", 12, &endpoints);
@@ -497,6 +505,12 @@ mod tests {
         assert!(output.contains("- Endpoint: https://mcp.bitview.space/"));
         assert!(output.contains("- Transport: Streamable HTTP"));
         assert!(output.contains("- Authentication: None"));
+        assert!(output.contains("- Browser access: Permissive CORS"));
+        assert!(output.contains("Never invent a series identifier"));
+        assert!(output.contains("GET /api/series/search?q=<plain-language concept>"));
+        assert!(output.contains("GET /api/series/<series>"));
+        assert!(output.contains("GET /api/series/<series>/<index>/latest"));
+        assert!(output.contains("GET /api/series/bulk?series=<comma-separated names>"));
     }
 
     #[test]

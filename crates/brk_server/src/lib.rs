@@ -336,9 +336,13 @@ pub fn generate_bindings(
 ) -> std::io::Result<()> {
     let openapi_json = serde_json::to_string(openapi)
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e))?;
-    let output_paths = output_paths.clone().llm_manifest(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../brk_mcp/generated/manifest.json"),
-    );
+    let output_paths = if output_paths.llm_manifest.is_some() {
+        output_paths.clone()
+    } else {
+        output_paths.clone().llm_manifest(
+            PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../brk_mcp/generated/manifest.json"),
+        )
+    };
     brk_bindgen::generate_clients(vecs, &openapi_json, &output_paths)
 }
 

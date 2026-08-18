@@ -101,10 +101,10 @@ must detect contradictions between generated surfaces.
 
 ## North-star workflow
 
-The planned canonical entry point is `https://bitview.space/developers/ai`.
-Starting only from that page, a supported coding AI should be able to produce a
-working, deployable, single-file Bitcoin application in under ten minutes,
-without manual API debugging.
+The canonical entry point is `https://mcp.bitview.space/`. Starting only from
+that page and its linked BRK resources, a supported coding AI should be able to
+produce a working, deployable, single-file Bitcoin application in under ten
+minutes, without manual API debugging.
 
 The initial reference applications are:
 

@@ -694,6 +694,53 @@
         </div>
         </section>
 
+        <section class="section shell" aria-labelledby="freshness-title">
+        <p class="section-index">04 / Current</p>
+        <div class="section-body">
+          <h2 id="freshness-title">Know how current the data is.</h2>
+          <p class="section-intro">
+            Freshness follows the configured Bitcoin node and BRK API. Use the
+            live status endpoints instead of assuming that the latest response
+            is caught up.
+          </p>
+          <ul class="capabilities">
+            <li>
+              <h3>Confirmed data</h3>
+              <p>
+                Blockchain data and derived series are published after BRK
+                finishes processing each new block.
+              </p>
+            </li>
+            <li>
+              <h3>Mempool</h3>
+              <p>
+                The live mempool is polled from Bitcoin Core approximately once
+                per second. Its <a href="{{API_URL}}/api/mempool/hash">hash</a>
+                changes with the projected next block.
+              </p>
+            </li>
+            <li>
+              <h3>Status</h3>
+              <p>
+                Check <a href="{{API_URL}}/health">health</a> for uptime and
+                local heights, then <a href="{{API_URL}}/api/server/sync">sync
+                status</a> for distance from the Bitcoin node tip. There is no
+                service-level commitment.
+              </p>
+            </li>
+            <li>
+              <h3>Stability</h3>
+              <p>
+                Deprecated routes identify their replacements and sunset dates.
+                Series names may change during active development. A series
+                response's <code>stamp</code> is its generation time, not the
+                time represented by its final value.
+              </p>
+            </li>
+          </ul>
+        </div>
+        </section>
+
         <div class="boundary-wrap shell">
           <section class="boundary" aria-labelledby="boundary-title">
           <h2 id="boundary-title">Read-only by design.</h2>
@@ -707,7 +754,7 @@
         </div>
 
         <section class="section shell" aria-labelledby="resources-title">
-        <p class="section-index">04 / Build</p>
+        <p class="section-index">05 / Build</p>
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">

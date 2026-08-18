@@ -6,13 +6,24 @@
 
 - Version: `v0.11.2`
 - Base URL: https://bitview.space
+- Authentication: None
+- Browser access: Permissive CORS
 - [Full plain-text reference](https://bitview.space/llms-full.txt)
 - [Compact OpenAPI](https://bitview.space/api.json)
 - [Full OpenAPI](https://bitview.space/openapi.json)
 - [Series catalog](https://bitview.space/api/series)
 - [Interactive documentation](https://bitview.space/api)
 
-Use OpenAPI for tool construction, `/api/series` for complete series metadata, and `llms-full.txt` for a readable reference.
+Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.
+
+## Series workflow
+
+Never invent a series identifier.
+
+1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.
+2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, and value type.
+3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.
+4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.
 
 ## MCP
 

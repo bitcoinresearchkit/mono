@@ -120,6 +120,10 @@ async fn get_root_serves_the_documentation_page() {
     assert!(body.contains(DISPLAY_NAME));
     assert!(body.contains(PUBLIC_URL));
     assert!(body.contains("https://api.example.com/api.json"));
+    assert!(body.contains("https://api.example.com/health"));
+    assert!(body.contains("https://api.example.com/api/server/sync"));
+    assert!(body.contains("https://api.example.com/api/mempool/hash"));
+    assert!(body.contains("Know how current the data is"));
     assert!(body.contains("https://cdn.jsdelivr.net/"));
     assert!(body.contains("href=\"https://mcp.example.com/logo.png\""));
     assert!(!body.contains("{{"));
