@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
+use bitview_plugin::PluginReadGuard;
 use brk_error::{Error, Result};
-use brk_plugin::PluginReadGuard;
 use brk_traversable::TreeNode;
 use brk_types::{
     BlockHashPrefix, CacheClass, Date, DetailedSeriesCount, Epoch, Format, Halving, Height, Index,

@@ -1,11 +1,12 @@
 [package]
-name = "brk_plugin"
-description = "The shared contract and publication state for BRK plugins"
+name = "bitview_plugin"
+description = "The shared contract and publication state for Bitview plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-homepage.workspace = true
+homepage = "https://bitview.dev"
 repository.workspace = true
+readme = "README.md"
 
 [dependencies]
 parking_lot = { workspace = true, features = ["arc_lock", "send_guard"] }

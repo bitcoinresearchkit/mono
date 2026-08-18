@@ -19,7 +19,7 @@ brk_error = { workspace = true, features = ["jiff", "vecdb"] }
 brk_indexer = { workspace = true }
 brk_mempool = { workspace = true }
 brk_oracle = { workspace = true }
-brk_plugin = { workspace = true }
+bitview_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_traversable = { workspace = true }

@@ -4,7 +4,7 @@ use parking_lot::{ArcRwLockReadGuard, RawRwLock};
 
 use crate::Plugin;
 
-/// Keeps a plugin's mutable state stable for one logical read.
+/// Keeps a Bitview plugin's mutable state stable for one logical read.
 pub struct PluginReadGuard {
     pub(crate) guards: Vec<ArcRwLockReadGuard<RawRwLock, ()>>,
 }

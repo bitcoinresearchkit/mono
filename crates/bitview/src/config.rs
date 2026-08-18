@@ -10,11 +10,11 @@ use brk_types::Port;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 
-use crate::{default_brk_path, dot_brk_path, fix_user_path};
+use crate::paths::{default_brk_path, dot_brk_path, fix_user_path};
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Config {
+pub(crate) struct Config {
     #[serde(default)]
     brkdir: Option<String>,
 

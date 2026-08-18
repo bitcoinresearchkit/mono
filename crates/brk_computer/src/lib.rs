@@ -3,9 +3,9 @@
 
 use std::{fs, path::Path, thread, time::Instant};
 
+use bitview_plugin::Plugin;
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_plugin::Plugin;
 use brk_traversable::Traversable;
 use brk_types::{Height, Version};
 use tracing::info;

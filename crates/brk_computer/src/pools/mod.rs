@@ -1,8 +1,8 @@
 use std::{collections::BTreeMap, path::Path};
 
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{
     Addr, AddrBytes, Height, OutputType, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex,
@@ -53,8 +53,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

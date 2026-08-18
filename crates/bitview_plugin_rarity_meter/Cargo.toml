@@ -1,0 +1,8 @@
+[package]
+name = "bitview_plugin_rarity_meter"
+description = "The Rarity Meter model plugin for Bitview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true

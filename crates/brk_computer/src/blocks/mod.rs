@@ -9,7 +9,7 @@ pub mod weight;
 mod compute;
 mod import;
 
-use brk_plugin::{Plugin, PluginGate};
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_traversable::Traversable;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -58,8 +58,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

@@ -1,0 +1,8 @@
+[package]
+name = "bitview_plugin_blocks"
+description = "The block datasets plugin for Bitview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
+use bitview_plugin::Plugin;
 use brk_error::{Error, Result};
-use brk_plugin::Plugin;
 use brk_types::{
     Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, AnyAddrDataIndexEnum, Dollars,
     OutputType, TypeIndex,

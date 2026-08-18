@@ -1,10 +1,10 @@
-use crate::PluginGate;
+use crate::{PluginGate, PluginId};
 use vecdb::AnyVec;
 
-/// The compatibility contract shared by BRK's built-in and future plugins.
+/// The compatibility contract shared by Bitview's built-in and external plugins.
 pub trait Plugin: Send + Sync {
     /// Stable identifier for this plugin.
-    fn id(&self) -> &'static str;
+    fn id(&self) -> PluginId;
 
     /// Publication gate for query-visible mutable state.
     fn gate(&self) -> &PluginGate;

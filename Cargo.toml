@@ -36,6 +36,8 @@ debug = true
 aide = { version = "0.16.0-alpha.4", features = ["axum-json", "axum-query"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "tracing"] }
 bitcoin = { version = "0.32.102", features = ["serde"] }
+bitview = { version = "0.11.2", path = "crates/bitview" }
+bitview_plugin = { version = "0.11.2", path = "crates/bitview_plugin" }
 brk_alloc = { version = "0.11.2", path = "crates/brk_alloc" }
 brk_bencher = { version = "0.11.2", path = "crates/brk_bencher" }
 brk_bindgen = { version = "0.11.2", path = "crates/brk_bindgen" }
@@ -50,7 +52,6 @@ brk_iterator = { version = "0.11.2", path = "crates/brk_iterator" }
 brk_logger = { version = "0.11.2", path = "crates/brk_logger" }
 brk_mempool = { version = "0.11.2", path = "crates/brk_mempool" }
 brk_oracle = { version = "0.11.2", path = "crates/brk_oracle" }
-brk_plugin = { version = "0.11.2", path = "crates/brk_plugin" }
 brk_query = { version = "0.11.2", path = "crates/brk_query", features = ["tokio"] }
 brk_reader = { version = "0.11.2", path = "crates/brk_reader" }
 brk_rpc = { version = "0.11.2", path = "crates/brk_rpc" }

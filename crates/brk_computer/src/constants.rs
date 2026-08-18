@@ -1,4 +1,4 @@
-use brk_plugin::{Plugin, PluginGate};
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_traversable::Traversable;
 use brk_types::{StoredF32, StoredI8, StoredU16, Version};
 
@@ -52,8 +52,8 @@ pub struct Vecs {
 }
 
 impl Plugin for Vecs {
-    fn id(&self) -> &'static str {
-        DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

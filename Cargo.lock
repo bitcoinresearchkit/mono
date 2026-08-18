@@ -409,6 +409,119 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 [[package]]
 name = "bitview"
 version = "0.11.2"
+dependencies = [
+ "anyhow",
+ "brk_alloc",
+ "brk_computer",
+ "brk_error",
+ "brk_indexer",
+ "brk_logger",
+ "brk_mempool",
+ "brk_query",
+ "brk_reader",
+ "brk_rpc",
+ "brk_server",
+ "brk_types",
+ "lexopt",
+ "owo-colors",
+ "serde",
+ "tokio",
+ "toml",
+ "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin"
+version = "0.11.2"
+dependencies = [
+ "parking_lot",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_bedrock"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_blocks"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_capital_sentiment"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_coinflow"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_cointime"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_constants"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_distribution"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_indexer"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_indexes"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_indicators"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_inputs"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_investing"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_market"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_mining"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_op_return"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_outputs"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_pools"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_price"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_rarity_meter"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_supply"
+version = "0.11.2"
+
+[[package]]
+name = "bitview_plugin_transactions"
+version = "0.11.2"
 
 [[package]]
 name = "blk"
@@ -504,24 +617,7 @@ name = "brk_cli"
 version = "0.11.2"
 dependencies = [
  "anyhow",
- "brk_alloc",
- "brk_computer",
- "brk_error",
- "brk_indexer",
- "brk_logger",
- "brk_mempool",
- "brk_query",
- "brk_reader",
- "brk_rpc",
- "brk_server",
- "brk_types",
- "lexopt",
- "owo-colors",
- "serde",
- "tokio",
- "toml",
- "tracing",
- "vecdb",
+ "bitview",
 ]
 
 [[package]]
@@ -554,6 +650,7 @@ name = "brk_computer"
 version = "0.11.2"
 dependencies = [
  "bitcoin",
+ "bitview_plugin",
  "brk_alloc",
  "brk_bencher",
  "brk_cohort",
@@ -561,7 +658,6 @@ dependencies = [
  "brk_indexer",
  "brk_logger",
  "brk_oracle",
- "brk_plugin",
  "brk_reader",
  "brk_rpc",
  "brk_traversable",
@@ -622,13 +718,13 @@ name = "brk_indexer"
 version = "0.11.2"
 dependencies = [
  "bitcoin",
+ "bitview_plugin",
  "brk_alloc",
  "brk_bencher",
  "brk_cohort",
  "brk_error",
  "brk_fjall",
  "brk_logger",
- "brk_plugin",
  "brk_reader",
  "brk_rpc",
  "brk_store",
@@ -735,25 +831,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "brk_plugin"
-version = "0.11.2"
-dependencies = [
- "parking_lot",
- "vecdb",
-]
-
-[[package]]
 name = "brk_query"
 version = "0.11.2"
 dependencies = [
  "bitcoin",
+ "bitview_plugin",
  "brk_cohort",
  "brk_computer",
  "brk_error",
  "brk_indexer",
  "brk_mempool",
  "brk_oracle",
- "brk_plugin",
  "brk_reader",
  "brk_rpc",
  "brk_traversable",

@@ -3,10 +3,10 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
@@ -83,8 +83,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

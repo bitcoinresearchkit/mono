@@ -1,5 +1,5 @@
+use bitview_plugin::Plugin;
 use brk_error::{Error, Result};
-use brk_plugin::Plugin;
 use brk_types::{Addr, Height, TxIndex, TxStatus, Utxo, Vout};
 
 use crate::Query;

@@ -1,8 +1,8 @@
 use std::{borrow::Cow, collections::BTreeMap};
 
+use bitview_plugin::Plugin;
 use brk_computer::Computer;
 use brk_indexer::Indexer;
-use brk_plugin::Plugin;
 use brk_traversable::{Traversable, TreeNode};
 use brk_types::{
     CacheClass, Index, IndexInfo, Limit, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,
@@ -81,7 +81,7 @@ impl<'a> Vecs<'a> {
             indexer.vecs().to_tree_node(),
             computer
                 .iter_plugin_visible()
-                .map(|(plugin, vec)| (plugin, plugin.id(), vec)),
+                .map(|(plugin, vec)| (plugin, plugin.id().as_str(), vec)),
             computer.to_tree_node(),
             series_to_description,
         )
@@ -104,7 +104,7 @@ impl<'a> Vecs<'a> {
             indexer.vecs().to_tree_node(),
             computer
                 .iter_plugin_visible()
-                .map(|(plugin, vec)| (plugin, plugin.id(), vec)),
+                .map(|(plugin, vec)| (plugin, plugin.id().as_str(), vec)),
             computer.to_tree_node(),
             series_to_description,
         )
@@ -556,6 +556,7 @@ impl<'a> Builder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use bitview_plugin::PluginId;
     use brk_computer::Computer;
     use brk_indexer::Indexer;
     use brk_reader::Reader;
@@ -1484,6 +1485,47 @@ mod tests {
     ];
 
     #[test]
+    fn derives_mutable_series_gates_from_plugin_contract() {
+        std::thread::Builder::new()
+            .stack_size(8 * 1024 * 1024)
+            .spawn(assert_mutable_series_gates_from_plugin_contract)
+            .unwrap()
+            .join()
+            .unwrap();
+    }
+
+    fn assert_mutable_series_gates_from_plugin_contract() {
+        let directory = tempfile::tempdir().unwrap();
+        let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
+        let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);
+        let indexer = Indexer::import(directory.path(), &reader).unwrap();
+        let computer = Computer::forced_import(directory.path(), &indexer).unwrap();
+        let vecs = Vecs::build_rw(&indexer, &computer);
+
+        let txin_index = SeriesName::from("txin_index");
+        let spent = vecs.get_entry(&txin_index, Index::TxOutIndex).unwrap();
+        let outputs = spent.plugin();
+        assert_eq!(outputs.id(), PluginId::new("outputs"));
+        assert!(outputs.mutates_existing(spent.vec()));
+        assert!(spent.requires_gate());
+
+        let identity = vecs.get_entry(&txin_index, Index::TxInIndex).unwrap();
+        let indexes = identity.plugin();
+        assert_eq!(indexes.id(), PluginId::new("indexes"));
+        assert!(!indexes.mutates_existing(identity.vec()));
+        assert!(!identity.requires_gate());
+
+        let any_addr_index = SeriesName::from("any_addr_index");
+        let address = vecs
+            .get_entry(&any_addr_index, Index::P2AAddrIndex)
+            .unwrap();
+        let distribution = address.plugin();
+        assert_eq!(distribution.id(), PluginId::new("distribution"));
+        assert!(distribution.mutates_existing(address.vec()));
+        assert!(address.requires_gate());
+    }
+
+    #[test]
     fn exposes_only_audited_descriptions() {
         std::thread::Builder::new()
             .stack_size(8 * 1024 * 1024)
@@ -1500,28 +1542,6 @@ mod tests {
         let indexer = Indexer::import(directory.path(), &reader).unwrap();
         let computer = Computer::forced_import(directory.path(), &indexer).unwrap();
         let vecs = Vecs::build_rw(&indexer, &computer);
-
-        let txin_index = SeriesName::from("txin_index");
-        let spent = vecs.get_entry(&txin_index, Index::TxOutIndex).unwrap();
-        let outputs = spent.plugin();
-        assert_eq!(outputs.id(), "outputs");
-        assert!(outputs.mutates_existing(spent.vec()));
-        assert!(spent.requires_gate());
-
-        let identity = vecs.get_entry(&txin_index, Index::TxInIndex).unwrap();
-        let indexes = identity.plugin();
-        assert_eq!(indexes.id(), "indexes");
-        assert!(!indexes.mutates_existing(identity.vec()));
-        assert!(!identity.requires_gate());
-
-        let any_addr_index = SeriesName::from("any_addr_index");
-        let address = vecs
-            .get_entry(&any_addr_index, Index::P2AAddrIndex)
-            .unwrap();
-        let distribution = address.plugin();
-        assert_eq!(distribution.id(), "distribution");
-        assert!(distribution.mutates_existing(address.vec()));
-        assert!(address.requires_gate());
 
         for (name, representation) in [
             ("realized_price", USD_DESCRIPTION),
@@ -2685,7 +2705,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "indexes")
+                        .any(|entry| entry.plugin().id() == PluginId::new("indexes"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -2736,7 +2756,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "indexer")
+                        .any(|entry| entry.plugin().id() == PluginId::new("indexer"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -2794,7 +2814,7 @@ mod tests {
             for plugin in small_plugins {
                 if index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == plugin)
+                    .any(|entry| entry.plugin().id().as_str() == plugin)
                 {
                     undocumented_small_plugins.push((plugin, *name));
                 }
@@ -2931,7 +2951,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "models")
+                        .any(|entry| entry.plugin().id() == PluginId::new("models"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -2947,7 +2967,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "frameworks")
+                        .any(|entry| entry.plugin().id() == PluginId::new("frameworks"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -2962,7 +2982,7 @@ mod tests {
             .filter(|(_, index_to_vec)| {
                 index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == "frameworks")
+                    .any(|entry| entry.plugin().id() == PluginId::new("frameworks"))
                     && index_to_vec.description().is_some_and(|description| {
                         !FRAMEWORK_SEMANTIC_DESCRIPTIONS
                             .iter()
@@ -3182,7 +3202,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "pools")
+                        .any(|entry| entry.plugin().id() == PluginId::new("pools"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -3197,7 +3217,7 @@ mod tests {
             .filter(|(_, index_to_vec)| {
                 index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == "pools")
+                    .any(|entry| entry.plugin().id() == PluginId::new("pools"))
                     && index_to_vec.description().is_some_and(|description| {
                         !POOL_SEMANTIC_DESCRIPTIONS
                             .iter()
@@ -3316,7 +3336,7 @@ mod tests {
             .filter(|index_to_vec| {
                 index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == "pools")
+                    .any(|entry| entry.plugin().id() == PluginId::new("pools"))
             })
             .count();
         assert_eq!(audited_pool_series, actual_pool_series);
@@ -3328,7 +3348,7 @@ mod tests {
                 index_to_vec.description().is_none()
                     && index_to_vec
                         .values()
-                        .any(|entry| entry.plugin().id() == "distribution")
+                        .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
             })
             .map(|(name, _)| *name)
             .collect::<Vec<_>>();
@@ -3343,7 +3363,7 @@ mod tests {
             .filter(|(_, index_to_vec)| {
                 index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == "distribution")
+                    .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
                     && index_to_vec.description().is_some_and(|description| {
                         !DISTRIBUTION_SEMANTIC_DESCRIPTIONS
                             .iter()
@@ -3502,7 +3522,7 @@ mod tests {
             .filter(|index_to_vec| {
                 index_to_vec
                     .values()
-                    .any(|entry| entry.plugin().id() == "distribution")
+                    .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
             })
             .count();
         assert_eq!(actual_distribution_series, 49_940);

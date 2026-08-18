@@ -8,8 +8,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_error::{Error, Result};
-use brk_plugin::{Plugin, PluginGate};
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use tracing::{debug, error, info};
@@ -581,8 +581,8 @@ impl<M: StorageMode> Plugin for Indexer<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        "indexer"
+    fn id(&self) -> PluginId {
+        PluginId::new("indexer")
     }
 
     fn gate(&self) -> &PluginGate {

@@ -8,3 +8,24 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
+
+[dependencies]
+anyhow = "1.0"
+brk_alloc = { workspace = true }
+brk_computer = { workspace = true }
+brk_error = { workspace = true, features = ["tokio", "vecdb"] }
+brk_indexer = { workspace = true }
+brk_logger = { workspace = true }
+brk_mempool = { workspace = true }
+brk_query = { workspace = true }
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+brk_server = { workspace = true }
+brk_types = { workspace = true }
+lexopt = "0.3"
+owo-colors = { workspace = true }
+serde = { workspace = true }
+tokio = { workspace = true }
+toml = "1.1.4"
+tracing = { workspace = true }
+vecdb = { workspace = true }

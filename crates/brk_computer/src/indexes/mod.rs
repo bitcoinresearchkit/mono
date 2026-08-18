@@ -10,9 +10,9 @@ mod txout_index;
 
 use std::path::Path;
 
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_error::Result;
 use brk_indexer::Indexer;
-use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{
     Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
@@ -73,8 +73,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

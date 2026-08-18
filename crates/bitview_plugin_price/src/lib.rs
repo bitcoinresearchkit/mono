@@ -1,0 +1,1 @@
+//! Bitview's price plugin.

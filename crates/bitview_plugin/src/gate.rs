@@ -4,7 +4,7 @@ use parking_lot::{ArcRwLockWriteGuard, Mutex, RawRwLock, RwLock};
 
 use crate::PluginReadGuard;
 
-/// Shared publication gate for one plugin.
+/// Shared publication gate for one Bitview plugin.
 ///
 /// Clones refer to the same gate. An update stays closed until
 /// [`finish_update`](Self::finish_update) is called explicitly, so an error

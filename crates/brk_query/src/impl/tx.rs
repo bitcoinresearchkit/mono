@@ -2,8 +2,8 @@ use bitcoin::{
     hashes::{Hash, sha256d},
     hex::DisplayHex,
 };
+use bitview_plugin::Plugin;
 use brk_error::{Error, OptionData, Result};
-use brk_plugin::Plugin;
 use brk_types::{
     BlockHash, Height, MerkleProof, Timestamp, Transaction, TxInIndex, TxIndex, TxOutIndex,
     TxOutspend, TxStatus, Txid, TxidPrefix, Vin, Vout,

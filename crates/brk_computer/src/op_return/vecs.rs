@@ -1,5 +1,5 @@
+use bitview_plugin::{Plugin, PluginGate, PluginId};
 use brk_error::Result;
-use brk_plugin::{Plugin, PluginGate};
 use brk_traversable::Traversable;
 use brk_types::{Height, OpReturnKind, OpReturnPolicyId, Version};
 use vecdb::{Database, Rw, StorageMode};
@@ -30,8 +30,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Send + Sync,
 {
-    fn id(&self) -> &'static str {
-        super::DB_NAME
+    fn id(&self) -> PluginId {
+        PluginId::new(super::DB_NAME)
     }
 
     fn gate(&self) -> &PluginGate {

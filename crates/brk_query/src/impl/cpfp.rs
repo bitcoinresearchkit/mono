@@ -2,8 +2,8 @@
 
 mod confirmed;
 
+use bitview_plugin::Plugin;
 use brk_error::{Error, Result};
-use brk_plugin::Plugin;
 use brk_types::{FeeRate, Txid, TxidPrefix};
 use vecdb::ReadableVec;
 

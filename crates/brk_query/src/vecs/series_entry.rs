@@ -1,4 +1,4 @@
-use brk_plugin::Plugin;
+use bitview_plugin::Plugin;
 use vecdb::AnyExportableVec;
 
 /// A queryable vector together with the plugin that owns it.
