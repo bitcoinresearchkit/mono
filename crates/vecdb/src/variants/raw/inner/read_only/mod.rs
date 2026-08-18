@@ -5,8 +5,8 @@ mod readable;
 mod typed;
 
 use crate::{
-    Error, HEADER_OFFSET, MMAP_CROSSOVER_BYTES, RawIoSource, RawMmapSource, ReadOnlyBaseVec,
-    Result, Stamp, VecIndex, VecReader, VecValue,
+    Error, HEADER_OFFSET, RawIoSource, RawMmapSource, ReadOnlyBaseVec, Result, Stamp, VecIndex,
+    VecReader, VecValue,
 };
 
 use super::RawStrategy;
@@ -86,12 +86,13 @@ where
         init: B,
         f: F,
     ) -> B {
-        let range_bytes = (to - from) * size_of::<T>();
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to).fold(init, f)
-        } else {
+        let offset = HEADER_OFFSET + from * size_of::<T>();
+        let bytes = (to - from) * size_of::<T>();
+        if self.base.region().prefers_mmap(offset, bytes) {
             RawMmapSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
                 .fold(init, f)
+        } else {
+            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to).fold(init, f)
         }
     }
 
@@ -104,12 +105,13 @@ where
         init: B,
         f: F,
     ) -> std::result::Result<B, E> {
-        let range_bytes = (to - from) * size_of::<T>();
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
+        let offset = HEADER_OFFSET + from * size_of::<T>();
+        let bytes = (to - from) * size_of::<T>();
+        if self.base.region().prefers_mmap(offset, bytes) {
+            RawMmapSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
                 .try_fold(init, f)
         } else {
-            RawMmapSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
+            RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
                 .try_fold(init, f)
         }
     }

@@ -6,12 +6,9 @@ mod any_vec;
 mod readable;
 mod typed;
 
-use crate::{
-    CompressedIoSource, CompressedMmapSource, MMAP_CROSSOVER_BYTES, ReadOnlyBaseVec, VecIndex,
-    VecValue,
-};
+use crate::{CompressedIoSource, CompressedMmapSource, ReadOnlyBaseVec, VecIndex, VecValue};
 
-use super::{CompressionStrategy, Pages};
+use super::{CompressionStrategy, Pages, ReadWriteCompressedVec};
 
 /// Lean read-only view of a compressed vector (~48 bytes).
 ///
@@ -51,9 +48,14 @@ where
         init: B,
         f: F,
     ) -> B {
-        let range_bytes = (to - from) * size_of::<T>();
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            CompressedIoSource::<I, T, S>::new_from_parts(
+        let mmap = ReadWriteCompressedVec::<I, T, S>::prefers_mmap(
+            self.base.region(),
+            &self.pages,
+            from,
+            to,
+        );
+        if mmap {
+            CompressedMmapSource::<I, T, S>::new_from_parts(
                 self.base.region(),
                 &self.pages,
                 len,
@@ -62,7 +64,7 @@ where
             )
             .fold(init, f)
         } else {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
+            CompressedIoSource::<I, T, S>::new_from_parts(
                 self.base.region(),
                 &self.pages,
                 len,
@@ -82,9 +84,14 @@ where
         init: B,
         f: F,
     ) -> std::result::Result<B, E> {
-        let range_bytes = (to - from) * size_of::<T>();
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            CompressedIoSource::<I, T, S>::new_from_parts(
+        let mmap = ReadWriteCompressedVec::<I, T, S>::prefers_mmap(
+            self.base.region(),
+            &self.pages,
+            from,
+            to,
+        );
+        if mmap {
+            CompressedMmapSource::<I, T, S>::new_from_parts(
                 self.base.region(),
                 &self.pages,
                 len,
@@ -93,7 +100,7 @@ where
             )
             .try_fold(init, f)
         } else {
-            CompressedMmapSource::<I, T, S>::new_from_parts(
+            CompressedIoSource::<I, T, S>::new_from_parts(
                 self.base.region(),
                 &self.pages,
                 len,

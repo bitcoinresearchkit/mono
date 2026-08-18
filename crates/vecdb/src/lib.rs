@@ -41,8 +41,3 @@ const ONE_KIB: usize = 1024;
 const BUFFER_SIZE: usize = 512 * ONE_KIB;
 
 const SIZE_OF_U64: usize = std::mem::size_of::<u64>();
-
-/// Crossover threshold in bytes for choosing IO vs mmap iteration strategy.
-/// Ranges smaller than this use mmap (zero-copy), larger use buffered IO.
-/// IO is kept for truly massive datasets that may exceed available address space.
-pub(crate) const MMAP_CROSSOVER_BYTES: usize = 1024 * 1024 * 1024; // 1 GiB

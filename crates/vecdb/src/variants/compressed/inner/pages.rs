@@ -65,6 +65,22 @@ impl Pages {
         self.vec.get(page_index)
     }
 
+    pub fn stored_byte_range(
+        &self,
+        from: usize,
+        to: usize,
+        values_per_page: usize,
+    ) -> Option<(usize, usize)> {
+        if from >= to {
+            return None;
+        }
+        let first = self.get(from / values_per_page)?;
+        let last = self.get((to - 1) / values_per_page)?;
+        let start = first.start as usize;
+        let end = last.end() as usize;
+        Some((start, end.checked_sub(start)?))
+    }
+
     pub fn last(&self) -> Option<&Page> {
         self.vec.last()
     }

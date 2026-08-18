@@ -1,4 +1,4 @@
-use crate::{AnyStoredVec, ReadableVec, VecIndex, VecValue};
+use crate::{AnyStoredVec, CompressedIoSource, ReadableVec, VecIndex, VecValue};
 
 use super::{super::CompressionStrategy, ReadWriteCompressedVec};
 
@@ -27,9 +27,13 @@ where
 
         if from < stored_len {
             let stored_to = to.min(stored_len);
-            let reader = self.create_reader();
-            let pages = self.pages.read();
-            Self::read_stored_pages_into(&reader, &pages, from, stored_to, buf);
+            if Self::prefers_mmap(self.region(), &self.pages, from, stored_to) {
+                let reader = self.create_reader();
+                let pages = self.pages.read();
+                Self::read_stored_pages_into(&reader, &pages, from, stored_to, buf);
+            } else {
+                CompressedIoSource::new(self, from, stored_to).read_into(buf);
+            }
         }
 
         if to > stored_len {

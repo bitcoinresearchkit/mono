@@ -2,6 +2,7 @@ use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
     marker::PhantomData,
+    os::fd::AsRawFd,
 };
 
 use parking_lot::RwLockReadGuard;
@@ -19,8 +20,8 @@ const fn aligned_buffer_size<T>() -> usize {
 
 /// Buffered file I/O source for reading stored data sequentially.
 ///
-/// Better than mmap for very large sequential scans (>4 GiB). Uses a dedicated
-/// file handle with OS readahead. Only sees stored (persisted) values.
+/// Better than mmap for nonresident sequential scans. Uses a dedicated file
+/// handle with OS readahead. Only sees stored (persisted) values.
 pub struct RawIoSource<'a, I, T, S> {
     file: File,
     buffer: Vec<u8>,
@@ -63,7 +64,7 @@ where
 
         let mut this = Self {
             file,
-            buffer: vec![0; Self::NORMAL_BUFFER_SIZE],
+            buffer: Vec::new(),
             buffer_pos: 0,
             buffer_len: 0,
             file_offset: from_offset,
@@ -98,6 +99,9 @@ where
 
     #[inline(always)]
     fn refill_buffer(&mut self) {
+        if self.buffer.is_empty() {
+            self.buffer.resize(Self::NORMAL_BUFFER_SIZE, 0);
+        }
         let buffer_len = self.remaining_file_bytes().min(Self::NORMAL_BUFFER_SIZE);
         self.file
             .read_exact(&mut self.buffer[..buffer_len])
@@ -105,6 +109,42 @@ where
         self.file_offset += buffer_len;
         self.buffer_len = buffer_len;
         self.buffer_pos = 0;
+    }
+
+    /// Reads native-layout values directly into the destination allocation.
+    pub(crate) fn read_into(self, output: &mut Vec<T>) {
+        debug_assert!(S::IS_NATIVE_LAYOUT);
+        let bytes = self.remaining_file_bytes();
+        debug_assert!(bytes.is_multiple_of(Self::SIZE_OF_T));
+        let values = bytes / Self::SIZE_OF_T;
+        output.reserve(values);
+        let old_len = output.len();
+        let destination = output.spare_capacity_mut().as_mut_ptr().cast::<u8>();
+        let mut read = 0;
+
+        while read < bytes {
+            let read_len = (bytes - read).min(i32::MAX as usize);
+            let result = unsafe {
+                libc::read(
+                    self.file.as_raw_fd(),
+                    destination.add(read).cast(),
+                    read_len,
+                )
+            };
+            if result > 0 {
+                read += result as usize;
+                continue;
+            }
+            if result == 0 {
+                panic!("unexpected end of raw vector");
+            }
+            let error = std::io::Error::last_os_error();
+            if error.kind() != std::io::ErrorKind::Interrupted {
+                panic!("failed to read raw vector: {error}");
+            }
+        }
+
+        unsafe { output.set_len(old_len + values) };
     }
 
     /// Fold all remaining elements — own implementation so LLVM can vectorize the inner loop.
@@ -153,5 +193,31 @@ where
             self.refill_buffer();
         }
         Ok(accum)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::{AnyStoredVec, BytesVec, Database, ImportableVec, Version, WritableVec};
+
+    use super::RawIoSource;
+
+    #[test]
+    fn read_into_appends_the_requested_range() {
+        let temp = tempdir().unwrap();
+        let db = Database::open(temp.path()).unwrap();
+        let mut vec: BytesVec<usize, u64> =
+            BytesVec::forced_import(&db, "values", Version::ONE).unwrap();
+        let values: Vec<_> = (0..10_000).map(|index| index as u64 * 37).collect();
+        for &value in &values {
+            vec.push(value);
+        }
+        vec.write().unwrap();
+
+        let mut output = vec![u64::MAX];
+        RawIoSource::new(&vec, 117, 9_731).read_into(&mut output);
+        assert_eq!(&output[1..], &values[117..9_731]);
     }
 }

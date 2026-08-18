@@ -1,8 +1,7 @@
-use std::{
-    fs::File,
-    mem,
-    sync::{Arc, OnceLock},
-};
+use std::{fs::File, mem, sync::Arc};
+
+#[cfg(unix)]
+use std::sync::OnceLock;
 
 use log::{debug, trace};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
@@ -13,6 +12,7 @@ use crate::{
 };
 
 const RESIDENCY_SAMPLE_BYTES: usize = 16 * 1024 * 1024;
+const MMAP_RESIDENCY_MIN_BYTES: usize = 128 * 1024;
 
 #[cfg(unix)]
 static VM_PAGE_SIZE: OnceLock<usize> = OnceLock::new();
@@ -82,13 +82,14 @@ impl Region {
         self.db().open_read_only_file()
     }
 
-    /// Conservatively samples whether a region-relative byte range is resident in memory.
+    /// Returns whether mmap is preferred for a sequential region-relative byte range.
     ///
-    /// This is a read-strategy hint only: it samples the first and last pages plus
-    /// one page per 16 MiB. Any missing sample or probing error returns `false`.
+    /// Small ranges use mmap directly. Larger ranges use mmap only when conservative
+    /// sampling finds the first and last pages plus one page per 16 MiB resident.
+    /// Any missing sample or probing error prefers buffered I/O.
     #[cfg(unix)]
-    pub fn is_likely_fully_resident(&self, offset: usize, len: usize) -> bool {
-        if len == 0 {
+    pub fn prefers_mmap(&self, offset: usize, len: usize) -> bool {
+        if len < MMAP_RESIDENCY_MIN_BYTES {
             return true;
         }
 
@@ -106,7 +107,10 @@ impl Region {
 
         let page_size = *VM_PAGE_SIZE.get_or_init(|| {
             let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
-            usize::try_from(page_size).expect("valid virtual-memory page size")
+            usize::try_from(page_size)
+                .ok()
+                .filter(|page_size| *page_size > 0)
+                .expect("valid virtual-memory page size")
         });
         let start = absolute_start / page_size * page_size;
         let Some(absolute_end) = absolute_start.checked_add(len) else {
@@ -127,12 +131,12 @@ impl Region {
         }
 
         let is_resident = |at: usize| {
-            let mut state = 0i8;
+            let mut state = 0u8;
             let result = unsafe {
                 libc::mincore(
                     mmap.as_ptr().add(at).cast_mut().cast(),
                     page_size,
-                    &mut state,
+                    (&raw mut state).cast(),
                 )
             };
             result == 0 && state & 1 != 0
@@ -164,8 +168,8 @@ impl Region {
     }
 
     #[cfg(not(unix))]
-    pub fn is_likely_fully_resident(&self, _offset: usize, len: usize) -> bool {
-        len == 0
+    pub fn prefers_mmap(&self, _offset: usize, len: usize) -> bool {
+        len < MMAP_RESIDENCY_MIN_BYTES
     }
 
     /// Ensures the region has at least `capacity` bytes of reserved space.

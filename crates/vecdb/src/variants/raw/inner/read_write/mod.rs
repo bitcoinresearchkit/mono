@@ -15,9 +15,9 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Bytes, Error, Format, HEADER_OFFSET, ImportOptions, MMAP_CROSSOVER_BYTES,
-    RawIoSource, RawMmapSource, ReadWriteBaseVec, Result, VecIndex, VecReader, VecValue, Version,
-    WithPrev, vec_region_name_with,
+    AnyStoredVec, AnyVec, Bytes, Error, Format, HEADER_OFFSET, ImportOptions, RawIoSource,
+    RawMmapSource, ReadWriteBaseVec, Result, VecIndex, VecReader, VecValue, Version, WithPrev,
+    vec_region_name_with,
 };
 
 use super::{RawStrategy, ReadOnlyRawVec};
@@ -438,11 +438,12 @@ where
         init: B,
         f: F,
     ) -> B {
-        let range_bytes = (to - from) * Self::SIZE_OF_T;
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            RawIoSource::new(self, from, to).fold(init, f)
-        } else {
+        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
+        let bytes = (to - from) * Self::SIZE_OF_T;
+        if self.region().prefers_mmap(offset, bytes) {
             RawMmapSource::new(self, from, to).fold(init, f)
+        } else {
+            RawIoSource::new(self, from, to).fold(init, f)
         }
     }
 
@@ -454,11 +455,12 @@ where
         init: B,
         f: F,
     ) -> std::result::Result<B, E> {
-        let range_bytes = (to - from) * Self::SIZE_OF_T;
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            RawIoSource::new(self, from, to).try_fold(init, f)
-        } else {
+        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
+        let bytes = (to - from) * Self::SIZE_OF_T;
+        if self.region().prefers_mmap(offset, bytes) {
             RawMmapSource::new(self, from, to).try_fold(init, f)
+        } else {
+            RawIoSource::new(self, from, to).try_fold(init, f)
         }
     }
 

@@ -7,7 +7,7 @@ use std::{
 use parking_lot::{RwLock, RwLockReadGuard};
 use rawdb::{Region, RegionMetadata};
 
-use crate::{AnyStoredVec, BUFFER_SIZE, Pages, VecIndex, VecValue, unlikely};
+use crate::{AnyStoredVec, BUFFER_SIZE, Pages, VecIndex, VecValue, likely, unlikely};
 
 use super::super::inner::{
     CompressionStrategy, MAX_UNCOMPRESSED_PAGE_SIZE, Page, ReadWriteCompressedVec,
@@ -137,24 +137,57 @@ where
         Some(())
     }
 
-    fn decode_page(&mut self, page_index: usize) -> Option<()> {
+    fn ensure_page_buffered(&mut self, page_index: usize) -> Option<Page> {
         if page_index >= self.pages.len() {
             return None;
         }
 
-        // Copy page metadata to release the borrow on self.pages
         let page = *self.pages.get(page_index)?;
-
         if self.buffer_len > 0 {
             let buffer_end_offset = self.buffer_start_offset + self.buffer_len as u64;
-
             if page.start >= self.buffer_start_offset && page.end() <= buffer_end_offset {
-                return self.decode_from_buffer(page_index, page);
+                return Some(page);
             }
         }
 
         self.refill_buffer(page_index)?;
+        Some(page)
+    }
+
+    fn decode_page(&mut self, page_index: usize) -> Option<()> {
+        let page = self.ensure_page_buffered(page_index)?;
         self.decode_from_buffer(page_index, page)
+    }
+
+    /// Reads remaining pages directly into the destination allocation.
+    pub(crate) fn read_into(mut self, output: &mut Vec<T>) {
+        output.reserve(self.end_index - self.index);
+        let start_page = self.index / Self::PER_PAGE;
+        let end_page = (self.end_index - 1) / Self::PER_PAGE;
+        let mut page_buf = std::mem::take(&mut self.decoded_values);
+
+        for page_index in start_page..=end_page {
+            let page_start = page_index * Self::PER_PAGE;
+            let page = self
+                .ensure_page_buffered(page_index)
+                .expect("compressed page should exist after bounds check");
+            let local = (page.start - self.buffer_start_offset) as usize;
+            let data = &self.buffer[local..local + page.bytes as usize];
+            let values_count = page.values_count() as usize;
+            let local_from = self.index.saturating_sub(page_start);
+            let local_to = (self.end_index - page_start).min(values_count);
+
+            if !page.is_raw() && likely(local_from == 0) {
+                let before = output.len();
+                S::decompress_append(data, values_count, output)
+                    .expect("decompression failed in read_into_at");
+                output.truncate(before + local_to);
+            } else {
+                S::decode_page_into(data, &page, &mut page_buf)
+                    .expect("page decode failed in read_into_at");
+                output.extend_from_slice(&page_buf[local_from..local_to]);
+            }
+        }
     }
 
     /// Fold all remaining elements — tight pointer loop per page so LLVM can vectorize.
@@ -213,5 +246,41 @@ where
             in_page_offset = 0;
         }
         Ok(accum)
+    }
+}
+
+#[cfg(all(test, feature = "pco"))]
+mod tests {
+    use tempfile::tempdir;
+
+    use crate::{AnyStoredVec, Database, ImportableVec, PcoVec, Version, WritableVec};
+
+    use super::CompressedIoSource;
+
+    #[test]
+    fn read_into_handles_full_and_partial_pages() {
+        let temp = tempdir().unwrap();
+        let db = Database::open(temp.path()).unwrap();
+        let mut vec: PcoVec<usize, u64> =
+            PcoVec::forced_import(&db, "values", Version::ONE).unwrap();
+        let per_page = 16 * 1024 / size_of::<u64>();
+        let values: Vec<_> = (0..per_page * 3 + 137)
+            .map(|index| index as u64 * 17 + index as u64 % 11)
+            .collect();
+        for &value in &values {
+            vec.push(value);
+        }
+        vec.write().unwrap();
+
+        for (from, to) in [
+            (0, values.len()),
+            (17, per_page + 9),
+            (per_page, per_page * 3),
+            (per_page * 2 + 31, values.len() - 7),
+        ] {
+            let mut output = vec![u64::MAX];
+            CompressedIoSource::new(&vec, from, to).read_into(&mut output);
+            assert_eq!(&output[1..], &values[from..to]);
+        }
     }
 }

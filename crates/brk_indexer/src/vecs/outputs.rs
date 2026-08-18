@@ -16,7 +16,10 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// of outputs in preceding blocks; at `tx_index`, it identifies the
     /// transaction's first output.
     pub first_txout_index: M::Stored<PcoVec<Height, TxOutIndex>>,
-    /// Value of the indexed transaction output in satoshis.
+    /// Value in satoshis of the indexed transaction output. At `txout_index`,
+    /// this is the output's value; at `txin_index`, it is the value of the
+    /// previous output spent by the input. Coinbase inputs use `Sats::MAX`
+    /// because they have no previous output.
     pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the

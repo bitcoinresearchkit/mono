@@ -2182,3 +2182,22 @@ fn test_concurrent_renames() -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(unix)]
+#[test]
+fn test_region_residency_hint() -> Result<()> {
+    let (db, _temp) = setup_test_db()?;
+    let region = db.create_region_if_needed("resident")?;
+
+    assert!(region.prefers_mmap(0, 0));
+    assert!(region.prefers_mmap(0, 1));
+
+    let bytes = vec![42; 256 * 1024];
+    region.write(&bytes)?;
+
+    assert!(region.prefers_mmap(0, bytes.len()));
+    assert!(region.prefers_mmap(bytes.len() - 1, 2));
+    assert!(!region.prefers_mmap(bytes.len() - 1, 128 * 1024));
+
+    Ok(())
+}

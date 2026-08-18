@@ -1,6 +1,6 @@
 use rawdb::unlikely;
 
-use crate::{AnyStoredVec, HEADER_OFFSET, ReadableVec, VecIndex, VecValue};
+use crate::{AnyStoredVec, HEADER_OFFSET, RawIoSource, ReadableVec, VecIndex, VecValue};
 
 use super::{super::RawStrategy, ReadWriteRawVec};
 
@@ -58,18 +58,24 @@ where
         if from < stored_len {
             let stored_to = to.min(stored_len);
             if S::IS_NATIVE_LAYOUT {
-                // Bulk read: memory layout matches T, single memcpy from mmap.
-                let reader = self.raw_reader();
-                let src = unsafe {
-                    std::slice::from_raw_parts(
-                        reader
-                            .prefixed(HEADER_OFFSET)
-                            .as_ptr()
-                            .add(from * Self::SIZE_OF_T) as *const T,
-                        stored_to - from,
-                    )
-                };
-                buf.extend_from_slice(src);
+                let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
+                let bytes = (stored_to - from) * Self::SIZE_OF_T;
+                if self.region().prefers_mmap(offset, bytes) {
+                    let reader = self.raw_reader();
+                    let src = unsafe {
+                        std::slice::from_raw_parts(
+                            reader
+                                .prefixed(HEADER_OFFSET)
+                                .as_ptr()
+                                .add(from * Self::SIZE_OF_T)
+                                as *const T,
+                            stored_to - from,
+                        )
+                    };
+                    buf.extend_from_slice(src);
+                } else {
+                    RawIoSource::new(self, from, stored_to).read_into(buf);
+                }
             } else {
                 self.fold_source(from, stored_to, (), |(), v| buf.push(v));
             }

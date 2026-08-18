@@ -1,4 +1,4 @@
-use crate::{ReadableVec, VecIndex, VecValue};
+use crate::{CompressedIoSource, ReadableVec, VecIndex, VecValue};
 
 use super::{
     super::{CompressionStrategy, ReadWriteCompressedVec},
@@ -26,9 +26,27 @@ where
         }
         buf.reserve(to - from);
 
-        let reader = self.base.region().create_reader();
-        let pages = self.pages.read();
-        ReadWriteCompressedVec::<I, T, S>::read_stored_pages_into(&reader, &pages, from, to, buf);
+        if ReadWriteCompressedVec::<I, T, S>::prefers_mmap(
+            self.base.region(),
+            &self.pages,
+            from,
+            to,
+        ) {
+            let reader = self.base.region().create_reader();
+            let pages = self.pages.read();
+            ReadWriteCompressedVec::<I, T, S>::read_stored_pages_into(
+                &reader, &pages, from, to, buf,
+            );
+        } else {
+            CompressedIoSource::<I, T, S>::new_from_parts(
+                self.base.region(),
+                &self.pages,
+                len,
+                from,
+                to,
+            )
+            .read_into(buf);
+        }
     }
 
     #[inline]

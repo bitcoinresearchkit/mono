@@ -2,7 +2,7 @@ use std::{marker::PhantomData, sync::Arc};
 
 use log::info;
 use parking_lot::RwLock;
-use rawdb::{Reader, likely, unlikely};
+use rawdb::{Reader, Region, likely, unlikely};
 
 mod any_stored_vec;
 mod any_vec;
@@ -12,8 +12,8 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Error, Format, ImportOptions, MMAP_CROSSOVER_BYTES, ReadWriteBaseVec,
-    Result, VecIndex, VecValue, Version, WritableVec, vec_region_name_with,
+    AnyStoredVec, AnyVec, Error, Format, ImportOptions, ReadWriteBaseVec, Result, VecIndex,
+    VecValue, Version, WritableVec, vec_region_name_with,
 };
 
 use super::{CompressionStrategy, Pages, ReadOnlyCompressedVec};
@@ -184,6 +184,19 @@ where
         }
     }
 
+    #[inline]
+    pub(crate) fn prefers_mmap(
+        region: &Region,
+        pages: &RwLock<Pages>,
+        from: usize,
+        to: usize,
+    ) -> bool {
+        let Some((offset, len)) = pages.read().stored_byte_range(from, to, Self::PER_PAGE) else {
+            return true;
+        };
+        region.prefers_mmap(offset, len)
+    }
+
     pub(crate) fn pages_region_name(&self) -> String {
         Self::pages_region_name_with(self.name())
     }
@@ -286,11 +299,11 @@ where
         init: B,
         f: F,
     ) -> B {
-        let range_bytes = (to - from) * Self::SIZE_OF_T;
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            crate::CompressedIoSource::new(self, from, to).fold(init, f)
-        } else {
+        let mmap = Self::prefers_mmap(self.region(), &self.pages, from, to);
+        if mmap {
             crate::CompressedMmapSource::new(self, from, to).fold(init, f)
+        } else {
+            crate::CompressedIoSource::new(self, from, to).fold(init, f)
         }
     }
 
@@ -302,11 +315,11 @@ where
         init: B,
         f: F,
     ) -> std::result::Result<B, E> {
-        let range_bytes = (to - from) * Self::SIZE_OF_T;
-        if range_bytes > MMAP_CROSSOVER_BYTES {
-            crate::CompressedIoSource::new(self, from, to).try_fold(init, f)
-        } else {
+        let mmap = Self::prefers_mmap(self.region(), &self.pages, from, to);
+        if mmap {
             crate::CompressedMmapSource::new(self, from, to).try_fold(init, f)
+        } else {
+            crate::CompressedIoSource::new(self, from, to).try_fold(init, f)
         }
     }
 }

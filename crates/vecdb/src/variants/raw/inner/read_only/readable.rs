@@ -1,4 +1,4 @@
-use crate::{HEADER_OFFSET, ReadableVec, VecIndex, VecValue};
+use crate::{HEADER_OFFSET, RawIoSource, ReadableVec, VecIndex, VecValue};
 
 use super::{super::RawStrategy, ReadOnlyRawVec};
 
@@ -29,17 +29,24 @@ where
         }
         buf.reserve(to - from);
         if S::IS_NATIVE_LAYOUT {
-            let reader = self.base.region().create_reader();
-            let src = unsafe {
-                std::slice::from_raw_parts(
-                    reader
-                        .prefixed(HEADER_OFFSET)
-                        .as_ptr()
-                        .add(from * size_of::<T>()) as *const T,
-                    to - from,
-                )
-            };
-            buf.extend_from_slice(src);
+            let offset = HEADER_OFFSET + from * size_of::<T>();
+            let bytes = (to - from) * size_of::<T>();
+            if self.base.region().prefers_mmap(offset, bytes) {
+                let reader = self.base.region().create_reader();
+                let src = unsafe {
+                    std::slice::from_raw_parts(
+                        reader
+                            .prefixed(HEADER_OFFSET)
+                            .as_ptr()
+                            .add(from * size_of::<T>()) as *const T,
+                        to - from,
+                    )
+                };
+                buf.extend_from_slice(src);
+            } else {
+                RawIoSource::<I, T, S>::new_from_parts(self.base.region(), len, from, to)
+                    .read_into(buf);
+            }
         } else {
             self.fold_source(from, to, len, (), |(), v| buf.push(v));
         }
