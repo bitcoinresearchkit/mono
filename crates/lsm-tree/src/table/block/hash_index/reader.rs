@@ -2,7 +2,10 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use super::{MARKER_CONFLICT, calculate_bucket_position};
+use super::calculate_bucket_position;
+
+#[cfg(test)]
+use super::MARKER_CONFLICT;
 
 /// Helper to read from an embedded block hash index
 pub struct Reader<'a>(&'a [u8]);
@@ -23,12 +26,14 @@ impl<'a> Reader<'a> {
     }
 
     /// Returns the number of buckets.
+    #[cfg(test)]
     #[must_use]
     pub fn bucket_count(&self) -> usize {
         self.0.len()
     }
 
     /// Returns the number of conflict markers in the hash index.
+    #[cfg(test)]
     #[must_use]
     #[expect(
         clippy::naive_bytecount,

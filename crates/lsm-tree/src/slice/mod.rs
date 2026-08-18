@@ -9,7 +9,7 @@ use std::{
     sync::Arc,
 };
 
-pub use slice_default::{Builder, Slice};
+pub use slice_default::Slice;
 
 impl AsRef<[u8]> for Slice {
     fn as_ref(&self) -> &[u8] {

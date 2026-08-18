@@ -5,10 +5,7 @@
 use std::{
     mem::ManuallyDrop,
     ops::Deref,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering, fence},
-    },
+    sync::atomic::{AtomicU64, Ordering, fence},
 };
 
 pub use crate::builder::Builder;
@@ -53,7 +50,7 @@ struct LongRepr {
 }
 
 #[repr(C)]
-pub union Trailer {
+union Trailer {
     short: ManuallyDrop<ShortRepr>,
     long: ManuallyDrop<LongRepr>,
 }
@@ -191,30 +188,6 @@ impl std::hash::Hash for ByteView {
     }
 }
 
-/// RAII guard for [`ByteView::get_mut`], so the prefix gets
-/// updated properly when the mutation is done
-pub struct Mutator<'a>(pub(crate) &'a mut ByteView);
-
-impl std::ops::Deref for Mutator<'_> {
-    type Target = [u8];
-
-    fn deref(&self) -> &Self::Target {
-        self.0
-    }
-}
-
-impl std::ops::DerefMut for Mutator<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.get_mut_slice()
-    }
-}
-
-impl Drop for Mutator<'_> {
-    fn drop(&mut self) {
-        self.0.update_prefix();
-    }
-}
-
 impl ByteView {
     #[doc(hidden)]
     #[must_use]
@@ -222,12 +195,6 @@ impl ByteView {
         // SAFETY: The caller is responsible for initializing every byte before
         // the returned builder is frozen.
         unsafe { Builder::new(Self::with_size_unzeroed(len)) }
-    }
-
-    #[doc(hidden)]
-    #[must_use]
-    pub fn builder(len: usize) -> Builder {
-        Builder::new(Self::with_size(len))
     }
 
     fn prefix(&self) -> &[u8] {
@@ -253,15 +220,6 @@ impl ByteView {
         }
     }
 
-    /// Returns a mutable reference into the given byteview, if there are no other pointers to the same allocation.
-    pub fn get_mut(&mut self) -> Option<Mutator<'_>> {
-        if self.ref_count() == 1 {
-            Some(Mutator(self))
-        } else {
-            None
-        }
-    }
-
     /// Creates a byteview and populates it with `len` bytes
     /// from the given reader.
     ///
@@ -272,12 +230,9 @@ impl ByteView {
         // NOTE: We can use _unzeroed to skip zeroing of the heap allocated slice
         // because we receive the `len` parameter
         // If the reader does not give us exactly `len` bytes, `read_exact` fails anyway
-        let mut s = unsafe { Self::with_size_unzeroed(len) };
-        {
-            let mut builder = Mutator(&mut s);
-            reader.read_exact(&mut builder)?;
-        }
-        Ok(s)
+        let mut builder = unsafe { Self::builder_unzeroed(len) };
+        reader.read_exact(&mut builder)?;
+        Ok(builder.freeze())
     }
 
     /// Fuses two byte slices into a single byteview.
@@ -289,78 +244,6 @@ impl ByteView {
         left_target.copy_from_slice(left);
         right_target.copy_from_slice(right);
         builder.freeze()
-    }
-
-    /// Creates a new zeroed, fixed-length byteview.
-    ///
-    /// Use [`ByteView::get_mut`] to mutate the content.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the length does not fit in a u32 (4 GiB).
-    #[must_use]
-    pub fn with_size(slice_len: usize) -> Self {
-        Self::with_size_zeroed(slice_len)
-    }
-
-    /// Creates a new zeroed, fixed-length byteview.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the length does not fit in a u32 (4 GiB).
-    fn with_size_zeroed(slice_len: usize) -> Self {
-        let view = if slice_len <= INLINE_SIZE {
-            Self {
-                trailer: Trailer {
-                    short: ManuallyDrop::new(ShortRepr {
-                        // SAFETY: We know slice_len is INLINE_SIZE or less, so it must be
-                        // a valid u32
-                        #[allow(clippy::cast_possible_truncation)]
-                        len: slice_len as u32,
-                        data: [0; INLINE_SIZE],
-                    }),
-                },
-            }
-        } else {
-            let Ok(len) = u32::try_from(slice_len) else {
-                panic!("byte slice too long");
-            };
-
-            unsafe {
-                let layout = allocation_layout(slice_len);
-
-                // IMPORTANT: Zero-allocate the region
-                let heap_ptr = std::alloc::alloc_zeroed(layout);
-                if heap_ptr.is_null() {
-                    std::alloc::handle_alloc_error(layout);
-                }
-
-                // Set ref count
-                #[expect(
-                    clippy::cast_ptr_alignment,
-                    reason = "the allocation uses HeapAllocationHeader alignment"
-                )]
-                let heap_region = heap_ptr.cast::<HeapAllocationHeader>();
-                let heap_region = &*heap_region;
-                heap_region.ref_count.store(1, Ordering::Release);
-
-                Self {
-                    trailer: Trailer {
-                        long: ManuallyDrop::new(LongRepr {
-                            len,
-                            prefix: [0; PREFIX_SIZE],
-                            heap: heap_ptr,
-                            original_len: len,
-                            offset: 0,
-                        }),
-                    },
-                }
-            }
-        };
-
-        debug_assert_eq!(1, view.ref_count());
-
-        view
     }
 
     /// Creates a new fixed-length byteview, **with uninitialized contents**.
@@ -511,21 +394,12 @@ impl ByteView {
         }
     }
 
-    /// Returns the ref_count of the underlying heap allocation.
-    #[doc(hidden)]
-    #[must_use]
-    pub fn ref_count(&self) -> u64 {
+    fn ref_count(&self) -> u64 {
         if self.is_inline() {
             1
         } else {
             self.get_heap_region().ref_count.load(Ordering::Acquire)
         }
-    }
-
-    /// Clones the contents of this slice into an independently tracked slice.
-    #[must_use]
-    pub fn to_detached(&self) -> Self {
-        Self::new(self)
     }
 
     /// Clones the given range of the existing byteview without heap allocation.
@@ -642,28 +516,6 @@ impl ByteView {
         }
     }
 
-    /// Returns `true` if `needle` is a prefix of the slice or equal to the slice.
-    pub fn starts_with<T: AsRef<[u8]>>(&self, needle: T) -> bool {
-        let needle = needle.as_ref();
-        let prefix_len = PREFIX_SIZE.min(needle.len());
-
-        unsafe {
-            let needle_prefix: &[u8] = needle.get_unchecked(..prefix_len);
-
-            if !self.prefix().starts_with(needle_prefix) {
-                return false;
-            }
-        }
-
-        if needle.len() <= PREFIX_SIZE {
-            true
-        } else {
-            self.get(PREFIX_SIZE..)
-                .zip(needle.get(PREFIX_SIZE..))
-                .is_some_and(|(bytes, remaining)| bytes.starts_with(remaining))
-        }
-    }
-
     /// Returns `true` if the slice is empty.
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -723,24 +575,9 @@ impl AsRef<[u8]> for ByteView {
     }
 }
 
-impl FromIterator<u8> for ByteView {
-    fn from_iter<T>(iter: T) -> Self
-    where
-        T: IntoIterator<Item = u8>,
-    {
-        Self::from(iter.into_iter().collect::<Vec<u8>>())
-    }
-}
-
 impl From<&[u8]> for ByteView {
     fn from(value: &[u8]) -> Self {
         Self::new(value)
-    }
-}
-
-impl From<Arc<[u8]>> for ByteView {
-    fn from(value: Arc<[u8]>) -> Self {
-        Self::new(&value)
     }
 }
 
@@ -756,18 +593,6 @@ impl From<&str> for ByteView {
     }
 }
 
-impl From<String> for ByteView {
-    fn from(value: String) -> Self {
-        Self::from(value.as_bytes())
-    }
-}
-
-impl From<Arc<str>> for ByteView {
-    fn from(value: Arc<str>) -> Self {
-        Self::from(&*value)
-    }
-}
-
 impl<const N: usize> From<[u8; N]> for ByteView {
     fn from(value: [u8; N]) -> Self {
         Self::from(value.as_slice())
@@ -777,59 +602,6 @@ impl<const N: usize> From<[u8; N]> for ByteView {
 impl<const N: usize> From<&[u8; N]> for ByteView {
     fn from(value: &[u8; N]) -> Self {
         Self::from(value.as_slice())
-    }
-}
-
-#[cfg(feature = "serde")]
-mod serde {
-    use super::ByteView;
-    use serde::de::{self, Visitor};
-    use serde::{Deserialize, Deserializer, Serialize, Serializer};
-    use std::fmt;
-
-    impl Serialize for ByteView {
-        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: Serializer,
-        {
-            serializer.serialize_bytes(self)
-        }
-    }
-
-    impl<'de> Deserialize<'de> for ByteView {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: Deserializer<'de>,
-        {
-            struct ByteViewVisitor;
-
-            impl<'de> Visitor<'de> for ByteViewVisitor {
-                type Value = ByteView;
-
-                fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-                    formatter.write_str("a byte array")
-                }
-
-                fn visit_bytes<E>(self, v: &[u8]) -> Result<ByteView, E>
-                where
-                    E: de::Error,
-                {
-                    Ok(ByteView::new(v))
-                }
-
-                fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
-                where
-                    A: de::SeqAccess<'de>,
-                {
-                    let bytes: Vec<u8> =
-                        Deserialize::deserialize(de::value::SeqAccessDeserializer::new(seq))?;
-
-                    Ok(ByteView::new(&bytes))
-                }
-            }
-
-            deserializer.deserialize_bytes(ByteViewVisitor)
-        }
     }
 }
 
@@ -901,12 +673,6 @@ mod tests {
     }
 
     #[test]
-    fn empty_slice() {
-        let bytes = ByteView::with_size_zeroed(0);
-        assert_eq!(&*bytes, &[] as &[u8]);
-    }
-
-    #[test]
     fn dealloc_order() {
         let bytes = ByteView::new(&(0..32).collect::<Vec<_>>());
         let bytes_slice = bytes.slice(..31);
@@ -943,51 +709,6 @@ mod tests {
         let a = ByteView::from("abcdef");
         let b = ByteView::from("abcdefhelloworldhelloworld");
         assert!(a < b);
-    }
-
-    #[test]
-    fn get_mut() {
-        let mut slice = ByteView::with_size(4);
-        assert_eq!(4, slice.len());
-        assert_eq!([0, 0, 0, 0], &*slice);
-
-        {
-            let Some(mut mutator) = slice.get_mut() else {
-                panic!("new ByteView must be uniquely owned");
-            };
-            mutator.copy_from_slice(&[1, 2, 3, 4]);
-        }
-
-        assert_eq!(4, slice.len());
-        assert_eq!([1, 2, 3, 4], &*slice);
-        assert_eq!([1, 2, 3, 4], slice.prefix());
-    }
-
-    #[test]
-    fn get_mut_long() {
-        let mut slice = ByteView::with_size(30);
-        assert_eq!(30, slice.len());
-        assert_eq!([0; 30], &*slice);
-
-        {
-            let Some(mut mutator) = slice.get_mut() else {
-                panic!("new ByteView must be uniquely owned");
-            };
-            let Some(prefix) = mutator.get_mut(..4) else {
-                panic!("ByteView is expected to contain four bytes");
-            };
-            prefix.copy_from_slice(&[1, 2, 3, 4]);
-        }
-
-        assert_eq!(30, slice.len());
-        assert_eq!(
-            [
-                1, 2, 3, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                0, 0
-            ],
-            &*slice
-        );
-        assert_eq!([1, 2, 3, 4], slice.prefix());
     }
 
     #[test]

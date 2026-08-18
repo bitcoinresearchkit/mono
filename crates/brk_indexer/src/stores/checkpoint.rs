@@ -7,7 +7,7 @@ use std::{
 use brk_error::Result;
 use brk_store::PendingIngest;
 use brk_types::Height;
-use fjall::{Database, PersistMode};
+use fjall::Database;
 use rayon::prelude::*;
 
 /// Sole durability marker for the shared stores database.
@@ -81,11 +81,10 @@ pub struct PendingStoresCheckpoint {
 impl PendingStoresCheckpoint {
     pub fn persist(
         self,
-        db: &Database,
+        _db: &Database,
         ingest: impl FnOnce() -> Result<()>,
     ) -> Result<PersistedStoresCheckpoint> {
         ingest()?;
-        db.persist(PersistMode::SyncData)?;
         Ok(PersistedStoresCheckpoint(self))
     }
 }

@@ -6,6 +6,7 @@ use crate::Slice;
 use std::{fs::File, io::Write, path::Path};
 
 pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', 3];
+pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 8];
 
 pub const TABLES_FOLDER: &str = "tables";
 pub const CURRENT_VERSION_FILE: &str = "current";
@@ -124,19 +125,8 @@ pub fn rewrite_atomic(path: &Path, content: &[u8]) -> std::io::Result<()> {
     temp_file.as_file_mut().sync_all()?;
     persist_temp_file(temp_file, path)?;
 
-    // TODO: not sure why it fails on Windows...
     #[cfg(not(target_os = "windows"))]
-    {
-        let file = std::fs::File::open(path)?;
-        file.sync_all()?;
-
-        #[expect(
-            clippy::expect_used,
-            reason = "files should always have a parent directory"
-        )]
-        let folder = path.parent().expect("should have parent folder");
-        fsync_directory(folder)?;
-    }
+    fsync_directory(folder)?;
 
     Ok(())
 }

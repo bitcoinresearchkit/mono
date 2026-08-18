@@ -197,18 +197,7 @@ impl Error {
             || matches!(self, Error::VersionMismatch { .. });
         #[cfg(feature = "fjall")]
         {
-            is_vecdb_data
-                || matches!(
-                    self,
-                    Error::Fjall(
-                        fjall::Error::JournalRecovery(_)
-                            | fjall::Error::InvalidVersion(_)
-                            | fjall::Error::Decompress(_)
-                            | fjall::Error::InvalidTrailer
-                            | fjall::Error::InvalidTag(_)
-                            | fjall::Error::Unrecoverable
-                    )
-                )
+            is_vecdb_data || matches!(self, Error::Fjall(error) if error.is_data_error())
         }
         #[cfg(not(feature = "fjall"))]
         {

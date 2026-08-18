@@ -1,56 +1,23 @@
 use crate::{
-    checksum::ChecksummedWriter,
-    file::{CURRENT_VERSION_FILE, fsync_directory, retry_transient_io, rewrite_atomic},
+    file::{CURRENT_MAGIC, CURRENT_VERSION_FILE, rewrite_atomic},
     version::Version,
 };
 use byteorder::{LittleEndian, WriteBytesExt};
-use std::{
-    io::{BufWriter, Write},
-    path::Path,
-};
+use std::path::Path;
 
-pub fn persist_version(folder: &Path, version: &Version) -> crate::Result<()> {
-    log::trace!(
-        "Persisting version {} in {}",
-        version.id(),
-        folder.display(),
-    );
+impl Version {
+    pub fn persist(&self, folder: &Path) -> crate::Result<()> {
+        log::trace!("Persisting version {} in {}", self.id(), folder.display());
 
-    let path = folder.join(format!("v{}", version.id()));
-    let file = retry_transient_io(|| std::fs::File::create(&path))?;
-    let writer = BufWriter::new(&file);
-    let mut writer = ChecksummedWriter::new(writer);
+        let mut current = CURRENT_MAGIC.to_vec();
+        current.write_u64::<LittleEndian>(self.id())?;
+        self.encode_into(&mut current)?;
+        let checksum = xxhash_rust::xxh3::xxh3_128(&current);
+        current.write_u128::<LittleEndian>(checksum)?;
+        rewrite_atomic(&folder.join(CURRENT_VERSION_FILE), &current)?;
 
-    {
-        let mut writer = sfa::Writer::from_writer(&mut writer);
-
-        version.encode_into(&mut writer)?;
-
-        writer.finish().map_err(|e| match e {
-            sfa::Error::Io(e) => crate::Error::from(e),
-            _ => unreachable!(),
-        })?;
+        Ok(())
     }
-
-    writer.flush()?;
-
-    let checksum = writer.checksum();
-
-    drop(writer);
-
-    file.sync_all()?;
-
-    // IMPORTANT: fsync folder on Unix
-    fsync_directory(folder)?;
-
-    let mut current_file_content = vec![];
-    current_file_content.write_u64::<LittleEndian>(version.id())?;
-    current_file_content.write_u128::<LittleEndian>(checksum.into_u128())?;
-    current_file_content.write_u8(0)?; // 0 = xxh3
-
-    rewrite_atomic(&folder.join(CURRENT_VERSION_FILE), &current_file_content)?;
-
-    Ok(())
 }
 
 #[cfg(test)]
@@ -59,21 +26,15 @@ mod tests {
     use test_log::test;
 
     #[test]
-    fn version_persist_replaces_orphaned_file() -> crate::Result<()> {
-        let dir = tempfile::tempdir()?;
+    fn version_persist_replaces_partial_current() -> crate::Result<()> {
+        let directory = tempfile::tempdir()?;
         let version = Version::new(0);
+        std::fs::write(directory.path().join(CURRENT_VERSION_FILE), b"partial")?;
 
-        // Simulates the leftover of a persist that failed midway
-        std::fs::write(dir.path().join("v0"), b"partial")?;
+        version.persist(directory.path())?;
 
-        persist_version(dir.path(), &version)?;
-
-        assert_ne!(
-            b"partial".as_slice(),
-            &*std::fs::read(dir.path().join("v0"))?
-        );
-        assert!(dir.path().join(CURRENT_VERSION_FILE).try_exists()?);
-
+        let current = std::fs::read(directory.path().join(CURRENT_VERSION_FILE))?;
+        assert_ne!(b"partial".as_slice(), current.as_slice());
         Ok(())
     }
 }

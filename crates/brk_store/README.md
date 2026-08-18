@@ -25,7 +25,6 @@ store.insert(txid, height);
 if let Some(ingest) = store.take_pending_ingest() {
     ingest()?;
 }
-db.persist(PersistMode::SyncData)?;
 
 let height = store.get(&txid)?;
 ```
@@ -36,7 +35,7 @@ let height = store.get(&txid)?;
 |------|----------|--------------|
 | `Random` | UTXO lookups, txid queries | Aggressive bloom filters |
 | `Recent` | Mempool, recent blocks | Point-read hints |
-| `Vec` | Append-only series | Large memtables, no filters |
+| `Vec` | Append-heavy series | Dense blocks, no filters or pinned blocks |
 
 ## Built On
 

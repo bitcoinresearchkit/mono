@@ -108,6 +108,7 @@ impl Builder {
     /// Consumes the builder, returning its raw bytes.
     ///
     /// Only used for tests/benchmarks
+    #[cfg(test)]
     #[must_use]
     #[doc(hidden)]
     pub fn into_inner(self) -> Vec<u8> {

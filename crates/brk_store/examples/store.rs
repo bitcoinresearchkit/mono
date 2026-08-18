@@ -3,7 +3,6 @@ use std::path::Path;
 use brk_error::Result;
 use brk_store::{Kind, Mode, Store, open_database};
 use brk_types::{Height, TxIndex, Version};
-use fjall::PersistMode;
 
 fn main() -> Result<()> {
     let path = Path::new("./examples/_fjall");
@@ -18,8 +17,6 @@ fn main() -> Result<()> {
     if let Some(ingest) = store.take_pending_ingest() {
         ingest()?;
     }
-    db.persist(PersistMode::SyncData)?;
-
     assert_eq!(store.get(&key)?.as_deref(), Some(&value));
 
     Ok(())

@@ -49,38 +49,6 @@ impl LockedFileGuard {
 
         Ok(Self(Arc::new(LockedFileGuardInner(file))))
     }
-
-    pub fn try_acquire(path: &Path) -> crate::Result<Self> {
-        const RETRIES: usize = 3;
-
-        log::debug!("Acquiring database lock at {}", path.display());
-
-        let file = OpenOptions::new().read(true).write(true).open(path)?;
-
-        for i in 1..=RETRIES {
-            if let Err(e) = file.try_lock() {
-                match e {
-                    std::fs::TryLockError::Error(e) => {
-                        log::error!(
-                            "Failed to acquire database lock - if this is expected, you can try opening again (maybe wait a little)"
-                        );
-                        return Err(crate::Error::Io(e));
-                    }
-                    std::fs::TryLockError::WouldBlock => {
-                        if i == RETRIES {
-                            return Err(crate::Error::Locked);
-                        }
-                        std::thread::sleep(std::time::Duration::from_millis(100));
-                    }
-                }
-            } else {
-                // Success
-                break;
-            }
-        }
-
-        Ok(Self(Arc::new(LockedFileGuardInner(file))))
-    }
 }
 
 #[cfg(test)]
@@ -96,18 +64,6 @@ mod tests {
         File::create(&path)?;
 
         let _guard = LockedFileGuard::create_new(&path)?;
-
-        Ok(())
-    }
-
-    #[test]
-    fn try_acquire_acquires_lock_on_existing_file() -> crate::Result<()> {
-        let dir = tempfile::tempdir()?;
-        let path = dir.path().join("lock");
-
-        File::create(&path)?;
-
-        let _guard = LockedFileGuard::try_acquire(&path)?;
 
         Ok(())
     }

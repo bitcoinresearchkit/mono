@@ -1,6 +1,6 @@
 use fjall::Database;
 
-#[test_log::test]
+#[test]
 fn db_open() -> fjall::Result<()> {
     let folder = tempfile::tempdir()?;
 
@@ -16,7 +16,7 @@ fn db_open() -> fjall::Result<()> {
     Ok(())
 }
 
-#[test_log::test]
+#[test]
 fn db_open_with_keyspace() -> fjall::Result<()> {
     let folder = tempfile::tempdir()?;
 

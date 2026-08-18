@@ -2,9 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use byteview::ByteView;
-
-pub use byteview::Builder;
+use byteview::{Builder, ByteView};
 
 /// An immutable byte slice that can be cloned without additional heap allocation
 ///

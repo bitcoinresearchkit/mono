@@ -1,6 +1,5 @@
 use brk_store::{Kind, Mode, Store, open_database};
 use brk_types::{AddrIndexTxIndex, TxIndex, TypeIndex, Unit, Version};
-use fjall::PersistMode;
 
 fn key(address: u32, transaction: u32) -> AddrIndexTxIndex {
     AddrIndexTxIndex::from((TypeIndex::new(address), TxIndex::new(transaction)))
@@ -30,8 +29,6 @@ fn owned_ingest_merges_puts_and_tombstones() -> brk_error::Result<()> {
         store.remove(key(3, 3));
         store.insert(key(4, 4), Unit);
         store.take_pending_ingest().unwrap()()?;
-        db.persist(PersistMode::SyncData)?;
-
         assert!(store.get(&key(1, 1))?.is_none());
         assert!(store.get(&key(2, 2))?.is_some());
         assert!(store.get(&key(3, 3))?.is_none());

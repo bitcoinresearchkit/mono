@@ -72,7 +72,7 @@ indexmap = { version = "2.14.0", features = ["serde"] }
 jiff = { version = "0.2.35", features = ["perf-inline", "tz-system"], default-features = false }
 libc = "0.2"
 log = "0.4.33"
-lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.11.2", default-features = false }
+lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.11.2" }
 lz4_flex = { version = "=0.13.1", default-features = false }
 owo-colors = "4.3.0"
 parking_lot = "0.12.5"

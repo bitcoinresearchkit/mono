@@ -8,9 +8,12 @@ pub mod standard_bloom;
 
 use standard_bloom::Builder as StandardBloomFilterBuilder;
 
+/// Controls the size of Bloom filters written into tables.
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BloomConstructionPolicy {
+    /// Uses a fixed number of Bloom-filter bits for every key.
     BitsPerKey(f32),
+    /// Sizes the Bloom filter for the requested false-positive rate.
     FalsePositiveRate(f32),
 }
 
@@ -21,6 +24,7 @@ impl Default for BloomConstructionPolicy {
 }
 
 impl BloomConstructionPolicy {
+    /// Creates a filter builder sized for `n` keys.
     #[must_use]
     pub fn init(&self, n: usize) -> StandardBloomFilterBuilder {
         use standard_bloom::Builder;
@@ -31,6 +35,7 @@ impl BloomConstructionPolicy {
         }
     }
 
+    /// Returns whether this policy enables Bloom-filter construction.
     #[must_use]
     pub fn is_active(&self) -> bool {
         match self {

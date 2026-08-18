@@ -21,12 +21,12 @@ pub use any::*;
 pub use kind::*;
 pub use mode::*;
 
-const MAJOR_FJALL_VERSION: Version = Version::new(4);
+const MAJOR_FJALL_VERSION: Version = Version::new(6);
 
 pub fn open_database(path: &Path) -> fjall::Result<Database> {
     Database::builder(path.join("fjall"))
         .cache_size(3 * 1024 * 1024 * 1024)
-        .max_cached_files(Some(512))
+        .max_cached_files(512)
         .open()
 }
 
@@ -109,7 +109,6 @@ where
 
     fn open_keyspace(database: &Database, name: &str, _mode: Mode, kind: Kind) -> Result<Keyspace> {
         let mut options = KeyspaceCreateOptions::default()
-            .manual_journal_persist(true)
             .filter_block_partitioning_policy(PartitioningPolicy::new([false, false, true]))
             .index_block_partitioning_policy(PartitioningPolicy::new([false, false, true]));
 
@@ -141,7 +140,6 @@ where
             Kind::Vec => {
                 options = options
                     .data_block_restart_interval_policy(RestartIntervalPolicy::all(8))
-                    .max_memtable_size(8 * 1024 * 1024)
                     .filter_policy(FilterPolicy::disabled())
                     .filter_block_pinning_policy(PinningPolicy::all(false))
                     .index_block_pinning_policy(PinningPolicy::all(false));
@@ -166,7 +164,7 @@ where
             }
         }
 
-        if let Some(slice) = self.keyspace.get_standard(ByteView::from(key))? {
+        if let Some(slice) = self.keyspace.get(ByteView::from(key))? {
             Ok(Some(Cow::Owned(V::from(ByteView::from(slice)))))
         } else {
             Ok(None)
@@ -225,7 +223,7 @@ where
     #[inline]
     pub fn iter(&self) -> impl Iterator<Item = (K, V)> {
         self.keyspace
-            .iter_standard()
+            .iter()
             .map(Result::unwrap)
             .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
     }
@@ -237,7 +235,7 @@ where
     ) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
         let prefix: ByteView = prefix.into();
         self.keyspace
-            .prefix_standard(prefix)
+            .prefix(prefix)
             .map(Result::unwrap)
             .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
     }
@@ -250,7 +248,7 @@ where
         let start: ByteView = range.start.into();
         let end: ByteView = range.end.into();
         self.keyspace
-            .range_standard(start..end)
+            .range(start..end)
             .map(Result::unwrap)
             .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
     }
@@ -291,7 +289,7 @@ where
         }
         // Store keyspaces are mutated only through these ingestion phases, so
         // no journaled Fjall write can race their completion.
-        ingestion.finish_exclusive()?;
+        ingestion.finish()?;
 
         Ok(())
     }
@@ -334,7 +332,7 @@ where
 
         // Store keyspaces are mutated only through these ingestion phases, so
         // no journaled Fjall write can race their completion.
-        ingestion.finish_exclusive()?;
+        ingestion.finish()?;
         Ok(())
     }
 }

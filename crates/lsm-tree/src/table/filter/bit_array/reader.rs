@@ -22,11 +22,6 @@ impl<'a> BitArrayReader<'a> {
         Self(bytes)
     }
 
-    #[must_use]
-    pub fn bytes(&self) -> &[u8] {
-        self.0
-    }
-
     /// Gets the i-th bit without checking the byte index.
     ///
     /// # Safety

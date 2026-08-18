@@ -1,107 +1,82 @@
-// Copyright (c) 2024-present, fjall-rs
-// This source code is licensed under both the Apache 2.0 and MIT License
-// (found in the LICENSE-* files in the repository)
-
 use crate::{
     SequenceNumberCounter, TableId,
     compaction::state::CompactionState,
     config::Config,
-    stop_signal::StopSignal,
     table::next_table_id,
-    version::{SuperVersion, SuperVersions, Version, persist_version},
+    version::{Set, Version},
 };
-use arc_swap::ArcSwap;
-use std::sync::{Arc, Mutex, RwLock, atomic::AtomicU64};
+use std::sync::{Arc, Mutex, atomic::AtomicU32};
 
-/// Unique tree ID
-///
-/// Tree IDs are monotonically increasing integers.
+/// Process-local tree identifier used by shared caches.
 pub type TreeId = u32;
 
-/// Unique memtable ID
-///
-/// Memtable IDs map one-to-one to some table.
-pub type MemtableId = u64;
-
-/// Hands out a unique (monotonically increasing) tree ID.
-#[expect(
-    clippy::expect_used,
-    reason = "exhausting the complete u32 tree ID space is unrecoverable"
-)]
-pub fn get_next_tree_id() -> TreeId {
-    static TREE_ID_COUNTER: AtomicU64 = AtomicU64::new(0);
-    TREE_ID_COUNTER
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .try_into()
-        .expect("ran out of tree IDs")
-}
-
-pub struct TreeInner {
-    /// Unique tree ID
+/// Runtime state of a table-only LSM tree.
+pub struct Inner {
+    /// Process-local tree identifier used by shared caches.
     pub id: TreeId,
-
-    /// Hands out a unique (monotonically increasing) memtable ID
-    #[doc(hidden)]
-    pub memtable_id_counter: SequenceNumberCounter,
-
-    /// Hands out a unique (monotonically increasing) table ID
-    #[doc(hidden)]
+    /// Monotonic table identifier source.
     pub table_id_counter: SequenceNumberCounter,
-
-    pub(crate) version_history: Arc<RwLock<SuperVersions>>,
-
-    pub(crate) latest_version: Arc<ArcSwap<SuperVersion>>,
-
-    pub(crate) compaction_state: Arc<Mutex<CompactionState>>,
-
-    /// Tree configuration
+    /// Monotonic ingestion sequence number source.
+    pub seqno: SequenceNumberCounter,
+    /// Atomically published table layout.
+    pub versions: Arc<Set>,
+    /// Tables currently owned by background compactions.
+    pub compaction_state: Arc<Mutex<CompactionState>>,
+    /// Immutable tree configuration.
     pub config: Arc<Config>,
-
-    /// Compaction may take a while; setting the signal to `true`
-    /// will interrupt the compaction and kill the worker.
-    pub(crate) stop_signal: StopSignal,
-
-    /// Used by major compaction to be the exclusive compaction going on.
-    ///
-    /// Minor compactions use `major_compaction_lock.read()` instead, so they
-    /// can be concurrent next to each other.
-    pub(crate) major_compaction_lock: RwLock<()>,
-
-    /// Serializes flush operations.
-    pub(crate) flush_lock: Mutex<()>,
 }
 
-impl TreeInner {
-    pub(crate) fn create_new(config: Config) -> crate::Result<Self> {
+impl Inner {
+    /// Creates the initial empty tree state.
+    pub fn create_new(config: Config) -> crate::Result<Self> {
         let version = Version::new(0);
-        persist_version(&config.path, &version)?;
-        let version_history = SuperVersions::new(version);
-        let latest_version = version_history.latest_version_reader();
+        version.persist(&config.path)?;
 
         Ok(Self {
-            id: get_next_tree_id(),
-            memtable_id_counter: SequenceNumberCounter::new(1),
+            id: Self::next_tree_id(),
             table_id_counter: SequenceNumberCounter::default(),
-            config: Arc::new(config),
-            version_history: Arc::new(RwLock::new(version_history)),
-            latest_version,
-            stop_signal: StopSignal::default(),
-            major_compaction_lock: RwLock::default(),
-            flush_lock: Mutex::default(),
+            seqno: SequenceNumberCounter::default(),
+            versions: Arc::new(Set::new(version)),
             compaction_state: Arc::new(Mutex::new(CompactionState::default())),
+            config: Arc::new(config),
         })
     }
 
-    pub fn get_next_table_id(&self) -> TableId {
+    /// Restores runtime counters from a recovered table version.
+    #[must_use]
+    pub fn recover(config: Config, version: Version, tree_id: TreeId) -> Self {
+        let next_table_id = version
+            .iter_tables()
+            .map(crate::Table::id)
+            .max()
+            .map_or(0, |id| u64::from(id) + 1);
+        let next_seqno = version
+            .iter_tables()
+            .map(crate::Table::get_highest_seqno)
+            .max()
+            .map_or(0, |seqno| seqno + 1);
+
+        Self {
+            id: tree_id,
+            table_id_counter: SequenceNumberCounter::new(next_table_id),
+            seqno: SequenceNumberCounter::new(next_seqno),
+            versions: Arc::new(Set::new(version)),
+            compaction_state: Arc::new(Mutex::new(CompactionState::default())),
+            config: Arc::new(config),
+        }
+    }
+
+    /// Allocates the next table identifier.
+    #[must_use]
+    pub fn next_table_id(&self) -> TableId {
         next_table_id(&self.table_id_counter)
     }
-}
 
-impl Drop for TreeInner {
-    fn drop(&mut self) {
-        log::debug!("Dropping TreeInner");
+    pub fn next_tree_id() -> TreeId {
+        static TREE_ID: AtomicU32 = AtomicU32::new(0);
 
-        log::trace!("Sending stop signal to compactors");
-        self.stop_signal.send();
+        let id = TREE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        assert_ne!(id, TreeId::MAX, "ran out of tree IDs");
+        id
     }
 }

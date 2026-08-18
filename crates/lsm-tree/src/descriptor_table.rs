@@ -14,6 +14,7 @@ pub struct DescriptorTable {
 }
 
 impl DescriptorTable {
+    /// Creates a descriptor cache able to retain up to `capacity` open files.
     #[must_use]
     pub fn new(capacity: usize) -> Self {
         use quick_cache::sync::DefaultLifecycle;
@@ -29,20 +30,19 @@ impl DescriptorTable {
         Self { inner: quick_cache }
     }
 
-    pub(crate) fn len(&self) -> usize {
-        self.inner.len()
-    }
-
+    /// Returns the cached descriptor for a table, if it is resident.
     #[must_use]
-    pub fn access_for_table(&self, id: &GlobalTableId) -> Option<Arc<File>> {
-        self.inner.get(id)
+    pub fn access_for_table(&self, id: GlobalTableId) -> Option<Arc<File>> {
+        self.inner.get(&id)
     }
 
+    /// Associates an open descriptor with a table.
     pub fn insert_for_table(&self, id: GlobalTableId, item: Item) {
         self.inner.insert(id, item);
     }
 
-    pub fn remove_for_table(&self, id: &GlobalTableId) {
-        self.inner.remove(id);
+    /// Removes a table's descriptor from the cache.
+    pub fn remove_for_table(&self, id: GlobalTableId) {
+        self.inner.remove(&id);
     }
 }

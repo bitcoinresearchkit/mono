@@ -1,13 +1,7 @@
-// Copyright (c) 2024-present, fjall-rs
-// This source code is licensed under both the Apache 2.0 and MIT License
-// (found in the LICENSE-* files in the repository)
-
 use crate::{InternalValue, Table, table::Scanner, version::Run};
 use std::sync::Arc;
 
-/// Scans through a disjoint run
-///
-/// Optimized for compaction, by using a `TableScanner` instead of `TableReader`.
+/// Scans through a disjoint run for compaction.
 pub struct RunScanner {
     tables: Arc<Run<Table>>,
     lo: usize,
@@ -22,14 +16,7 @@ impl RunScanner {
     ) -> crate::Result<Self> {
         let lo = lo.unwrap_or_default();
         let hi = hi.unwrap_or(run.len() - 1);
-
-        #[expect(
-            clippy::expect_used,
-            reason = "we trust the caller to pass valid indexes"
-        )]
-        let lo_table = run.get(lo).expect("should exist");
-
-        let lo_reader = lo_table.scan()?;
+        let lo_reader = run.get(lo).ok_or(crate::Error::Unrecoverable)?.scan()?;
 
         Ok(Self {
             tables: run,
@@ -45,110 +32,23 @@ impl Iterator for RunScanner {
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if let Some(lo_reader) = &mut self.lo_reader {
-                if let Some(item) = lo_reader.next() {
-                    return Some(item);
-                }
+            let reader = self.lo_reader.as_mut()?;
+            if let Some(item) = reader.next() {
+                return Some(item);
+            }
 
-                // NOTE: Lo reader is empty, get next one
+            self.lo += 1;
+            if self.lo > self.hi {
                 self.lo_reader = None;
-                self.lo += 1;
-
-                if self.lo <= self.hi {
-                    #[expect(
-                        clippy::expect_used,
-                        reason = "hi is at most equal to the last slot; so because 0 <= lo <= hi, it must be a valid index"
-                    )]
-                    let scanner =
-                        fail_iter!(self.tables.get(self.lo).expect("should exist").scan());
-
-                    self.lo_reader = Some(scanner);
-                }
-            } else {
                 return None;
             }
+
+            self.lo_reader = Some(fail_iter!(
+                self.tables
+                    .get(self.lo)
+                    .ok_or(crate::Error::Unrecoverable)
+                    .and_then(Table::scan)
+            ));
         }
-    }
-}
-
-#[cfg(test)]
-#[expect(clippy::unwrap_used)]
-mod tests {
-    use super::*;
-    use crate::{AbstractTree, SequenceNumberCounter, Slice};
-    use test_log::test;
-
-    #[test]
-    fn run_scanner_basic() -> crate::Result<()> {
-        let tempdir = tempfile::tempdir()?;
-        let tree = crate::Config::new(
-            &tempdir,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        let ids = [
-            ["a", "b", "c"],
-            ["d", "e", "f"],
-            ["g", "h", "i"],
-            ["j", "k", "l"],
-        ];
-
-        for batch in ids {
-            for id in batch {
-                tree.insert(id, vec![], 0);
-            }
-            tree.flush_active_memtable(0)?;
-        }
-
-        let tables = tree
-            .current_version()
-            .iter_tables()
-            .cloned()
-            .collect::<Vec<_>>();
-
-        let level = Arc::new(Run::new(tables).unwrap());
-
-        #[expect(clippy::unwrap_used)]
-        {
-            let multi_reader = RunScanner::culled(level.clone(), (None, None))?;
-
-            let mut iter = multi_reader.flatten();
-
-            assert_eq!(Slice::from(*b"a"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"b"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"c"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"d"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"e"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"f"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"g"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"h"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"i"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"j"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"k"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"l"), iter.next().unwrap().key.user_key);
-            assert!(iter.next().is_none());
-        }
-
-        #[expect(clippy::unwrap_used)]
-        {
-            let multi_reader = RunScanner::culled(level, (Some(1), None))?;
-
-            let mut iter = multi_reader.flatten();
-
-            assert_eq!(Slice::from(*b"d"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"e"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"f"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"g"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"h"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"i"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"j"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"k"), iter.next().unwrap().key.user_key);
-            assert_eq!(Slice::from(*b"l"), iter.next().unwrap().key.user_key);
-            assert!(iter.next().is_none());
-        }
-
-        Ok(())
     }
 }

@@ -3,9 +3,7 @@
 // (found in the LICENSE-* files in the repository)
 
 use super::{filter::BloomConstructionPolicy, id::next_table_id, writer::Writer};
-use crate::{
-    Checksum, CompressionType, SequenceNumberCounter, TableId, UserKey, value::InternalValue,
-};
+use crate::{Checksum, CompressionType, SequenceNumberCounter, TableId, value::InternalValue};
 use std::path::PathBuf;
 
 /// Like `Writer` but will rotate to a new table, once a table grows larger than `target_size`
@@ -40,11 +38,6 @@ pub struct MultiWriter {
     pub index_block_compression: CompressionType,
 
     bloom_policy: BloomConstructionPolicy,
-
-    current_key: Option<UserKey>,
-
-    /// Level the tables are written to
-    initial_level: u8,
 }
 
 impl MultiWriter {
@@ -53,16 +46,13 @@ impl MultiWriter {
         base_path: PathBuf,
         table_id_generator: SequenceNumberCounter,
         target_size: u64,
-        initial_level: u8,
     ) -> crate::Result<Self> {
         let current_table_id = next_table_id(&table_id_generator);
 
         let path = base_path.join(current_table_id.to_string());
-        let writer = Writer::new(path, current_table_id, initial_level)?;
+        let writer = Writer::new(path, current_table_id)?;
 
         Ok(Self {
-            initial_level,
-
             base_path,
 
             data_block_hash_ratio: 0.0,
@@ -84,8 +74,6 @@ impl MultiWriter {
             use_partitioned_filter: false,
 
             bloom_policy: BloomConstructionPolicy::default(),
-
-            current_key: None,
         })
     }
 
@@ -163,7 +151,7 @@ impl MultiWriter {
         let new_table_id = next_table_id(&self.table_id_generator);
         let path = self.base_path.join(new_table_id.to_string());
 
-        let mut new_writer = Writer::new(path, new_table_id, self.initial_level)?
+        let mut new_writer = Writer::new(path, new_table_id)?
             .use_data_block_compression(self.data_block_compression)
             .use_index_block_compression(self.index_block_compression)
             .use_data_block_size(self.data_block_size)
@@ -188,29 +176,13 @@ impl MultiWriter {
         Ok(())
     }
 
-    /// Writes an item
+    /// Writes an item with a user key greater than the previous item.
     pub fn write(&mut self, item: InternalValue) -> crate::Result<()> {
-        let is_next_key = self.current_key.as_ref() < Some(&item.key.user_key);
-
-        if is_next_key {
-            self.current_key = Some(item.key.user_key.clone());
-
-            if *self.writer.meta.file_pos >= self.target_size {
-                self.rotate()?;
-            }
-        }
-
-        self.writer.write(item)?;
-
-        Ok(())
-    }
-
-    pub(crate) fn write_distinct(&mut self, item: InternalValue) -> crate::Result<()> {
         if *self.writer.meta.file_pos >= self.target_size {
             self.rotate()?;
         }
 
-        self.writer.write_distinct(item)?;
+        self.writer.write(item)?;
         Ok(())
     }
 
@@ -227,79 +199,5 @@ impl MultiWriter {
         }
 
         Ok((self.base_path, self.results))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{AbstractTree, Config, SeqNo, SequenceNumberCounter, config::CompressionPolicy};
-    use test_log::test;
-
-    // NOTE: Tests that versions of the same key stay
-    // in the same table even if it needs to be rotated
-    //
-    // This avoids tables' key ranges overlapping
-    //
-    // http://github.com/fjall-rs/lsm-tree/commit/f46b6fe26a1e90113dc2dbb0342db160a295e616
-    #[test]
-    fn table_multi_writer_same_key_norotate() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = Config::new(
-            &folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .data_block_compression_policy(CompressionPolicy::all(crate::CompressionType::None))
-        .index_block_compression_policy(CompressionPolicy::all(crate::CompressionType::None))
-        .open()?;
-
-        tree.insert("a", "a1".repeat(4_000), 0);
-        tree.insert("a", "a2".repeat(4_000), 1);
-        tree.insert("a", "a3".repeat(4_000), 2);
-        tree.insert("a", "a4".repeat(4_000), 3);
-        tree.insert("a", "a5".repeat(4_000), 4);
-        tree.flush_active_memtable(0)?;
-        assert_eq!(1, tree.table_count());
-        assert_eq!(1, tree.len(SeqNo::MAX, None)?);
-
-        tree.major_compact(1_024, 0)?;
-        assert_eq!(1, tree.table_count());
-        assert_eq!(1, tree.len(SeqNo::MAX, None)?);
-
-        Ok(())
-    }
-
-    // NOTE: Follow-up fix for non-disjoint output
-    //
-    // https://github.com/fjall-rs/lsm-tree/commit/1609a57c2314420b858d826790ecd1442aa76720
-    #[test]
-    fn table_multi_writer_same_key_norotate_2() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = Config::new(
-            &folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .data_block_compression_policy(CompressionPolicy::all(crate::CompressionType::None))
-        .index_block_compression_policy(CompressionPolicy::all(crate::CompressionType::None))
-        .open()?;
-
-        tree.insert("a", "a1".repeat(4_000), 0);
-        tree.insert("a", "a1".repeat(4_000), 1);
-        tree.insert("a", "a1".repeat(4_000), 2);
-        tree.insert("b", "a1".repeat(4_000), 0);
-        tree.insert("c", "a1".repeat(4_000), 0);
-        tree.insert("c", "a1".repeat(4_000), 1);
-        tree.flush_active_memtable(0)?;
-        assert_eq!(1, tree.table_count());
-        assert_eq!(3, tree.len(SeqNo::MAX, None)?);
-
-        tree.major_compact(1_024, 0)?;
-        assert_eq!(3, tree.table_count());
-        assert_eq!(3, tree.len(SeqNo::MAX, None)?);
-
-        Ok(())
     }
 }

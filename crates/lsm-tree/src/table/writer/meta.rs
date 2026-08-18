@@ -11,32 +11,14 @@ pub struct Metadata {
     /// Written item count
     pub item_count: usize,
 
-    /// Tombstone count
-    pub tombstone_count: usize,
-
-    /// Weak tombstone (single delete) count
-    pub weak_tombstone_count: usize,
-
-    /// Weak tombstone + value pairs that become reclaimable when GC watermark advances
-    pub weak_tombstone_reclaimable_count: usize,
-
-    /// Written key count (unique keys)
-    pub key_count: usize,
-
     /// Current file position of writer
     pub file_pos: BlockOffset,
-
-    /// Only takes user data into account
-    pub uncompressed_size: u64,
 
     /// First encountered key
     pub first_key: Option<UserKey>,
 
     /// Last encountered key
     pub last_key: Option<UserKey>,
-
-    /// Lowest encountered seqno
-    pub lowest_seqno: SeqNo,
 
     /// Highest encountered seqno
     pub highest_seqno: SeqNo,
@@ -48,17 +30,10 @@ impl Default for Metadata {
             data_block_count: 0,
 
             item_count: 0,
-            tombstone_count: 0,
-            weak_tombstone_count: 0,
-            weak_tombstone_reclaimable_count: 0,
-            key_count: 0,
             file_pos: BlockOffset(0),
-            uncompressed_size: 0,
-
             first_key: None,
             last_key: None,
 
-            lowest_seqno: SeqNo::MAX,
             highest_seqno: 0,
         }
     }

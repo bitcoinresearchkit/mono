@@ -1,58 +1,59 @@
-use fjall::{Database, Readable, Slice};
-use test_log::test;
+use fjall::Database;
 
 #[test]
-fn ingest_recovery() -> fjall::Result<()> {
-    let path = tempfile::tempdir()?;
-
-    let ks = "default";
-    let key: Slice = b"abc".into();
-    let value: Slice = b"zzz".into();
+fn values_and_tombstones_survive_recovery() -> fjall::Result<()> {
+    let directory = tempfile::tempdir()?;
 
     {
-        let db = Database::builder(&path).open()?;
-        let keyspace = db.keyspace(ks, Default::default)?;
-        let mut ing = keyspace.start_ingestion()?;
-        ing.write(key.clone(), value.clone())?;
-        ing.finish()?;
-        assert_eq!(keyspace.get(key.clone())?, Some(value.clone())); // ok
+        let database = Database::builder(&directory).open()?;
+        let keyspace = database.keyspace("default", Default::default)?;
+
+        let mut ingestion = keyspace.start_ingestion()?;
+        ingestion.write(b"a", b"first")?;
+        ingestion.write(b"b", b"second")?;
+        ingestion.finish()?;
+
+        let mut ingestion = keyspace.start_ingestion()?;
+        ingestion.write_weak_tombstone(b"a")?;
+        ingestion.write(b"c", b"third")?;
+        ingestion.finish()?;
+
+        assert!(keyspace.get(b"a")?.is_none());
+        assert_eq!(keyspace.get(b"b")?.as_deref(), Some(b"second".as_slice()));
+        assert_eq!(keyspace.get(b"c")?.as_deref(), Some(b"third".as_slice()));
     }
 
     {
-        let db = Database::builder(&path).open()?;
-        let keyspace = db.keyspace(ks, Default::default)?;
-        assert_eq!(keyspace.get(key.clone())?, Some(value.clone())); // ok
-    }
+        let database = Database::builder(&directory).open()?;
+        let keyspace = database.keyspace("default", Default::default)?;
 
-    {
-        let db = Database::builder(&path).open()?;
-        let keyspace = db.keyspace(ks, Default::default)?;
-        let snapshot = db.snapshot();
-        assert_eq!(snapshot.get(&keyspace, key.clone())?, Some(value.clone())); // snapshot - not ok
+        assert!(keyspace.get(b"a")?.is_none());
+        assert_eq!(keyspace.get(b"b")?.as_deref(), Some(b"second".as_slice()));
+        assert_eq!(keyspace.get(b"c")?.as_deref(), Some(b"third".as_slice()));
     }
 
     Ok(())
 }
 
 #[test]
-fn concurrent_exclusive_ingest_recovery() -> fjall::Result<()> {
-    let path = tempfile::tempdir()?;
+fn independent_keyspaces_ingest_concurrently() -> fjall::Result<()> {
+    let directory = tempfile::tempdir()?;
 
     {
-        let db = Database::builder(&path).open()?;
-        let first = db.keyspace("first", Default::default)?;
-        let second = db.keyspace("second", Default::default)?;
+        let database = Database::builder(&directory).open()?;
+        let first = database.keyspace("first", Default::default)?;
+        let second = database.keyspace("second", Default::default)?;
 
         let (first_result, second_result) = std::thread::scope(|scope| {
             let first = scope.spawn(|| {
                 let mut ingestion = first.start_ingestion()?;
                 ingestion.write(b"a", b"first")?;
-                ingestion.finish_exclusive()
+                ingestion.finish()
             });
             let second = scope.spawn(|| {
                 let mut ingestion = second.start_ingestion()?;
                 ingestion.write(b"b", b"second")?;
-                ingestion.finish_exclusive()
+                ingestion.finish()
             });
 
             (first.join().unwrap(), second.join().unwrap())
@@ -61,13 +62,11 @@ fn concurrent_exclusive_ingest_recovery() -> fjall::Result<()> {
         second_result?;
     }
 
-    {
-        let db = Database::builder(&path).open()?;
-        let first = db.keyspace("first", Default::default)?;
-        let second = db.keyspace("second", Default::default)?;
-        assert_eq!(first.get(b"a")?.as_deref(), Some(b"first".as_slice()));
-        assert_eq!(second.get(b"b")?.as_deref(), Some(b"second".as_slice()));
-    }
+    let database = Database::builder(&directory).open()?;
+    let first = database.keyspace("first", Default::default)?;
+    let second = database.keyspace("second", Default::default)?;
+    assert_eq!(first.get(b"a")?.as_deref(), Some(b"first".as_slice()));
+    assert_eq!(second.get(b"b")?.as_deref(), Some(b"second".as_slice()));
 
     Ok(())
 }

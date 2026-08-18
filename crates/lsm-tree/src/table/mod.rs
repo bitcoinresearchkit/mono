@@ -3,7 +3,8 @@
 // (found in the LICENSE-* files in the repository)
 
 pub mod block;
-pub(crate) mod block_index;
+pub mod block_index;
+mod bound;
 pub mod data_block;
 pub mod filter;
 mod id;
@@ -11,7 +12,8 @@ mod index_block;
 mod inner;
 mod iter;
 mod meta;
-pub(crate) mod multi_writer;
+pub mod multi_writer;
+mod owned_data_block_iter;
 mod regions;
 mod scanner;
 pub mod util;
@@ -22,11 +24,10 @@ mod tests;
 
 pub use block::{Block, BlockOffset};
 pub use data_block::DataBlock;
-pub(crate) use id::next_table_id;
+pub use id::next_table_id;
 pub use id::{GlobalTableId, TableId};
 pub use index_block::{BlockHandle, IndexBlock, KeyedBlockHandle};
 pub use scanner::Scanner;
-pub use writer::Writer;
 
 use crate::{
     Checksum, CompressionType, InternalValue, SeqNo, TreeId, UserKey,
@@ -42,6 +43,7 @@ use crate::{
     value::PointReadValue,
 };
 use block_index::BlockIndexImpl;
+use bound::Bound as IterBound;
 use inner::Inner;
 use iter::Iter;
 use std::{
@@ -52,8 +54,6 @@ use std::{
     sync::Arc,
 };
 use util::load_block;
-
-pub type TableInner = Inner;
 
 /// A disk segment (a.k.a. `Table`, `SSTable`, `SST`, `sorted string table`) that is located on disk
 ///
@@ -158,53 +158,30 @@ impl Table {
         self.metadata.file_size
     }
 
-    pub fn get(
-        &self,
-        key: &[u8],
-        seqno: SeqNo,
-        key_hash: u64,
-    ) -> crate::Result<Option<InternalValue>> {
+    pub fn get(&self, key: &[u8], key_hash: u64) -> crate::Result<Option<InternalValue>> {
         let mut key_hash = Some(key_hash);
-        self.get_with(key, seqno, &mut key_hash, Self::point_read)
+        self.get_with(key, &mut key_hash, Self::point_read)
     }
 
-    pub(crate) fn get_value(
+    pub fn get_value(
         &self,
         key: &[u8],
-        seqno: SeqNo,
         key_hash: &mut Option<u64>,
     ) -> crate::Result<Option<PointReadValue>> {
-        self.get_with(key, seqno, key_hash, Self::point_read_value)
-    }
-
-    pub(crate) fn get_lazy(
-        &self,
-        key: &[u8],
-        seqno: SeqNo,
-        key_hash: &mut Option<u64>,
-    ) -> crate::Result<Option<InternalValue>> {
-        self.get_with(key, seqno, key_hash, Self::point_read)
+        self.get_with(key, key_hash, Self::point_read_value)
     }
 
     fn get_with<T>(
         &self,
         key: &[u8],
-        seqno: SeqNo,
         key_hash: &mut Option<u64>,
-        point_read: impl FnOnce(&Self, &[u8], SeqNo) -> crate::Result<Option<T>>,
+        point_read: impl FnOnce(&Self, &[u8]) -> crate::Result<Option<T>>,
     ) -> crate::Result<Option<T>> {
-        // Translate seqno to "our" seqno
-        let seqno = seqno.saturating_sub(self.global_seqno());
-
-        if self.metadata.seqnos.0 >= seqno {
-            return Ok(None);
-        }
-
         let filter_block = if let Some(block) = &self.pinned_filter_block {
             Some(Cow::Borrowed(block))
         } else if let Some(filter_idx) = &self.pinned_filter_index {
             let mut iter = filter_idx.iter();
-            iter.seek(key, seqno);
+            iter.seek(key, SeqNo::MAX);
 
             if let Some(filter_block_handle) = iter.next() {
                 let filter_block_handle = filter_block_handle.materialize(filter_idx.as_slice());
@@ -220,8 +197,6 @@ impl Table {
             } else {
                 None
             }
-        } else if let Some(_filter_tli_handle) = &self.regions.filter_tli {
-            unimplemented!("unpinned filter TLI not supported");
         } else if let Some(filter_block_handle) = &self.regions.filter {
             let block = self.load_block(
                 filter_block_handle,
@@ -244,29 +219,28 @@ impl Table {
             }
         }
 
-        point_read(self, key, seqno)
+        point_read(self, key)
     }
 
-    fn point_read(&self, key: &[u8], seqno: SeqNo) -> crate::Result<Option<InternalValue>> {
-        self.point_read_with(key, seqno, |block, key, seqno| {
-            block.point_read(key, seqno).map(|mut item| {
+    fn point_read(&self, key: &[u8]) -> crate::Result<Option<InternalValue>> {
+        self.point_read_with(key, |block, key| {
+            block.point_read(key).map(|mut item| {
                 item.key.seqno += self.global_seqno();
                 item
             })
         })
     }
 
-    fn point_read_value(&self, key: &[u8], seqno: SeqNo) -> crate::Result<Option<PointReadValue>> {
-        self.point_read_with(key, seqno, DataBlock::point_read_value)
+    fn point_read_value(&self, key: &[u8]) -> crate::Result<Option<PointReadValue>> {
+        self.point_read_with(key, DataBlock::point_read_value)
     }
 
     fn point_read_with<T>(
         &self,
         key: &[u8],
-        seqno: SeqNo,
-        point_read: impl Fn(&DataBlock, &[u8], SeqNo) -> Option<T>,
+        point_read: impl Fn(&DataBlock, &[u8]) -> Option<T>,
     ) -> crate::Result<Option<T>> {
-        let Some(iter) = self.block_index.forward_reader(key, seqno) else {
+        let Some(iter) = self.block_index.forward_reader(key, SeqNo::MAX) else {
             return Ok(None);
         };
 
@@ -274,7 +248,7 @@ impl Table {
             let block_handle = block_handle?;
             let block = self.load_data_block(block_handle.as_ref())?;
 
-            if let Some(item) = point_read(&block, key, seqno) {
+            if let Some(item) = point_read(&block, key) {
                 return Ok(Some(item));
             }
 
@@ -341,25 +315,17 @@ impl Table {
     ) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + Send + use<R> {
         let index_iter = self.block_index.iter();
 
-        let mut iter = Iter::new(
-            self.global_id(),
-            self.global_seqno(),
-            self.path.clone(),
-            index_iter,
-            self.file_accessor.clone(),
-            self.cache.clone(),
-            self.metadata.data_block_compression,
-        );
+        let mut iter = Iter::new(self.clone(), index_iter);
 
         match range.start_bound() {
-            Bound::Included(key) => iter.set_lower_bound(iter::Bound::Included(key.clone())),
-            Bound::Excluded(key) => iter.set_lower_bound(iter::Bound::Excluded(key.clone())),
+            Bound::Included(key) => iter.set_lower_bound(IterBound::Included(key.clone())),
+            Bound::Excluded(key) => iter.set_lower_bound(IterBound::Excluded(key.clone())),
             Bound::Unbounded => {}
         }
 
         match range.end_bound() {
-            Bound::Included(key) => iter.set_upper_bound(iter::Bound::Included(key.clone())),
-            Bound::Excluded(key) => iter.set_upper_bound(iter::Bound::Excluded(key.clone())),
+            Bound::Included(key) => iter.set_upper_bound(IterBound::Included(key.clone())),
+            Bound::Excluded(key) => iter.set_upper_bound(IterBound::Excluded(key.clone())),
             Bound::Unbounded => {}
         }
 
@@ -419,7 +385,7 @@ impl Table {
             return Err(crate::Error::Unrecoverable);
         }
         let version = byteorder::ReadBytesExt::read_u8(&mut table_version.buf_reader(&file_path)?)?;
-        if version != 5 {
+        if version != 7 {
             return Err(crate::Error::InvalidVersion(version));
         }
 
@@ -562,36 +528,6 @@ impl Table {
     /// Returns the highest sequence number in the table.
     #[must_use]
     pub fn get_highest_seqno(&self) -> SeqNo {
-        self.metadata.seqnos.1 + self.global_seqno()
-    }
-
-    /// Returns the number of tombstone markers in the `Table`.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn tombstone_count(&self) -> u64 {
-        self.metadata.tombstone_count
-    }
-
-    /// Returns the number of weak (single delete) tombstones in the `Table`.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn weak_tombstone_count(&self) -> u64 {
-        self.metadata.weak_tombstone_count
-    }
-
-    /// Returns the number of value entries reclaimable once weak tombstones can be GC'd.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn weak_tombstone_reclaimable(&self) -> u64 {
-        self.metadata.weak_tombstone_reclaimable
-    }
-
-    /// Returns the ratio of tombstone markers in the `Table`.
-    #[must_use]
-    #[doc(hidden)]
-    pub fn tombstone_ratio(&self) -> f32 {
-        todo!()
-
-        //  self.metadata.tombstone_count as f32 / self.metadata.key_count as f32
+        self.metadata.highest_seqno + self.global_seqno()
     }
 }

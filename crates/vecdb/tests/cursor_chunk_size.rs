@@ -21,10 +21,7 @@ fn compressed_cursor_chunks_are_page_aligned() -> Result<()> {
     let pco_u64 = PcoVec::<usize, u64>::import(&db, "pco_u64", Version::ONE)?;
     let u64s_per_page = 16 * 1024 / size_of::<u64>();
     assert_eq!(pco_u64.cursor_chunk_size(), u64s_per_page);
-    assert_eq!(
-        pco_u64.read_only_clone().cursor_chunk_size(),
-        u64s_per_page
-    );
+    assert_eq!(pco_u64.read_only_clone().cursor_chunk_size(), u64s_per_page);
 
     Ok(())
 }

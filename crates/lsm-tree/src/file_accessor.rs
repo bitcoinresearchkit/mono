@@ -28,7 +28,7 @@ impl FileAccessor {
     }
 
     #[must_use]
-    pub fn access_for_table(&self, table_id: &GlobalTableId) -> Option<Arc<File>> {
+    pub fn access_for_table(&self, table_id: GlobalTableId) -> Option<Arc<File>> {
         match self {
             Self::File(fd) => Some(fd.clone()),
             Self::DescriptorTable(descriptor_table) => descriptor_table.access_for_table(table_id),

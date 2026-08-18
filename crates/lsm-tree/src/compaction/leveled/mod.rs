@@ -2,14 +2,10 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-#[cfg(test)]
-mod test;
-
-use super::{Choice, CompactionStrategy, Input as CompactionInput};
+use super::{Choice, Input as CompactionInput};
 use crate::{
     HashSet, TableId,
     compaction::state::{CompactionState, hidden_set::HiddenSet},
-    config::Config,
     slice_windows::{GrowingWindowsExt, ShrinkingWindowsExt},
     table::{Table, util::aggregate_run_key_range},
     version::{Run, Version},
@@ -107,81 +103,16 @@ fn pick_minimal_compaction(
     }
 }
 
-#[doc(hidden)]
-pub const NAME: &str = "LeveledCompaction";
-
-/// Leveled compaction strategy (LCS)
-///
-/// When a level reaches some threshold size, parts of it are merged into overlapping tables in the next level.
-///
-/// Each level Ln for n >= 2 can have up to `level_base_size * ratio^(n - 1)` tables.
-///
-/// LCS suffers from comparatively high write amplification, but has decent read amplification and great space amplification (~1.1x).
-///
-/// LCS is the recommended compaction strategy to use.
-///
-/// More info here: <https://fjall-rs.github.io/post/lsm-leveling/>
-#[derive(Clone)]
-pub struct Strategy {
-    l0_threshold: u8,
-
-    /// The target table size as disk (possibly compressed).
-    target_size: u64,
-
-    /// Size ratio between levels of the LSM tree (a.k.a fanout, growth rate)
-    level_ratio_policy: Vec<f32>,
-}
-
-impl Default for Strategy {
-    fn default() -> Self {
-        Self {
-            l0_threshold: 4,
-            target_size:/* 64 MiB */ 64 * 1_024 * 1_024,
-            level_ratio_policy: vec![10.0],
-        }
-    }
-}
+/// BRK's fixed leveled-compaction policy.
+pub struct Strategy;
 
 impl Strategy {
-    /// Sets the growth ratio between levels.
-    ///
-    /// Same as `set_max_bytes_for_level_multiplier` in `RocksDB`.
-    ///
-    /// Default = [10.0]
-    #[must_use]
-    pub fn with_level_ratio_policy(mut self, policy: Vec<f32>) -> Self {
-        self.level_ratio_policy = policy;
-        self
-    }
+    const L0_THRESHOLD: u8 = 4;
+    const TARGET_SIZE: u64 = 64 * 1_024 * 1_024;
+    const LEVEL_RATIO: u64 = 10;
 
-    /// Sets the L0 threshold.
-    ///
-    /// When the number of tables in L0 reaches this threshold,
-    /// they are merged into L1.
-    ///
-    /// Same as `level0_file_num_compaction_trigger` in `RocksDB`.
-    ///
-    /// Default = 4
-    #[must_use]
-    pub fn with_l0_threshold(mut self, threshold: u8) -> Self {
-        self.l0_threshold = threshold;
-        self
-    }
-
-    /// Sets the table target size on disk (possibly compressed).
-    ///
-    /// Same as `target_file_size_base` in `RocksDB`.
-    ///
-    /// Default = 64 MiB
-    #[must_use]
-    pub fn with_table_target_size(mut self, bytes: u64) -> Self {
-        self.target_size = bytes;
-        self
-    }
-
-    /// Calculates the size of L1.
-    fn level_base_size(&self) -> u64 {
-        self.target_size * u64::from(self.l0_threshold)
+    const fn level_base_size() -> u64 {
+        Self::TARGET_SIZE * Self::L0_THRESHOLD as u64
     }
 
     /// Calculates the level target size.
@@ -193,48 +124,13 @@ impl Strategy {
     /// L3 = `level_base_size * ratio * ratio`
     ///
     /// ...
-    fn level_target_size(&self, canonical_level_idx: u8) -> u64 {
+    fn level_target_size(canonical_level_idx: u8) -> u64 {
         assert!(
             canonical_level_idx >= 1,
             "level_target_size does not apply to L0",
         );
 
-        if canonical_level_idx == 1 {
-            // u64::from(self.target_size)
-            self.level_base_size()
-        } else {
-            #[expect(
-                clippy::cast_precision_loss,
-                reason = "precision loss is acceptable for level size calculations"
-            )]
-            let mut size = self.level_base_size() as f32;
-
-            // NOTE: Minus 2 because |{L0, L1}|
-            for idx in 0..=(canonical_level_idx - 2) {
-                let ratio = self
-                    .level_ratio_policy
-                    .get(usize::from(idx))
-                    .copied()
-                    .unwrap_or_else(|| self.level_ratio_policy.last().copied().unwrap_or(10.0));
-
-                size *= ratio;
-            }
-
-            #[expect(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                reason = "size is always positive and will never even come close to u64::MAX"
-            )]
-            {
-                size as u64
-            }
-        }
-    }
-}
-
-impl CompactionStrategy for Strategy {
-    fn get_name(&self) -> &'static str {
-        NAME
+        Self::level_base_size() * Self::LEVEL_RATIO.pow(u32::from(canonical_level_idx - 1))
     }
 
     #[expect(
@@ -243,7 +139,7 @@ impl CompactionStrategy for Strategy {
         clippy::too_many_lines,
         reason = "the asserted seven-level invariant guarantees every level exists and its index fits in u8"
     )]
-    fn choose(&self, version: &Version, _: &Config, state: &CompactionState) -> Choice {
+    pub fn choose(version: &Version, state: &CompactionState) -> Choice {
         assert!(version.level_count() == 7, "should have exactly 7 levels");
 
         // Trivial move into Lmax
@@ -270,7 +166,7 @@ impl CompactionStrategy for Strategy {
                         table_ids: l0.list_ids(),
                         dest_level: lmax_index as u8,
                         canonical_level: 1,
-                        target_size: self.target_size,
+                        target_size: Self::TARGET_SIZE,
                     });
                 }
             }
@@ -311,7 +207,7 @@ impl CompactionStrategy for Strategy {
                         clippy::cast_possible_truncation,
                         reason = "level index is bounded by level count (7, technically 255)"
                     )]
-                    let target_size = self.level_target_size((idx - level_shift) as u8);
+                    let target_size = Self::level_target_size((idx - level_shift) as u8);
 
                     level_size > target_size
                 });
@@ -361,7 +257,7 @@ impl CompactionStrategy for Strategy {
                         table_ids: first_level.list_ids(),
                         dest_level: target_level_idx as u8,
                         canonical_level: 1,
-                        target_size: self.target_size,
+                        target_size: Self::TARGET_SIZE,
                     });
                 }
             }
@@ -371,19 +267,15 @@ impl CompactionStrategy for Strategy {
         let mut scores = [(/* score */ 0.0, /* overshoot */ 0u64); 7];
 
         {
-            // TODO(weak-tombstone-rewrite): incorporate `Table::weak_tombstone_count` and
-            // `Table::weak_tombstone_reclaimable` when computing level scores so rewrite
-            // decisions can prioritize tables that would free the most reclaimable values.
-
             // Score first level
             let first_level = version.l0();
 
-            if first_level.table_count() >= usize::from(self.l0_threshold) {
+            if first_level.table_count() >= usize::from(Self::L0_THRESHOLD) {
                 #[expect(
                     clippy::cast_precision_loss,
                     reason = "precision loss is acceptable for scoring calculations"
                 )]
-                let ratio = (first_level.table_count() as f64) / f64::from(self.l0_threshold);
+                let ratio = (first_level.table_count() as f64) / f64::from(Self::L0_THRESHOLD);
                 scores[0] = (ratio, 0);
             }
 
@@ -406,7 +298,7 @@ impl CompactionStrategy for Strategy {
                     clippy::cast_possible_truncation,
                     reason = "level index is bounded by level count (7, technically 255)"
                 )]
-                let target_size = self.level_target_size((idx - level_shift) as u8);
+                let target_size = Self::level_target_size((idx - level_shift) as u8);
 
                 // NOTE: We check for level length above
                 #[expect(clippy::indexing_slicing)]
@@ -421,7 +313,7 @@ impl CompactionStrategy for Strategy {
                     // NOTE: Force a trivial move
                     if version
                         .level(idx + 1)
-                        .is_some_and(|next_level| next_level.is_empty())
+                        .is_some_and(crate::version::Level::is_empty)
                     {
                         scores[idx] = (99.99, 999);
                     }
@@ -487,7 +379,7 @@ impl CompactionStrategy for Strategy {
                 table_ids,
                 dest_level: canonical_l1_idx as u8,
                 canonical_level: 1,
-                target_size: self.target_size,
+                target_size: Self::TARGET_SIZE,
             };
 
             if target_level_overlapping_table_ids.is_empty() && first_level.is_disjoint() {
@@ -524,7 +416,7 @@ impl CompactionStrategy for Strategy {
             next_level.first_run().map(std::ops::Deref::deref),
             state.hidden_set(),
             overshoot_bytes,
-            self.target_size,
+            Self::TARGET_SIZE,
         ) else {
             return Choice::DoNothing;
         };
@@ -537,7 +429,7 @@ impl CompactionStrategy for Strategy {
             table_ids,
             dest_level: next_level_index,
             canonical_level: next_level_index - (level_shift as u8),
-            target_size: self.target_size,
+            target_size: Self::TARGET_SIZE,
         };
 
         if can_trivial_move && level.is_disjoint() {

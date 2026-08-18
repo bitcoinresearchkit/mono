@@ -7,19 +7,6 @@ edition.workspace = true
 readme = "README.md"
 repository.workspace = true
 homepage.workspace = true
-categories = ["data-structures"]
-keywords = ["german-string", "string-view", "byte-slice"]
-
 [lib]
 name = "byteview"
 path = "src/lib.rs"
-
-[features]
-default = []
-serde = ["dep:serde"]
-
-[dependencies]
-serde = { workspace = true, optional = true }
-
-[dev-dependencies]
-serde_json = { workspace = true }

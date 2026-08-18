@@ -10,15 +10,7 @@ pub type UserKey = Slice;
 /// User defined data (blob of bytes)
 pub type UserValue = Slice;
 
-/// Sequence number - a monotonically increasing counter
-///
-/// Values with the same seqno are part of the same batch.
-///
-/// A value with a higher sequence number shadows an item with the
-/// same key and lower sequence number.
-/// This enables MVCC.
-///
-/// Stale items are lazily garbage-collected during compaction.
+/// Monotonically increasing generation used to choose the latest value across tables.
 pub type SeqNo = u64;
 
 pub struct PointReadValue {

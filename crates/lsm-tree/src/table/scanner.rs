@@ -5,7 +5,7 @@
 use super::{Block, DataBlock};
 use crate::{
     CompressionType, InternalValue, SeqNo,
-    table::{block::BlockType, iter::OwnedDataBlockIter},
+    table::{block::BlockType, owned_data_block_iter::OwnedDataBlockIter},
 };
 use std::{fs::File, io::BufReader, path::Path};
 

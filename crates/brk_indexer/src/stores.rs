@@ -584,8 +584,6 @@ fn txout_ranges(
 
 #[cfg(test)]
 mod tests {
-    use fjall::PersistMode;
-
     use super::*;
 
     #[test]
@@ -611,8 +609,6 @@ mod tests {
                 .blockhash_prefix_to_height
                 .take_pending_ingest()
                 .unwrap()()?;
-            inner.db.persist(PersistMode::SyncData)?;
-
             let pending_checkpoint = inner.checkpoint.begin(Height::ZERO)?;
             drop(pending_checkpoint);
         }

@@ -14,14 +14,8 @@ use crate::{
 use std::{fs::File, io::BufWriter};
 
 pub trait FilterWriter<W: std::io::Write> {
-    // NOTE: We purposefully use a UserKey instead of &[u8]
-    // so we can clone it without heap allocation, if needed
-    /// Registers a key in the block index.
     fn register_key(&mut self, key: &UserKey) -> crate::Result<()>;
 
-    /// Writes the filter to a file.
-    ///
-    /// Returns the number of filter blocks written (always 1 in case of full filter block).
     fn finish(
         self: Box<Self>,
         file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,

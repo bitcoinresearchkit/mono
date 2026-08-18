@@ -49,7 +49,7 @@ pub struct Inner {
 
     /// True when the table was compacted away or dropped
     ///
-    /// May be kept alive until all Arcs to the table have been dropped (to facilitate snapshots)
+    /// Open readers keep the table alive until they finish.
     pub is_deleted: AtomicBool,
 
     pub(super) checksum: Checksum,
@@ -80,7 +80,7 @@ impl Drop for Inner {
             }
 
             self.file_accessor.as_descriptor_table().inspect(|d| {
-                d.remove_for_table(&global_id);
+                d.remove_for_table(global_id);
             });
         }
     }

@@ -24,8 +24,8 @@ mod reader;
 pub use builder::{Builder, MAX_POINTERS_FOR_HASH_INDEX};
 pub use reader::Reader;
 
-pub(crate) const MARKER_FREE: u8 = u8::MAX - 1; // 254
-pub(crate) const MARKER_CONFLICT: u8 = u8::MAX; // 255
+pub const MARKER_FREE: u8 = u8::MAX - 1; // 254
+pub const MARKER_CONFLICT: u8 = u8::MAX; // 255
 
 /// Calculates the bucket index for the given key.
 #[expect(

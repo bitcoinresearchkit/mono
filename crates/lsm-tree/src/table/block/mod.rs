@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-pub(crate) mod binary_index;
+pub mod binary_index;
 pub mod decoder;
 mod encoder;
 pub mod hash_index;
@@ -11,11 +11,11 @@ mod offset;
 mod trailer;
 mod r#type;
 
-pub(crate) use decoder::{Decodable, Decoder, ParsedItem};
-pub(crate) use encoder::{Encodable, Encoder};
+pub use decoder::{Decodable, Decoder, ParsedItem};
+pub use encoder::{Encodable, Encoder};
 pub use header::Header;
 pub use offset::BlockOffset;
-pub(crate) use trailer::{TRAILER_START_MARKER, Trailer};
+pub use trailer::{TRAILER_START_MARKER, Trailer};
 pub use r#type::BlockType;
 
 use crate::{
@@ -25,7 +25,6 @@ use crate::{
 };
 use std::fs::File;
 
-#[cfg(feature = "lz4")]
 fn decompress_lz4(raw_data: &[u8], uncompressed_len: usize) -> crate::Result<Slice> {
     #[expect(
         unsafe_code,
@@ -78,7 +77,6 @@ impl Block {
         let data = match compression {
             CompressionType::None => data,
 
-            #[cfg(feature = "lz4")]
             CompressionType::Lz4 => &lz4_flex::compress(data),
         };
 
@@ -122,7 +120,6 @@ impl Block {
         let data = match compression {
             CompressionType::None => raw_data,
 
-            #[cfg(feature = "lz4")]
             CompressionType::Lz4 => decompress_lz4(&raw_data, header.uncompressed_length as usize)?,
         };
 
@@ -169,7 +166,6 @@ impl Block {
                 value
             }
 
-            #[cfg(feature = "lz4")]
             CompressionType::Lz4 => {
                 // NOTE: We know that a header always exists and data is never empty
                 // So the slice is fine
@@ -211,7 +207,6 @@ mod tests {
         Ok(())
     }
     #[test]
-    #[cfg(feature = "lz4")]
     fn block_roundtrip_lz4() -> crate::Result<()> {
         let mut writer = vec![];
 

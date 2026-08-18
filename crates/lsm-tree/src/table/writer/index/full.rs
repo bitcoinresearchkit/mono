@@ -48,7 +48,6 @@ impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for FullIndexWriter 
         );
 
         self.block_handles.push(block_handle);
-
         Ok(())
     }
 

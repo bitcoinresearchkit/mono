@@ -23,11 +23,6 @@ impl Builder {
     }
 
     #[must_use]
-    pub fn from_bytes(bytes: Box<[u8]>) -> Self {
-        Self(bytes)
-    }
-
-    #[must_use]
     pub fn bytes(&self) -> &[u8] {
         &self.0
     }

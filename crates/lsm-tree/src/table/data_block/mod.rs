@@ -383,12 +383,13 @@ impl DataBlock {
     }
 
     /// Accesses the inner raw bytes
+    #[cfg(test)]
     #[must_use]
     pub fn as_slice(&self) -> &Slice {
         &self.inner.data
     }
 
-    pub(crate) fn get_binary_index_reader(&self) -> BinaryIndexReader<'_> {
+    fn get_binary_index_reader(&self) -> BinaryIndexReader<'_> {
         use std::mem::size_of;
 
         let trailer = Trailer::new(&self.inner);
@@ -447,25 +448,25 @@ impl DataBlock {
     }
 
     /// Returns the number of hash buckets.
+    #[cfg(test)]
     #[must_use]
     pub fn hash_bucket_count(&self) -> Option<usize> {
         self.get_hash_index_reader()
             .map(|reader| reader.bucket_count())
     }
 
-    // TODO: handle seqno more nicely (make Key generic, so we can do binary search over (key, seqno))
     #[must_use]
-    pub fn point_read(&self, needle: &[u8], seqno: SeqNo) -> Option<InternalValue> {
-        self.point_read_item(needle, seqno)
+    pub fn point_read(&self, needle: &[u8]) -> Option<InternalValue> {
+        self.point_read_item(needle)
             .map(|item| item.materialize(&self.inner.data))
     }
 
-    pub(crate) fn point_read_value(&self, needle: &[u8], seqno: SeqNo) -> Option<PointReadValue> {
-        self.point_read_item(needle, seqno)
+    pub fn point_read_value(&self, needle: &[u8]) -> Option<PointReadValue> {
+        self.point_read_item(needle)
             .map(|item| item.materialize_value(&self.inner.data))
     }
 
-    fn point_read_item(&self, needle: &[u8], seqno: SeqNo) -> Option<DataBlockParsedItem> {
+    fn point_read_item(&self, needle: &[u8]) -> Option<DataBlockParsedItem> {
         let iter = if let Some(hash_index_reader) = self.get_hash_index_reader() {
             match hash_index_reader.get(needle) {
                 MARKER_FREE => {
@@ -509,26 +510,16 @@ impl DataBlock {
                     return None;
                 }
                 std::cmp::Ordering::Equal => {
-                    // If key is same as needle, check sequence number
+                    return Some(item);
                 }
-                std::cmp::Ordering::Less => {
-                    // We are past our searched key
-                    continue;
-                }
+                std::cmp::Ordering::Less => {}
             }
-
-            if item.seqno >= seqno {
-                continue;
-            }
-
-            return Some(item);
         }
 
         None
     }
 
     #[must_use]
-    #[expect(clippy::iter_without_into_iter)]
     pub fn iter(&self) -> Iter<'_> {
         Iter::new(
             &self.inner.data,
@@ -539,6 +530,7 @@ impl DataBlock {
     /// Returns the binary index length (number of pointers).
     ///
     /// The number of pointers is equal to the number of restart intervals.
+    #[cfg(test)]
     #[must_use]
     pub fn binary_index_len(&self) -> u32 {
         use std::mem::size_of;
@@ -553,12 +545,13 @@ impl DataBlock {
     }
 
     /// Returns the number of items in the block.
+    #[cfg(test)]
     #[must_use]
-    #[expect(clippy::len_without_is_empty)]
     pub fn len(&self) -> usize {
         Trailer::new(&self.inner).item_count()
     }
 
+    #[cfg(test)]
     pub fn encode_into_vec(
         items: &[InternalValue],
         restart_interval: u8,
@@ -656,7 +649,7 @@ impl DataBlock {
 #[expect(clippy::expect_used)]
 mod tests {
     use crate::{
-        Checksum, InternalValue, SeqNo, Slice,
+        Checksum, InternalValue, Slice,
         ValueType::{Tombstone, Value},
         table::{
             Block, DataBlock,
@@ -795,17 +788,17 @@ mod tests {
             });
 
             assert!(
-                data_block.point_read(b"a", SeqNo::MAX).is_none(),
+                data_block.point_read(b"a").is_none(),
                 "should return None because a does not exist",
             );
 
             assert!(
-                data_block.point_read(b"b", SeqNo::MAX).is_some(),
+                data_block.point_read(b"b").is_some(),
                 "should return Some because b exists",
             );
 
             assert!(
-                data_block.point_read(b"z", SeqNo::MAX).is_none(),
+                data_block.point_read(b"z").is_none(),
                 "should return Some because z does not exist",
             );
         }
@@ -842,17 +835,17 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, SeqNo::MAX),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
 
     #[test]
-    fn data_block_mvcc_read_first() -> crate::Result<()> {
+    fn data_block_point_read_first() -> crate::Result<()> {
         let items = [InternalValue::from_components(
             "hello",
             "world",
@@ -877,7 +870,7 @@ mod tests {
             assert_eq!(data_block.len(), items.len());
             assert_eq!(data_block.inner.size(), serialized_len);
 
-            assert_eq!(Some(items[0].clone()), data_block.point_read(b"hello", 777));
+            assert_eq!(Some(items[0].clone()), data_block.point_read(b"hello"));
         }
 
         Ok(())
@@ -887,7 +880,7 @@ mod tests {
     fn data_block_point_read_fuzz_1() -> crate::Result<()> {
         let items = [
             InternalValue::from_components([0], b"", 23_523_531_241_241_242, Value),
-            InternalValue::from_components([0], b"", 0, Value),
+            InternalValue::from_components([1], b"", 0, Value),
         ];
 
         let bytes = DataBlock::encode_into_vec(&items, 16, 1.33)?;
@@ -913,11 +906,11 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, needle.key.seqno + 1),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
@@ -926,9 +919,9 @@ mod tests {
     fn data_block_point_read_fuzz_2() -> crate::Result<()> {
         let items = [
             InternalValue::from_components([0], [], 5, Value),
-            InternalValue::from_components([0], [], 4, Tombstone),
-            InternalValue::from_components([0], [], 3, Value),
-            InternalValue::from_components([0], [], 0, Value),
+            InternalValue::from_components([1], [], 4, Tombstone),
+            InternalValue::from_components([2], [], 3, Value),
+            InternalValue::from_components([3], [], 0, Value),
         ];
 
         let bytes = DataBlock::encode_into_vec(&items, 2, 0.0)?;
@@ -949,11 +942,11 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, needle.key.seqno + 1),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
@@ -985,22 +978,22 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, SeqNo::MAX),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
 
     #[test]
-    fn data_block_point_read_dense_mvcc_with_hash() -> crate::Result<()> {
+    fn data_block_point_read_dense_with_hash() -> crate::Result<()> {
         let items = [
             InternalValue::from_components(b"a", b"a", 3, Value),
-            InternalValue::from_components(b"a", b"a", 2, Value),
-            InternalValue::from_components(b"a", b"a", 1, Value),
-            InternalValue::from_components(b"b", b"b", 65, Value),
+            InternalValue::from_components(b"b", b"b", 2, Value),
+            InternalValue::from_components(b"c", b"c", 1, Value),
+            InternalValue::from_components(b"d", b"d", 65, Value),
         ];
 
         let bytes = DataBlock::encode_into_vec(&items, 1, 1.33)?;
@@ -1026,18 +1019,18 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, needle.key.seqno + 1),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn data_block_point_read_mvcc_latest_fuzz_1() -> crate::Result<()> {
+    fn data_block_point_read_fuzz_3() -> crate::Result<()> {
         let items = [
             InternalValue::from_components(Slice::from([0]), Slice::from([]), 0, Value),
             InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 0, Value),
@@ -1066,203 +1059,19 @@ mod tests {
 
         assert_eq!(
             Some(items.get(1).cloned().unwrap()),
-            data_block.point_read(&[233, 233], SeqNo::MAX)
+            data_block.point_read(&[233, 233])
         );
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }
 
     #[test]
-    #[expect(clippy::unwrap_used)]
-    fn data_block_point_read_mvcc_latest_fuzz_2() -> crate::Result<()> {
-        let items = [
-            InternalValue::from_components(Slice::from([0]), Slice::from([]), 0, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 8, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 7, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 6, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 5, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 4, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 3, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 2, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 1, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 0, Value),
-            InternalValue::from_components(
-                Slice::from([255, 255, 0]),
-                Slice::from([]),
-                127_886_946_205_696,
-                Tombstone,
-            ),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 2, 0.0)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        assert_eq!(
-            Some(items.get(1).cloned().unwrap()),
-            data_block.point_read(&[233, 233], SeqNo::MAX)
-        );
-        assert_eq!(
-            Some(items.last().cloned().unwrap()),
-            data_block.point_read(&[255, 255, 0], SeqNo::MAX)
-        );
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn data_block_point_read_mvcc_latest_fuzz_3() -> crate::Result<()> {
-        let items = [
-            InternalValue::from_components(Slice::from([0]), Slice::from([]), 0, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 8, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 7, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 6, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 5, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 4, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 3, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 2, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 1, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 0, Value),
-            InternalValue::from_components(
-                Slice::from([255, 255, 0]),
-                Slice::from([]),
-                127_886_946_205_696,
-                Tombstone,
-            ),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 2, 0.0)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        assert_eq!(
-            Some(items.get(1).cloned().unwrap()),
-            data_block.point_read(&[233, 233], SeqNo::MAX)
-        );
-        assert_eq!(
-            Some(items.last().cloned().unwrap()),
-            data_block.point_read(&[255, 255, 0], SeqNo::MAX)
-        );
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn data_block_point_read_mvcc_latest_fuzz_3_dense() -> crate::Result<()> {
-        let items = [
-            InternalValue::from_components(Slice::from([0]), Slice::from([]), 0, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 8, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 7, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 6, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 5, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 4, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 3, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 2, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 1, Value),
-            InternalValue::from_components(Slice::from([233, 233]), Slice::from([]), 0, Value),
-            InternalValue::from_components(
-                Slice::from([255, 255, 0]),
-                Slice::from([]),
-                127_886_946_205_696,
-                Tombstone,
-            ),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 1, 0.0)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-
-        assert_eq!(
-            Some(items.get(1).cloned().unwrap()),
-            data_block.point_read(&[233, 233], SeqNo::MAX)
-        );
-        assert_eq!(
-            Some(items.last().cloned().unwrap()),
-            data_block.point_read(&[255, 255, 0], SeqNo::MAX)
-        );
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_dense_mvcc_no_hash() -> crate::Result<()> {
-        let items = [
-            InternalValue::from_components(b"a", b"a", 3, Value),
-            InternalValue::from_components(b"a", b"a", 2, Value),
-            InternalValue::from_components(b"a", b"a", 1, Value),
-            InternalValue::from_components(b"b", b"b", 65, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 1, 0.0)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-        assert!(data_block.hash_bucket_count().is_none());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, needle.key.seqno + 1),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_shadowing() -> crate::Result<()> {
+    fn data_block_point_read_tombstone() -> crate::Result<()> {
         let items = [
             InternalValue::from_components("pla:saturn:fact", "Saturn is pretty big", 0, Value),
             InternalValue::from_components("pla:saturn:name", "Saturn", 0, Value),
             InternalValue::from_components("pla:venus:fact", "", 1, Tombstone),
-            InternalValue::from_components("pla:venus:fact", "Venus exists", 0, Value),
             InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
         ];
 
@@ -1288,7 +1097,7 @@ mod tests {
 
         assert!(
             data_block
-                .point_read(b"pla:venus:fact", SeqNo::MAX)
+                .point_read(b"pla:venus:fact")
                 .expect("should exist")
                 .is_tombstone()
         );
@@ -1307,7 +1116,6 @@ mod tests {
             InternalValue::from_components("pla:saturn:fact", "Saturn is pretty big", 0, Value),
             InternalValue::from_components("pla:saturn:name", "Saturn", 0, Value),
             InternalValue::from_components("pla:venus:fact", "", 1, Tombstone),
-            InternalValue::from_components("pla:venus:fact", "Venus exists", 0, Value),
             InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
         ];
 
@@ -1334,11 +1142,11 @@ mod tests {
         for needle in items {
             assert_eq!(
                 Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key, needle.key.seqno + 1),
+                data_block.point_read(&needle.key.user_key),
             );
         }
 
-        assert_eq!(None, data_block.point_read(b"yyy", SeqNo::MAX));
+        assert_eq!(None, data_block.point_read(b"yyy"));
 
         Ok(())
     }

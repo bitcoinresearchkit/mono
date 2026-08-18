@@ -44,9 +44,9 @@ impl Weighter<CacheKey, Block> for BlockWeighter {
 /// let cache = Arc::new(Cache::with_capacity_bytes(64 * 1_000 * 1_000));
 ///
 /// # let folder = tempfile::tempdir()?;
-/// let tree1 = Config::new(folder, Default::default(), Default::default()).use_cache(cache.clone()).open()?;
+/// let tree1 = Tree::open(Config::new(folder.path()).use_cache(cache.clone()))?;
 /// # let folder = tempfile::tempdir()?;
-/// let tree2 = Config::new(folder, Default::default(), Default::default()).use_cache(cache.clone()).open()?;
+/// let tree2 = Tree::open(Config::new(folder.path()).use_cache(cache.clone()))?;
 /// #
 /// # Ok::<(), lsm_tree::Error>(())
 /// ```

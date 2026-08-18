@@ -1,545 +1,204 @@
-// Copyright (c) 2024-present, fjall-rs
-// This source code is licensed under both the Apache 2.0 and MIT License
-// (found in the LICENSE-* files in the repository)
-
-use super::{CompactionStrategy, Input as CompactionPayload};
 use crate::{
-    Config, InternalValue, SeqNo, SequenceNumberCounter, Table, TableId,
+    Config, InternalValue, SequenceNumberCounter, Table, TableId, Tree,
     compaction::{
-        Choice,
-        filter::{Context, StreamFilterAdapter},
-        flavour::StandardCompaction,
-        state::CompactionState,
+        Choice, Input, flavour::StandardCompaction, state::CompactionState,
         stream::CompactionStream,
     },
+    config::FilterPolicyEntry,
     merge::Merger,
     run_scanner::RunScanner,
-    stop_signal::StopSignal,
+    table::{filter::BloomConstructionPolicy, multi_writer::MultiWriter},
     tree::inner::TreeId,
-    version::{Run, SuperVersions, Version},
+    version::{Run, Set, Version},
 };
-use std::{
-    sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard},
-    time::Instant,
-};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-pub type CompactionReader<'a> = Box<dyn Iterator<Item = crate::Result<InternalValue>> + 'a>;
+type Reader = Box<dyn Iterator<Item = crate::Result<InternalValue>>>;
 
-/// Compaction options
-pub struct Options {
+pub struct Worker {
     pub tree_id: TreeId,
-
-    pub global_seqno: SequenceNumberCounter,
-
-    pub visible_seqno: SequenceNumberCounter,
-
     pub table_id_generator: SequenceNumberCounter,
-
-    /// Configuration of tree.
     pub config: Arc<Config>,
-
-    pub version_history: Arc<RwLock<SuperVersions>>,
-
-    /// Compaction strategy to use.
-    pub strategy: Arc<dyn CompactionStrategy>,
-
-    /// Stop signal to interrupt a compaction worker in case
-    /// the tree is dropped.
-    pub stop_signal: StopSignal,
-
-    /// Evicts items that are older than this seqno (MVCC GC).
-    pub mvcc_gc_watermark: u64,
-
+    pub versions: Arc<Set>,
     pub compaction_state: Arc<Mutex<CompactionState>>,
 }
 
-impl Options {
-    pub fn from_tree(tree: &crate::Tree, strategy: Arc<dyn CompactionStrategy>) -> Self {
+impl Worker {
+    pub fn new(tree: &Tree) -> Self {
         Self {
-            global_seqno: tree.config.seqno.clone(),
-            visible_seqno: tree.config.visible_seqno.clone(),
             tree_id: tree.id,
             table_id_generator: tree.table_id_counter.clone(),
             config: tree.config.clone(),
-            version_history: tree.version_history.clone(),
-            stop_signal: tree.stop_signal.clone(),
-            strategy,
-            mvcc_gc_watermark: 0,
-
+            versions: tree.versions.clone(),
             compaction_state: tree.compaction_state.clone(),
         }
     }
-}
 
-/// Runs compaction task.
-///
-/// This will block until the compactor is fully finished.
-pub fn do_compaction(opts: &Options) -> crate::Result<()> {
-    #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-    let compaction_state = opts.compaction_state.lock().expect("lock is poisoned");
+    pub fn run(&self) -> crate::Result<()> {
+        loop {
+            let state = self.state();
+            let version = self.versions.load();
 
-    #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-    let version_history_lock = opts.version_history.read().expect("lock is poisoned");
-
-    let start = Instant::now();
-    log::trace!(
-        "Consulting compaction strategy {:?}",
-        opts.strategy.get_name(),
-    );
-    let choice = opts.strategy.choose(
-        &version_history_lock.latest_version().version,
-        &opts.config,
-        &compaction_state,
-    );
-
-    log::debug!("Compaction choice: {choice:?} in {:?}", start.elapsed());
-
-    match choice {
-        Choice::Merge(payload) => {
-            merge_tables(compaction_state, version_history_lock, opts, &payload)
-        }
-        Choice::Move(payload) => {
-            drop(version_history_lock);
-
-            move_tables(&compaction_state, opts, &payload)
-        }
-        Choice::DoNothing => {
-            log::trace!("Compactor chose to do nothing");
-            Ok(())
+            match crate::compaction::leveled::Strategy::choose(&version, &state) {
+                Choice::Merge(input) => self.merge_tables(state, &version, &input)?,
+                Choice::Move(input) => self.move_tables(&state, &input)?,
+                Choice::DoNothing => return Ok(()),
+            }
         }
     }
-}
 
-fn pick_run_indexes(run: &Run<Table>, to_compact: &[TableId]) -> Option<(usize, usize)> {
-    let lo = run
-        .iter()
-        .position(|table| to_compact.contains(&table.id()))?;
+    fn state(&self) -> MutexGuard<'_, CompactionState> {
+        self.compaction_state
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
 
-    let hi = run
-        .iter()
-        .rposition(|table| to_compact.contains(&table.id()))?;
+    fn move_tables(&self, state: &CompactionState, input: &Input) -> crate::Result<()> {
+        if state
+            .hidden_set()
+            .should_decline_compaction(input.table_ids.iter().copied())
+        {
+            return Ok(());
+        }
 
-    Some((lo, hi))
-}
+        let table_ids = input.table_ids.iter().copied().collect::<Vec<_>>();
+        self.versions.publish(&self.config.path, |current| {
+            Ok(current.with_moved(&table_ids, input.dest_level.into()))
+        })
+    }
 
-fn create_compaction_stream<'a>(
-    version: &Version,
-    to_compact: &[TableId],
-    eviction_seqno: SeqNo,
-) -> crate::Result<Option<CompactionStream<Merger<CompactionReader<'a>>>>> {
-    let mut readers: Vec<CompactionReader<'_>> = vec![];
-    let mut found = 0;
+    fn merge_tables(
+        &self,
+        mut state: MutexGuard<'_, CompactionState>,
+        version: &Version,
+        input: &Input,
+    ) -> crate::Result<()> {
+        if state
+            .hidden_set()
+            .should_decline_compaction(input.table_ids.iter().copied())
+        {
+            return Ok(());
+        }
 
-    for run in version.iter_levels().flat_map(|lvl| lvl.iter()) {
-        if run.len() > 1 {
-            let Some((lo, hi)) = pick_run_indexes(run, to_compact) else {
-                continue;
-            };
+        let Some(tables) = input
+            .table_ids
+            .iter()
+            .map(|id| version.get_table(*id).cloned())
+            .collect::<Option<Vec<_>>>()
+        else {
+            return Ok(());
+        };
 
-            readers.push(Box::new(RunScanner::culled(
-                run.clone(),
-                (Some(lo), Some(hi)),
-            )?));
+        let table_ids = input.table_ids.iter().copied().collect::<Vec<_>>();
+        let Some(stream) = Self::create_stream(version, &table_ids)? else {
+            return Ok(());
+        };
+        let is_last_level = input.dest_level == self.config.level_count - 1;
+        let mut stream = stream.evict_tombstones(is_last_level);
+        let writer = self.prepare_writer(version, input)?;
+        let mut compactor = StandardCompaction::new(writer, tables);
 
-            found += hi - lo + 1;
+        state.hidden_set_mut().hide(table_ids.iter().copied());
+        drop(state);
+
+        if let Err(error) = stream.try_for_each(|item| compactor.write(item?)) {
+            self.show_tables(&table_ids);
+            return Err(error);
+        }
+
+        let mut state = self.state();
+        let result = compactor.finish(self, input, input.canonical_level.into());
+        state.hidden_set_mut().show(table_ids);
+        result
+    }
+
+    fn prepare_writer(&self, version: &Version, input: &Input) -> crate::Result<MultiWriter> {
+        let level = usize::from(input.canonical_level);
+        let mut writer = MultiWriter::new(
+            self.config.path.join(crate::file::TABLES_FOLDER),
+            self.table_id_generator.clone(),
+            input.target_size,
+        )?;
+
+        if self.config.index_block_partitioning_policy.get(level) {
+            writer = writer.use_partitioned_index();
+        }
+        if self.config.filter_block_partitioning_policy.get(level) {
+            writer = writer.use_partitioned_filter();
+        }
+
+        let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
+        let bloom_policy = if is_last_level && self.config.expect_point_read_hits {
+            BloomConstructionPolicy::BitsPerKey(0.0)
         } else {
-            for table in run.iter().filter(|x| to_compact.contains(&x.metadata.id)) {
-                found += 1;
-                readers.push(Box::new(table.scan()?));
+            match self.config.filter_policy.get(usize::from(input.dest_level)) {
+                FilterPolicyEntry::Bloom(policy) => policy,
+                FilterPolicyEntry::None => BloomConstructionPolicy::BitsPerKey(0.0),
             }
-        }
-    }
+        };
 
-    Ok(if found == to_compact.len() {
-        Some(CompactionStream::new(Merger::new(readers), eviction_seqno))
-    } else {
-        None
-    })
-}
-
-fn move_tables(
-    compaction_state: &MutexGuard<'_, CompactionState>,
-    opts: &Options,
-    payload: &CompactionPayload,
-) -> crate::Result<()> {
-    #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-    let mut version_history_lock = opts.version_history.write().expect("lock is poisoned");
-
-    // Fail-safe for buggy compaction strategies
-    if compaction_state
-        .hidden_set()
-        .should_decline_compaction(payload.table_ids.iter().copied())
-    {
-        log::warn!(
-            "Compaction task created by {:?} contained hidden tables, declining to run it - please report this at https://github.com/fjall-rs/lsm-tree/issues/new?template=bug_report.md",
-            opts.strategy.get_name(),
+        log::debug!(
+            "Compacting tables {:?} into L{} (canonical L{}), target_size={}",
+            input.table_ids,
+            input.dest_level,
+            input.canonical_level,
+            input.target_size,
         );
-        return Ok(());
+
+        Ok(writer
+            .use_data_block_restart_interval(
+                self.config.data_block_restart_interval_policy.get(level),
+            )
+            .use_index_block_restart_interval(
+                self.config.index_block_restart_interval_policy.get(level),
+            )
+            .use_data_block_compression(self.config.data_block_compression_policy.get(level))
+            .use_data_block_size(self.config.data_block_size_policy.get(level))
+            .use_data_block_hash_ratio(self.config.data_block_hash_ratio_policy.get(level))
+            .use_index_block_compression(self.config.index_block_compression_policy.get(level))
+            .use_bloom_policy(bloom_policy))
     }
 
-    let table_ids = payload.table_ids.iter().copied().collect::<Vec<_>>();
-
-    version_history_lock.upgrade_version(
-        &opts.config.path,
-        |current| {
-            let mut copy = current.clone();
-
-            copy.version = copy
-                .version
-                .with_moved(&table_ids, payload.dest_level as usize);
-
-            Ok(copy)
-        },
-        &opts.global_seqno,
-        &opts.visible_seqno,
-    )?;
-
-    if let Err(e) = version_history_lock.maintenance(&opts.config.path, opts.mvcc_gc_watermark) {
-        log::error!("Manifest maintenance failed: {e:?}");
-        return Err(e);
-    }
-    drop(version_history_lock);
-
-    Ok(())
-}
-
-fn hidden_guard<T>(
-    payload: &CompactionPayload,
-    opts: &Options,
-    f: impl FnOnce() -> crate::Result<T>,
-) -> crate::Result<T> {
-    f().inspect_err(|e| {
-        log::error!("Compaction failed: {e:?}");
-
-        // IMPORTANT: We need to show tables again on error
-        #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-        let mut compaction_state = opts.compaction_state.lock().expect("lock is poisoned");
-
-        compaction_state
+    fn show_tables(&self, table_ids: &[TableId]) {
+        self.state()
             .hidden_set_mut()
-            .show(payload.table_ids.iter().copied());
-    })
-}
-
-#[expect(clippy::too_many_lines)]
-fn merge_tables(
-    mut compaction_state: MutexGuard<'_, CompactionState>,
-    version_history_lock: RwLockReadGuard<'_, SuperVersions>,
-    opts: &Options,
-    payload: &CompactionPayload,
-) -> crate::Result<()> {
-    if opts.stop_signal.is_stopped() {
-        log::debug!("Stopping before compaction because of stop signal");
-        return Ok(());
+            .show(table_ids.iter().copied());
     }
 
-    // Fail-safe for buggy compaction strategies
-    if compaction_state
-        .hidden_set()
-        .should_decline_compaction(payload.table_ids.iter().copied())
-    {
-        log::warn!(
-            "Compaction task created by {:?} contained hidden tables, declining to run it - please report this at https://github.com/fjall-rs/lsm-tree/issues/new?template=bug_report.md",
-            opts.strategy.get_name(),
-        );
-        drop(version_history_lock);
-        return Ok(());
-    }
+    fn create_stream(
+        version: &Version,
+        table_ids: &[TableId],
+    ) -> crate::Result<Option<CompactionStream<Merger<Reader>>>> {
+        let mut readers = Vec::<Reader>::new();
+        let mut found = 0;
 
-    let current_super_version = version_history_lock.latest_version();
-
-    let Some(tables) = payload
-        .table_ids
-        .iter()
-        .map(|&id| current_super_version.version.get_table(id).cloned())
-        .collect::<Option<Vec<_>>>()
-    else {
-        log::warn!(
-            "Compaction task created by {:?} contained tables not referenced in the level manifest",
-            opts.strategy.get_name(),
-        );
-        return Ok(());
-    };
-
-    let Some(mut merge_iter) = create_compaction_stream(
-        &current_super_version.version,
-        &payload.table_ids.iter().copied().collect::<Vec<_>>(),
-        opts.mvcc_gc_watermark,
-    )?
-    else {
-        log::warn!(
-            "Compaction task tried to compact tables that do not exist, declining to run it"
-        );
-        return Ok(());
-    };
-
-    let dst_lvl = payload.canonical_level.into();
-    let last_level = opts.config.level_count - 1;
-
-    // NOTE: Only evict tombstones when reaching the last level,
-    // That way we don't resurrect data beneath the tombstone
-    let is_last_level = payload.dest_level == last_level;
-
-    merge_iter = merge_iter
-        .evict_tombstones(is_last_level)
-        .zero_seqnos(false);
-
-    let filter_ctx = Context { is_last_level };
-
-    // Construct the compaction filter
-    let mut compaction_filter = opts.config.compaction_filter_factory.as_ref().map(|f| {
-        log::trace!("Installing custom compaction filter {:?}", f.name());
-        f.make_filter(&filter_ctx)
-    });
-
-    let merge_iter = merge_iter.with_filter(StreamFilterAdapter::new(
-        compaction_filter.as_deref_mut(),
-        &filter_ctx,
-    ));
-
-    let table_writer =
-        super::flavour::prepare_table_writer(&current_super_version.version, opts, payload)?;
-
-    let mut compactor = StandardCompaction::new(table_writer, tables);
-
-    drop(version_history_lock);
-
-    {
-        compaction_state
-            .hidden_set_mut()
-            .hide(payload.table_ids.iter().copied());
-    }
-
-    // IMPORTANT: Unlock exclusive compaction lock as we are now doing the actual (CPU-intensive) compaction
-    drop(compaction_state);
-
-    hidden_guard(payload, opts, || {
-        for (idx, item) in merge_iter.enumerate() {
-            let item = item?;
-
-            compactor.write(item)?;
-
-            if idx % 1_000_000 == 0 && opts.stop_signal.is_stopped() {
-                log::debug!("Stopping amidst compaction because of stop signal");
-                return Ok(());
+        for run in version.iter_levels().flat_map(crate::version::Level::iter) {
+            if run.len() > 1 {
+                let Some((start, end)) = Self::run_indexes(run, table_ids) else {
+                    continue;
+                };
+                readers.push(Box::new(RunScanner::culled(
+                    run.clone(),
+                    (Some(start), Some(end)),
+                )?));
+                found += end - start + 1;
+            } else {
+                for table in run.iter().filter(|table| table_ids.contains(&table.id())) {
+                    readers.push(Box::new(table.scan()?));
+                    found += 1;
+                }
             }
         }
 
-        Ok(())
-    })?;
-
-    if let Some(filter) = compaction_filter {
-        filter.finish();
+        Ok((found == table_ids.len()).then(|| CompactionStream::new(Merger::new(readers))))
     }
 
-    #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-    let mut compaction_state = opts.compaction_state.lock().expect("lock is poisoned");
-
-    log::trace!("Acquiring super version write lock");
-    #[expect(clippy::expect_used, reason = "lock is expected to not be poisoned")]
-    let mut version_history_lock = opts.version_history.write().expect("lock is poisoned");
-    log::trace!("Acquired super version write lock");
-
-    compactor
-        .finish(&mut version_history_lock, opts, payload, dst_lvl)
-        .inspect_err(|e| {
-            // NOTE: We cannot use hidden_guard here because we already locked the compaction state
-
-            log::error!("Compaction failed: {e:?}");
-
-            compaction_state
-                .hidden_set_mut()
-                .show(payload.table_ids.iter().copied());
-        })?;
-
-    compaction_state
-        .hidden_set_mut()
-        .show(payload.table_ids.iter().copied());
-
-    version_history_lock
-        .maintenance(&opts.config.path, opts.mvcc_gc_watermark)
-        .inspect_err(|e| {
-            log::error!("Manifest maintenance failed: {e:?}");
-        })?;
-
-    drop(version_history_lock);
-    drop(compaction_state);
-
-    log::trace!("Compaction successful");
-
-    Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{create_compaction_stream, pick_run_indexes};
-    use crate::{AbstractTree, SequenceNumberCounter};
-    use test_log::test;
-
-    #[test]
-    fn compaction_stream_run_not_found() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = crate::Config::new(
-            folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        tree.insert("a", "a", 0);
-        tree.flush_active_memtable(0)?;
-
-        assert!(create_compaction_stream(&tree.current_version(), &[666], 0)?.is_none());
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn compaction_stream_run() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = crate::Config::new(
-            folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        tree.insert("a", "a", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("b", "b", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("c", "c", 0);
-        tree.flush_active_memtable(0)?;
-
-        assert_eq!(
-            Some((0, 2)),
-            pick_run_indexes(
-                tree.current_version()
-                    .level(0)
-                    .unwrap()
-                    .iter()
-                    .next()
-                    .unwrap(),
-                &[0, 1, 2],
-            )
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn compaction_stream_run_2() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = crate::Config::new(
-            folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        tree.insert("a", "a", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("b", "b", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("c", "c", 0);
-        tree.flush_active_memtable(0)?;
-
-        assert_eq!(
-            Some((0, 0)),
-            pick_run_indexes(
-                tree.current_version()
-                    .level(0)
-                    .unwrap()
-                    .iter()
-                    .next()
-                    .unwrap(),
-                &[0],
-            )
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn compaction_stream_run_3() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = crate::Config::new(
-            folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        tree.insert("a", "a", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("b", "b", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("c", "c", 0);
-        tree.flush_active_memtable(0)?;
-
-        assert_eq!(
-            Some((2, 2)),
-            pick_run_indexes(
-                tree.current_version()
-                    .level(0)
-                    .unwrap()
-                    .iter()
-                    .next()
-                    .unwrap(),
-                &[2],
-            )
-        );
-
-        Ok(())
-    }
-
-    #[test]
-    #[expect(clippy::unwrap_used)]
-    fn compaction_stream_run_4() -> crate::Result<()> {
-        let folder = tempfile::tempdir()?;
-
-        let tree = crate::Config::new(
-            folder,
-            SequenceNumberCounter::default(),
-            SequenceNumberCounter::default(),
-        )
-        .open()?;
-
-        tree.insert("a", "a", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("b", "b", 0);
-        tree.flush_active_memtable(0)?;
-
-        tree.insert("c", "c", 0);
-        tree.flush_active_memtable(0)?;
-
-        assert_eq!(
-            None,
-            pick_run_indexes(
-                tree.current_version()
-                    .level(0)
-                    .unwrap()
-                    .iter()
-                    .next()
-                    .unwrap(),
-                &[4],
-            )
-        );
-
-        Ok(())
+    fn run_indexes(run: &Run<Table>, table_ids: &[TableId]) -> Option<(usize, usize)> {
+        Some((
+            run.iter()
+                .position(|table| table_ids.contains(&table.id()))?,
+            run.iter()
+                .rposition(|table| table_ids.contains(&table.id()))?,
+        ))
     }
 }

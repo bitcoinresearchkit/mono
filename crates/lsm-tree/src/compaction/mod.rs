@@ -4,27 +4,13 @@
 
 //! Contains compaction strategies
 
-pub mod filter;
 mod flavour;
-pub(crate) mod leveled;
-pub(crate) mod major;
-pub(crate) mod pulldown;
-pub(crate) mod state;
-pub(crate) mod stream;
-pub(crate) mod worker;
+pub mod leveled;
+pub mod state;
+pub mod stream;
+pub mod worker;
 
-pub use filter::{CompactionFilter, Factory, ItemAccessor, Verdict};
-pub use leveled::Strategy as Leveled;
-
-/// Alias for `Leveled`
-pub type Levelled = Leveled;
-
-#[doc(hidden)]
-pub use pulldown::Strategy as PullDown;
-
-use crate::{
-    HashSet, TableId, compaction::state::CompactionState, config::Config, version::Version,
-};
+use crate::{HashSet, TableId};
 
 /// Input for compactor
 ///
@@ -59,17 +45,4 @@ pub enum Choice {
 
     /// Compacts some tables into a new level.
     Merge(Input),
-}
-
-/// Trait for a compaction strategy
-///
-/// The strategy receives the levels of the LSM-tree as argument
-/// and emits a choice on what to do.
-#[expect(clippy::module_name_repetitions)]
-pub trait CompactionStrategy {
-    /// Gets the compaction strategy name.
-    fn get_name(&self) -> &'static str;
-
-    /// Decides on what to do based on the current state of the LSM-tree's levels
-    fn choose(&self, version: &Version, config: &Config, state: &CompactionState) -> Choice;
 }

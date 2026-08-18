@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-pub(crate) mod builder;
+pub mod builder;
 
 pub use builder::Builder;
 
@@ -95,13 +95,6 @@ impl<'a> StandardBloomFilterReader<'a> {
         })
     }
 
-    /// Size of bloom filter in bytes.
-    #[must_use]
-    #[expect(clippy::len_without_is_empty)]
-    pub fn len(&self) -> usize {
-        self.inner.bytes().len()
-    }
-
     /// Returns `true` if the hash may be contained.
     ///
     /// Will never have a false negative.
@@ -130,6 +123,7 @@ impl<'a> StandardBloomFilterReader<'a> {
     /// Returns `true` if the item may be contained.
     ///
     /// Will never have a false negative.
+    #[cfg(test)]
     #[must_use]
     pub fn contains(&self, key: &[u8]) -> bool {
         self.contains_hash(Self::get_hash(key))
@@ -145,6 +139,7 @@ impl<'a> StandardBloomFilterReader<'a> {
     }
 
     /// Gets the hash of a key.
+    #[cfg(test)]
     fn get_hash(key: &[u8]) -> u64 {
         Builder::get_hash(key)
     }

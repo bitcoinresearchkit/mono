@@ -12,12 +12,8 @@ use crate::{CompressionType, checksum::ChecksummedWriter, table::index_block::Ke
 use std::{fs::File, io::BufWriter};
 
 pub trait BlockIndexWriter<W: std::io::Write> {
-    /// Registers a data block in the block index.
     fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> crate::Result<()>;
 
-    /// Writes the block index to a file.
-    ///
-    /// Returns the number of index blocks written.
     fn finish(
         self: Box<Self>,
         file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,

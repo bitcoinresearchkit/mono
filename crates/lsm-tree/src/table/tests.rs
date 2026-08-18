@@ -4,7 +4,8 @@
 
 use super::*;
 use crate::{
-    config::BloomConstructionPolicy, table::filter::standard_bloom::Builder as BloomBuilder,
+    config::BloomConstructionPolicy,
+    table::{filter::standard_bloom::Builder as BloomBuilder, writer::Writer},
 };
 use tempfile::tempdir;
 use test_log::test;
@@ -25,7 +26,7 @@ fn test_with_table(
     let file = dir.path().join("table");
 
     {
-        let mut writer = Writer::new(file.clone(), 0, 0)?;
+        let mut writer = Writer::new(file.clone(), 0)?;
 
         if let Some(f) = &config_writer {
             writer = f(writer);
@@ -168,7 +169,7 @@ fn test_with_table(
 
     // Test with partitioned indexes
     {
-        let mut writer = Writer::new(file.clone(), 0, 0)?.use_partitioned_index();
+        let mut writer = Writer::new(file.clone(), 0)?.use_partitioned_index();
 
         if let Some(f) = config_writer {
             writer = f(writer);
@@ -324,19 +325,13 @@ fn table_point_read() -> crate::Result<()> {
             assert_eq!(
                 b"abc",
                 &*table
-                    .get(b"abc", SeqNo::MAX, BloomBuilder::get_hash(b"abc"))?
+                    .get(b"abc", BloomBuilder::get_hash(b"abc"))?
                     .unwrap()
                     .key
                     .user_key,
             );
-            assert_eq!(
-                None,
-                table.get(b"def", SeqNo::MAX, BloomBuilder::get_hash(b"def"))?,
-            );
-            assert_eq!(
-                None,
-                table.get(b"____", SeqNo::MAX, BloomBuilder::get_hash(b"____"))?,
-            );
+            assert_eq!(None, table.get(b"def", BloomBuilder::get_hash(b"def"))?,);
+            assert_eq!(None, table.get(b"____", BloomBuilder::get_hash(b"____"))?,);
 
             assert_eq!(
                 table.metadata.key_range,
@@ -419,40 +414,6 @@ fn table_range_exclusive_bounds() -> crate::Result<()> {
         },
         None,
         Some(|x: Writer| x.use_data_block_size(1)),
-    )
-}
-
-#[test]
-#[expect(clippy::unwrap_used)]
-fn table_point_read_mvcc_block_boundary() -> crate::Result<()> {
-    let items = [
-        crate::InternalValue::from_components(b"a", b"5", 5, crate::ValueType::Value),
-        crate::InternalValue::from_components(b"a", b"4", 4, crate::ValueType::Value),
-        crate::InternalValue::from_components(b"a", b"3", 3, crate::ValueType::Value),
-        crate::InternalValue::from_components(b"a", b"2", 2, crate::ValueType::Value),
-        crate::InternalValue::from_components(b"a", b"1", 1, crate::ValueType::Value),
-    ];
-
-    test_with_table(
-        &items,
-        |table| {
-            assert_eq!(2, table.metadata.data_block_count);
-
-            let key_hash = BloomBuilder::get_hash(b"a");
-
-            assert_eq!(
-                b"5",
-                &*table.get(b"a", SeqNo::MAX, key_hash)?.unwrap().value
-            );
-            assert_eq!(b"4", &*table.get(b"a", 5, key_hash)?.unwrap().value);
-            assert_eq!(b"3", &*table.get(b"a", 4, key_hash)?.unwrap().value);
-            assert_eq!(b"2", &*table.get(b"a", 3, key_hash)?.unwrap().value);
-            assert_eq!(b"1", &*table.get(b"a", 2, key_hash)?.unwrap().value);
-
-            Ok(())
-        },
-        Some(3),
-        Some(|x| x),
     )
 }
 
@@ -646,7 +607,7 @@ fn table_point_read_partitioned_filter_smoke_test() -> crate::Result<()> {
                 assert_eq!(
                     item.value,
                     table
-                        .get(&item.key.user_key, SeqNo::MAX, key_hash)
+                        .get(&item.key.user_key, key_hash)
                         .unwrap()
                         .unwrap()
                         .value,
@@ -667,13 +628,13 @@ fn table_partitioned_filter() -> crate::Result<()> {
 
     let items = [
         InternalValue::from_components("a", "a7", 7, Value),
-        InternalValue::from_components("a", "a6", 6, Value),
-        InternalValue::from_components("a", "a5", 5, Value),
-        InternalValue::from_components("a", "a4", 4, Value),
-        InternalValue::from_components("a", "a3", 3, Value),
-        InternalValue::from_components("b", "b5", 5, Value),
-        InternalValue::from_components("c", "c8", 8, Value),
-        InternalValue::from_components("d", "d10", 10, Value),
+        InternalValue::from_components("b", "b6", 6, Value),
+        InternalValue::from_components("c", "c5", 5, Value),
+        InternalValue::from_components("d", "d4", 4, Value),
+        InternalValue::from_components("e", "e3", 3, Value),
+        InternalValue::from_components("f", "f5", 5, Value),
+        InternalValue::from_components("g", "g8", 8, Value),
+        InternalValue::from_components("h", "h10", 10, Value),
     ];
 
     test_with_table(
@@ -685,62 +646,13 @@ fn table_partitioned_filter() -> crate::Result<()> {
                 "filter TLI should exist"
             );
 
-            assert_eq!(
-                b"a7",
-                &*table
-                    .get(b"a", 8, BloomBuilder::get_hash(b"a"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"a6",
-                &*table
-                    .get(b"a", 7, BloomBuilder::get_hash(b"a"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"a5",
-                &*table
-                    .get(b"a", 6, BloomBuilder::get_hash(b"a"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"a4",
-                &*table
-                    .get(b"a", 5, BloomBuilder::get_hash(b"a"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"a3",
-                &*table
-                    .get(b"a", 4, BloomBuilder::get_hash(b"a"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"b5",
-                &*table
-                    .get(b"b", 6, BloomBuilder::get_hash(b"b"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"c8",
-                &*table
-                    .get(b"c", 9, BloomBuilder::get_hash(b"c"))?
-                    .unwrap()
-                    .value,
-            );
-            assert_eq!(
-                b"d10",
-                &*table
-                    .get(b"d", 11, BloomBuilder::get_hash(b"d"))?
-                    .unwrap()
-                    .value,
-            );
+            for item in &items {
+                let key = &item.key.user_key;
+                assert_eq!(
+                    item.value,
+                    table.get(key, BloomBuilder::get_hash(key))?.unwrap().value,
+                );
+            }
             Ok(())
         },
         None,
@@ -749,7 +661,7 @@ fn table_partitioned_filter() -> crate::Result<()> {
 }
 
 #[test]
-fn table_seqnos() -> crate::Result<()> {
+fn table_highest_seqno() -> crate::Result<()> {
     use crate::ValueType::Value;
 
     let items = [
@@ -762,8 +674,7 @@ fn table_seqnos() -> crate::Result<()> {
     test_with_table(
         &items,
         |table| {
-            assert_eq!(5, table.metadata.seqnos.0);
-            assert_eq!(10, table.metadata.seqnos.1);
+            assert_eq!(10, table.metadata.highest_seqno);
             Ok(())
         },
         None,
@@ -1155,7 +1066,7 @@ fn table_read_fuzz_1() -> crate::Result<()> {
 
     let data_block_size = 97;
 
-    let mut writer = crate::table::Writer::new(file.clone(), 0, 0)
+    let mut writer = Writer::new(file.clone(), 0)
         .unwrap()
         .use_data_block_size(data_block_size);
 
@@ -1215,19 +1126,19 @@ fn table_partitioned_index() -> crate::Result<()> {
 
     let items = [
         InternalValue::from_components("a", "a7", 7, Value),
-        InternalValue::from_components("a", "a6", 6, Value),
-        InternalValue::from_components("a", "a5", 5, Value),
-        InternalValue::from_components("a", "a4", 4, Value),
-        InternalValue::from_components("a", "a3", 3, Value),
-        InternalValue::from_components("b", "b5", 5, Value),
-        InternalValue::from_components("c", "c8", 8, Value),
-        InternalValue::from_components("d", "d10", 10, Value),
+        InternalValue::from_components("b", "b6", 6, Value),
+        InternalValue::from_components("c", "c5", 5, Value),
+        InternalValue::from_components("d", "d4", 4, Value),
+        InternalValue::from_components("e", "e3", 3, Value),
+        InternalValue::from_components("f", "f5", 5, Value),
+        InternalValue::from_components("g", "g8", 8, Value),
+        InternalValue::from_components("h", "h10", 10, Value),
     ];
 
     let dir = tempfile::tempdir()?;
     let file = dir.path().join("table_fuzz");
 
-    let mut writer = crate::table::Writer::new(file.clone(), 0, 0)
+    let mut writer = Writer::new(file.clone(), 0)
         .unwrap()
         .use_partitioned_index()
         .use_data_block_size(5)
@@ -1256,121 +1167,13 @@ fn table_partitioned_index() -> crate::Result<()> {
         "2nd-level index should exist",
     );
 
-    assert!(
-        table.metadata.index_block_count > 1,
-        "should use partitioned index",
-    );
-
-    assert_eq!(
-        b"a7",
-        &*table
-            .get(b"a", 8, BloomBuilder::get_hash(b"a"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"a6",
-        &*table
-            .get(b"a", 7, BloomBuilder::get_hash(b"a"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"a5",
-        &*table
-            .get(b"a", 6, BloomBuilder::get_hash(b"a"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"a4",
-        &*table
-            .get(b"a", 5, BloomBuilder::get_hash(b"a"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"a3",
-        &*table
-            .get(b"a", 4, BloomBuilder::get_hash(b"a"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"b5",
-        &*table
-            .get(b"b", 6, BloomBuilder::get_hash(b"b"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"c8",
-        &*table
-            .get(b"c", 9, BloomBuilder::get_hash(b"c"))?
-            .unwrap()
-            .value,
-    );
-    assert_eq!(
-        b"d10",
-        &*table
-            .get(b"d", 11, BloomBuilder::get_hash(b"d"))?
-            .unwrap()
-            .value,
-    );
-
-    Ok(())
-}
-
-#[test]
-#[expect(clippy::unwrap_used)]
-fn table_global_seqno() -> crate::Result<()> {
-    use crate::ValueType::Value;
-
-    let items = [
-        InternalValue::from_components("a0", "a0", 0, Value),
-        InternalValue::from_components("a1", "a1", 1, Value),
-        InternalValue::from_components("b", "b", 8, Value),
-    ];
-
-    let dir = tempfile::tempdir()?;
-    let file = dir.path().join("table_fuzz");
-
-    let mut writer = crate::table::Writer::new(file.clone(), 0, 0)?
-        .use_partitioned_filter()
-        .use_data_block_size(1)
-        .use_meta_partition_size(1);
-
     for item in items {
-        writer.write(item)?;
+        let key = &item.key.user_key;
+        assert_eq!(
+            item.value,
+            table.get(key, BloomBuilder::get_hash(key))?.unwrap().value,
+        );
     }
-
-    let _trailer = writer.finish()?;
-
-    let table = crate::Table::recover(
-        file,
-        crate::Checksum::from_raw(0),
-        7,
-        0,
-        Arc::new(crate::Cache::with_capacity_bytes(0)),
-        Some(Arc::new(crate::DescriptorTable::new(10))),
-        true,
-        true,
-    )?;
-
-    // global seqno is 7, so a1 is = 8 -> can not be read by snapshot=8
-    assert!(
-        table
-            .get(b"a1", 8, BloomBuilder::get_hash(b"a1"))?
-            .is_none()
-    );
-
-    assert_eq!(
-        b"a0",
-        &*table
-            .get(b"a0", 8, BloomBuilder::get_hash(b"a0"))?
-            .unwrap()
-            .value,
-    );
 
     Ok(())
 }
@@ -1387,7 +1190,7 @@ fn table_return_global_seqno() -> crate::Result<()> {
     let dir = tempfile::tempdir()?;
     let file = dir.path().join("table_fuzz");
 
-    let mut writer = crate::table::Writer::new(file.clone(), 0, 0)?;
+    let mut writer = Writer::new(file.clone(), 0)?;
 
     for item in items {
         writer.write(item)?;
@@ -1408,9 +1211,7 @@ fn table_return_global_seqno() -> crate::Result<()> {
 
     assert_eq!(
         InternalValue::from_components("abc", "abc", SEQNO, Value),
-        table
-            .get(b"abc", 2 * SEQNO, BloomBuilder::get_hash(b"abc"))?
-            .unwrap(),
+        table.get(b"abc", BloomBuilder::get_hash(b"abc"))?.unwrap(),
     );
 
     Ok(())

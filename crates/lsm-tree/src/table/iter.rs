@@ -2,93 +2,29 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use super::{BlockOffset, DataBlock, GlobalTableId, data_block::Iter as DataBlockIter};
+use super::{
+    BlockOffset, DataBlock, GlobalTableId, Table, bound::Bound,
+    owned_data_block_iter::OwnedDataBlockIter,
+};
 use crate::{
-    Cache, CompressionType, InternalValue, SeqNo, UserKey,
+    Cache, CompressionType, InternalValue, SeqNo,
     file_accessor::FileAccessor,
     table::{
         BlockHandle,
-        block::ParsedItem,
         block_index::{BlockIndexIter, BlockIndexIterImpl},
         util::load_block,
     },
 };
-use self_cell::self_cell;
 use std::{path::PathBuf, sync::Arc};
 
-type InnerIter<'a> = DataBlockIter<'a>;
-
-pub enum Bound {
-    Included(UserKey),
-    Excluded(UserKey),
-}
 type Bounds = (Option<Bound>, Option<Bound>);
-
-self_cell!(
-    pub struct OwnedDataBlockIter {
-        owner: DataBlock,
-
-        #[covariant]
-        dependent: InnerIter,
-    }
-);
-
-impl OwnedDataBlockIter {
-    fn seek_lower_inclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
-        self.with_dependent_mut(|_, m| m.seek(needle /* TODO: , seqno */))
-    }
-
-    fn seek_upper_inclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
-        self.with_dependent_mut(|_, m| m.seek_upper(needle /* TODO: , seqno */))
-    }
-
-    fn seek_lower_exclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
-        self.with_dependent_mut(|_, m| m.seek_exclusive(needle /* TODO: , seqno */))
-    }
-
-    fn seek_upper_exclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
-        self.with_dependent_mut(|_, m| m.seek_upper_exclusive(needle /* TODO: , seqno */))
-    }
-
-    pub fn seek_lower_bound(&mut self, bound: &Bound, seqno: SeqNo) -> bool {
-        match bound {
-            Bound::Included(key) => self.seek_lower_inclusive(key, seqno),
-            Bound::Excluded(key) => self.seek_lower_exclusive(key, seqno),
-        }
-    }
-
-    pub fn seek_upper_bound(&mut self, bound: &Bound, seqno: SeqNo) -> bool {
-        match bound {
-            Bound::Included(key) => self.seek_upper_inclusive(key, seqno),
-            Bound::Excluded(key) => self.seek_upper_exclusive(key, seqno),
-        }
-    }
-}
-
-impl Iterator for OwnedDataBlockIter {
-    type Item = InternalValue;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.with_dependent_mut(|block, iter| {
-            iter.next().map(|item| item.materialize(&block.inner.data))
-        })
-    }
-}
-
-impl DoubleEndedIterator for OwnedDataBlockIter {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        self.with_dependent_mut(|block, iter| {
-            iter.next_back()
-                .map(|item| item.materialize(&block.inner.data))
-        })
-    }
-}
 
 fn create_data_block_reader(block: DataBlock) -> OwnedDataBlockIter {
     OwnedDataBlockIter::new(block, super::data_block::DataBlock::iter)
 }
 
 pub struct Iter {
+    _table: Table,
     table_id: GlobalTableId,
     path: Arc<PathBuf>,
 
@@ -113,16 +49,16 @@ pub struct Iter {
 }
 
 impl Iter {
-    pub fn new(
-        table_id: GlobalTableId,
-        global_seqno: SeqNo,
-        path: Arc<PathBuf>,
-        index_iter: BlockIndexIterImpl,
-        file_accessor: FileAccessor,
-        cache: Arc<Cache>,
-        compression: CompressionType,
-    ) -> Self {
+    pub fn new(table: Table, index_iter: BlockIndexIterImpl) -> Self {
+        let table_id = table.global_id();
+        let global_seqno = table.global_seqno();
+        let path = table.path.clone();
+        let file_accessor = table.file_accessor.clone();
+        let cache = table.cache.clone();
+        let compression = table.metadata.data_block_compression;
+
         Self {
+            _table: table,
             table_id,
             path,
 

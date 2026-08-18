@@ -18,7 +18,6 @@ pub enum CompressionType {
     ///
     /// Recommended for use cases with a focus
     /// on speed over compression ratio.
-    #[cfg(feature = "lz4")]
     Lz4,
 }
 
@@ -30,7 +29,6 @@ impl std::fmt::Display for CompressionType {
             match self {
                 Self::None => "none",
 
-                #[cfg(feature = "lz4")]
                 Self::Lz4 => "lz4",
             }
         )
@@ -44,7 +42,6 @@ impl Encode for CompressionType {
                 writer.write_u8(0)?;
             }
 
-            #[cfg(feature = "lz4")]
             Self::Lz4 => {
                 writer.write_u8(1)?;
             }
@@ -61,7 +58,6 @@ impl Decode for CompressionType {
         match tag {
             0 => Ok(Self::None),
 
-            #[cfg(feature = "lz4")]
             1 => Ok(Self::Lz4),
 
             tag => Err(crate::Error::InvalidTag(("CompressionType", tag))),
@@ -80,7 +76,6 @@ mod tests {
         assert_eq!(1, serialized.len());
     }
 
-    #[cfg(feature = "lz4")]
     mod lz4 {
         use super::*;
         use test_log::test;
