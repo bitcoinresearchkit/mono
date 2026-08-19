@@ -36,7 +36,7 @@ impl std::fmt::Display for CompressionType {
 }
 
 impl Encode for CompressionType {
-    fn encode_into<W: Write>(&self, writer: &mut W) -> Result<(), crate::Error> {
+    fn encode_into<W: Write>(&self, writer: &mut W) -> crate::Result<()> {
         match self {
             Self::None => {
                 writer.write_u8(0)?;
@@ -52,7 +52,7 @@ impl Encode for CompressionType {
 }
 
 impl Decode for CompressionType {
-    fn decode_from<R: Read>(reader: &mut R) -> Result<Self, crate::Error> {
+    fn decode_from<R: Read>(reader: &mut R) -> crate::Result<Self> {
         let tag = reader.read_u8()?;
 
         match tag {

@@ -10,7 +10,7 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-cd "$ROOT_DIR/modules/brk-client"
+cd "$ROOT_DIR/modules/bitview-client"
 
 # Update version in package.json
 sed -i '' 's/"version": "[^"]*"/"version": "'"$VERSION"'"/' package.json

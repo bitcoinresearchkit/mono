@@ -14,6 +14,7 @@ brk_error = { workspace = true }
 brk_oracle = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
+derive_more = { workspace = true }
 tracing = { workspace = true }
 parking_lot = { workspace = true }
 rustc-hash = { workspace = true }

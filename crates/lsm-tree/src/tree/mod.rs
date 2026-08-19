@@ -2,15 +2,14 @@ pub mod ingest;
 pub mod inner;
 
 use crate::{
-    BoxedIterator, Checksum, Config, InternalValue, KvPair, SeqNo, Table, TableId, UserKey,
-    UserValue,
+    BoxedIterator, Checksum, Config, InternalValue, Slice, Table,
     file::CURRENT_VERSION_FILE,
     merge::Merger,
     mvcc_stream::MvccStream,
     run_reader::RunReader,
     version::{Version, recovery::Recovery},
 };
-use inner::{Inner, TreeId};
+use inner::Inner;
 use std::{
     ops::{Bound, RangeBounds},
     path::Path,
@@ -63,14 +62,16 @@ impl Tree {
     /// # Errors
     ///
     /// Returns an error when an underlying table cannot be read.
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> crate::Result<Option<UserValue>> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> crate::Result<Option<Slice>> {
         let version = self.versions.load();
         Self::get_from_tables(&version, key.as_ref())
     }
 
     /// Iterates over all latest key-value pairs.
     #[must_use]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = crate::Result<KvPair>> + Send + 'static {
+    pub fn iter(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
         self.range::<&[u8], _>(..)
     }
 
@@ -79,7 +80,7 @@ impl Tree {
     pub fn range<K: AsRef<[u8]>, R: RangeBounds<K>>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<KvPair>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
         let bounds = Self::owned_bounds(&range);
         let version = self.versions.load();
 
@@ -92,7 +93,7 @@ impl Tree {
     pub fn prefix<K: AsRef<[u8]>>(
         &self,
         prefix: K,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<KvPair>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
         self.range(crate::range::prefix_to_range(prefix.as_ref()))
     }
 
@@ -134,7 +135,7 @@ impl Tree {
         self.versions.load().id()
     }
 
-    fn get_from_tables(version: &Version, key: &[u8]) -> crate::Result<Option<UserValue>> {
+    fn get_from_tables(version: &Version, key: &[u8]) -> crate::Result<Option<Slice>> {
         let mut key_hash = None;
 
         for table in version
@@ -150,9 +151,7 @@ impl Tree {
         Ok(None)
     }
 
-    fn owned_bounds<K: AsRef<[u8]>, R: RangeBounds<K>>(
-        range: &R,
-    ) -> (Bound<UserKey>, Bound<UserKey>) {
+    fn owned_bounds<K: AsRef<[u8]>, R: RangeBounds<K>>(range: &R) -> (Bound<Slice>, Bound<Slice>) {
         let start = match range.start_bound() {
             Bound::Included(key) => Bound::Included(key.as_ref().into()),
             Bound::Excluded(key) => Bound::Excluded(key.as_ref().into()),
@@ -168,7 +167,7 @@ impl Tree {
 
     fn range_from(
         version: &Version,
-        bounds: (Bound<UserKey>, Bound<UserKey>),
+        bounds: (Bound<Slice>, Bound<Slice>),
     ) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + Send + 'static + use<>
     {
         let mut readers: Vec<BoxedIterator<'static>> = Vec::new();
@@ -184,12 +183,12 @@ impl Tree {
                     if let Some(table) = run.first()
                         && table.check_key_range_overlap(&overlap)
                     {
-                        readers.push(Box::new(table.range(bounds.clone())));
+                        readers.push(BoxedIterator::new(table.range(bounds.clone())));
                     }
                 }
                 _ => {
                     if let Some(reader) = RunReader::new(run.clone(), bounds.clone()) {
-                        readers.push(Box::new(reader));
+                        readers.push(BoxedIterator::new(reader));
                     }
                 }
             }
@@ -216,10 +215,10 @@ impl Tree {
         Ok(Self(Arc::new(Inner::create_new(config)?)))
     }
 
-    fn recover_tables(path: &Path, tree_id: TreeId, config: &Config) -> crate::Result<Version> {
+    fn recover_tables(path: &Path, tree_id: u32, config: &Config) -> crate::Result<Version> {
         let recovery = Recovery::load(path)?;
-        let mut expected: crate::HashMap<TableId, (u8, Checksum, SeqNo)> =
-            crate::HashMap::default();
+        let mut expected: rustc_hash::FxHashMap<u32, (u8, Checksum, u64)> =
+            rustc_hash::FxHashMap::default();
 
         for (level_index, runs) in (0_u8..).zip(&recovery.table_ids) {
             for table in runs.iter().flatten() {
@@ -242,7 +241,7 @@ impl Tree {
             let table_id = file_name
                 .to_str()
                 .ok_or(crate::Error::Unrecoverable)?
-                .parse::<TableId>()
+                .parse::<u32>()
                 .map_err(|_| crate::Error::Unrecoverable)?;
 
             if let Some(&(level, checksum, global_seqno)) = expected.get(&table_id) {

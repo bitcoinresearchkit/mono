@@ -44,7 +44,7 @@ impl Iterator for BlockIterator {
 
                 Some(Ok(Block::from((height, hash, block))))
             }
-            State::Reader { receiver } => match receiver.recv().ok()? {
+            State::Reader { receiver } => match receiver.next()? {
                 Ok(b) => Some(Ok(Block::from(b))),
                 Err(e) => Some(Err(e)),
             },

@@ -42,10 +42,6 @@
 )]
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
-type HashMap<K, V> = std::collections::HashMap<K, V, rustc_hash::FxBuildHasher>;
-
-type HashSet<K> = std::collections::HashSet<K, rustc_hash::FxBuildHasher>;
-
 macro_rules! fail_iter {
     ($e:expr) => {
         match $e {
@@ -59,6 +55,7 @@ macro_rules! unwrap {
     ($x:expr) => {{ $x.expect("should read") }};
 }
 
+mod boxed_iterator;
 #[doc(hidden)]
 mod cache;
 
@@ -102,21 +99,11 @@ mod tree;
 mod value;
 mod value_type;
 mod version;
-/// User defined key (byte array)
-pub type UserKey = Slice;
-
-/// User defined data (byte array)
-pub type UserValue = Slice;
-
-/// KV-tuple (key + value)
-pub type KvPair = (UserKey, UserValue);
-
 use {
+    boxed_iterator::BoxedIterator,
     key_range::KeyRange,
-    merge::BoxedIterator,
-    table::{GlobalTableId, Table, TableId},
-    tree::inner::TreeId,
-    value::{InternalValue, SeqNo},
+    table::{GlobalTableId, Table},
+    value::InternalValue,
     value_type::ValueType,
 };
 

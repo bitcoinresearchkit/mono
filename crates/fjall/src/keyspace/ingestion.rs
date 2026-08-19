@@ -1,5 +1,5 @@
 use crate::Keyspace;
-use lsm_tree::{Ingestion as TreeIngestion, UserKey, UserValue};
+use lsm_tree::{Ingestion as TreeIngestion, Slice};
 
 /// A strictly sorted stream written directly into `SSTables`.
 pub struct Ingestion<'a> {
@@ -19,11 +19,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error if the table writer fails.
-    pub fn write<K: Into<UserKey>, V: Into<UserValue>>(
-        &mut self,
-        key: K,
-        value: V,
-    ) -> crate::Result<()> {
+    pub fn write<K: Into<Slice>, V: Into<Slice>>(&mut self, key: K, value: V) -> crate::Result<()> {
         self.inner.write(key, value).map_err(Into::into)
     }
 
@@ -32,7 +28,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error if the table writer fails.
-    pub fn write_weak_tombstone<K: Into<UserKey>>(&mut self, key: K) -> crate::Result<()> {
+    pub fn write_weak_tombstone<K: Into<Slice>>(&mut self, key: K) -> crate::Result<()> {
         self.inner.write_weak_tombstone(key).map_err(Into::into)
     }
 

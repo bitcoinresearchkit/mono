@@ -1,9 +1,9 @@
 use std::vec;
 
 use brk_error::Result;
-use brk_reader::{Reader, Receiver};
+use brk_reader::{BlockReceiver, Reader};
 use brk_rpc::Client;
-use brk_types::{BlockHash, Height, ReadBlock};
+use brk_types::{BlockHash, Height};
 
 pub enum State {
     Rpc {
@@ -12,7 +12,7 @@ pub enum State {
         prev_hash: Option<BlockHash>,
     },
     Reader {
-        receiver: Receiver<Result<ReadBlock>>,
+        receiver: BlockReceiver,
     },
 }
 

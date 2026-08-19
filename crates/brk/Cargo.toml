@@ -29,9 +29,9 @@ full = [
     "traversable",
     "types",
 ]
-bencher = ["brk_bencher"]
-bindgen = ["brk_bindgen"]
-client = ["brk_client"]
+bencher = ["bitview_bencher"]
+bindgen = ["bitview_bindgen"]
+client = ["bitview_client"]
 computer = ["brk_computer"]
 error = ["brk_error"]
 fetcher = ["brk_fetcher"]
@@ -41,18 +41,18 @@ iterator = ["brk_iterator"]
 logger = ["brk_logger"]
 mempool = ["brk_mempool"]
 oracle = ["brk_oracle"]
-query = ["brk_query"]
+query = ["bitview_query"]
 reader = ["brk_reader"]
 rpc = ["brk_rpc"]
-server = ["brk_server"]
+server = ["bitview_server"]
 store = ["brk_store"]
-traversable = ["brk_traversable"]
+traversable = ["bitview_traversable"]
 types = ["brk_types"]
 
 [dependencies]
-brk_bencher = { workspace = true, optional = true }
-brk_bindgen = { workspace = true, optional = true }
-brk_client = { workspace = true, optional = true }
+bitview_bencher = { workspace = true, optional = true }
+bitview_bindgen = { workspace = true, optional = true }
+bitview_client = { workspace = true, optional = true }
 brk_computer = { workspace = true, optional = true }
 brk_error = { workspace = true, optional = true }
 brk_fetcher = { workspace = true, optional = true }
@@ -62,12 +62,12 @@ brk_iterator = { workspace = true, optional = true }
 brk_logger = { workspace = true, optional = true }
 brk_mempool = { workspace = true, optional = true }
 brk_oracle = { workspace = true, optional = true }
-brk_query = { workspace = true, optional = true }
+bitview_query = { workspace = true, optional = true }
 brk_reader = { workspace = true, optional = true }
 brk_rpc = { workspace = true, optional = true }
-brk_server = { workspace = true, optional = true }
+bitview_server = { workspace = true, optional = true }
 brk_store = { workspace = true, optional = true }
-brk_traversable = { workspace = true, optional = true }
+bitview_traversable = { workspace = true, optional = true }
 brk_types = { workspace = true, optional = true }
 
 [package.metadata.docs.rs]

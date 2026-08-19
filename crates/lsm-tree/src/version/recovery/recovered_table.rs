@@ -1,7 +1,7 @@
-use crate::{Checksum, SeqNo, TableId};
+use crate::Checksum;
 
 pub struct RecoveredTable {
-    pub id: TableId,
+    pub id: u32,
     pub checksum: Checksum,
-    pub global_seqno: SeqNo,
+    pub global_seqno: u64,
 }

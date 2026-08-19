@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use derive_more::Deref;
 
 const BLK: &str = "blk";
@@ -19,7 +19,7 @@ impl BlkIndexToBlkPath {
     /// silently; anything that **looks** like a blk file but fails to
     /// parse or isn't a regular file is a hard error, since silently
     /// dropping one would leave an undetectable hole in the chain.
-    pub fn scan(blocks_dir: &Path) -> Result<Self> {
+    pub fn scan(blocks_dir: &Path) -> brk_error::Result<Self> {
         let mut map = BTreeMap::new();
 
         for entry in fs::read_dir(blocks_dir)? {

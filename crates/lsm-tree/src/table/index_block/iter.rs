@@ -3,7 +3,6 @@
 // (found in the LICENSE-* files in the repository)
 
 use crate::{
-    SeqNo,
     double_ended_peekable::{DoubleEndedPeekable, DoubleEndedPeekableExt},
     table::{KeyedBlockHandle, block::Decoder, index_block::IndexBlockParsedItem},
 };
@@ -22,7 +21,7 @@ impl<'a> Iter<'a> {
         Self { decoder }
     }
 
-    pub fn seek(&mut self, needle: &[u8], seqno: SeqNo) -> bool {
+    pub fn seek(&mut self, needle: &[u8], seqno: u64) -> bool {
         self.decoder.inner_mut().seek(
             |end_key, s| match end_key.cmp(needle) {
                 std::cmp::Ordering::Greater => false,
@@ -33,7 +32,7 @@ impl<'a> Iter<'a> {
         )
     }
 
-    pub fn seek_upper(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
+    pub fn seek_upper(&mut self, needle: &[u8], _seqno: u64) -> bool {
         self.decoder
             .inner_mut()
             .seek_upper(|end_key, _s| end_key <= needle, true)

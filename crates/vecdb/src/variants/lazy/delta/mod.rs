@@ -27,7 +27,7 @@ use crate::{ReadableBoxedVec, VecIndex, VecValue, Version};
 ///   count = `h - start`. Used for point-to-point deltas (change, rate).
 ///
 /// Nothing is stored on disk — values are computed on-the-fly during iteration.
-pub struct LazyDeltaVec<I, S, T, Op> {
+pub struct LazyDeltaVec<I: VecIndex, S: VecValue, T, Op> {
     pub(super) name: Arc<str>,
     pub(super) base_version: Version,
     pub(super) source: ReadableBoxedVec<I, S>,

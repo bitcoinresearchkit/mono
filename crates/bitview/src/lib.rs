@@ -1,29 +1,27 @@
 #![doc = include_str!("../README.md")]
 
+use brk_error::Result;
+
 use std::{
-    fs,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
 
+use bitview_plugin::ComputePlugin;
+use bitview_query::AsyncQuery;
+pub use bitview_runtime::Computer;
+use bitview_server::{Server, ServerConfig};
 use brk_alloc::Mimalloc;
-use brk_computer::Computer;
-use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_mempool::Mempool;
-use brk_query::AsyncQuery;
 use brk_reader::Reader;
-use brk_server::{Server, ServerConfig};
 use tracing::info;
 use vecdb::Exit;
 
 mod config;
 mod paths;
 
-use crate::{
-    config::Config,
-    paths::{dot_brk_log_path, dot_brk_path},
-};
+use crate::{config::Config, paths::default_logs_dir};
 
 /// The Bitview project website.
 pub const HOMEPAGE: &str = "https://bitview.dev";
@@ -35,12 +33,10 @@ pub const INSTANCE: &str = "https://bitview.space";
 pub const TOOLKIT: &str = "https://bitcoinresearchkit.org";
 
 /// Runs the default Bitview composition.
-pub fn run() -> anyhow::Result<()> {
-    fs::create_dir_all(dot_brk_path())?;
-
-    brk_logger::init(Some(&dot_brk_log_path()))?;
-
+pub fn run() -> Result<()> {
     let config = Config::import()?;
+
+    brk_logger::init(Some(&default_logs_dir()))?;
 
     let client = config.rpc()?;
 
@@ -49,7 +45,7 @@ pub fn run() -> anyhow::Result<()> {
 
     let reader = Reader::new(config.blocksdir(), &client);
 
-    let mut indexer = Indexer::import(&config.brkdir(), &reader)?;
+    let mut indexer = Indexer::import(&config.bitviewdir(), &reader)?;
 
     #[cfg(not(debug_assertions))]
     {
@@ -62,14 +58,14 @@ pub fn run() -> anyhow::Result<()> {
             info!("Indexing {blocks_behind} blocks before starting server...");
             info!("---");
             sleep(Duration::from_secs(10));
-            indexer.index(&exit)?;
+            indexer.compute((), &exit)?;
             drop(indexer);
             Mimalloc::collect();
-            indexer = Indexer::import(&config.brkdir(), &reader)?;
+            indexer = Indexer::import(&config.bitviewdir(), &reader)?;
         }
     }
 
-    let mut computer = Computer::forced_import(&config.brkdir(), &indexer)?;
+    let mut computer = Computer::forced_import(&config.bitviewdir(), &indexer)?;
 
     let mempool = Mempool::new(&client);
 
@@ -83,14 +79,14 @@ pub fn run() -> anyhow::Result<()> {
     });
 
     let server_config = ServerConfig {
-        data_path: config.brkdir(),
+        data_path: config.bitviewdir(),
         website: config.website(),
         cdn_cache_mode: config.cdn_cache_mode(),
         max_weight: config.max_weight(),
         max_utxos: config.max_utxos(),
     };
 
-    let port = config.brkport();
+    let port = config.bitviewport();
     let server_query = query.clone();
 
     let future = async move {
@@ -118,11 +114,7 @@ pub fn run() -> anyhow::Result<()> {
 
         let total_start = Instant::now();
 
-        if cfg!(debug_assertions) {
-            indexer.checked_index(&exit)?;
-        } else {
-            indexer.index(&exit)?;
-        }
+        indexer.compute((), &exit)?;
 
         Mimalloc::collect();
 

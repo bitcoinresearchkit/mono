@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_rpc::{Auth, Client};
 
 pub struct Args {
@@ -13,7 +13,7 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn parse(raw: Vec<String>) -> Result<Self> {
+    pub fn parse(raw: Vec<String>) -> brk_error::Result<Self> {
         let mut bitcoindir = None;
         let mut rpcconnect = None;
         let mut rpcport = None;
@@ -57,7 +57,7 @@ impl Args {
         })
     }
 
-    pub fn rpc(&self) -> Result<Client> {
+    pub fn rpc(&self) -> brk_error::Result<Client> {
         let host = self.rpcconnect.as_deref().unwrap_or("localhost");
         let port = self.rpcport.unwrap_or(8332);
         let url = format!("http://{host}:{port}");

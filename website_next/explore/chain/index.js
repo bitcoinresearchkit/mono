@@ -21,8 +21,8 @@ const CLOCK_INTERVAL = 1_000;
 const EDGE_LOAD_DISTANCE = 50;
 const POLL_INTERVAL = 5_000;
 
-/** @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block */
-/** @typedef {import("../../modules/brk-client/index.js").MempoolBlock} MempoolBlock */
+/** @typedef {import("../../modules/bitview-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../modules/bitview-client/index.js").MempoolBlock} MempoolBlock */
 
 /** @param {string | number | null | undefined} hashOrHeight */
 function normalizeTarget(hashOrHeight) {

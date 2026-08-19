@@ -23,11 +23,11 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{ReadableVec, Result, StoredVec, Version};
+use vecdb::{ReadableVec, StoredVec, Version};
 
 const PER_PAGE_U32: usize = 16 * 1024 / size_of::<u32>(); // 4096
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
@@ -37,7 +37,7 @@ fn setup_db() -> Result<(Database, TempDir)> {
 // Small writes stay raw, data survives reopen
 // ============================================================================
 
-fn test_small_write_raw_survives_reopen<V>() -> Result<()>
+fn test_small_write_raw_survives_reopen<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -72,7 +72,7 @@ where
 // Fast-append path: multiple small writes to same raw page
 // ============================================================================
 
-fn test_fast_append_multiple_small_writes<V>() -> Result<()>
+fn test_fast_append_multiple_small_writes<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -114,7 +114,7 @@ where
 // Fast-append survives reopen and continued appending
 // ============================================================================
 
-fn test_fast_append_survives_reopen<V>() -> Result<()>
+fn test_fast_append_survives_reopen<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -166,7 +166,7 @@ where
 // Full page gets compressed, partial tail stays raw
 // ============================================================================
 
-fn test_full_page_compressed_partial_raw<V>() -> Result<()>
+fn test_full_page_compressed_partial_raw<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -206,7 +206,7 @@ where
 // Exact page boundary — no raw tail
 // ============================================================================
 
-fn test_exact_page_boundary<V>() -> Result<()>
+fn test_exact_page_boundary<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -255,7 +255,7 @@ where
 // Fast-append overflow: fills the raw page, triggers compression
 // ============================================================================
 
-fn test_fast_append_overflow<V>() -> Result<()>
+fn test_fast_append_overflow<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -297,7 +297,7 @@ where
 // Fast-append fills exactly to page boundary
 // ============================================================================
 
-fn test_fast_append_fills_exactly<V>() -> Result<()>
+fn test_fast_append_fills_exactly<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -343,7 +343,7 @@ where
 // Incremental growth across multiple pages
 // ============================================================================
 
-fn test_incremental_growth_across_pages<V>() -> Result<()>
+fn test_incremental_growth_across_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -388,7 +388,7 @@ where
 // Truncation into a raw last page
 // ============================================================================
 
-fn test_truncate_into_raw_page<V>() -> Result<()>
+fn test_truncate_into_raw_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -439,7 +439,7 @@ where
 // Truncation to exact page boundary
 // ============================================================================
 
-fn test_truncate_to_page_boundary<V>() -> Result<()>
+fn test_truncate_to_page_boundary<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -493,7 +493,7 @@ where
 // Truncation into a compressed page (removes raw tail and part of compressed)
 // ============================================================================
 
-fn test_truncate_into_compressed_page<V>() -> Result<()>
+fn test_truncate_into_compressed_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -544,7 +544,7 @@ where
 // Reset clears raw pages
 // ============================================================================
 
-fn test_reset_clears_raw_pages<V>() -> Result<()>
+fn test_reset_clears_raw_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -577,7 +577,7 @@ where
 // Reset after multi-page data (compressed + raw)
 // ============================================================================
 
-fn test_reset_after_multi_page<V>() -> Result<()>
+fn test_reset_after_multi_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -617,7 +617,7 @@ where
 // Read spanning compressed and raw pages
 // ============================================================================
 
-fn test_read_spanning_compressed_and_raw<V>() -> Result<()>
+fn test_read_spanning_compressed_and_raw<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -658,7 +658,7 @@ where
 // Multiple pages with raw tail
 // ============================================================================
 
-fn test_multiple_pages_with_raw_tail<V>() -> Result<()>
+fn test_multiple_pages_with_raw_tail<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -706,7 +706,7 @@ where
 // Write-reopen-append cycle (simulates real usage patterns)
 // ============================================================================
 
-fn test_write_reopen_append_cycle<V>() -> Result<()>
+fn test_write_reopen_append_cycle<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -744,7 +744,7 @@ where
 // Write-reopen-append cycle crossing page boundaries
 // ============================================================================
 
-fn test_write_reopen_cycle_crossing_pages<V>() -> Result<()>
+fn test_write_reopen_cycle_crossing_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -782,7 +782,7 @@ where
 // No-op write on a raw page
 // ============================================================================
 
-fn test_noop_write_on_raw_page<V>() -> Result<()>
+fn test_noop_write_on_raw_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -807,7 +807,7 @@ where
 // No-op write after multi-page data
 // ============================================================================
 
-fn test_noop_write_after_multi_page<V>() -> Result<()>
+fn test_noop_write_after_multi_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -832,7 +832,7 @@ where
 // fold/iteration over mixed compressed+raw pages
 // ============================================================================
 
-fn test_fold_over_mixed_pages<V>() -> Result<()>
+fn test_fold_over_mixed_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -866,7 +866,7 @@ where
 // Pushed (un-flushed) values mixed with stored raw page
 // ============================================================================
 
-fn test_pushed_and_stored_raw_page<V>() -> Result<()>
+fn test_pushed_and_stored_raw_page<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -906,7 +906,7 @@ where
 // Pushed values mixed with stored compressed + raw pages
 // ============================================================================
 
-fn test_pushed_and_stored_mixed_pages<V>() -> Result<()>
+fn test_pushed_and_stored_mixed_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -950,7 +950,7 @@ where
 // Single value writes (extreme fast-append case)
 // ============================================================================
 
-fn test_single_value_writes<V>() -> Result<()>
+fn test_single_value_writes<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -979,7 +979,7 @@ where
 // Truncate all then rebuild (edge case)
 // ============================================================================
 
-fn test_truncate_to_zero_then_rebuild<V>() -> Result<()>
+fn test_truncate_to_zero_then_rebuild<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -1018,7 +1018,7 @@ where
 // Read-only clone reads mixed pages correctly
 // ============================================================================
 
-fn test_read_only_clone_mixed_pages<V>() -> Result<()>
+fn test_read_only_clone_mixed_pages<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -1056,103 +1056,103 @@ mod pco {
     type V = PcoVec<usize, u32>;
 
     #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
+    fn small_write_raw_survives_reopen() -> vecdb::Result<()> {
         test_small_write_raw_survives_reopen::<V>()
     }
     #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
+    fn fast_append_multiple_small_writes() -> vecdb::Result<()> {
         test_fast_append_multiple_small_writes::<V>()
     }
     #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
+    fn fast_append_survives_reopen() -> vecdb::Result<()> {
         test_fast_append_survives_reopen::<V>()
     }
     #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
+    fn full_page_compressed_partial_raw() -> vecdb::Result<()> {
         test_full_page_compressed_partial_raw::<V>()
     }
     #[test]
-    fn exact_page_boundary() -> Result<()> {
+    fn exact_page_boundary() -> vecdb::Result<()> {
         test_exact_page_boundary::<V>()
     }
     #[test]
-    fn fast_append_overflow() -> Result<()> {
+    fn fast_append_overflow() -> vecdb::Result<()> {
         test_fast_append_overflow::<V>()
     }
     #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
+    fn fast_append_fills_exactly() -> vecdb::Result<()> {
         test_fast_append_fills_exactly::<V>()
     }
     #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
+    fn incremental_growth_across_pages() -> vecdb::Result<()> {
         test_incremental_growth_across_pages::<V>()
     }
     #[test]
-    fn truncate_into_raw_page() -> Result<()> {
+    fn truncate_into_raw_page() -> vecdb::Result<()> {
         test_truncate_into_raw_page::<V>()
     }
     #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
+    fn truncate_to_page_boundary() -> vecdb::Result<()> {
         test_truncate_to_page_boundary::<V>()
     }
     #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
+    fn truncate_into_compressed_page() -> vecdb::Result<()> {
         test_truncate_into_compressed_page::<V>()
     }
     #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
+    fn reset_clears_raw_pages() -> vecdb::Result<()> {
         test_reset_clears_raw_pages::<V>()
     }
     #[test]
-    fn reset_after_multi_page() -> Result<()> {
+    fn reset_after_multi_page() -> vecdb::Result<()> {
         test_reset_after_multi_page::<V>()
     }
     #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
+    fn read_spanning_compressed_and_raw() -> vecdb::Result<()> {
         test_read_spanning_compressed_and_raw::<V>()
     }
     #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
+    fn multiple_pages_with_raw_tail() -> vecdb::Result<()> {
         test_multiple_pages_with_raw_tail::<V>()
     }
     #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
+    fn write_reopen_append_cycle() -> vecdb::Result<()> {
         test_write_reopen_append_cycle::<V>()
     }
     #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
+    fn write_reopen_cycle_crossing_pages() -> vecdb::Result<()> {
         test_write_reopen_cycle_crossing_pages::<V>()
     }
     #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
+    fn noop_write_on_raw_page() -> vecdb::Result<()> {
         test_noop_write_on_raw_page::<V>()
     }
     #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
+    fn noop_write_after_multi_page() -> vecdb::Result<()> {
         test_noop_write_after_multi_page::<V>()
     }
     #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
+    fn fold_over_mixed_pages() -> vecdb::Result<()> {
         test_fold_over_mixed_pages::<V>()
     }
     #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
+    fn pushed_and_stored_raw_page() -> vecdb::Result<()> {
         test_pushed_and_stored_raw_page::<V>()
     }
     #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
+    fn pushed_and_stored_mixed_pages() -> vecdb::Result<()> {
         test_pushed_and_stored_mixed_pages::<V>()
     }
     #[test]
-    fn single_value_writes() -> Result<()> {
+    fn single_value_writes() -> vecdb::Result<()> {
         test_single_value_writes::<V>()
     }
     #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
+    fn truncate_to_zero_then_rebuild() -> vecdb::Result<()> {
         test_truncate_to_zero_then_rebuild::<V>()
     }
     #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
+    fn read_only_clone_mixed_pages() -> vecdb::Result<()> {
         test_read_only_clone_mixed_pages::<V>()
     }
 }
@@ -1164,103 +1164,103 @@ mod lz4 {
     type V = LZ4Vec<usize, u32>;
 
     #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
+    fn small_write_raw_survives_reopen() -> vecdb::Result<()> {
         test_small_write_raw_survives_reopen::<V>()
     }
     #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
+    fn fast_append_multiple_small_writes() -> vecdb::Result<()> {
         test_fast_append_multiple_small_writes::<V>()
     }
     #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
+    fn fast_append_survives_reopen() -> vecdb::Result<()> {
         test_fast_append_survives_reopen::<V>()
     }
     #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
+    fn full_page_compressed_partial_raw() -> vecdb::Result<()> {
         test_full_page_compressed_partial_raw::<V>()
     }
     #[test]
-    fn exact_page_boundary() -> Result<()> {
+    fn exact_page_boundary() -> vecdb::Result<()> {
         test_exact_page_boundary::<V>()
     }
     #[test]
-    fn fast_append_overflow() -> Result<()> {
+    fn fast_append_overflow() -> vecdb::Result<()> {
         test_fast_append_overflow::<V>()
     }
     #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
+    fn fast_append_fills_exactly() -> vecdb::Result<()> {
         test_fast_append_fills_exactly::<V>()
     }
     #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
+    fn incremental_growth_across_pages() -> vecdb::Result<()> {
         test_incremental_growth_across_pages::<V>()
     }
     #[test]
-    fn truncate_into_raw_page() -> Result<()> {
+    fn truncate_into_raw_page() -> vecdb::Result<()> {
         test_truncate_into_raw_page::<V>()
     }
     #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
+    fn truncate_to_page_boundary() -> vecdb::Result<()> {
         test_truncate_to_page_boundary::<V>()
     }
     #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
+    fn truncate_into_compressed_page() -> vecdb::Result<()> {
         test_truncate_into_compressed_page::<V>()
     }
     #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
+    fn reset_clears_raw_pages() -> vecdb::Result<()> {
         test_reset_clears_raw_pages::<V>()
     }
     #[test]
-    fn reset_after_multi_page() -> Result<()> {
+    fn reset_after_multi_page() -> vecdb::Result<()> {
         test_reset_after_multi_page::<V>()
     }
     #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
+    fn read_spanning_compressed_and_raw() -> vecdb::Result<()> {
         test_read_spanning_compressed_and_raw::<V>()
     }
     #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
+    fn multiple_pages_with_raw_tail() -> vecdb::Result<()> {
         test_multiple_pages_with_raw_tail::<V>()
     }
     #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
+    fn write_reopen_append_cycle() -> vecdb::Result<()> {
         test_write_reopen_append_cycle::<V>()
     }
     #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
+    fn write_reopen_cycle_crossing_pages() -> vecdb::Result<()> {
         test_write_reopen_cycle_crossing_pages::<V>()
     }
     #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
+    fn noop_write_on_raw_page() -> vecdb::Result<()> {
         test_noop_write_on_raw_page::<V>()
     }
     #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
+    fn noop_write_after_multi_page() -> vecdb::Result<()> {
         test_noop_write_after_multi_page::<V>()
     }
     #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
+    fn fold_over_mixed_pages() -> vecdb::Result<()> {
         test_fold_over_mixed_pages::<V>()
     }
     #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
+    fn pushed_and_stored_raw_page() -> vecdb::Result<()> {
         test_pushed_and_stored_raw_page::<V>()
     }
     #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
+    fn pushed_and_stored_mixed_pages() -> vecdb::Result<()> {
         test_pushed_and_stored_mixed_pages::<V>()
     }
     #[test]
-    fn single_value_writes() -> Result<()> {
+    fn single_value_writes() -> vecdb::Result<()> {
         test_single_value_writes::<V>()
     }
     #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
+    fn truncate_to_zero_then_rebuild() -> vecdb::Result<()> {
         test_truncate_to_zero_then_rebuild::<V>()
     }
     #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
+    fn read_only_clone_mixed_pages() -> vecdb::Result<()> {
         test_read_only_clone_mixed_pages::<V>()
     }
 }
@@ -1272,103 +1272,103 @@ mod zstd {
     type V = ZstdVec<usize, u32>;
 
     #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
+    fn small_write_raw_survives_reopen() -> vecdb::Result<()> {
         test_small_write_raw_survives_reopen::<V>()
     }
     #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
+    fn fast_append_multiple_small_writes() -> vecdb::Result<()> {
         test_fast_append_multiple_small_writes::<V>()
     }
     #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
+    fn fast_append_survives_reopen() -> vecdb::Result<()> {
         test_fast_append_survives_reopen::<V>()
     }
     #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
+    fn full_page_compressed_partial_raw() -> vecdb::Result<()> {
         test_full_page_compressed_partial_raw::<V>()
     }
     #[test]
-    fn exact_page_boundary() -> Result<()> {
+    fn exact_page_boundary() -> vecdb::Result<()> {
         test_exact_page_boundary::<V>()
     }
     #[test]
-    fn fast_append_overflow() -> Result<()> {
+    fn fast_append_overflow() -> vecdb::Result<()> {
         test_fast_append_overflow::<V>()
     }
     #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
+    fn fast_append_fills_exactly() -> vecdb::Result<()> {
         test_fast_append_fills_exactly::<V>()
     }
     #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
+    fn incremental_growth_across_pages() -> vecdb::Result<()> {
         test_incremental_growth_across_pages::<V>()
     }
     #[test]
-    fn truncate_into_raw_page() -> Result<()> {
+    fn truncate_into_raw_page() -> vecdb::Result<()> {
         test_truncate_into_raw_page::<V>()
     }
     #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
+    fn truncate_to_page_boundary() -> vecdb::Result<()> {
         test_truncate_to_page_boundary::<V>()
     }
     #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
+    fn truncate_into_compressed_page() -> vecdb::Result<()> {
         test_truncate_into_compressed_page::<V>()
     }
     #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
+    fn reset_clears_raw_pages() -> vecdb::Result<()> {
         test_reset_clears_raw_pages::<V>()
     }
     #[test]
-    fn reset_after_multi_page() -> Result<()> {
+    fn reset_after_multi_page() -> vecdb::Result<()> {
         test_reset_after_multi_page::<V>()
     }
     #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
+    fn read_spanning_compressed_and_raw() -> vecdb::Result<()> {
         test_read_spanning_compressed_and_raw::<V>()
     }
     #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
+    fn multiple_pages_with_raw_tail() -> vecdb::Result<()> {
         test_multiple_pages_with_raw_tail::<V>()
     }
     #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
+    fn write_reopen_append_cycle() -> vecdb::Result<()> {
         test_write_reopen_append_cycle::<V>()
     }
     #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
+    fn write_reopen_cycle_crossing_pages() -> vecdb::Result<()> {
         test_write_reopen_cycle_crossing_pages::<V>()
     }
     #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
+    fn noop_write_on_raw_page() -> vecdb::Result<()> {
         test_noop_write_on_raw_page::<V>()
     }
     #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
+    fn noop_write_after_multi_page() -> vecdb::Result<()> {
         test_noop_write_after_multi_page::<V>()
     }
     #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
+    fn fold_over_mixed_pages() -> vecdb::Result<()> {
         test_fold_over_mixed_pages::<V>()
     }
     #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
+    fn pushed_and_stored_raw_page() -> vecdb::Result<()> {
         test_pushed_and_stored_raw_page::<V>()
     }
     #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
+    fn pushed_and_stored_mixed_pages() -> vecdb::Result<()> {
         test_pushed_and_stored_mixed_pages::<V>()
     }
     #[test]
-    fn single_value_writes() -> Result<()> {
+    fn single_value_writes() -> vecdb::Result<()> {
         test_single_value_writes::<V>()
     }
     #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
+    fn truncate_to_zero_then_rebuild() -> vecdb::Result<()> {
         test_truncate_to_zero_then_rebuild::<V>()
     }
     #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
+    fn read_only_clone_mixed_pages() -> vecdb::Result<()> {
         test_read_only_clone_mixed_pages::<V>()
     }
 }

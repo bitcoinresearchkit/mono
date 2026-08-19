@@ -3,7 +3,7 @@
 import { readFile } from "node:fs/promises";
 
 const DEFAULT_BASE = "http://127.0.0.1:3110";
-const DEFAULT_MANIFEST = "crates/brk_mcp/generated/manifest.json";
+const DEFAULT_MANIFEST = "crates/bitview_mcp/generated/manifest.json";
 const SAMPLE_LIMIT = 256;
 
 function option(name, fallback) {

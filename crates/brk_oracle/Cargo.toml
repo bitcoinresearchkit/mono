@@ -10,6 +10,9 @@ exclude = ["examples/"]
 
 [dependencies]
 brk_types = { workspace = true }
+derive_more = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
 
 [dev-dependencies]
 brk_indexer = { workspace = true }

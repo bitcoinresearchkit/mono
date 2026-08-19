@@ -5,8 +5,8 @@ mod readable;
 mod typed;
 
 use crate::{
-    Error, HEADER_OFFSET, RawIoSource, RawMmapSource, ReadOnlyBaseVec, Result, Stamp, VecIndex,
-    VecReader, VecValue,
+    Error, HEADER_OFFSET, RawIoSource, RawMmapSource, ReadOnlyBaseVec, Stamp, VecIndex, VecReader,
+    VecValue,
 };
 
 use super::RawStrategy;
@@ -57,7 +57,7 @@ where
     }
 
     #[inline]
-    pub fn read_at_once(&self, index: usize) -> Result<T> {
+    pub fn read_at_once(&self, index: usize) -> crate::Result<T> {
         let len = self.base.len();
         if index >= len {
             return Err(Error::IndexTooHigh {
@@ -73,7 +73,7 @@ where
     }
 
     #[inline]
-    pub fn read_once(&self, index: I) -> Result<T> {
+    pub fn read_once(&self, index: I) -> crate::Result<T> {
         self.read_at_once(index.to_usize())
     }
 

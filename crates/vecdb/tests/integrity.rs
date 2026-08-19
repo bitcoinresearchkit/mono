@@ -9,8 +9,8 @@ use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use vecdb::{
-    AnyStoredVec, ImportOptions, ImportableVec, RawStrategy, ReadWriteRawVec, ReadableVec, Result,
-    Stamp, StoredVec, VecReader, Version, WritableVec,
+    AnyStoredVec, ImportOptions, ImportableVec, RawStrategy, ReadWriteRawVec, ReadableVec, Stamp,
+    StoredVec, VecReader, Version, WritableVec,
 };
 
 // ============================================================================
@@ -25,15 +25,15 @@ where
         db: &'a Database,
         name: &'a str,
         changes: u16,
-    ) -> Result<(Self, ImportOptions<'a>)>;
+    ) -> vecdb::Result<(Self, ImportOptions<'a>)>;
 }
 
 pub trait IntegrityOps {
     type Reader;
 
-    fn update(&mut self, index: usize, value: u32) -> Result<()>;
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()>;
     fn take(&mut self, index: usize) -> Option<u32>;
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()>;
     fn stamp(&self) -> Stamp;
     fn collect(&self) -> Vec<u32>;
     fn collect_holed(&self) -> Vec<Option<u32>>;
@@ -48,7 +48,7 @@ where
 {
     type Reader = VecReader<usize, u32, S>;
 
-    fn update(&mut self, index: usize, value: u32) -> Result<()> {
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
         ReadWriteRawVec::update(self, index, value)
     }
 
@@ -59,7 +59,7 @@ where
         result
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()> {
         WritableVec::stamped_write_with_changes(self, stamp)
     }
 
@@ -85,7 +85,7 @@ where
 }
 
 /// Helper to create a temporary test database
-pub fn setup_test_db() -> Result<(Database, TempDir)> {
+pub fn setup_test_db() -> vecdb::Result<(Database, TempDir)> {
     let temp_dir = TempDir::new()?;
     let db = Database::open(temp_dir.path())?;
     Ok((db, temp_dir))
@@ -475,7 +475,7 @@ mod bytes {
             db: &'a Database,
             name: &'a str,
             changes: u16,
-        ) -> Result<(Self, ImportOptions<'a>)> {
+        ) -> vecdb::Result<(Self, ImportOptions<'a>)> {
             let mut options: ImportOptions = (db, name, Version::TWO).into();
             options = options.with_saved_stamped_changes(changes);
             let vec = Self::forced_import_with(options)?;
@@ -503,7 +503,7 @@ mod zerocopy {
             db: &'a Database,
             name: &'a str,
             changes: u16,
-        ) -> Result<(Self, ImportOptions<'a>)> {
+        ) -> vecdb::Result<(Self, ImportOptions<'a>)> {
             let mut options: ImportOptions = (db, name, Version::TWO).into();
             options = options.with_saved_stamped_changes(changes);
             let vec = Self::forced_import_with(options)?;

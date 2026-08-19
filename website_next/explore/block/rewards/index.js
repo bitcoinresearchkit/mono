@@ -6,7 +6,7 @@ import {
 } from "../../../legend/index.js";
 import { createUsdAmount } from "../../../usd/index.js";
 
-/** @typedef {import("../../../modules/brk-client/index.js").BlockExtras} BlockExtras */
+/** @typedef {import("../../../modules/bitview-client/index.js").BlockExtras} BlockExtras */
 
 const REWARD_COLORS = /** @type {const} */ ({
   subsidy: "var(--orange)",

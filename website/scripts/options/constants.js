@@ -7,7 +7,7 @@ import { line } from "./series.js";
 /**
  * Get constant pattern by number dynamically from tree
  * Examples: 0 → _0, 38.2 → _382, -1 → minus1
- * @param {BrkClient["series"]["constants"]} constants
+ * @param {BitviewClient["series"]["constants"]} constants
  * @param {number} num
  * @returns {AnySeriesPattern}
  */

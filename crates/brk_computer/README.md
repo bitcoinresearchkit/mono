@@ -84,4 +84,4 @@ Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator to 
 - `brk_cohort` for cohort filtering
 - `brk_oracle` for on-chain price data
 - `brk_reader` for raw block access
-- `brk_traversable` for data export
+- `bitview_traversable` for data export

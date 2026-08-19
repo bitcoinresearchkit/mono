@@ -13,12 +13,9 @@ use super::{
     block::{BlockOffset, Encoder, Trailer},
 };
 use crate::Slice;
-use crate::{
-    SeqNo,
-    table::{
-        block::{Decoder, ParsedItem},
-        util::{SliceIndexes, compare_prefixed_slice},
-    },
+use crate::table::{
+    block::{Decoder, ParsedItem},
+    util::{SliceIndexes, compare_prefixed_slice},
 };
 
 #[derive(Debug)]
@@ -27,7 +24,7 @@ pub struct IndexBlockParsedItem {
     pub size: u32,
     pub prefix: Option<SliceIndexes>,
     pub end_key: SliceIndexes,
-    pub seqno: SeqNo,
+    pub seqno: u64,
 }
 
 impl ParsedItem<KeyedBlockHandle> for IndexBlockParsedItem {

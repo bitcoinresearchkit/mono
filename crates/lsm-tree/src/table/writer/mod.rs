@@ -11,7 +11,7 @@ use super::{
     filter::BloomConstructionPolicy,
 };
 use crate::{
-    Checksum, CompressionType, InternalValue, TableId,
+    Checksum, CompressionType, InternalValue,
     checksum::{ChecksumType, ChecksummedWriter},
     coding::Encode,
     file::fsync_directory,
@@ -55,7 +55,7 @@ pub struct Writer {
     /// Table file path
     pub(crate) path: PathBuf,
 
-    table_id: TableId,
+    table_id: u32,
 
     data_block_restart_interval: u8,
     index_block_restart_interval: u8,
@@ -102,7 +102,7 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn new(path: PathBuf, table_id: TableId) -> crate::Result<Self> {
+    pub fn new(path: PathBuf, table_id: u32) -> crate::Result<Self> {
         let writer = BufWriter::with_capacity(u16::MAX.into(), File::create_new(&path)?);
         let writer = ChecksummedWriter::new(writer);
         let mut writer = sfa::Writer::from_writer(writer);
@@ -343,7 +343,7 @@ impl Writer {
 
     // TODO: split meta writing into new function
     /// Finishes the table, making sure all data is written durably
-    pub fn finish(mut self) -> crate::Result<Option<(TableId, Checksum)>> {
+    pub fn finish(mut self) -> crate::Result<Option<(u32, Checksum)>> {
         use std::io::Write;
 
         self.spill_block()?;

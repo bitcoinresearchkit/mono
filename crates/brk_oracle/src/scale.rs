@@ -1,20 +1,9 @@
-use brk_types::{Histogram, Sats};
+use brk_types::Sats;
 
 pub const BINS_PER_DECADE: usize = 200;
 const MIN_LOG_BTC: i32 = -8;
 const MAX_LOG_BTC: i32 = 4;
 pub const NUM_BINS: usize = BINS_PER_DECADE * (MAX_LOG_BTC - MIN_LOG_BTC) as usize;
-
-/// Per-bin integer counts on the oracle log scale: used for both oracle-eligible
-/// payment histograms and unfiltered output histograms.
-pub type HistogramRaw = Histogram<u32, NUM_BINS>;
-
-/// Smoothed EMA over the window, one `f64` per bin. The stencil search reads it,
-/// never serialized (projected to [`HistogramEmaCompact`] for the wire).
-pub type HistogramEma = Histogram<f64, NUM_BINS>;
-
-/// Quantized `u16` projection of [`HistogramEma`] for the `histogram/ema/*` wire.
-pub type HistogramEmaCompact = Histogram<u16, NUM_BINS>;
 
 /// Maps a satoshi value to its log-scale bin index.
 /// bin = round(log10(sats) * BINS_PER_DECADE).

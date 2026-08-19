@@ -1,4 +1,4 @@
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use brk_types::{Timestamp, Year};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;

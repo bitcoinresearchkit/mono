@@ -5,7 +5,6 @@ use std::{
     time::Duration,
 };
 
-use brk_error::Result;
 use brk_types::{Sats, Txid, Weight};
 
 mod client;
@@ -42,7 +41,7 @@ pub enum Auth {
 pub struct Client(pub(crate) Arc<ClientInner>);
 
 impl Client {
-    pub fn new(url: &str, auth: Auth) -> Result<Self> {
+    pub fn new(url: &str, auth: Auth) -> brk_error::Result<Self> {
         Self::new_with(url, auth, 1_000_000, Duration::from_secs(1))
     }
 
@@ -51,7 +50,7 @@ impl Client {
         auth: Auth,
         max_retries: usize,
         retry_delay: Duration,
-    ) -> Result<Self> {
+    ) -> brk_error::Result<Self> {
         Ok(Self(Arc::new(ClientInner::new(
             url,
             auth,

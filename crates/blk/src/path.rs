@@ -1,4 +1,4 @@
-use brk_error::{Error, Result};
+use brk_error::Error;
 
 pub struct Step {
     pub name: String,
@@ -11,7 +11,7 @@ pub struct Path {
 }
 
 impl Path {
-    pub fn parse(s: &str) -> Result<Self> {
+    pub fn parse(s: &str) -> brk_error::Result<Self> {
         let parts: Vec<&str> = s.split('.').collect();
         let mut steps = Vec::new();
         let mut i = 0;

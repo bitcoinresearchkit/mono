@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(clippy::type_complexity)]
 
 pub use rawdb::{Database, Error as RawDBError, PAGE_SIZE, Reader, likely, unlikely};
 

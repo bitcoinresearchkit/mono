@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::{Date, Height, OHLCCents, Timestamp};
 use tracing::info;
 
@@ -12,20 +12,20 @@ pub trait PriceSource {
     fn name(&self) -> &'static str;
 
     /// Fetch daily OHLC for a date. Returns None if this source doesn't support date queries.
-    fn get_date(&mut self, date: Date) -> Option<Result<OHLCCents>>;
+    fn get_date(&mut self, date: Date) -> Option<brk_error::Result<OHLCCents>>;
 
     /// Fetch minute OHLC for a timestamp range. Returns None if unsupported.
     fn get_1mn(
         &mut self,
         timestamp: Timestamp,
         previous_timestamp: Option<Timestamp>,
-    ) -> Option<Result<OHLCCents>>;
+    ) -> Option<brk_error::Result<OHLCCents>>;
 
     /// Fetch OHLC by block height. Returns None if unsupported.
-    fn get_height(&mut self, height: Height) -> Option<Result<OHLCCents>>;
+    fn get_height(&mut self, height: Height) -> Option<brk_error::Result<OHLCCents>>;
 
     /// Check if the source is reachable
-    fn ping(&self) -> Result<()>;
+    fn ping(&self) -> brk_error::Result<()>;
 
     /// Clear cached data
     fn clear(&mut self);
@@ -69,8 +69,8 @@ impl<T: PriceSource> TrackedSource<T> {
     /// Try to fetch, tracking health state
     fn try_fetch<R>(
         &mut self,
-        fetch: impl FnOnce(&mut T) -> Option<Result<R>>,
-    ) -> Option<Result<R>> {
+        fetch: impl FnOnce(&mut T) -> Option<brk_error::Result<R>>,
+    ) -> Option<brk_error::Result<R>> {
         if !self.is_healthy() {
             return Some(Err(Error::FetchFailed(format!(
                 "{} temporarily disabled (recheck in {}s)",
@@ -84,7 +84,7 @@ impl<T: PriceSource> TrackedSource<T> {
         Some(result)
     }
 
-    fn update_health<R>(&mut self, result: &Result<R>) {
+    fn update_health<R>(&mut self, result: &brk_error::Result<R>) {
         match result {
             Ok(_) => {
                 if self.unhealthy_since.take().is_some() {
@@ -115,7 +115,7 @@ impl<T: PriceSource> PriceSource for TrackedSource<T> {
         self.source.name()
     }
 
-    fn get_date(&mut self, date: Date) -> Option<Result<OHLCCents>> {
+    fn get_date(&mut self, date: Date) -> Option<brk_error::Result<OHLCCents>> {
         self.try_fetch(|s| s.get_date(date))
     }
 
@@ -123,15 +123,15 @@ impl<T: PriceSource> PriceSource for TrackedSource<T> {
         &mut self,
         timestamp: Timestamp,
         previous_timestamp: Option<Timestamp>,
-    ) -> Option<Result<OHLCCents>> {
+    ) -> Option<brk_error::Result<OHLCCents>> {
         self.try_fetch(|s| s.get_1mn(timestamp, previous_timestamp))
     }
 
-    fn get_height(&mut self, height: Height) -> Option<Result<OHLCCents>> {
+    fn get_height(&mut self, height: Height) -> Option<brk_error::Result<OHLCCents>> {
         self.try_fetch(|s| s.get_height(height))
     }
 
-    fn ping(&self) -> Result<()> {
+    fn ping(&self) -> brk_error::Result<()> {
         self.source.ping()
     }
 

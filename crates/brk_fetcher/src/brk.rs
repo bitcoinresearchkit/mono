@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::{Cents, Close, Date, Day1, Dollars, Height, High, Low, OHLCCents, Open, Timestamp};
 use serde_json::Value;
 use tracing::info;
@@ -35,7 +35,7 @@ const API_URL: &str = "https://bitview.space/api/vecs";
 const CHUNK_SIZE: usize = 10_000;
 
 impl BRK {
-    pub fn get_from_height(&mut self, height: Height) -> Result<OHLCCents> {
+    pub fn get_from_height(&mut self, height: Height) -> brk_error::Result<OHLCCents> {
         let (key, offset) = Self::height_chunk(height);
 
         let needs_fetch = self
@@ -60,7 +60,7 @@ impl BRK {
         (Height::from(height - offset), offset)
     }
 
-    fn fetch_height_prices(&self, height: Height) -> Result<Vec<OHLCCents>> {
+    fn fetch_height_prices(&self, height: Height) -> brk_error::Result<Vec<OHLCCents>> {
         let agent = &self.agent;
         default_retry(|_| {
             let url = format!(
@@ -81,7 +81,7 @@ impl BRK {
         })
     }
 
-    pub fn get_from_date(&mut self, date: Date) -> Result<OHLCCents> {
+    pub fn get_from_date(&mut self, date: Date) -> brk_error::Result<OHLCCents> {
         let day1 = Day1::try_from(date)?;
         let (key, offset) = Self::day_chunk(day1);
 
@@ -106,7 +106,7 @@ impl BRK {
         (Day1::from(day - offset), offset)
     }
 
-    fn fetch_date_prices(&self, day1: Day1) -> Result<Vec<OHLCCents>> {
+    fn fetch_date_prices(&self, day1: Day1) -> brk_error::Result<Vec<OHLCCents>> {
         let agent = &self.agent;
         default_retry(|_| {
             let url = format!(
@@ -127,12 +127,12 @@ impl BRK {
         })
     }
 
-    fn value_to_ohlc(value: &Value) -> Result<OHLCCents> {
+    fn value_to_ohlc(value: &Value) -> brk_error::Result<OHLCCents> {
         let ohlc = value
             .as_array()
             .ok_or(Error::Parse("Expected OHLC array".into()))?;
 
-        let get_value = |index: usize| -> Result<_> {
+        let get_value = |index: usize| -> brk_error::Result<_> {
             Ok(Cents::from(Dollars::from(
                 ohlc.get(index)
                     .ok_or(Error::Parse("Missing OHLC value at index".into()))?
@@ -149,7 +149,7 @@ impl BRK {
         )))
     }
 
-    pub fn ping(&self) -> Result<()> {
+    pub fn ping(&self) -> brk_error::Result<()> {
         self.agent.get(API_URL).call()?;
         Ok(())
     }
@@ -160,7 +160,7 @@ impl PriceSource for BRK {
         "BRK"
     }
 
-    fn get_date(&mut self, date: Date) -> Option<Result<OHLCCents>> {
+    fn get_date(&mut self, date: Date) -> Option<brk_error::Result<OHLCCents>> {
         Some(self.get_from_date(date))
     }
 
@@ -168,15 +168,15 @@ impl PriceSource for BRK {
         &mut self,
         _timestamp: Timestamp,
         _previous_timestamp: Option<Timestamp>,
-    ) -> Option<Result<OHLCCents>> {
+    ) -> Option<brk_error::Result<OHLCCents>> {
         None // BRK doesn't support timestamp-based queries
     }
 
-    fn get_height(&mut self, height: Height) -> Option<Result<OHLCCents>> {
+    fn get_height(&mut self, height: Height) -> Option<brk_error::Result<OHLCCents>> {
         Some(self.get_from_height(height))
     }
 
-    fn ping(&self) -> Result<()> {
+    fn ping(&self) -> brk_error::Result<()> {
         self.ping()
     }
 

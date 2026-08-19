@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::Version;
 use fjall::Keyspace;
 
@@ -17,9 +17,9 @@ impl StoreMeta {
         path: &Path,
         version: Version,
         open_partition_handle: F,
-    ) -> Result<(Self, Keyspace)>
+    ) -> brk_error::Result<(Self, Keyspace)>
     where
-        F: Fn() -> Result<Keyspace>,
+        F: Fn() -> brk_error::Result<Keyspace>,
     {
         fs::create_dir_all(path)?;
 

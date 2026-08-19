@@ -1,8 +1,8 @@
 /**
  * @import { IChartApi, ISeriesApi as _ISeriesApi, SeriesDefinition, SingleValueData as _SingleValueData, CandlestickData as _CandlestickData, BaselineData as _BaselineData, HistogramData as _HistogramData, SeriesType as LCSeriesType, IPaneApi, LineSeriesPartialOptions as _LineSeriesPartialOptions, HistogramSeriesPartialOptions as _HistogramSeriesPartialOptions, BaselineSeriesPartialOptions as _BaselineSeriesPartialOptions, CandlestickSeriesPartialOptions as _CandlestickSeriesPartialOptions, WhitespaceData, DeepPartial, ChartOptions, Time, LineData as _LineData, createChart as CreateLCChart, LineStyle, createSeriesMarkers as CreateSeriesMarkers, SeriesMarker, ISeriesMarkersPluginApi } from './modules/lightweight-charts/5.2.1/dist/typings.js'
  *
- * @import * as Brk from "./modules/brk-client/index.js"
- * @import { BrkClient, Index, SeriesData, Urpd } from "./modules/brk-client/index.js"
+ * @import * as Brk from "./modules/bitview-client/index.js"
+ * @import { BitviewClient, Index, SeriesData, Urpd } from "./modules/bitview-client/index.js"
  *
  * @import { Options } from './options/full.js'
  *
@@ -188,9 +188,9 @@
 
 /**
  *
- * @typedef {InstanceType<typeof BrkClient>["INDEXES"]} Indexes
+ * @typedef {InstanceType<typeof BitviewClient>["INDEXES"]} Indexes
  * @typedef {Indexes[number]} IndexName
- * @typedef {InstanceType<typeof BrkClient>["POOL_ID_TO_POOL_NAME"]} PoolIdToPoolName
+ * @typedef {InstanceType<typeof BitviewClient>["POOL_ID_TO_POOL_NAME"]} PoolIdToPoolName
  * @typedef {keyof PoolIdToPoolName} PoolId
  *
  * Tree branch types

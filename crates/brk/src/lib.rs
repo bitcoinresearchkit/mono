@@ -2,15 +2,15 @@
 
 #[cfg(feature = "bencher")]
 #[doc(inline)]
-pub use brk_bencher as bencher;
+pub use bitview_bencher as bencher;
 
 #[cfg(feature = "bindgen")]
 #[doc(inline)]
-pub use brk_bindgen as bindgen;
+pub use bitview_bindgen as bindgen;
 
 #[cfg(feature = "client")]
 #[doc(inline)]
-pub use brk_client as client;
+pub use bitview_client as client;
 
 #[cfg(feature = "cohort")]
 #[doc(inline)]
@@ -50,7 +50,7 @@ pub use brk_oracle as oracle;
 
 #[cfg(feature = "query")]
 #[doc(inline)]
-pub use brk_query as query;
+pub use bitview_query as query;
 
 #[cfg(feature = "reader")]
 #[doc(inline)]
@@ -62,7 +62,7 @@ pub use brk_rpc as rpc;
 
 #[cfg(feature = "server")]
 #[doc(inline)]
-pub use brk_server as server;
+pub use bitview_server as server;
 
 #[cfg(feature = "store")]
 #[doc(inline)]
@@ -70,7 +70,7 @@ pub use brk_store as store;
 
 #[cfg(feature = "traversable")]
 #[doc(inline)]
-pub use brk_traversable as traversable;
+pub use bitview_traversable as traversable;
 
 #[cfg(feature = "types")]
 #[doc(inline)]

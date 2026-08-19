@@ -1,7 +1,7 @@
-import { BrkClient } from "../modules/brk-client/index.js";
+import { BitviewClient } from "../modules/bitview-client/index.js";
 
-// const brk = new BrkClient("https://bitview.space");
-const brk = new BrkClient("/");
+// const brk = new BitviewClient("https://bitview.space");
+const brk = new BitviewClient("/");
 
 console.log(`VERSION = ${brk.VERSION}`);
 

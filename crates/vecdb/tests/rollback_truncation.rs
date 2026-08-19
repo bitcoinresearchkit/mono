@@ -4,15 +4,15 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{ImportOptions, Result, Stamp, StoredVec, Version};
+use vecdb::{ImportOptions, Stamp, StoredVec, Version};
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
 }
 
-fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> Result<V>
+fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> vecdb::Result<V>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -21,7 +21,7 @@ where
     V::forced_import_with(options)
 }
 
-fn run_rollback_after_pure_truncate<V>() -> Result<()>
+fn run_rollback_after_pure_truncate<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -52,7 +52,7 @@ where
     Ok(())
 }
 
-fn run_rollback_after_truncate_and_push<V>() -> Result<()>
+fn run_rollback_after_truncate_and_push<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -83,7 +83,7 @@ where
     Ok(())
 }
 
-fn run_rollback_truncate_then_reflush<V>() -> Result<()>
+fn run_rollback_truncate_then_reflush<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -111,7 +111,7 @@ where
     Ok(())
 }
 
-fn run_rollback_truncate_persistence<V>() -> Result<()>
+fn run_rollback_truncate_persistence<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -145,19 +145,19 @@ macro_rules! instantiate_for {
             type V = $ty;
 
             #[test]
-            fn rollback_after_pure_truncate() -> Result<()> {
+            fn rollback_after_pure_truncate() -> vecdb::Result<()> {
                 run_rollback_after_pure_truncate::<V>()
             }
             #[test]
-            fn rollback_after_truncate_and_push() -> Result<()> {
+            fn rollback_after_truncate_and_push() -> vecdb::Result<()> {
                 run_rollback_after_truncate_and_push::<V>()
             }
             #[test]
-            fn rollback_truncate_then_reflush() -> Result<()> {
+            fn rollback_truncate_then_reflush() -> vecdb::Result<()> {
                 run_rollback_truncate_then_reflush::<V>()
             }
             #[test]
-            fn rollback_truncate_persistence() -> Result<()> {
+            fn rollback_truncate_persistence() -> vecdb::Result<()> {
                 run_rollback_truncate_persistence::<V>()
             }
         }

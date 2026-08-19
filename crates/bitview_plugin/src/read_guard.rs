@@ -6,7 +6,13 @@ use crate::Plugin;
 
 /// Keeps a Bitview plugin's mutable state stable for one logical read.
 pub struct PluginReadGuard {
-    pub(crate) guards: Vec<ArcRwLockReadGuard<RawRwLock, ()>>,
+    guards: Vec<ArcRwLockReadGuard<RawRwLock, ()>>,
+}
+
+pub fn single(guard: ArcRwLockReadGuard<RawRwLock, ()>) -> PluginReadGuard {
+    PluginReadGuard {
+        guards: vec![guard],
+    }
 }
 
 impl PluginReadGuard {

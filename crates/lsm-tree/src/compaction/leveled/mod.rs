@@ -4,7 +4,6 @@
 
 use super::{Choice, Input as CompactionInput};
 use crate::{
-    HashSet, TableId,
     compaction::state::{CompactionState, hidden_set::HiddenSet},
     slice_windows::{GrowingWindowsExt, ShrinkingWindowsExt},
     table::{Table, util::aggregate_run_key_range},
@@ -18,7 +17,7 @@ fn pick_minimal_compaction(
     hidden_set: &HiddenSet,
     _overshoot: u64,
     table_base_size: u64,
-) -> Option<(HashSet<TableId>, bool)> {
+) -> Option<(rustc_hash::FxHashSet<u32>, bool)> {
     // NOTE: Find largest trivial move (if it exists)
     if let Some(window) = curr_run.shrinking_windows().find(|window| {
         if hidden_set.is_blocked(window.iter().map(Table::id)) {
@@ -94,7 +93,7 @@ fn pick_minimal_compaction(
             // Find the compaction with the smallest write set
             .min_by_key(|(_, _, _waf, bytes)| *bytes)
             .map(|(window, curr_level_pull_in, _, _)| {
-                let mut ids: HashSet<_> = window.iter().map(Table::id).collect();
+                let mut ids: rustc_hash::FxHashSet<_> = window.iter().map(Table::id).collect();
                 ids.extend(curr_level_pull_in.iter().map(Table::id));
                 (ids, false)
             })

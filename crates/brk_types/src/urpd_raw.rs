@@ -4,7 +4,6 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use brk_error::Result;
 use pco::{
     ChunkConfig,
     standalone::{simple_compress, simple_decompress},
@@ -31,7 +30,7 @@ impl UrpdRaw {
         Self::dir(states_path, name).join(date.to_string())
     }
 
-    pub fn read(states_path: &Path, name: &str, date: Date) -> Result<Self> {
+    pub fn read(states_path: &Path, name: &str, date: Date) -> brk_error::Result<Self> {
         let path = Self::path(states_path, name, date);
         let bytes = fs::read(&path).map_err(|error| {
             std::io::Error::new(
@@ -47,7 +46,7 @@ impl UrpdRaw {
         name: &str,
         date: Date,
         entries: impl Iterator<Item = (CentsCompact, Sats)>,
-    ) -> Result<()> {
+    ) -> brk_error::Result<()> {
         let dir = Self::dir(states_path, name);
         fs::create_dir_all(&dir)?;
         fs::write(dir.join(date.to_string()), Self::serialize_iter(entries)?)?;
@@ -74,7 +73,7 @@ impl UrpdRaw {
     }
 
     /// Deserialize from the pco-compressed format, returning remaining bytes.
-    pub fn deserialize_with_rest(data: &[u8]) -> Result<(Self, &[u8])> {
+    pub fn deserialize_with_rest(data: &[u8]) -> brk_error::Result<(Self, &[u8])> {
         if data.len() < 24 {
             return Err(brk_error::Error::Deserialization(format!(
                 "UrpdRaw: data too short ({} bytes, need >= 24)",
@@ -112,17 +111,19 @@ impl UrpdRaw {
     }
 
     /// Deserialize from the pco-compressed format.
-    pub fn deserialize(data: &[u8]) -> Result<Self> {
+    pub fn deserialize(data: &[u8]) -> brk_error::Result<Self> {
         Self::deserialize_with_rest(data).map(|(s, _)| s)
     }
 
     /// Serialize to the pco-compressed format.
-    pub fn serialize(&self) -> Result<Vec<u8>> {
+    pub fn serialize(&self) -> brk_error::Result<Vec<u8>> {
         Self::serialize_iter(self.map.iter().map(|(&k, &v)| (k, v)))
     }
 
     /// Serialize from a sorted iterator of (price, sats) pairs.
-    pub fn serialize_iter(iter: impl Iterator<Item = (CentsCompact, Sats)>) -> Result<Vec<u8>> {
+    pub fn serialize_iter(
+        iter: impl Iterator<Item = (CentsCompact, Sats)>,
+    ) -> brk_error::Result<Vec<u8>> {
         let entries: Vec<_> = iter.collect();
         let keys: Vec<u32> = entries.iter().map(|(k, _)| k.inner()).collect();
         let values: Vec<u64> = entries.iter().map(|(_, v)| u64::from(*v)).collect();

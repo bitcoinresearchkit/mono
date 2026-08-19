@@ -10,7 +10,7 @@ pub mod state;
 pub mod stream;
 pub mod worker;
 
-use crate::{HashSet, TableId};
+use rustc_hash::FxHashSet;
 
 /// Input for compactor
 ///
@@ -19,7 +19,7 @@ use crate::{HashSet, TableId};
 #[derive(Debug, Eq, PartialEq)]
 pub struct Input {
     /// Tables to compact
-    pub table_ids: HashSet<TableId>,
+    pub table_ids: FxHashSet<u32>,
 
     /// Level to put the created tables into
     pub dest_level: u8,

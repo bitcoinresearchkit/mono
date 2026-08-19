@@ -14,7 +14,7 @@ function fetchSeriesSlice(name, index, start, end, signal) {
 }
 
 /**
- * @param {import("../../../modules/brk-client/index.js").BlockInfoV1} block
+ * @param {import("../../../modules/bitview-client/index.js").BlockInfoV1} block
  * @param {AbortSignal} signal
  */
 async function loadBlockPreviewRange(block, signal) {
@@ -37,7 +37,7 @@ async function loadBlockPreviewRange(block, signal) {
 }
 
 /**
- * @param {import("../../../modules/brk-client/index.js").BlockInfoV1} block
+ * @param {import("../../../modules/bitview-client/index.js").BlockInfoV1} block
  * @param {AbortSignal} signal
  */
 export async function loadBlockPreview(block, signal) {

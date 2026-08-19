@@ -2,7 +2,7 @@ use std::{mem, path::PathBuf};
 
 use rawdb::{Database, Region};
 
-use crate::{AnyStoredVec, AnyVec, Error, Header, Result, Stamp, VecIndex, VecValue, WritableVec};
+use crate::{AnyStoredVec, AnyVec, Error, Header, Stamp, VecIndex, VecValue, WritableVec};
 
 use super::super::{CompressionStrategy, Page};
 use super::ReadWriteCompressedVec;
@@ -48,7 +48,7 @@ where
         self.pages.read().stored_len(Self::PER_PAGE)
     }
 
-    fn write(&mut self) -> Result<bool> {
+    fn write(&mut self) -> crate::Result<bool> {
         self.base.write_header_if_needed()?;
 
         let stored_len = self.stored_len();
@@ -187,7 +187,7 @@ where
     }
 
     #[inline]
-    fn serialize_changes(&self) -> Result<Vec<u8>> {
+    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
         self.serialize_compressed_changes()
     }
 
@@ -196,7 +196,7 @@ where
         self.base.db()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::stamped_write_with_changes(self, stamp)
     }
 
@@ -204,15 +204,15 @@ where
         <Self as WritableVec<I, T>>::save_rollback_state(self)
     }
 
-    fn remove(self) -> Result<()> {
+    fn remove(self) -> crate::Result<()> {
         Self::remove(self)
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::truncate_if_needed_at(self, index)
     }
 
-    fn any_reset(&mut self) -> Result<()> {
+    fn any_reset(&mut self) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::reset(self)
     }
 }

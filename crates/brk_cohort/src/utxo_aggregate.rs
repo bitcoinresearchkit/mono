@@ -1,4 +1,4 @@
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;
 

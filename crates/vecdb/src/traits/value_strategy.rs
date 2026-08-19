@@ -1,5 +1,3 @@
-use crate::Result;
-
 /// Value serialization strategy shared by all vec types (raw and compressed).
 ///
 /// Handles reading/writing individual values to/from bytes.
@@ -8,7 +6,7 @@ pub trait ValueStrategy<T>: Send + Sync + Clone {
     const IS_NATIVE_LAYOUT: bool = false;
 
     /// Deserializes a value from its byte representation.
-    fn read(bytes: &[u8]) -> Result<T>;
+    fn read(bytes: &[u8]) -> crate::Result<T>;
 
     /// Serializes a value by appending its byte representation to the buffer.
     fn write_to_vec(value: &T, buf: &mut Vec<u8>);

@@ -30,19 +30,13 @@ use crate::{cycle::CycleDiff, state::State, stores::TxStore};
 
 pub struct Prevouts;
 
-type Fills = Vec<(Vin, TxOut)>;
-type Holes = Vec<(Vin, Txid, Vout)>;
-type FillBatch = Vec<(Txid, Fills)>;
-type HoleBatch = Vec<(Txid, Holes)>;
-type Resolved = FxHashMap<(Txid, Vout), TxOut>;
-
 impl Prevouts {
     /// Fill every unfilled prevout the cycle can resolve. Same-cycle
     /// in-mempool parents are filled lock-locally. The remainder go
     /// through `resolver` (one batched call) outside any lock.
     pub fn fill<F>(lock: &RwLock<State>, diff: &mut CycleDiff, resolver: F)
     where
-        F: Fn(&[(Txid, Vout)]) -> Resolved,
+        F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
         let (in_mempool, holes) = {
             let state = lock.read();
@@ -65,16 +59,18 @@ impl Prevouts {
 
     /// Default resolver: one batched `getrawtransaction` per cycle,
     /// deduped by parent txid. Requires bitcoind with `txindex=1`.
-    pub fn rpc_resolver(client: Client) -> impl Fn(&[(Txid, Vout)]) -> Resolved {
+    pub fn rpc_resolver(
+        client: Client,
+    ) -> impl Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> {
         let warned = AtomicBool::new(false);
         move |holes: &[(Txid, Vout)]| {
             if holes.is_empty() {
-                return Resolved::default();
+                return FxHashMap::default();
             }
             let mut seen: FxHashSet<Txid> = FxHashSet::default();
             let unique: Vec<Txid> = holes
                 .iter()
-                .filter_map(|(t, _)| seen.insert(*t).then_some(*t))
+                .filter_map(|(txid, _)| seen.insert(*txid).then_some(*txid))
                 .collect();
             let parents = match client.get_raw_transactions(&unique) {
                 Ok(map) => {
@@ -87,14 +83,14 @@ impl Prevouts {
                             "mempool: getrawtransaction batch failed; ensure bitcoind is running with txindex=1"
                         );
                     }
-                    return Resolved::default();
+                    return FxHashMap::default();
                 }
             };
             holes
                 .iter()
                 .filter_map(|(txid, vout)| {
-                    let o = parents.get(txid)?.output.get(usize::from(*vout))?;
-                    let txout = TxOut::from((o.script_pubkey.clone(), o.value.into()));
+                    let output = parents.get(txid)?.output.get(usize::from(*vout))?;
+                    let txout = TxOut::from((output.script_pubkey.clone(), output.value.into()));
                     Some(((*txid, *vout), txout))
                 })
                 .collect()
@@ -104,15 +100,20 @@ impl Prevouts {
     /// Single pass over `txs.unresolved()`: bucket each hole into a
     /// same-cycle in-mempool fill (parent is live) or an external hole
     /// (parent is confirmed or unknown).
-    fn gather(txs: &TxStore) -> (FillBatch, HoleBatch) {
-        let mut filled: FillBatch = Vec::new();
-        let mut holes: HoleBatch = Vec::new();
+    fn gather(
+        txs: &TxStore,
+    ) -> (
+        Vec<(Txid, Vec<(Vin, TxOut)>)>,
+        Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+    ) {
+        let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
+        let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
         for prefix in txs.unresolved() {
             let Some(record) = txs.record_by_prefix(prefix) else {
                 continue;
             };
-            let mut tx_fills: Fills = Vec::new();
-            let mut tx_holes: Holes = Vec::new();
+            let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
+            let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
             for (i, txin) in record.tx.input.iter().enumerate() {
                 if txin.prevout.is_some() {
                     continue;
@@ -142,11 +143,14 @@ impl Prevouts {
     /// consumer txs. Mempool double-spend rules guarantee every
     /// `(prev_txid, vout)` key is unique across the batch, so no
     /// dedup is needed before calling.
-    fn resolve_external<F>(holes: HoleBatch, resolver: F) -> FillBatch
+    fn resolve_external<F>(
+        holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
+        resolver: F,
+    ) -> Vec<(Txid, Vec<(Vin, TxOut)>)>
     where
-        F: Fn(&[(Txid, Vout)]) -> Resolved,
+        F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {
-        let total: usize = holes.iter().map(|(_, h)| h.len()).sum();
+        let total: usize = holes.iter().map(|(_, tx_holes)| tx_holes.len()).sum();
         let mut flat: Vec<(Txid, Vout)> = Vec::with_capacity(total);
         for (_, tx_holes) in &holes {
             for (_, prev_txid, vout) in tx_holes {
@@ -160,10 +164,12 @@ impl Prevouts {
         holes
             .into_iter()
             .filter_map(|(txid, tx_holes)| {
-                let fills: Fills = tx_holes
+                let fills: Vec<(Vin, TxOut)> = tx_holes
                     .into_iter()
                     .filter_map(|(vin, prev_txid, vout)| {
-                        resolved.remove(&(prev_txid, vout)).map(|o| (vin, o))
+                        resolved
+                            .remove(&(prev_txid, vout))
+                            .map(|output| (vin, output))
                     })
                     .collect();
                 (!fills.is_empty()).then_some((txid, fills))

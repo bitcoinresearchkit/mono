@@ -1,5 +1,3 @@
-use brk_error::Result;
-
 pub trait AnyStore: Send + Sync {
-    fn ingest_pending(&mut self) -> Result<()>;
+    fn ingest_pending(&mut self) -> brk_error::Result<()>;
 }

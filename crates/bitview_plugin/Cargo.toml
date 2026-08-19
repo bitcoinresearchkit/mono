@@ -9,5 +9,6 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+brk_error = { workspace = true }
 parking_lot = { workspace = true, features = ["arc_lock", "send_guard"] }
 vecdb = { workspace = true }

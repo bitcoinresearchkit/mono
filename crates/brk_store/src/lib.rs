@@ -2,7 +2,6 @@
 
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug, fs, hash::Hash, mem, ops::Range, path::Path};
 
-use brk_error::Result;
 use brk_types::Version;
 use byteview::ByteView;
 use fjall::{Database, Keyspace, KeyspaceCreateOptions, config::*};
@@ -13,6 +12,7 @@ mod item;
 mod kind;
 mod meta;
 mod mode;
+mod pending_ingest;
 
 use item::Item;
 use meta::StoreMeta;
@@ -20,17 +20,16 @@ use meta::StoreMeta;
 pub use any::*;
 pub use kind::*;
 pub use mode::*;
+pub use pending_ingest::PendingIngest;
 
 const MAJOR_FJALL_VERSION: Version = Version::new(6);
 
-pub fn open_database(path: &Path) -> fjall::Result<Database> {
-    Database::builder(path.join("fjall"))
+pub fn open_database(path: &Path) -> brk_error::Result<Database> {
+    Ok(Database::builder(path.join("fjall"))
         .cache_size(3 * 1024 * 1024 * 1024)
         .max_cached_files(512)
-        .open()
+        .open()?)
 }
-
-pub type PendingIngest = Box<dyn FnOnce() -> Result<()> + Send>;
 
 #[derive(Clone)]
 pub struct Store<K, V> {
@@ -55,7 +54,7 @@ where
         version: Version,
         mode: Mode,
         kind: Kind,
-    ) -> Result<Self> {
+    ) -> brk_error::Result<Self> {
         Self::import_inner(db, path, name, version, mode, kind, 0)
     }
 
@@ -67,7 +66,7 @@ where
         mode: Mode,
         kind: Kind,
         max_batches: u8,
-    ) -> Result<Self> {
+    ) -> brk_error::Result<Self> {
         Self::import_inner(db, path, name, version, mode, kind, max_batches)
     }
 
@@ -79,7 +78,7 @@ where
         mode: Mode,
         kind: Kind,
         max_batches: u8,
-    ) -> Result<Self> {
+    ) -> brk_error::Result<Self> {
         fs::create_dir_all(path)?;
 
         let (meta, keyspace) = StoreMeta::checked_open(
@@ -107,7 +106,12 @@ where
         })
     }
 
-    fn open_keyspace(database: &Database, name: &str, _mode: Mode, kind: Kind) -> Result<Keyspace> {
+    fn open_keyspace(
+        database: &Database,
+        name: &str,
+        _mode: Mode,
+        kind: Kind,
+    ) -> brk_error::Result<Keyspace> {
         let mut options = KeyspaceCreateOptions::default()
             .filter_block_partitioning_policy(PartitioningPolicy::new([false, false, true]))
             .index_block_partitioning_policy(PartitioningPolicy::new([false, false, true]));
@@ -150,7 +154,7 @@ where
     }
 
     #[inline]
-    pub fn get<'a>(&'a self, key: &'a K) -> Result<Option<Cow<'a, V>>>
+    pub fn get<'a>(&'a self, key: &'a K) -> brk_error::Result<Option<Cow<'a, V>>>
     where
         ByteView: From<&'a K>,
     {
@@ -172,7 +176,7 @@ where
     }
 
     #[inline]
-    pub fn is_empty(&self) -> Result<bool> {
+    pub fn is_empty(&self) -> brk_error::Result<bool> {
         self.keyspace.is_empty().map_err(|e| e.into())
     }
 
@@ -217,7 +221,9 @@ where
 
         let keyspace = self.keyspace.clone();
 
-        Some(Box::new(move || Self::ingest_owned(&keyspace, puts, dels)))
+        Some(PendingIngest::new(move || {
+            Self::ingest_owned(&keyspace, puts, dels)
+        }))
     }
 
     #[inline]
@@ -261,7 +267,7 @@ where
         keyspace: &Keyspace,
         puts: impl Iterator<Item = (&'a K, &'a V)>,
         dels: impl Iterator<Item = &'a K>,
-    ) -> Result<()>
+    ) -> brk_error::Result<()>
     where
         ByteView: From<&'a K> + From<&'a V>,
         K: 'a,
@@ -294,7 +300,11 @@ where
         Ok(())
     }
 
-    fn ingest_owned(keyspace: &Keyspace, puts: FxHashMap<K, V>, dels: FxHashSet<K>) -> Result<()> {
+    fn ingest_owned(
+        keyspace: &Keyspace,
+        puts: FxHashMap<K, V>,
+        dels: FxHashSet<K>,
+    ) -> brk_error::Result<()> {
         let mut puts: Vec<_> = puts.into_iter().collect();
         let mut dels: Vec<_> = dels.into_iter().collect();
 
@@ -344,7 +354,7 @@ where
     for<'a> ByteView: From<K> + From<V> + From<&'a K> + From<&'a V>,
     Self: Send + Sync,
 {
-    fn ingest_pending(&mut self) -> Result<()> {
+    fn ingest_pending(&mut self) -> brk_error::Result<()> {
         let puts = mem::take(&mut self.puts);
         let dels = mem::take(&mut self.dels);
 

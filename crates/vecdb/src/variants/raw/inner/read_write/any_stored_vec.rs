@@ -3,7 +3,7 @@ use std::{mem, path::PathBuf};
 use log::debug;
 use rawdb::{Database, Region, unlikely};
 
-use crate::{AnyStoredVec, Bytes, HEADER_OFFSET, Header, Result, Stamp, WritableVec};
+use crate::{AnyStoredVec, Bytes, HEADER_OFFSET, Header, Stamp, WritableVec};
 
 use super::{super::RawStrategy, ReadWriteRawVec};
 
@@ -47,7 +47,7 @@ where
         self.base.stored_len()
     }
 
-    fn write(&mut self) -> Result<bool> {
+    fn write(&mut self) -> crate::Result<bool> {
         self.base.write_header_if_needed()?;
 
         let stored_len = self.stored_len();
@@ -146,11 +146,11 @@ where
         self.base.region()
     }
 
-    fn serialize_changes(&self) -> Result<Vec<u8>> {
+    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
         self.serialize_raw_changes()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::stamped_write_with_changes(self, stamp)
     }
 
@@ -158,15 +158,15 @@ where
         <Self as WritableVec<I, T>>::save_rollback_state(self)
     }
 
-    fn remove(self) -> Result<()> {
+    fn remove(self) -> crate::Result<()> {
         Self::remove(self)
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::truncate_if_needed_at(self, index)
     }
 
-    fn any_reset(&mut self) -> Result<()> {
+    fn any_reset(&mut self) -> crate::Result<()> {
         <Self as WritableVec<I, T>>::reset(self)
     }
 }

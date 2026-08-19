@@ -120,7 +120,7 @@ function getRangePresets() {
 /**
  * @param {Object} args
  * @param {HTMLElement} args.parent
- * @param {BrkClient} args.brk
+ * @param {BitviewClient} args.brk
  * @param {true} [args.fitContent]
  */
 export function createChart({ parent, brk, fitContent }) {

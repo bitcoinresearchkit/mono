@@ -8,7 +8,7 @@ Fetch OHLC (Open/High/Low/Close) price data from Binance, Kraken, or BRK's own A
 
 ## Key Features
 
-- **Multi-source fallback**: Binance → Kraken → BRK API
+- **Multi-source fallback**: Binance → Kraken → Bitview API
 - **Health tracking**: Temporarily disables failing sources
 - **Two resolution modes**: Per-date (daily) or per-block (1-minute interpolated)
 - **HAR file support**: Import Binance 1mn data from browser network captures for historical fills
@@ -32,7 +32,7 @@ let ohlc = fetcher.get_height(height, block_timestamp, prev_timestamp)?;
 |--------|------------|----------|-------|
 | Binance | 1mn | ~16 hours | Best for recent blocks |
 | Kraken | 1mn | ~10 hours | Fallback for recent |
-| BRK API | Daily | Full history | Fallback for older data |
+| Bitview API | Daily | Full history | Fallback for older data |
 
 ## HAR Import
 

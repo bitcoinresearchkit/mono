@@ -1,6 +1,6 @@
 use std::{thread::sleep, time::Duration};
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use corepc_jsonrpc::{Client as JsonRpcClient, Request, error::Error as JsonRpcError, simple_http};
 use parking_lot::RwLock;
 use serde::Deserialize;
@@ -24,7 +24,7 @@ impl ClientInner {
         auth: Auth,
         max_retries: usize,
         retry_delay: Duration,
-    ) -> Result<Self> {
+    ) -> brk_error::Result<Self> {
         let client = Self::create_client(url, &auth)?;
         Ok(Self {
             url: url.to_string(),
@@ -39,7 +39,7 @@ impl ClientInner {
     /// keeps a single pooled TCP socket with reconnect-on-failure. The
     /// upstream `corepc-client` hard-wires `bitreq_http` (one TCP connect
     /// per request), which collapses under concurrent load.
-    fn create_client(url: &str, auth: &Auth) -> Result<JsonRpcClient> {
+    fn create_client(url: &str, auth: &Auth) -> brk_error::Result<JsonRpcClient> {
         let builder = simple_http::Builder::new()
             .url(url)
             .map_err(|e| Error::Parse(format!("bad rpc url: {e}")))?
@@ -55,7 +55,7 @@ impl ClientInner {
         Ok(JsonRpcClient::with_transport(builder.build()))
     }
 
-    fn recreate(&self) -> Result<()> {
+    fn recreate(&self) -> brk_error::Result<()> {
         *self.client.write() = Self::create_client(&self.url, &self.auth)?;
         Ok(())
     }
@@ -68,7 +68,7 @@ impl ClientInner {
         }
     }
 
-    pub(crate) fn call_with_retry<T>(&self, method: &str, args: &[Value]) -> Result<T>
+    pub(crate) fn call_with_retry<T>(&self, method: &str, args: &[Value]) -> brk_error::Result<T>
     where
         T: for<'de> Deserialize<'de>,
     {
@@ -115,7 +115,7 @@ impl ClientInner {
         .into())
     }
 
-    pub(crate) fn call_once<T>(&self, method: &str, args: &[Value]) -> Result<T>
+    pub(crate) fn call_once<T>(&self, method: &str, args: &[Value]) -> brk_error::Result<T>
     where
         T: for<'de> Deserialize<'de>,
     {
@@ -129,14 +129,14 @@ impl ClientInner {
         &self,
         method: &str,
         batch_args: impl IntoIterator<Item = Vec<Value>>,
-    ) -> Result<Vec<T>>
+    ) -> brk_error::Result<Vec<T>>
     where
         T: for<'de> Deserialize<'de>,
     {
         let params: Vec<Box<RawValue>> = batch_args
             .into_iter()
             .map(|args| serde_json::value::to_raw_value(&args).map_err(Error::from))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<brk_error::Result<Vec<_>>>()?;
 
         let client = self.client.read();
         let requests: Vec<Request> = params
@@ -167,14 +167,14 @@ impl ClientInner {
         &self,
         method: &str,
         batch_args: impl IntoIterator<Item = Vec<Value>>,
-    ) -> Result<Vec<Result<T>>>
+    ) -> brk_error::Result<Vec<brk_error::Result<T>>>
     where
         T: for<'de> Deserialize<'de>,
     {
         let params: Vec<Box<RawValue>> = batch_args
             .into_iter()
             .map(|args| serde_json::value::to_raw_value(&args).map_err(Error::from))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<brk_error::Result<Vec<_>>>()?;
 
         let client = self.client.read();
         let requests: Vec<Request> = params
@@ -202,11 +202,11 @@ impl ClientInner {
     pub(crate) fn call_mixed_batch(
         &self,
         requests: &[(&str, Vec<Value>)],
-    ) -> Result<Vec<Result<Box<RawValue>>>> {
+    ) -> brk_error::Result<Vec<brk_error::Result<Box<RawValue>>>> {
         let params: Vec<Box<RawValue>> = requests
             .iter()
             .map(|(_, args)| serde_json::value::to_raw_value(args).map_err(Error::from))
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<brk_error::Result<Vec<_>>>()?;
 
         let client = self.client.read();
         let built: Vec<Request> = requests

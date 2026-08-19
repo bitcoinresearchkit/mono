@@ -70,14 +70,14 @@ if [ "$RESUME_RELEASE" = false ]; then
     echo ""
 
     echo "--- JavaScript ---"
-    cd "$ROOT_DIR/modules/brk-client"
+    cd "$ROOT_DIR/modules/bitview-client"
     # JS doesn't need build step, just verify it loads
     node -e "import('./index.js')"
     echo "OK"
     echo ""
 
     echo "--- Python ---"
-    cd "$ROOT_DIR/packages/brk_client"
+    cd "$ROOT_DIR/packages/bitview_client"
     uv build
     echo ""
 

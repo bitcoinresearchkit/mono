@@ -1,0 +1,19 @@
+[package]
+name = "bitview_client"
+description = "Rust client for the Bitcoin Research Kit API"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+keywords = ["bitcoin", "blockchain", "analytics", "on-chain"]
+categories = ["api-bindings", "cryptography::cryptocurrencies"]
+exclude = ["examples/"]
+
+[dependencies]
+brk_cohort = { workspace = true }
+brk_types = { workspace = true }
+rapidhash = { workspace = true }
+ureq = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }

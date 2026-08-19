@@ -5,7 +5,7 @@ import { createBlockUrl, getReceiptSections } from "./data.js";
 import { createReceiptQr } from "./qr.js";
 import { createBlockTitle } from "../title/index.js";
 
-/** @typedef {import("../../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../../modules/bitview-client/index.js").BlockInfoV1} Block */
 /** @typedef {import("./data.js").ReceiptRow} ReceiptRow */
 /** @typedef {import("./data.js").ReceiptSection} ReceiptSection */
 

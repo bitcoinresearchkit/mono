@@ -4,6 +4,7 @@
 use std::mem;
 
 use brk_types::TxidPrefix;
+use derive_more::{Deref, DerefMut};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use smallvec::SmallVec;
 
@@ -11,12 +12,13 @@ use crate::{state::TxEntry, stores::TxStore};
 
 use super::{Cluster, SnapTx, Snapshot, TxIndex};
 
-pub type PrefixIndex = FxHashMap<TxidPrefix, TxIndex>;
+#[derive(Default, Deref, DerefMut)]
+pub struct PrefixIndex(FxHashMap<TxidPrefix, TxIndex>);
 
 impl Snapshot {
     pub fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, PrefixIndex) {
         let n = txs.len();
-        let mut prefix_to_idx: PrefixIndex = FxHashMap::with_capacity_and_hasher(n, FxBuildHasher);
+        let mut prefix_to_idx = PrefixIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
         for (i, (prefix, _)) in txs.records().enumerate() {
             prefix_to_idx.insert(*prefix, TxIndex::from(i));
         }

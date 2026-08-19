@@ -1,43 +1,41 @@
 use super::{DataBlock, bound::Bound, data_block::Iter as DataBlockIter};
-use crate::{InternalValue, SeqNo, table::block::ParsedItem};
+use crate::{InternalValue, table::block::ParsedItem};
 use self_cell::self_cell;
-
-type InnerIter<'a> = DataBlockIter<'a>;
 
 self_cell!(
     pub struct OwnedDataBlockIter {
         owner: DataBlock,
 
         #[covariant]
-        dependent: InnerIter,
+        dependent: DataBlockIter,
     }
 );
 
 impl OwnedDataBlockIter {
-    fn seek_lower_inclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
+    fn seek_lower_inclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
         self.with_dependent_mut(|_, iter| iter.seek(needle))
     }
 
-    fn seek_upper_inclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
+    fn seek_upper_inclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
         self.with_dependent_mut(|_, iter| iter.seek_upper(needle))
     }
 
-    fn seek_lower_exclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
+    fn seek_lower_exclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
         self.with_dependent_mut(|_, iter| iter.seek_exclusive(needle))
     }
 
-    fn seek_upper_exclusive(&mut self, needle: &[u8], _seqno: SeqNo) -> bool {
+    fn seek_upper_exclusive(&mut self, needle: &[u8], _seqno: u64) -> bool {
         self.with_dependent_mut(|_, iter| iter.seek_upper_exclusive(needle))
     }
 
-    pub fn seek_lower_bound(&mut self, bound: &Bound, seqno: SeqNo) -> bool {
+    pub fn seek_lower_bound(&mut self, bound: &Bound, seqno: u64) -> bool {
         match bound {
             Bound::Included(key) => self.seek_lower_inclusive(key, seqno),
             Bound::Excluded(key) => self.seek_lower_exclusive(key, seqno),
         }
     }
 
-    pub fn seek_upper_bound(&mut self, bound: &Bound, seqno: SeqNo) -> bool {
+    pub fn seek_upper_bound(&mut self, bound: &Bound, seqno: u64) -> bool {
         match bound {
             Bound::Included(key) => self.seek_upper_inclusive(key, seqno),
             Bound::Excluded(key) => self.seek_upper_exclusive(key, seqno),

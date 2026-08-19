@@ -1,4 +1,4 @@
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use brk_types::{Halving, Height};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;

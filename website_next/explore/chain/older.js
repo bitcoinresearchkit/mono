@@ -4,7 +4,7 @@ import { olderRemaining, olderRunway } from "./scroll.js";
 const OLDER_RESERVE_VIEWPORTS = 3;
 
 /**
- * @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block
+ * @typedef {import("../../modules/bitview-client/index.js").BlockInfoV1} Block
  * @typedef {{ generation: number, startHeight: number, placeholders: HTMLElement[] }} OlderBatch
  */
 

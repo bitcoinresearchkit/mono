@@ -5,16 +5,15 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bitview_bencher::Bencher;
 use brk_alloc::Mimalloc;
-use brk_bencher::Bencher;
-use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tracing::{debug, info};
 use vecdb::Exit;
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     brk_logger::init(None)?;
 
     let bitcoin_dir = Client::default_bitcoin_path();

@@ -1,6 +1,6 @@
 //! Cluster primitives over `SnapTx` adjacency: connected-component
 //! discovery, topo-sort, and the glue to Single Fee Linearization
-//! ([`brk_types::linearize`], shared with brk_query's confirmed-cpfp).
+//! ([`brk_types::linearize`], shared with bitview_query's confirmed-cpfp).
 
 use std::collections::VecDeque;
 

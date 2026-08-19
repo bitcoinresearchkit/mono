@@ -1,4 +1,4 @@
-use crate::{Error, Formattable, Result, VecValue};
+use crate::{Error, Formattable, VecValue};
 
 /// Stateful writer for streaming values one at a time to a string buffer.
 ///
@@ -9,7 +9,7 @@ pub trait ValueWriter {
     ///
     /// # Errors
     /// Returns `Error::WrongLength` when no more values are available.
-    fn write_next(&mut self, buf: &mut String) -> Result<()>;
+    fn write_next(&mut self, buf: &mut String) -> crate::Result<()>;
 }
 
 /// Iterator-backed writer that formats values as CSV.
@@ -21,7 +21,7 @@ impl<T> ValueWriter for VecIteratorWriter<T>
 where
     T: VecValue + Formattable,
 {
-    fn write_next(&mut self, buf: &mut String) -> Result<()> {
+    fn write_next(&mut self, buf: &mut String) -> crate::Result<()> {
         if let Some(value) = self.iter.next() {
             value.fmt_csv(buf)?;
             Ok(())

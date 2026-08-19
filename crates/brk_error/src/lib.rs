@@ -1,12 +1,13 @@
 #![doc = include_str!("../README.md")]
 
-use std::{borrow::Cow, fmt, io, path::PathBuf, result, time};
+use std::{borrow::Cow, fmt, io, path::PathBuf, time};
 
 use thiserror::Error;
 
-pub type Result<T, E = Error> = result::Result<T, E>;
+/// Result using BRK's shared error type.
+pub type Result<T> = std::result::Result<T, Error>;
 
-/// Convert `Option<T>` → `Result<T>` without panicking.
+/// Convert `Option<T>` into a result without panicking.
 ///
 /// Replaces `.unwrap()` in query paths so a missing value returns
 /// HTTP 500 instead of crashing the server (`panic = "abort"`).

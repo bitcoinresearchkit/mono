@@ -1,5 +1,5 @@
 use crate::{
-    SequenceNumberCounter, TableId,
+    SequenceNumberCounter,
     compaction::state::CompactionState,
     config::Config,
     table::next_table_id,
@@ -7,13 +7,10 @@ use crate::{
 };
 use std::sync::{Arc, Mutex, atomic::AtomicU32};
 
-/// Process-local tree identifier used by shared caches.
-pub type TreeId = u32;
-
 /// Runtime state of a table-only LSM tree.
 pub struct Inner {
     /// Process-local tree identifier used by shared caches.
-    pub id: TreeId,
+    pub id: u32,
     /// Monotonic table identifier source.
     pub table_id_counter: SequenceNumberCounter,
     /// Monotonic ingestion sequence number source.
@@ -44,7 +41,7 @@ impl Inner {
 
     /// Restores runtime counters from a recovered table version.
     #[must_use]
-    pub fn recover(config: Config, version: Version, tree_id: TreeId) -> Self {
+    pub fn recover(config: Config, version: Version, tree_id: u32) -> Self {
         let next_table_id = version
             .iter_tables()
             .map(crate::Table::id)
@@ -68,15 +65,15 @@ impl Inner {
 
     /// Allocates the next table identifier.
     #[must_use]
-    pub fn next_table_id(&self) -> TableId {
+    pub fn next_table_id(&self) -> u32 {
         next_table_id(&self.table_id_counter)
     }
 
-    pub fn next_tree_id() -> TreeId {
+    pub fn next_tree_id() -> u32 {
         static TREE_ID: AtomicU32 = AtomicU32::new(0);
 
         let id = TREE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        assert_ne!(id, TreeId::MAX, "ran out of tree IDs");
+        assert_ne!(id, u32::MAX, "ran out of tree IDs");
         id
     }
 }

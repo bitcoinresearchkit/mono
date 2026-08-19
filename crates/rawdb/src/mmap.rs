@@ -2,10 +2,8 @@ use std::fs::File;
 
 use memmap2::{MmapMut, MmapOptions};
 
-use crate::Result;
-
 #[inline]
-pub fn create_mmap(file: &File) -> Result<MmapMut> {
+pub fn create_mmap(file: &File) -> crate::Result<MmapMut> {
     Ok(unsafe { MmapOptions::new().map_mut(file)? })
 }
 

@@ -10,7 +10,7 @@ import { formatInterval } from "./format.js";
 const PROJECTED_LIMIT = 8;
 const TARGET_BLOCK_SECONDS = 600;
 
-/** @typedef {import("../../modules/brk-client/index.js").MempoolBlock} MempoolBlock */
+/** @typedef {import("../../modules/bitview-client/index.js").MempoolBlock} MempoolBlock */
 
 /**
  * @param {Object} args

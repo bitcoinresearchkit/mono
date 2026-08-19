@@ -1,6 +1,6 @@
 [package]
 name = "brk_indexer"
-description = "A Bitcoin indexer built on top of brk_reader"
+description = "Compatibility facade for the Bitview indexer plugin"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,16 +9,18 @@ repository.workspace = true
 exclude = ["examples/"]
 
 [dependencies]
+bitview_plugin_indexer = { workspace = true }
+
+[dev-dependencies]
 bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["fjall", "vecdb"] }
 brk_cohort = { workspace = true }
 brk_logger = { workspace = true }
-bitview_plugin = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_store = { workspace = true }
 brk_types = { workspace = true }
-brk_traversable = { workspace = true }
+bitview_traversable = { workspace = true }
 fjall = { workspace = true }
 parking_lot = { workspace = true }
 schemars = { workspace = true }
@@ -27,9 +29,7 @@ tracing = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
 brk_alloc = { workspace = true }
-brk_bencher = { workspace = true }
+bitview_bencher = { workspace = true }
 color-eyre = { workspace = true }
 tempfile = { workspace = true }

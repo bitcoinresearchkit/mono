@@ -1,13 +1,16 @@
 use std::{thread::sleep, time::Duration};
 
-use brk_error::Result;
 use tracing::info;
 
-pub fn default_retry<T>(function: impl Fn(usize) -> Result<T>) -> Result<T> {
+pub fn default_retry<T>(function: impl Fn(usize) -> brk_error::Result<T>) -> brk_error::Result<T> {
     retry(function, 5, 6)
 }
 
-fn retry<T>(function: impl Fn(usize) -> Result<T>, sleep_in_s: u64, retries: usize) -> Result<T> {
+fn retry<T>(
+    function: impl Fn(usize) -> brk_error::Result<T>,
+    sleep_in_s: u64,
+    retries: usize,
+) -> brk_error::Result<T> {
     let mut i = 0;
 
     loop {

@@ -1,15 +1,13 @@
-use crate::{InternalValue, UserKey, ValueType};
+use crate::{InternalValue, Result, Slice, ValueType};
 use std::iter::Peekable;
 
-type Item = crate::Result<InternalValue>;
-
 /// Retains only the latest value for each key while merging tables.
-pub struct CompactionStream<I: Iterator<Item = Item>> {
+pub struct CompactionStream<I: Iterator<Item = Result<InternalValue>>> {
     inner: Peekable<I>,
     evict_tombstones: bool,
 }
 
-impl<I: Iterator<Item = Item>> CompactionStream<I> {
+impl<I: Iterator<Item = Result<InternalValue>>> CompactionStream<I> {
     /// Creates a stream over sorted internal values.
     #[must_use]
     pub fn new(iter: I) -> Self {
@@ -26,7 +24,7 @@ impl<I: Iterator<Item = Item>> CompactionStream<I> {
         self
     }
 
-    fn drain_key(&mut self, key: &UserKey) -> crate::Result<()> {
+    fn drain_key(&mut self, key: &Slice) -> Result<()> {
         loop {
             let Some(next) = self.inner.next_if(|item| match item {
                 Ok(item) => item.key.user_key == *key,
@@ -40,8 +38,8 @@ impl<I: Iterator<Item = Item>> CompactionStream<I> {
     }
 }
 
-impl<I: Iterator<Item = Item>> Iterator for CompactionStream<I> {
-    type Item = Item;
+impl<I: Iterator<Item = Result<InternalValue>>> Iterator for CompactionStream<I> {
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {

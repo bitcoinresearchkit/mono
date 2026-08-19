@@ -10,8 +10,8 @@ use rawdb::{Database, Region};
 use crate::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
     OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
-    Version, WritableVec, short_type_name, unlikely,
+    ReadableCloneableVec, ReadableVec, SharedLen, Stamp, StoredVec, TypedVec, VecIndex, Version,
+    WritableVec, short_type_name, unlikely,
 };
 
 use super::DECODE_CHUNK_SIZE;
@@ -43,7 +43,7 @@ where
         format!("{name}_overflow")
     }
 
-    fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
+    fn import_inner(mut options: ImportOptions, forced: bool) -> crate::Result<Self> {
         options.version = options.version.combine(VERSION).combine(T::VERSION);
         let overflow_name = Self::overflow_name(options.name);
         let overflow_options = ImportOptions {
@@ -149,7 +149,7 @@ where
         index: usize,
         value: T,
         reader: &OverflowVecReader<I, T>,
-    ) -> Result<()> {
+    ) -> crate::Result<()> {
         if self.compact.holes().contains(&index) {
             let compact = self.encode(&value);
             self.compact.update_at(index, compact)?;
@@ -194,7 +194,7 @@ where
         Ok(())
     }
 
-    fn update_at(&mut self, index: usize, value: T) -> Result<()> {
+    fn update_at(&mut self, index: usize, value: T) -> crate::Result<()> {
         let reader = self.reader();
         self.update_at_with_reader(index, value, &reader)
     }
@@ -234,11 +234,11 @@ where
         self.pushed.push(value);
     }
 
-    pub fn update(&mut self, index: I, value: T) -> Result<()> {
+    pub fn update(&mut self, index: I, value: T) -> crate::Result<()> {
         self.update_at(index.to_usize(), value)
     }
 
-    pub fn update_many(&mut self, values: impl IntoIterator<Item = (I, T)>) -> Result<()> {
+    pub fn update_many(&mut self, values: impl IntoIterator<Item = (I, T)>) -> crate::Result<()> {
         let reader = self.reader();
         for (index, value) in values {
             self.update_at_with_reader(index.to_usize(), value, &reader)?;
@@ -260,7 +260,7 @@ where
         self.compact.get_first_empty_index()
     }
 
-    pub fn fill_first_hole_or_push(&mut self, value: T) -> Result<I> {
+    pub fn fill_first_hole_or_push(&mut self, value: T) -> crate::Result<I> {
         if let Some(index) = self.compact.holes().first().copied() {
             self.update_at(index, value)?;
             return Ok(I::from(index));
@@ -270,7 +270,7 @@ where
         Ok(index)
     }
 
-    fn write_inner(&mut self) -> Result<bool> {
+    fn write_inner(&mut self) -> crate::Result<bool> {
         let overflow = self.overflow.write()?;
         let compact = self.compact.write()?;
         self.pushed.clear();
@@ -284,19 +284,19 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    fn import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
         Self::import_with((db, name, version).into())
     }
 
-    fn import_with(options: ImportOptions) -> Result<Self> {
+    fn import_with(options: ImportOptions) -> crate::Result<Self> {
         Self::import_inner(options, false)
     }
 
-    fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    fn forced_import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
         Self::forced_import_with((db, name, version).into())
     }
 
-    fn forced_import_with(options: ImportOptions) -> Result<Self> {
+    fn forced_import_with(options: ImportOptions) -> crate::Result<Self> {
         Self::import_inner(options, true)
     }
 }
@@ -371,13 +371,13 @@ where
         self.compact.saved_stamped_changes()
     }
 
-    fn write(&mut self) -> Result<bool> {
+    fn write(&mut self) -> crate::Result<bool> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.write_inner()
     }
 
-    fn flush(&mut self) -> Result<()> {
+    fn flush(&mut self) -> crate::Result<()> {
         if self.write()? {
             self.overflow.region().flush()?;
             self.compact.region().flush()?;
@@ -402,7 +402,7 @@ where
         self.compact.update_stamp(stamp);
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         self.stamped_write_with_changes(stamp)
     }
 
@@ -410,7 +410,7 @@ where
         self.save_rollback_state();
     }
 
-    fn serialize_changes(&self) -> Result<Vec<u8>> {
+    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
         let compact = self.compact.serialize_changes()?;
         let overflow = self.overflow.serialize_changes()?;
         let mut changes = Vec::with_capacity(8 + compact.len() + overflow.len());
@@ -420,16 +420,16 @@ where
         Ok(changes)
     }
 
-    fn remove(self) -> Result<()> {
+    fn remove(self) -> crate::Result<()> {
         self.overflow.remove()?;
         self.compact.remove()
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         self.truncate_if_needed_at(index)
     }
 
-    fn any_reset(&mut self) -> Result<()> {
+    fn any_reset(&mut self) -> crate::Result<()> {
         self.reset()
     }
 }
@@ -447,7 +447,7 @@ where
         &self.pushed
     }
 
-    fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         let len = self.len();
         if index >= len {
             return Ok(());
@@ -467,7 +467,7 @@ where
         Ok(())
     }
 
-    fn reset(&mut self) -> Result<()> {
+    fn reset(&mut self) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.reset()?;
@@ -490,7 +490,7 @@ where
         self.compact.is_dirty() || self.overflow.is_dirty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.stamped_write_with_changes(stamp)?;
@@ -500,7 +500,7 @@ where
         Ok(())
     }
 
-    fn rollback(&mut self) -> Result<()> {
+    fn rollback(&mut self) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.rollback()?;
@@ -510,7 +510,7 @@ where
         Ok(())
     }
 
-    fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
+    fn find_rollback_files(&self) -> crate::Result<BTreeMap<Stamp, PathBuf>> {
         let compact = self.compact.find_rollback_files()?;
         let overflow = self.overflow.find_rollback_files()?;
         debug_assert!(compact.keys().eq(overflow.keys()));
@@ -642,6 +642,6 @@ where
     T: OverflowVecValue,
 {
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T> {
-        Box::new(self.read_only_clone())
+        ReadableBoxedVec::new(self.read_only_clone())
     }
 }

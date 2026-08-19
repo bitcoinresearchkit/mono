@@ -1,6 +1,6 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use crate::{CheckedSub, Exit, ReadableVec, Result, StoredVec, VecValue};
+use crate::{CheckedSub, Exit, ReadableVec, StoredVec, VecValue};
 
 use super::super::EagerVec;
 
@@ -14,7 +14,7 @@ where
         added: &impl ReadableVec<V::I, V::T>,
         adder: &impl ReadableVec<V::I, V::T>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: Add<Output = V::T>,
     {
@@ -33,7 +33,7 @@ where
         subtracted: &impl ReadableVec<V::I, V::T>,
         subtracter: &impl ReadableVec<V::I, V::T>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: CheckedSub,
     {
@@ -58,7 +58,7 @@ where
         multiplied: &impl ReadableVec<V::I, A>,
         multiplier: &impl ReadableVec<V::I, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -79,7 +79,7 @@ where
         divided: &impl ReadableVec<V::I, A>,
         divider: &impl ReadableVec<V::I, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -100,7 +100,7 @@ where
         divided: &impl ReadableVec<V::I, A>,
         divider: &impl ReadableVec<V::I, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -121,7 +121,7 @@ where
         divided: &impl ReadableVec<V::I, A>,
         divider: &impl ReadableVec<V::I, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -143,7 +143,7 @@ where
         divider: &impl ReadableVec<V::I, B>,
         exit: &Exit,
         as_difference: bool,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,

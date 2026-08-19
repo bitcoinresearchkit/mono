@@ -1,8 +1,8 @@
 use std::ops::Add;
 
 use crate::{
-    AnyVec, CheckedSub, Error, Exit, ReadableVec, Result, SaturatingAdd, StoredVec, VecIndex,
-    VecValue, Version, WritableVec, unlikely,
+    AnyVec, CheckedSub, Error, Exit, ReadableVec, SaturatingAdd, StoredVec, VecIndex, VecValue,
+    Version, WritableVec, unlikely,
 };
 
 use super::super::EagerVec;
@@ -17,7 +17,7 @@ where
         others: &[&O],
         exit: &Exit,
         aggregate: F,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         O: ReadableVec<V::I, V::T>,
         F: Fn(&mut V::T, V::T),
@@ -64,7 +64,7 @@ where
         max_from: V::I,
         others: &[&O],
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         O: ReadableVec<V::I, V::T>,
         V::T: Add<V::T, Output = V::T>,
@@ -79,7 +79,7 @@ where
         max_from: V::I,
         others: &[&O],
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         O: ReadableVec<V::I, V::T>,
         V::T: Add<V::T, Output = V::T> + Ord,
@@ -96,7 +96,7 @@ where
         max_from: V::I,
         others: &[&O],
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         O: ReadableVec<V::I, V::T>,
         V::T: Add<V::T, Output = V::T> + Ord,
@@ -119,7 +119,7 @@ where
         weights: &[&OW],
         values: &[&OV],
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         W: VecValue + Into<f64>,
         OW: ReadableVec<V::I, W>,
@@ -202,7 +202,7 @@ where
         indexes_count: &impl ReadableVec<V::I, B>,
         source: &(impl ReadableVec<A, V::T> + Sized),
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: Default + SaturatingAdd,
         A: VecIndex + VecValue,
@@ -284,7 +284,7 @@ where
         source: &(impl ReadableVec<A, V::T> + Sized),
         mut filter: impl FnMut(&V::T) -> bool,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: Default + SaturatingAdd,
         A: VecIndex + VecValue,
@@ -367,7 +367,7 @@ where
         first_indexes: &impl ReadableVec<V::I, A>,
         other_to_else: &impl ReadableVec<A, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: From<A>,
         A: VecValue
@@ -396,7 +396,7 @@ where
         other_to_else: &impl ReadableVec<A, B>,
         mut filter: impl FnMut(A) -> bool,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: From<A>,
         A: VecValue
@@ -425,7 +425,7 @@ where
         other_to_else: &impl ReadableVec<A, B>,
         mut count_fn: impl FnMut(usize, usize) -> usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: From<A>,
         A: VecValue

@@ -4,11 +4,10 @@
 
 use super::{block_index::BlockIndexImpl, meta::ParsedMeta, regions::ParsedRegions};
 use crate::{
-    Checksum, GlobalTableId, SeqNo,
+    Checksum, GlobalTableId,
     cache::Cache,
     file_accessor::FileAccessor,
     table::{IndexBlock, filter::block::FilterBlock},
-    tree::inner::TreeId,
 };
 use std::{
     path::PathBuf,
@@ -18,7 +17,7 @@ use std::{
 pub struct Inner {
     pub path: Arc<PathBuf>,
 
-    pub(crate) tree_id: TreeId,
+    pub(crate) tree_id: u32,
 
     #[doc(hidden)]
     pub(crate) file_accessor: FileAccessor,
@@ -54,7 +53,7 @@ pub struct Inner {
 
     pub(super) checksum: Checksum,
 
-    pub(super) global_seqno: SeqNo,
+    pub(super) global_seqno: u64,
 }
 
 impl Inner {

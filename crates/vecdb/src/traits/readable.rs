@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use crate::{AnyVec, VecIndex, VecValue, cursor::Cursor};
+use crate::{AnyVec, ReadableBoxedVec, VecIndex, VecValue, cursor::Cursor};
 
 /// Default chunk size for chunked iteration (matches PcoVec page size).
 pub const READ_CHUNK_SIZE: usize = 4096;
@@ -468,23 +468,14 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
 
 /// Trait for readable vectors that can be cloned as trait objects.
 pub trait ReadableCloneableVec<I: VecIndex, T: VecValue>: ReadableVec<I, T> {
-    fn read_only_boxed_clone(&self) -> Box<dyn ReadableCloneableVec<I, T>>;
+    fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T>;
 }
 
 impl<I: VecIndex, T: VecValue, U> ReadableCloneableVec<I, T> for U
 where
     U: 'static + ReadableVec<I, T> + Clone,
 {
-    fn read_only_boxed_clone(&self) -> Box<dyn ReadableCloneableVec<I, T>> {
-        Box::new(self.clone())
+    fn read_only_boxed_clone(&self) -> ReadableBoxedVec<I, T> {
+        ReadableBoxedVec::new(self.clone())
     }
 }
-
-impl<I: VecIndex, T: VecValue> Clone for Box<dyn ReadableCloneableVec<I, T>> {
-    fn clone(&self) -> Self {
-        self.read_only_boxed_clone()
-    }
-}
-
-/// Type alias for boxed read-only vectors.
-pub type ReadableBoxedVec<I, T> = Box<dyn ReadableCloneableVec<I, T>>;

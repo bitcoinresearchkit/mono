@@ -4,6 +4,9 @@
 
 use crate::{Checksum, CompressionType};
 
+/// Result using the LSM tree's error type.
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// Represents errors that can occur in the LSM-tree
 #[derive(Debug)]
 #[non_exhaustive]
@@ -89,6 +92,3 @@ impl From<std::io::Error> for Error {
         Self::Io(value)
     }
 }
-
-/// Tree result
-pub type Result<T> = std::result::Result<T, Error>;

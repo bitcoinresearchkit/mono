@@ -49,4 +49,4 @@ ctx.full_name(&filter, "min_age_150d");  // "utxos_min_age_150d"
 
 - `brk_error` for error handling
 - `brk_types` for `Sats`, `Halving`, `OutputType`
-- `brk_traversable` for data structure traversal
+- `bitview_traversable` for data structure traversal

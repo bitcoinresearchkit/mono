@@ -14,17 +14,14 @@ pub use level::Level;
 pub use run::Run;
 pub use set::Set;
 
+use crate::Table;
 use crate::compaction::state::hidden_set::HiddenSet;
 use crate::version::recovery::Recovery;
-use crate::{Table, TableId};
 use inner::Inner;
 use optimize::optimize_runs;
 use std::{ops::Deref, sync::Arc};
 
 pub const DEFAULT_LEVEL_COUNT: u8 = 7;
-
-/// Monotonically increasing ID of a version.
-pub type VersionId = u64;
 
 /// A version is an immutable, point-in-time view of a tree's structure
 ///
@@ -45,7 +42,7 @@ impl std::ops::Deref for Version {
 // TODO: impl using generics so we can easily unit test Version transformation functions
 impl Version {
     /// Returns the version ID.
-    pub fn id(&self) -> VersionId {
+    pub fn id(&self) -> u64 {
         self.id
     }
 
@@ -65,7 +62,7 @@ impl Version {
     }
 
     /// Creates a new empty version.
-    pub fn new(id: VersionId) -> Self {
+    pub fn new(id: u64) -> Self {
         let levels = (0..DEFAULT_LEVEL_COUNT).map(|_| Level::empty()).collect();
 
         Self {
@@ -110,7 +107,7 @@ impl Version {
     }
 
     /// Creates a new pre-populated version.
-    pub fn from_levels(id: VersionId, levels: Vec<Level>) -> Self {
+    pub fn from_levels(id: u64, levels: Vec<Level>) -> Self {
         Self {
             inner: Arc::new(Inner { id, levels }),
         }
@@ -139,7 +136,7 @@ impl Version {
             .flat_map(|x| x.iter())
     }
 
-    pub fn get_table(&self, id: TableId) -> Option<&Table> {
+    pub fn get_table(&self, id: u32) -> Option<&Table> {
         self.iter_tables().find(|x| x.metadata.id == id)
     }
 
@@ -198,7 +195,7 @@ impl Version {
         clippy::unnecessary_wraps,
         reason = "preserves the fallible version-transformation API"
     )]
-    pub fn with_dropped(&self, ids: &[TableId]) -> crate::Result<Self> {
+    pub fn with_dropped(&self, ids: &[u32]) -> crate::Result<Self> {
         let id = self.id + 1;
 
         let mut levels = vec![];
@@ -227,7 +224,7 @@ impl Version {
         })
     }
 
-    pub fn with_merge(&self, old_ids: &[TableId], new_tables: &[Table], dest_level: usize) -> Self {
+    pub fn with_merge(&self, old_ids: &[u32], new_tables: &[Table], dest_level: usize) -> Self {
         let id = self.id + 1;
 
         let mut levels = vec![];
@@ -261,7 +258,7 @@ impl Version {
         }
     }
 
-    pub fn with_moved(&self, ids: &[TableId], dest_level: usize) -> Self {
+    pub fn with_moved(&self, ids: &[u32], dest_level: usize) -> Self {
         let id = self.id + 1;
 
         let affected_tables = self
@@ -305,7 +302,7 @@ impl Version {
 }
 
 impl Version {
-    pub fn encode_into(&self, writer: &mut impl std::io::Write) -> Result<(), crate::Error> {
+    pub fn encode_into(&self, writer: &mut impl std::io::Write) -> crate::Result<()> {
         use byteorder::{LittleEndian, WriteBytesExt};
 
         for level in self.iter_levels() {

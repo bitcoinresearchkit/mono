@@ -22,6 +22,9 @@ use brk_types::{Cents, Dollars};
 
 mod config;
 mod filter;
+mod histogram_ema;
+mod histogram_ema_compact;
+mod histogram_raw;
 mod scale;
 mod seed;
 mod stencil;
@@ -29,10 +32,10 @@ mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
 pub use filter::PaymentFilter;
-pub use scale::{
-    BINS_PER_DECADE, HistogramEma, HistogramEmaCompact, HistogramRaw, NUM_BINS, bin_to_cents,
-    cents_to_bin, sats_to_bin,
-};
+pub use histogram_ema::HistogramEma;
+pub use histogram_ema_compact::HistogramEmaCompact;
+pub use histogram_raw::HistogramRaw;
+pub use scale::{BINS_PER_DECADE, NUM_BINS, bin_to_cents, cents_to_bin, sats_to_bin};
 pub use seed::{pre_oracle_price_cents, pre_oracle_prices_from, seed_bin, seed_price_cents};
 
 use stencil::Stencil;

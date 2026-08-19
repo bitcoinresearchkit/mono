@@ -1,8 +1,6 @@
 mod array;
 mod numeric;
 
-use crate::Result;
-
 /// Trait for types that can be serialized to/from bytes with explicit byte order.
 ///
 /// This trait uses **LITTLE-ENDIAN** byte order for all numeric types, making the data
@@ -36,5 +34,5 @@ pub trait Bytes: Sized {
     /// Deserializes a value from bytes.
     ///
     /// For numeric types, this uses little-endian byte order (via `from_le_bytes`).
-    fn from_bytes(bytes: &[u8]) -> Result<Self>;
+    fn from_bytes(bytes: &[u8]) -> crate::Result<Self>;
 }

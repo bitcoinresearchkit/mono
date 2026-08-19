@@ -3,14 +3,14 @@ use std::fs::File;
 #[cfg(unix)]
 use std::os::unix::io::AsRawFd;
 
-use crate::{Error, Result};
+use crate::Error;
 
 /// Deallocates file blocks without changing file size (platform-specific).
 pub struct HolePunch;
 
 impl HolePunch {
     #[cfg(target_os = "macos")]
-    pub fn punch(file: &File, start: usize, length: usize) -> Result<()> {
+    pub fn punch(file: &File, start: usize, length: usize) -> crate::Result<()> {
         let fpunchhole = FPunchhole {
             fp_flags: 0,
             reserved: 0,
@@ -39,7 +39,7 @@ impl HolePunch {
     }
 
     #[cfg(target_os = "linux")]
-    pub fn punch(file: &File, start: usize, length: usize) -> Result<()> {
+    pub fn punch(file: &File, start: usize, length: usize) -> crate::Result<()> {
         let result = unsafe {
             libc::fallocate(
                 file.as_raw_fd(),
@@ -62,7 +62,7 @@ impl HolePunch {
     }
 
     #[cfg(target_os = "freebsd")]
-    pub fn punch(file: &File, start: usize, length: usize) -> Result<()> {
+    pub fn punch(file: &File, start: usize, length: usize) -> crate::Result<()> {
         let fd = file.as_raw_fd();
 
         let mut spacectl = libc::spacectl_range {
@@ -93,7 +93,7 @@ impl HolePunch {
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "freebsd")))]
-    pub fn punch(_file: &File, _start: usize, _length: usize) -> Result<()> {
+    pub fn punch(_file: &File, _start: usize, _length: usize) -> crate::Result<()> {
         Err(Error::HolePunchUnsupported)
     }
 }

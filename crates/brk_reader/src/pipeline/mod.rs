@@ -2,10 +2,12 @@ use std::{sync::Arc, thread};
 
 use brk_error::Result;
 use brk_rpc::Client;
-use brk_types::{Height, ReadBlock};
-use crossbeam::channel::{Receiver, bounded};
+use brk_types::Height;
+use crossbeam::channel::bounded;
 
-use crate::{BlkIndexToBlkPath, ReaderInner, XORBytes, bisect, canonical::CanonicalRange};
+use crate::{
+    BlkIndexToBlkPath, BlockReceiver, ReaderInner, XORBytes, bisect, canonical::CanonicalRange,
+};
 
 mod forward;
 mod reorder;
@@ -31,11 +33,11 @@ pub(crate) fn spawn(
     reader: Arc<ReaderInner>,
     canonical: CanonicalRange,
     parser_threads: usize,
-) -> Result<Receiver<Result<ReadBlock>>> {
+) -> Result<BlockReceiver> {
     let parser_threads = parser_threads.clamp(1, CHANNEL_CAPACITY);
 
     if canonical.is_empty() {
-        return Ok(bounded(0).1);
+        return Ok(crate::block_receiver::new(bounded(0).1));
     }
 
     let paths = reader.refresh_paths()?;
@@ -63,7 +65,7 @@ pub(crate) fn spawn(
         }
     });
 
-    Ok(recv)
+    Ok(crate::block_receiver::new(recv))
 }
 
 fn pick_strategy(

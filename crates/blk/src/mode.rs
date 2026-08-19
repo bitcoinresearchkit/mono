@@ -1,4 +1,4 @@
-use brk_error::{Error, Result};
+use brk_error::Error;
 
 #[derive(Clone, Copy)]
 pub enum Mode {
@@ -9,7 +9,7 @@ pub enum Mode {
 }
 
 impl Mode {
-    pub fn pick(pretty: bool, compact: bool, n_fields: usize) -> Result<Self> {
+    pub fn pick(pretty: bool, compact: bool, n_fields: usize) -> brk_error::Result<Self> {
         if pretty && compact {
             return Err(Error::Parse(
                 "--pretty and --compact are mutually exclusive".into(),

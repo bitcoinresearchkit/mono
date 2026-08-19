@@ -1,7 +1,7 @@
-use brk_error::{Error, Result};
+use brk_error::Error;
 use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
-use vecdb::{Bytes, Formattable, OverflowVecValue, Result as VecDBResult, Version, unlikely};
+use vecdb::{Bytes, Formattable, OverflowVecValue, Version, unlikely};
 
 use crate::{Cents, CentsSats, EmptyAddrData, FundedAddrDataCompact, OutputType, Sats};
 
@@ -66,7 +66,7 @@ impl CentsSats96 {
     }
 
     #[inline]
-    fn from_bytes(bytes: &[u8]) -> VecDBResult<Self> {
+    fn from_bytes(bytes: &[u8]) -> vecdb::Result<Self> {
         Ok(Self([
             u32::from_bytes(&bytes[0..4])?,
             u32::from_bytes(&bytes[4..8])?,
@@ -247,7 +247,7 @@ impl FundedAddrData {
     }
 
     /// Applies a spent output and returns its exact realized-cap delta.
-    pub fn send(&mut self, amount: Sats, previous_price: Cents) -> Result<CentsSats> {
+    pub fn send(&mut self, amount: Sats, previous_price: Cents) -> brk_error::Result<CentsSats> {
         if unlikely(self.balance() < amount) {
             return Err(Error::Internal("Previous amount smaller than sent amount"));
         }

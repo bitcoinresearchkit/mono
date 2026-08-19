@@ -2,12 +2,12 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{SeqNo, UserKey, ValueType};
+use crate::{Slice, ValueType};
 
 #[derive(Clone, Eq)]
 pub struct InternalKey {
-    pub user_key: UserKey,
-    pub seqno: SeqNo,
+    pub user_key: Slice,
+    pub seqno: u64,
     pub value_type: ValueType,
 }
 
@@ -35,7 +35,7 @@ impl std::fmt::Debug for InternalKey {
 }
 
 impl InternalKey {
-    pub fn new<K: Into<UserKey>>(user_key: K, seqno: SeqNo, value_type: ValueType) -> Self {
+    pub fn new<K: Into<Slice>>(user_key: K, seqno: u64, value_type: ValueType) -> Self {
         let user_key = user_key.into();
 
         assert!(

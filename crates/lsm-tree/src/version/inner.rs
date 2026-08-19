@@ -1,7 +1,7 @@
-use super::{Level, VersionId};
+use super::Level;
 
 /// Immutable version contents shared by readers.
 pub struct Inner {
-    pub id: VersionId,
+    pub id: u64,
     pub levels: Vec<Level>,
 }

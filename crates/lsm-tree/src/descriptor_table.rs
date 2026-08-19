@@ -6,11 +6,9 @@ use crate::GlobalTableId;
 use quick_cache::{UnitWeighter, sync::Cache as QuickCache};
 use std::{fs::File, sync::Arc};
 
-type Item = Arc<File>;
-
 /// Caches file descriptors to tables
 pub struct DescriptorTable {
-    inner: QuickCache<GlobalTableId, Item, UnitWeighter, rustc_hash::FxBuildHasher>,
+    inner: QuickCache<GlobalTableId, Arc<File>, UnitWeighter, rustc_hash::FxBuildHasher>,
 }
 
 impl DescriptorTable {
@@ -37,7 +35,7 @@ impl DescriptorTable {
     }
 
     /// Associates an open descriptor with a table.
-    pub fn insert_for_table(&self, id: GlobalTableId, item: Item) {
+    pub fn insert_for_table(&self, id: GlobalTableId, item: Arc<File>) {
         self.inner.insert(id, item);
     }
 

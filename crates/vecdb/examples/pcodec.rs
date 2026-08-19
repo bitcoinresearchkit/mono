@@ -4,9 +4,6 @@ use vecdb::{
     AnyStoredVec, AnyVec, Database, ImportableVec, PcoVec, ReadableVec, Stamp, Version, WritableVec,
 };
 
-#[allow(clippy::upper_case_acronyms)]
-type VEC = PcoVec<usize, u32>;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let _ = fs::remove_dir_all("compressed");
 
@@ -17,7 +14,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = (&database, "vec", version).into();
 
     {
-        let mut vec: VEC = PcoVec::forced_import_with(options)?;
+        let mut vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         (0..21_u32).for_each(|v| {
             vec.push(v);
@@ -35,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: VEC = PcoVec::forced_import_with(options)?;
+        let mut vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         vec.mut_header().update_stamp(Stamp::new(100));
 
@@ -66,7 +63,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: VEC = PcoVec::forced_import_with(options)?;
+        let mut vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         assert_eq!(vec.header().stamp(), Stamp::new(100));
 
@@ -107,7 +104,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: VEC = PcoVec::forced_import_with(options)?;
+        let mut vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         assert_eq!(
             vec.collect(),
@@ -145,7 +142,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: VEC = PcoVec::forced_import_with(options)?;
+        let mut vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         assert_eq!(vec.pushed_len(), 0);
         assert_eq!(vec.stored_len(), 21);
@@ -158,7 +155,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let vec: VEC = PcoVec::forced_import_with(options)?;
+        let vec: PcoVec<usize, u32> = PcoVec::forced_import_with(options)?;
 
         assert_eq!(
             vec.collect(),

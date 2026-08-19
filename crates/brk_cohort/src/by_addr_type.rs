@@ -1,7 +1,6 @@
 use std::ops::{Add, AddAssign};
 
-use brk_error::Result;
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use brk_types::OutputType;
 use rayon::prelude::*;
 use vecdb::{ColumnId, VecValue, Version};
@@ -173,9 +172,9 @@ impl<T> ByAddrType<T> {
         Self::from_fn(|id| create(Filter::Type(id.output_type())))
     }
 
-    pub fn new_with_name<F>(f: F) -> Result<Self>
+    pub fn new_with_name<F>(f: F) -> brk_error::Result<Self>
     where
-        F: Fn(&'static str) -> Result<T>,
+        F: Fn(&'static str) -> brk_error::Result<T>,
     {
         Self::try_from_fn(|id| f(id.name()))
     }
@@ -193,9 +192,9 @@ impl<T> ByAddrType<T> {
         }
     }
 
-    pub fn new_with_index<F>(f: F) -> Result<Self>
+    pub fn new_with_index<F>(f: F) -> brk_error::Result<Self>
     where
-        F: Fn(usize) -> Result<T>,
+        F: Fn(usize) -> brk_error::Result<T>,
     {
         Self::try_from_fn(|id| f(id as usize))
     }

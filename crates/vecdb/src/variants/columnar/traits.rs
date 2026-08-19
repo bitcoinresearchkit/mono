@@ -4,8 +4,7 @@ use rawdb::{Database, Region};
 
 use crate::{
     AnyStoredVec, AnyVec, Error, Header, ImportOptions, ImportableVec, ReadableBoxedVec,
-    ReadableCloneableVec, Result, Stamp, StoredVec, TypedVec, Version, WritableVec,
-    short_type_name,
+    ReadableCloneableVec, Stamp, StoredVec, TypedVec, Version, WritableVec, short_type_name,
 };
 
 use super::{ColumnId, ColumnarVec, LazyColumnVec, ReadOnlyColumnarVec, ReadableColumnarVec};
@@ -15,19 +14,19 @@ where
     V: StoredVec,
     C: ColumnId,
 {
-    fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    fn import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
         Self::import_with((db, name, version).into())
     }
 
-    fn import_with(options: ImportOptions) -> Result<Self> {
+    fn import_with(options: ImportOptions) -> crate::Result<Self> {
         Self::import_inner(options, false)
     }
 
-    fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
+    fn forced_import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
         Self::forced_import_with((db, name, version).into())
     }
 
-    fn forced_import_with(options: ImportOptions) -> Result<Self> {
+    fn forced_import_with(options: ImportOptions) -> crate::Result<Self> {
         Self::import_inner(options, true)
     }
 }
@@ -188,7 +187,7 @@ where
         self.vec.saved_stamped_changes()
     }
 
-    fn write(&mut self) -> Result<bool> {
+    fn write(&mut self) -> crate::Result<bool> {
         self.write_pending()
     }
 
@@ -209,7 +208,7 @@ where
         self.stored_rows
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::stamped_write_with_changes(self, stamp)
     }
 
@@ -217,7 +216,7 @@ where
         <Self as WritableVec<V::I, C::Row<V::T>>>::save_rollback_state(self)
     }
 
-    fn serialize_changes(&self) -> Result<Vec<u8>> {
+    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
         if !self.pushed.is_empty() || self.stored_rows != self.flat_rows() {
             return Err(Error::InvalidArgument(
                 "ColumnarVec changes must be staged before serialization",
@@ -226,15 +225,15 @@ where
         self.vec.serialize_changes()
     }
 
-    fn remove(self) -> Result<()> {
+    fn remove(self) -> crate::Result<()> {
         self.vec.remove()
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::truncate_if_needed_at(self, index)
     }
 
-    fn any_reset(&mut self) -> Result<()> {
+    fn any_reset(&mut self) -> crate::Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::reset(self)
     }
 }
@@ -252,7 +251,7 @@ where
         &self.pushed
     }
 
-    fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         let len = self.len();
         if index >= len {
             return Ok(());
@@ -266,7 +265,7 @@ where
         Ok(())
     }
 
-    fn reset(&mut self) -> Result<()> {
+    fn reset(&mut self) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.stored_rows = 0;
@@ -289,7 +288,7 @@ where
         self.stored_rows != self.flat_rows() || !self.pushed.is_empty() || self.vec.is_dirty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.stage_pending()?;
@@ -299,7 +298,7 @@ where
         Ok(())
     }
 
-    fn rollback(&mut self) -> Result<()> {
+    fn rollback(&mut self) -> crate::Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.pushed.clear();
@@ -311,7 +310,7 @@ where
         Ok(())
     }
 
-    fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
+    fn find_rollback_files(&self) -> crate::Result<BTreeMap<Stamp, PathBuf>> {
         self.vec.find_rollback_files()
     }
 
@@ -338,6 +337,6 @@ where
     C: ColumnId,
 {
     fn read_only_boxed_clone(&self) -> ReadableBoxedVec<V::I, C::Row<V::T>> {
-        Box::new(self.read_only_clone())
+        ReadableBoxedVec::new(self.read_only_clone())
     }
 }

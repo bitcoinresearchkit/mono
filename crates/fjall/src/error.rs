@@ -1,3 +1,6 @@
+/// Result using Fjall's error type.
+pub type Result<T> = std::result::Result<T, Error>;
+
 /// Errors returned by BRK's table-only database.
 #[derive(Debug)]
 #[non_exhaustive]
@@ -51,6 +54,3 @@ impl std::error::Error for Error {
         }
     }
 }
-
-/// Result returned by BRK's table-only database.
-pub type Result<T> = std::result::Result<T, Error>;

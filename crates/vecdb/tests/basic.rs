@@ -1,9 +1,9 @@
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{Result, Stamp, StoredVec, Version};
+use vecdb::{Stamp, StoredVec, Version};
 
 /// Helper to create a temporary test database
-pub fn setup_test_db() -> Result<(Database, TempDir)> {
+pub fn setup_test_db() -> vecdb::Result<(Database, TempDir)> {
     let temp_dir = TempDir::new()?;
     let db = Database::open(temp_dir.path())?;
     Ok((db, temp_dir))

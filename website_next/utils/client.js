@@ -1,5 +1,5 @@
-import { BrkClient } from "../modules/brk-client/index.js";
+import { BitviewClient } from "../modules/bitview-client/index.js";
 import { BRK_BASE_URL } from "./api.js";
 
 export { BRK_BASE_URL } from "./api.js";
-export const brk = new BrkClient(BRK_BASE_URL);
+export const brk = new BitviewClient(BRK_BASE_URL);

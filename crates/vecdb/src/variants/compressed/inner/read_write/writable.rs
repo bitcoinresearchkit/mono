@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use crate::{AnyStoredVec, Result, Stamp, VecIndex, VecValue, WritableVec};
+use crate::{AnyStoredVec, Stamp, VecIndex, VecValue, WritableVec};
 
 use super::{super::CompressionStrategy, ReadWriteCompressedVec};
 
@@ -20,14 +20,14 @@ where
         self.base.pushed()
     }
 
-    fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+    fn truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
         if self.base.truncate_pushed(index) {
             self.base.update_stored_len(index);
         }
         Ok(())
     }
 
-    fn reset(&mut self) -> Result<()> {
+    fn reset(&mut self) -> crate::Result<()> {
         self.pages.write().reset();
         self.truncate_if_needed_at(0)?;
         self.base.reset_base()
@@ -41,7 +41,7 @@ where
         !self.base.pushed().is_empty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
         if self.base.saved_stamped_changes() == 0 {
             return self.stamped_write(stamp);
         }
@@ -54,12 +54,12 @@ where
         Ok(())
     }
 
-    fn rollback(&mut self) -> Result<()> {
+    fn rollback(&mut self) -> crate::Result<()> {
         let bytes = self.base.read_current_change_file()?;
         self.deserialize_then_undo_changes(&bytes)
     }
 
-    fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
+    fn find_rollback_files(&self) -> crate::Result<BTreeMap<Stamp, PathBuf>> {
         self.base.find_rollback_files()
     }
 

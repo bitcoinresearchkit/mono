@@ -2,12 +2,10 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{
-    AnyStoredVec, ImportableVec, PcoVec, ReadableVec, Result, StoredVec, Version, WritableVec,
-};
+use vecdb::{AnyStoredVec, ImportableVec, PcoVec, ReadableVec, StoredVec, Version, WritableVec};
 
 #[test]
-fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> Result<()> {
+fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> vecdb::Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     let mut vec = PcoVec::<usize, u8>::import(&db, "u8", Version::ONE)?;
@@ -62,7 +60,7 @@ fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> Result<()> {
 }
 
 #[test]
-fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> Result<()> {
+fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> vecdb::Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     let mut vec = PcoVec::<usize, u64>::import(&db, "u64", Version::ONE)?;

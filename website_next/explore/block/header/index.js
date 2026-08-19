@@ -2,7 +2,7 @@ import { createUsdAmount, renderUsdAmount } from "../../../usd/index.js";
 import { formatDateAndAge } from "../format.js";
 import { createBlockTitle } from "../title/index.js";
 
-/** @typedef {import("../../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../../modules/bitview-client/index.js").BlockInfoV1} Block */
 
 /** @param {string} hash */
 function createHashElement(hash) {

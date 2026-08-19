@@ -1,8 +1,15 @@
 [package]
 name = "bitview_plugin_constants"
-description = "The reference constants plugin for Bitview"
+description = "The constant series plugin for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage = "https://bitview.dev"
 repository.workspace = true
+
+[dependencies]
+bitview_compute = { workspace = true }
+bitview_plugin = { workspace = true }
+bitview_traversable = { workspace = true }
+brk_types = { workspace = true }
+vecdb = { workspace = true }

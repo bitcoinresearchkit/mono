@@ -1,11 +1,11 @@
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_rpc::Client;
 use brk_types::{CheckedSub, Height};
 
 pub struct Selector;
 
 impl Selector {
-    pub fn parse(s: &str, client: &Client) -> Result<(Height, Height)> {
+    pub fn parse(s: &str, client: &Client) -> brk_error::Result<(Height, Height)> {
         let (a, b) = s.split_once("..").unwrap_or((s, s));
         let needs_tip = |p: &str| p == "tip" || p.starts_with("tip-");
         let tip = if needs_tip(a) || needs_tip(b) {
@@ -23,7 +23,7 @@ impl Selector {
         Ok((start, end))
     }
 
-    fn endpoint(s: &str, tip: Option<Height>) -> Result<Height> {
+    fn endpoint(s: &str, tip: Option<Height>) -> brk_error::Result<Height> {
         if s == "tip" {
             return Ok(tip.expect("tip pre-resolved when input contains 'tip'"));
         }

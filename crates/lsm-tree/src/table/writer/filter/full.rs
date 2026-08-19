@@ -4,7 +4,7 @@
 
 use super::FilterWriter;
 use crate::{
-    CompressionType, UserKey,
+    CompressionType, Slice,
     checksum::ChecksummedWriter,
     config::BloomConstructionPolicy,
     table::{Block, filter::standard_bloom::Builder},
@@ -44,7 +44,7 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for FullFilterWriter {
         self
     }
 
-    fn register_key(&mut self, key: &UserKey) -> crate::Result<()> {
+    fn register_key(&mut self, key: &Slice) -> crate::Result<()> {
         self.bloom_hash_buffer.push(Builder::get_hash(key));
         Ok(())
     }

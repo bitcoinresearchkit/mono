@@ -35,9 +35,9 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 
 ## Clients
 
-- [JavaScript](https://www.npmjs.com/package/brk-client)
-- [Python](https://pypi.org/project/brk-client/)
-- [Rust](https://crates.io/crates/brk_client)
+- [JavaScript](https://www.npmjs.com/package/bitview-client)
+- [Python](https://pypi.org/project/bitview-client/)
+- [Rust](https://crates.io/crates/bitview_client)
 
 ## Source
 

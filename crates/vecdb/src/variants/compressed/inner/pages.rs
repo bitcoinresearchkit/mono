@@ -1,6 +1,6 @@
 use rawdb::{Database, Region, unlikely};
 
-use crate::{Bytes, Error, HEADER_OFFSET, Result};
+use crate::{Bytes, Error, HEADER_OFFSET};
 
 use super::Page;
 
@@ -22,7 +22,7 @@ pub struct Pages {
 impl Pages {
     const SIZE_OF_PAGE: usize = size_of::<Page>();
 
-    pub fn import(db: &Database, name: &str) -> Result<Self> {
+    pub fn import(db: &Database, name: &str) -> crate::Result<Self> {
         let region = db.create_region_if_needed(name)?;
 
         let vec = region
@@ -30,7 +30,7 @@ impl Pages {
             .read_all()
             .chunks(Self::SIZE_OF_PAGE)
             .map(Page::from_bytes)
-            .collect::<Result<_>>()?;
+            .collect::<crate::Result<_>>()?;
 
         Ok(Self {
             region,
@@ -39,7 +39,7 @@ impl Pages {
         })
     }
 
-    pub fn flush(&mut self) -> Result<()> {
+    pub fn flush(&mut self) -> crate::Result<()> {
         let Some(change_at) = self.change_at.take() else {
             return Ok(());
         };
@@ -86,7 +86,7 @@ impl Pages {
     }
 
     /// Pushes a new page, returning an error if the page_index doesn't match the current length.
-    pub fn checked_push(&mut self, page_index: usize, page: Page) -> Result<()> {
+    pub fn checked_push(&mut self, page_index: usize, page: Page) -> crate::Result<()> {
         if unlikely(page_index != self.vec.len()) {
             return Err(Error::UnexpectedIndex {
                 expected: self.vec.len(),
@@ -130,7 +130,7 @@ impl Pages {
         }
     }
 
-    pub fn remove(self) -> Result<()> {
+    pub fn remove(self) -> crate::Result<()> {
         self.region.remove()?;
         Ok(())
     }

@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use brk_types::Age;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;

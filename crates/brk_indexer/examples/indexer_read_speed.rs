@@ -1,6 +1,5 @@
 use std::{fs, path::Path, time::Instant};
 
-use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
@@ -21,7 +20,7 @@ fn run_benchmark(indexer: &Indexer) -> (Sats, std::time::Duration, usize) {
     (sum, duration, count)
 }
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     brk_logger::init(Some(Path::new(".log")))?;
 
     let outputs_dir = Path::new(&std::env::var("HOME").unwrap()).join(".brk");

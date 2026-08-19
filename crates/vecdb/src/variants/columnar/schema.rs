@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use crate::{Error, ReadableVec, Result, VecIndex, VecValue, Version};
+use crate::{Error, ReadableVec, VecIndex, VecValue, Version};
 
 use super::{LazyColumnSumVec, LazyColumnVec};
 
@@ -85,7 +85,7 @@ where
     }
 }
 
-pub(super) fn validate_schema<C: ColumnId>() -> Result<Version> {
+pub(super) fn validate_schema<C: ColumnId>() -> crate::Result<Version> {
     if C::ALL.is_empty() {
         return Err(Error::InvalidArgument(
             "ColumnarVec requires at least one column",

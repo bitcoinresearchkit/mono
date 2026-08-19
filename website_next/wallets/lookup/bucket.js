@@ -2,7 +2,7 @@ const MIN_PREFIX_NIBBLES = 4;
 const MAX_PREFIX_NIBBLES = 16;
 
 /**
- * @typedef {import("../../modules/brk-client/index.js").AddrHashPrefixMatches} AddrHashPrefixMatches
+ * @typedef {import("../../modules/bitview-client/index.js").AddrHashPrefixMatches} AddrHashPrefixMatches
  * @typedef {import("../derive/index.js").AddressType} AddressType
  * @typedef {import("../derive/index.js").GeneratedAddress} GeneratedAddress
  */

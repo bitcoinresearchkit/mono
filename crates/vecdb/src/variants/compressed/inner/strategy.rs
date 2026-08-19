@@ -1,22 +1,22 @@
 use rawdb::likely;
 
-use crate::{Error, Result, ValueStrategy};
+use crate::{Error, ValueStrategy};
 
 use super::Page;
 
 /// Trait for compression strategies used by ReadWriteCompressedVec.
 pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// Compress a slice of values into bytes.
-    fn compress(values: &[T]) -> Result<Vec<u8>>;
+    fn compress(values: &[T]) -> crate::Result<Vec<u8>>;
 
     /// Decompress bytes into a vector of values.
-    fn decompress(bytes: &[u8], expected_len: usize) -> Result<Vec<T>>;
+    fn decompress(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>>;
 
     /// Decompress bytes into an existing buffer (replace semantics).
     /// Implementations should reuse dst's allocation when possible (see PcodecStrategy).
     /// Default implementation replaces dst with a new Vec from `decompress`.
     #[inline]
-    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
         *dst = Self::decompress(bytes, expected_len)?;
         Ok(())
     }
@@ -24,7 +24,7 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
     /// Decompress bytes, appending to dst without clearing it.
     /// Default implementation decompresses then appends via extend.
     #[inline]
-    fn decompress_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn decompress_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
         let tmp = Self::decompress(bytes, expected_len)?;
         dst.extend(tmp);
         Ok(())
@@ -32,7 +32,7 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
 
     /// Decode page data (raw or compressed) into a new Vec.
     #[inline]
-    fn decode_page(data: &[u8], page: &Page) -> Result<Vec<T>> {
+    fn decode_page(data: &[u8], page: &Page) -> crate::Result<Vec<T>> {
         let n = page.values_count() as usize;
         if page.is_raw() {
             Self::bytes_to_values(data, n)
@@ -50,7 +50,7 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
 
     /// Decode page data (raw or compressed) into an existing buffer (replace semantics).
     #[inline]
-    fn decode_page_into(data: &[u8], page: &Page, dst: &mut Vec<T>) -> Result<()> {
+    fn decode_page_into(data: &[u8], page: &Page, dst: &mut Vec<T>) -> crate::Result<()> {
         let n = page.values_count() as usize;
         if page.is_raw() {
             Self::bytes_to_values_into(data, n, dst)
@@ -83,7 +83,7 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
 
     /// Deserializes bytes to a vector of values, validating the expected length.
     #[inline]
-    fn bytes_to_values(bytes: &[u8], expected_len: usize) -> Result<Vec<T>> {
+    fn bytes_to_values(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>> {
         let mut vec = Vec::with_capacity(expected_len);
         Self::bytes_to_values_into(bytes, expected_len, &mut vec)?;
         Ok(vec)
@@ -91,7 +91,11 @@ pub trait CompressionStrategy<T>: ValueStrategy<T> {
 
     /// Deserializes bytes into an existing buffer, reusing its allocation.
     #[inline]
-    fn bytes_to_values_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn bytes_to_values_into(
+        bytes: &[u8],
+        expected_len: usize,
+        dst: &mut Vec<T>,
+    ) -> crate::Result<()> {
         let expected_bytes = expected_len * size_of::<T>();
         dst.clear();
         dst.reserve(expected_len);

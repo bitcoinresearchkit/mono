@@ -1,3 +1,5 @@
+#![allow(clippy::type_complexity)]
+
 //! Live mempool monitor for the brk indexer.
 //!
 //! One pull cycle, five steps:

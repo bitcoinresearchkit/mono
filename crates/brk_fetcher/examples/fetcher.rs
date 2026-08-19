@@ -1,8 +1,7 @@
-use brk_error::Result;
 use brk_fetcher::{BRK, Binance, Fetcher, Kraken};
 use brk_types::{Date, Height};
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     brk_logger::init(None)?;
 
     let mut brk = BRK::new();

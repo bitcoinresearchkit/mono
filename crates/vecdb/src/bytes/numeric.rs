@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::Error;
 
 use super::Bytes;
 
@@ -15,7 +15,7 @@ macro_rules! impl_bytes_for_numeric {
                 }
 
                 #[inline]
-                fn from_bytes(bytes: &[u8]) -> Result<Self> {
+                fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
                     let arr: [u8; std::mem::size_of::<$t>()] = bytes
                         .try_into()
                         .map_err(|_| Error::WrongLength {

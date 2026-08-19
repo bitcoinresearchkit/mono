@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 /// Trait to serialize stuff
 pub trait Encode {
     /// Serializes into writer.
-    fn encode_into<W: Write>(&self, writer: &mut W) -> Result<(), crate::Error>;
+    fn encode_into<W: Write>(&self, writer: &mut W) -> crate::Result<()>;
 
     /// Serializes into vector.
     fn encode_into_vec(&self) -> Vec<u8> {
@@ -24,7 +24,7 @@ pub trait Encode {
 /// Trait to deserialize stuff
 pub trait Decode {
     /// Deserializes from reader.
-    fn decode_from<R: Read>(reader: &mut R) -> Result<Self, crate::Error>
+    fn decode_from<R: Read>(reader: &mut R) -> crate::Result<Self>
     where
         Self: Sized;
 }

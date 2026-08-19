@@ -1,4 +1,4 @@
-use crate::{BytesVecValue, Result, ValueStrategy};
+use crate::{BytesVecValue, ValueStrategy};
 
 use super::BytesStrategy;
 
@@ -6,7 +6,7 @@ impl<T: BytesVecValue> ValueStrategy<T> for BytesStrategy<T> {
     const IS_NATIVE_LAYOUT: bool = T::IS_NATIVE_LAYOUT;
 
     #[inline(always)]
-    fn read(bytes: &[u8]) -> Result<T> {
+    fn read(bytes: &[u8]) -> crate::Result<T> {
         T::from_bytes(bytes)
     }
 

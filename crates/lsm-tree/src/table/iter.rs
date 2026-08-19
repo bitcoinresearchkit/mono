@@ -7,7 +7,7 @@ use super::{
     owned_data_block_iter::OwnedDataBlockIter,
 };
 use crate::{
-    Cache, CompressionType, InternalValue, SeqNo,
+    Cache, CompressionType, InternalValue,
     file_accessor::FileAccessor,
     table::{
         BlockHandle,
@@ -16,8 +16,6 @@ use crate::{
     },
 };
 use std::{path::PathBuf, sync::Arc};
-
-type Bounds = (Option<Bound>, Option<Bound>);
 
 fn create_data_block_reader(block: DataBlock) -> OwnedDataBlockIter {
     OwnedDataBlockIter::new(block, super::data_block::DataBlock::iter)
@@ -28,7 +26,7 @@ pub struct Iter {
     table_id: GlobalTableId,
     path: Arc<PathBuf>,
 
-    global_seqno: SeqNo,
+    global_seqno: u64,
 
     #[expect(clippy::struct_field_names)]
     index_iter: BlockIndexIterImpl,
@@ -45,7 +43,7 @@ pub struct Iter {
     hi_offset: BlockOffset,
     hi_data_block: Option<OwnedDataBlockIter>,
 
-    range: Bounds,
+    range: (Option<Bound>, Option<Bound>),
 }
 
 impl Iter {
@@ -192,10 +190,10 @@ impl Iterator for Iter {
             // bound, then clamp the iterator on the high side. This guarantees iteration stays in
             // [low, high] with exact control over inclusivity/exclusivity.
             if let Some(bound) = &self.range.0 {
-                reader.seek_lower_bound(bound, SeqNo::MAX);
+                reader.seek_lower_bound(bound, u64::MAX);
             }
             if let Some(bound) = &self.range.1 {
-                reader.seek_upper_bound(bound, SeqNo::MAX);
+                reader.seek_upper_bound(bound, u64::MAX);
             }
 
             let item = reader.next();
@@ -307,10 +305,10 @@ impl DoubleEndedIterator for Iter {
             // the upper bound, then apply the low-side seek to avoid stepping below the lower
             // bound during reverse traversal.
             if let Some(bound) = &self.range.1 {
-                reader.seek_upper_bound(bound, SeqNo::MAX);
+                reader.seek_upper_bound(bound, u64::MAX);
             }
             if let Some(bound) = &self.range.0 {
-                reader.seek_lower_bound(bound, SeqNo::MAX);
+                reader.seek_lower_bound(bound, u64::MAX);
             }
 
             let item = reader.next_back();

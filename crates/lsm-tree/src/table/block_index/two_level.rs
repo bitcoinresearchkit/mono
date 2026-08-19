@@ -2,11 +2,10 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::SeqNo;
 use crate::file_accessor::FileAccessor;
 use crate::table::{IndexBlock, KeyedBlockHandle};
 use crate::{
-    Cache, CompressionType, GlobalTableId, UserKey,
+    Cache, CompressionType, GlobalTableId, Slice,
     table::{
         block::BlockType,
         block_index::{BlockIndexIter, iter::OwnedIndexBlockIter},
@@ -52,8 +51,8 @@ pub struct Iter {
     lo_consumer: Option<OwnedIndexBlockIter>,
     hi_consumer: Option<OwnedIndexBlockIter>,
 
-    lo: Option<(UserKey, SeqNo)>,
-    hi: Option<(UserKey, SeqNo)>,
+    lo: Option<(Slice, u64)>,
+    hi: Option<(Slice, u64)>,
 
     table_id: GlobalTableId,
     path: Arc<PathBuf>,
@@ -84,12 +83,12 @@ impl Iter {
 }
 
 impl BlockIndexIter for Iter {
-    fn seek_lower(&mut self, key: &[u8], seqno: SeqNo) -> bool {
+    fn seek_lower(&mut self, key: &[u8], seqno: u64) -> bool {
         self.lo = Some((key.into(), seqno));
         true
     }
 
-    fn seek_upper(&mut self, key: &[u8], seqno: SeqNo) -> bool {
+    fn seek_upper(&mut self, key: &[u8], seqno: u64) -> bool {
         self.hi = Some((key.into(), seqno));
         true
     }

@@ -10,14 +10,14 @@ if [ -z "$VERSION" ]; then
     exit 1
 fi
 
-cd "$ROOT_DIR/packages/brk_client"
+cd "$ROOT_DIR/packages/bitview_client"
 
 # Update version in pyproject.toml
 sed -i '' 's/^version = "[^"]*"/version = "'"$VERSION"'"/' pyproject.toml
 echo "Updated pyproject.toml to $VERSION"
 
 # Update VERSION in __init__.py
-sed -i '' 's/VERSION = "v[^"]*"/VERSION = "v'"$VERSION"'"/' brk_client/__init__.py
+sed -i '' 's/VERSION = "v[^"]*"/VERSION = "v'"$VERSION"'"/' bitview_client/__init__.py
 echo "Updated __init__.py VERSION to v$VERSION"
 
 # Clean old build artifacts

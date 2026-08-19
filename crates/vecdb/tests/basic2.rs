@@ -5,13 +5,13 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{Result, Stamp, StoredVec, Version};
+use vecdb::{Stamp, StoredVec, Version};
 
 // ============================================================================
 // Test Setup
 // ============================================================================
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
@@ -21,7 +21,7 @@ fn setup_db() -> Result<(Database, TempDir)> {
 // Generic Basic Operations Tests
 // ============================================================================
 
-fn run_push_write_read<V>() -> Result<()>
+fn run_push_write_read<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -49,7 +49,7 @@ where
     Ok(())
 }
 
-fn run_stamp_management<V>() -> Result<()>
+fn run_stamp_management<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -75,7 +75,7 @@ where
     Ok(())
 }
 
-fn run_length_tracking<V>() -> Result<()>
+fn run_length_tracking<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -119,7 +119,7 @@ where
     Ok(())
 }
 
-fn run_truncate<V>() -> Result<()>
+fn run_truncate<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -150,7 +150,7 @@ where
     Ok(())
 }
 
-fn run_collect_signed_range<V>() -> Result<()>
+fn run_collect_signed_range<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -177,7 +177,7 @@ where
     Ok(())
 }
 
-fn run_iter_last<V>() -> Result<()>
+fn run_iter_last<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -198,7 +198,7 @@ where
     Ok(())
 }
 
-fn run_reset<V>() -> Result<()>
+fn run_reset<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -234,7 +234,7 @@ where
     Ok(())
 }
 
-fn run_collect<V>() -> Result<()>
+fn run_collect<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -251,7 +251,7 @@ where
     Ok(())
 }
 
-fn run_persistence_across_reopen<V>() -> Result<()>
+fn run_persistence_across_reopen<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -290,39 +290,39 @@ mod bytes {
     type V = BytesVec<usize, u32>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -334,39 +334,39 @@ mod zerocopy {
     type V = ZeroCopyVec<usize, u32>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -378,39 +378,39 @@ mod pco {
     type V = PcoVec<usize, u32>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -422,39 +422,39 @@ mod lz4 {
     type V = LZ4Vec<usize, u32>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -466,39 +466,39 @@ mod zstd {
     type V = ZstdVec<usize, u32>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -510,39 +510,39 @@ mod eager_zerocopy {
     type V = EagerVec<ZeroCopyVec<usize, u32>>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }
@@ -554,39 +554,39 @@ mod eager_pco {
     type V = EagerVec<PcoVec<usize, u32>>;
 
     #[test]
-    fn push_write_read() -> Result<()> {
+    fn push_write_read() -> vecdb::Result<()> {
         run_push_write_read::<V>()
     }
     #[test]
-    fn stamp_management() -> Result<()> {
+    fn stamp_management() -> vecdb::Result<()> {
         run_stamp_management::<V>()
     }
     #[test]
-    fn length_tracking() -> Result<()> {
+    fn length_tracking() -> vecdb::Result<()> {
         run_length_tracking::<V>()
     }
     #[test]
-    fn truncate() -> Result<()> {
+    fn truncate() -> vecdb::Result<()> {
         run_truncate::<V>()
     }
     #[test]
-    fn collect_signed_range() -> Result<()> {
+    fn collect_signed_range() -> vecdb::Result<()> {
         run_collect_signed_range::<V>()
     }
     #[test]
-    fn iter_last() -> Result<()> {
+    fn iter_last() -> vecdb::Result<()> {
         run_iter_last::<V>()
     }
     #[test]
-    fn reset() -> Result<()> {
+    fn reset() -> vecdb::Result<()> {
         run_reset::<V>()
     }
     #[test]
-    fn collect() -> Result<()> {
+    fn collect() -> vecdb::Result<()> {
         run_collect::<V>()
     }
     #[test]
-    fn persistence_across_reopen() -> Result<()> {
+    fn persistence_across_reopen() -> vecdb::Result<()> {
         run_persistence_across_reopen::<V>()
     }
 }

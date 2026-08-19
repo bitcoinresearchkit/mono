@@ -2,7 +2,6 @@ mod fetched;
 
 pub use fetched::Fetched;
 
-use brk_error::Result;
 use brk_rpc::Client;
 use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
 use parking_lot::RwLock;
@@ -34,7 +33,7 @@ const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 pub struct Fetcher;
 
 impl Fetcher {
-    pub fn fetch(client: &Client, lock: &RwLock<State>) -> Result<Fetched> {
+    pub fn fetch(client: &Client, lock: &RwLock<State>) -> brk_error::Result<Fetched> {
         let (mut state, block_template) = client.fetch_mempool_state()?;
 
         // One read snapshot decides both the RPC fetch list and the

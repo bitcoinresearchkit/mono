@@ -5,7 +5,7 @@ const CACHE_LIMIT = 8;
 const DETACH_DELAY_MS = 220;
 const INTENT_DELAY_MS = 150;
 
-/** @typedef {import("../../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../../modules/bitview-client/index.js").BlockInfoV1} Block */
 /** @typedef {import("../../block/preview/data.js").BlockPreviewData} BlockPreviewData */
 
 /**

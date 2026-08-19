@@ -19,13 +19,12 @@
 use std::time::Instant;
 
 use bitcoin::{OutPoint, ScriptBuf, TxOut};
-use brk_error::Result;
 use brk_iterator::Blocks;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use brk_types::Height;
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     let bitcoin_dir = Client::default_bitcoin_path();
     let client = Client::new(
         Client::default_url(),

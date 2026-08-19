@@ -1,6 +1,6 @@
 use std::{fmt, ops::AddAssign};
 
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::{ColumnId, Formattable, VecValue, Version};

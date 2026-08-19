@@ -2,17 +2,19 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::double_ended_peekable::{DoubleEndedPeekable, DoubleEndedPeekableExt};
-use crate::{InternalValue, UserKey};
+use crate::{
+    InternalValue, Result, Slice,
+    double_ended_peekable::{DoubleEndedPeekable, DoubleEndedPeekableExt},
+};
 
 /// Consumes a stream of KVs and emits a new stream according to MVCC and tombstone rules
 ///
 /// This iterator is used for read operations.
-pub struct MvccStream<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> {
-    inner: DoubleEndedPeekable<crate::Result<InternalValue>, I>,
+pub struct MvccStream<I: DoubleEndedIterator<Item = Result<InternalValue>>> {
+    inner: DoubleEndedPeekable<Result<InternalValue>, I>,
 }
 
-impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> MvccStream<I> {
+impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> MvccStream<I> {
     /// Initializes a new multi-version-aware iterator.
     #[must_use]
     pub fn new(iter: I) -> Self {
@@ -22,7 +24,7 @@ impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> MvccStream<I> 
     }
 
     // Drains all entries for the given user key from the front of the iterator.
-    fn drain_key_min(&mut self, key: &UserKey) -> crate::Result<()> {
+    fn drain_key_min(&mut self, key: &Slice) -> Result<()> {
         loop {
             let Some(next) = self.inner.next_if(|kv| {
                 if let Ok(kv) = kv {
@@ -39,8 +41,8 @@ impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> MvccStream<I> 
     }
 }
 
-impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> Iterator for MvccStream<I> {
-    type Item = crate::Result<InternalValue>;
+impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Iterator for MvccStream<I> {
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let head = fail_iter!(self.inner.next()?);
@@ -52,9 +54,7 @@ impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> Iterator for M
     }
 }
 
-impl<I: DoubleEndedIterator<Item = crate::Result<InternalValue>>> DoubleEndedIterator
-    for MvccStream<I>
-{
+impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> DoubleEndedIterator for MvccStream<I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             let tail = fail_iter!(self.inner.next_back()?);
@@ -142,7 +142,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_error() -> crate::Result<()> {
+    fn mvcc_stream_error() -> Result<()> {
         {
             let vec = [
                 Ok(InternalValue::from_components(
@@ -193,7 +193,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue_reverse_almost_gone() -> crate::Result<()> {
+    fn mvcc_queue_reverse_almost_gone() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "", 1, ValueType::Tombstone),
@@ -239,7 +239,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue_almost_gone_2() -> crate::Result<()> {
+    fn mvcc_queue_almost_gone_2() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "", 1, ValueType::Tombstone),
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue() -> crate::Result<()> {
+    fn mvcc_queue() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "b", 0, ValueType::Value),
@@ -324,7 +324,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue_weak_almost_gone() -> crate::Result<()> {
+    fn mvcc_queue_weak_almost_gone() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "", 1, ValueType::WeakTombstone),
@@ -370,7 +370,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue_weak_almost_gone_2() -> crate::Result<()> {
+    fn mvcc_queue_weak_almost_gone_2() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "", 1, ValueType::WeakTombstone),
@@ -412,7 +412,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_queue_weak_reverse() -> crate::Result<()> {
+    fn mvcc_queue_weak_reverse() -> Result<()> {
         let vec = [
             InternalValue::from_components("a", "a", 0, ValueType::Value),
             InternalValue::from_components("b", "b", 0, ValueType::Value),
@@ -455,7 +455,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_simple() -> crate::Result<()> {
+    fn mvcc_stream_simple() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "new", "V",
@@ -479,7 +479,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_simple_multi_keys() -> crate::Result<()> {
+    fn mvcc_stream_simple_multi_keys() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "new", "V",
@@ -516,7 +516,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_tombstone() -> crate::Result<()> {
+    fn mvcc_stream_tombstone() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "T",
@@ -540,7 +540,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_tombstone_multi_keys() -> crate::Result<()> {
+    fn mvcc_stream_tombstone_multi_keys() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "T",
@@ -577,7 +577,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_weak_tombstone_simple() -> crate::Result<()> {
+    fn mvcc_stream_weak_tombstone_simple() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "W",
@@ -601,7 +601,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_weak_tombstone_resurrection() -> crate::Result<()> {
+    fn mvcc_stream_weak_tombstone_resurrection() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "W",
@@ -626,7 +626,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_weak_tombstone_priority() -> crate::Result<()> {
+    fn mvcc_stream_weak_tombstone_priority() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "T",  
@@ -652,7 +652,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn mvcc_stream_weak_tombstone_multi_keys() -> crate::Result<()> {
+    fn mvcc_stream_weak_tombstone_multi_keys() -> Result<()> {
         #[rustfmt::skip]
         let vec = stream![
           "a", "", "W",

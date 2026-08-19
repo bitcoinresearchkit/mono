@@ -1,6 +1,6 @@
 use std::{fs::File, ops::ControlFlow, os::unix::fs::FileExt};
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_rpc::Client;
 use brk_types::{BlockHash, Height, ReadBlock};
 use crossbeam::channel::Sender;
@@ -19,8 +19,8 @@ pub(super) fn pipeline_tail(
     paths: &BlkIndexToBlkPath,
     xor_bytes: XORBytes,
     canonical: &CanonicalRange,
-    send: &Sender<Result<ReadBlock>>,
-) -> Result<()> {
+    send: &Sender<brk_error::Result<ReadBlock>>,
+) -> brk_error::Result<()> {
     let mut slots: Vec<Option<ReadBlock>> = (0..canonical.len()).map(|_| None).collect();
     let mut remaining = canonical.len();
     let mut parse_failure: Option<Error> = None;

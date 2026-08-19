@@ -1,7 +1,6 @@
 use super::{Block, BlockHandle, DataBlock};
 use crate::{
-    CompressionType, KeyRange, SeqNo, TableId, checksum::ChecksumType, coding::Decode,
-    table::block::BlockType,
+    CompressionType, KeyRange, checksum::ChecksumType, coding::Decode, table::block::BlockType,
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::fs::File;
@@ -9,10 +8,10 @@ use std::fs::File;
 /// Metadata required to read and compact a table.
 #[derive(Debug)]
 pub struct ParsedMeta {
-    pub id: TableId,
+    pub id: u32,
     pub data_block_count: u64,
     pub key_range: KeyRange,
-    pub(super) highest_seqno: SeqNo,
+    pub(super) highest_seqno: u64,
     pub file_size: u64,
     pub item_count: u64,
     pub data_block_compression: CompressionType,
@@ -48,7 +47,7 @@ impl ParsedMeta {
         })
     }
 
-    fn read(block: &DataBlock, name: &[u8]) -> crate::UserValue {
+    fn read(block: &DataBlock, name: &[u8]) -> crate::Slice {
         block
             .point_read(name)
             .unwrap_or_else(|| panic!("meta property {name:?} should exist"))

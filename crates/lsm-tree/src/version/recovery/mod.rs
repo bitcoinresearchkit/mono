@@ -5,13 +5,13 @@ pub use recovered_table::RecoveredTable;
 use crate::{
     Checksum,
     file::{CURRENT_MAGIC, CURRENT_VERSION_FILE},
-    version::{DEFAULT_LEVEL_COUNT, VersionId},
+    version::DEFAULT_LEVEL_COUNT,
 };
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
 use std::path::Path;
 
 pub struct Recovery {
-    pub curr_version_id: VersionId,
+    pub curr_version_id: u64,
     pub table_ids: Vec<Vec<Vec<RecoveredTable>>>,
 }
 
@@ -26,7 +26,7 @@ impl Recovery {
             let version = magic.last().copied().ok_or(crate::Error::Unrecoverable)?;
             return Err(crate::Error::InvalidVersion(version));
         }
-        if bytes.len() < CURRENT_MAGIC.len() + size_of::<VersionId>() + size_of::<u128>() {
+        if bytes.len() < CURRENT_MAGIC.len() + size_of::<u64>() + size_of::<u128>() {
             return Err(crate::Error::Unrecoverable);
         }
         let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());

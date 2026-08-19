@@ -2,7 +2,6 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::SeqNo;
 use crate::table::block_index::{BlockIndexIter, iter::OwnedIndexBlockIter};
 use crate::table::{IndexBlock, KeyedBlockHandle};
 
@@ -20,7 +19,7 @@ impl FullBlockIndex {
         &self.0
     }
 
-    pub fn forward_reader(&self, needle: &[u8], seqno: SeqNo) -> Option<Iter> {
+    pub fn forward_reader(&self, needle: &[u8], seqno: u64) -> Option<Iter> {
         let mut it = self.iter();
         if it.seek_lower(needle, seqno) {
             Some(it)
@@ -37,11 +36,11 @@ impl FullBlockIndex {
 pub struct Iter(OwnedIndexBlockIter);
 
 impl BlockIndexIter for Iter {
-    fn seek_lower(&mut self, key: &[u8], seqno: SeqNo) -> bool {
+    fn seek_lower(&mut self, key: &[u8], seqno: u64) -> bool {
         self.0.seek_lower(key, seqno)
     }
 
-    fn seek_upper(&mut self, key: &[u8], seqno: SeqNo) -> bool {
+    fn seek_upper(&mut self, key: &[u8], seqno: u64) -> bool {
         self.0.seek_upper(key, seqno)
     }
 }

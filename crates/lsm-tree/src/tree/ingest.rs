@@ -1,6 +1,4 @@
-use crate::{
-    Table, Tree, UserKey, UserValue, config::FilterPolicyEntry, table::multi_writer::MultiWriter,
-};
+use crate::{Slice, Table, Tree, config::FilterPolicyEntry, table::multi_writer::MultiWriter};
 
 const INGESTION_LEVEL: usize = 1;
 
@@ -9,7 +7,7 @@ pub struct Ingestion<'a> {
     tree: &'a Tree,
     writer: MultiWriter,
     #[cfg(debug_assertions)]
-    last_key: Option<UserKey>,
+    last_key: Option<Slice>,
 }
 
 impl<'a> Ingestion<'a> {
@@ -67,11 +65,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when the table cannot accept the item.
-    pub fn write<K: Into<UserKey>, V: Into<UserValue>>(
-        &mut self,
-        key: K,
-        value: V,
-    ) -> crate::Result<()> {
+    pub fn write<K: Into<Slice>, V: Into<Slice>>(&mut self, key: K, value: V) -> crate::Result<()> {
         let key = key.into();
         self.validate_key(&key);
         self.writer.write(crate::InternalValue::from_components(
@@ -87,12 +81,12 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when the table cannot accept the item.
-    pub fn write_weak_tombstone<K: Into<UserKey>>(&mut self, key: K) -> crate::Result<()> {
+    pub fn write_weak_tombstone<K: Into<Slice>>(&mut self, key: K) -> crate::Result<()> {
         let key = key.into();
         self.validate_key(&key);
         self.writer.write(crate::InternalValue::from_components(
             key,
-            crate::UserValue::empty(),
+            crate::Slice::empty(),
             0,
             crate::ValueType::WeakTombstone,
         ))
@@ -134,7 +128,7 @@ impl<'a> Ingestion<'a> {
     }
 
     #[cfg(debug_assertions)]
-    fn validate_key(&mut self, key: &UserKey) {
+    fn validate_key(&mut self, key: &Slice) {
         if let Some(previous) = &self.last_key {
             debug_assert!(key > previous, "ingestion keys must be strictly increasing");
         }
@@ -142,5 +136,5 @@ impl<'a> Ingestion<'a> {
     }
 
     #[cfg(not(debug_assertions))]
-    fn validate_key(&mut self, _key: &UserKey) {}
+    fn validate_key(&mut self, _key: &Slice) {}
 }

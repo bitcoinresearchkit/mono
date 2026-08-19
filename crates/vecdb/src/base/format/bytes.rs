@@ -1,4 +1,4 @@
-use crate::{Bytes, Error, Result};
+use crate::{Bytes, Error};
 
 use super::Format;
 
@@ -11,7 +11,7 @@ impl Bytes for Format {
     }
 
     #[inline]
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
         let len = bytes.len();
         if len != size_of::<Self>() {
             return Err(Error::WrongLength {

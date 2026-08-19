@@ -157,7 +157,7 @@ where
             return;
         }
 
-        let overflow = self.overflow.reader();
+        let overflow = BytesVecReader::new(self.overflow.reader());
         buf.reserve(to - from);
         if to - from > DECODE_CHUNK_SIZE {
             let mut compact = Vec::with_capacity(DECODE_CHUNK_SIZE);
@@ -187,7 +187,7 @@ where
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         let _guard = self.gate.read();
         let to = to.min(self.visible_len.get());
-        let overflow = self.overflow.reader();
+        let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact
             .for_each_range_dyn_at(from, to, &mut |compact| {
                 f(Self::decode_with_reader(compact, &overflow));
@@ -204,7 +204,7 @@ where
     ) -> B {
         let _guard = self.gate.read();
         let to = to.min(self.visible_len.get());
-        let overflow = self.overflow.reader();
+        let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact.fold_range_at(from, to, init, |acc, compact| {
             f(acc, Self::decode_with_reader(compact, &overflow))
         })
@@ -220,7 +220,7 @@ where
     ) -> std::result::Result<B, E> {
         let _guard = self.gate.read();
         let to = to.min(self.visible_len.get());
-        let overflow = self.overflow.reader();
+        let overflow = BytesVecReader::new(self.overflow.reader());
         self.compact
             .try_fold_range_at(from, to, init, |acc, compact| {
                 f(acc, Self::decode_with_reader(compact, &overflow))

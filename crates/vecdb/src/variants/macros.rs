@@ -243,8 +243,10 @@ macro_rules! impl_vec_wrapper {
 
             fn find_rollback_files(
                 &self,
-            ) -> $crate::Result<::std::collections::BTreeMap<$crate::Stamp, ::std::path::PathBuf>>
-            {
+            ) -> ::std::result::Result<
+                ::std::collections::BTreeMap<$crate::Stamp, ::std::path::PathBuf>,
+                $crate::Error,
+            > {
                 self.0.find_rollback_files()
             }
 
@@ -260,7 +262,7 @@ macro_rules! impl_vec_wrapper {
         {
             #[inline]
             fn read_only_boxed_clone(&self) -> $crate::ReadableBoxedVec<I, T> {
-                Box::new(self.0.read_only_clone())
+                $crate::ReadableBoxedVec::new(self.0.read_only_clone())
             }
         }
 

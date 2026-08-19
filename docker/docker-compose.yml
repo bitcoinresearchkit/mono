@@ -1,27 +1,27 @@
-name: brk
+name: bitview
 
 services:
-  brk:
+  bitview:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    image: brk:latest
-    container_name: brk
+    image: bitview:latest
+    container_name: bitview
     restart: unless-stopped
     ports:
       - 7070:3110
     volumes:
       - ${BITCOIN_DATA_DIR:-/path/to/bitcoin}:/bitcoin:ro
-      - ${BRK_DATA_VOLUME:-brk-data}:/home/brk/.brk
-      # Bind mount alternative (uncomment and set BRK_DATA_DIR in .env):
-      # - ${BRK_DATA_DIR:-./brk-data}:/home/brk/.brk
+      - ${BITVIEW_DATA_VOLUME:-bitview-data}:/home/bitview/.bitview
+      # Bind mount alternative (uncomment and set BITVIEW_DATA_DIR in .env):
+      # - ${BITVIEW_DATA_DIR:-./bitview-data}:/home/bitview/.bitview
     command:
       - --bitcoindir
       - /bitcoin
       - --blocksdir
       - /bitcoin/blocks
-      - --brkdir
-      - /home/brk/.brk
+      - --bitviewdir
+      - /home/bitview/.bitview
       - --rpcconnect
       - "${BTC_RPC_HOST:-localhost}"
       - --rpcuser
@@ -32,11 +32,11 @@ services:
       # - --rpccookiefile
       # - /bitcoin/.cookie
     healthcheck:
-      test: ["CMD", "pgrep", "-x", "brk"]
+      test: ["CMD", "pgrep", "-x", "bitview"]
       interval: 30s
       retries: 3
       start_period: 10s
 
 volumes:
-  brk-data:
+  bitview-data:
     driver: local

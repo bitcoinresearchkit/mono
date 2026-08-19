@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 use crate::{
-    AnyStoredVec, AnyVec, BinaryTransform, Cursor, Error, Exit, ReadableVec, Result, StoredVec,
-    VecIndex, VecValue, Version, WritableVec,
+    AnyStoredVec, AnyVec, BinaryTransform, Cursor, Error, Exit, ReadableVec, StoredVec, VecIndex,
+    VecValue, Version, WritableVec,
 };
 
 use super::super::EagerVec;
@@ -21,9 +21,9 @@ where
         batch_size: usize,
         mut compute: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
-        F: FnMut(&mut Self, Range<usize>) -> Result<()>,
+        F: FnMut(&mut Self, Range<usize>) -> crate::Result<()>,
     {
         if batch_size == 0 {
             return Err(Error::InvalidArgument(
@@ -63,7 +63,7 @@ where
         version: Version,
         mut t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         F: FnMut(V::I) -> (V::I, V::T),
     {
@@ -89,7 +89,7 @@ where
         other: &impl ReadableVec<V::I, A>,
         t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         F: FnMut(V::I) -> (V::I, V::T),
@@ -102,7 +102,7 @@ where
         max_from: V::I,
         other: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::T: From<V::I>,
         A: VecValue,
@@ -122,7 +122,7 @@ where
         source: &impl ReadableVec<V::I, A>,
         mut t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         F: FnMut((V::I, A, &Self)) -> (V::I, V::T),
@@ -151,7 +151,7 @@ where
         other2: &impl ReadableVec<V::I, B>,
         t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -169,7 +169,7 @@ where
         batch_size: usize,
         mut t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -203,7 +203,7 @@ where
         source1: &impl ReadableVec<V::I, A>,
         source2: &impl ReadableVec<V::I, B>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -226,7 +226,7 @@ where
         other3: &impl ReadableVec<V::I, C>,
         mut t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -277,7 +277,7 @@ where
         other4: &impl ReadableVec<V::I, D>,
         mut t: F,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         B: VecValue,
@@ -335,7 +335,7 @@ where
         source1: &impl ReadableVec<V::I, A>,
         source2: &impl ReadableVec<A, V::T>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + VecIndex,
     {
@@ -384,7 +384,7 @@ where
         max_from: V::T,
         other: &impl ReadableVec<V::T, V::I>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         V::I: VecValue + VecIndex,
         V::T: VecIndex,

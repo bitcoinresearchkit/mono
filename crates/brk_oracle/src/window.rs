@@ -1,4 +1,4 @@
-use crate::scale::{HistogramEma, HistogramRaw};
+use crate::{HistogramEma, HistogramRaw};
 
 /// A sliding window of the most recent raw block histograms and their weighted
 /// exponential moving average.

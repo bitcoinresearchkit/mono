@@ -10,7 +10,7 @@ use memmap2::MmapMut;
 use parking_lot::Mutex;
 
 use crate::{
-    Database, Error, PAGE_SIZE, RegionMetadata, Result, SIZE_OF_REGION_METADATA, create_mmap,
+    Database, Error, PAGE_SIZE, RegionMetadata, SIZE_OF_REGION_METADATA, create_mmap,
     region::Region, write_to_mmap,
 };
 
@@ -25,7 +25,7 @@ pub struct Regions {
 }
 
 impl Regions {
-    pub fn open(parent: &Path) -> Result<Self> {
+    pub fn open(parent: &Path) -> crate::Result<Self> {
         fs::create_dir_all(parent)?;
 
         let file = OpenOptions::new()
@@ -47,11 +47,11 @@ impl Regions {
         })
     }
 
-    fn file_len(&self) -> Result<usize> {
+    fn file_len(&self) -> crate::Result<usize> {
         Ok(self.file.metadata()?.len() as usize)
     }
 
-    pub(crate) fn fill(&mut self, db: &Database) -> Result<()> {
+    pub(crate) fn fill(&mut self, db: &Database) -> crate::Result<()> {
         let file_len = self.file_len()?;
 
         if file_len % SIZE_OF_REGION_METADATA != 0 {
@@ -81,7 +81,7 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn set_min_len(&mut self, len: usize) -> Result<()> {
+    pub(crate) fn set_min_len(&mut self, len: usize) -> crate::Result<()> {
         let file_len = self.file_len()?;
         if file_len < len {
             self.file.set_len(len as u64)?;
@@ -90,7 +90,12 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn create(&mut self, db: &Database, id: String, start: usize) -> Result<Region> {
+    pub(crate) fn create(
+        &mut self,
+        db: &Database,
+        id: String,
+        start: usize,
+    ) -> crate::Result<Region> {
         let index = self
             .index_to_region
             .iter()
@@ -131,7 +136,7 @@ impl Regions {
             .and_then(|&index| self.get_from_index(index))
     }
 
-    pub(crate) fn rename(&mut self, old_id: &str, new_id: &str) -> Result<()> {
+    pub(crate) fn rename(&mut self, old_id: &str, new_id: &str) -> crate::Result<()> {
         let index = self
             .id_to_index
             .get(old_id)
@@ -148,7 +153,7 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn remove(&mut self, region: &Region) -> Result<()> {
+    pub(crate) fn remove(&mut self, region: &Region) -> crate::Result<()> {
         // Expected 2: one from caller, one from self.index_to_region.
         let ref_count = Arc::strong_count(region.arc());
         debug!(
@@ -180,7 +185,7 @@ impl Regions {
     }
 
     /// Makes every completed metadata write preceding this call durable.
-    pub(crate) fn flush(&self) -> Result<bool> {
+    pub(crate) fn flush(&self) -> crate::Result<bool> {
         let mut dirty = self.dirty.lock();
         if !*dirty {
             return Ok(false);

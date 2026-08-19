@@ -178,12 +178,11 @@ impl<T: Ranged> Run<T> {
 #[expect(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::TableId;
     use test_log::test;
 
     #[derive(Clone)]
     struct FakeTable {
-        id: TableId,
+        id: u32,
         key_range: KeyRange,
     }
 
@@ -193,7 +192,7 @@ mod tests {
         }
     }
 
-    fn s(id: TableId, min: &str, max: &str) -> FakeTable {
+    fn s(id: u32, min: &str, max: &str) -> FakeTable {
         FakeTable {
             id,
             key_range: KeyRange::new((min.as_bytes().into(), max.as_bytes().into())),
@@ -305,7 +304,7 @@ mod tests {
         let run = Run(items);
 
         assert_eq!(
-            &[] as &[TableId],
+            &[] as &[u32],
             &*run
                 .get_contained(&KeyRange::new((b"a".into(), b"a".into())))
                 .iter()
@@ -415,7 +414,7 @@ mod tests {
         );
 
         assert_eq!(
-            &[] as &[TableId],
+            &[] as &[u32],
             &*run
                 .get_overlapping(&KeyRange::new((b"zzz".into(), b"zzzz".into())))
                 .iter()

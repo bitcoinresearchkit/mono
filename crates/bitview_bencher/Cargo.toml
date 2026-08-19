@@ -1,0 +1,16 @@
+[package]
+name = "bitview_bencher"
+description = "A simple benchmarker for testing other crates."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+brk_error = { workspace = true }
+brk_logger = { workspace = true }
+parking_lot = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libproc = "0.14"

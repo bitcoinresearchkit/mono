@@ -23,12 +23,12 @@ fn owned_ingest_merges_puts_and_tombstones() -> brk_error::Result<()> {
 
         store.insert(key(1, 1), Unit);
         store.insert(key(2, 2), Unit);
-        store.take_pending_ingest().unwrap()()?;
+        store.take_pending_ingest().unwrap().run()?;
 
         store.remove(key(1, 1));
         store.remove(key(3, 3));
         store.insert(key(4, 4), Unit);
-        store.take_pending_ingest().unwrap()()?;
+        store.take_pending_ingest().unwrap().run()?;
         assert!(store.get(&key(1, 1))?.is_none());
         assert!(store.get(&key(2, 2))?.is_some());
         assert!(store.get(&key(3, 3))?.is_none());

@@ -9,8 +9,7 @@ use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportOptions,
     ImportableVec, LazyColumnSumVec, LazyColumnarVec, PrintableIndex, ReadableColumnarVec,
-    ReadableVec, Result, Stamp, StoredVec, UnaryTransform, VecIndex, VecValue, Version,
-    WritableVec,
+    ReadableVec, Stamp, StoredVec, UnaryTransform, VecIndex, VecValue, Version, WritableVec,
 };
 
 const COLUMNS: usize = 3;
@@ -135,7 +134,7 @@ fn row(index: usize) -> [u64; COLUMNS] {
 }
 
 #[test]
-fn bytes_columnar_roundtrip_and_projection() -> Result<()> {
+fn bytes_columnar_roundtrip_and_projection() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -185,7 +184,7 @@ fn bytes_columnar_roundtrip_and_projection() -> Result<()> {
 }
 
 #[test]
-fn eager_columnar_collect_last_tracks_persisted_and_pending_rows() -> Result<()> {
+fn eager_columnar_collect_last_tracks_persisted_and_pending_rows() -> vecdb::Result<()> {
     type V = EagerVec<ColumnarVec<BytesVec<usize, u64>, TestColumn>>;
 
     let temp = tempdir()?;
@@ -203,7 +202,7 @@ fn eager_columnar_collect_last_tracks_persisted_and_pending_rows() -> Result<()>
 }
 
 #[test]
-fn eager_columnar_computes_and_persists_rows() -> Result<()> {
+fn eager_columnar_computes_and_persists_rows() -> vecdb::Result<()> {
     type Source = BytesVec<usize, u64>;
     type Target = EagerVec<ColumnarVec<BytesVec<usize, u64>, TestColumn>>;
 
@@ -245,7 +244,7 @@ fn eager_columnar_computes_and_persists_rows() -> Result<()> {
 }
 
 #[test]
-fn projection_is_isolated_from_pushed_rows_until_write() -> Result<()> {
+fn projection_is_isolated_from_pushed_rows_until_write() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -278,7 +277,7 @@ fn projection_is_isolated_from_pushed_rows_until_write() -> Result<()> {
 }
 
 #[test]
-fn lazy_columnar_transform_preserves_rows_and_columns() -> Result<()> {
+fn lazy_columnar_transform_preserves_rows_and_columns() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -325,7 +324,7 @@ fn lazy_columnar_transform_preserves_rows_and_columns() -> Result<()> {
 }
 
 #[test]
-fn columnar_sum_accepts_stored_and_lazy_sources() -> Result<()> {
+fn columnar_sum_accepts_stored_and_lazy_sources() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -417,7 +416,7 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> Result<()> {
 }
 
 #[test]
-fn raw_data_is_column_major_within_each_page_block() -> Result<()> {
+fn raw_data_is_column_major_within_each_page_block() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -447,7 +446,7 @@ fn raw_data_is_column_major_within_each_page_block() -> Result<()> {
 }
 
 #[test]
-fn column_count_is_part_of_storage_version() -> Result<()> {
+fn column_count_is_part_of_storage_version() -> vecdb::Result<()> {
     type ThreeColumns = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
     type FiveColumns = ColumnarVec<BytesVec<usize, u64>, FiveColumn>;
 
@@ -467,7 +466,7 @@ fn column_count_is_part_of_storage_version() -> Result<()> {
 }
 
 #[test]
-fn column_schema_and_count_cannot_cancel_each_other() -> Result<()> {
+fn column_schema_and_count_cannot_cancel_each_other() -> vecdb::Result<()> {
     type ThreeColumns = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
     type TwoChangedColumns = ColumnarVec<BytesVec<usize, u64>, TwoColumn>;
 
@@ -484,7 +483,7 @@ fn column_schema_and_count_cannot_cancel_each_other() -> Result<()> {
 }
 
 #[test]
-fn column_schema_version_is_part_of_storage_version() -> Result<()> {
+fn column_schema_version_is_part_of_storage_version() -> vecdb::Result<()> {
     type Original = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
     type Changed = ColumnarVec<BytesVec<usize, u64>, ChangedTestColumn>;
 
@@ -502,7 +501,7 @@ fn column_schema_version_is_part_of_storage_version() -> Result<()> {
 }
 
 #[test]
-fn column_identity_is_part_of_storage_version() -> Result<()> {
+fn column_identity_is_part_of_storage_version() -> vecdb::Result<()> {
     type Original = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
     type Renamed = ColumnarVec<BytesVec<usize, u64>, RenamedTestColumn>;
 
@@ -520,7 +519,7 @@ fn column_identity_is_part_of_storage_version() -> Result<()> {
 }
 
 #[test]
-fn projected_try_fold_stops_at_the_first_error() -> Result<()> {
+fn projected_try_fold_stops_at_the_first_error() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -544,7 +543,7 @@ fn projected_try_fold_stops_at_the_first_error() -> Result<()> {
 }
 
 #[test]
-fn reset_and_rollback_persist() -> Result<()> {
+fn reset_and_rollback_persist() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -575,7 +574,7 @@ fn reset_and_rollback_persist() -> Result<()> {
 }
 
 #[test]
-fn initial_capacity_is_reserved_for_every_column() -> Result<()> {
+fn initial_capacity_is_reserved_for_every_column() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<CapacityIndex, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -599,7 +598,7 @@ fn initial_capacity_is_reserved_for_every_column() -> Result<()> {
 
 #[cfg(feature = "pco")]
 #[test]
-fn pco_columnar_roundtrip_reads_only_selected_stream() -> Result<()> {
+fn pco_columnar_roundtrip_reads_only_selected_stream() -> vecdb::Result<()> {
     use vecdb::PcoVec;
 
     type V = ColumnarVec<PcoVec<usize, u64>, TestColumn>;
@@ -627,7 +626,7 @@ fn pco_columnar_roundtrip_reads_only_selected_stream() -> Result<()> {
 
 #[cfg(feature = "pco")]
 #[test]
-fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> Result<()> {
+fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> vecdb::Result<()> {
     use vecdb::PcoVec;
 
     type V = ColumnarVec<PcoVec<usize, u64>, TestColumn>;
@@ -661,17 +660,17 @@ fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> Res
 }
 
 #[test]
-fn concurrent_projection_reads_survive_incremental_writes() -> Result<()> {
+fn concurrent_projection_reads_survive_incremental_writes() -> vecdb::Result<()> {
     run_concurrent_projection_reads::<BytesVec<usize, u64>>()
 }
 
 #[cfg(feature = "pco")]
 #[test]
-fn pco_concurrent_projection_reads_survive_incremental_writes() -> Result<()> {
+fn pco_concurrent_projection_reads_survive_incremental_writes() -> vecdb::Result<()> {
     run_concurrent_projection_reads::<vecdb::PcoVec<usize, u64>>()
 }
 
-fn run_concurrent_projection_reads<V>() -> Result<()>
+fn run_concurrent_projection_reads<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64> + 'static,
     V::ReadOnly: Send + Sync,
@@ -716,24 +715,24 @@ where
 
 #[cfg(feature = "lz4")]
 #[test]
-fn lz4_columnar_roundtrip() -> Result<()> {
+fn lz4_columnar_roundtrip() -> vecdb::Result<()> {
     run_small_backend_roundtrip::<vecdb::LZ4Vec<usize, u64>>()
 }
 
 #[cfg(feature = "zstd")]
 #[test]
-fn zstd_columnar_roundtrip() -> Result<()> {
+fn zstd_columnar_roundtrip() -> vecdb::Result<()> {
     run_small_backend_roundtrip::<vecdb::ZstdVec<usize, u64>>()
 }
 
 #[cfg(feature = "zerocopy")]
 #[test]
-fn zerocopy_columnar_roundtrip() -> Result<()> {
+fn zerocopy_columnar_roundtrip() -> vecdb::Result<()> {
     run_small_backend_roundtrip::<vecdb::ZeroCopyVec<usize, u64>>()
 }
 
 #[cfg(any(feature = "lz4", feature = "zstd", feature = "zerocopy"))]
-fn run_small_backend_roundtrip<V>() -> Result<()>
+fn run_small_backend_roundtrip<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64> + 'static,
 {

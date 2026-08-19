@@ -36,8 +36,8 @@ brk = { version = "0.1", features = ["full"] }
 | [brk_computer](https://docs.rs/brk_computer) | Compute derived metrics (realized cap, MVRV, SOPR, cohorts, etc.) |
 | [brk_mempool](https://docs.rs/brk_mempool) | Monitor mempool, estimate fees, project upcoming blocks |
 | [brk_oracle](https://docs.rs/brk_oracle) | Pure on-chain BTC/USD price oracle |
-| [brk_query](https://docs.rs/brk_query) | Query interface for indexed and computed data |
-| [brk_server](https://docs.rs/brk_server) | REST API with OpenAPI docs |
+| [bitview_query](https://docs.rs/bitview_query) | Query interface for indexed and computed data |
+| [bitview_server](https://docs.rs/bitview_server) | REST API with OpenAPI docs |
 
 **Data & Storage**
 
@@ -49,24 +49,26 @@ brk = { version = "0.1", features = ["full"] }
 | [brk_rpc](https://docs.rs/brk_rpc) | Bitcoin Core RPC client |
 | [brk_iterator](https://docs.rs/brk_iterator) | Unified block iteration with automatic source selection |
 | [brk_cohort](https://docs.rs/brk_cohort) | UTXO and address cohort filtering |
-| [brk_traversable](https://docs.rs/brk_traversable) | Navigate hierarchical data structures |
+| [bitview_traversable](https://docs.rs/bitview_traversable) | Navigate hierarchical data structures |
 
 **Clients & Integration**
 
 | Crate | Description |
 |-------|-------------|
-| [brk_client](https://docs.rs/brk_client) | Generated Rust API client |
-| [brk_bindgen](https://docs.rs/brk_bindgen) | Generate typed clients (Rust, JavaScript, Python) |
-| [brk_mcp](https://crates.io/crates/brk_mcp) | Stateless, read-only MCP adapter for the BRK API |
+| [bitview_client](https://docs.rs/bitview_client) | Generated Rust API client |
+| [bitview_bindgen](https://docs.rs/bitview_bindgen) | Generate typed clients (Rust, JavaScript, Python) |
+| [bitview_mcp](https://crates.io/crates/bitview_mcp) | Stateless, read-only MCP adapter for the Bitview API |
 
 The official MCP endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/). It requires no authentication.
+
+The complete self-hosted platform and executable are provided by
+[`bitview`](https://docs.rs/bitview) (`cargo install --locked bitview`).
 
 **Internal**
 
 | Crate | Description |
 |-------|-------------|
-| [brk_cli](https://docs.rs/brk_cli) | CLI binary (`cargo install --locked brk_cli`) |
 | [brk_error](https://docs.rs/brk_error) | Error types |
 | [brk_logger](https://docs.rs/brk_logger) | Logging infrastructure |
-| [brk_bencher](https://docs.rs/brk_bencher) | Benchmarking utilities |
+| [bitview_bencher](https://docs.rs/bitview_bencher) | Benchmarking utilities |

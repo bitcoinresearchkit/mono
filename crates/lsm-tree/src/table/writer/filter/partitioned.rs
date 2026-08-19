@@ -4,7 +4,7 @@
 
 use super::FilterWriter;
 use crate::{
-    CompressionType, UserKey,
+    CompressionType, Slice,
     checksum::ChecksummedWriter,
     config::BloomConstructionPolicy,
     table::{
@@ -32,7 +32,7 @@ pub struct PartitionedFilterWriter {
 
     relative_file_pos: u64,
 
-    last_key: Option<UserKey>,
+    last_key: Option<Slice>,
 
     compression: CompressionType,
 }
@@ -57,7 +57,7 @@ impl PartitionedFilterWriter {
         }
     }
 
-    fn spill_filter_partition(&mut self, key: &UserKey) -> crate::Result<()> {
+    fn spill_filter_partition(&mut self, key: &Slice) -> crate::Result<()> {
         let filter_bytes = {
             let mut builder = self.bloom_policy.init(self.bloom_hash_buffer.len());
 
@@ -160,7 +160,7 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for PartitionedFilterWri
         self
     }
 
-    fn register_key(&mut self, key: &UserKey) -> crate::Result<()> {
+    fn register_key(&mut self, key: &Slice) -> crate::Result<()> {
         self.bloom_hash_buffer.push(Builder::get_hash(key));
 
         self.approx_filter_size = self

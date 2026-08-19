@@ -1,0 +1,33 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / SeriesTree\_Cohorts\_Cohorts\_Relative
+
+# Interface: SeriesTree\_Cohorts\_Cohorts\_Relative
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:14440](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14440)
+
+## Properties
+
+### investedCapital
+
+> **investedCapital**: [`SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital`](SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:14443](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14443)
+
+***
+
+### supply
+
+> **supply**: [`SeriesTree_Cohorts_Cohorts_Relative_Supply`](SeriesTree_Cohorts_Cohorts_Relative_Supply.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:14441](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14441)
+
+***
+
+### unrealized
+
+> **unrealized**: [`SeriesTree_Cohorts_Cohorts_Relative_Unrealized`](SeriesTree_Cohorts_Cohorts_Relative_Unrealized.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:14442](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14442)

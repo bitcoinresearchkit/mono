@@ -10,15 +10,15 @@ use rawdb::Database;
 use std::ops::DerefMut;
 use tempfile::TempDir;
 use vecdb::{
-    AnyStoredVec, ImportOptions, ImportableVec, ReadableVec, Result, Stamp, StoredVec, VecReader,
-    Version, WritableVec,
+    AnyStoredVec, ImportOptions, ImportableVec, ReadableVec, Stamp, StoredVec, VecReader, Version,
+    WritableVec,
 };
 
 // ============================================================================
 // Test Setup
 // ============================================================================
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
@@ -32,7 +32,7 @@ fn setup_db() -> Result<(Database, TempDir)> {
 mod generic_rollback {
     use super::*;
 
-    fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> Result<V>
+    fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> vecdb::Result<V>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -41,7 +41,7 @@ mod generic_rollback {
         V::forced_import_with(options)
     }
 
-    fn run_basic_rollback<V>() -> Result<()>
+    fn run_basic_rollback<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -71,7 +71,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_truncation<V>() -> Result<()>
+    fn run_rollback_with_truncation<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -99,7 +99,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_multiple_sequential_rollbacks<V>() -> Result<()>
+    fn run_multiple_sequential_rollbacks<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -134,7 +134,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_rollback_then_save_new_state<V>() -> Result<()>
+    fn run_rollback_then_save_new_state<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -164,7 +164,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_rollback_to_empty<V>() -> Result<()>
+    fn run_rollback_to_empty<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -189,7 +189,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_rollback_before<V>() -> Result<()>
+    fn run_rollback_before<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -223,7 +223,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_deep_rollback_chain<V>() -> Result<()>
+    fn run_deep_rollback_chain<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -263,7 +263,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_rollback_persistence<V>() -> Result<()>
+    fn run_rollback_persistence<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -297,7 +297,7 @@ mod generic_rollback {
         Ok(())
     }
 
-    fn run_reset<V>() -> Result<()>
+    fn run_reset<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -354,39 +354,39 @@ mod generic_rollback {
         type V = BytesVec<usize, u32>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -398,39 +398,39 @@ mod generic_rollback {
         type V = ZeroCopyVec<usize, u32>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -442,39 +442,39 @@ mod generic_rollback {
         type V = PcoVec<usize, u32>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -486,39 +486,39 @@ mod generic_rollback {
         type V = LZ4Vec<usize, u32>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -530,39 +530,39 @@ mod generic_rollback {
         type V = ZstdVec<usize, u32>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -574,39 +574,39 @@ mod generic_rollback {
         type V = EagerVec<ZeroCopyVec<usize, u32>>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -618,39 +618,39 @@ mod generic_rollback {
         type V = EagerVec<PcoVec<usize, u32>>;
 
         #[test]
-        fn basic_rollback() -> Result<()> {
+        fn basic_rollback() -> vecdb::Result<()> {
             run_basic_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_persistence() -> Result<()> {
+        fn rollback_persistence() -> vecdb::Result<()> {
             run_rollback_persistence::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
     }
@@ -677,18 +677,18 @@ mod raw_rollback {
             db: &'a Database,
             name: &'a str,
             changes: u16,
-        ) -> Result<(Self, ImportOptions<'a>)>;
+        ) -> vecdb::Result<(Self, ImportOptions<'a>)>;
     }
 
     /// Operations required for rollback testing.
     pub trait RollbackOps {
         type Reader;
 
-        fn update(&mut self, index: usize, value: u32) -> Result<()>;
+        fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()>;
         fn take(&mut self, index: usize) -> Option<u32>;
-        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
-        fn rollback(&mut self) -> Result<()>;
-        fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp>;
+        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()>;
+        fn rollback(&mut self) -> vecdb::Result<()>;
+        fn rollback_before(&mut self, stamp: Stamp) -> vecdb::Result<Stamp>;
         fn stamp(&self) -> Stamp;
         fn stored_len(&self) -> usize;
         fn collect(&self) -> Vec<u32>;
@@ -710,7 +710,7 @@ mod raw_rollback {
             db: &'a Database,
             name: &'a str,
             changes: u16,
-        ) -> Result<(Self, ImportOptions<'a>)> {
+        ) -> vecdb::Result<(Self, ImportOptions<'a>)> {
             let mut options: ImportOptions = (db, name, Version::TWO).into();
             options = options.with_saved_stamped_changes(changes);
             let vec = Self::forced_import_with(options)?;
@@ -722,7 +722,7 @@ mod raw_rollback {
     impl RollbackOps for ReadWriteRawVec<usize, u32, ZeroCopyStrategy<u32>> {
         type Reader = VecReader<usize, u32, ZeroCopyStrategy<u32>>;
 
-        fn update(&mut self, index: usize, value: u32) -> Result<()> {
+        fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
             ReadWriteRawVec::update(self, index, value)
         }
 
@@ -733,15 +733,15 @@ mod raw_rollback {
             result
         }
 
-        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()> {
             WritableVec::stamped_write_with_changes(self, stamp)
         }
 
-        fn rollback(&mut self) -> Result<()> {
+        fn rollback(&mut self) -> vecdb::Result<()> {
             WritableVec::rollback(self)
         }
 
-        fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
+        fn rollback_before(&mut self, stamp: Stamp) -> vecdb::Result<Stamp> {
             WritableVec::rollback_before(self, stamp)
         }
 
@@ -783,7 +783,7 @@ mod raw_rollback {
             db: &'a Database,
             name: &'a str,
             changes: u16,
-        ) -> Result<(Self, ImportOptions<'a>)> {
+        ) -> vecdb::Result<(Self, ImportOptions<'a>)> {
             let mut options: ImportOptions = (db, name, Version::TWO).into();
             options = options.with_saved_stamped_changes(changes);
             let vec = Self::forced_import_with(options)?;
@@ -794,7 +794,7 @@ mod raw_rollback {
     impl RollbackOps for ReadWriteRawVec<usize, u32, BytesStrategy<u32>> {
         type Reader = VecReader<usize, u32, BytesStrategy<u32>>;
 
-        fn update(&mut self, index: usize, value: u32) -> Result<()> {
+        fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
             ReadWriteRawVec::update(self, index, value)
         }
 
@@ -805,15 +805,15 @@ mod raw_rollback {
             result
         }
 
-        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()> {
             WritableVec::stamped_write_with_changes(self, stamp)
         }
 
-        fn rollback(&mut self) -> Result<()> {
+        fn rollback(&mut self) -> vecdb::Result<()> {
             WritableVec::rollback(self)
         }
 
-        fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
+        fn rollback_before(&mut self, stamp: Stamp) -> vecdb::Result<Stamp> {
             WritableVec::rollback_before(self, stamp)
         }
 
@@ -846,7 +846,7 @@ mod raw_rollback {
     // Generic Rollback Test Functions
     // ============================================================================
 
-    fn run_basic_single_rollback<V>() -> Result<()>
+    fn run_basic_single_rollback<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -876,7 +876,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_truncation<V>() -> Result<()>
+    fn run_rollback_with_truncation<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -906,7 +906,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_multiple_sequential_rollbacks<V>() -> Result<()>
+    fn run_multiple_sequential_rollbacks<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -942,7 +942,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_then_save_new_state<V>() -> Result<()>
+    fn run_rollback_then_save_new_state<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -973,7 +973,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_updates<V>() -> Result<()>
+    fn run_rollback_with_updates<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1001,7 +1001,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_holes<V>() -> Result<()>
+    fn run_rollback_with_holes<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1029,7 +1029,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_truncation_and_updates<V>() -> Result<()>
+    fn run_rollback_with_truncation_and_updates<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1058,7 +1058,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_with_holes_and_updates<V>() -> Result<()>
+    fn run_rollback_with_holes_and_updates<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1086,7 +1086,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_multiple_updates_to_same_index<V>() -> Result<()>
+    fn run_multiple_updates_to_same_index<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1128,7 +1128,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_complex_mixed_operations<V>() -> Result<()>
+    fn run_complex_mixed_operations<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1170,7 +1170,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_to_empty<V>() -> Result<()>
+    fn run_rollback_to_empty<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1196,7 +1196,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_reset<V>() -> Result<()>
+    fn run_reset<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1250,7 +1250,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_deep_rollback_chain<V>() -> Result<()>
+    fn run_deep_rollback_chain<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1321,7 +1321,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_all_elements_updated<V>() -> Result<()>
+    fn run_rollback_all_elements_updated<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1349,7 +1349,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_multiple_holes_then_rollback<V>() -> Result<()>
+    fn run_multiple_holes_then_rollback<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1380,7 +1380,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_before<V>() -> Result<()>
+    fn run_rollback_before<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1423,7 +1423,7 @@ mod raw_rollback {
     /// the entry's prev value would be lost from the change file.
     /// On a second rollback, the slot would contain stale on-disk data
     /// instead of the correct rolled-back value.
-    fn run_rollback_after_rollback_with_delete<V>() -> Result<()>
+    fn run_rollback_after_rollback_with_delete<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1471,7 +1471,7 @@ mod raw_rollback {
         Ok(())
     }
 
-    fn run_rollback_after_untracked_checkpoint<V>() -> Result<()>
+    fn run_rollback_after_untracked_checkpoint<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps + AnyStoredVec,
@@ -1508,75 +1508,75 @@ mod raw_rollback {
         type V = ZeroCopyVec<usize, u32>;
 
         #[test]
-        fn basic_single_rollback() -> Result<()> {
+        fn basic_single_rollback() -> vecdb::Result<()> {
             run_basic_single_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_with_updates() -> Result<()> {
+        fn rollback_with_updates() -> vecdb::Result<()> {
             run_rollback_with_updates::<V>()
         }
         #[test]
-        fn rollback_with_holes() -> Result<()> {
+        fn rollback_with_holes() -> vecdb::Result<()> {
             run_rollback_with_holes::<V>()
         }
         #[test]
-        fn rollback_with_truncation_and_updates() -> Result<()> {
+        fn rollback_with_truncation_and_updates() -> vecdb::Result<()> {
             run_rollback_with_truncation_and_updates::<V>()
         }
         #[test]
-        fn rollback_with_holes_and_updates() -> Result<()> {
+        fn rollback_with_holes_and_updates() -> vecdb::Result<()> {
             run_rollback_with_holes_and_updates::<V>()
         }
         #[test]
-        fn multiple_updates_to_same_index() -> Result<()> {
+        fn multiple_updates_to_same_index() -> vecdb::Result<()> {
             run_multiple_updates_to_same_index::<V>()
         }
         #[test]
-        fn complex_mixed_operations() -> Result<()> {
+        fn complex_mixed_operations() -> vecdb::Result<()> {
             run_complex_mixed_operations::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_all_elements_updated() -> Result<()> {
+        fn rollback_all_elements_updated() -> vecdb::Result<()> {
             run_rollback_all_elements_updated::<V>()
         }
         #[test]
-        fn multiple_holes_then_rollback() -> Result<()> {
+        fn multiple_holes_then_rollback() -> vecdb::Result<()> {
             run_multiple_holes_then_rollback::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
         #[test]
-        fn rollback_after_rollback_with_delete() -> Result<()> {
+        fn rollback_after_rollback_with_delete() -> vecdb::Result<()> {
             run_rollback_after_rollback_with_delete::<V>()
         }
         #[test]
-        fn rollback_after_untracked_checkpoint() -> Result<()> {
+        fn rollback_after_untracked_checkpoint() -> vecdb::Result<()> {
             run_rollback_after_untracked_checkpoint::<V>()
         }
     }
@@ -1587,75 +1587,75 @@ mod raw_rollback {
         type V = BytesVec<usize, u32>;
 
         #[test]
-        fn basic_single_rollback() -> Result<()> {
+        fn basic_single_rollback() -> vecdb::Result<()> {
             run_basic_single_rollback::<V>()
         }
         #[test]
-        fn rollback_with_truncation() -> Result<()> {
+        fn rollback_with_truncation() -> vecdb::Result<()> {
             run_rollback_with_truncation::<V>()
         }
         #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
+        fn multiple_sequential_rollbacks() -> vecdb::Result<()> {
             run_multiple_sequential_rollbacks::<V>()
         }
         #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
+        fn rollback_then_save_new_state() -> vecdb::Result<()> {
             run_rollback_then_save_new_state::<V>()
         }
         #[test]
-        fn rollback_with_updates() -> Result<()> {
+        fn rollback_with_updates() -> vecdb::Result<()> {
             run_rollback_with_updates::<V>()
         }
         #[test]
-        fn rollback_with_holes() -> Result<()> {
+        fn rollback_with_holes() -> vecdb::Result<()> {
             run_rollback_with_holes::<V>()
         }
         #[test]
-        fn rollback_with_truncation_and_updates() -> Result<()> {
+        fn rollback_with_truncation_and_updates() -> vecdb::Result<()> {
             run_rollback_with_truncation_and_updates::<V>()
         }
         #[test]
-        fn rollback_with_holes_and_updates() -> Result<()> {
+        fn rollback_with_holes_and_updates() -> vecdb::Result<()> {
             run_rollback_with_holes_and_updates::<V>()
         }
         #[test]
-        fn multiple_updates_to_same_index() -> Result<()> {
+        fn multiple_updates_to_same_index() -> vecdb::Result<()> {
             run_multiple_updates_to_same_index::<V>()
         }
         #[test]
-        fn complex_mixed_operations() -> Result<()> {
+        fn complex_mixed_operations() -> vecdb::Result<()> {
             run_complex_mixed_operations::<V>()
         }
         #[test]
-        fn rollback_to_empty() -> Result<()> {
+        fn rollback_to_empty() -> vecdb::Result<()> {
             run_rollback_to_empty::<V>()
         }
         #[test]
-        fn deep_rollback_chain() -> Result<()> {
+        fn deep_rollback_chain() -> vecdb::Result<()> {
             run_deep_rollback_chain::<V>()
         }
         #[test]
-        fn rollback_all_elements_updated() -> Result<()> {
+        fn rollback_all_elements_updated() -> vecdb::Result<()> {
             run_rollback_all_elements_updated::<V>()
         }
         #[test]
-        fn multiple_holes_then_rollback() -> Result<()> {
+        fn multiple_holes_then_rollback() -> vecdb::Result<()> {
             run_multiple_holes_then_rollback::<V>()
         }
         #[test]
-        fn rollback_before() -> Result<()> {
+        fn rollback_before() -> vecdb::Result<()> {
             run_rollback_before::<V>()
         }
         #[test]
-        fn reset() -> Result<()> {
+        fn reset() -> vecdb::Result<()> {
             run_reset::<V>()
         }
         #[test]
-        fn rollback_after_rollback_with_delete() -> Result<()> {
+        fn rollback_after_rollback_with_delete() -> vecdb::Result<()> {
             run_rollback_after_rollback_with_delete::<V>()
         }
         #[test]
-        fn rollback_after_untracked_checkpoint() -> Result<()> {
+        fn rollback_after_untracked_checkpoint() -> vecdb::Result<()> {
             run_rollback_after_untracked_checkpoint::<V>()
         }
     }
@@ -1668,7 +1668,7 @@ mod raw_rollback {
 mod checkpoint_rollback {
     use super::*;
 
-    fn run<V>() -> Result<()>
+    fn run<V>() -> vecdb::Result<()>
     where
         V: StoredVec<I = usize, T = u32>,
     {
@@ -1692,43 +1692,43 @@ mod checkpoint_rollback {
     }
 
     #[test]
-    fn bytes() -> Result<()> {
+    fn bytes() -> vecdb::Result<()> {
         run::<vecdb::BytesVec<usize, u32>>()
     }
 
     #[cfg(feature = "zerocopy")]
     #[test]
-    fn zerocopy() -> Result<()> {
+    fn zerocopy() -> vecdb::Result<()> {
         run::<vecdb::ZeroCopyVec<usize, u32>>()
     }
 
     #[cfg(feature = "pco")]
     #[test]
-    fn pco() -> Result<()> {
+    fn pco() -> vecdb::Result<()> {
         run::<vecdb::PcoVec<usize, u32>>()
     }
 
     #[cfg(feature = "lz4")]
     #[test]
-    fn lz4() -> Result<()> {
+    fn lz4() -> vecdb::Result<()> {
         run::<vecdb::LZ4Vec<usize, u32>>()
     }
 
     #[cfg(feature = "zstd")]
     #[test]
-    fn zstd() -> Result<()> {
+    fn zstd() -> vecdb::Result<()> {
         run::<vecdb::ZstdVec<usize, u32>>()
     }
 
     #[cfg(feature = "zerocopy")]
     #[test]
-    fn eager_zerocopy() -> Result<()> {
+    fn eager_zerocopy() -> vecdb::Result<()> {
         run::<vecdb::EagerVec<vecdb::ZeroCopyVec<usize, u32>>>()
     }
 
     #[cfg(feature = "pco")]
     #[test]
-    fn eager_pco() -> Result<()> {
+    fn eager_pco() -> vecdb::Result<()> {
         run::<vecdb::EagerVec<vecdb::PcoVec<usize, u32>>>()
     }
 }
@@ -1748,7 +1748,7 @@ mod integration {
 
     /// Compute SHA-256 hash of the vecdb data file and regions directory
     /// Only hashes data (file) and regions/*, ignoring changes directory
-    fn compute_directory_hash(dir: &Path) -> Result<String> {
+    fn compute_directory_hash(dir: &Path) -> vecdb::Result<String> {
         use std::path::PathBuf;
 
         let mut hasher = Sha256::new();
@@ -1808,7 +1808,7 @@ mod integration {
     /// 1. Data can be correctly read back using individual gets
     /// 2. Data can be correctly read back using iterators
     /// 3. Redo operations produce the same readable state
-    fn run_data_integrity_rollback_flush_reopen<V>() -> Result<()>
+    fn run_data_integrity_rollback_flush_reopen<V>() -> vecdb::Result<()>
     where
         V: RollbackVec,
         V::Target: RollbackOps,
@@ -1944,7 +1944,7 @@ mod integration {
         type V = ZeroCopyVec<usize, u32>;
 
         #[test]
-        fn data_integrity_rollback_flush_reopen() -> Result<()> {
+        fn data_integrity_rollback_flush_reopen() -> vecdb::Result<()> {
             run_data_integrity_rollback_flush_reopen::<V>()
         }
     }
@@ -1955,7 +1955,7 @@ mod integration {
         type V = BytesVec<usize, u32>;
 
         #[test]
-        fn data_integrity_rollback_flush_reopen() -> Result<()> {
+        fn data_integrity_rollback_flush_reopen() -> vecdb::Result<()> {
             run_data_integrity_rollback_flush_reopen::<V>()
         }
     }

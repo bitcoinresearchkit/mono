@@ -1,7 +1,6 @@
-use brk_error::Result;
 use brk_fetcher::Kraken;
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     brk_logger::init(None)?;
     let kraken = Kraken::new();
     let _ = dbg!(kraken.fetch_1d());

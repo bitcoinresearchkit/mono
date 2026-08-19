@@ -42,7 +42,7 @@ curl https://bitview.space/api/mempool/price
 
 Query metrics and blockchain data in JSON or CSV. No rate limit.
 
-[Documentation](https://bitview.space/api) · [JavaScript](https://www.npmjs.com/package/brk-client) · [Python](https://pypi.org/project/brk-client) · [Rust](https://crates.io/crates/brk_client) · [llms.txt](https://bitview.space/llms.txt) · [LLM-friendly schema](https://bitview.space/api.json)
+[Documentation](https://bitview.space/api) · [JavaScript](https://www.npmjs.com/package/bitview-client) · [Python](https://pypi.org/project/bitview-client) · [Rust](https://crates.io/crates/bitview_client) · [llms.txt](https://bitview.space/llms.txt) · [LLM-friendly schema](https://bitview.space/api.json)
 
 ### MCP
 
@@ -58,14 +58,14 @@ are generated from the same OpenAPI operations as the typed clients.
 ### Self-host
 
 ```bash
-cargo install --locked brk_cli && brk
+cargo install --locked bitview && bitview
 ```
 
 Run your own website and API. All you need is Bitcoin Core.
 
 > **Note:** BRK uses [sparse files](https://en.wikipedia.org/wiki/Sparse_file). Tools like `ls -l` or Finder report the logical file size (>1 TB), not actual disk usage (~350 GB). Use `du -sh` to see real usage.
 
-[Guide](https://github.com/bitcoinresearchkit/brk/blob/main/crates/brk_cli/README.md) · [Professional hosting](./PROFESSIONAL_HOSTING.md)
+[Guide](https://github.com/bitcoinresearchkit/brk/blob/main/crates/bitview/README.md) · [Professional hosting](./PROFESSIONAL_HOSTING.md)
 
 ### Library
 

@@ -1,6 +1,4 @@
-use crate::{
-    AnyStoredVec, ChangeCursor, ReadWriteBaseVec, Result, VecIndex, VecValue, WritableVec,
-};
+use crate::{AnyStoredVec, ChangeCursor, ReadWriteBaseVec, VecIndex, VecValue, WritableVec};
 
 use super::{super::CompressionStrategy, ReadWriteCompressedVec};
 
@@ -10,7 +8,7 @@ where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    pub(super) fn serialize_compressed_changes(&self) -> Result<Vec<u8>> {
+    pub(super) fn serialize_compressed_changes(&self) -> crate::Result<Vec<u8>> {
         self.base.serialize_changes(
             Self::SIZE_OF_T,
             |from, to| self.collect_stored_range(from, to),
@@ -22,7 +20,7 @@ where
         )
     }
 
-    pub(super) fn deserialize_then_undo_changes(&mut self, bytes: &[u8]) -> Result<()> {
+    pub(super) fn deserialize_then_undo_changes(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let mut c = ChangeCursor::new(bytes);
         let change =
             ReadWriteBaseVec::<I, T>::parse_change_data(&mut c, Self::SIZE_OF_T, |b| S::read(b))?;

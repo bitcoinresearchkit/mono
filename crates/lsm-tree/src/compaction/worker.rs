@@ -1,5 +1,5 @@
 use crate::{
-    Config, InternalValue, SequenceNumberCounter, Table, TableId, Tree,
+    Config, InternalValue, SequenceNumberCounter, Table, Tree,
     compaction::{
         Choice, Input, flavour::StandardCompaction, state::CompactionState,
         stream::CompactionStream,
@@ -8,15 +8,28 @@ use crate::{
     merge::Merger,
     run_scanner::RunScanner,
     table::{filter::BloomConstructionPolicy, multi_writer::MultiWriter},
-    tree::inner::TreeId,
     version::{Run, Set, Version},
 };
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-type Reader = Box<dyn Iterator<Item = crate::Result<InternalValue>>>;
+struct Reader(Box<dyn Iterator<Item = crate::Result<InternalValue>>>);
+
+impl Reader {
+    fn new(iterator: impl Iterator<Item = crate::Result<InternalValue>> + 'static) -> Self {
+        Self(Box::new(iterator))
+    }
+}
+
+impl Iterator for Reader {
+    type Item = crate::Result<InternalValue>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next()
+    }
+}
 
 pub struct Worker {
-    pub tree_id: TreeId,
+    pub tree_id: u32,
     pub table_id_generator: SequenceNumberCounter,
     pub config: Arc<Config>,
     pub versions: Arc<Set>,
@@ -159,7 +172,7 @@ impl Worker {
             .use_bloom_policy(bloom_policy))
     }
 
-    fn show_tables(&self, table_ids: &[TableId]) {
+    fn show_tables(&self, table_ids: &[u32]) {
         self.state()
             .hidden_set_mut()
             .show(table_ids.iter().copied());
@@ -167,7 +180,7 @@ impl Worker {
 
     fn create_stream(
         version: &Version,
-        table_ids: &[TableId],
+        table_ids: &[u32],
     ) -> crate::Result<Option<CompactionStream<Merger<Reader>>>> {
         let mut readers = Vec::<Reader>::new();
         let mut found = 0;
@@ -177,14 +190,14 @@ impl Worker {
                 let Some((start, end)) = Self::run_indexes(run, table_ids) else {
                     continue;
                 };
-                readers.push(Box::new(RunScanner::culled(
+                readers.push(Reader::new(RunScanner::culled(
                     run.clone(),
                     (Some(start), Some(end)),
                 )?));
                 found += end - start + 1;
             } else {
                 for table in run.iter().filter(|table| table_ids.contains(&table.id())) {
-                    readers.push(Box::new(table.scan()?));
+                    readers.push(Reader::new(table.scan()?));
                     found += 1;
                 }
             }
@@ -193,7 +206,7 @@ impl Worker {
         Ok((found == table_ids.len()).then(|| CompactionStream::new(Merger::new(readers))))
     }
 
-    fn run_indexes(run: &Run<Table>, table_ids: &[TableId]) -> Option<(usize, usize)> {
+    fn run_indexes(run: &Run<Table>, table_ids: &[u32]) -> Option<(usize, usize)> {
         Some((
             run.iter()
                 .position(|table| table_ids.contains(&table.id()))?,

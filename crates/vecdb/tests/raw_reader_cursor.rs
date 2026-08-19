@@ -1,9 +1,9 @@
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{AnyStoredVec, BytesVec, ImportableVec, Result, Version, WritableVec};
+use vecdb::{AnyStoredVec, BytesVec, ImportableVec, Version, WritableVec};
 
 #[test]
-fn raw_reader_cursor_reads_persisted_values() -> Result<()> {
+fn raw_reader_cursor_reads_persisted_values() -> vecdb::Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     let mut vec = BytesVec::<usize, u64>::import(&db, "values", Version::ONE)?;

@@ -6,15 +6,14 @@
 use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{
-    AnyStoredVec, EagerVec, Exit, ImportableVec, ReadableVec, Result, StoredVec, Version,
-    WritableVec,
+    AnyStoredVec, EagerVec, Exit, ImportableVec, ReadableVec, StoredVec, Version, WritableVec,
 };
 
 // ============================================================================
 // Test Setup
 // ============================================================================
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
@@ -35,7 +34,7 @@ fn assert_f32_eq(actual: f32, expected: f32, tolerance: f32, message: &str) {
 // Generic Test Functions
 // ============================================================================
 
-fn run_compute_sum_of_others<V>() -> Result<()>
+fn run_compute_sum_of_others<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -72,7 +71,7 @@ where
     Ok(())
 }
 
-fn run_compute_min_of_others<V>() -> Result<()>
+fn run_compute_min_of_others<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -109,7 +108,7 @@ where
     Ok(())
 }
 
-fn run_compute_max_of_others<V>() -> Result<()>
+fn run_compute_max_of_others<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -146,7 +145,7 @@ where
     Ok(())
 }
 
-fn run_compute_previous_value<VS, VR>() -> Result<()>
+fn run_compute_previous_value<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -187,7 +186,7 @@ where
     Ok(())
 }
 
-fn run_compute_change<V>() -> Result<()>
+fn run_compute_change<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -219,7 +218,7 @@ where
     Ok(())
 }
 
-fn run_compute_percentage_change<VS, VR>() -> Result<()>
+fn run_compute_percentage_change<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -255,7 +254,7 @@ where
     Ok(())
 }
 
-fn run_compute_sliding_window_max<V>() -> Result<()>
+fn run_compute_sliding_window_max<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -287,7 +286,7 @@ where
     Ok(())
 }
 
-fn run_compute_sliding_window_min<V>() -> Result<()>
+fn run_compute_sliding_window_min<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -319,7 +318,7 @@ where
     Ok(())
 }
 
-fn run_compute_all_time_high<V>() -> Result<()>
+fn run_compute_all_time_high<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -351,7 +350,7 @@ where
     Ok(())
 }
 
-fn run_compute_all_time_low<V>() -> Result<()>
+fn run_compute_all_time_low<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -403,7 +402,7 @@ where
     Ok(())
 }
 
-fn run_compute_cagr<V>() -> Result<()>
+fn run_compute_cagr<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = f32>,
 {
@@ -437,7 +436,7 @@ where
     Ok(())
 }
 
-fn run_compute_zscore<V>() -> Result<()>
+fn run_compute_zscore<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = f32>,
 {
@@ -476,7 +475,7 @@ where
     Ok(())
 }
 
-fn run_compute_functions_with_resume<V>() -> Result<()>
+fn run_compute_functions_with_resume<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -517,7 +516,7 @@ where
     Ok(())
 }
 
-fn run_compute_add<V>() -> Result<()>
+fn run_compute_add<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -547,7 +546,7 @@ where
     Ok(())
 }
 
-fn run_compute_subtract<V>() -> Result<()>
+fn run_compute_subtract<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -577,7 +576,7 @@ where
     Ok(())
 }
 
-fn run_compute_multiply<V>() -> Result<()>
+fn run_compute_multiply<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
@@ -607,7 +606,7 @@ where
     Ok(())
 }
 
-fn run_compute_divide<V>() -> Result<()>
+fn run_compute_divide<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = f32>,
 {
@@ -637,7 +636,7 @@ where
     Ok(())
 }
 
-fn run_compute_max<V>() -> Result<()>
+fn run_compute_max<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -665,7 +664,7 @@ where
     Ok(())
 }
 
-fn run_compute_min<V>() -> Result<()>
+fn run_compute_min<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -697,7 +696,7 @@ where
     Ok(())
 }
 
-fn run_compute_sum<V>() -> Result<()>
+fn run_compute_sum<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u64>,
 {
@@ -725,7 +724,7 @@ where
     Ok(())
 }
 
-fn run_compute_sma<VS, VR>() -> Result<()>
+fn run_compute_sma<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -760,7 +759,7 @@ where
     Ok(())
 }
 
-fn run_compute_ema<VS, VR>() -> Result<()>
+fn run_compute_ema<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -787,7 +786,7 @@ where
     Ok(())
 }
 
-fn run_compute_percentage<VS, VR>() -> Result<()>
+fn run_compute_percentage<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -823,7 +822,7 @@ where
     Ok(())
 }
 
-fn run_compute_percentage_difference<VS, VR>() -> Result<()>
+fn run_compute_percentage_difference<VS, VR>() -> vecdb::Result<()>
 where
     VS: StoredVec<I = usize, T = u16>,
     VR: StoredVec<I = usize, T = f32>,
@@ -868,122 +867,122 @@ mod bytes {
     use vecdb::BytesVec;
 
     #[test]
-    fn compute_sum_of_others() -> Result<()> {
+    fn compute_sum_of_others() -> vecdb::Result<()> {
         run_compute_sum_of_others::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min_of_others() -> Result<()> {
+    fn compute_min_of_others() -> vecdb::Result<()> {
         run_compute_min_of_others::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_max_of_others() -> Result<()> {
+    fn compute_max_of_others() -> vecdb::Result<()> {
         run_compute_max_of_others::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_previous_value() -> Result<()> {
+    fn compute_previous_value() -> vecdb::Result<()> {
         run_compute_previous_value::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_change() -> Result<()> {
+    fn compute_change() -> vecdb::Result<()> {
         run_compute_change::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_percentage_change() -> Result<()> {
+    fn compute_percentage_change() -> vecdb::Result<()> {
         run_compute_percentage_change::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_sliding_window_max() -> Result<()> {
+    fn compute_sliding_window_max() -> vecdb::Result<()> {
         run_compute_sliding_window_max::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_sliding_window_min() -> Result<()> {
+    fn compute_sliding_window_min() -> vecdb::Result<()> {
         run_compute_sliding_window_min::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_high() -> Result<()> {
+    fn compute_all_time_high() -> vecdb::Result<()> {
         run_compute_all_time_high::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_low() -> Result<()> {
+    fn compute_all_time_low() -> vecdb::Result<()> {
         run_compute_all_time_low::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_cagr() -> Result<()> {
+    fn compute_cagr() -> vecdb::Result<()> {
         run_compute_cagr::<BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_zscore() -> Result<()> {
+    fn compute_zscore() -> vecdb::Result<()> {
         run_compute_zscore::<BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_functions_with_resume() -> Result<()> {
+    fn compute_functions_with_resume() -> vecdb::Result<()> {
         run_compute_functions_with_resume::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_add() -> Result<()> {
+    fn compute_add() -> vecdb::Result<()> {
         run_compute_add::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_subtract() -> Result<()> {
+    fn compute_subtract() -> vecdb::Result<()> {
         run_compute_subtract::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_multiply() -> Result<()> {
+    fn compute_multiply() -> vecdb::Result<()> {
         run_compute_multiply::<BytesVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_divide() -> Result<()> {
+    fn compute_divide() -> vecdb::Result<()> {
         run_compute_divide::<BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_max() -> Result<()> {
+    fn compute_max() -> vecdb::Result<()> {
         run_compute_max::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min() -> Result<()> {
+    fn compute_min() -> vecdb::Result<()> {
         run_compute_min::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sum() -> Result<()> {
+    fn compute_sum() -> vecdb::Result<()> {
         run_compute_sum::<BytesVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sma() -> Result<()> {
+    fn compute_sma() -> vecdb::Result<()> {
         run_compute_sma::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_ema() -> Result<()> {
+    fn compute_ema() -> vecdb::Result<()> {
         run_compute_ema::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage() -> Result<()> {
+    fn compute_percentage() -> vecdb::Result<()> {
         run_compute_percentage::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage_difference() -> Result<()> {
+    fn compute_percentage_difference() -> vecdb::Result<()> {
         run_compute_percentage_difference::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
     }
 }
@@ -998,122 +997,122 @@ mod zerocopy {
     use vecdb::ZeroCopyVec;
 
     #[test]
-    fn compute_sum_of_others() -> Result<()> {
+    fn compute_sum_of_others() -> vecdb::Result<()> {
         run_compute_sum_of_others::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min_of_others() -> Result<()> {
+    fn compute_min_of_others() -> vecdb::Result<()> {
         run_compute_min_of_others::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_max_of_others() -> Result<()> {
+    fn compute_max_of_others() -> vecdb::Result<()> {
         run_compute_max_of_others::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_previous_value() -> Result<()> {
+    fn compute_previous_value() -> vecdb::Result<()> {
         run_compute_previous_value::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_change() -> Result<()> {
+    fn compute_change() -> vecdb::Result<()> {
         run_compute_change::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_percentage_change() -> Result<()> {
+    fn compute_percentage_change() -> vecdb::Result<()> {
         run_compute_percentage_change::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_sliding_window_max() -> Result<()> {
+    fn compute_sliding_window_max() -> vecdb::Result<()> {
         run_compute_sliding_window_max::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_sliding_window_min() -> Result<()> {
+    fn compute_sliding_window_min() -> vecdb::Result<()> {
         run_compute_sliding_window_min::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_high() -> Result<()> {
+    fn compute_all_time_high() -> vecdb::Result<()> {
         run_compute_all_time_high::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_low() -> Result<()> {
+    fn compute_all_time_low() -> vecdb::Result<()> {
         run_compute_all_time_low::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_cagr() -> Result<()> {
+    fn compute_cagr() -> vecdb::Result<()> {
         run_compute_cagr::<ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_zscore() -> Result<()> {
+    fn compute_zscore() -> vecdb::Result<()> {
         run_compute_zscore::<ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_functions_with_resume() -> Result<()> {
+    fn compute_functions_with_resume() -> vecdb::Result<()> {
         run_compute_functions_with_resume::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_add() -> Result<()> {
+    fn compute_add() -> vecdb::Result<()> {
         run_compute_add::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_subtract() -> Result<()> {
+    fn compute_subtract() -> vecdb::Result<()> {
         run_compute_subtract::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_multiply() -> Result<()> {
+    fn compute_multiply() -> vecdb::Result<()> {
         run_compute_multiply::<ZeroCopyVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_divide() -> Result<()> {
+    fn compute_divide() -> vecdb::Result<()> {
         run_compute_divide::<ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_max() -> Result<()> {
+    fn compute_max() -> vecdb::Result<()> {
         run_compute_max::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min() -> Result<()> {
+    fn compute_min() -> vecdb::Result<()> {
         run_compute_min::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sum() -> Result<()> {
+    fn compute_sum() -> vecdb::Result<()> {
         run_compute_sum::<ZeroCopyVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sma() -> Result<()> {
+    fn compute_sma() -> vecdb::Result<()> {
         run_compute_sma::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_ema() -> Result<()> {
+    fn compute_ema() -> vecdb::Result<()> {
         run_compute_ema::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage() -> Result<()> {
+    fn compute_percentage() -> vecdb::Result<()> {
         run_compute_percentage::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage_difference() -> Result<()> {
+    fn compute_percentage_difference() -> vecdb::Result<()> {
         run_compute_percentage_difference::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
     }
 }
@@ -1124,122 +1123,122 @@ mod pco {
     use vecdb::PcoVec;
 
     #[test]
-    fn compute_sum_of_others() -> Result<()> {
+    fn compute_sum_of_others() -> vecdb::Result<()> {
         run_compute_sum_of_others::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min_of_others() -> Result<()> {
+    fn compute_min_of_others() -> vecdb::Result<()> {
         run_compute_min_of_others::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_max_of_others() -> Result<()> {
+    fn compute_max_of_others() -> vecdb::Result<()> {
         run_compute_max_of_others::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_previous_value() -> Result<()> {
+    fn compute_previous_value() -> vecdb::Result<()> {
         run_compute_previous_value::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_change() -> Result<()> {
+    fn compute_change() -> vecdb::Result<()> {
         run_compute_change::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_percentage_change() -> Result<()> {
+    fn compute_percentage_change() -> vecdb::Result<()> {
         run_compute_percentage_change::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_sliding_window_max() -> Result<()> {
+    fn compute_sliding_window_max() -> vecdb::Result<()> {
         run_compute_sliding_window_max::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_sliding_window_min() -> Result<()> {
+    fn compute_sliding_window_min() -> vecdb::Result<()> {
         run_compute_sliding_window_min::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_high() -> Result<()> {
+    fn compute_all_time_high() -> vecdb::Result<()> {
         run_compute_all_time_high::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_low() -> Result<()> {
+    fn compute_all_time_low() -> vecdb::Result<()> {
         run_compute_all_time_low::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_cagr() -> Result<()> {
+    fn compute_cagr() -> vecdb::Result<()> {
         run_compute_cagr::<PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_zscore() -> Result<()> {
+    fn compute_zscore() -> vecdb::Result<()> {
         run_compute_zscore::<PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_functions_with_resume() -> Result<()> {
+    fn compute_functions_with_resume() -> vecdb::Result<()> {
         run_compute_functions_with_resume::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_add() -> Result<()> {
+    fn compute_add() -> vecdb::Result<()> {
         run_compute_add::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_subtract() -> Result<()> {
+    fn compute_subtract() -> vecdb::Result<()> {
         run_compute_subtract::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_multiply() -> Result<()> {
+    fn compute_multiply() -> vecdb::Result<()> {
         run_compute_multiply::<PcoVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_divide() -> Result<()> {
+    fn compute_divide() -> vecdb::Result<()> {
         run_compute_divide::<PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_max() -> Result<()> {
+    fn compute_max() -> vecdb::Result<()> {
         run_compute_max::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min() -> Result<()> {
+    fn compute_min() -> vecdb::Result<()> {
         run_compute_min::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sum() -> Result<()> {
+    fn compute_sum() -> vecdb::Result<()> {
         run_compute_sum::<PcoVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sma() -> Result<()> {
+    fn compute_sma() -> vecdb::Result<()> {
         run_compute_sma::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_ema() -> Result<()> {
+    fn compute_ema() -> vecdb::Result<()> {
         run_compute_ema::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage() -> Result<()> {
+    fn compute_percentage() -> vecdb::Result<()> {
         run_compute_percentage::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage_difference() -> Result<()> {
+    fn compute_percentage_difference() -> vecdb::Result<()> {
         run_compute_percentage_difference::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
     }
 }
@@ -1250,122 +1249,122 @@ mod lz4 {
     use vecdb::LZ4Vec;
 
     #[test]
-    fn compute_sum_of_others() -> Result<()> {
+    fn compute_sum_of_others() -> vecdb::Result<()> {
         run_compute_sum_of_others::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min_of_others() -> Result<()> {
+    fn compute_min_of_others() -> vecdb::Result<()> {
         run_compute_min_of_others::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_max_of_others() -> Result<()> {
+    fn compute_max_of_others() -> vecdb::Result<()> {
         run_compute_max_of_others::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_previous_value() -> Result<()> {
+    fn compute_previous_value() -> vecdb::Result<()> {
         run_compute_previous_value::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_change() -> Result<()> {
+    fn compute_change() -> vecdb::Result<()> {
         run_compute_change::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_percentage_change() -> Result<()> {
+    fn compute_percentage_change() -> vecdb::Result<()> {
         run_compute_percentage_change::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_sliding_window_max() -> Result<()> {
+    fn compute_sliding_window_max() -> vecdb::Result<()> {
         run_compute_sliding_window_max::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_sliding_window_min() -> Result<()> {
+    fn compute_sliding_window_min() -> vecdb::Result<()> {
         run_compute_sliding_window_min::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_high() -> Result<()> {
+    fn compute_all_time_high() -> vecdb::Result<()> {
         run_compute_all_time_high::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_low() -> Result<()> {
+    fn compute_all_time_low() -> vecdb::Result<()> {
         run_compute_all_time_low::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_cagr() -> Result<()> {
+    fn compute_cagr() -> vecdb::Result<()> {
         run_compute_cagr::<LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_zscore() -> Result<()> {
+    fn compute_zscore() -> vecdb::Result<()> {
         run_compute_zscore::<LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_functions_with_resume() -> Result<()> {
+    fn compute_functions_with_resume() -> vecdb::Result<()> {
         run_compute_functions_with_resume::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_add() -> Result<()> {
+    fn compute_add() -> vecdb::Result<()> {
         run_compute_add::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_subtract() -> Result<()> {
+    fn compute_subtract() -> vecdb::Result<()> {
         run_compute_subtract::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_multiply() -> Result<()> {
+    fn compute_multiply() -> vecdb::Result<()> {
         run_compute_multiply::<LZ4Vec<usize, u32>>()
     }
 
     #[test]
-    fn compute_divide() -> Result<()> {
+    fn compute_divide() -> vecdb::Result<()> {
         run_compute_divide::<LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_max() -> Result<()> {
+    fn compute_max() -> vecdb::Result<()> {
         run_compute_max::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min() -> Result<()> {
+    fn compute_min() -> vecdb::Result<()> {
         run_compute_min::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sum() -> Result<()> {
+    fn compute_sum() -> vecdb::Result<()> {
         run_compute_sum::<LZ4Vec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sma() -> Result<()> {
+    fn compute_sma() -> vecdb::Result<()> {
         run_compute_sma::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_ema() -> Result<()> {
+    fn compute_ema() -> vecdb::Result<()> {
         run_compute_ema::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage() -> Result<()> {
+    fn compute_percentage() -> vecdb::Result<()> {
         run_compute_percentage::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage_difference() -> Result<()> {
+    fn compute_percentage_difference() -> vecdb::Result<()> {
         run_compute_percentage_difference::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
     }
 }
@@ -1376,122 +1375,122 @@ mod zstd {
     use vecdb::ZstdVec;
 
     #[test]
-    fn compute_sum_of_others() -> Result<()> {
+    fn compute_sum_of_others() -> vecdb::Result<()> {
         run_compute_sum_of_others::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min_of_others() -> Result<()> {
+    fn compute_min_of_others() -> vecdb::Result<()> {
         run_compute_min_of_others::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_max_of_others() -> Result<()> {
+    fn compute_max_of_others() -> vecdb::Result<()> {
         run_compute_max_of_others::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_previous_value() -> Result<()> {
+    fn compute_previous_value() -> vecdb::Result<()> {
         run_compute_previous_value::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_change() -> Result<()> {
+    fn compute_change() -> vecdb::Result<()> {
         run_compute_change::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_percentage_change() -> Result<()> {
+    fn compute_percentage_change() -> vecdb::Result<()> {
         run_compute_percentage_change::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_sliding_window_max() -> Result<()> {
+    fn compute_sliding_window_max() -> vecdb::Result<()> {
         run_compute_sliding_window_max::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_sliding_window_min() -> Result<()> {
+    fn compute_sliding_window_min() -> vecdb::Result<()> {
         run_compute_sliding_window_min::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_high() -> Result<()> {
+    fn compute_all_time_high() -> vecdb::Result<()> {
         run_compute_all_time_high::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_all_time_low() -> Result<()> {
+    fn compute_all_time_low() -> vecdb::Result<()> {
         run_compute_all_time_low::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_cagr() -> Result<()> {
+    fn compute_cagr() -> vecdb::Result<()> {
         run_compute_cagr::<ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_zscore() -> Result<()> {
+    fn compute_zscore() -> vecdb::Result<()> {
         run_compute_zscore::<ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_functions_with_resume() -> Result<()> {
+    fn compute_functions_with_resume() -> vecdb::Result<()> {
         run_compute_functions_with_resume::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_add() -> Result<()> {
+    fn compute_add() -> vecdb::Result<()> {
         run_compute_add::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_subtract() -> Result<()> {
+    fn compute_subtract() -> vecdb::Result<()> {
         run_compute_subtract::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_multiply() -> Result<()> {
+    fn compute_multiply() -> vecdb::Result<()> {
         run_compute_multiply::<ZstdVec<usize, u32>>()
     }
 
     #[test]
-    fn compute_divide() -> Result<()> {
+    fn compute_divide() -> vecdb::Result<()> {
         run_compute_divide::<ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_max() -> Result<()> {
+    fn compute_max() -> vecdb::Result<()> {
         run_compute_max::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_min() -> Result<()> {
+    fn compute_min() -> vecdb::Result<()> {
         run_compute_min::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sum() -> Result<()> {
+    fn compute_sum() -> vecdb::Result<()> {
         run_compute_sum::<ZstdVec<usize, u64>>()
     }
 
     #[test]
-    fn compute_sma() -> Result<()> {
+    fn compute_sma() -> vecdb::Result<()> {
         run_compute_sma::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_ema() -> Result<()> {
+    fn compute_ema() -> vecdb::Result<()> {
         run_compute_ema::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage() -> Result<()> {
+    fn compute_percentage() -> vecdb::Result<()> {
         run_compute_percentage::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 
     #[test]
-    fn compute_percentage_difference() -> Result<()> {
+    fn compute_percentage_difference() -> vecdb::Result<()> {
         run_compute_percentage_difference::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
     }
 }

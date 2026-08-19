@@ -1,25 +1,27 @@
+use brk_error::Result;
+
 use std::{
     fs, io,
     path::{Path, PathBuf},
 };
 
-use brk_error::{Error, Result};
+use bitview_server::{CdnCacheMode, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Website};
+use brk_error::Error;
 use brk_rpc::{Auth, Client};
-use brk_server::{CdnCacheMode, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Website};
 use brk_types::Port;
 use owo_colors::OwoColorize;
 use serde::{Deserialize, Serialize};
 
-use crate::paths::{default_brk_path, dot_brk_path, fix_user_path};
+use crate::paths::{default_bitview_dir, fix_user_path};
 
 #[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub(crate) struct Config {
+pub struct Config {
     #[serde(default)]
-    brkdir: Option<String>,
+    bitviewdir: Option<String>,
 
     #[serde(default)]
-    brkport: Option<Port>,
+    bitviewport: Option<Port>,
 
     #[serde(default)]
     website: Option<Website>,
@@ -59,7 +61,7 @@ impl Config {
     pub fn import() -> Result<Self> {
         let config_args = Self::parse_args();
 
-        let path = dot_brk_path();
+        let path = default_bitview_dir();
 
         let _ = fs::create_dir_all(&path);
 
@@ -67,11 +69,11 @@ impl Config {
 
         let mut config = Self::read(&path);
 
-        if let Some(v) = config_args.brkdir {
-            config.brkdir = Some(v);
+        if let Some(v) = config_args.bitviewdir {
+            config.bitviewdir = Some(v);
         }
-        if let Some(v) = config_args.brkport {
-            config.brkport = Some(v);
+        if let Some(v) = config_args.bitviewport {
+            config.bitviewport = Some(v);
         }
         if let Some(v) = config_args.website {
             config.website = Some(v);
@@ -125,11 +127,15 @@ impl Config {
                     std::process::exit(0);
                 }
                 Short('V') | Long("version") => {
-                    println!("brk {}", env!("CARGO_PKG_VERSION"));
+                    println!("bitview {}", env!("CARGO_PKG_VERSION"));
                     std::process::exit(0);
                 }
-                Long("brkdir") => config.brkdir = Some(parser.value().unwrap().parse().unwrap()),
-                Long("brkport") => config.brkport = Some(parser.value().unwrap().parse().unwrap()),
+                Long("bitviewdir") => {
+                    config.bitviewdir = Some(parser.value().unwrap().parse().unwrap())
+                }
+                Long("bitviewport") => {
+                    config.bitviewport = Some(parser.value().unwrap().parse().unwrap())
+                }
                 Long("website") => config.website = Some(parser.value().unwrap().parse().unwrap()),
                 Long("cdn") => config.cdn = Some(parser.value().unwrap().parse().unwrap()),
                 Long("maxweight") => {
@@ -168,12 +174,12 @@ impl Config {
     fn print_help() {
         let v = env!("CARGO_PKG_VERSION");
 
-        println!("{} {}", "brk".bold(), v.bright_black());
-        println!("Bitcoin Research Kit");
+        println!("{} {}", "bitview".bold(), v.bright_black());
+        println!("Self-hosted Bitcoin data platform built on BRK");
         println!();
         println!("{}", "USAGE:".bold());
         println!(
-            "    {} brk {}",
+            "    {} bitview {}",
             "[ENV]".bright_black(),
             "[OPTIONS]".bright_black()
         );
@@ -183,12 +189,12 @@ impl Config {
         println!("    -V, --version             Print version");
         println!();
         println!(
-            "    --brkdir {}           Output directory {}",
+            "    --bitviewdir {}       Output directory {}",
             "<PATH>".bright_black(),
-            "[~/.brk]".bright_black()
+            "[~/.bitview]".bright_black()
         );
         println!(
-            "    --brkport {}          Server port {}",
+            "    --bitviewport {}      Server port {}",
             "<PORT>".bright_black(),
             "[3110]".bright_black()
         );
@@ -262,9 +268,9 @@ impl Config {
         println!("{}", "CONFIG:".bold());
         println!(
             "    Edit {} to persist settings:",
-            "~/.brk/config.toml".bright_black()
+            "~/.bitview/config.toml".bright_black()
         );
-        println!("    {}", "brkdir = \"/path/to/data\"".bright_black());
+        println!("    {}", "bitviewdir = \"/path/to/data\"".bright_black());
         println!(
             "    {}",
             "bitcoindir = \"/path/to/.bitcoin\"".bright_black()
@@ -286,9 +292,9 @@ impl Config {
             std::process::exit(1);
         }
 
-        if !self.brkdir().is_dir() {
-            println!("{:?} isn't a valid directory", self.brkdir());
-            println!("Please use the --brkdir parameter to set a valid path.");
+        if !self.bitviewdir().is_dir() {
+            println!("{:?} isn't a valid directory", self.bitviewdir());
+            println!("Please use the --bitviewdir parameter to set a valid path.");
             println!("Run the program with '-h' for help.");
             std::process::exit(1);
         }
@@ -365,10 +371,10 @@ Finally, you can run the program with '-h' for help."
         )
     }
 
-    pub fn brkdir(&self) -> PathBuf {
-        self.brkdir
+    pub fn bitviewdir(&self) -> PathBuf {
+        self.bitviewdir
             .as_ref()
-            .map_or_else(default_brk_path, |s| fix_user_path(s.as_ref()))
+            .map_or_else(default_bitview_dir, |s| fix_user_path(s.as_ref()))
     }
 
     fn path_cookiefile(&self) -> PathBuf {
@@ -398,7 +404,7 @@ Finally, you can run the program with '-h' for help."
         self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS)
     }
 
-    pub fn brkport(&self) -> Option<Port> {
-        self.brkport
+    pub fn bitviewport(&self) -> Option<Port> {
+        self.bitviewport
     }
 }

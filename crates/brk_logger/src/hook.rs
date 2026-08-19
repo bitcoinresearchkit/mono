@@ -2,9 +2,7 @@ use std::{fmt::Write, sync::OnceLock};
 
 use tracing::{Event, Subscriber, field::Field};
 
-type LogHook = Box<dyn Fn(&str) + Send + Sync>;
-
-pub static LOG_HOOK: OnceLock<LogHook> = OnceLock::new();
+static LOG_HOOK: OnceLock<Box<dyn Fn(&str) + Send + Sync>> = OnceLock::new();
 
 pub struct HookLayer;
 
@@ -16,6 +14,15 @@ impl<S: Subscriber> tracing_subscriber::Layer<S> for HookLayer {
             hook(&msg);
         }
     }
+}
+
+pub fn register<F>(hook: F) -> Result<(), &'static str>
+where
+    F: Fn(&str) + Send + Sync + 'static,
+{
+    LOG_HOOK
+        .set(Box::new(hook))
+        .map_err(|_| "Hook already registered")
 }
 
 struct MessageVisitor<'a>(&'a mut String);

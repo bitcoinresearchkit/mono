@@ -29,8 +29,6 @@ pub use tx_addition::TxAddition;
 pub use tx_removal::TxRemoval;
 pub use txs_pulled::TxsPulled;
 
-type SpentBy = FxHashMap<(Txid, Vout), Txid>;
-
 pub struct Preparer;
 
 impl Preparer {
@@ -101,7 +99,7 @@ impl Preparer {
             .collect()
     }
 
-    fn removal_reason(tx: &Transaction, spent_by: &SpentBy) -> TxRemoval {
+    fn removal_reason(tx: &Transaction, spent_by: &FxHashMap<(Txid, Vout), Txid>) -> TxRemoval {
         tx.input
             .iter()
             .find_map(|i| spent_by.get(&(i.txid, i.vout)).copied())
@@ -110,8 +108,8 @@ impl Preparer {
 
     /// Only `Fresh` additions carry tx input data. Revived txs were
     /// already in-pool, so they can't be new spenders of anything.
-    fn build_spent_by(added: &[TxAddition]) -> SpentBy {
-        let mut spent_by: SpentBy = FxHashMap::default();
+    fn build_spent_by(added: &[TxAddition]) -> FxHashMap<(Txid, Vout), Txid> {
+        let mut spent_by: FxHashMap<(Txid, Vout), Txid> = FxHashMap::default();
         for addition in added {
             if let TxAddition::Fresh { tx, .. } = addition {
                 for txin in &tx.input {

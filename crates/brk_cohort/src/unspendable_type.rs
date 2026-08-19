@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign};
 
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 
 #[derive(Default, Clone, Debug, Traversable)]
 pub struct UnspendableType<T> {

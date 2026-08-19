@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::value::UserKey;
+use crate::Slice;
 use std::ops::Bound;
 
 /// Calculates the prefix's upper range.
@@ -10,7 +10,7 @@ use std::ops::Bound;
 /// # Panics
 ///
 /// Panics if the prefix is empty.
-fn prefix_upper_range(prefix: &[u8]) -> Bound<UserKey> {
+fn prefix_upper_range(prefix: &[u8]) -> Bound<Slice> {
     use std::ops::Bound::{Excluded, Unbounded};
 
     assert!(!prefix.is_empty(), "prefix may not be empty");
@@ -33,7 +33,7 @@ fn prefix_upper_range(prefix: &[u8]) -> Bound<UserKey> {
 
 /// Converts a prefix to range bounds.
 #[must_use]
-pub fn prefix_to_range(prefix: &[u8]) -> (Bound<UserKey>, Bound<UserKey>) {
+pub fn prefix_to_range(prefix: &[u8]) -> (Bound<Slice>, Bound<Slice>) {
     use std::ops::Bound::{Included, Unbounded};
 
     if prefix.is_empty() {

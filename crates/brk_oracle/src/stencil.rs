@@ -1,6 +1,8 @@
 use std::ops::Range;
 
-use crate::scale::{HistogramEma, NUM_BINS};
+use derive_more::{Deref, DerefMut};
+
+use crate::{HistogramEma, NUM_BINS};
 
 /// Bin offsets for 19 round-USD amounts relative to the $100 reference (offset 0).
 /// Each offset = log10(amount / 100) * BINS_PER_DECADE.
@@ -28,7 +30,9 @@ const STENCIL_OFFSETS: [i32; 19] = [
 
 /// Number of round-USD stencil arms.
 const N_ARMS: usize = STENCIL_OFFSETS.len();
-type Arms = [f64; N_ARMS];
+
+#[derive(Clone, Deref, DerefMut)]
+struct Arms([f64; N_ARMS]);
 
 /// EMA rate for the adaptive shape template (~250-block time constant), slow
 /// enough that a transient octave slide can't corrupt the profile before the
@@ -47,7 +51,7 @@ fn bin_value(ema: &HistogramEma, idx: i64) -> f64 {
 
 /// Raw EMA mass on each of the 19 stencil arms at `center`.
 fn arms_at(ema: &HistogramEma, center: i64) -> Arms {
-    STENCIL_OFFSETS.map(|offset| bin_value(ema, center + offset as i64))
+    Arms(STENCIL_OFFSETS.map(|offset| bin_value(ema, center + offset as i64)))
 }
 
 /// [`arms_at`] L1-normalized to sum 1, or `None` when the center carries no mass.
@@ -57,7 +61,7 @@ fn normalized_arms_at(ema: &HistogramEma, center: i64) -> Option<Arms> {
     if sum <= 0.0 {
         return None;
     }
-    for arm in &mut arms {
+    for arm in arms.iter_mut() {
         *arm /= sum;
     }
     Some(arms)
@@ -115,7 +119,7 @@ impl ShapeAnchor {
     fn new(weight: f64) -> Self {
         Self {
             weight,
-            profile: [1.0 / N_ARMS as f64; N_ARMS],
+            profile: Arms([1.0 / N_ARMS as f64; N_ARMS]),
         }
     }
 
@@ -232,7 +236,7 @@ fn search_range(prev_bin: f64, search_below: usize, search_above: usize) -> Opti
 }
 
 fn arm_peaks(ema: &HistogramEma, range: Range<usize>) -> Arms {
-    let mut peaks = [0.0f64; N_ARMS];
+    let mut peaks = Arms([0.0; N_ARMS]);
     for (i, &offset) in STENCIL_OFFSETS.iter().enumerate() {
         for bin in range.clone() {
             peaks[i] = peaks[i].max(bin_value(ema, bin as i64 + offset as i64));

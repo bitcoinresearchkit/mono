@@ -1,0 +1,48 @@
+[package]
+name = "bitview_server"
+description = "A server with an API for anything from BRK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+exclude = ["examples/", "src/api/scalar.js"]
+
+[features]
+bindgen = ["dep:bitview_bindgen"]
+
+[dependencies]
+aide = { workspace = true }
+axum = { workspace = true }
+bitview_bindgen = { workspace = true, optional = true }
+bitview_runtime = { workspace = true }
+brk_error = { workspace = true, features = ["jiff", "serde_json", "tokio", "vecdb"] }
+brk_indexer = { workspace = true }
+brk_logger = { workspace = true }
+brk_oracle = { workspace = true }
+bitview_query = { workspace = true }
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+brk_types = { workspace = true }
+bitview_traversable = { workspace = true }
+bitview_website = { workspace = true }
+derive_more = { workspace = true }
+vecdb = { workspace = true }
+jiff = { workspace = true }
+rustc-hash = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+tower-http = { workspace = true }
+tower-layer = { workspace = true }
+
+[dev-dependencies]
+bitview_bindgen = { workspace = true }
+brk_mempool = { workspace = true }
+color-eyre = { workspace = true }
+
+[[example]]
+name = "bindgen"
+required-features = ["bindgen"]

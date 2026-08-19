@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{SeqNo, UserKey};
+use crate::Slice;
 use crate::{
     coding::{Decode, Encode},
     table::{
@@ -43,7 +43,7 @@ impl BlockHandle {
 }
 
 impl Encode for BlockHandle {
-    fn encode_into<W: std::io::Write>(&self, writer: &mut W) -> Result<(), crate::Error> {
+    fn encode_into<W: std::io::Write>(&self, writer: &mut W) -> crate::Result<()> {
         writer.write_u64_varint(*self.offset)?;
         writer.write_u32_varint(self.size)?;
         Ok(())
@@ -51,7 +51,7 @@ impl Encode for BlockHandle {
 }
 
 impl Decode for BlockHandle {
-    fn decode_from<R: std::io::Read>(reader: &mut R) -> Result<Self, crate::Error>
+    fn decode_from<R: std::io::Read>(reader: &mut R) -> crate::Result<Self>
     where
         Self: Sized,
     {
@@ -69,10 +69,10 @@ impl Decode for BlockHandle {
 #[derive(Clone, Debug)]
 pub struct KeyedBlockHandle {
     /// Key of last item in block
-    end_key: UserKey,
+    end_key: Slice,
 
     /// Seqno of last item in block
-    seqno: SeqNo,
+    seqno: u64,
 
     inner: BlockHandle,
 }
@@ -90,7 +90,7 @@ impl KeyedBlockHandle {
     }
 
     #[must_use]
-    pub fn new(end_key: UserKey, seqno: SeqNo, handle: BlockHandle) -> Self {
+    pub fn new(end_key: Slice, seqno: u64, handle: BlockHandle) -> Self {
         Self {
             end_key,
             seqno,
@@ -99,7 +99,7 @@ impl KeyedBlockHandle {
     }
 
     #[must_use]
-    pub fn seqno(&self) -> SeqNo {
+    pub fn seqno(&self) -> u64 {
         self.seqno
     }
 
@@ -118,7 +118,7 @@ impl KeyedBlockHandle {
     }
 
     #[must_use]
-    pub fn end_key(&self) -> &UserKey {
+    pub fn end_key(&self) -> &Slice {
         &self.end_key
     }
 }
@@ -221,7 +221,7 @@ impl Decodable<IndexBlockParsedItem> for KeyedBlockHandle {
         data: &'a [u8],
         fixed_key_len: Option<u16>,
         _fixed_value_len: Option<u32>,
-    ) -> Option<(&'a [u8], SeqNo)> {
+    ) -> Option<(&'a [u8], u64)> {
         let marker = unwrap!(reader.read_u8());
 
         if marker == TRAILER_START_MARKER {

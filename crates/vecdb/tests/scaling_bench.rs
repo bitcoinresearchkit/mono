@@ -13,14 +13,12 @@ use std::{
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{
-    AnyStoredVec, AnyVec, ImportableVec, ReadableVec, Result, StoredVec, Version, WritableVec,
-};
+use vecdb::{AnyStoredVec, AnyVec, ImportableVec, ReadableVec, StoredVec, Version, WritableVec};
 
 #[cfg(feature = "pco")]
 use vecdb::PcoVec;
 
-fn setup_test_db() -> Result<(Database, TempDir)> {
+fn setup_test_db() -> vecdb::Result<(Database, TempDir)> {
     let temp_dir = TempDir::new()?;
     let db = Database::open(temp_dir.path())?;
     Ok((db, temp_dir))
@@ -37,7 +35,7 @@ struct Config {
 
 /// Run a single benchmark with the given configuration
 #[cfg(feature = "pco")]
-fn run_benchmark(config: &Config) -> Result<(usize, usize, usize)> {
+fn run_benchmark(config: &Config) -> vecdb::Result<(usize, usize, usize)> {
     let (db, _temp) = setup_test_db()?;
     let version = Version::ONE;
 
@@ -128,7 +126,7 @@ fn run_benchmark(config: &Config) -> Result<(usize, usize, usize)> {
 #[test]
 #[ignore]
 #[cfg(feature = "pco")]
-fn test_scale_readers() -> Result<()> {
+fn test_scale_readers() -> vecdb::Result<()> {
     println!("\n=== Scaling Readers (fixed write interval: 10ms, batch: 100) ===\n");
     println!(
         "{:>8} {:>12} {:>12} {:>8}",
@@ -162,7 +160,7 @@ fn test_scale_readers() -> Result<()> {
 #[test]
 #[ignore]
 #[cfg(feature = "pco")]
-fn test_scale_write_frequency() -> Result<()> {
+fn test_scale_write_frequency() -> vecdb::Result<()> {
     println!("\n=== Scaling Write Frequency (fixed readers: 4, batch: 100) ===\n");
     println!(
         "{:>12} {:>12} {:>12} {:>8}",
@@ -196,7 +194,7 @@ fn test_scale_write_frequency() -> Result<()> {
 #[test]
 #[ignore]
 #[cfg(feature = "pco")]
-fn test_scale_batch_size() -> Result<()> {
+fn test_scale_batch_size() -> vecdb::Result<()> {
     println!("\n=== Scaling Batch Size (fixed readers: 4, interval: 1ms) ===\n");
     println!(
         "{:>12} {:>12} {:>12} {:>8}",
@@ -230,7 +228,7 @@ fn test_scale_batch_size() -> Result<()> {
 #[test]
 #[ignore]
 #[cfg(feature = "pco")]
-fn test_extreme_stress() -> Result<()> {
+fn test_extreme_stress() -> vecdb::Result<()> {
     println!("\n=== Extreme Stress Test ===\n");
     println!("64 readers, no write delay, batch size 100, 10 seconds\n");
 

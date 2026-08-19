@@ -1,4 +1,5 @@
 #![doc = include_str!("../README.md")]
+#![allow(clippy::type_complexity)]
 
 mod format;
 mod hook;
@@ -9,7 +10,7 @@ use std::{io, path::Path, time::Duration};
 use tracing_subscriber::{filter::Targets, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 use format::Formatter;
-use hook::{HookLayer, LOG_HOOK};
+use hook::HookLayer;
 use rate_limit::{RateLimitedFile, is_log_file};
 
 /// Days to keep log files before cleanup
@@ -97,9 +98,7 @@ pub fn register_hook<F>(hook: F) -> Result<(), &'static str>
 where
     F: Fn(&str) + Send + Sync + 'static,
 {
-    LOG_HOOK
-        .set(Box::new(hook))
-        .map_err(|_| "Hook already registered")
+    hook::register(hook)
 }
 
 fn cleanup_old_logs(dir: &Path) {

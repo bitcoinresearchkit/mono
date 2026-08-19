@@ -1,7 +1,7 @@
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, AnyVec, Bytes, ImportOptions, ImportableVec, OverflowVec, OverflowVecValue,
-    ReadableVec, Result, Stamp, Version, WritableVec,
+    ReadableVec, Stamp, Version, WritableVec,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,7 +14,7 @@ impl Bytes for TestValue {
         self.0.to_le_bytes()
     }
 
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> vecdb::Result<Self> {
         Ok(Self(u64::from_bytes(bytes)?))
     }
 }
@@ -43,13 +43,11 @@ impl OverflowVecValue for TestValue {
     }
 }
 
-type V = OverflowVec<usize, TestValue>;
-
 #[test]
-fn large_range_decodes_inline_and_overflow_values() -> Result<()> {
+fn large_range_decodes_inline_and_overflow_values() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = vecdb::Database::open(temp.path())?;
-    let mut vec = V::forced_import(&db, "large", Version::ONE)?;
+    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "large", Version::ONE)?;
     let expected: Vec<_> = (0..70_000)
         .map(|index| {
             if index % 2_048 == 0 {
@@ -71,10 +69,10 @@ fn large_range_decodes_inline_and_overflow_values() -> Result<()> {
 }
 
 #[test]
-fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
+fn roundtrip_updates_holes_and_read_only_visibility() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = vecdb::Database::open(temp.path())?;
-    let mut vec = V::forced_import(&db, "values", Version::ONE)?;
+    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "values", Version::ONE)?;
     let read_only = vec.read_only_clone();
 
     vec.push(TestValue(7));
@@ -113,7 +111,7 @@ fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
     vec.write()?;
     drop(vec);
 
-    let vec = V::import(&db, "values", Version::ONE)?;
+    let vec = OverflowVec::<usize, TestValue>::import(&db, "values", Version::ONE)?;
     assert_eq!(
         vec.collect(),
         vec![TestValue(7_000), TestValue(9), TestValue(3)]
@@ -122,11 +120,11 @@ fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
 }
 
 #[test]
-fn rollback_and_truncation_keep_sidecar_in_sync() -> Result<()> {
+fn rollback_and_truncation_keep_sidecar_in_sync() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = vecdb::Database::open(temp.path())?;
     let options = ImportOptions::new(&db, "rollback", Version::ONE).with_saved_stamped_changes(5);
-    let mut vec = V::forced_import_with(options)?;
+    let mut vec = OverflowVec::<usize, TestValue>::forced_import_with(options)?;
 
     vec.push(TestValue(1));
     vec.push(TestValue(1_000));
@@ -148,10 +146,10 @@ fn rollback_and_truncation_keep_sidecar_in_sync() -> Result<()> {
 }
 
 #[test]
-fn forced_version_reset_removes_data_and_holes() -> Result<()> {
+fn forced_version_reset_removes_data_and_holes() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = vecdb::Database::open(temp.path())?;
-    let mut vec = V::forced_import(&db, "reset", Version::ONE)?;
+    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "reset", Version::ONE)?;
     vec.push(TestValue(1_000));
     vec.push(TestValue(2_000));
     vec.write()?;
@@ -160,7 +158,7 @@ fn forced_version_reset_removes_data_and_holes() -> Result<()> {
     assert_eq!(vec.holes().len(), 1);
     drop(vec);
 
-    let mut vec = V::forced_import(&db, "reset", Version::TWO)?;
+    let mut vec = OverflowVec::<usize, TestValue>::forced_import(&db, "reset", Version::TWO)?;
     assert!(vec.is_empty());
     assert!(vec.holes().is_empty());
     assert_eq!(vec.fill_first_hole_or_push(TestValue(3_000))?, 0);

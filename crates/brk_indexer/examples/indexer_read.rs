@@ -1,12 +1,11 @@
 use std::{fs, path::Path};
 
-use brk_error::Result;
 use brk_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use vecdb::ReadableVec;
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     brk_logger::init(Some(Path::new(".log")))?;
 
     let outputs_dir = Path::new(&std::env::var("HOME").unwrap()).join(".brk");

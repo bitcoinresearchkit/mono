@@ -4,7 +4,7 @@ use bitcoin::{
     Address, Block, Network, ScriptBuf, Transaction, TxIn, TxOut, consensus::encode::serialize_hex,
     hex::DisplayHex,
 };
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::ReadBlock;
 use serde_json::{Map, Value, json};
 
@@ -92,12 +92,12 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    pub fn resolve(&self, path: &Path) -> Result<Value> {
+    pub fn resolve(&self, path: &Path) -> brk_error::Result<Value> {
         let (step, rest) = pop(&path.steps)?;
         self.block_field(&step.name, step.index, rest)
     }
 
-    pub fn resolve_str(&self, path: &Path) -> Result<String> {
+    pub fn resolve_str(&self, path: &Path) -> brk_error::Result<String> {
         Ok(match self.resolve(path)? {
             Value::String(s) => s,
             other => other.to_string(),
@@ -122,7 +122,12 @@ impl<'a> Ctx<'a> {
             .get_or_init(|| self.block.total_size_and_weight())
     }
 
-    fn block_field(&self, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
+    fn block_field(
+        &self,
+        name: &str,
+        index: Option<usize>,
+        rest: &[Step],
+    ) -> brk_error::Result<Value> {
         let b = self.block;
         let raw: &Block = b;
         let scalar = |v| scalar_leaf(v, name, index, rest);
@@ -174,7 +179,12 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    fn resolve_tx(&self, tx: &Transaction, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
+    fn resolve_tx(
+        &self,
+        tx: &Transaction,
+        is_coinbase: bool,
+        steps: &[Step],
+    ) -> brk_error::Result<Value> {
         if steps.is_empty() {
             let mut obj = Map::with_capacity(TX_FIELDS.len());
             for &name in TX_FIELDS {
@@ -197,7 +207,7 @@ impl<'a> Ctx<'a> {
         name: &str,
         index: Option<usize>,
         rest: &[Step],
-    ) -> Result<Value> {
+    ) -> brk_error::Result<Value> {
         let scalar = |v| scalar_leaf(v, name, index, rest);
         match name {
             "txid" => scalar(json!(tx.compute_txid().to_string())),
@@ -225,7 +235,7 @@ impl<'a> Ctx<'a> {
         }
     }
 
-    fn resolve_vout(&self, vout: &TxOut, steps: &[Step]) -> Result<Value> {
+    fn resolve_vout(&self, vout: &TxOut, steps: &[Step]) -> brk_error::Result<Value> {
         if steps.is_empty() {
             let mut obj = Map::with_capacity(VOUT_FIELDS.len());
             for &name in VOUT_FIELDS {
@@ -247,7 +257,7 @@ impl<'a> Ctx<'a> {
         name: &str,
         index: Option<usize>,
         rest: &[Step],
-    ) -> Result<Value> {
+    ) -> brk_error::Result<Value> {
         let scalar = |v| scalar_leaf(v, name, index, rest);
         match name {
             "value" => scalar(json!(vout.value.to_sat())),
@@ -266,7 +276,7 @@ impl<'a> Ctx<'a> {
     }
 }
 
-fn resolve_vin(vin: &TxIn, is_coinbase: bool, steps: &[Step]) -> Result<Value> {
+fn resolve_vin(vin: &TxIn, is_coinbase: bool, steps: &[Step]) -> brk_error::Result<Value> {
     if steps.is_empty() {
         let mut obj = Map::with_capacity(VIN_FIELDS.len());
         for &name in VIN_FIELDS {
@@ -287,7 +297,7 @@ fn vin_field(
     name: &str,
     index: Option<usize>,
     rest: &[Step],
-) -> Result<Value> {
+) -> brk_error::Result<Value> {
     let scalar = |v| scalar_leaf(v, name, index, rest);
     match name {
         "prev_txid" => scalar(json!(vin.previous_output.txid.to_string())),
@@ -319,8 +329,8 @@ fn pick<T>(
     items: &[T],
     name: &str,
     index: Option<usize>,
-    mut resolve: impl FnMut(usize, &T) -> Result<Value>,
-) -> Result<Value> {
+    mut resolve: impl FnMut(usize, &T) -> brk_error::Result<Value>,
+) -> brk_error::Result<Value> {
     match index {
         Some(i) => {
             let item = items
@@ -333,18 +343,23 @@ fn pick<T>(
                 .iter()
                 .enumerate()
                 .map(|(i, item)| resolve(i, item))
-                .collect::<Result<_>>()?,
+                .collect::<brk_error::Result<_>>()?,
         )),
     }
 }
 
-fn pop(steps: &[Step]) -> Result<(&Step, &[Step])> {
+fn pop(steps: &[Step]) -> brk_error::Result<(&Step, &[Step])> {
     steps
         .split_first()
         .ok_or_else(|| Error::Parse("empty path segment".into()))
 }
 
-fn scalar_leaf(v: Value, name: &str, index: Option<usize>, rest: &[Step]) -> Result<Value> {
+fn scalar_leaf(
+    v: Value,
+    name: &str,
+    index: Option<usize>,
+    rest: &[Step],
+) -> brk_error::Result<Value> {
     if index.is_some() {
         return Err(Error::Parse(format!("'{name}' is not an array")));
     }

@@ -2,12 +2,8 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::InternalValue;
+use crate::{InternalValue, Result};
 use interval_heap::IntervalHeap as Heap;
-
-type IterItem = crate::Result<InternalValue>;
-
-pub type BoxedIterator<'a> = Box<dyn DoubleEndedIterator<Item = IterItem> + Send + 'a>;
 
 struct HeapItem(usize, InternalValue);
 
@@ -39,7 +35,7 @@ pub struct Merger<I> {
     initialized_hi: bool,
 }
 
-impl<I: Iterator<Item = IterItem>> Merger<I> {
+impl<I: Iterator<Item = Result<InternalValue>>> Merger<I> {
     #[must_use]
     pub fn new(iterators: Vec<I>) -> Self {
         let heap = Heap::with_capacity(iterators.len());
@@ -54,7 +50,7 @@ impl<I: Iterator<Item = IterItem>> Merger<I> {
         }
     }
 
-    fn initialize_lo(&mut self) -> crate::Result<()> {
+    fn initialize_lo(&mut self) -> Result<()> {
         for (idx, it) in self.iterators.iter_mut().enumerate() {
             if let Some(item) = it.next() {
                 let item = item?;
@@ -66,8 +62,8 @@ impl<I: Iterator<Item = IterItem>> Merger<I> {
     }
 }
 
-impl<I: DoubleEndedIterator<Item = IterItem>> Merger<I> {
-    fn initialize_hi(&mut self) -> crate::Result<()> {
+impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Merger<I> {
+    fn initialize_hi(&mut self) -> Result<()> {
         for (idx, it) in self.iterators.iter_mut().enumerate() {
             if let Some(item) = it.next_back() {
                 let item = item?;
@@ -79,8 +75,8 @@ impl<I: DoubleEndedIterator<Item = IterItem>> Merger<I> {
     }
 }
 
-impl<I: Iterator<Item = IterItem>> Iterator for Merger<I> {
-    type Item = IterItem;
+impl<I: Iterator<Item = Result<InternalValue>>> Iterator for Merger<I> {
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.initialized_lo {
@@ -99,7 +95,7 @@ impl<I: Iterator<Item = IterItem>> Iterator for Merger<I> {
     }
 }
 
-impl<I: DoubleEndedIterator<Item = IterItem>> DoubleEndedIterator for Merger<I> {
+impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> DoubleEndedIterator for Merger<I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if !self.initialized_hi {
             fail_iter!(self.initialize_hi());
@@ -125,7 +121,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::unwrap_used)]
-    fn merge_simple() -> crate::Result<()> {
+    fn merge_simple() -> Result<()> {
         #[rustfmt::skip]
         let a = vec![
             Ok(InternalValue::from_components("a", b"", 0, Value)),
@@ -153,7 +149,7 @@ mod tests {
     #[test]
     #[ignore = "maybe not needed"]
     #[expect(clippy::unwrap_used)]
-    fn merge_dup() -> crate::Result<()> {
+    fn merge_dup() -> Result<()> {
         #[rustfmt::skip]
         let a = vec![
             Ok(InternalValue::from_components("a", b"", 0, Value)),

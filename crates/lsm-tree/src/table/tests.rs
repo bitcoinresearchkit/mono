@@ -361,7 +361,7 @@ fn table_range_exclusive_bounds() -> crate::Result<()> {
         &items,
         |table| {
             let res = table
-                .range((Excluded(UserKey::from("b")), Included(UserKey::from("d"))))
+                .range((Excluded(Slice::from("b")), Included(Slice::from("d"))))
                 .flatten()
                 .collect::<Vec<_>>();
             assert_eq!(
@@ -370,7 +370,7 @@ fn table_range_exclusive_bounds() -> crate::Result<()> {
             );
 
             let res = table
-                .range((Excluded(UserKey::from("b")), Included(UserKey::from("d"))))
+                .range((Excluded(Slice::from("b")), Included(Slice::from("d"))))
                 .rev()
                 .flatten()
                 .collect::<Vec<_>>();
@@ -386,7 +386,7 @@ fn table_range_exclusive_bounds() -> crate::Result<()> {
             );
 
             let res = table
-                .range((Excluded(UserKey::from("b")), Excluded(UserKey::from("d"))))
+                .range((Excluded(Slice::from("b")), Excluded(Slice::from("d"))))
                 .flatten()
                 .collect::<Vec<_>>();
             assert_eq!(
@@ -395,7 +395,7 @@ fn table_range_exclusive_bounds() -> crate::Result<()> {
             );
 
             let res = table
-                .range((Excluded(UserKey::from("b")), Excluded(UserKey::from("d"))))
+                .range((Excluded(Slice::from("b")), Excluded(Slice::from("d"))))
                 .rev()
                 .flatten()
                 .collect::<Vec<_>>();
@@ -480,7 +480,7 @@ fn table_range_simple() -> crate::Result<()> {
             assert_eq!(
                 items.iter().skip(1).cloned().collect::<Vec<_>>(),
                 &*table
-                    .range(UserKey::from("b")..)
+                    .range(Slice::from("b")..)
                     .flatten()
                     .collect::<Vec<_>>()
             );
@@ -488,7 +488,7 @@ fn table_range_simple() -> crate::Result<()> {
             assert_eq!(
                 items.iter().skip(1).rev().cloned().collect::<Vec<_>>(),
                 &*table
-                    .range(UserKey::from("b")..)
+                    .range(Slice::from("b")..)
                     .rev()
                     .flatten()
                     .collect::<Vec<_>>(),
@@ -511,7 +511,7 @@ fn table_range_ping_pong() -> crate::Result<()> {
         &items,
         |table| {
             let mut iter =
-                table.range(UserKey::from(5u64.to_be_bytes())..UserKey::from(10u64.to_be_bytes()));
+                table.range(Slice::from(5u64.to_be_bytes())..Slice::from(10u64.to_be_bytes()));
 
             let mut count = 0;
 
@@ -558,7 +558,7 @@ fn table_range_multiple_data_blocks() -> crate::Result<()> {
             assert_eq!(
                 items.iter().skip(1).take(3).cloned().collect::<Vec<_>>(),
                 &*table
-                    .range(UserKey::from("b")..=UserKey::from("d"))
+                    .range(Slice::from("b")..=Slice::from("d"))
                     .flatten()
                     .collect::<Vec<_>>()
             );
@@ -572,7 +572,7 @@ fn table_range_multiple_data_blocks() -> crate::Result<()> {
                     .cloned()
                     .collect::<Vec<_>>(),
                 &*table
-                    .range(UserKey::from("b")..=UserKey::from("d"))
+                    .range(Slice::from("b")..=Slice::from("d"))
                     .rev()
                     .flatten()
                     .collect::<Vec<_>>(),
@@ -1183,7 +1183,7 @@ fn table_partitioned_index() -> crate::Result<()> {
 fn table_return_global_seqno() -> crate::Result<()> {
     use crate::ValueType::Value;
 
-    const SEQNO: SeqNo = 15;
+    const SEQNO: u64 = 15;
 
     let items = [InternalValue::from_components("abc", "abc", 0, Value)];
 

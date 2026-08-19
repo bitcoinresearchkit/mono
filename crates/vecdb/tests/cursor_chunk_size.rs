@@ -2,12 +2,10 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{
-    BytesVec, ImportableVec, PcoVec, READ_CHUNK_SIZE, ReadableVec, Result, StoredVec, Version,
-};
+use vecdb::{BytesVec, ImportableVec, PcoVec, READ_CHUNK_SIZE, ReadableVec, StoredVec, Version};
 
 #[test]
-fn compressed_cursor_chunks_are_page_aligned() -> Result<()> {
+fn compressed_cursor_chunks_are_page_aligned() -> vecdb::Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
 

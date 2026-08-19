@@ -1,4 +1,4 @@
-use crate::{BoxedIterator, InternalValue, Table, UserKey, version::Run};
+use crate::{BoxedIterator, Error, InternalValue, Result, Slice, Table, version::Run};
 use std::{ops::RangeBounds, sync::Arc};
 
 /// Reads through a disjoint run.
@@ -12,7 +12,7 @@ pub struct RunReader {
 
 impl RunReader {
     #[must_use]
-    pub fn new<R: RangeBounds<UserKey> + Clone + Send + 'static>(
+    pub fn new<R: RangeBounds<Slice> + Clone + Send + 'static>(
         run: Arc<Run<Table>>,
         range: R,
     ) -> Option<Self> {
@@ -28,14 +28,14 @@ impl RunReader {
             run,
             lo,
             hi,
-            lo_reader: Some(Box::new(lo_reader)),
-            hi_reader: hi_reader.map(|reader| Box::new(reader) as BoxedIterator),
+            lo_reader: Some(BoxedIterator::new(lo_reader)),
+            hi_reader: hi_reader.map(BoxedIterator::new),
         })
     }
 }
 
 impl Iterator for RunReader {
-    type Item = crate::Result<InternalValue>;
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -48,9 +48,9 @@ impl Iterator for RunReader {
                 self.lo += 1;
                 if self.lo < self.hi {
                     let Some(table) = self.run.get(self.lo) else {
-                        return Some(Err(crate::Error::Unrecoverable));
+                        return Some(Err(Error::Unrecoverable));
                     };
-                    self.lo_reader = Some(Box::new(table.iter()));
+                    self.lo_reader = Some(BoxedIterator::new(table.iter()));
                 }
             } else {
                 return self.hi_reader.as_mut()?.next();
@@ -71,9 +71,9 @@ impl DoubleEndedIterator for RunReader {
                 self.hi -= 1;
                 if self.lo < self.hi {
                     let Some(table) = self.run.get(self.hi) else {
-                        return Some(Err(crate::Error::Unrecoverable));
+                        return Some(Err(Error::Unrecoverable));
                     };
-                    self.hi_reader = Some(Box::new(table.iter()));
+                    self.hi_reader = Some(BoxedIterator::new(table.iter()));
                 }
             } else {
                 return self.lo_reader.as_mut()?.next_back();

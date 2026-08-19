@@ -1,4 +1,4 @@
-/** @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../modules/bitview-client/index.js").BlockInfoV1} Block */
 
 /**
  * @param {Block[]} blocks

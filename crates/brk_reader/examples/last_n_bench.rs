@@ -10,14 +10,13 @@
 
 use std::time::Instant;
 
-use brk_error::Result;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use brk_types::Height;
 
 const SCENARIOS: &[u32] = &[1, 10, 100, 1_000, 10_000];
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     let bitcoin_dir = Client::default_bitcoin_path();
     let client = Client::new(
         Client::default_url(),

@@ -1,6 +1,6 @@
 use rawdb::Region;
 
-use crate::{Bytes, Error, Result, Stamp, Version};
+use crate::{Bytes, Error, Stamp, Version};
 
 use super::{super::Format, HEADER_OFFSET, HEADER_VERSION};
 
@@ -15,7 +15,11 @@ pub(super) struct HeaderInner {
 }
 
 impl HeaderInner {
-    pub fn create_and_write(region: &Region, vec_version: Version, format: Format) -> Result<Self> {
+    pub fn create_and_write(
+        region: &Region,
+        vec_version: Version,
+        format: Format,
+    ) -> crate::Result<Self> {
         let header = Self {
             header_version: HEADER_VERSION,
             vec_version,
@@ -27,7 +31,7 @@ impl HeaderInner {
         Ok(header)
     }
 
-    pub fn write(&self, region: &Region) -> Result<()> {
+    pub fn write(&self, region: &Region) -> crate::Result<()> {
         region.write_at(&self.to_bytes(), 0)?;
         Ok(())
     }
@@ -36,7 +40,7 @@ impl HeaderInner {
         region: &Region,
         vec_version: Version,
         format: Format,
-    ) -> Result<Self> {
+    ) -> crate::Result<Self> {
         let len = region.meta().len();
 
         if len < HEADER_OFFSET {
@@ -94,7 +98,7 @@ impl HeaderInner {
         buf
     }
 
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
         let len = bytes.len();
         if len < HEADER_OFFSET {
             return Err(Error::WrongLength {

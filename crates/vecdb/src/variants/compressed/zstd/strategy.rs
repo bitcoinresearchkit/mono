@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use zstd::{decode_all, encode_all};
 
-use crate::{Result, impl_bytes_value_strategy};
+use crate::impl_bytes_value_strategy;
 
 use super::{super::inner::CompressionStrategy, value::ZstdVecValue};
 
@@ -20,17 +20,17 @@ impl<T> CompressionStrategy<T> for ZstdStrategy<T>
 where
     T: ZstdVecValue,
 {
-    fn compress(values: &[T]) -> Result<Vec<u8>> {
+    fn compress(values: &[T]) -> crate::Result<Vec<u8>> {
         let bytes = Self::values_to_bytes(values);
         Ok(encode_all(bytes.as_slice(), ZSTD_COMPRESSION_LEVEL)?)
     }
 
-    fn decompress(bytes: &[u8], expected_len: usize) -> Result<Vec<T>> {
+    fn decompress(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>> {
         let decompressed = decode_all(bytes)?;
         Self::bytes_to_values(&decompressed, expected_len)
     }
 
-    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
         let decompressed = decode_all(bytes)?;
         Self::bytes_to_values_into(&decompressed, expected_len, dst)
     }

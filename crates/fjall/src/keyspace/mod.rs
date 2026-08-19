@@ -69,7 +69,7 @@ impl Keyspace {
     /// # Errors
     ///
     /// Returns an error if a table cannot be read or decoded.
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> crate::Result<Option<lsm_tree::UserValue>> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> crate::Result<Option<lsm_tree::Slice>> {
         self.inner.tree.get(key).map_err(Into::into)
     }
 
@@ -77,7 +77,9 @@ impl Keyspace {
     #[must_use]
     pub fn iter(
         &self,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<lsm_tree::KvPair>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(lsm_tree::Slice, lsm_tree::Slice)>>
+    + Send
+    + 'static {
         self.inner.tree.iter().map(|item| item.map_err(Into::into))
     }
 
@@ -86,7 +88,9 @@ impl Keyspace {
     pub fn range<K: AsRef<[u8]>, R: RangeBounds<K>>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<lsm_tree::KvPair>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(lsm_tree::Slice, lsm_tree::Slice)>>
+    + Send
+    + 'static {
         self.inner
             .tree
             .range(range)
@@ -98,7 +102,9 @@ impl Keyspace {
     pub fn prefix<K: AsRef<[u8]>>(
         &self,
         prefix: K,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<lsm_tree::KvPair>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = crate::Result<(lsm_tree::Slice, lsm_tree::Slice)>>
+    + Send
+    + 'static {
         self.inner
             .tree
             .prefix(prefix)

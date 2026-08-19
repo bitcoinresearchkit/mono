@@ -8,7 +8,6 @@ mod usage;
 
 use std::process::ExitCode;
 
-use brk_error::Result;
 use brk_reader::Reader;
 
 use args::Args;
@@ -27,7 +26,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<()> {
+fn run() -> brk_error::Result<()> {
     let raw: Vec<String> = std::env::args().skip(1).collect();
     if raw.is_empty() || raw.iter().any(|a| matches!(a.as_str(), "-h" | "--help")) {
         usage::print();

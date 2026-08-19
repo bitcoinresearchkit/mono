@@ -8,13 +8,11 @@ mod partitioned;
 pub use full::FullFilterWriter;
 pub use partitioned::PartitionedFilterWriter;
 
-use crate::{
-    CompressionType, UserKey, checksum::ChecksummedWriter, config::BloomConstructionPolicy,
-};
+use crate::{CompressionType, Slice, checksum::ChecksummedWriter, config::BloomConstructionPolicy};
 use std::{fs::File, io::BufWriter};
 
 pub trait FilterWriter<W: std::io::Write> {
-    fn register_key(&mut self, key: &UserKey) -> crate::Result<()>;
+    fn register_key(&mut self, key: &Slice) -> crate::Result<()>;
 
     fn finish(
         self: Box<Self>,

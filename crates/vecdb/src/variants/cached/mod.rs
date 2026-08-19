@@ -227,7 +227,7 @@ impl<V: StoredVec> CachedVec<V> {
     /// Boxes a read-only clone for use with type-erased APIs (e.g. LazyVec).
     #[inline]
     pub fn read_only_boxed_clone(&self) -> crate::ReadableBoxedVec<V::I, V::T> {
-        Box::new(self.read_only_clone())
+        crate::ReadableBoxedVec::new(self.read_only_clone())
     }
 }
 

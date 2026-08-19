@@ -1,0 +1,39 @@
+[package]
+name = "bitview_query"
+description = "An interface to find and format data from BRK"
+license.workspace = true
+edition.workspace = true
+version.workspace = true
+homepage.workspace = true
+repository.workspace = true
+exclude = ["examples/"]
+
+[features]
+tokio = ["dep:tokio", "brk_error/tokio"]
+
+[dependencies]
+bitcoin = { workspace = true }
+brk_cohort = { workspace = true }
+bitview_plugin_price = { workspace = true }
+bitview_runtime = { workspace = true }
+brk_error = { workspace = true, features = ["jiff", "vecdb"] }
+brk_indexer = { workspace = true }
+brk_mempool = { workspace = true }
+brk_oracle = { workspace = true }
+bitview_plugin = { workspace = true }
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+bitview_traversable = { workspace = true }
+brk_types = { workspace = true }
+derive_more = { workspace = true }
+jiff = { workspace = true }
+parking_lot = { workspace = true }
+quickmatch = { workspace = true }
+rustc-hash = { workspace = true }
+smallvec = { workspace = true }
+tokio = { workspace = true, optional = true }
+serde_json = { workspace = true }
+vecdb = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

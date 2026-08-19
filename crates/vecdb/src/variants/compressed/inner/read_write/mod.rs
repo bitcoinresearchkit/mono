@@ -12,8 +12,8 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Error, Format, ImportOptions, ReadWriteBaseVec, Result, VecIndex,
-    VecValue, Version, WritableVec, vec_region_name_with,
+    AnyStoredVec, AnyVec, Error, Format, ImportOptions, ReadWriteBaseVec, VecIndex, VecValue,
+    Version, WritableVec, vec_region_name_with,
 };
 
 use super::{CompressionStrategy, Pages, ReadOnlyCompressedVec};
@@ -51,7 +51,7 @@ where
     /// # Warning
     ///
     /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub fn forced_import_with(options: ImportOptions, format: Format) -> Result<Self> {
+    pub fn forced_import_with(options: ImportOptions, format: Format) -> crate::Result<Self> {
         let res = Self::import_with(options, format);
         match res {
             Err(Error::WrongEndian)
@@ -72,7 +72,7 @@ where
     }
 
     #[inline]
-    pub fn import_with(mut options: ImportOptions, format: Format) -> Result<Self> {
+    pub fn import_with(mut options: ImportOptions, format: Format) -> crate::Result<Self> {
         options.version = options.version + VERSION;
         let db = options.db;
         let name = options.name;
@@ -95,7 +95,7 @@ where
     }
 
     #[inline]
-    pub fn decode_page(&self, page_index: usize, reader: &Reader) -> Result<Vec<T>> {
+    pub fn decode_page(&self, page_index: usize, reader: &Reader) -> crate::Result<Vec<T>> {
         Self::decode_page_with(self.stored_len(), page_index, reader, &self.pages.read())
     }
 
@@ -105,7 +105,7 @@ where
         page_index: usize,
         reader: &Reader,
         pages: &Pages,
-    ) -> Result<Vec<T>> {
+    ) -> crate::Result<Vec<T>> {
         let index = Self::page_index_to_index(page_index);
 
         if unlikely(index >= stored_len) {
@@ -128,7 +128,7 @@ where
     }
 
     #[inline]
-    pub(super) fn compress_page(chunk: &[T]) -> Result<Vec<u8>> {
+    pub(super) fn compress_page(chunk: &[T]) -> crate::Result<Vec<u8>> {
         debug_assert!(
             chunk.len() <= Self::PER_PAGE,
             "chunk length {} exceeds PER_PAGE {}",
@@ -205,7 +205,7 @@ where
         format!("{}_pages", vec_region_name_with::<I>(name))
     }
 
-    pub fn remove(self) -> Result<()> {
+    pub fn remove(self) -> crate::Result<()> {
         self.base.remove()?;
 
         let pages = Arc::try_unwrap(self.pages).map_err(|_| Error::PagesStillReferenced)?;
@@ -229,7 +229,7 @@ where
         &self.pages
     }
 
-    pub(crate) fn collect_stored_range(&self, from: usize, to: usize) -> Result<Vec<T>> {
+    pub(crate) fn collect_stored_range(&self, from: usize, to: usize) -> crate::Result<Vec<T>> {
         if from >= to {
             return Ok(vec![]);
         }

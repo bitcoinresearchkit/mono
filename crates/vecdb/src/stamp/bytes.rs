@@ -1,4 +1,4 @@
-use crate::{Bytes, Result};
+use crate::Bytes;
 
 use super::Stamp;
 
@@ -11,7 +11,7 @@ impl Bytes for Stamp {
     }
 
     #[inline]
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
         Ok(Self(u64::from_bytes(bytes)?))
     }
 }

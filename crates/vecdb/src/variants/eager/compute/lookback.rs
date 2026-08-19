@@ -1,6 +1,5 @@
 use crate::{
-    AnyVec, CheckedSub, Error, Exit, ReadableVec, Result, StoredVec, VecIndex, VecValue,
-    WritableVec,
+    AnyVec, CheckedSub, Error, Exit, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec,
 };
 
 use super::super::EagerVec;
@@ -17,7 +16,7 @@ where
         lookback_len: usize,
         exit: &Exit,
         transform: F,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         F: Fn(usize, A, A) -> V::T,
@@ -64,7 +63,7 @@ where
         source: &impl ReadableVec<V::I, A>,
         len: usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         f32: From<A>,
@@ -87,7 +86,7 @@ where
         source: &impl ReadableVec<V::I, A>,
         len: usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default + Into<V::T>,
         V::T: CheckedSub + Default,
@@ -110,7 +109,7 @@ where
         len: usize,
         multiplier: f32,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         f32: From<A>,
@@ -133,7 +132,7 @@ where
         source: &impl ReadableVec<V::I, A>,
         len: usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         f32: From<A>,
@@ -148,7 +147,7 @@ where
         source: &impl ReadableVec<V::I, A>,
         len: usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         f32: From<A>,
@@ -165,7 +164,7 @@ where
         values: &impl ReadableVec<V::I, A>,
         exit: &Exit,
         compute: F,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         f64: From<A>,
@@ -219,7 +218,7 @@ where
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         f64: From<A>,
@@ -248,7 +247,7 @@ where
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         f64: From<A>,
@@ -277,7 +276,7 @@ where
         window_starts: &impl ReadableVec<V::I, V::I>,
         values: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         f64: From<A>,
@@ -304,7 +303,7 @@ where
         percentage_returns: &impl ReadableVec<V::I, A>,
         days: usize,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue + Default,
         f32: From<A>,
@@ -338,7 +337,7 @@ where
         window_starts: &impl ReadableVec<V::I, V::I>,
         source: &impl ReadableVec<V::I, A>,
         exit: &Exit,
-    ) -> Result<()>
+    ) -> crate::Result<()>
     where
         A: VecValue,
         V::T: From<A>,

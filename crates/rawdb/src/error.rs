@@ -1,8 +1,9 @@
-use std::{fs, io, result};
+use std::{fs, io};
 
 use thiserror::Error;
 
-pub type Result<T, E = Error> = result::Result<T, E>;
+/// Result using rawdb's error type.
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Error types for rawdb operations.
 #[derive(Debug, Error)]

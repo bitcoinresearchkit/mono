@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use crate::{
-    AnyStoredVec, Bytes, ChangeCursor, ChangeData, ReadWriteBaseVec, Result, SIZE_OF_U64, VecIndex,
+    AnyStoredVec, Bytes, ChangeCursor, ChangeData, ReadWriteBaseVec, SIZE_OF_U64, VecIndex,
     VecValue,
 };
 
@@ -13,7 +13,7 @@ where
     T: VecValue,
     S: RawStrategy<T>,
 {
-    pub(super) fn serialize_raw_changes(&self) -> Result<Vec<u8>> {
+    pub(super) fn serialize_raw_changes(&self) -> crate::Result<Vec<u8>> {
         let mut bytes = self.base.serialize_changes(
             Self::SIZE_OF_T,
             |from, to| self.collect_stored_range(from, to),
@@ -55,7 +55,7 @@ where
         Ok(bytes)
     }
 
-    fn parse_raw_change_data(bytes: &[u8]) -> Result<RawChangeData<T>> {
+    fn parse_raw_change_data(bytes: &[u8]) -> crate::Result<RawChangeData<T>> {
         let mut c = ChangeCursor::new(bytes);
         let base =
             ReadWriteBaseVec::<I, T>::parse_change_data(&mut c, Self::SIZE_OF_T, |b| S::read(b))?;
@@ -78,7 +78,7 @@ where
         })
     }
 
-    pub(super) fn deserialize_then_undo_changes(&mut self, bytes: &[u8]) -> Result<()> {
+    pub(super) fn deserialize_then_undo_changes(&mut self, bytes: &[u8]) -> crate::Result<()> {
         let RawChangeData {
             base:
                 ChangeData {

@@ -1,4 +1,4 @@
-use std::{fmt, fs, io, result, time};
+use std::{fmt, fs, io, time};
 
 use thiserror::Error;
 
@@ -7,7 +7,8 @@ mod zerocopy;
 
 use crate::{Format, Stamp, Version};
 
-pub type Result<T, E = Error> = result::Result<T, E>;
+/// Result using vecdb's error type.
+pub type Result<T> = std::result::Result<T, Error>;
 
 /// Error types for vecdb operations.
 #[derive(Debug, Error)]

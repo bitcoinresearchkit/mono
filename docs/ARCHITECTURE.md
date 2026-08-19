@@ -47,7 +47,7 @@ Monitors unconfirmed transactions:
 - Projected block templates
 - Address mempool activity
 
-### Query (`brk_query`)
+### Query (`bitview_query`)
 
 Unified interface to all data sources:
 - Block and transaction lookups
@@ -55,7 +55,7 @@ Unified interface to all data sources:
 - Computed metrics with range queries
 - Mempool state
 
-### Server (`brk_server`)
+### Server (`bitview_server`)
 
 REST API exposing Query functionality:
 - OpenAPI documentation (Scalar UI)
@@ -63,7 +63,7 @@ REST API exposing Query functionality:
 - ETag caching
 - mempool.space compatible endpoints
 
-### MCP Adapter (`brk_mcp`)
+### MCP Adapter (`bitview_mcp`)
 
 Provides stateless, read-only MCP tools generated from the server's OpenAPI
 operations. It forwards tool calls to the configured REST origin, allowing a
@@ -88,10 +88,10 @@ authentication.
 
 ## Storage
 
-Data is stored in `~/.brk/` (configurable):
+Data is stored in `~/.bitview/` (configurable):
 
 ```
-~/.brk/
+~/.bitview/
 ├── indexer/     # Transaction and address indexes (fjall)
 ├── computer/    # Computed metrics (vecdb)
 └── config.toml  # Configuration

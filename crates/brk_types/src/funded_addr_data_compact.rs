@@ -1,4 +1,4 @@
-use vecdb::{Bytes, Result};
+use vecdb::Bytes;
 
 const COUNT_BITS: u32 = 21;
 const COUNT_MASK: u32 = (1 << COUNT_BITS) - 1;
@@ -104,7 +104,7 @@ impl Bytes for FundedAddrDataCompact {
         bytes
     }
 
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> vecdb::Result<Self> {
         Ok(Self {
             received: u64::from_bytes(&bytes[0..8])?,
             sent: u64::from_bytes(&bytes[8..16])?,

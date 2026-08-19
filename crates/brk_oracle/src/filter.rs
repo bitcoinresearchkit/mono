@@ -1,6 +1,6 @@
 use brk_types::{OutputType, Sats};
 
-use crate::scale::{HistogramRaw, sats_to_bin};
+use crate::{HistogramRaw, sats_to_bin};
 
 /// Dust floor: outputs below this many sats are too small to be payments.
 const MIN_SATS: u64 = 1000;

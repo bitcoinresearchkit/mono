@@ -16,8 +16,8 @@ import {
   formatYear,
 } from "./format.js";
 
-/** @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block */
-/** @typedef {import("../../modules/brk-client/index.js").MempoolBlock} MempoolBlock */
+/** @typedef {import("../../modules/bitview-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../modules/bitview-client/index.js").MempoolBlock} MempoolBlock */
 
 const CUBE_ENTER_STAGGER_MS = 60;
 

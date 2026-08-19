@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use bitcoin::{Transaction, VarInt, block::Header, consensus::Decodable};
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::{BlkMetadata, Block, BlockHash, Height, ReadBlock};
 
 use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
@@ -34,7 +34,7 @@ pub(crate) fn parse_canonical_body(
     xor_bytes: XORBytes,
     height: Height,
     header: Header,
-) -> Result<ReadBlock> {
+) -> brk_error::Result<ReadBlock> {
     if bytes.len() < HEADER_LEN {
         return Err(Error::Internal("Block bytes shorter than header"));
     }

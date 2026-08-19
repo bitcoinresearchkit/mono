@@ -2,9 +2,8 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{
-    SeqNo,
-    table::{IndexBlock, KeyedBlockHandle, block::ParsedItem, index_block::Iter as IndexBlockIter},
+use crate::table::{
+    IndexBlock, KeyedBlockHandle, block::ParsedItem, index_block::Iter as IndexBlockIter,
 };
 use self_cell::self_cell;
 
@@ -18,11 +17,11 @@ self_cell!(
 );
 
 impl OwnedIndexBlockIter {
-    pub fn seek_lower(&mut self, needle: &[u8], seqno: SeqNo) -> bool {
+    pub fn seek_lower(&mut self, needle: &[u8], seqno: u64) -> bool {
         self.with_dependent_mut(|_, m| m.seek(needle, seqno))
     }
 
-    pub fn seek_upper(&mut self, needle: &[u8], seqno: SeqNo) -> bool {
+    pub fn seek_upper(&mut self, needle: &[u8], seqno: u64) -> bool {
         self.with_dependent_mut(|_, m| m.seek_upper(needle, seqno))
     }
 }

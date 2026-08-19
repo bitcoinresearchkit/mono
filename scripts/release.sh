@@ -39,12 +39,12 @@ cargo test --workspace
 echo ""
 
 echo "--- JavaScript ---"
-cd "$ROOT_DIR/modules/brk-client"
+cd "$ROOT_DIR/modules/bitview-client"
 npm test
 echo ""
 
 echo "--- Python ---"
-cd "$ROOT_DIR/packages/brk_client"
+cd "$ROOT_DIR/packages/bitview_client"
 uv run pytest tests/ --ignore=tests/mempool_compat -s
 echo ""
 

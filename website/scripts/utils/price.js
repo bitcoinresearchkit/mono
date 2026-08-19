@@ -14,7 +14,7 @@ export function latestPrice() {
   return _latest;
 }
 
-/** @param {BrkClient} brk */
+/** @param {BitviewClient} brk */
 export function initPrice(brk) {
   async function poll() {
     try {

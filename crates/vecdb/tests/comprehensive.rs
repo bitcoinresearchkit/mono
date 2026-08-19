@@ -6,13 +6,13 @@ use rawdb::Database;
 use std::collections::BTreeSet;
 use std::ops::DerefMut;
 use tempfile::TempDir;
-use vecdb::{ReadWriteRawVec, Result, Stamp, StoredVec, VecReader, Version};
+use vecdb::{ReadWriteRawVec, Stamp, StoredVec, VecReader, Version};
 
 // ============================================================================
 // Test Setup
 // ============================================================================
 
-fn setup_db() -> Result<(Database, TempDir)> {
+fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     Ok((db, temp))
@@ -26,7 +26,7 @@ pub trait RawVecOps {
     type Reader;
 
     fn take(&mut self, index: usize, reader: &Self::Reader) -> Option<u32>;
-    fn update(&mut self, index: usize, value: u32) -> Result<()>;
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()>;
     fn holes(&self) -> &BTreeSet<usize>;
     fn collect_holed(&self) -> Vec<Option<u32>>;
     fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32>;
@@ -43,7 +43,7 @@ where
         ReadWriteRawVec::take(self, index, reader)
     }
 
-    fn update(&mut self, index: usize, value: u32) -> Result<()> {
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
         ReadWriteRawVec::update(self, index, value)
     }
 
@@ -68,7 +68,7 @@ where
 // Generic Comprehensive Tests
 // ============================================================================
 
-fn run_comprehensive_test<V>() -> Result<()>
+fn run_comprehensive_test<V>() -> vecdb::Result<()>
 where
     V: StoredVec<I = usize, T = u32> + DerefMut,
     V::Target: RawVecOps,
@@ -638,7 +638,7 @@ mod bytes {
     type V = BytesVec<usize, u32>;
 
     #[test]
-    fn test_raw_vec_comprehensive() -> Result<()> {
+    fn test_raw_vec_comprehensive() -> vecdb::Result<()> {
         run_comprehensive_test::<V>()
     }
 }
@@ -650,7 +650,7 @@ mod zerocopy {
     type V = ZeroCopyVec<usize, u32>;
 
     #[test]
-    fn test_raw_vec_comprehensive() -> Result<()> {
+    fn test_raw_vec_comprehensive() -> vecdb::Result<()> {
         run_comprehensive_test::<V>()
     }
 }

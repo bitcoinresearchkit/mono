@@ -6,7 +6,8 @@ mod config;
 
 pub use config::*;
 
-type ItemId = u32;
+#[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct ItemId(u32);
 
 /// Instant search over a list of strings.
 ///
@@ -36,7 +37,7 @@ impl<'a> QuickMatch<'a> {
     }
 
     fn build(items: Vec<Cow<'a, str>>, config: QuickMatchConfig) -> Self {
-        assert!(ItemId::try_from(items.len()).is_ok(), "Too many items");
+        assert!(u32::try_from(items.len()).is_ok(), "Too many items");
 
         let mut word_index: FxHashMap<String, FxHashSet<ItemId>> = FxHashMap::default();
         let mut trigram_index: FxHashMap<[char; 3], FxHashSet<ItemId>> = FxHashMap::default();
@@ -46,7 +47,7 @@ impl<'a> QuickMatch<'a> {
         let sep = sep_table(config.separators());
 
         for (id, item) in items.iter().enumerate() {
-            let id = id as ItemId;
+            let id = ItemId(id as u32);
             let item = item.as_ref();
             max_query_len = max_query_len.max(item.len());
             let item_words: Vec<&str> = words(item, &sep).collect();
@@ -92,15 +93,17 @@ impl<'a> QuickMatch<'a> {
             .windows(2)
             .all(|pair| item_order(pair[0].as_ref(), pair[1].as_ref()).is_le())
         {
-            (0..items.len() as ItemId).collect()
+            (0..items.len()).map(|id| ItemId(id as u32)).collect()
         } else {
-            let mut ranked_ids = (0..items.len() as ItemId).collect::<Vec<_>>();
+            let mut ranked_ids = (0..items.len())
+                .map(|id| ItemId(id as u32))
+                .collect::<Vec<_>>();
             ranked_ids.sort_unstable_by(|a, b| {
-                item_order(items[*a as usize].as_ref(), items[*b as usize].as_ref())
+                item_order(items[a.0 as usize].as_ref(), items[b.0 as usize].as_ref())
             });
-            let mut item_rank = vec![0; items.len()];
+            let mut item_rank = vec![ItemId::default(); items.len()];
             for (rank, id) in ranked_ids.into_iter().enumerate() {
-                item_rank[id as usize] = rank as ItemId;
+                item_rank[id.0 as usize] = ItemId(rank as u32);
             }
             item_rank
         };
@@ -136,7 +139,7 @@ impl<'a> QuickMatch<'a> {
     ) -> Vec<(&str, usize)> {
         self.matches_with_ids_and_matched_words(query, config)
             .into_iter()
-            .map(|(id, matched_words)| (self.item(id), matched_words as usize))
+            .map(|(id, matched_words)| (self.item(ItemId(id)), matched_words as usize))
             .collect()
     }
 
@@ -205,7 +208,10 @@ impl<'a> QuickMatch<'a> {
             );
 
             if !results.is_empty() {
-                return results;
+                return results
+                    .into_iter()
+                    .map(|(id, matched)| (id.0, matched))
+                    .collect();
             }
         }
 
@@ -223,6 +229,9 @@ impl<'a> QuickMatch<'a> {
             &sep,
             limit,
         )
+        .into_iter()
+        .map(|(id, matched)| (id.0, matched))
+        .collect()
     }
 
     /// Intersection of all sets, or `None` when there are no sets or no
@@ -269,7 +278,7 @@ impl<'a> QuickMatch<'a> {
         for (item, fuzzy) in candidates {
             let s = self.item(item);
             let (matched, position) = word_match(s, query_words, sep);
-            buckets[matched].push((item, fuzzy, position, self.item_rank[item as usize]));
+            buckets[matched].push((item, fuzzy, position, self.item_rank[item.0 as usize]));
         }
 
         let mut results = Vec::with_capacity(limit);
@@ -297,7 +306,7 @@ impl<'a> QuickMatch<'a> {
     }
 
     fn item(&self, id: ItemId) -> &str {
-        self.items[id as usize].as_ref()
+        self.items[id.0 as usize].as_ref()
     }
 
     /// Builds per-item trigram-overlap scores for the unknown (typo) words.

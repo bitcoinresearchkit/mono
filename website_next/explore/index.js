@@ -39,7 +39,7 @@ export function createExplorePage() {
     );
   }
 
-  /** @param {import("../modules/brk-client/index.js").BlockInfoV1} block */
+  /** @param {import("../modules/bitview-client/index.js").BlockInfoV1} block */
   async function showBlock(block) {
     if (showingDetails || transitioning) return;
 

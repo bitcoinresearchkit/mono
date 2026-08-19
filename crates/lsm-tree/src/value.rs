@@ -4,18 +4,9 @@
 
 use crate::{Slice, ValueType, key::InternalKey};
 
-/// User defined key
-pub type UserKey = Slice;
-
-/// User defined data (blob of bytes)
-pub type UserValue = Slice;
-
-/// Monotonically increasing generation used to choose the latest value across tables.
-pub type SeqNo = u64;
-
 pub struct PointReadValue {
     pub value_type: ValueType,
-    pub value: UserValue,
+    pub value: Slice,
 }
 
 /// Internal representation of KV pairs
@@ -27,7 +18,7 @@ pub struct InternalValue {
     /// User-defined value - an arbitrary byte array
     ///
     /// Supports up to 2^32 bytes
-    pub value: UserValue,
+    pub value: Slice,
 }
 
 impl InternalValue {
@@ -36,7 +27,7 @@ impl InternalValue {
     /// # Panics
     ///
     /// Panics if the key length is empty or greater than 2^16, or the value length is greater than 2^32.
-    pub fn new<V: Into<UserValue>>(key: InternalKey, value: V) -> Self {
+    pub fn new<V: Into<Slice>>(key: InternalKey, value: V) -> Self {
         let value = value.into();
 
         assert!(!key.user_key.is_empty(), "key may not be empty");
@@ -53,10 +44,10 @@ impl InternalValue {
     /// # Panics
     ///
     /// Panics if the key length is empty or greater than 2^16, or the value length is greater than 2^32.
-    pub fn from_components<K: Into<UserKey>, V: Into<UserValue>>(
+    pub fn from_components<K: Into<Slice>, V: Into<Slice>>(
         user_key: K,
         value: V,
-        seqno: SeqNo,
+        seqno: u64,
         value_type: ValueType,
     ) -> Self {
         let key = InternalKey::new(user_key, seqno, value_type);
@@ -68,7 +59,7 @@ impl InternalValue {
     /// # Panics
     ///
     /// Panics if the key length is empty or greater than 2^16.
-    pub fn new_tombstone<K: Into<UserKey>>(key: K, seqno: u64) -> Self {
+    pub fn new_tombstone<K: Into<Slice>>(key: K, seqno: u64) -> Self {
         let key = InternalKey::new(key, seqno, ValueType::Tombstone);
         Self::new(key, vec![])
     }
@@ -78,7 +69,7 @@ impl InternalValue {
     /// # Panics
     ///
     /// Panics if the key length is empty or greater than 2^16.
-    pub fn new_weak_tombstone<K: Into<UserKey>>(key: K, seqno: u64) -> Self {
+    pub fn new_weak_tombstone<K: Into<Slice>>(key: K, seqno: u64) -> Self {
         let key = InternalKey::new(key, seqno, ValueType::WeakTombstone);
         Self::new(key, vec![])
     }

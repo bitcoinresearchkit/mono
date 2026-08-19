@@ -1,4 +1,4 @@
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 use brk_types::Sats;
 use rayon::prelude::*;
 use schemars::JsonSchema;

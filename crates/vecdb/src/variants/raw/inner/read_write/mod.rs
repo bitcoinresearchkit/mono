@@ -16,7 +16,7 @@ mod writable;
 
 use crate::{
     AnyStoredVec, AnyVec, Bytes, Error, Format, HEADER_OFFSET, ImportOptions, RawIoSource,
-    RawMmapSource, ReadWriteBaseVec, Result, VecIndex, VecReader, VecValue, Version, WithPrev,
+    RawMmapSource, ReadWriteBaseVec, VecIndex, VecReader, VecValue, Version, WithPrev,
     vec_region_name_with,
 };
 
@@ -56,7 +56,7 @@ where
     /// # Warning
     ///
     /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub fn forced_import_with(options: ImportOptions, format: Format) -> Result<Self> {
+    pub fn forced_import_with(options: ImportOptions, format: Format) -> crate::Result<Self> {
         let res = Self::import_with(options, format);
         match res {
             Err(Error::WrongEndian)
@@ -76,7 +76,7 @@ where
         }
     }
 
-    pub fn import_with(mut options: ImportOptions, format: Format) -> Result<Self> {
+    pub fn import_with(mut options: ImportOptions, format: Format) -> crate::Result<Self> {
         options.version = options.version + VERSION;
 
         let db = options.db;
@@ -103,7 +103,7 @@ where
                     .read_all()
                     .chunks(size_of::<usize>())
                     .map(usize::from_bytes)
-                    .collect::<Result<BTreeSet<usize>>>()
+                    .collect::<crate::Result<BTreeSet<usize>>>()
             })
             .transpose()?;
 
@@ -122,7 +122,7 @@ where
         Ok(this)
     }
 
-    pub fn remove(self) -> Result<()> {
+    pub fn remove(self) -> crate::Result<()> {
         let db = self.base.db();
         let holes_region_name = self.holes_region_name();
         let has_stored_holes = self.has_stored_holes;
@@ -216,7 +216,7 @@ where
     }
 
     #[inline]
-    pub fn read_at_once(&self, index: usize) -> Result<T> {
+    pub fn read_at_once(&self, index: usize) -> crate::Result<T> {
         let len = self.stored_len();
         if index >= len {
             return Err(Error::IndexTooHigh {
@@ -232,7 +232,7 @@ where
     }
 
     #[inline]
-    pub fn read_once(&self, index: I) -> Result<T> {
+    pub fn read_once(&self, index: I) -> crate::Result<T> {
         self.read_at_once(index.to_usize())
     }
 
@@ -312,12 +312,12 @@ where
     }
 
     #[inline]
-    pub fn update(&mut self, index: I, value: T) -> Result<()> {
+    pub fn update(&mut self, index: I, value: T) -> crate::Result<()> {
         self.update_at(index.to_usize(), value)
     }
 
     #[inline]
-    pub fn update_at(&mut self, index: usize, value: T) -> Result<()> {
+    pub fn update_at(&mut self, index: usize, value: T) -> crate::Result<()> {
         let stored_len = self.stored_len();
 
         if index >= stored_len {
@@ -378,7 +378,7 @@ where
     }
 
     #[inline]
-    pub fn fill_first_hole_or_push(&mut self, value: T) -> Result<I> {
+    pub fn fill_first_hole_or_push(&mut self, value: T) -> crate::Result<I> {
         if let Some(hole) = self.mut_holes().pop_first().map(I::from) {
             self.update(hole, value)?;
             return Ok(hole);
@@ -399,7 +399,7 @@ where
         opt
     }
 
-    pub(crate) fn collect_stored_range(&self, from: usize, to: usize) -> Result<Vec<T>> {
+    pub(crate) fn collect_stored_range(&self, from: usize, to: usize) -> crate::Result<Vec<T>> {
         let reader = self.raw_reader();
         Ok((from..to)
             .map(|i| {

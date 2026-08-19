@@ -1,8 +1,7 @@
-use brk_error::Result;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     let bitcoin_dir = Client::default_bitcoin_path();
 
     let client = Client::new(

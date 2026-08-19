@@ -3,7 +3,7 @@
 // (found in the LICENSE-* files in the repository)
 
 use super::{filter::BloomConstructionPolicy, id::next_table_id, writer::Writer};
-use crate::{Checksum, CompressionType, SequenceNumberCounter, TableId, value::InternalValue};
+use crate::{Checksum, CompressionType, SequenceNumberCounter, value::InternalValue};
 use std::path::PathBuf;
 
 /// Like `Writer` but will rotate to a new table, once a table grows larger than `target_size`
@@ -28,7 +28,7 @@ pub struct MultiWriter {
     /// resulting in a sorted "run" of tables
     pub target_size: u64,
 
-    results: Vec<(TableId, Checksum)>,
+    results: Vec<(u32, Checksum)>,
 
     table_id_generator: SequenceNumberCounter,
 
@@ -193,7 +193,7 @@ impl MultiWriter {
     /// Finishes the last table, making sure all data is written durably
     ///
     /// Returns the metadata of created tables
-    pub fn finish(mut self) -> crate::Result<(PathBuf, Vec<(TableId, Checksum)>)> {
+    pub fn finish(mut self) -> crate::Result<(PathBuf, Vec<(u32, Checksum)>)> {
         if let Some((table_id, checksum)) = self.writer.finish()? {
             self.results.push((table_id, checksum));
         }

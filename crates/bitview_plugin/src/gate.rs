@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use parking_lot::{ArcRwLockWriteGuard, Mutex, RawRwLock, RwLock};
 
-use crate::PluginReadGuard;
+use crate::{PluginReadGuard, read_guard};
 
 /// Shared publication gate for one Bitview plugin.
 ///
@@ -54,9 +54,7 @@ impl PluginGate {
     /// This never blocks. Async callers can retry cooperatively while an
     /// update is running without tying up an executor thread.
     pub fn try_read(&self) -> Option<PluginReadGuard> {
-        self.0.gate.try_read_arc().map(|guard| PluginReadGuard {
-            guards: vec![guard],
-        })
+        self.0.gate.try_read_arc().map(read_guard::single)
     }
 
     /// Stabilizes this plugin for one logical synchronous read.
@@ -64,9 +62,7 @@ impl PluginGate {
     /// Async callers should use [`try_read`](Self::try_read) and yield between
     /// attempts instead of blocking an executor thread.
     pub fn read(&self) -> PluginReadGuard {
-        PluginReadGuard {
-            guards: vec![self.0.gate.read_arc()],
-        }
+        read_guard::single(self.0.gate.read_arc())
     }
 }
 

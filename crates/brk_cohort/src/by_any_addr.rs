@@ -1,4 +1,4 @@
-use brk_traversable::Traversable;
+use bitview_traversable::Traversable;
 
 #[derive(Debug, Default, Traversable)]
 pub struct ByAnyAddr<T> {

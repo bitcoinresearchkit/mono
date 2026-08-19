@@ -2,17 +2,17 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{Slice, UserKey};
+use crate::Slice;
 use std::ops::Bound;
 
 /// A key range in the format of [min, max] (inclusive on both sides)
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct KeyRange(UserKey, UserKey);
+pub struct KeyRange(Slice, Slice);
 
 impl KeyRange {
     /// Creates a new key range.
     #[must_use]
-    pub fn new((min, max): (UserKey, UserKey)) -> Self {
+    pub fn new((min, max): (Slice, Slice)) -> Self {
         Self(min, max)
     }
 
@@ -24,17 +24,17 @@ impl KeyRange {
 
     /// Returns the lower bound.
     #[must_use]
-    pub fn min(&self) -> &UserKey {
+    pub fn min(&self) -> &Slice {
         &self.0
     }
 
     /// Returns the upper bound.
     #[must_use]
-    pub fn max(&self) -> &UserKey {
+    pub fn max(&self) -> &Slice {
         &self.1
     }
 
-    fn as_tuple(&self) -> (&UserKey, &UserKey) {
+    fn as_tuple(&self) -> (&Slice, &Slice) {
         (self.min(), self.max())
     }
 
@@ -243,84 +243,84 @@ mod tests {
 
         #[test]
         fn inclusive() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Included(b"key1" as &[u8]), Included(b"key5" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn exclusive() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Excluded(b"key0" as &[u8]), Excluded(b"key6" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn no_overlap() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Excluded(b"key5" as &[u8]), Excluded(b"key6" as &[u8]));
             assert!(!key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn unbounded() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Unbounded);
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_0() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Excluded(b"key1" as &[u8]));
             assert!(!key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_1() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Excluded(b"key5" as &[u8]), Unbounded);
             assert!(!key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_2() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Included(b"key1" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_3() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Included(b"key5" as &[u8]), Unbounded);
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_4() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Included(b"key5" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_5() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Unbounded, Included(b"key6" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_6() {
-            let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+            let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
             let bounds = (Included(b"key0" as &[u8]), Unbounded);
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
 
         #[test]
         fn semi_open_7() {
-            let key_range = KeyRange(UserKey::from("key5"), UserKey::from("key8"));
+            let key_range = KeyRange(Slice::from("key5"), Slice::from("key8"));
             let bounds = (Unbounded, Excluded(b"key6" as &[u8]));
             assert!(key_range.overlaps_with_bounds(&bounds));
         }
@@ -328,7 +328,7 @@ mod tests {
 
     #[test]
     fn key_range_contains_key() {
-        let key_range = KeyRange(UserKey::from("key1"), UserKey::from("key5"));
+        let key_range = KeyRange(Slice::from("key1"), Slice::from("key5"));
         assert!(!key_range.contains_key(b"key0"));
         assert!(!key_range.contains_key(b"key01"));
         assert!(key_range.contains_key(b"key1"));

@@ -21,19 +21,16 @@
 
 use std::time::{Duration, Instant};
 
-use brk_error::Result;
-use brk_reader::{Reader, Receiver};
+use brk_reader::{BlockReceiver, Reader};
 use brk_rpc::{Auth, Client};
-use brk_types::{Height, ReadBlock};
-
-type BlockStream = Receiver<Result<ReadBlock>>;
+use brk_types::Height;
 
 const SCENARIOS: &[usize] = &[5, 10, 100, 1_000, 10_000];
 const REPEATS: usize = 3;
 const PARTIAL_LIMIT: usize = 400_000;
 const PARSER_COUNTS: &[usize] = &[1, 4, 16];
 
-fn main() -> Result<()> {
+fn main() -> brk_error::Result<()> {
     let bitcoin_dir = Client::default_bitcoin_path();
     let client = Client::new(
         Client::default_url(),
@@ -113,9 +110,9 @@ struct RunStats {
     count: usize,
 }
 
-fn bench<F>(repeats: usize, mut f: F) -> Result<RunStats>
+fn bench<F>(repeats: usize, mut f: F) -> brk_error::Result<RunStats>
 where
-    F: FnMut() -> Result<BlockStream>,
+    F: FnMut() -> brk_error::Result<BlockReceiver>,
 {
     let mut best = Duration::MAX;
     let mut total = Duration::ZERO;
@@ -176,9 +173,9 @@ struct FullRun {
     count: usize,
 }
 
-fn run_once<F>(mut f: F) -> Result<FullRun>
+fn run_once<F>(mut f: F) -> brk_error::Result<FullRun>
 where
-    F: FnMut() -> Result<BlockStream>,
+    F: FnMut() -> brk_error::Result<BlockReceiver>,
 {
     let start = Instant::now();
     let recv = f()?;
@@ -197,9 +194,9 @@ where
 /// Runs the pipeline starting from genesis but stops consuming once
 /// `limit` blocks have been received. Dropping the receiver then closes
 /// the channel, which unblocks and unwinds the reader's spawned worker.
-fn run_bounded<F>(limit: usize, mut f: F) -> Result<FullRun>
+fn run_bounded<F>(limit: usize, mut f: F) -> brk_error::Result<FullRun>
 where
-    F: FnMut() -> Result<BlockStream>,
+    F: FnMut() -> brk_error::Result<BlockReceiver>,
 {
     let start = Instant::now();
     let recv = f()?;

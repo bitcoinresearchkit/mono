@@ -13,16 +13,16 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y ca-certificates procps && rm -rf /var/lib/apt/lists/*
 
-RUN useradd -m -s /bin/bash brk
+RUN useradd -m -s /bin/bash bitview
 
-COPY --from=builder /app/target/release/brk /usr/local/bin/brk
+COPY --from=builder /app/target/release/bitview /usr/local/bin/bitview
 
-USER brk
+USER bitview
 
-RUN mkdir -p /home/brk/.brk
+RUN mkdir -p /home/bitview/.bitview
 
 EXPOSE 3110
 
-WORKDIR /home/brk
+WORKDIR /home/bitview
 
-ENTRYPOINT ["brk"]
+ENTRYPOINT ["bitview"]

@@ -29,8 +29,6 @@ extern "C" fn signal_handler(_sig: libc::c_int) {
     }
 }
 
-type Callbacks = Arc<Mutex<Vec<Box<dyn Fn() + Send + Sync>>>>;
-
 /// Graceful shutdown coordinator for ensuring data consistency during program exit.
 ///
 /// On first signal, a background thread acquires the write lock (waiting only for the
@@ -39,7 +37,7 @@ type Callbacks = Arc<Mutex<Vec<Box<dyn Fn() + Send + Sync>>>>;
 #[derive(Default, Clone)]
 pub struct Exit {
     lock: Arc<RwLock<()>>,
-    cleanup_callbacks: Callbacks,
+    cleanup_callbacks: Arc<Mutex<Vec<Box<dyn Fn() + Send + Sync>>>>,
 }
 
 impl Exit {

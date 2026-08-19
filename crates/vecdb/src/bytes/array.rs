@@ -1,4 +1,4 @@
-use crate::{Error, Result};
+use crate::Error;
 
 use super::Bytes;
 
@@ -15,7 +15,7 @@ macro_rules! impl_bytes_for_array {
                 }
 
                 #[inline]
-                fn from_bytes(bytes: &[u8]) -> Result<Self> {
+                fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
                     bytes.try_into().map_err(|_| Error::WrongLength {
                         expected: $n,
                         received: bytes.len(),

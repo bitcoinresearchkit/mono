@@ -2,7 +2,7 @@ use std::{fs, marker::PhantomData, ops::Deref, path::PathBuf, sync::Arc};
 
 use rawdb::Database;
 
-use crate::{Error, Result, Stamp, VecIndex, VecValue};
+use crate::{Error, Stamp, VecIndex, VecValue};
 
 use super::{Format, HEADER_OFFSET, Header, ImportOptions, ReadOnlyBaseVec, SharedLen, WithPrev};
 
@@ -32,7 +32,7 @@ where
     I: VecIndex,
     T: VecValue,
 {
-    pub fn import(options: ImportOptions, format: Format) -> Result<Self> {
+    pub fn import(options: ImportOptions, format: Format) -> crate::Result<Self> {
         let initial_capacity = options.initial_capacity.unwrap_or(I::INITIAL_CAPACITY);
         let region = options
             .db
@@ -139,7 +139,7 @@ where
         self.db().path().to_path_buf()
     }
 
-    pub fn write_header_if_needed(&mut self) -> Result<()> {
+    pub fn write_header_if_needed(&mut self) -> crate::Result<()> {
         if self.read_only.header.modified() {
             self.read_only.header.write(&self.read_only.region)?;
         }
@@ -150,7 +150,7 @@ where
         vec_region_name(&self.name, I::to_string())
     }
 
-    pub fn remove(self) -> Result<()> {
+    pub fn remove(self) -> crate::Result<()> {
         self.read_only.region.remove()?;
         Ok(())
     }
@@ -220,7 +220,7 @@ where
         index < stored_len
     }
 
-    pub fn reset_base(&mut self) -> Result<()> {
+    pub fn reset_base(&mut self) -> crate::Result<()> {
         self.pushed.clear();
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;

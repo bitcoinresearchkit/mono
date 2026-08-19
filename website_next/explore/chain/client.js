@@ -1,8 +1,8 @@
 import { fetchBrkJson } from "../../utils/api.js";
 
 /**
- * @typedef {import("../../modules/brk-client/index.js").BlockInfoV1} Block
- * @typedef {import("../../modules/brk-client/index.js").MempoolBlock} MempoolBlock
+ * @typedef {import("../../modules/bitview-client/index.js").BlockInfoV1} Block
+ * @typedef {import("../../modules/bitview-client/index.js").MempoolBlock} MempoolBlock
  * @typedef {Block & { tx_count?: number }} BlockResponse
  */
 

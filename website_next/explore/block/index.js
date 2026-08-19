@@ -51,7 +51,7 @@ export function createBlockDetails({ onBack = () => {} } = {}) {
     content.textContent = "";
   }
 
-  /** @param {import("../../modules/brk-client/index.js").BlockInfoV1} block */
+  /** @param {import("../../modules/bitview-client/index.js").BlockInfoV1} block */
   function update(block) {
     const extras = block.extras;
 

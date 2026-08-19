@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, mem};
 use log::debug;
 use smallvec::SmallVec;
 
-use crate::{Error, Region, Regions, Result};
+use crate::{Error, Region, Regions};
 
 /// Tracks regions, holes, and reservations in the database file.
 #[derive(Debug, Default)]
@@ -146,13 +146,13 @@ impl Layout {
         assert!(self.start_to_region.insert(start, region.clone()).is_none())
     }
 
-    pub fn move_region(&mut self, new_start: usize, region: &Region) -> Result<()> {
+    pub fn move_region(&mut self, new_start: usize, region: &Region) -> crate::Result<()> {
         self.remove_region(region)?;
         self.insert_region(new_start, region);
         Ok(())
     }
 
-    pub fn remove_region(&mut self, region: &Region) -> Result<()> {
+    pub fn remove_region(&mut self, region: &Region) -> crate::Result<()> {
         let region_meta = region.meta();
         let start = region_meta.start();
         let reserved = region_meta.reserved();
@@ -182,7 +182,11 @@ impl Layout {
             .and_then(|(_, starts)| starts.first().copied())
     }
 
-    pub fn remove_or_compress_hole(&mut self, start: usize, compress_by: usize) -> Result<()> {
+    pub fn remove_or_compress_hole(
+        &mut self,
+        start: usize,
+        compress_by: usize,
+    ) -> crate::Result<()> {
         let Some(size) = self.remove_hole(start) else {
             return Ok(());
         };

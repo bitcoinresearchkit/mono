@@ -1,0 +1,18 @@
+[package]
+name = "bitview_bindgen"
+description = "A trait-based generator of client bindings for multiple languages"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+derive_more = { workspace = true }
+brk_cohort = { workspace = true }
+bitview_query = { workspace = true }
+brk_types = { workspace = true }
+indexmap = { workspace = true }
+oas3 = "0.22"
+serde = { workspace = true }
+serde_json = { workspace = true }

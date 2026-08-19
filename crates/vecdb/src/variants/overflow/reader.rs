@@ -31,8 +31,8 @@ where
         overflow: &ReadOnlyRawVec<usize, T, BytesStrategy<T>>,
     ) -> Self {
         Self {
-            compact: compact.reader(),
-            overflow: overflow.reader(),
+            compact: BytesVecReader::new(compact.reader()),
+            overflow: BytesVecReader::new(overflow.reader()),
         }
     }
 

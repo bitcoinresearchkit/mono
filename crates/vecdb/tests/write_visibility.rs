@@ -6,9 +6,9 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{Result, StoredVec, Version};
+use vecdb::{StoredVec, Version};
 
-fn setup_test_db() -> Result<(Database, TempDir)> {
+fn setup_test_db() -> vecdb::Result<(Database, TempDir)> {
     let temp_dir = TempDir::new()?;
     let db = Database::open(temp_dir.path())?;
     Ok((db, temp_dir))

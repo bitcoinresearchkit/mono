@@ -1,4 +1,4 @@
-use crate::{Bytes, Error, Result};
+use crate::{Bytes, Error};
 
 use super::Page;
 
@@ -13,7 +13,7 @@ impl Bytes for Page {
         bytes
     }
 
-    fn from_bytes(bytes: &[u8]) -> Result<Self> {
+    fn from_bytes(bytes: &[u8]) -> crate::Result<Self> {
         if bytes.len() < size_of::<Page>() {
             return Err(Error::WrongLength {
                 expected: size_of::<Page>(),

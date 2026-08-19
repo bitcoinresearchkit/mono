@@ -5,8 +5,8 @@ use std::marker::PhantomData;
 const CACHE_SIZE: usize = 1024;
 const CACHE_MASK: usize = CACHE_SIZE - 1;
 
-/// Cache entry: (range_low, range_high, value, occupied).
-type CacheEntry<I, V> = (I, I, V, bool);
+#[derive(Clone, Copy)]
+struct CacheEntry<I, V>(I, I, V, bool);
 
 /// Maps ranges of indices to values for efficient reverse lookups.
 ///
@@ -24,7 +24,7 @@ impl<I: Default + Copy, V: Default + Copy> Clone for RangeMap<I, V> {
     fn clone(&self) -> Self {
         Self {
             first_indexes: self.first_indexes.clone(),
-            cache: [(I::default(), I::default(), V::default(), false); CACHE_SIZE],
+            cache: [CacheEntry(I::default(), I::default(), V::default(), false); CACHE_SIZE],
             _phantom: PhantomData,
         }
     }
@@ -34,7 +34,7 @@ impl<I: Default + Copy, V: Default + Copy> From<Vec<I>> for RangeMap<I, V> {
     fn from(first_indexes: Vec<I>) -> Self {
         Self {
             first_indexes,
-            cache: [(I::default(), I::default(), V::default(), false); CACHE_SIZE],
+            cache: [CacheEntry(I::default(), I::default(), V::default(), false); CACHE_SIZE],
             _phantom: PhantomData,
         }
     }
@@ -44,7 +44,7 @@ impl<I: Default + Copy, V: Default + Copy> Default for RangeMap<I, V> {
     fn default() -> Self {
         Self {
             first_indexes: Vec::new(),
-            cache: [(I::default(), I::default(), V::default(), false); CACHE_SIZE],
+            cache: [CacheEntry(I::default(), I::default(), V::default(), false); CACHE_SIZE],
             _phantom: PhantomData,
         }
     }
@@ -104,7 +104,7 @@ impl<I: Ord + Copy + Default + Into<usize>, V: From<usize> + Copy + Default> Ran
         if pos > 0 {
             let value = V::from(pos - 1);
             if pos < self.first_indexes.len() {
-                self.cache[slot] = (
+                self.cache[slot] = CacheEntry(
                     self.first_indexes[pos - 1],
                     self.first_indexes[pos],
                     value,

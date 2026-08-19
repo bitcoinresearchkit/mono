@@ -2,9 +2,11 @@ use crate::{Format, ReadOnlyRawVec, impl_vec_wrapper};
 
 use super::ReadWriteRawVec;
 
+mod reader;
 mod strategy;
 mod value;
 
+pub use reader::*;
 pub use strategy::*;
 pub use value::*;
 
@@ -34,7 +36,15 @@ pub use value::*;
 #[must_use = "Vector should be stored to keep data accessible"]
 pub struct BytesVec<I, T>(pub(crate) ReadWriteRawVec<I, T, BytesStrategy<T>>);
 
-pub type BytesVecReader<I, T> = super::VecReader<I, T, BytesStrategy<T>>;
+impl<I, T> BytesVec<I, T>
+where
+    I: crate::VecIndex,
+    T: BytesVecValue,
+{
+    pub fn reader(&self) -> BytesVecReader<I, T> {
+        BytesVecReader::new(self.0.reader())
+    }
+}
 
 impl_vec_wrapper!(
     BytesVec,

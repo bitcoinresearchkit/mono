@@ -1,7 +1,7 @@
 import { createPoolLogo } from "../../../pools/index.js";
 import { formatPoolBlockNumber, getCoinbaseMessage } from "../format.js";
 
-/** @typedef {import("../../../modules/brk-client/index.js").BlockInfoV1} Block */
+/** @typedef {import("../../../modules/bitview-client/index.js").BlockInfoV1} Block */
 
 /** @param {string} raw */
 function createCoinbaseMessage(raw) {

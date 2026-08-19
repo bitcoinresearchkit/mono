@@ -1,6 +1,6 @@
-use crate::UserKey;
+use crate::Slice;
 
 pub enum Bound {
-    Included(UserKey),
-    Excluded(UserKey),
+    Included(Slice),
+    Excluded(Slice),
 }

@@ -3,7 +3,7 @@
 use std::{
     collections::BTreeMap,
     fs::File,
-    io::Read,
+    io::{Read, Result as IoResult},
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
     sync::Arc,
@@ -11,13 +11,13 @@ use std::{
 
 use brk_error::{Error, Result};
 use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
-pub use crossbeam::channel::Receiver;
+use brk_types::{BlkPosition, BlockHash, Height};
 use parking_lot::RwLock;
 use tracing::warn;
 
 mod bisect;
 mod blk_index_to_blk_path;
+mod block_receiver;
 mod canonical;
 mod parse;
 mod pipeline;
@@ -26,6 +26,7 @@ mod xor_bytes;
 mod xor_index;
 
 pub use blk_index_to_blk_path::BlkIndexToBlkPath;
+pub use block_receiver::BlockReceiver;
 pub use canonical::CanonicalRange;
 pub use xor_bytes::*;
 pub use xor_index::*;
@@ -109,13 +110,13 @@ impl Reader {
 
     /// Streams every canonical block from genesis to the current
     /// chain tip.
-    pub fn all(&self) -> Result<Receiver<Result<ReadBlock>>> {
+    pub fn all(&self) -> Result<BlockReceiver> {
         self.after(None)
     }
 
     /// Streams every canonical block strictly after `hash` (or from
     /// genesis when `None`) up to the current chain tip.
-    pub fn after(&self, hash: Option<BlockHash>) -> Result<Receiver<Result<ReadBlock>>> {
+    pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockReceiver> {
         self.after_with(hash, pipeline::DEFAULT_PARSER_THREADS)
     }
 
@@ -123,14 +124,14 @@ impl Reader {
         &self,
         hash: Option<BlockHash>,
         parser_threads: usize,
-    ) -> Result<Receiver<Result<ReadBlock>>> {
+    ) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
         let canonical = CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)?;
         pipeline::spawn(self.0.clone(), canonical, parser_threads)
     }
 
     /// Inclusive height range `start..=end` in canonical order.
-    pub fn range(&self, start: Height, end: Height) -> Result<Receiver<Result<ReadBlock>>> {
+    pub fn range(&self, start: Height, end: Height) -> Result<BlockReceiver> {
         self.range_with(start, end, pipeline::DEFAULT_PARSER_THREADS)
     }
 
@@ -139,7 +140,7 @@ impl Reader {
         start: Height,
         end: Height,
         parser_threads: usize,
-    ) -> Result<Receiver<Result<ReadBlock>>> {
+    ) -> Result<BlockReceiver> {
         let tip = self.0.client.get_last_height()?;
         if end > tip {
             return Err(Error::OutOfRange(
@@ -187,7 +188,7 @@ pub struct BlkRead {
 }
 
 impl Read for BlkRead {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> IoResult<usize> {
         let n = self.file.read_at(buf, self.offset)?;
         self.xor_index.bytes(&mut buf[..n], self.xor_bytes);
         self.offset += n as u64;

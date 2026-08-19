@@ -6,6 +6,7 @@ mod block_size;
 mod compression;
 mod filter;
 mod hash_ratio;
+mod partitioning;
 mod pinning;
 mod restart_interval;
 
@@ -13,11 +14,9 @@ pub use block_size::BlockSizePolicy;
 pub use compression::CompressionPolicy;
 pub use filter::{BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry};
 pub use hash_ratio::HashRatioPolicy;
+pub use partitioning::PartitioningPolicy;
 pub use pinning::PinningPolicy;
 pub use restart_interval::RestartIntervalPolicy;
-
-/// Partitioning policy for indexes and filters
-pub type PartitioningPolicy = PinningPolicy;
 
 use crate::{
     Cache, CompressionType, DescriptorTable, Tree, path::absolute_path,
@@ -98,8 +97,8 @@ impl Config {
             data_block_size_policy: BlockSizePolicy::all(4_096),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
-            index_block_partitioning_policy: PinningPolicy::new([false, false, false, true]),
-            filter_block_partitioning_policy: PinningPolicy::new([false, false, false, true]),
+            index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
+            filter_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
             data_block_compression_policy: CompressionPolicy::new([
                 CompressionType::None,
                 CompressionType::Lz4,
@@ -146,14 +145,14 @@ impl Config {
 
     /// Sets the partitioning policy for filter blocks.
     #[must_use]
-    pub fn filter_block_partitioning_policy(mut self, policy: PinningPolicy) -> Self {
+    pub fn filter_block_partitioning_policy(mut self, policy: PartitioningPolicy) -> Self {
         self.filter_block_partitioning_policy = policy;
         self
     }
 
     /// Sets the partitioning policy for index blocks.
     #[must_use]
-    pub fn index_block_partitioning_policy(mut self, policy: PinningPolicy) -> Self {
+    pub fn index_block_partitioning_policy(mut self, policy: PartitioningPolicy) -> Self {
         self.index_block_partitioning_policy = policy;
         self
     }

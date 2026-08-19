@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_types::{Cents, Close, Date, Dollars, High, Low, OHLCCents, Open, Timestamp};
 
 /// Parse OHLC value from a JSON array element at given index
@@ -36,7 +36,7 @@ pub fn compute_ohlc_from_range(
     timestamp: Timestamp,
     previous_timestamp: Option<Timestamp>,
     source_name: &str,
-) -> Result<OHLCCents> {
+) -> brk_error::Result<OHLCCents> {
     let previous_ohlc =
         previous_timestamp.map_or(Some(OHLCCents::default()), |t| tree.get(&t).cloned());
 

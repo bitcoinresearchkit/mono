@@ -7,7 +7,7 @@ mod inner;
 
 use inner::HeaderInner;
 
-use crate::{Result, Stamp, Version};
+use crate::{Stamp, Version};
 
 use super::Format;
 
@@ -21,7 +21,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn create_and_write(region: &Region, vec_version: Version, format: Format) -> Result<Self> {
+    pub fn create_and_write(
+        region: &Region,
+        vec_version: Version,
+        format: Format,
+    ) -> crate::Result<Self> {
         let inner = HeaderInner::create_and_write(region, vec_version, format)?;
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
@@ -33,7 +37,7 @@ impl Header {
         region: &Region,
         vec_version: Version,
         format: Format,
-    ) -> Result<Self> {
+    ) -> crate::Result<Self> {
         let inner = HeaderInner::import_and_verify(region, vec_version, format)?;
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
@@ -77,7 +81,7 @@ impl Header {
         self.inner.read().stamp
     }
 
-    pub fn write(&mut self, region: &Region) -> Result<()> {
+    pub fn write(&mut self, region: &Region) -> crate::Result<()> {
         self.inner.read().write(region)?;
         self.modified = false;
         Ok(())

@@ -77,7 +77,7 @@ impl Header {
 }
 
 impl Encode for Header {
-    fn encode_into<W: Write>(&self, mut writer: &mut W) -> Result<(), crate::Error> {
+    fn encode_into<W: Write>(&self, mut writer: &mut W) -> crate::Result<()> {
         use byteorder::LE;
 
         let checksum = {
@@ -113,7 +113,7 @@ impl Encode for Header {
 }
 
 impl Decode for Header {
-    fn decode_from<R: Read>(reader: &mut R) -> Result<Self, crate::Error> {
+    fn decode_from<R: Read>(reader: &mut R) -> crate::Result<Self> {
         use byteorder::LE;
 
         let mut protected_reader = ChecksummedReader::new(reader);

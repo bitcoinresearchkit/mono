@@ -24,13 +24,13 @@ mod tests;
 
 pub use block::{Block, BlockOffset};
 pub use data_block::DataBlock;
+pub use id::GlobalTableId;
 pub use id::next_table_id;
-pub use id::{GlobalTableId, TableId};
 pub use index_block::{BlockHandle, IndexBlock, KeyedBlockHandle};
 pub use scanner::Scanner;
 
 use crate::{
-    Checksum, CompressionType, InternalValue, SeqNo, TreeId, UserKey,
+    Checksum, CompressionType, InternalValue, Slice,
     cache::Cache,
     descriptor_table::DescriptorTable,
     file_accessor::FileAccessor,
@@ -84,7 +84,7 @@ impl std::fmt::Debug for Table {
 
 impl Table {
     #[must_use]
-    pub fn global_seqno(&self) -> SeqNo {
+    pub fn global_seqno(&self) -> u64 {
         self.0.global_seqno
     }
 
@@ -123,7 +123,7 @@ impl Table {
     /// The table ID is unique for this tree, but not
     /// across multiple trees, use [`Table::global_id`] for that.
     #[must_use]
-    pub fn id(&self) -> TableId {
+    pub fn id(&self) -> u32 {
         self.metadata.id
     }
 
@@ -181,7 +181,7 @@ impl Table {
             Some(Cow::Borrowed(block))
         } else if let Some(filter_idx) = &self.pinned_filter_index {
             let mut iter = filter_idx.iter();
-            iter.seek(key, SeqNo::MAX);
+            iter.seek(key, u64::MAX);
 
             if let Some(filter_block_handle) = iter.next() {
                 let filter_block_handle = filter_block_handle.materialize(filter_idx.as_slice());
@@ -240,7 +240,7 @@ impl Table {
         key: &[u8],
         point_read: impl Fn(&DataBlock, &[u8]) -> Option<T>,
     ) -> crate::Result<Option<T>> {
-        let Some(iter) = self.block_index.forward_reader(key, SeqNo::MAX) else {
+        let Some(iter) = self.block_index.forward_reader(key, u64::MAX) else {
             return Ok(None);
         };
 
@@ -309,7 +309,7 @@ impl Table {
     /// Will return `Err` if an IO error occurs.
     #[must_use]
     #[doc(hidden)]
-    pub fn range<R: RangeBounds<UserKey> + Send>(
+    pub fn range<R: RangeBounds<Slice> + Send>(
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + Send + use<R> {
@@ -360,8 +360,8 @@ impl Table {
     pub fn recover(
         file_path: PathBuf,
         checksum: Checksum,
-        global_seqno: SeqNo,
-        tree_id: TreeId,
+        global_seqno: u64,
+        tree_id: u32,
         cache: Arc<Cache>,
         descriptor_table: Option<Arc<DescriptorTable>>,
         pin_filter: bool,
@@ -527,7 +527,7 @@ impl Table {
 
     /// Returns the highest sequence number in the table.
     #[must_use]
-    pub fn get_highest_seqno(&self) -> SeqNo {
+    pub fn get_highest_seqno(&self) -> u64 {
         self.metadata.highest_seqno + self.global_seqno()
     }
 }

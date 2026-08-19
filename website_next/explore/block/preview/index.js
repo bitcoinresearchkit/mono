@@ -63,7 +63,7 @@ function renderStatus(content, status) {
 }
 
 /**
- * @param {import("../../../modules/brk-client/index.js").BlockInfoV1} block
+ * @param {import("../../../modules/bitview-client/index.js").BlockInfoV1} block
  */
 export function createBlockPreviewPane(block) {
   const content = document.createElement("div");

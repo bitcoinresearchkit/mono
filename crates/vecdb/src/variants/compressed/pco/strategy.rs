@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use pco::ChunkConfig;
 use pco::standalone::{simple_compress, simple_decompress, simple_decompress_into};
 
-use crate::{Error, Result, impl_bytes_value_strategy, likely};
+use crate::{Error, impl_bytes_value_strategy, likely};
 
 use super::{
     super::inner::CompressionStrategy,
@@ -25,11 +25,11 @@ impl<T> CompressionStrategy<T> for PcodecStrategy<T>
 where
     T: PcoVecValue,
 {
-    fn compress(values: &[T]) -> Result<Vec<u8>> {
+    fn compress(values: &[T]) -> crate::Result<Vec<u8>> {
         Ok(simple_compress(values.as_inner_slice(), &chunk_config())?)
     }
 
-    fn decompress(bytes: &[u8], expected_len: usize) -> Result<Vec<T>> {
+    fn decompress(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>> {
         let vec: Vec<T::NumberType> = simple_decompress(bytes)?;
         let vec = T::from_inner_slice(vec);
 
@@ -44,13 +44,13 @@ where
     }
 
     #[inline]
-    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
         dst.clear();
         Self::decompress_append(bytes, expected_len, dst)
     }
 
     #[inline]
-    fn decompress_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> Result<()> {
+    fn decompress_append(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
         dst.reserve(expected_len);
         let old_len = dst.len();
 

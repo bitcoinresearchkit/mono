@@ -3,8 +3,7 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use crate::{
-    Error, ImportOptions, MAX_UNCOMPRESSED_PAGE_SIZE, Result, SharedLen, StoredVec, VecIndex,
-    Version,
+    Error, ImportOptions, MAX_UNCOMPRESSED_PAGE_SIZE, SharedLen, StoredVec, VecIndex, Version,
 };
 
 mod column;
@@ -65,7 +64,7 @@ where
     pub(super) const COLUMN_COUNT: usize = C::ALL.len();
     pub(super) const ROWS_PER_BLOCK: usize = rows_per_block::<V::T>();
 
-    fn validate_layout() -> Result<Version> {
+    fn validate_layout() -> crate::Result<Version> {
         let schema = validate_schema::<C>()?;
         if size_of::<V::T>() == 0 || Self::ROWS_PER_BLOCK == 0 {
             return Err(Error::InvalidArgument(
@@ -75,7 +74,7 @@ where
         Ok(schema)
     }
 
-    fn validate_flat_len(vec: &V) -> Result<usize> {
+    fn validate_flat_len(vec: &V) -> crate::Result<usize> {
         let len = vec.len();
         if !len.is_multiple_of(Self::COLUMN_COUNT) {
             return Err(Error::CorruptedRegion {
@@ -86,7 +85,7 @@ where
         Ok(len / Self::COLUMN_COUNT)
     }
 
-    fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
+    fn import_inner(mut options: ImportOptions, forced: bool) -> crate::Result<Self> {
         let schema = Self::validate_layout()?;
         let columns = u32::try_from(Self::COLUMN_COUNT).map_err(|_| Error::Overflow)?;
         options.version = options
@@ -180,7 +179,7 @@ where
     ///
     /// Only the incomplete height block is read and rebuilt. Completed blocks
     /// already consist of aligned scalar column pages and remain untouched.
-    fn stage_pending(&mut self) -> Result<()> {
+    fn stage_pending(&mut self) -> crate::Result<()> {
         let flat_rows = self.flat_rows();
         if self.stored_rows == flat_rows && self.pushed.is_empty() {
             return Ok(());
@@ -227,7 +226,7 @@ where
         Ok(())
     }
 
-    fn write_pending(&mut self) -> Result<bool> {
+    fn write_pending(&mut self) -> crate::Result<bool> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.stage_pending()?;

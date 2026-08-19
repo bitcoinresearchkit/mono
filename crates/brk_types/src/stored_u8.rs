@@ -5,8 +5,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use vecdb::{CheckedSub, Formattable, Pco, PrintableIndex};
 
-pub type StoredPhantom = StoredU8;
-
 #[derive(
     Default,
     Debug,

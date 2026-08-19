@@ -10,7 +10,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use brk_error::Result;
 use brk_mempool::Mempool;
 
 use args::Args;
@@ -28,7 +27,7 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<()> {
+fn run() -> brk_error::Result<()> {
     let raw: Vec<String> = std::env::args().skip(1).collect();
     if raw.iter().any(|a| matches!(a.as_str(), "-h" | "--help")) {
         usage::print();

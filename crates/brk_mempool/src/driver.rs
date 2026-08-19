@@ -10,7 +10,6 @@ use std::{
     time::{Duration, Instant},
 };
 
-use brk_error::Result;
 use brk_types::{TxOut, Txid, Vout};
 use rustc_hash::FxHashMap;
 use tracing::error;
@@ -86,7 +85,7 @@ impl Mempool {
     /// auth, bitcoind error). Steps after `Fetcher::fetch` are infallible
     /// today. The resolver itself swallows its own errors and retries
     /// next cycle.
-    pub fn tick(&self) -> Result<Cycle> {
+    pub fn tick(&self) -> brk_error::Result<Cycle> {
         self.tick_with(Prevouts::rpc_resolver(self.0.client.clone()))
     }
 
@@ -98,7 +97,7 @@ impl Mempool {
     /// # Errors
     ///
     /// Same as [`Mempool::tick`]: only the RPC fetch is fallible.
-    pub fn tick_with<F>(&self, resolver: F) -> Result<Cycle>
+    pub fn tick_with<F>(&self, resolver: F) -> brk_error::Result<Cycle>
     where
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut>,
     {

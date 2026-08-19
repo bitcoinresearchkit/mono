@@ -32,13 +32,13 @@ const excludedPrefixes = [
   ".github/",
   "docs/ai/",
   "modules/",
-  "packages/brk_client/brk_client/",
+  "packages/bitview_client/bitview_client/",
   "target/",
   "website/assets/",
   "website_next/modules/",
 ];
 const excludedFiles = new Set([
-  "crates/brk_server/src/api/scalar.js",
+  "crates/bitview_server/src/api/scalar.js",
   "docs/CHANGELOG.md",
   "website/scripts/options/scalar.js",
 ]);

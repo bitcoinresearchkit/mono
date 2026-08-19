@@ -4,7 +4,7 @@
 
 use super::{Block, DataBlock};
 use crate::{
-    CompressionType, InternalValue, SeqNo,
+    CompressionType, InternalValue,
     table::{block::BlockType, owned_data_block_iter::OwnedDataBlockIter},
 };
 use std::{fs::File, io::BufReader, path::Path};
@@ -18,7 +18,7 @@ pub struct Scanner {
     block_count: usize,
     read_count: usize,
 
-    global_seqno: SeqNo,
+    global_seqno: u64,
 }
 
 impl Scanner {
@@ -26,7 +26,7 @@ impl Scanner {
         path: &Path,
         block_count: usize,
         compression: CompressionType,
-        global_seqno: SeqNo,
+        global_seqno: u64,
     ) -> crate::Result<Self> {
         // TODO: a larger buffer size may be better for HDD, maybe make this configurable
         // TODO: benchmarks were inconclusive on SSD, not much difference between 4KB - 2MB

@@ -1,6 +1,6 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use brk_error::{Error, Result};
+use brk_error::Error;
 use brk_rpc::{Auth, Client};
 
 use crate::path::Path;
@@ -20,7 +20,7 @@ pub struct Args {
 }
 
 impl Args {
-    pub fn parse(raw: Vec<String>) -> Result<Self> {
+    pub fn parse(raw: Vec<String>) -> brk_error::Result<Self> {
         let mut pretty = false;
         let mut compact = false;
         let mut bitcoindir = None;
@@ -76,7 +76,9 @@ impl Args {
         let selector = iter
             .next()
             .ok_or_else(|| Error::Parse("missing selector".into()))?;
-        let paths: Vec<Path> = iter.map(|f| Path::parse(&f)).collect::<Result<_>>()?;
+        let paths: Vec<Path> = iter
+            .map(|f| Path::parse(&f))
+            .collect::<brk_error::Result<_>>()?;
         let mut seen = HashSet::with_capacity(paths.len());
         for p in &paths {
             if !seen.insert(p.raw.as_str()) {
@@ -110,7 +112,7 @@ impl Args {
             .unwrap_or_else(|| self.bitcoin_dir().join("blocks"))
     }
 
-    pub fn rpc(&self) -> Result<Client> {
+    pub fn rpc(&self) -> brk_error::Result<Client> {
         let host = self.rpcconnect.as_deref().unwrap_or("localhost");
         let port = self.rpcport.unwrap_or(8332);
         let url = format!("http://{host}:{port}");

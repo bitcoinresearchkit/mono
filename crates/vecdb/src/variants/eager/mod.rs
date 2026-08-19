@@ -11,8 +11,7 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Exit, Result, StoredVec, Version, WritableVec,
-    traits::writable::MAX_CACHE_SIZE,
+    AnyStoredVec, AnyVec, Exit, StoredVec, Version, WritableVec, traits::writable::MAX_CACHE_SIZE,
 };
 
 /// Wrapper for computing and storing derived values from source vectors.
@@ -41,9 +40,15 @@ where
     V: StoredVec,
 {
     /// Validates version, truncates to `max_from`, then runs `f` in batched writes.
-    fn compute_init<F>(&mut self, version: Version, max_from: V::I, exit: &Exit, f: F) -> Result<()>
+    fn compute_init<F>(
+        &mut self,
+        version: Version,
+        max_from: V::I,
+        exit: &Exit,
+        f: F,
+    ) -> crate::Result<()>
     where
-        F: FnMut(&mut Self) -> Result<()>,
+        F: FnMut(&mut Self) -> crate::Result<()>,
     {
         self.validate_computed_version_or_reset(version)?;
         self.truncate_if_needed(max_from)?;
@@ -67,9 +72,9 @@ where
 
     /// Helper that repeatedly calls a compute function until it completes.
     /// Writes between iterations when batch limit is hit.
-    pub fn repeat_until_complete<F>(&mut self, exit: &Exit, mut f: F) -> Result<()>
+    pub fn repeat_until_complete<F>(&mut self, exit: &Exit, mut f: F) -> crate::Result<()>
     where
-        F: FnMut(&mut Self) -> Result<()>,
+        F: FnMut(&mut Self) -> crate::Result<()>,
     {
         loop {
             f(self)?;
@@ -90,7 +95,7 @@ where
     }
 
     /// Removes this vector and all its associated regions from the database
-    pub fn remove(self) -> Result<()> {
+    pub fn remove(self) -> crate::Result<()> {
         self.0.remove()
     }
 }

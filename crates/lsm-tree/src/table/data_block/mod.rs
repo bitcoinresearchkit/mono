@@ -16,7 +16,7 @@ use super::block::{
 use crate::key::InternalKey;
 use crate::table::block::hash_index::{MARKER_CONFLICT, MARKER_FREE};
 use crate::table::util::{SliceIndexes, compare_prefixed_slice};
-use crate::{InternalValue, SeqNo, Slice, ValueType, value::PointReadValue};
+use crate::{InternalValue, Slice, ValueType, value::PointReadValue};
 use byteorder::WriteBytesExt;
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::io::Cursor;
@@ -30,7 +30,7 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
         data: &'a [u8],
         fixed_key_len: Option<u16>,
         _fixed_value_len: Option<u32>,
-    ) -> Option<(&'a [u8], SeqNo)> {
+    ) -> Option<(&'a [u8], u64)> {
         let value_type = unwrap!(reader.read_u8());
 
         if value_type == TRAILER_START_MARKER {
@@ -303,7 +303,7 @@ impl Encodable<()> for InternalValue {
 #[derive(Debug)]
 pub struct DataBlockParsedItem {
     pub value_type: ValueType,
-    pub seqno: SeqNo,
+    pub seqno: u64,
     pub prefix: Option<SliceIndexes>,
     pub key: SliceIndexes,
     pub value: Option<SliceIndexes>,

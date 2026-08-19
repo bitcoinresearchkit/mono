@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{SeqNo, UserKey, table::BlockOffset};
+use crate::{Slice, table::BlockOffset};
 
 pub struct Metadata {
     /// Written data block count
@@ -15,13 +15,13 @@ pub struct Metadata {
     pub file_pos: BlockOffset,
 
     /// First encountered key
-    pub first_key: Option<UserKey>,
+    pub first_key: Option<Slice>,
 
     /// Last encountered key
-    pub last_key: Option<UserKey>,
+    pub last_key: Option<Slice>,
 
     /// Highest encountered seqno
-    pub highest_seqno: SeqNo,
+    pub highest_seqno: u64,
 }
 
 impl Default for Metadata {
