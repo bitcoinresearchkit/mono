@@ -53,7 +53,7 @@ impl Vecs {
         parent_version: Version,
         indexes: &bitview_plugin_indexes::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::DB_NAME, 100_000)?;
+        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
         let version = parent_version + VERSION;
         let mappings = DailyMappings::new(indexes);
 

@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Indexer;
 use brk_cohort::{AgeRange, AgeRangeId};
-use brk_indexer::Indexer;
 use brk_types::{Bitcoin, Height, Sats, StoredF64, Version};
 use vecdb::{AnyVec, CheckedSub, ColumnId, Exit, ReadableVec, StoredVec, WritableVec};
 

@@ -1,10 +1,10 @@
 use std::path::Path;
 
+use bitview_composition::DefaultPlugins;
+use bitview_plugin_indexer::Indexer;
 use bitview_query::AsyncQuery;
-use bitview_runtime::Computer;
 use bitview_server::{Server, ServerConfig, Website};
 use brk_error::Result;
-use brk_indexer::Indexer;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
@@ -24,7 +24,7 @@ pub fn main() -> Result<()> {
 
     let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
     let indexer = Indexer::import(&outputs_dir, &reader)?;
-    let computer = Computer::forced_import(&outputs_dir, &indexer)?;
+    let plugins = DefaultPlugins::forced_import(&outputs_dir, indexer)?;
 
     let mempool = Mempool::new(&client);
     let mempool_clone = mempool.clone();
@@ -35,7 +35,7 @@ pub fn main() -> Result<()> {
     let exit = Exit::new();
     exit.set_ctrlc_handler();
 
-    let query = AsyncQuery::build(&indexer, &computer, Some(mempool));
+    let query = AsyncQuery::build(&plugins, Some(mempool));
 
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()

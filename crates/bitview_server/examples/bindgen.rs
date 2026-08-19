@@ -4,10 +4,10 @@ use std::{
 };
 
 use aide::axum::ApiRouter;
+use bitview_composition::DefaultPlugins;
+use bitview_plugin_indexer::Indexer;
 use bitview_query::Vecs;
-use bitview_runtime::Computer;
 use bitview_server::{ApiRoutes, finish_openapi, generate_bindings};
-use brk_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use color_eyre::eyre::{Result, bail};
@@ -61,8 +61,8 @@ pub fn main() -> Result<()> {
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
     let reader = Reader::new_without_rlimit(tmp.join("blocks"), &client);
     let indexer = Indexer::import(&tmp, &reader)?;
-    let computer = Computer::forced_import(&tmp, &indexer)?;
-    let vecs = Vecs::build_rw(&indexer, &computer);
+    let plugins = DefaultPlugins::forced_import(&tmp, indexer)?;
+    let vecs = Vecs::build(&plugins);
 
     let (_, openapi) = finish_openapi(ApiRouter::new().add_api_routes());
 

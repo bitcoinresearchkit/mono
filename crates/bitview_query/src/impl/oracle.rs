@@ -1,8 +1,8 @@
 use std::{ops::Range, sync::Arc};
 
+use bitview_plugin_indexer::Lengths;
 use bitview_plugin_price::Vecs as PricesVecs;
 use brk_error::Error;
-use brk_indexer::Lengths;
 use brk_oracle::{
     Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, cents_to_bin, sats_to_bin,
 };
@@ -132,7 +132,7 @@ impl Query {
         }
 
         let last = self
-            .computer()
+            .plugins()
             .price
             .spot
             .cents
@@ -174,7 +174,7 @@ impl Query {
     /// the readable data.
     fn seed_bin_at(&self, height: usize) -> brk_error::Result<f64> {
         let cents = self
-            .computer()
+            .plugins()
             .price
             .spot
             .cents
@@ -185,7 +185,7 @@ impl Query {
     }
 
     fn histogram_bound(&self, safe: &Lengths) -> usize {
-        self.computer()
+        self.plugins()
             .price
             .spot
             .cents
@@ -211,7 +211,7 @@ impl Query {
     /// the same histogram-available bound as `check_histogram_height`. 404 when
     /// the day has no committed blocks in range.
     fn day_block_range(&self, day: Day1, safe: &Lengths) -> brk_error::Result<Range<usize>> {
-        let first_height = &self.computer().indexes.day1.first_height;
+        let first_height = &self.plugins().indexes.day1.first_height;
         let bound = self.histogram_bound(safe);
         let start = first_height
             .collect_one(day)

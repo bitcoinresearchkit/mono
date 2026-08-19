@@ -2,7 +2,7 @@ use bitview_compute::{
     BlockCountTarget1m, BlockCountTarget1w, BlockCountTarget1y, BlockCountTarget24h, CACHE_BUDGET,
     CachedWindowStartVec, ConstantVecs, LazyPerBlockCumulativeRolling, Windows,
 };
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, StoredU64, Version, Weight};
 use vecdb::{LazyVec, ReadableCloneableVec};
 

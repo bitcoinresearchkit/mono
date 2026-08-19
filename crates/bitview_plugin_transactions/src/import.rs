@@ -6,7 +6,7 @@ use bitview_compute::{
     CachedWindowStartVec, Windows,
     db_utils::{finalize_db, open_db},
 };
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::Version;
 
 use super::Vecs;
@@ -19,7 +19,7 @@ impl Vecs {
         indexes: &bitview_plugin_indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, super::DB_NAME, 10_000_000)?;
+        let db = open_db(parent_path, super::ID.as_str(), 10_000_000)?;
         let version = parent_version;
 
         let count = super::count::forced_import(&db, version, indexes, cached_starts)?;

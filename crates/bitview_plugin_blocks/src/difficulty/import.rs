@@ -2,7 +2,7 @@ use bitview_compute::{
     BlocksToDaysF32, CACHE_BUDGET, DifficultyToHashF64, Identity, LazyPerBlock,
     LazyPercentPerBlock, Resolutions,
 };
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Epoch, Height, PartsPerMillionSigned32, StoredF64, StoredU32, Version};
 use vecdb::{LazyVec, ReadOnlyClone, ReadableCloneableVec};
 

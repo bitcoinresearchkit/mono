@@ -3,20 +3,21 @@
 use brk_error::Result;
 
 use std::{
+    path::Path,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
 
-use bitview_plugin::ComputePlugin;
+pub use bitview_composition::DefaultPlugins;
+use bitview_plugin_indexer::Indexer;
 use bitview_query::AsyncQuery;
-pub use bitview_runtime::Computer;
+pub use bitview_query::QueryPluginSet;
+pub use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet, bootstrap, update};
 use bitview_server::{Server, ServerConfig};
-use brk_alloc::Mimalloc;
-use brk_indexer::Indexer;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use tracing::info;
-use vecdb::Exit;
+use vecdb::{Exit, ReadOnlyClone};
 
 mod config;
 mod paths;
@@ -34,6 +35,18 @@ pub const TOOLKIT: &str = "https://bitcoinresearchkit.org";
 
 /// Runs the default Bitview composition.
 pub fn run() -> Result<()> {
+    run_with(|outputs_path, reader| {
+        let indexer = Indexer::import(outputs_path, reader)?;
+        DefaultPlugins::forced_import(outputs_path, indexer)
+    })
+}
+
+/// Runs Bitview with a statically composed built-in extension.
+pub fn run_with<P>(mut import: impl FnMut(&Path, &Reader) -> Result<P>) -> Result<()>
+where
+    P: ComputePluginSet + ReadOnlyClone,
+    P::ReadOnly: QueryPluginSet + 'static,
+{
     let config = Config::import()?;
 
     brk_logger::init(Some(&default_logs_dir()))?;
@@ -44,33 +57,15 @@ pub fn run() -> Result<()> {
     exit.set_ctrlc_handler();
 
     let reader = Reader::new(config.blocksdir(), &client);
+    let outputs_path = config.bitviewdir();
 
-    let mut indexer = Indexer::import(&config.bitviewdir(), &reader)?;
+    client.wait_for_synced_node()?;
 
-    #[cfg(not(debug_assertions))]
-    {
-        // Pre-run indexer if too far behind, then drop and reimport to reduce memory
-        let chain_height = client.get_last_height()?;
-        let indexed_height = indexer.vecs().next_height();
-        let blocks_behind = chain_height.saturating_sub(*indexed_height);
-        if blocks_behind > 10_000 {
-            info!("---");
-            info!("Indexing {blocks_behind} blocks before starting server...");
-            info!("---");
-            sleep(Duration::from_secs(10));
-            indexer.compute((), &exit)?;
-            drop(indexer);
-            Mimalloc::collect();
-            indexer = Indexer::import(&config.bitviewdir(), &reader)?;
-        }
-    }
-
-    let mut computer = Computer::forced_import(&config.bitviewdir(), &indexer)?;
+    let mut plugins = bootstrap(&outputs_path, || import(&outputs_path, &reader), &exit)?;
 
     let mempool = Mempool::new(&client);
 
-    indexer.begin_update();
-    let query = AsyncQuery::build(&indexer, &computer, Some(mempool.clone()));
+    let query = AsyncQuery::build(&plugins, Some(mempool.clone()));
 
     let mempool_clone = mempool.clone();
     let resolver = query.sync(|q| q.indexer_prevout_resolver());
@@ -79,7 +74,7 @@ pub fn run() -> Result<()> {
     });
 
     let server_config = ServerConfig {
-        data_path: config.bitviewdir(),
+        data_path: outputs_path,
         website: config.website(),
         cdn_cache_mode: config.cdn_cache_mode(),
         max_weight: config.max_weight(),
@@ -105,26 +100,25 @@ pub fn run() -> Result<()> {
 
     let _handle = runtime.spawn(future);
 
+    let mut last_height = query.sync(|q| q.indexer().indexed_height());
+    info!("Waiting for new blocks...");
+
     loop {
+        while last_height == client.get_last_height()? {
+            sleep(Duration::from_secs(1));
+        }
+
         client.wait_for_synced_node()?;
 
-        let last_height = client.get_last_height()?;
+        last_height = client.get_last_height()?;
 
         info!("{} blocks found.", u32::from(last_height) + 1);
 
         let total_start = Instant::now();
 
-        indexer.compute((), &exit)?;
-
-        Mimalloc::collect();
-
-        computer.compute(&mut indexer, &exit)?;
+        update(&mut plugins, &exit)?;
 
         info!("Total time: {:?}", total_start.elapsed());
         info!("Waiting for new blocks...");
-
-        while last_height == client.get_last_height()? {
-            sleep(Duration::from_secs(1))
-        }
     }
 }

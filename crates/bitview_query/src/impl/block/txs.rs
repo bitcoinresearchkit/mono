@@ -205,7 +205,7 @@ impl Query {
         let mut outpoint_cursor = indexer.vecs().inputs.outpoint.cursor();
         let mut input_output_type_cursor = indexer.vecs().inputs.output_type.cursor();
         let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
-        let mut input_value_cursor = self.computer().inputs.value.cursor();
+        let mut input_value_cursor = self.plugins().inputs.value.cursor();
 
         let mut prevout_input_data: FxHashMap<OutPoint, (OutputType, TypeIndex, Sats)> =
             FxHashMap::with_capacity_and_hasher(total_inputs, Default::default());

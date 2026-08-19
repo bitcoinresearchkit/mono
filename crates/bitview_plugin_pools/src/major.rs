@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{PartsPerMillion32, PoolSlug};
 use derive_more::{Deref, DerefMut};
 use vecdb::{BinaryTransform, Database, Exit, Rw, StorageMode, Version};

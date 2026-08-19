@@ -3,23 +3,26 @@
 use brk_error::Result;
 
 use std::{
+    collections::BTreeMap,
     fs::{self, File},
     io::ErrorKind,
-    path::Path,
+    path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
 };
 
-use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin::{ComputePlugin, PLUGIN_DATA_DIR, Plugin, PluginGate, PluginId};
+use bitview_traversable::{Traversable, TreeNode};
 use brk_error::Error;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use tracing::{debug, error, info};
 use vecdb::{
-    AnyVec, Exit, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode, WritableVec,
-    unlikely,
+    AnyExportableVec, AnyVec, Exit, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
+    WritableVec, unlikely,
 };
 mod constants;
+mod has;
 mod lengths;
 mod processor;
 mod readers;
@@ -35,6 +38,7 @@ use stores::IndexerStores as _;
 use vecs::{IndexerVecs as _, TransactionCounts, TxFeatureFlags};
 
 pub use brk_types::Lengths;
+pub use has::HasIndexer;
 use stores::Stores;
 use vecs::{
     AddrsVecs, InputsVecs, OpReturnVecs, OutputsVecs, ScriptsVecs, TransactionFeaturesVecs,
@@ -124,7 +128,33 @@ fn read_block_hash_at(reader: &Reader, position: BlkPosition) -> Result<BlockHas
     Ok(BlockHash::from(header.block_hash()))
 }
 
-fn recreate_indexed_dir(path: &Path, source_xor: XORBytes) -> Result<()> {
+// Startup-only compatibility shim. It runs before the indexer opens any data.
+// TODO: Remove once automatic migration from the pre-plugin layout is no longer supported.
+fn migrate_legacy_dir(outputs_dir: &Path) -> Result<PathBuf> {
+    let path = plugin_data_path(outputs_dir);
+    let legacy = outputs_dir.join("indexed");
+
+    fs::create_dir_all(outputs_dir.join(PLUGIN_DATA_DIR))?;
+
+    if !legacy.exists() {
+        return Ok(path);
+    }
+    if path.exists() {
+        return Err(Error::Internal(
+            "Both legacy indexed and indexer plugin directories exist",
+        ));
+    }
+
+    fs::rename(&legacy, &path)?;
+    info!("Moved legacy indexer data from {legacy:?} to {path:?}");
+    Ok(path)
+}
+
+fn plugin_data_path(outputs_dir: &Path) -> PathBuf {
+    outputs_dir.join(PLUGIN_DATA_DIR).join(ID.as_str())
+}
+
+fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<()> {
     match fs::remove_dir_all(path) {
         Ok(()) => {}
         Err(err) if err.kind() == ErrorKind::NotFound => {}
@@ -145,7 +175,7 @@ impl<M: StorageMode> Indexer<M> {
     /// cause cache etags to invalidate before the data they cover is
     /// actually queryable.
     pub fn tip_blockhash(&self) -> BlockHash {
-        match self.safe_lengths().height.decremented() {
+        match self.safe_lengths().last_height() {
             Some(h) => self
                 .inner
                 .vecs
@@ -164,6 +194,11 @@ impl<M: StorageMode> Indexer<M> {
         self.inner.state.lengths()
     }
 
+    /// Latest safely published indexed height.
+    pub fn indexed_height(&self) -> Height {
+        self.safe_lengths().last_height().unwrap_or_default()
+    }
+
     pub fn reader(&self) -> &Reader {
         &self.inner.reader
     }
@@ -179,11 +214,30 @@ impl<M: StorageMode> Indexer<M> {
     }
 }
 
-impl Indexer<Ro> {
-    /// Live indexer stamp for diagnostics. For data reads use the published
-    /// state lengths (via `Query::height`).
-    pub fn indexed_height(&self) -> Height {
-        Height::from(self.inner.vecs.blocks.blockhash.inner.stamp())
+impl<M: StorageMode> Traversable for Indexer<M>
+where
+    Vecs<M>: Traversable,
+{
+    fn to_tree_node(&self) -> TreeNode {
+        self.inner.vecs.to_tree_node()
+    }
+
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        self.inner.vecs.iter_any_exportable()
+    }
+
+    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        self.inner.vecs.iter_any_visible()
+    }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        self.inner
+            .vecs
+            .collect_series_descriptions(description_fragments, descriptions);
     }
 }
 
@@ -215,7 +269,14 @@ impl Indexer {
     /// Publish disk state as the new safe-lengths snapshot. Drains pending
     /// bg ingest first so stores are queryable at the new bound.
     pub fn finish_update(&mut self) -> Result<()> {
-        self.inner.finish_update()
+        self.prepare_publish()?;
+        self.inner.plugin_gate.finish_update();
+        Ok(())
+    }
+
+    /// Completes fallible writes before the runtime publishes the plugin set.
+    pub fn prepare_publish(&mut self) -> Result<()> {
+        self.inner.prepare_publish()
     }
 }
 
@@ -228,15 +289,15 @@ impl IndexerInner<Rw> {
     fn import_inner(outputs_dir: &Path, reader: &Reader, can_retry: bool) -> Result<Self> {
         info!("Importing indexer...");
 
-        let indexed_path = outputs_dir.join("indexed");
+        let plugin_path = migrate_legacy_dir(outputs_dir)?;
 
         let try_import = || -> Result<Self> {
             let i = Instant::now();
-            let vecs = Vecs::forced_import(&indexed_path, VERSION)?;
+            let vecs = Vecs::forced_import(&plugin_path, VERSION)?;
             info!("Imported vecs in {:?}", i.elapsed());
 
             let i = Instant::now();
-            let stores = Stores::forced_import(&indexed_path, VERSION)?;
+            let stores = Stores::forced_import(&plugin_path, VERSION)?;
             info!("Imported stores in {:?}", i.elapsed());
 
             Ok(Self {
@@ -259,30 +320,30 @@ impl IndexerInner<Rw> {
             Err(err) if can_retry && err.is_data_error() => {
                 // The failed attempt has returned, so all of its local database
                 // handles have been dropped before the directory is removed.
-                info!("{err:?}, deleting {indexed_path:?} and retrying");
-                recreate_indexed_dir(&indexed_path, reader.xor_bytes())?;
+                info!("{err:?}, deleting {plugin_path:?} and retrying");
+                recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
                 return Self::import_inner(outputs_dir, reader, false);
             }
             Err(err) => return Err(err),
         };
 
-        match indexer.validate_import(&indexed_path)? {
+        match indexer.validate_import(&plugin_path)? {
             ImportValidation::Valid(lengths) => {
                 indexer.rollback_to(&lengths)?;
                 indexer.state.finish_update(lengths);
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
-                info!("{reason}, deleting {indexed_path:?} and retrying");
+                info!("{reason}, deleting {plugin_path:?} and retrying");
                 drop(indexer);
-                recreate_indexed_dir(&indexed_path, reader.xor_bytes())?;
+                recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
                 Self::import_inner(outputs_dir, reader, false)
             }
             ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
         }
     }
 
-    fn validate_import(&self, indexed_path: &Path) -> Result<ImportValidation> {
+    fn validate_import(&self, plugin_path: &Path) -> Result<ImportValidation> {
         let reader = &self.reader;
         let vec_height = self.vecs.next_height();
         let store_height = self.stores.next_height()?;
@@ -297,8 +358,8 @@ impl IndexerInner<Rw> {
             ));
         };
 
-        match read_xor_marker(indexed_path)? {
-            XorMarker::Missing if is_empty => write_xor_marker(indexed_path, reader.xor_bytes())?,
+        match read_xor_marker(plugin_path)? {
+            XorMarker::Missing if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
             XorMarker::Valid(marker) if marker == reader.xor_bytes() => {}
             XorMarker::Missing | XorMarker::Invalid(_) | XorMarker::Valid(_) => {
                 return Ok(ImportValidation::Reset(
@@ -542,7 +603,7 @@ impl IndexerInner<Rw> {
         Ok(())
     }
 
-    fn finish_update(&mut self) -> Result<()> {
+    fn prepare_publish(&mut self) -> Result<()> {
         self.vecs.sync_bg_tasks()?;
         let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
@@ -558,7 +619,6 @@ impl IndexerInner<Rw> {
             }
         };
         self.state.finish_update(lengths);
-        self.plugin_gate.finish_update();
         Ok(())
     }
 }
@@ -582,7 +642,7 @@ impl ReadOnlyClone for Indexer {
 
 impl<M: StorageMode> Plugin for Indexer<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID
@@ -598,11 +658,7 @@ impl ComputePlugin for Indexer {
     type Output = ();
 
     fn compute(&mut self, (): Self::Dependencies<'_>, exit: &Exit) -> Result<Self::Output> {
-        if cfg!(debug_assertions) {
-            self.checked_index(exit)
-        } else {
-            self.index(exit)
-        }
+        self.inner.index(exit, cfg!(debug_assertions))
     }
 }
 
@@ -633,18 +689,49 @@ mod import_tests {
     #[test]
     fn recreate_drops_old_contents_and_seeds_source_identity() {
         let dir = tempfile::tempdir().unwrap();
-        let indexed = dir.path().join("indexed");
-        fs::create_dir_all(&indexed).unwrap();
-        fs::write(indexed.join("stale"), b"stale").unwrap();
+        let plugin = plugin_data_path(dir.path());
+        fs::create_dir_all(&plugin).unwrap();
+        fs::write(plugin.join("stale"), b"stale").unwrap();
         let source_xor = XORBytes::from([7_u8; 8]);
 
-        recreate_indexed_dir(&indexed, source_xor).unwrap();
+        recreate_plugin_dir(&plugin, source_xor).unwrap();
 
-        assert!(!indexed.join("stale").exists());
+        assert!(!plugin.join("stale").exists());
         assert!(matches!(
-            read_xor_marker(&indexed).unwrap(),
+            read_xor_marker(&plugin).unwrap(),
             XorMarker::Valid(marker) if marker == source_xor
         ));
+    }
+
+    #[test]
+    fn legacy_directory_is_moved_to_the_plugin_id() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let legacy = dir.path().join("indexed");
+        fs::create_dir(&legacy)?;
+        fs::write(legacy.join("marker"), b"data")?;
+
+        let plugin = migrate_legacy_dir(dir.path())?;
+
+        assert_eq!(plugin, plugin_data_path(dir.path()));
+        assert!(!legacy.exists());
+        assert_eq!(fs::read(plugin.join("marker"))?, b"data");
+        Ok(())
+    }
+
+    #[test]
+    fn legacy_migration_never_overwrites_plugin_data() -> Result<()> {
+        let dir = tempfile::tempdir()?;
+        let legacy = dir.path().join("indexed");
+        let plugin = plugin_data_path(dir.path());
+        fs::create_dir(&legacy)?;
+        fs::create_dir_all(&plugin)?;
+        fs::write(legacy.join("marker"), b"legacy")?;
+        fs::write(plugin.join("marker"), b"current")?;
+
+        assert!(migrate_legacy_dir(dir.path()).is_err());
+        assert_eq!(fs::read(legacy.join("marker"))?, b"legacy");
+        assert_eq!(fs::read(plugin.join("marker"))?, b"current");
+        Ok(())
     }
 
     #[test]
@@ -655,7 +742,7 @@ mod import_tests {
         drop(Indexer::import(dir.path(), &reader)?);
 
         assert!(matches!(
-            read_xor_marker(&dir.path().join("indexed"))?,
+            read_xor_marker(&plugin_data_path(dir.path()))?,
             XorMarker::Valid(marker) if marker == XORBytes::from([0; XOR_LEN])
         ));
         Ok(())
@@ -664,17 +751,17 @@ mod import_tests {
     #[test]
     fn malformed_xor_marker_recreates_the_index() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        let indexed = dir.path().join("indexed");
+        let plugin = plugin_data_path(dir.path());
         let reader = empty_reader(dir.path());
         drop(Indexer::import(dir.path(), &reader)?);
-        fs::write(indexed.join("xor.dat"), [0_u8; 3])?;
-        fs::write(indexed.join("stale"), b"stale")?;
+        fs::write(plugin.join("xor.dat"), [0_u8; 3])?;
+        fs::write(plugin.join("stale"), b"stale")?;
 
         drop(Indexer::import(dir.path(), &reader)?);
 
-        assert!(!indexed.join("stale").exists());
+        assert!(!plugin.join("stale").exists());
         assert!(matches!(
-            read_xor_marker(&indexed)?,
+            read_xor_marker(&plugin)?,
             XorMarker::Valid(marker) if marker == reader.xor_bytes()
         ));
         Ok(())
@@ -683,48 +770,48 @@ mod import_tests {
     #[test]
     fn malformed_source_xor_never_deletes_data() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        let indexed = dir.path().join("indexed");
+        let plugin = plugin_data_path(dir.path());
         let reader = empty_reader(dir.path());
         drop(Indexer::import(dir.path(), &reader)?);
-        fs::write(indexed.join("stale"), b"stale")?;
+        fs::write(plugin.join("stale"), b"stale")?;
         fs::create_dir_all(dir.path().join("blocks"))?;
         fs::write(dir.path().join("blocks/xor.dat"), [0_u8; 3])?;
         let reader = empty_reader(dir.path());
 
         assert!(Indexer::import(dir.path(), &reader).is_err());
-        assert!(indexed.join("stale").exists());
+        assert!(plugin.join("stale").exists());
         Ok(())
     }
 
     #[test]
     fn xor_marker_io_error_never_deletes_data() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        let indexed = dir.path().join("indexed");
-        let marker = indexed.join("xor.dat");
+        let plugin = plugin_data_path(dir.path());
+        let marker = plugin.join("xor.dat");
         let reader = empty_reader(dir.path());
         drop(Indexer::import(dir.path(), &reader)?);
         fs::remove_file(&marker)?;
         fs::create_dir(&marker)?;
-        fs::write(indexed.join("stale"), b"stale")?;
+        fs::write(plugin.join("stale"), b"stale")?;
 
         assert!(Indexer::import(dir.path(), &reader).is_err());
-        assert!(indexed.join("stale").exists());
+        assert!(plugin.join("stale").exists());
         Ok(())
     }
 
     #[test]
     fn checkpoint_io_error_never_deletes_data() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        let indexed = dir.path().join("indexed");
-        let checkpoint = indexed.join("stores/height");
+        let plugin = plugin_data_path(dir.path());
+        let checkpoint = plugin.join("stores/height");
         let reader = empty_reader(dir.path());
         drop(Indexer::import(dir.path(), &reader)?);
         fs::remove_file(&checkpoint)?;
         fs::create_dir(&checkpoint)?;
-        fs::write(indexed.join("stale"), b"stale")?;
+        fs::write(plugin.join("stale"), b"stale")?;
 
         assert!(Indexer::import(dir.path(), &reader).is_err());
-        assert!(indexed.join("stale").exists());
+        assert!(plugin.join("stale").exists());
         Ok(())
     }
 
@@ -758,7 +845,7 @@ mod import_tests {
     #[test]
     fn invalid_checkpoint_drops_handles_and_recreates_entire_index() -> Result<()> {
         let dir = tempfile::tempdir()?;
-        let indexed = dir.path().join("indexed");
+        let plugin = plugin_data_path(dir.path());
         let reader = empty_reader(dir.path());
 
         {
@@ -771,11 +858,11 @@ mod import_tests {
             let persisted = indexer.inner.stores.persist(checkpoint)?;
             drop(persisted);
         }
-        fs::write(indexed.join("stale"), b"stale")?;
+        fs::write(plugin.join("stale"), b"stale")?;
 
         let indexer = Indexer::import(dir.path(), &reader)?;
 
-        assert!(!indexed.join("stale").exists());
+        assert!(!plugin.join("stale").exists());
         assert_eq!(indexer.vecs().next_height(), Height::ZERO);
         assert_eq!(indexer.stores().next_height()?, Some(Height::ZERO));
         Ok(())

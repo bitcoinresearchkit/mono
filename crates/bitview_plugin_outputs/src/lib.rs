@@ -1,6 +1,7 @@
 mod by_type;
 mod count;
 mod dependencies;
+mod has;
 mod spent;
 mod unspent;
 mod value;
@@ -17,12 +18,12 @@ use bitview_compute::LazyPerSecondWindows;
 pub use by_type::Vecs as ByTypeVecs;
 use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
+pub use has::HasOutputs;
 use spent::Vecs as SpentVecs;
 use unspent::Vecs as UnspentVecs;
 use value::Vecs as ValueVecs;
 
 pub const ID: PluginId = PluginId::new("outputs");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -42,7 +43,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

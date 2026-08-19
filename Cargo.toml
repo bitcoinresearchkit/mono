@@ -38,6 +38,7 @@ axum = { version = "0.8.9", default-features = false, features = ["http1", "json
 bitcoin = { version = "0.32.102", features = ["serde"] }
 bitview = { version = "0.11.2", path = "crates/bitview" }
 bitview_compute = { version = "0.11.2", path = "crates/bitview_compute" }
+bitview_composition = { version = "0.11.2", path = "crates/bitview_composition" }
 bitview_plugin = { version = "0.11.2", path = "crates/bitview_plugin" }
 bitview_plugin_bedrock = { version = "0.11.2", path = "crates/bitview_plugin_bedrock" }
 bitview_plugin_blocks = { version = "0.11.2", path = "crates/bitview_plugin_blocks" }
@@ -66,10 +67,8 @@ bitview_bencher = { version = "0.11.2", path = "crates/bitview_bencher" }
 bitview_bindgen = { version = "0.11.2", path = "crates/bitview_bindgen" }
 bitview_client = { version = "0.11.2", path = "crates/bitview_client" }
 brk_cohort = { version = "0.11.2", path = "crates/brk_cohort" }
-brk_computer = { version = "0.11.2", path = "crates/brk_computer" }
 brk_error = { version = "0.11.2", path = "crates/brk_error" }
 brk_fetcher = { version = "0.11.2", path = "crates/brk_fetcher" }
-brk_indexer = { version = "0.11.2", path = "crates/brk_indexer" }
 brk_iterator = { version = "0.11.2", path = "crates/brk_iterator" }
 brk_logger = { version = "0.11.2", path = "crates/brk_logger" }
 brk_mempool = { version = "0.11.2", path = "crates/brk_mempool" }

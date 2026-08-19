@@ -5,7 +5,7 @@ use bitview_compute::{
     LazyPercentRollingWindows, OneMinusPpm, RatioSats, ValuePerBlockCumulative,
     ValuePerBlockCumulativeRolling, Windows,
 };
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{PartsPerMillion32, PartsPerMillion64, Sats, Version};
 use vecdb::{AnyVec, Database, EagerVec, ImportableVec};
 

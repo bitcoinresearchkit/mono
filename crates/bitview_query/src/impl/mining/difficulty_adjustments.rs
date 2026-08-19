@@ -21,7 +21,7 @@ impl Query {
             None => 0,
         };
 
-        let mut entries = iter_difficulty_epochs(self.computer(), start, end)?;
+        let mut entries = iter_difficulty_epochs(self.plugins(), start, end)?;
         entries.reverse();
         Ok(entries)
     }

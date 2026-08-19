@@ -11,7 +11,7 @@ impl Query {
     /// "all-time" case from a transient stamp-lag dropout that would
     /// otherwise silently widen a windowed query to the full chain.
     fn start_height(&self, period: TimePeriod) -> brk_error::Result<Height> {
-        let lookback = &self.computer().blocks.lookback;
+        let lookback = &self.plugins().blocks.lookback;
         let tip = self.height();
         Ok(match period {
             TimePeriod::Day => lookback._24h.collect_one(tip).data()?,

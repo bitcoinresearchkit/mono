@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
-use brk_indexer::Lengths;
 use brk_types::{
     Cents, Height, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
     RarityPercentileId, StoredF32, Version,

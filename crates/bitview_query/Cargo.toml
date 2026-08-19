@@ -9,15 +9,47 @@ repository.workspace = true
 exclude = ["examples/"]
 
 [features]
+default = ["full"]
+full = ["chain", "series", "urpd"]
+chain = [
+    "dep:bitview_plugin_blocks",
+    "dep:bitview_plugin_distribution",
+    "dep:bitview_plugin_indexes",
+    "dep:bitview_plugin_inputs",
+    "dep:bitview_plugin_mining",
+    "dep:bitview_plugin_outputs",
+    "dep:bitview_plugin_pools",
+    "dep:bitview_plugin_price",
+    "dep:bitview_plugin_transactions",
+]
+series = ["dep:bitview_plugin_indexes"]
+urpd = [
+    "dep:bitview_plugin_bedrock",
+    "dep:bitview_plugin_coinflow",
+    "dep:bitview_plugin_cointime",
+    "dep:bitview_plugin_distribution",
+    "dep:bitview_plugin_price",
+]
 tokio = ["dep:tokio", "brk_error/tokio"]
 
 [dependencies]
 bitcoin = { workspace = true }
 brk_cohort = { workspace = true }
-bitview_plugin_price = { workspace = true }
+bitview_plugin_bedrock = { workspace = true, optional = true }
+bitview_plugin_blocks = { workspace = true, optional = true }
+bitview_plugin_coinflow = { workspace = true, optional = true }
+bitview_plugin_cointime = { workspace = true, optional = true }
+bitview_plugin_distribution = { workspace = true, optional = true }
+bitview_plugin_indexes = { workspace = true, optional = true }
+bitview_plugin_inputs = { workspace = true, optional = true }
+bitview_plugin_mining = { workspace = true, optional = true }
+bitview_plugin_outputs = { workspace = true, optional = true }
+bitview_plugin_pools = { workspace = true, optional = true }
+bitview_plugin_price = { workspace = true, optional = true }
+bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_runtime = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "vecdb"] }
-brk_indexer = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
 brk_mempool = { workspace = true }
 brk_oracle = { workspace = true }
 bitview_plugin = { workspace = true }
@@ -36,4 +68,5 @@ serde_json = { workspace = true }
 vecdb = { workspace = true }
 
 [dev-dependencies]
+bitview_composition = { workspace = true }
 tempfile = { workspace = true }

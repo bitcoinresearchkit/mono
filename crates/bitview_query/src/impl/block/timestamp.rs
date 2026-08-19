@@ -21,7 +21,7 @@ impl Query {
     /// first block.
     pub fn block_by_timestamp(&self, timestamp: Timestamp) -> brk_error::Result<BlockTimestamp> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
 
         if self.safe_lengths().height == Height::ZERO {
             return Err(Error::NotFound("No blocks indexed".into()));
@@ -32,7 +32,7 @@ impl Query {
         let date = Date::from(target);
         let day1 = Day1::try_from(date).unwrap_or_default();
 
-        let first_height_of_day = computer
+        let first_height_of_day = plugins
             .indexes
             .day1
             .first_height

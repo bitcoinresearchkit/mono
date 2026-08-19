@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{PartsPerMillion32, Sats, StoredU64, Version};
 use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecIndex, WritableVec};
 

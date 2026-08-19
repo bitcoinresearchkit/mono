@@ -1,4 +1,4 @@
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 
 use bitview_plugin_distribution::UTXOStates;
 

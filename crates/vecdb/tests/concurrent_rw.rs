@@ -503,7 +503,7 @@ fn test_many_readers_one_writer() -> vecdb::Result<()> {
 /// Long-running realistic stress test that simulates real-world usage patterns.
 /// This test:
 /// - Runs for several seconds
-/// - Has multiple vecs being written concurrently (like brk_computer)
+/// - Has multiple vecs being written concurrently (like bitview_runtime)
 /// - Has readers continuously verifying data integrity
 /// - Uses batched writes without intermediate flushes
 /// - Only flushes at the end of each "block" (simulating block processing)
@@ -517,7 +517,7 @@ fn test_realworld_stress() -> vecdb::Result<()> {
     let (db, _temp) = setup_test_db()?;
     let version = Version::ONE;
 
-    // Create multiple vecs (simulating different metrics in brk_computer)
+    // Create multiple vecs (simulating different metrics in bitview_runtime)
     let mut vec_a: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_a", version)?;
     let mut vec_b: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_b", version)?;
     let mut vec_c: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_c", version)?;
@@ -782,7 +782,7 @@ fn test_extended_stress() -> vecdb::Result<()> {
         })
         .collect();
 
-    // Writer: infrequent writes (simulates real brk_computer pattern)
+    // Writer: infrequent writes (simulates real bitview_runtime pattern)
     let start = Instant::now();
     let target_duration = Duration::from_secs(5);
     let mut current_idx = 0u64;

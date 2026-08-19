@@ -21,11 +21,11 @@ impl Query {
     /// 600s/block schedule. Output time fields are in milliseconds.
     pub fn difficulty_adjustment(&self) -> brk_error::Result<DifficultyAdjustment> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
         let current_height_u32: u32 = current_height.into();
 
-        let current_epoch = computer
+        let current_epoch = plugins
             .indexes
             .height
             .epoch
@@ -33,7 +33,7 @@ impl Query {
             .data()?;
         let current_epoch_usize: usize = current_epoch.into();
 
-        let epoch_start_height = computer
+        let epoch_start_height = plugins
             .indexes
             .epoch
             .first_height
@@ -46,7 +46,7 @@ impl Query {
         let remaining_blocks = next_retarget_height - current_height_u32;
         let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_EPOCH as f64) * 100.0;
 
-        let epoch_start_timestamp = computer
+        let epoch_start_timestamp = plugins
             .indexes
             .timestamp
             .epoch
@@ -97,7 +97,7 @@ impl Query {
 
         let (previous_retarget, previous_time) = if current_epoch_usize > 0 {
             let prev_epoch = Epoch::from(current_epoch_usize - 1);
-            let prev_epoch_start = computer
+            let prev_epoch_start = plugins
                 .indexes
                 .epoch
                 .first_height

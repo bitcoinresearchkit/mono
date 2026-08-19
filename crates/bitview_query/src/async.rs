@@ -1,18 +1,21 @@
-use bitview_runtime::Computer;
 use brk_error::Result;
-use brk_indexer::Indexer;
 use brk_mempool::Mempool;
+use vecdb::ReadOnlyClone;
 
 use tokio::task::spawn_blocking;
 
-use crate::Query;
+use crate::{Query, QueryPluginSet};
 
 #[derive(Clone)]
 pub struct AsyncQuery(Query);
 
 impl AsyncQuery {
-    pub fn build(indexer: &Indexer, computer: &Computer, mempool: Option<Mempool>) -> Self {
-        Self(Query::build(indexer, computer, mempool))
+    pub fn build<P>(plugins: &P, mempool: Option<Mempool>) -> Self
+    where
+        P: ReadOnlyClone,
+        P::ReadOnly: QueryPluginSet + 'static,
+    {
+        Self(Query::build(plugins, mempool))
     }
 
     /// Run a blocking query operation on a spawn_blocking thread.

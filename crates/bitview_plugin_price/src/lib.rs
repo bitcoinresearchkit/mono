@@ -3,6 +3,7 @@
 mod by_unit;
 mod compute;
 mod dependencies;
+mod has;
 mod lazy_ohlc;
 mod ohlcs;
 
@@ -24,10 +25,10 @@ use vecdb::{Database, Rw, StorageMode};
 
 use by_unit::{OhlcByUnit, PriceByUnit, SplitByUnit, SplitCloseByUnit, SplitIndexesByUnit};
 pub use dependencies::Dependencies;
+pub use has::HasPrice;
 use ohlcs::{LazyIndexesFromOhlc, LazyOhlcCentsVecs, LazyOhlcVecs};
 
 pub const ID: PluginId = PluginId::new("price");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -47,7 +48,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID
@@ -64,7 +65,7 @@ impl Vecs {
         version: Version,
         indexes: &bitview_plugin_indexes::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent, DB_NAME, 100_000)?;
+        let db = open_db(parent, ID.as_str(), 100_000)?;
         let this = Self::forced_import_inner(&db, version, indexes)?;
         finalize_db(&this.db, &this)?;
         Ok(this)

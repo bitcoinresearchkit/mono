@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Indexer;
 use brk_cohort::{ByAddrType, EntryPrice, Filter, Term};
-use brk_indexer::Indexer;
 use brk_types::{
     Cents, Date, Height, ONE_DAY_IN_SEC, OutputType, RangeMap, Sats, StoredF64, Timestamp, TxIndex,
     TypeIndex,

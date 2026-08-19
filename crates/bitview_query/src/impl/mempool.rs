@@ -43,7 +43,7 @@ impl Query {
     pub fn indexer_prevout_resolver(
         &self,
     ) -> Box<dyn Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send + Sync> {
-        let indexer = self.0.indexer;
+        let indexer = self.0.plugins.indexer;
 
         Box::new(move |holes: &[(Txid, Vout)]| {
             if holes.is_empty() {
@@ -87,7 +87,7 @@ impl Query {
     /// RBF history for a tx. Matches mempool.space's
     /// `GET /api/v1/tx/:txid/rbf`. Mempool builds the owned tree under
     /// one read-lock window; this then layers on `mined` + effective
-    /// fee rate from the indexer/computer.
+    /// fee rate from the indexer/plugins.
     pub fn tx_rbf(&self, txid: &Txid) -> brk_error::Result<RbfResponse> {
         let RbfForTx { root, replaces } = self.require_mempool()?.rbf_for_tx(txid);
         let replacements = root.map(|n| self.enrich_rbf_node(n, None));

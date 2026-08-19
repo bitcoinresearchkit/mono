@@ -97,8 +97,7 @@ fn cost_basis_formatted(
     let raw = q.urpd_raw(cohort, date)?;
     let day1 = Day1::try_from(date)?;
     let spot_cents = q
-        .computer()
-        .price
+        .price()
         .split
         .close
         .cents

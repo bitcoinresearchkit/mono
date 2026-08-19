@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, TxInIndex, TxOutIndex};
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Exit, ExitGuard, ReadableVec, Stamp, VecIndex, WritableVec};

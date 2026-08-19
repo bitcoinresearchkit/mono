@@ -3,6 +3,7 @@
 mod addr;
 mod chain_counts;
 mod dependencies;
+mod has;
 mod height;
 mod resolution;
 mod timestamp;
@@ -17,8 +18,8 @@ use std::{ops::Deref, path::Path};
 
 use bitview_compute::{IndexSources, LazyCumulativeIndexVec, PerResolution};
 use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{
     Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
     Month6, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version, Week1, Year1, Year10,
@@ -31,6 +32,7 @@ use vecdb::{
 use addr::Vecs as AddrVecs;
 use chain_counts::CachedChainCounts;
 pub use dependencies::Dependencies;
+pub use has::HasIndexes;
 use height::Vecs as HeightVecs;
 pub use resolution::CachedFirstHeightVec;
 use resolution::{DatedResolutionVecs, ResolutionVecs};
@@ -41,12 +43,12 @@ use txin_index::Vecs as TxInIndexVecs;
 use txout_index::Vecs as TxOutIndexVecs;
 
 pub const ID: PluginId = PluginId::new("indexes");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     plugin_gate: PluginGate,
+    #[traversable(skip)]
     db: Database,
     #[traversable(skip)]
     chain_counts: CachedChainCounts,
@@ -87,7 +89,7 @@ impl<M: StorageMode> Deref for Vecs<M> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID
@@ -104,7 +106,7 @@ impl Vecs {
         parent_version: Version,
         indexer: &Indexer,
     ) -> Result<Self> {
-        let db = Database::open(&parent.join(DB_NAME))?;
+        let db = Database::open(&parent.join(ID.as_str()))?;
         db.set_min_len(PAGE_SIZE * 1_000_000)?;
 
         let version = parent_version;

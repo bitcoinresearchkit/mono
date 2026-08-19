@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin::ComputePlugin;
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, PartsPerMillionSigned64, StoredF64};
 use vecdb::{Exit, ReadableVec};
 

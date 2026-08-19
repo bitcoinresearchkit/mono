@@ -68,8 +68,8 @@ impl Vecs {
         parent_version: Version,
         indexes: &bitview_plugin_indexes::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::DB_NAME, 100_000)?;
-        let states_path = parent_path.join(crate::DB_NAME).join("states");
+        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
+        let states_path = parent_path.join(crate::ID.as_str()).join("states");
         let version = parent_version + VERSION;
         let mappings = DailyMappings::new(indexes);
 

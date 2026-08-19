@@ -24,7 +24,7 @@ impl Vecs {
         distribution: &bitview_plugin_distribution::Vecs,
         transactions: &bitview_plugin_transactions::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::DB_NAME, 100_000)?;
+        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
         let v = parent_version + VERSION;
 
         let puell_multiple = RatioPerBlock::forced_import_ppm(&db, "puell_multiple", v, indexes)?;

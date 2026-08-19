@@ -1,3 +1,7 @@
+mod has;
+
+pub use has::HasConstants;
+
 use bitview_compute::{ConstantVecs, IndexSources, ReturnF32Tenths, ReturnI8, ReturnU16};
 use bitview_plugin::{Plugin, PluginGate, PluginId};
 use bitview_traversable::Traversable;

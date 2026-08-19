@@ -1,4 +1,5 @@
 mod dependencies;
+mod has;
 mod hashrate;
 mod rewards;
 
@@ -10,11 +11,11 @@ use bitview_traversable::Traversable;
 use vecdb::{Database, Rw, StorageMode};
 
 pub use dependencies::Dependencies;
+pub use has::HasMining;
 use hashrate::Vecs as HashrateVecs;
 use rewards::Vecs as RewardsVecs;
 
 pub const ID: PluginId = PluginId::new("mining");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -29,7 +30,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

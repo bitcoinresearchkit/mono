@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_indexer::Lengths;
+use bitview_plugin_indexer::Lengths;
 use brk_types::{Height, StoredU64};
 use vecdb::Exit;
 

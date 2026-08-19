@@ -55,9 +55,9 @@ impl Query {
         members: &[(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)],
     ) -> brk_error::Result<Vec<Member>> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = computer.transactions.fees.fee.tx_index.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
 
         members
@@ -78,9 +78,9 @@ impl Query {
 
     fn resolve_entries(&self, indexes: &[TxIndex]) -> brk_error::Result<Vec<CpfpEntry>> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
-        let mut fee = computer.transactions.fees.fee.tx_index.cursor();
+        let mut fee = plugins.transactions.fees.fee.tx_index.cursor();
         let txid = indexer.vecs().transactions.txid.reader();
 
         indexes
@@ -102,7 +102,7 @@ impl Query {
         height: Height,
     ) -> brk_error::Result<WalkResult> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let safe = self.safe_lengths();
         let first_tx = &indexer.vecs().transactions.first_tx_index;
         let block_first = first_tx.collect_one(height).data()?;
@@ -114,7 +114,7 @@ impl Query {
         };
 
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
-        let mut input_count = computer.indexes.tx_index.input_count.cursor();
+        let mut input_count = plugins.indexes.tx_index.input_count.cursor();
         let mut outpoint = indexer.vecs().inputs.outpoint.cursor();
         let first_txout = indexer
             .vecs()
@@ -122,8 +122,8 @@ impl Query {
             .first_txout_index
             .reader()
             .cursor();
-        let mut output_count = computer.indexes.tx_index.output_count.cursor();
-        let spent = computer.outputs.spent.txin_index.reader().cursor();
+        let mut output_count = plugins.indexes.tx_index.output_count.cursor();
+        let spent = plugins.outputs.spent.txin_index.reader().cursor();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 
         let mut parents_of = |tx: TxIndex| -> brk_error::Result<SmallVec<[TxIndex; 2]>> {

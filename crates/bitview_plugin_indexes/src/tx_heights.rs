@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, RangeMap, TxIndex};
 use parking_lot::RwLock;
 use vecdb::{AnyVec, ReadableVec, VecIndex};

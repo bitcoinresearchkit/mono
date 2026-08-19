@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bitview_plugin::PluginReadGuard;
+use bitview_plugin::{Plugin, PluginReadGuard};
 use brk_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
 use brk_error::Error;
 use brk_types::{Cohort, Date, Day1, Urpd, UrpdAggregation, UrpdRaw, UrpdWeight};
@@ -14,8 +14,8 @@ use crate::Query;
 impl Query {
     fn urpd_read_guard(&self) -> PluginReadGuard {
         PluginReadGuard::acquire(&[
-            self.computer().distribution.as_ref(),
-            self.computer().bedrock.as_ref(),
+            self.plugins().distribution as &dyn Plugin,
+            self.plugins().bedrock as &dyn Plugin,
         ])
     }
 
@@ -26,7 +26,7 @@ impl Query {
     }
 
     fn urpd_cohorts_inner(&self) -> brk_error::Result<Vec<Cohort>> {
-        let states_path = &self.computer().distribution.states_path;
+        let states_path = &self.plugins().distribution.states_path;
 
         let mut cohorts: Vec<Cohort> = fs::read_dir(states_path)?
             .filter_map(|entry| {
@@ -44,7 +44,7 @@ impl Query {
     }
 
     fn urpd_dir(&self, cohort: &Cohort) -> brk_error::Result<PathBuf> {
-        let dir = UrpdRaw::dir(&self.computer().distribution.states_path, cohort);
+        let dir = UrpdRaw::dir(&self.plugins().distribution.states_path, cohort);
 
         if !dir.exists() {
             let valid = self
@@ -132,7 +132,7 @@ impl Query {
         }
 
         if weight == UrpdWeight::Raw {
-            return UrpdRaw::read(&self.computer().distribution.states_path, cohort, date);
+            return UrpdRaw::read(&self.plugins().distribution.states_path, cohort, date);
         }
 
         if is_aggregate_cohort(cohort) {
@@ -144,17 +144,17 @@ impl Query {
                     "No {weight}-weighted URPD for cohort '{cohort}' on {date}"
                 )));
             }
-            return self.computer().bedrock.urpd_raw(weight, cohort, date);
+            return self.plugins().bedrock.urpd_raw(weight, cohort, date);
         }
 
         let day = Day1::try_from(date)?;
         let scalar = self
-            .computer()
+            .plugins()
             .bedrock
             .urpd_weight(
-                &self.computer().distribution,
-                &self.computer().cointime,
-                &self.computer().coinflow,
+                self.plugins().distribution,
+                self.plugins().cointime,
+                self.plugins().coinflow,
                 cohort,
                 day,
                 weight,
@@ -165,7 +165,7 @@ impl Query {
                 ))
             })?;
         Ok(
-            UrpdRaw::read(&self.computer().distribution.states_path, cohort, date)?
+            UrpdRaw::read(&self.plugins().distribution.states_path, cohort, date)?
                 .apply_weight(scalar),
         )
     }
@@ -202,7 +202,7 @@ impl Query {
         let raw = self.urpd_raw_with_weight_inner(cohort, date, weight)?;
         let day1 = Day1::try_from(date)?;
         let close = self
-            .computer()
+            .plugins()
             .price
             .split
             .close
@@ -236,7 +236,7 @@ impl Query {
     }
 
     fn weighted_urpd_dir(&self, cohort: &Cohort, weight: UrpdWeight) -> brk_error::Result<PathBuf> {
-        let dir = self.computer().bedrock.urpd_dir(weight, cohort);
+        let dir = self.plugins().bedrock.urpd_dir(weight, cohort);
         if !dir.exists() {
             return Err(Error::NotFound(format!(
                 "No {weight}-weighted URPD available for cohort '{cohort}'"

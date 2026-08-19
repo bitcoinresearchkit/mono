@@ -12,7 +12,7 @@ use crate::Query;
 
 impl Query {
     pub fn addr(&self, addr: Addr) -> brk_error::Result<AddrStats> {
-        let _guard = self.computer().distribution.gate().read();
+        let _guard = self.plugins().distribution.gate().read();
         let bytes = AddrBytes::from_str(&addr)?;
         let output_type = OutputType::from(&bytes);
         let hash = AddrHash::from(&bytes);
@@ -31,15 +31,15 @@ impl Query {
             return Err(Error::UnknownAddr);
         }
 
-        let computer = self.computer();
-        let any_addr_index = computer
+        let plugins = self.plugins();
+        let any_addr_index = plugins
             .distribution
             .any_addr_indexes
             .get_once(output_type, type_index)?;
 
         let (addr_data, realized_price) = match any_addr_index.to_enum() {
             AnyAddrDataIndexEnum::Funded(index) => {
-                let data = computer
+                let data = plugins
                     .distribution
                     .addrs_data
                     .funded
@@ -49,7 +49,7 @@ impl Query {
                 (data, price)
             }
             AnyAddrDataIndexEnum::Empty(index) => {
-                let data = computer
+                let data = plugins
                     .distribution
                     .addrs_data
                     .empty

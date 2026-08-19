@@ -18,7 +18,7 @@ bitview_plugin_outputs = { workspace = true }
 bitview_plugin_price = { workspace = true }
 bitview_plugin_transactions = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
-brk_indexer = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true }
 vecdb = { workspace = true }

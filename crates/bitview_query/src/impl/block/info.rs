@@ -54,9 +54,8 @@ impl Query {
             .ok_or(Error::NotFound("Block not found".into()))
     }
 
-    /// V1 block by height. Ceiling is `min(indexed, computed)` because
-    /// `blocks_v1_range` reads computer-stamped series (pools, fees,
-    /// supply state). Anything past `computed_height` would short-read.
+    /// V1 block by height. The safe ceiling covers every plugin series read by
+    /// `blocks_v1_range`, including pools, fees, and supply state.
     pub fn block_by_height_v1(&self, height: Height) -> brk_error::Result<BlockInfoV1> {
         if height >= self.safe_lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
@@ -203,7 +202,7 @@ impl Query {
 
     /// Build `BlockInfoV1` rows for `[begin, end)` in descending-height order.
     /// `end` is re-clamped to `bound.height` (single snapshot covering both
-    /// indexer-stamped and computer-stamped vecs, since `safe_lengths` only
+    /// indexer-stamped and plugins-stamped vecs, since `safe_lengths` only
     /// advances after compute). Returns `Internal` on per-block header read
     /// failures.
     fn blocks_v1_range(&self, begin: usize, end: usize) -> brk_error::Result<Vec<BlockInfoV1>> {
@@ -217,7 +216,7 @@ impl Query {
 
         let count = end - begin;
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let reader = self.reader();
         let all_pools = pools();
 
@@ -232,10 +231,10 @@ impl Query {
         let sizes = indexer.vecs().blocks.total.collect_range_at(begin, end);
         let weights = indexer.vecs().blocks.weight.collect_range_at(begin, end);
         let positions = indexer.vecs().blocks.position.collect_range_at(begin, end);
-        let pool_slugs = computer.pools.pool.collect_range_at(begin, end);
-        let pool_block_numbers = computer
+        let pool_slugs = plugins.pools.pool.collect_range_at(begin, end);
+        let pool_block_numbers = plugins
             .pools
-            .pool_heights
+            .heights
             .block_numbers(&pool_slugs, Height::from(begin));
 
         // Read one past the last block for its tx-count, capped by the snapshot's
@@ -265,49 +264,44 @@ impl Query {
             .collect_range_at(begin, end);
 
         // Bulk read extras data
-        let fee_sats = computer
+        let fee_sats = plugins
             .mining
             .rewards
             .fees
             .block
             .sats
             .collect_range_at(begin, end);
-        let subsidy_sats = computer
+        let subsidy_sats = plugins
             .mining
             .rewards
             .subsidy
             .block
             .sats
             .collect_range_at(begin, end);
-        let input_counts = computer.inputs.count.sum.collect_range_at(begin, end);
-        let output_counts = computer
-            .outputs
-            .count
-            .total
-            .sum
-            .collect_range_at(begin, end);
-        let utxo_set_sizes = computer
+        let input_counts = plugins.inputs.count.sum.collect_range_at(begin, end);
+        let output_counts = plugins.outputs.count.total.sum.collect_range_at(begin, end);
+        let utxo_set_sizes = plugins
             .outputs
             .unspent
             .count
             .height
             .collect_range_at(begin, end);
-        let input_volumes = computer
+        let input_volumes = plugins
             .transactions
             .volume
             .transfer_volume
             .block
             .sats
             .collect_range_at(begin, end);
-        let prices = computer.price.spot.usd.height.collect_range_at(begin, end);
-        let output_volumes = computer
+        let prices = plugins.price.spot.usd.height.collect_range_at(begin, end);
+        let output_volumes = plugins
             .mining
             .rewards
             .output_volume
             .collect_range_at(begin, end);
 
         // Bulk read effective fee rate distribution (accounts for CPFP)
-        let frd = &computer
+        let frd = &plugins
             .transactions
             .fees
             .effective_fee_rate
@@ -322,7 +316,7 @@ impl Query {
         let fr_max = frd.max.height.collect_range_at(begin, end);
 
         // Bulk read fee amount distribution (sats)
-        let fad = &computer.transactions.fees.fee.distribution.block;
+        let fad = &plugins.transactions.fees.fee.distribution.block;
         let fa_min = fad.min.height.collect_range_at(begin, end);
         let fa_pct10 = fad.pct10.height.collect_range_at(begin, end);
         let fa_pct25 = fad.pct25.height.collect_range_at(begin, end);

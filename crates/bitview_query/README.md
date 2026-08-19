@@ -8,7 +8,7 @@ Query blocks, transactions, addresses, and 1000+ on-chain metrics through a unif
 
 ## Key Features
 
-- **Unified access**: Single entry point to indexer, computer, and mempool data
+- **Unified access**: Single entry point to plugin and mempool data
 - **Metric discovery**: List metrics, filter by index type, fuzzy search
 - **Range queries**: By height, date, or relative offsets (`from=-100`)
 - **Multi-metric bulk queries**: Fetch multiple metrics in one call
@@ -18,7 +18,7 @@ Query blocks, transactions, addresses, and 1000+ on-chain metrics through a unif
 ## Core API
 
 ```rust,ignore
-let query = Query::build(&indexer, &computer, Some(mempool));
+let query = Query::build(&plugins, Some(mempool));
 
 // Current height
 let height = query.height();
@@ -55,7 +55,7 @@ let stats = query.address(address)?;
 ## Async Usage
 
 ```rust,ignore
-let async_query = AsyncQuery::build(&indexer, &computer, mempool);
+let async_query = AsyncQuery::build(&plugins, mempool);
 
 // Run blocking queries in thread pool
 let result = async_query.run(|q| q.block_by_height(height)).await;
@@ -70,7 +70,13 @@ Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator. Qu
 
 ## Built On
 
-- `brk_indexer` for raw indexed data
-- `brk_computer` for derived metrics
+- `bitview_runtime::PluginSet` for generic plugin discovery
 - `brk_mempool` for mempool queries
 - `brk_reader` for raw block access
+
+## Features
+
+The default `full` feature preserves the complete query API. Smaller consumers
+can select `chain`, `series`, or `urpd`. Construction validates the plugins
+required by the enabled features once and then keeps direct typed references;
+queries do not perform dynamic plugin lookup on the hot path.

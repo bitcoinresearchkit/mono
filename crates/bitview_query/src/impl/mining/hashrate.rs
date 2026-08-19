@@ -10,9 +10,9 @@ impl Query {
     /// stamp lag in the day1 index or in the daily-hashrate vec, so a
     /// transient dropout surfaces instead of silently reporting zero.
     fn hashrate_at(&self, height: Height) -> brk_error::Result<u128> {
-        let computer = self.computer();
-        let day = computer.indexes.height.day1.collect_one(height).data()?;
-        Ok(*computer
+        let plugins = self.plugins();
+        let day = plugins.indexes.height.day1.collect_one(height).data()?;
+        Ok(*plugins
             .mining
             .hashrate
             .rate
@@ -36,7 +36,7 @@ impl Query {
         max_points: usize,
     ) -> brk_error::Result<HashrateSummary> {
         let indexer = self.indexer();
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
 
         let current_difficulty = *indexer
@@ -47,7 +47,7 @@ impl Query {
             .data()?;
 
         let current_hashrate = self.hashrate_at(current_height)?;
-        let current_day1 = computer
+        let current_day1 = plugins
             .indexes
             .height
             .day1
@@ -60,7 +60,7 @@ impl Query {
             None => 0,
         };
 
-        let start_day1 = computer
+        let start_day1 = plugins
             .indexes
             .height
             .day1
@@ -73,8 +73,8 @@ impl Query {
         let total_days = end_day1.to_usize().saturating_sub(start_day1.to_usize()) + 1;
         let step = (total_days / max_points.max(1)).max(1);
 
-        let mut hr_cursor = computer.mining.hashrate.rate.base.day1.cursor();
-        let mut ts_cursor = computer.indexes.timestamp.day1.cursor();
+        let mut hr_cursor = plugins.mining.hashrate.rate.base.day1.cursor();
+        let mut ts_cursor = plugins.indexes.timestamp.day1.cursor();
 
         let mut hashrates = Vec::with_capacity(total_days / step + 1);
         let mut di = start_day1.to_usize();
@@ -88,7 +88,7 @@ impl Query {
             di += step;
         }
 
-        let difficulty: Vec<DifficultyEntry> = iter_difficulty_epochs(computer, start, end)?
+        let difficulty: Vec<DifficultyEntry> = iter_difficulty_epochs(plugins, start, end)?
             .into_iter()
             .map(|e| DifficultyEntry {
                 time: e.timestamp,

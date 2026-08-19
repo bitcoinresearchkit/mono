@@ -4,8 +4,8 @@
 //! values matching a continuously-running oracle from the restart height
 //! onward.
 //!
-//! Mirrors the production transaction filter exactly, so it exercises the same code path
-//! `brk_computer::price::compute::feed_blocks` uses at runtime.
+//! Mirrors the production transaction filter exactly, so it exercises the same
+//! code path as the Bitview price plugin.
 //!
 //! Run with: cargo run -p brk_oracle --example determinism --release
 

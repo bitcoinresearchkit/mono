@@ -21,7 +21,7 @@ impl Vecs {
         block_size: CachedBoxedVec<Height, StoredU64>,
         chain_fees: CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::DB_NAME, 1_000_000)?;
+        let db = open_db(parent_path, crate::ID.as_str(), 1_000_000)?;
         let total = Total::forced_import(
             &db,
             "op_return",

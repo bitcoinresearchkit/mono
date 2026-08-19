@@ -29,6 +29,12 @@ pub struct Lengths {
 }
 
 impl Lengths {
+    /// Last fully written block, or `None` before genesis.
+    #[inline]
+    pub fn last_height(self) -> Option<Height> {
+        self.height.decremented()
+    }
+
     pub fn to_type_index(self, output_type: OutputType) -> TypeIndex {
         match output_type {
             OutputType::Empty => *self.empty_output_index,
@@ -119,5 +125,18 @@ mod tests {
         lengths.clamp_to(&minimum);
 
         assert_eq!(lengths, minimum);
+    }
+
+    #[test]
+    fn last_height_converts_length_to_position() {
+        assert_eq!(Lengths::default().last_height(), None);
+        assert_eq!(
+            Lengths {
+                height: Height::from(2_u32),
+                ..Default::default()
+            }
+            .last_height(),
+            Some(Height::from(1_u32))
+        );
     }
 }

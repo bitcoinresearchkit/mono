@@ -21,7 +21,7 @@ impl Vecs {
         blocks: &bitview_plugin_blocks::Vecs,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, super::DB_NAME, 250_000)?;
+        let db = open_db(parent_path, super::ID.as_str(), 250_000)?;
         let version = parent_version;
 
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();

@@ -117,7 +117,7 @@ impl IndexerVecs for Vecs {
     }
 
     fn rollback_if_needed(&mut self, starting_lengths: &Lengths) -> Result<()> {
-        let saved_height = starting_lengths.height.decremented().unwrap_or_default();
+        let saved_height = starting_lengths.last_height().unwrap_or_default();
         let stamp = Stamp::from(u64::from(saved_height));
 
         self.blocks.truncate(starting_lengths.height, stamp)?;

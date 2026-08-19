@@ -1,8 +1,8 @@
 mod address;
 mod identity;
 
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{
     Addr, AddrBytes, EmptyOutputIndex, OpReturnIndex, P2AAddrIndex, P2ABytes, P2MSOutputIndex,
     P2PK33AddrIndex, P2PK33Bytes, P2PK65AddrIndex, P2PK65Bytes, P2PKHAddrIndex, P2PKHBytes,

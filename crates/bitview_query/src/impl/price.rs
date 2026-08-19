@@ -25,7 +25,7 @@ impl Query {
             return Ok(vec![]);
         }
         let h4 = Hour4::from_timestamp(target);
-        let cents = self.computer().price.spot.cents.hour4.collect_one(h4);
+        let cents = self.plugins().price.spot.cents.hour4.collect_one(h4);
         Ok(vec![HistoricalPriceEntry {
             time: h4.to_timestamp(),
             usd: Dollars::from(cents.flatten().unwrap_or_default()),
@@ -33,8 +33,8 @@ impl Query {
     }
 
     fn all_prices(&self) -> brk_error::Result<Vec<HistoricalPriceEntry>> {
-        let computer = self.computer();
-        Ok(computer
+        let plugins = self.plugins();
+        Ok(plugins
             .price
             .spot
             .cents

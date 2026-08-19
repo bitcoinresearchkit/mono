@@ -1,0 +1,45 @@
+[package]
+name = "bitview_composition"
+description = "The official Bitview plugin composition"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true
+readme = "README.md"
+
+[dependencies]
+bitview_compute = { workspace = true }
+bitview_plugin = { workspace = true }
+bitview_plugin_bedrock = { workspace = true }
+bitview_plugin_blocks = { workspace = true }
+bitview_plugin_capital_sentiment = { workspace = true }
+bitview_plugin_coinflow = { workspace = true }
+bitview_plugin_constants = { workspace = true }
+bitview_plugin_cointime = { workspace = true }
+bitview_plugin_distribution = { workspace = true }
+bitview_plugin_indicators = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
+bitview_plugin_indexes = { workspace = true }
+bitview_plugin_inputs = { workspace = true }
+bitview_plugin_investing = { workspace = true }
+bitview_plugin_market = { workspace = true }
+bitview_plugin_mining = { workspace = true }
+bitview_plugin_op_return = { workspace = true }
+bitview_plugin_outputs = { workspace = true }
+bitview_plugin_pools = { workspace = true }
+bitview_plugin_price = { workspace = true }
+bitview_plugin_rarity_meter = { workspace = true }
+bitview_plugin_supply = { workspace = true }
+bitview_plugin_transactions = { workspace = true }
+bitview_runtime = { workspace = true }
+bitview_traversable = { workspace = true }
+brk_alloc = { workspace = true }
+brk_error = { workspace = true, features = ["vecdb"] }
+brk_types = { workspace = true }
+rayon = { workspace = true }
+tracing = { workspace = true }
+vecdb = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

@@ -84,6 +84,6 @@ Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator to 
 ## Built On
 
 - `vecdb` for append-only vectors — integer-compressed (`PcoVec`) or raw bytes (`BytesVec`)
-- `brk_iterator` for block iteration
+- `brk_reader` for block parsing
 - `brk_store` for key-value storage (fjall LSM)
 - `brk_types` for domain types

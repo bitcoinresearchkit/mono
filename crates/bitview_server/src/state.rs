@@ -150,11 +150,7 @@ impl AppState {
     /// pools mine; only invalidates when this pool itself mines.
     pub fn pool_blocks_strategy(&self, version: Version, slug: PoolSlug) -> CacheStrategy {
         self.sync(|q| {
-            let last = q
-                .computer()
-                .pools
-                .pool_heights
-                .latest_height(slug, q.height());
+            let last = q.pools().heights.latest_height(slug, q.height());
             match last.and_then(|h| q.block_hash_by_height(h).ok()) {
                 Some(hash) => CacheStrategy::BlockBound(version, BlockHashPrefix::from(&hash)),
                 None => CacheStrategy::Tip,

@@ -92,16 +92,24 @@ RUST_LOG=... bitview # Control log filtering directly
 
 ```text
 ~/.bitview/
-├── config.toml   Configuration
-└── logs          Logs
-
-<bitviewdir>/     Indexed data (default: ~/.bitview)
+├── config.toml  Runner configuration
+├── logs/        Runtime logs
+└── plugins/     One directory per active plugin ID
 ```
+
+`~/.bitview` is the default data directory and can be changed with
+`--bitviewdir`.
 
 Plugin compatibility is defined separately by
 [`bitview_plugin`](https://crates.io/crates/bitview_plugin). The platform and
 plugin APIs remain experimental while the built-in modules are extracted into
 independent plugins.
+
+## Custom plugins
+
+The [custom plugin example](examples/custom_plugin/) is a complete, runnable
+template with persistent storage, typed dependencies, reorg-safe computation,
+composition, read-only queries, and automatic series API exposure.
 
 ## License
 

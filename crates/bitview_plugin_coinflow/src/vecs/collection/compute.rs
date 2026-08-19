@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin::ComputePlugin;
-use brk_indexer::{Indexer, Lengths};
+use bitview_plugin_indexer::{Indexer, Lengths};
 use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
 use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
 

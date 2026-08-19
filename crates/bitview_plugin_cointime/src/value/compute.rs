@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Bitcoin, Dollars, StoredF64};
 use vecdb::{Exit, ReadableVec};
 

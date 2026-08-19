@@ -1,5 +1,5 @@
 use bitview_compute::{LazyPerBlock, LazyPercentPerBlock};
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{PartsPerMillionSigned64, StoredF64};
 
 pub struct Dependencies<'a> {

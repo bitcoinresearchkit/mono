@@ -17,7 +17,7 @@ impl Query {
 
     /// Resolve a txid to its internal TxIndex via prefix lookup.
     /// Raw store hit — caller should prefer [`Self::resolve_tx_index_bounded`]
-    /// when subsequent reads dereference indexer/computer vecs by `tx_index`.
+    /// when subsequent reads dereference indexer/plugins vecs by `tx_index`.
     /// Use this raw form only for "is this mined?" probes that don't deref
     /// derived data (mempool merge, cpfp fee-rate fall-through).
     #[inline]
@@ -31,7 +31,7 @@ impl Query {
     /// `resolve_tx_index` clamped against the safe-lengths snapshot.
     /// Returns `UnknownTxid` for tx_indices the store knows but the snapshot
     /// has not yet covered. Use this from any path that will subsequently
-    /// dereference indexer/computer vecs by `tx_index`.
+    /// dereference indexer/plugins vecs by `tx_index`.
     #[inline]
     fn resolve_tx_index_bounded(&self, txid: &Txid) -> brk_error::Result<TxIndex> {
         let tx_index = self.resolve_tx_index(txid)?;
@@ -71,7 +71,7 @@ impl Query {
         if tx_index >= bound.tx_index {
             return Err(Error::UnknownTxid);
         }
-        self.computer()
+        self.plugins()
             .indexes
             .tx_heights
             .get_shared(tx_index)
@@ -155,7 +155,7 @@ impl Query {
         if self.mempool().is_some_and(|m| m.contains_txid(txid)) {
             return Ok(self.mempool_outspend(txid, vout));
         }
-        let _guard = self.computer().outputs.gate().read();
+        let _guard = self.plugins().outputs.gate().read();
         let (_, first_txout, output_count) = self.resolve_tx_outputs(txid)?;
         if usize::from(vout) >= output_count {
             return Ok(TxOutspend::UNSPENT);
@@ -175,7 +175,7 @@ impl Query {
                 .map(|i| self.mempool_outspend(txid, Vout::from(i)))
                 .collect());
         }
-        let _guard = self.computer().outputs.gate().read();
+        let _guard = self.plugins().outputs.gate().read();
         let (_, first_txout, output_count) = self.resolve_tx_outputs(txid)?;
         let mut spends = self.resolve_outspends(first_txout, output_count)?;
         for (i, spend) in spends.iter_mut().enumerate() {
@@ -202,7 +202,7 @@ impl Query {
     /// Resolve spend status for a single output. Minimal reads.
     fn resolve_outspend(&self, txout_index: TxOutIndex) -> brk_error::Result<TxOutspend> {
         let txin_index = self
-            .computer()
+            .plugins()
             .outputs
             .spent
             .txin_index
@@ -224,10 +224,10 @@ impl Query {
         output_count: usize,
     ) -> brk_error::Result<Vec<TxOutspend>> {
         let indexer = self.indexer();
-        let txin_index_reader = self.computer().outputs.spent.txin_index.reader();
+        let txin_index_reader = self.plugins().outputs.spent.txin_index.reader();
         let txid_reader = indexer.vecs().transactions.txid.reader();
 
-        let tx_heights = &self.computer().indexes.tx_heights;
+        let tx_heights = &self.plugins().indexes.tx_heights;
         let mut input_tx_cursor = indexer.vecs().inputs.tx_index.cursor();
         let mut first_txin_cursor = indexer.vecs().transactions.first_txin_index.cursor();
 

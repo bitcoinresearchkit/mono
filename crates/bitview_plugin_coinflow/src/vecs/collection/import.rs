@@ -235,7 +235,7 @@ impl Vecs {
         indexes: &bitview_plugin_indexes::Vecs,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
-        let database = open_db(parent_path, crate::DB_NAME, 250_000)?;
+        let database = open_db(parent_path, crate::ID.as_str(), 250_000)?;
         let db = &database;
         let version = parent_version + VERSION;
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();

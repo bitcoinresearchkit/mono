@@ -1,4 +1,4 @@
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, OutPoint, OutputType, RangeMap, Sats, TxInIndex, TxIndex, TypeIndex};
 use vecdb::{PcoVec, ReadableVec};
 

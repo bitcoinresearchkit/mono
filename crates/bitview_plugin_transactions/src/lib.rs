@@ -4,6 +4,7 @@ mod count;
 mod dependencies;
 mod features;
 mod fees;
+mod has;
 mod patterns;
 mod policy;
 mod sigops;
@@ -22,6 +23,7 @@ use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 use features::Vecs as FeaturesVecs;
 pub use fees::Vecs as FeesVecs;
+pub use has::HasTransactions;
 use patterns::Vecs as PatternsVecs;
 use policy::Vecs as PolicyVecs;
 use sigops::Vecs as SigopsVecs;
@@ -30,7 +32,6 @@ use versions::Vecs as VersionsVecs;
 use volume::Vecs as VolumeVecs;
 
 pub const ID: PluginId = PluginId::new("transactions");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -62,7 +63,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

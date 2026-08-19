@@ -30,7 +30,7 @@ impl Vecs {
         all_chain: &AllChainSources,
         transactions: &bitview_plugin_transactions::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent, crate::DB_NAME, 1_000_000)?;
+        let db = open_db(parent, crate::ID.as_str(), 1_000_000)?;
 
         let version = parent_version + VERSION;
         let supply_metrics = &distribution.cohorts.supply.total.cohorts.all;

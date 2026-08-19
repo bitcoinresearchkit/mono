@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{
     ChunkInput, CpfpClusterTxIndex, FeeRate, OutPoint, Sats, StoredBool, StoredU64, TxInIndex,
     TxIndex, VSize, linearize,

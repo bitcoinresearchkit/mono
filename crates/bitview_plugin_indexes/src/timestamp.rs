@@ -120,7 +120,7 @@ impl Timestamps {
 
     pub fn compute_monotonic(
         &mut self,
-        indexer: &brk_indexer::Indexer,
+        indexer: &bitview_plugin_indexer::Indexer,
         starting_height: Height,
         exit: &Exit,
     ) -> Result<bool> {

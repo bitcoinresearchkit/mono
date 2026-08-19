@@ -1,5 +1,5 @@
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{OutPoint, TxInIndex, Version};
 use vecdb::{LazyVec, ReadableCloneableVec};
 

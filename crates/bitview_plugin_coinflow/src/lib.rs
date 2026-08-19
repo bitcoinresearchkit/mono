@@ -1,10 +1,12 @@
 #![allow(clippy::type_complexity)]
 
 mod dependencies;
+mod has;
 mod horizon;
 mod vecs;
 
 pub use dependencies::Dependencies;
+pub use has::HasCoinflow;
 pub use horizon::HorizonId;
 use horizon::Horizons;
 pub use vecs::Vecs;
@@ -14,6 +16,5 @@ use vecs::{
 };
 
 pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("coinflow");
-const DB_NAME: &str = ID.as_str();
 
 const AGE_COHORT_COUNT: usize = brk_cohort::AGE_RANGE_COUNT;

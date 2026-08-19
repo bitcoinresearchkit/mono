@@ -209,10 +209,9 @@ impl Query {
                 });
             }
 
-            let tip_height = safe.height.decremented().unwrap_or_default();
-            let tip_hash = safe
-                .height
-                .decremented()
+            let last_height = safe.last_height();
+            let tip_height = last_height.unwrap_or_default();
+            let tip_hash = last_height
                 .and_then(|height| self.indexer().vecs().blocks.blockhash.collect_one(height))
                 .unwrap_or_default();
             let hash_prefix = BlockHashPrefix::from(&tip_hash);
@@ -514,7 +513,7 @@ impl Query {
 
         let mut map = HEIGHT_BY_MONOTONIC_TIMESTAMP.write();
         if map.len() <= current_height {
-            *map = RangeMap::from(self.computer().indexes.timestamp.monotonic.collect());
+            *map = RangeMap::from(self.plugins().indexes.timestamp.monotonic.collect());
         }
         lookup(&map)
     }

@@ -6,9 +6,9 @@ use std::{
 };
 
 use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
-use brk_indexer::Indexer;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
 use vecdb::{
@@ -28,7 +28,7 @@ use bitview_compute::{
 
 use super::inner::Inner;
 use super::{
-    AddrsDataVecs, AllChainSources, AnyAddrIndexesVecs, CohortMetrics, DB_NAME, UTXOStates,
+    AddrsDataVecs, AllChainSources, AnyAddrIndexesVecs, CohortMetrics, UTXOStates,
     addr::{
         AddrActivityVecs, AddrCountsVecs, AddrVecs, AvgAmountVecs, DeltaVecs, ExposedAddrVecs,
         FundedAddrCountsVecs, NewAddrCountVecs, ReusedAddrVecs, TotalAddrCountVecs,
@@ -78,7 +78,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         crate::ID
@@ -124,10 +124,10 @@ impl Vecs {
         inputs_by_type: &bitview_plugin_inputs::ByTypeVecs,
         outputs_by_type: &bitview_plugin_outputs::ByTypeVecs,
     ) -> Result<Self> {
-        let db_path = parent.join(DB_NAME);
+        let db_path = parent.join(crate::ID.as_str());
         let states_path = db_path.join("states");
 
-        let db = open_db(parent, DB_NAME, 20_000_000)?;
+        let db = open_db(parent, crate::ID.as_str(), 20_000_000)?;
         db.set_min_regions(50_000)?;
 
         let version = parent_version + VERSION;

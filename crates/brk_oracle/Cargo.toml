@@ -15,7 +15,7 @@ schemars = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]
-brk_indexer = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 serde_json = { workspace = true }

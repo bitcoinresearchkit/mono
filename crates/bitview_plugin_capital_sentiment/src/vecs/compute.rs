@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin::ComputePlugin;
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{CapitalSentimentPhase, Cents, Day1, Height, StoredBool, StoredU8, Version};
 use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecIndex, WritableVec};
 

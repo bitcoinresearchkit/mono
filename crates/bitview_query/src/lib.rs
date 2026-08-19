@@ -1,59 +1,78 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::module_inception)]
 
-use std::{
-    path::Path,
-    sync::{Arc, RwLock},
-};
+#[cfg(feature = "chain")]
+use std::sync::RwLock;
+use std::{path::Path, sync::Arc};
 
-use bitview_runtime::Computer;
-use brk_error::OptionData;
-use brk_indexer::{Indexer, Lengths};
+use bitview_plugin_indexer::{Indexer, Lengths};
+#[cfg(feature = "chain")]
+use bitview_plugin_pools::Vecs as Pools;
+#[cfg(feature = "chain")]
+use bitview_plugin_price::Vecs as Price;
+use brk_error::{OptionData, Result};
 use brk_mempool::Mempool;
+#[cfg(feature = "chain")]
 use brk_oracle::Oracle;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::{BlockHash, BlockHashPrefix, Epoch, Halving, Height, Index, SyncStatus};
-use vecdb::{ReadBounds, ReadOnlyClone, ReadableVec, Ro};
+use brk_types::{BlockHash, BlockHashPrefix, Height, SyncStatus};
+#[cfg(feature = "series")]
+use brk_types::{Epoch, Halving, Index};
+#[cfg(feature = "series")]
+use vecdb::ReadBounds;
+use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 #[cfg(feature = "tokio")]
 mod r#async;
+mod query_plugin_set;
+mod query_plugins;
 mod vecs;
 
 mod r#impl;
 
 #[cfg(feature = "tokio")]
 pub use r#async::*;
+#[cfg(feature = "series")]
 pub use r#impl::ResolvedQuery;
+pub use query_plugin_set::{
+    QueryPluginSet, SupportsChainQueries, SupportsSeriesQueries, SupportsUrpdQueries,
+};
 pub use vecs::Vecs;
+
+use query_plugins::QueryPlugins;
 
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>);
 struct QueryInner<'a> {
     vecs: &'a Vecs<'a>,
-    indexer: &'a Indexer<Ro>,
-    computer: &'a Computer<Ro>,
+    plugins: QueryPlugins<'a>,
     mempool: Option<Mempool>,
+    #[cfg(feature = "chain")]
     live_oracle: RwLock<Option<(Height, Arc<Oracle>)>>,
 }
 
 impl Query {
-    pub fn build(indexer: &Indexer, computer: &Computer, mempool: Option<Mempool>) -> Self {
-        let indexer = Box::leak(Box::new(indexer.read_only_clone()));
-        let computer = Box::leak(Box::new(computer.read_only_clone()));
-        let vecs = Box::leak(Box::new(Vecs::build(indexer, computer)));
+    pub fn build<P>(plugins: &P, mempool: Option<Mempool>) -> Self
+    where
+        P: ReadOnlyClone,
+        P::ReadOnly: QueryPluginSet + 'static,
+    {
+        let plugin_set = Box::leak(Box::new(plugins.read_only_clone()));
+        let vecs = Box::leak(Box::new(Vecs::build(plugin_set)));
+        let plugins = QueryPlugins::new(plugin_set);
 
         Self(Arc::new(QueryInner {
             vecs,
-            indexer,
-            computer,
+            plugins,
             mempool,
+            #[cfg(feature = "chain")]
             live_oracle: RwLock::new(None),
         }))
     }
 
-    /// Pipeline-safe ceiling: the highest height for which both the
-    /// indexer and computer have committed durable data. Backed by
+    /// Pipeline-safe ceiling: the highest height for which the complete
+    /// plugin set has committed durable data. Backed by
     /// `Indexer::safe_lengths()`, advanced after each complete compute
     /// pass and lowered before any rollback.
     ///
@@ -63,7 +82,7 @@ impl Query {
     /// back to `Height::default()` and clients treat it as "nothing
     /// indexed yet".
     pub fn height(&self) -> Height {
-        self.safe_lengths().height.decremented().unwrap_or_default()
+        self.safe_lengths().last_height().unwrap_or_default()
     }
 
     /// Snapshot of the pipeline-safe `Lengths`. Hot paths that need
@@ -72,6 +91,7 @@ impl Query {
         self.indexer().safe_lengths()
     }
 
+    #[cfg(feature = "series")]
     fn read_bounds(&self, safe: Lengths) -> ReadBounds {
         let mut bounds = ReadBounds::new();
 
@@ -98,7 +118,7 @@ impl Query {
             safe.unknown_output_index.into(),
         );
 
-        let tip = safe.height.decremented();
+        let tip = safe.last_height();
         bounds.set(
             Index::Epoch.name(),
             tip.map(|height| usize::from(Epoch::from(height)) + 1)
@@ -135,25 +155,23 @@ impl Query {
         BlockHashPrefix::from(&self.tip_blockhash())
     }
 
-    /// Build sync status with the given tip height. `indexed_height` and
-    /// `computed_height` reflect live per-vec stamps (diagnostic) and may be
-    /// briefly ahead of fully-flushed data; the timestamp data read uses the
-    /// safe-lengths-derived height so it never outruns committed bytes.
-    pub fn sync_status(&self, tip_height: Height) -> brk_error::Result<SyncStatus> {
-        let indexed_height = self.indexer().indexed_height();
-        let computed_height = self.computer().computed_height();
+    /// Build sync status with the given tip height. Both indexed and computed
+    /// heights use the safely published pipeline ceiling.
+    pub fn sync_status(&self, tip_height: Height) -> Result<SyncStatus> {
+        let safe = self.safe_lengths();
+        let indexed_height = safe.last_height().unwrap_or_default();
         let blocks_behind = Height::from(tip_height.saturating_sub(*indexed_height));
         let last_indexed_at_unix = self
             .indexer()
             .vecs()
             .blocks
             .timestamp
-            .collect_one(self.height())
+            .collect_one(indexed_height)
             .data()?;
 
         Ok(SyncStatus {
             indexed_height,
-            computed_height,
+            computed_height: indexed_height,
             tip_height,
             blocks_behind,
             last_indexed_at: last_indexed_at_unix.to_iso8601(),
@@ -163,7 +181,7 @@ impl Query {
 
     #[inline]
     pub fn reader(&self) -> &Reader {
-        self.0.indexer.reader()
+        self.indexer().reader()
     }
 
     #[inline]
@@ -178,12 +196,25 @@ impl Query {
 
     #[inline]
     pub fn indexer(&self) -> &Indexer<Ro> {
-        self.0.indexer
+        self.0.plugins.indexer
     }
 
     #[inline]
-    pub fn computer(&self) -> &Computer<Ro> {
-        self.0.computer
+    #[cfg(any(feature = "chain", feature = "series", feature = "urpd"))]
+    fn plugins(&self) -> &QueryPlugins<'static> {
+        &self.0.plugins
+    }
+
+    #[cfg(feature = "chain")]
+    #[inline]
+    pub fn pools(&self) -> &Pools<Ro> {
+        self.0.plugins.pools
+    }
+
+    #[cfg(feature = "chain")]
+    #[inline]
+    pub fn price(&self) -> &Price<Ro> {
+        self.0.plugins.price
     }
 
     #[inline]

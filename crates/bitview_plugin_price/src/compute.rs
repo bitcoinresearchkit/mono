@@ -3,7 +3,7 @@ use brk_error::Result;
 use std::ops::Range;
 
 use bitview_plugin::ComputePlugin;
-use brk_indexer::{Indexer, Lengths};
+use bitview_plugin_indexer::{Indexer, Lengths};
 use brk_oracle::{
     Config, Oracle, PaymentFilter, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
 };

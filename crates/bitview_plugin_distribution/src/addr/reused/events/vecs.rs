@@ -1,8 +1,8 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
 use brk_cohort::{AddrTypeId, ByAddrType};
-use brk_indexer::Lengths;
 use brk_types::{PartsPerMillion32, StoredF32, StoredU32, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, Database, Exit, Rw, StorageMode, WritableVec};

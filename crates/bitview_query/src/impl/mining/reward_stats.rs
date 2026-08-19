@@ -15,15 +15,15 @@ impl Query {
             return Err(Error::OutOfRange("block_count must be >= 1".into()));
         }
 
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
 
         let end_block = current_height;
         let start_block = Height::from(current_height.to_usize().saturating_sub(block_count - 1));
 
-        let coinbase_vec = &computer.mining.rewards.coinbase.block.sats;
-        let fee_vec = &computer.mining.rewards.fees.block.sats;
-        let tx_count_vec = &computer.transactions.count.total.block;
+        let coinbase_vec = &plugins.mining.rewards.coinbase.block.sats;
+        let fee_vec = &plugins.mining.rewards.fees.block.sats;
+        let tx_count_vec = &plugins.transactions.count.total.block;
 
         let start = start_block.to_usize();
         let end = end_block.to_usize() + 1;

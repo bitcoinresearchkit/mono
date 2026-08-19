@@ -3,8 +3,8 @@ use brk_error::Result;
 use std::{collections::BTreeMap, path::Path};
 
 use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{
     Addr, AddrBytes, Height, OutputType, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex,
     pools,
@@ -16,11 +16,13 @@ use vecdb::{
 };
 
 mod dependencies;
+mod has;
 mod major;
 mod minor;
 mod pool_heights;
 
 pub use dependencies::Dependencies;
+pub use has::HasPools;
 use pool_heights::PoolHeights;
 
 use bitview_compute::{
@@ -29,13 +31,14 @@ use bitview_compute::{
 };
 
 pub const ID: PluginId = PluginId::new("pools");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     plugin_gate: PluginGate,
+    #[traversable(skip)]
     db: Database,
+    #[traversable(skip)]
     pools: &'static Pools,
 
     /// Mining pool attributed to each block. BRK first scans address-bearing
@@ -44,14 +47,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// known coinbase tags. Unmatched blocks are classified as `unknown`.
     pub pool: M::Stored<BytesVec<Height, PoolSlug>>,
     #[traversable(skip)]
-    pub pool_heights: PoolHeights,
+    pub heights: PoolHeights,
     pub major: BTreeMap<PoolSlug, major::Vecs<M>>,
     pub minor: BTreeMap<PoolSlug, minor::Vecs>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID
@@ -69,7 +72,7 @@ impl Vecs {
         indexes: &bitview_plugin_indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, DB_NAME, 100_000)?;
+        let db = open_db(parent_path, ID.as_str(), 100_000)?;
         let pools = pools();
 
         let version = parent_version
@@ -113,7 +116,7 @@ impl Vecs {
         let this = Self {
             plugin_gate: Default::default(),
             pool,
-            pool_heights,
+            heights: pool_heights,
             major: major_map,
             minor: minor_map,
             pools,
@@ -209,7 +212,7 @@ impl Vecs {
         let mut output_count_cursor = indexes.tx_index.output_count.cursor();
 
         self.pool.truncate_if_needed_at(min)?;
-        self.pool_heights.truncate(min);
+        self.heights.truncate(min);
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
         let mut next_height = min;
@@ -248,7 +251,7 @@ impl Vecs {
                     .unwrap_or(unknown);
 
                 self.pool.push(pool.slug);
-                self.pool_heights.push(pool.slug, Height::from(next_height));
+                self.heights.push(pool.slug, Height::from(next_height));
                 next_height += 1;
 
                 Ok(())

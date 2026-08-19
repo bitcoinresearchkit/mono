@@ -9,6 +9,7 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+bitview_traversable = { workspace = true }
 brk_error = { workspace = true }
 parking_lot = { workspace = true, features = ["arc_lock", "send_guard"] }
 vecdb = { workspace = true }

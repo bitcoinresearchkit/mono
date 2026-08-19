@@ -17,7 +17,7 @@ Track disk usage, memory consumption (current + peak), and I/O throughput during
 ## Core API
 
 ```rust,ignore
-let mut bencher = Bencher::from_cargo_env("brk_indexer", &data_path)?;
+let mut bencher = Bencher::from_cargo_env("bitview_plugin_indexer", &data_path)?;
 bencher.start()?;
 
 // ... run indexing ...
@@ -29,7 +29,7 @@ bencher.stop()?;
 
 ```
 benches/
-└── brk_indexer/
+└── bitview_plugin_indexer/
     └── 1703001234/
         ├── disk.csv      # timestamp_ms, bytes
         ├── memory.csv    # timestamp_ms, current, peak

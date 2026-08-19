@@ -2,6 +2,7 @@ mod count;
 mod dependencies;
 mod difficulty;
 mod halving;
+mod has;
 mod interval;
 mod lookback;
 mod size;
@@ -18,13 +19,13 @@ pub use count::Vecs as CountVecs;
 pub use dependencies::Dependencies;
 pub use difficulty::Vecs as DifficultyVecs;
 use halving::Vecs as HalvingVecs;
+pub use has::HasBlocks;
 use interval::Vecs as IntervalVecs;
 pub use lookback::Vecs as LookbackVecs;
 use size::Vecs as SizeVecs;
 use weight::Vecs as WeightVecs;
 
 pub const ID: PluginId = PluginId::new("blocks");
-const DB_NAME: &str = ID.as_str();
 
 pub const ONE_TERA_HASH: f64 = 1_000_000_000_000.0;
 
@@ -53,7 +54,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

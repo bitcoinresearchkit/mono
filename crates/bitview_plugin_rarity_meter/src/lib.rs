@@ -8,6 +8,7 @@ mod components;
 mod dependencies;
 mod extreme;
 mod extremes;
+mod has;
 mod inner;
 mod percentiles;
 mod threshold_vecs;
@@ -17,8 +18,8 @@ use brk_error::Result;
 use std::path::Path;
 
 use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::Version;
 use vecdb::{Database, Exit, Rw, StorageMode};
 
@@ -29,12 +30,12 @@ use component::Component;
 use components::Components;
 pub use dependencies::Dependencies;
 use extremes::Extremes;
+pub use has::HasRarityMeter;
 use inner::RarityMeterInner;
 
 use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
 
 pub const ID: PluginId = PluginId::new("rarity_meter");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -70,7 +71,7 @@ impl Vecs {
         cointime: &bitview_plugin_cointime::Vecs,
         coinflow: &bitview_plugin_coinflow::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, DB_NAME, 100_000)?;
+        let db = open_db(parent_path, ID.as_str(), 100_000)?;
         let v = version + VERSION;
         let this = Self {
             plugin_gate: Default::default(),
@@ -188,7 +189,7 @@ impl Vecs {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

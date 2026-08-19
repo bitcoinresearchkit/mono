@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_compute::{LazyPerTxDistributionTransformed, TxDerivedDistribution, WeightToVSize};
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::Version;
 use vecdb::{Database, LazyVec, ReadableCloneableVec};
 

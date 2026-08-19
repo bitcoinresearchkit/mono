@@ -1,4 +1,4 @@
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version};
 use vecdb::{CachedBoxedVec, CachedReadableVec, CachedVec, ReadableCloneableVec};
 

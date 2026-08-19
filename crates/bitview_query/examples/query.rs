@@ -1,9 +1,9 @@
 use std::{env, fs, path::Path};
 
+use bitview_composition::DefaultPlugins;
+use bitview_plugin_indexer::Indexer;
 use bitview_query::Query;
-use bitview_runtime::Computer;
 use brk_error::Result;
-use brk_indexer::Indexer;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
@@ -32,7 +32,7 @@ pub fn main() -> Result<()> {
 
     let indexer = Indexer::import(&outputs_dir, &reader)?;
 
-    let computer = Computer::forced_import(&outputs_dir, &indexer)?;
+    let plugins = DefaultPlugins::forced_import(&outputs_dir, indexer)?;
 
     let mempool = Mempool::new(&client);
     let mempool_clone = mempool.clone();
@@ -40,7 +40,7 @@ pub fn main() -> Result<()> {
         mempool_clone.start();
     });
 
-    let query = Query::build(&indexer, &computer, Some(mempool));
+    let query = Query::build(&plugins, Some(mempool));
 
     let _ = dbg!(query.addr(Addr::from(
         "bc1qwzrryqr3ja8w7hnja2spmkgfdcgvqwp5swz4af4ngsjecfz0w0pqud7k38".to_string(),

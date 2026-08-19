@@ -33,10 +33,10 @@ impl Query {
     /// timestamp-based lookback vecs (`_24h`, `_3d`, ...) rather than
     /// block-count math; `TimePeriod::All` walks from genesis.
     pub fn mining_pools(&self, time_period: TimePeriod) -> brk_error::Result<PoolsSummary> {
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
 
-        if computer.pools.pool.len() == 0 {
+        if plugins.pools.pool.len() == 0 {
             return Ok(PoolsSummary {
                 pools: vec![],
                 block_count: 0,
@@ -47,19 +47,19 @@ impl Query {
         }
 
         let start = super::start_height(self, time_period)?.to_usize();
-        let lookback = &computer.blocks.lookback;
+        let lookback = &plugins.blocks.lookback;
 
         let pools = pools();
         let mut pool_data: Vec<(&'static Pool, u64)> = Vec::new();
 
         // Range count = cumulative(end) - cumulative(start - 1).
-        for (pool_id, cumulative) in computer
+        for (pool_id, cumulative) in plugins
             .pools
             .major
             .iter()
             .map(|(id, v)| (id, &v.blocks_mined.cumulative.height))
             .chain(
-                computer
+                plugins
                     .pools
                     .minor
                     .iter()
@@ -126,20 +126,20 @@ impl Query {
     /// major pool's reward vec this errors rather than silently reporting
     /// `None`.
     pub fn pool_detail(&self, slug: PoolSlug) -> brk_error::Result<PoolDetail> {
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
         let end = current_height.to_usize();
 
         let pools_list = pools();
         let pool = pools_list.get(slug);
 
-        let cumulative = computer
+        let cumulative = plugins
             .pools
             .major
             .get(&slug)
             .map(|v| &v.blocks_mined.cumulative.height)
             .or_else(|| {
-                computer
+                plugins
                     .pools
                     .minor
                     .get(&slug)
@@ -153,7 +153,7 @@ impl Query {
 
         let total_all: u64 = *cumulative.collect_one(current_height).data()?;
 
-        let lookback = &computer.blocks.lookback;
+        let lookback = &plugins.blocks.lookback;
         let start_24h = lookback._24h.collect_one(current_height).data()?.to_usize();
         let count_before_24h: u64 = if start_24h == 0 {
             0
@@ -193,7 +193,7 @@ impl Query {
         let network_hr = super::hashrate_at(self, current_height)?;
         let estimated_hashrate = (share_24h * network_hr as f64) as u128;
 
-        let total_reward = if let Some(major) = computer.pools.major.get(&slug) {
+        let total_reward = if let Some(major) = plugins.pools.major.get(&slug) {
             Some(
                 major
                     .rewards
@@ -237,14 +237,14 @@ impl Query {
         before_height: Option<Height>,
         limit: usize,
     ) -> brk_error::Result<Vec<BlockInfoV1>> {
-        let computer = self.computer();
+        let plugins = self.plugins();
         let tip = self.height().to_usize();
         let upper = before_height.map(|h| h.to_usize()).unwrap_or(tip);
         let end = upper.min(tip);
 
-        let heights: Vec<usize> = computer
+        let heights: Vec<usize> = plugins
             .pools
-            .pool_heights
+            .heights
             .latest_heights(slug, Height::from(end), limit)
             .into_iter()
             .map(|height| height.to_usize())
@@ -321,16 +321,16 @@ impl Query {
     /// current tip plus one (exclusive). Reused across pools so the network
     /// series is read only once per request.
     fn hashrate_shared_data(&self, start_height: usize) -> brk_error::Result<HashrateSharedData> {
-        let computer = self.computer();
+        let plugins = self.plugins();
         let current_height = self.height();
-        let start_day = computer
+        let start_day = plugins
             .indexes
             .height
             .day1
             .collect_one_at(start_height)
             .data()?
             .to_usize();
-        let end_day = computer
+        let end_day = plugins
             .indexes
             .height
             .day1
@@ -338,14 +338,14 @@ impl Query {
             .data()?
             .to_usize()
             + 1;
-        let daily_hashrate = computer
+        let daily_hashrate = plugins
             .mining
             .hashrate
             .rate
             .base
             .day1
             .collect_range_at(start_day, end_day);
-        let first_heights = computer
+        let first_heights = plugins
             .indexes
             .day1
             .first_height
@@ -372,8 +372,8 @@ impl Query {
         start_day: usize,
         end_day: usize,
     ) -> brk_error::Result<Vec<Option<StoredU64>>> {
-        let computer = self.computer();
-        computer
+        let plugins = self.plugins();
+        plugins
             .pools
             .major
             .get(&slug)
@@ -385,7 +385,7 @@ impl Query {
                     .collect_range_at(start_day, end_day)
             })
             .or_else(|| {
-                computer.pools.minor.get(&slug).map(|v| {
+                plugins.pools.minor.get(&slug).map(|v| {
                     v.blocks_mined
                         .cumulative
                         .day1

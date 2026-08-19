@@ -22,9 +22,9 @@ pub use events::{AddrEventsVecs, AddrTypeToAddrEventCount};
 
 use brk_error::Result;
 
+use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
 use brk_cohort::ByAddrType;
-use brk_indexer::Lengths;
 use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Exit, ReadableVec, Rw, StorageMode};

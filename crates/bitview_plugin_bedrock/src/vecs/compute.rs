@@ -1,8 +1,8 @@
 use brk_error::Result;
 
 use bitview_plugin::ComputePlugin;
+use bitview_plugin_indexer::Indexer;
 use brk_cohort::{AgeRange, AgeRangeId, UTXO_ALL_NAME};
-use brk_indexer::Indexer;
 use brk_types::{Day1, Sats, StoredF64, UrpdRaw, Version};
 use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
 

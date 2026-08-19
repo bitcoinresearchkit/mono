@@ -1,16 +1,18 @@
-use std::{borrow::Cow, collections::BTreeMap};
+use std::{
+    borrow::Cow,
+    collections::{BTreeMap, btree_map::Entry},
+};
 
 use bitview_plugin::Plugin;
-use bitview_runtime::Computer;
+use bitview_runtime::PluginSet;
 use bitview_traversable::{Traversable, TreeNode};
-use brk_indexer::Indexer;
 use brk_types::{
     CacheClass, Index, IndexInfo, Limit, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,
     SeriesName,
 };
 use quickmatch::{QuickMatch, QuickMatchConfig};
 use rustc_hash::{FxHashMap, FxHashSet};
-use vecdb::{AnyExportableVec, Ro};
+use vecdb::AnyExportableVec;
 
 mod cohort_query;
 mod index_to_vec;
@@ -77,72 +79,39 @@ struct RankedCandidate<'a> {
 }
 
 impl<'a> Vecs<'a> {
-    pub fn build(indexer: &'a Indexer<Ro>, computer: &'a Computer<Ro>) -> Self {
+    pub fn build<P>(plugins: &'a P) -> Self
+    where
+        P: PluginSet + Traversable,
+    {
         let mut description_fragments = Vec::new();
         let mut series_to_description = BTreeMap::new();
-        indexer
-            .vecs()
-            .collect_series_descriptions(&mut description_fragments, &mut series_to_description);
-        computer
-            .collect_series_descriptions(&mut description_fragments, &mut series_to_description);
+        plugins.collect_series_descriptions(&mut description_fragments, &mut series_to_description);
         assert!(description_fragments.is_empty());
-        Self::build_from(
-            indexer
-                .vecs()
-                .iter_any_visible()
-                .map(|vec| (indexer as &dyn Plugin, "indexed", vec)),
-            indexer.vecs().to_tree_node(),
-            computer
-                .iter_plugin_visible()
-                .map(|(plugin, vec)| (plugin, plugin.id().as_str(), vec)),
-            computer.to_tree_node(),
-            series_to_description,
-        )
+
+        let mut builder = Builder::default();
+        plugins.for_each_plugin(&mut |plugin| {
+            let db = plugin.id().as_str();
+            plugin.for_each_visible(&mut |vec| builder.insert(plugin, vec, db));
+        });
+
+        Self::finish_build(builder, plugins.to_tree_node(), series_to_description)
     }
 
-    pub fn build_rw(indexer: &'a Indexer, computer: &'a Computer) -> Self {
-        let mut description_fragments = Vec::new();
-        let mut series_to_description = BTreeMap::new();
-        indexer
-            .vecs()
-            .collect_series_descriptions(&mut description_fragments, &mut series_to_description);
-        computer
-            .collect_series_descriptions(&mut description_fragments, &mut series_to_description);
-        assert!(description_fragments.is_empty());
-        Self::build_from(
-            indexer
-                .vecs()
-                .iter_any_visible()
-                .map(|vec| (indexer as &dyn Plugin, "indexed", vec)),
-            indexer.vecs().to_tree_node(),
-            computer
-                .iter_plugin_visible()
-                .map(|(plugin, vec)| (plugin, plugin.id().as_str(), vec)),
-            computer.to_tree_node(),
-            series_to_description,
-        )
-    }
-
-    fn build_from(
-        indexed_vecs: impl Iterator<Item = (&'a dyn Plugin, &'static str, &'a dyn AnyExportableVec)>,
-        indexed_tree: TreeNode,
-        computed_vecs: impl Iterator<Item = (&'a dyn Plugin, &'static str, &'a dyn AnyExportableVec)>,
-        computed_tree: TreeNode,
+    fn finish_build(
+        mut builder: Builder<'a>,
+        catalog: TreeNode,
         series_to_description: BTreeMap<&'a str, Vec<&'static str>>,
     ) -> Self {
-        let mut builder = Builder::default();
-        indexed_vecs.for_each(|(plugin, db, vec)| builder.insert(plugin, vec, db));
-        computed_vecs.for_each(|(plugin, db, vec)| builder.insert(plugin, vec, db));
         let mut interned_descriptions = BTreeMap::new();
         for (series, fragments) in series_to_description {
             let description = match interned_descriptions.entry(fragments) {
-                std::collections::btree_map::Entry::Vacant(entry) => {
+                Entry::Vacant(entry) => {
                     let description: &'static str =
                         Box::leak(entry.key().join(" ").into_boxed_str());
                     entry.insert(description);
                     description
                 }
-                std::collections::btree_map::Entry::Occupied(entry) => *entry.get(),
+                Entry::Occupied(entry) => *entry.get(),
             };
             builder
                 .series_to_index_to_vec
@@ -183,17 +152,6 @@ impl<'a> Vecs<'a> {
             .iter()
             .map(|(id, index_to_vec)| (*id, index_to_vec.keys().copied().collect::<Vec<_>>()))
             .collect();
-
-        let catalog = TreeNode::Branch(
-            [
-                ("indexed".to_string(), indexed_tree),
-                ("computed".to_string(), computed_tree),
-            ]
-            .into_iter()
-            .collect(),
-        )
-        .merge_branches()
-        .expect("indexed/computed catalog merge: same series leaf with incompatible schemas");
 
         let matcher = QuickMatch::new(&series);
 
@@ -569,9 +527,9 @@ impl<'a> Builder<'a> {
 
 #[cfg(test)]
 mod tests {
+    use bitview_composition::DefaultPlugins;
     use bitview_plugin::PluginId;
-    use bitview_runtime::Computer;
-    use brk_indexer::Indexer;
+    use bitview_plugin_indexer::Indexer;
     use brk_reader::Reader;
     use brk_rpc::{Auth, Client};
     use brk_types::{Index, Limit, SeriesName, pools};
@@ -1568,8 +1526,8 @@ mod tests {
         let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
         let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);
         let indexer = Indexer::import(directory.path(), &reader).unwrap();
-        let computer = Computer::forced_import(directory.path(), &indexer).unwrap();
-        let vecs = Vecs::build_rw(&indexer, &computer);
+        let plugins = DefaultPlugins::forced_import(directory.path(), indexer).unwrap();
+        let vecs = Vecs::build(&plugins);
 
         let txin_index = SeriesName::from("txin_index");
         let spent = vecs.get_entry(&txin_index, Index::TxOutIndex).unwrap();
@@ -1609,8 +1567,8 @@ mod tests {
         let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
         let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);
         let indexer = Indexer::import(directory.path(), &reader).unwrap();
-        let computer = Computer::forced_import(directory.path(), &indexer).unwrap();
-        let vecs = Vecs::build_rw(&indexer, &computer);
+        let plugins = DefaultPlugins::forced_import(directory.path(), indexer).unwrap();
+        let vecs = Vecs::build(&plugins);
 
         for (name, representation) in [
             ("realized_price", USD_DESCRIPTION),

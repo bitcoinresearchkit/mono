@@ -12,10 +12,12 @@ keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 [dependencies]
 anyhow = "1.0"
 bitview_plugin = { workspace = true }
+bitview_composition = { workspace = true }
 bitview_runtime = { workspace = true }
+bitview_traversable = { workspace = true }
 brk_alloc = { workspace = true }
 brk_error = { workspace = true, features = ["tokio", "vecdb"] }
-brk_indexer = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
 brk_logger = { workspace = true }
 brk_mempool = { workspace = true }
 bitview_query = { workspace = true }
@@ -33,6 +35,7 @@ vecdb = { workspace = true }
 
 [dev-dependencies]
 bitview_bencher = { workspace = true }
-bitview_traversable = { workspace = true }
+bitview_compute = { workspace = true }
+bitview_plugin_distribution = { workspace = true }
 color-eyre = { workspace = true }
 serde_json = { workspace = true }

@@ -1,8 +1,8 @@
-use crate::{PluginGate, PluginId};
+use crate::{PluginData, PluginGate, PluginId};
 use vecdb::AnyVec;
 
 /// The compatibility contract shared by Bitview's built-in and external plugins.
-pub trait Plugin: Send + Sync {
+pub trait Plugin: PluginData + Send + Sync {
     /// Stable identifier for this plugin.
     fn id(&self) -> PluginId;
 

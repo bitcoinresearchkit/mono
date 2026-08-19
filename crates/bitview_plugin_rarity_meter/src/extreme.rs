@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use std::{collections::VecDeque, iter::repeat_n};
 
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{Height, PartsPerMillion32, StoredU8, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;

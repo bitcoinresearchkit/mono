@@ -18,7 +18,7 @@ impl Vecs {
         indexes: &bitview_plugin_indexes::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, super::DB_NAME, 20_000_000)?;
+        let db = open_db(parent_path, super::ID.as_str(), 20_000_000)?;
         let version = parent_version;
 
         let spent = super::spent::forced_import(&db, version)?;

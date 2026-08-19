@@ -4,9 +4,9 @@
 
 ```
 blk*.dat ──▶ Reader ──┐
-                      ├──▶ Indexer ──▶ Computer ──┐
-         RPC Client ──┤                           ├──▶ Query ──▶ Server
-                      └──▶ Mempool ───────────────┘
+                      ├──▶ Plugin Set ──┐
+         RPC Client ──┤                 ├──▶ Query ──▶ Server
+                      └──▶ Mempool ─────┘
 
 MCP clients ──▶ MCP Adapter ──▶ Server
 ```
@@ -21,7 +21,7 @@ Parses Bitcoin Core's `blk*.dat` files directly, bypassing RPC for historical da
 
 Connects to Bitcoin Core for real-time data: new blocks, mempool transactions, and fee estimates. Thread-safe with automatic retries.
 
-### Indexer (`brk_indexer`)
+### Indexer plugin (`bitview_plugin_indexer`)
 
 Builds lookup tables from parsed blocks:
 - Transaction index (txid → block position)
@@ -29,9 +29,15 @@ Builds lookup tables from parsed blocks:
 - UTXO set tracking
 - Output type classification (P2PKH, P2WPKH, P2TR, etc.)
 
-### Computer (`brk_computer`)
+### Plugin runtime (`bitview_runtime`)
 
-Derives analytics from indexed data:
+Defines the generic plugin-set, bootstrap, update, and publication lifecycle.
+It has no dependency on the official plugins.
+
+### Official composition (`bitview_composition`)
+
+Owns the official indexer and analytics plugins as one typed plugin set. The
+indexer is the root of the dependency graph; downstream plugins derive:
 - Market metrics: realized cap, MVRV, SOPR, NVT
 - Supply metrics: circulating, liquid, illiquid
 - UTXO cohorts: by age, size, type
@@ -49,7 +55,7 @@ Monitors unconfirmed transactions:
 
 ### Query (`bitview_query`)
 
-Unified interface to all data sources:
+Feature-gated interface to any compatible plugin set:
 - Block and transaction lookups
 - Address balances and history
 - Computed metrics with range queries
@@ -75,15 +81,15 @@ authentication.
 
 **Initial sync:**
 1. Reader parses all `blk*.dat` files in parallel
-2. Indexer processes blocks sequentially, building indexes
-3. Computer derives metrics from indexed data
+2. The plugin set's indexer processes blocks sequentially, building indexes
+3. Dependent plugins derive metrics from indexed data
 4. Server starts accepting requests
 
 **Ongoing operation:**
 1. RPC client polls for new blocks
 2. Reader fetches block data
-3. Indexer updates indexes
-4. Computer recalculates affected metrics
+3. The indexer plugin updates indexes
+4. Dependent plugins recalculate affected metrics
 5. Mempool monitors transaction pool
 
 ## Storage
@@ -92,9 +98,13 @@ Data is stored in `~/.bitview/` (configurable):
 
 ```
 ~/.bitview/
-├── indexer/     # Transaction and address indexes (fjall)
-├── computer/    # Computed metrics (vecdb)
-└── config.toml  # Configuration
+├── config.toml  # Runner configuration
+├── logs/        # Runtime logs
+└── plugins/     # Plugin directories
+    ├── indexer/
+    ├── blocks/
+    ├── price/
+    └── .../     # One directory per active plugin ID
 ```
 
 Disk usage scales with blockchain size. Full index with metrics: ~400 GB.

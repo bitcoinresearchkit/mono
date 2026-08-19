@@ -14,8 +14,8 @@ impl Query {
         time_period: TimePeriod,
     ) -> brk_error::Result<Vec<BlockRewardsEntry>> {
         let bw = BlockWindow::new(self, time_period)?;
-        let rewards: Vec<Sats> = bw.read(&self.computer().mining.rewards.coinbase.block.sats)?;
-        let prices: Vec<Cents> = bw.read(&self.computer().price.spot.cents.height)?;
+        let rewards: Vec<Sats> = bw.read(&self.plugins().mining.rewards.coinbase.block.sats)?;
+        let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
 
         Ok(bw
             .buckets

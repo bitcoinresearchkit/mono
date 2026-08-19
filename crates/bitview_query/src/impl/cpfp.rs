@@ -17,7 +17,7 @@ impl Query {
         if let Some(info) = self.mempool().and_then(|m| m.cpfp_info(&prefix)) {
             return Ok(info);
         }
-        let _guard = self.computer().outputs.gate().read();
+        let _guard = self.plugins().outputs.gate().read();
         confirmed::confirmed_cpfp(self, txid)
     }
 
@@ -33,7 +33,7 @@ impl Query {
 
         if let Ok(index) = super::tx::resolve_tx_index_bounded(self, txid)
             && let Some(rate) = self
-                .computer()
+                .plugins()
                 .transactions
                 .fees
                 .effective_fee_rate

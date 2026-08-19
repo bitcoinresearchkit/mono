@@ -11,8 +11,8 @@ impl Query {
     /// fees-in-USD: clients multiply).
     pub fn block_fees(&self, time_period: TimePeriod) -> brk_error::Result<Vec<BlockFeesEntry>> {
         let bw = BlockWindow::new(self, time_period)?;
-        let fees: Vec<Sats> = bw.read(&self.computer().mining.rewards.fees.block.sats)?;
-        let prices: Vec<Cents> = bw.read(&self.computer().price.spot.cents.height)?;
+        let fees: Vec<Sats> = bw.read(&self.plugins().mining.rewards.fees.block.sats)?;
+        let prices: Vec<Cents> = bw.read(&self.plugins().price.spot.cents.height)?;
 
         Ok(bw
             .buckets

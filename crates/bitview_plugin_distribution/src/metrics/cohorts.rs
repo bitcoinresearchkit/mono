@@ -1,11 +1,11 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
 use brk_cohort::{
     AgeRange, AgeRangeId, AmountRange, ByEntry, ByEpoch, Class, Filter, SpendableType, Term,
     UTXO_AGGREGATE_FILTERS, UTXOAggregate, UTXOAllAndSth, UTXOGroupsWithoutAmountOrType,
 };
-use brk_indexer::Lengths;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{

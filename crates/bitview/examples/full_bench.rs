@@ -5,10 +5,9 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview::Computer;
+use bitview::{DefaultPlugins, bootstrap, update};
 use bitview_bencher::Bencher;
-use brk_alloc::Mimalloc;
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tracing::{debug, info};
@@ -44,29 +43,18 @@ pub fn main() -> color_eyre::Result<()> {
 
     let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
 
-    let mut indexer = Indexer::import(&outputs_dir, &reader)?;
-
-    // Pre-run indexer if too far behind, then drop and reimport to reduce memory
-    let chain_height = client.get_last_height()?;
-    let indexed_height = indexer.vecs().next_height();
-    if chain_height.saturating_sub(*indexed_height) > 1000 {
-        indexer.index(&exit)?;
-        drop(indexer);
-        Mimalloc::collect();
-        indexer = Indexer::import(&outputs_dir, &reader)?;
-    }
-
-    let mut computer = Computer::forced_import(&outputs_dir, &indexer)?;
+    let mut plugins = bootstrap(
+        &outputs_dir,
+        || {
+            let indexer = Indexer::import(&outputs_dir, &reader)?;
+            DefaultPlugins::forced_import(&outputs_dir, indexer)
+        },
+        &exit,
+    )?;
 
     loop {
         let i = Instant::now();
-        indexer.index(&exit)?;
-        info!("Done in {:?}", i.elapsed());
-
-        Mimalloc::collect();
-
-        let i = Instant::now();
-        computer.compute(&mut indexer, &exit)?;
+        update(&mut plugins, &exit)?;
         info!("Done in {:?}", i.elapsed());
 
         sleep(Duration::from_secs(60));

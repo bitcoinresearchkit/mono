@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_indexer::Indexer;
 use brk_types::{Cents, Height, RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8, Version};
 use vecdb::{AnyVec, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode, WritableVec};
 

@@ -73,7 +73,9 @@ Run your own website and API. All you need is Bitcoin Core.
 cargo add brk
 ```
 
-Build custom applications in Rust. Use the full stack or individual components (parser, indexer, computer, server).
+Build custom Bitcoin tooling from BRK primitives such as the block reader,
+domain types, RPC client, oracle, and storage components. Use Bitview for the
+composed indexer, compute plugins, query layer, and server.
 
 [Reference](https://docs.rs/brk) · [Architecture](./ARCHITECTURE.md)
 

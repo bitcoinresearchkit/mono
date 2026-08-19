@@ -28,7 +28,7 @@ struct TestTree {
     /// Reported in the child representation.
     #[traversable(rename = "metric")]
     pub represented: TestLeaf,
-    pub inherited: TestLeaf,
+    inherited: TestLeaf,
 }
 
 #[derive(bitview_traversable_derive::Traversable)]

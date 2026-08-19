@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use bitview_compute::{RatioDiffF32, TARGET_BLOCKS_PER_DAY_F64};
 use bitview_plugin_blocks::ONE_TERA_HASH;
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Dollars, Height, PartsPerMillionSigned64, Sats, StoredF32, StoredF64};
 use vecdb::{Exit, ReadableVec};
 

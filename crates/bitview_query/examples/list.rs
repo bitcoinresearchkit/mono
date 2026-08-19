@@ -1,8 +1,8 @@
 use std::{env, fs, path::Path};
 
+use bitview_composition::DefaultPlugins;
+use bitview_plugin_indexer::Indexer;
 use bitview_query::Vecs;
-use bitview_runtime::Computer;
-use brk_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use vecdb::ReadOnlyClone;
@@ -14,12 +14,11 @@ pub fn main() -> brk_error::Result<()> {
     let client = Client::new("http://127.0.0.1:1", Auth::None)?;
     let reader = Reader::new_without_rlimit(tmp.join("blocks"), &client);
     let indexer = Indexer::import(&tmp, &reader)?;
-    let computer = Computer::forced_import(&tmp, &indexer)?;
+    let plugins = DefaultPlugins::forced_import(&tmp, indexer)?;
 
-    let indexer_ro = indexer.read_only_clone();
-    let computer_ro = computer.read_only_clone();
+    let plugins_ro = plugins.read_only_clone();
 
-    let vecs = Vecs::build(&indexer_ro, &computer_ro);
+    let vecs = Vecs::build(&plugins_ro);
 
     let out_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("series.txt");
     let content = vecs.series.join("\n");

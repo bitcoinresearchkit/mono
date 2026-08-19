@@ -22,7 +22,7 @@ impl Vecs {
         subsidy_cents: &PerBlock<Cents>,
         all_chain: &AllChainSources,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::DB_NAME, 250_000)?;
+        let db = open_db(parent_path, crate::ID.as_str(), 250_000)?;
         let version = parent_version;
         let v1 = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();

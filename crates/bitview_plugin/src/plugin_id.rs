@@ -6,6 +6,17 @@ pub struct PluginId(&'static str);
 
 impl PluginId {
     pub const fn new(id: &'static str) -> Self {
+        let bytes = id.as_bytes();
+        assert!(!bytes.is_empty(), "plugin ID cannot be empty");
+        let mut index = 0;
+        while index < bytes.len() {
+            let byte = bytes[index];
+            assert!(
+                byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'_' || byte == b'-',
+                "plugin ID must be a safe directory name"
+            );
+            index += 1;
+        }
         Self(id)
     }
 

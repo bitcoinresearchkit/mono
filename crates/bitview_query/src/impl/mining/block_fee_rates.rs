@@ -14,7 +14,7 @@ impl Query {
     ) -> brk_error::Result<Vec<BlockFeeRatesEntry>> {
         let bw = BlockWindow::new(self, time_period)?;
         let frd = &self
-            .computer()
+            .plugins()
             .transactions
             .fees
             .effective_fee_rate

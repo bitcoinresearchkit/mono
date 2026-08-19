@@ -1,6 +1,7 @@
 mod ath;
 mod compute;
 mod dependencies;
+mod has;
 mod import;
 mod lookback;
 mod moving_average;
@@ -15,6 +16,7 @@ use vecdb::{Database, Rw, StorageMode};
 
 use ath::Vecs as AthVecs;
 pub use dependencies::Dependencies;
+pub use has::HasMarket;
 use lookback::Vecs as LookbackVecs;
 pub use moving_average::Vecs as MovingAverageVecs;
 use range::Vecs as RangeVecs;
@@ -23,7 +25,6 @@ use technical::Vecs as TechnicalVecs;
 use volatility::Vecs as VolatilityVecs;
 
 pub const ID: PluginId = PluginId::new("market");
-const DB_NAME: &str = ID.as_str();
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
@@ -44,7 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

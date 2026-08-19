@@ -1,7 +1,8 @@
-use bitview_runtime::Computer;
 use brk_error::Error;
 use brk_types::{DifficultyAdjustmentEntry, Height};
-use vecdb::{ReadableVec, Ro, VecIndex};
+use vecdb::{ReadableVec, VecIndex};
+
+use crate::query_plugins::QueryPlugins;
 
 /// Walk every difficulty epoch overlapping `[start_height, end_height]` and
 /// return one `DifficultyAdjustmentEntry` per retarget whose first block
@@ -13,11 +14,11 @@ use vecdb::{ReadableVec, Ro, VecIndex};
 /// `Error::Internal` on any missing cursor read so corrupt zero-valued
 /// entries cannot slip into the output under per-vec stamp lag.
 pub fn iter_difficulty_epochs(
-    computer: &Computer<Ro>,
+    plugins: &QueryPlugins,
     start_height: usize,
     end_height: usize,
 ) -> brk_error::Result<Vec<DifficultyAdjustmentEntry>> {
-    let start_epoch = computer
+    let start_epoch = plugins
         .indexes
         .height
         .epoch
@@ -25,7 +26,7 @@ pub fn iter_difficulty_epochs(
         .ok_or(Error::Internal(
             "iter_difficulty_epochs: start_height not in epoch index",
         ))?;
-    let end_epoch = computer
+    let end_epoch = plugins
         .indexes
         .height
         .epoch
@@ -34,9 +35,9 @@ pub fn iter_difficulty_epochs(
             "iter_difficulty_epochs: end_height not in epoch index",
         ))?;
 
-    let mut height_cursor = computer.indexes.epoch.first_height.cursor();
-    let mut timestamp_cursor = computer.indexes.timestamp.epoch.cursor();
-    let mut difficulty_cursor = computer.blocks.difficulty.value.epoch.cursor();
+    let mut height_cursor = plugins.indexes.epoch.first_height.cursor();
+    let mut timestamp_cursor = plugins.indexes.timestamp.epoch.cursor();
+    let mut difficulty_cursor = plugins.blocks.difficulty.value.epoch.cursor();
 
     let mut results = Vec::with_capacity(end_epoch.to_usize() - start_epoch.to_usize() + 1);
     let mut prev_difficulty: Option<f64> = None;

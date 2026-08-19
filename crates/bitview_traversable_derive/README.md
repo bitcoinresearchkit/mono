@@ -10,6 +10,7 @@ Automatically generate tree traversal and export iteration for structs, eliminat
 
 - **Automatic tree building**: Converts struct fields into `TreeNode::Branch` hierarchies
 - **Export iteration**: Generates `iter_any_exportable()` to walk all exportable vectors
+- **Visibility-independent**: Traverses public and private fields by default
 - **Field attributes**: `#[traversable(skip)]` to exclude fields, `#[traversable(flatten)]` to merge nested structures
 - **Option support**: Gracefully handles `Option<T>` fields
 - **Generic-aware**: Properly bounds generic parameters with `Traversable + Send + Sync`

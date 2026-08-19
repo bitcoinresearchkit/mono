@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_compute::{CachedPerBlockRolling, CachedWindowStartVec, PerBlockFull, Windows};
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_types::{Height, StoredU64, Version, Weight};
 use vecdb::Database;
 

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use brk_indexer::Indexer;
+use bitview_plugin_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 

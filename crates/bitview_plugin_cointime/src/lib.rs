@@ -6,6 +6,7 @@ mod age_range;
 mod aggregate;
 mod cap;
 mod dependencies;
+mod has;
 mod prices;
 mod reserve_risk;
 mod supply;
@@ -24,13 +25,13 @@ use age_range::Vecs as AgeRangeVecs;
 use aggregate::Vecs as AggregateVecs;
 use cap::Vecs as CapVecs;
 pub use dependencies::Dependencies;
+pub use has::HasCointime;
 use prices::Vecs as PricesVecs;
 use reserve_risk::Vecs as ReserveRiskVecs;
 use supply::Vecs as SupplyVecs;
 use value::Vecs as ValueVecs;
 
 pub const ID: PluginId = PluginId::new("cointime");
-const DB_NAME: &str = ID.as_str();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -53,7 +54,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Plugin for Vecs<M>
 where
-    Self: Send + Sync,
+    Self: Traversable + Send + Sync,
 {
     fn id(&self) -> PluginId {
         ID

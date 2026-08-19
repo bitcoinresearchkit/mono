@@ -64,7 +64,6 @@ struct ParsedFieldAttr {
     rename: Option<String>,
     wrap: Option<String>,
     hidden: bool,
-    explicit: bool,
 }
 
 /// Returns `None` for skipped fields and parsed traversal metadata otherwise.
@@ -73,13 +72,10 @@ fn get_field_attr(field: &syn::Field) -> Option<ParsedFieldAttr> {
     let mut rename = None;
     let mut wrap = None;
     let mut hidden = false;
-    let mut explicit = false;
-
     for attr in &field.attrs {
         if !attr.path().is_ident("traversable") {
             continue;
         }
-        explicit = true;
 
         let Ok(metas) = attr.parse_args_with(
             syn::punctuated::Punctuated::<syn::Meta, syn::Token![,]>::parse_terminated,
@@ -117,7 +113,6 @@ fn get_field_attr(field: &syn::Field) -> Option<ParsedFieldAttr> {
         rename,
         wrap,
         hidden,
-        explicit,
     })
 }
 
@@ -441,13 +436,6 @@ fn analyze_fields<'a>(
         let Some(parsed) = get_field_attr(field) else {
             continue;
         };
-
-        // Explicitly annotated private fields participate without being
-        // exposed. Hidden fields stay out of the public tree but remain in
-        // exportable traversal for storage retention.
-        if !parsed.explicit && !parsed.hidden && !matches!(field.vis, syn::Visibility::Public(_)) {
-            continue;
-        }
 
         let Some(field_name) = &field.ident else {
             continue;
