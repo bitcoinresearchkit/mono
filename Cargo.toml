@@ -40,6 +40,7 @@ bitview = { version = "0.11.2", path = "crates/bitview", default-features = fals
 bitviewd = { version = "0.11.2", path = "crates/bitviewd" }
 bitview_bencher = { version = "0.11.2", path = "crates/bitview_bencher" }
 bitview_bindgen = { version = "0.11.2", path = "crates/bitview_bindgen" }
+bitview_cli = { version = "0.11.2", path = "crates/bitview_cli" }
 bitview_client = { version = "0.11.2", path = "crates/bitview_client" }
 bitview_cohort = { version = "0.11.2", path = "crates/bitview_cohort" }
 bitview_compute = { version = "0.11.2", path = "crates/bitview_compute" }

@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, Query, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
 };
 use brk_types::{Cohort, Date, Urpd, Version};
 
@@ -22,9 +22,9 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/urpd",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Deploy, &uri, |q| q.urpd_cohorts())
+                        .respond_json(&headers, CacheStrategy::Deploy, |q| q.urpd_cohorts())
                         .await
                 },
                 |op| {
@@ -44,13 +44,12 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/urpd/{cohort}/dates",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(params): Path<UrpdCohortParam>,
                        Query(query): Query<UrpdWeightQuery>,
                        State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.urpd_dates_with_weight(&params.cohort, query.weight)
                         })
                         .await
@@ -73,13 +72,12 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/urpd/{cohort}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(params): Path<UrpdCohortParam>,
                        Query(query): Query<UrpdQuery>,
                        State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.urpd_latest_with_weight(
                                 &params.cohort,
                                 query.aggregation,
@@ -110,14 +108,13 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/urpd/{cohort}/{date}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(params): Path<UrpdParams>,
                        Query(query): Query<UrpdQuery>,
                        State(state): State<AppState>| {
                     let strategy = state.date_strategy(Version::TWO, params.date);
                     state
-                        .respond_json(&headers, strategy, &uri, move |q| {
+                        .respond_json(&headers, strategy, move |q| {
                             q.urpd_at_with_weight(
                                 &params.cohort,
                                 params.date,

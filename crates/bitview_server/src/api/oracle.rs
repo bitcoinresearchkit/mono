@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::IntoResponse,
 };
 use brk_oracle::{HistogramEmaCompact, HistogramRaw};
@@ -22,9 +22,9 @@ impl OracleRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/oracle/price",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.live_price())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.live_price())
                         .await
                 },
                 |op| {
@@ -46,9 +46,9 @@ impl OracleRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/oracle/histogram/payments/live",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.live_payment_histogram()
                         })
                         .await
@@ -72,8 +72,7 @@ impl OracleRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/oracle/histogram/payments/{point}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(path): Path<HeightOrDateParam>,
                        _: Empty,
                        State(state): State<AppState>| {
@@ -82,7 +81,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         Ok(HeightOrDate::Date(date)) => {
                             let strategy = state.date_strategy(version, date);
                             state
-                                .respond_json(&headers, strategy, &uri, move |q| {
+                                .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_payment_histogram_day(Day1::try_from(date)?)
                                 })
                                 .await
@@ -90,7 +89,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         Ok(HeightOrDate::Height(height)) => {
                             let strategy = state.height_strategy(version, height);
                             state
-                                .respond_json(&headers, strategy, &uri, move |q| {
+                                .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_payment_histogram(usize::from(height))
                                 })
                                 .await
@@ -120,9 +119,9 @@ impl OracleRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/oracle/histogram/outputs/live",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.live_output_histogram()
                         })
                         .await
@@ -146,8 +145,7 @@ impl OracleRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/oracle/histogram/outputs/{point}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(path): Path<HeightOrDateParam>,
                        _: Empty,
                        State(state): State<AppState>| {
@@ -157,7 +155,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         Ok(HeightOrDate::Date(date)) => {
                             let strategy = state.date_strategy(version, date);
                             state
-                                .respond_json(&headers, strategy, &uri, move |q| {
+                                .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_output_histogram_day(Day1::try_from(date)?)
                                 })
                                 .await
@@ -165,7 +163,7 @@ impl OracleRoutes for ApiRouter<AppState> {
                         Ok(HeightOrDate::Height(height)) => {
                             let strategy = state.height_strategy(version, height);
                             state
-                                .respond_json(&headers, strategy, &uri, move |q| {
+                                .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_output_histogram(usize::from(height))
                                 })
                                 .await

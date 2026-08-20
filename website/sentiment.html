@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Bitcoin capital sentiment and long or short position history."
+    />
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    <title>Bitcoin Capital Sentiment</title>
+    <style>
+      @font-face {
+        font-family: "Lilex";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+          format("woff2-variations");
+        font-style: normal;
+        font-weight: 100 700;
+        font-display: block;
+      }
+
+      @font-face {
+        font-family: "Instrument";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+      }
+
+      :root {
+        color-scheme: dark;
+        --background: #000;
+        --foreground: #f5f5f5;
+        --muted: #8a8a8a;
+        --faint: #202020;
+        --red: #fb2c36;
+        --orange: #ff6900;
+        --yellow: #f0b100;
+        --green: #00c950;
+        --chart-bottom-padding: max(
+          30px,
+          calc(env(safe-area-inset-bottom) + 26px)
+        );
+        --font-mono:
+          "Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --font-serif:
+          "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
+          serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      main,
+      #chart {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        min-width: 320px;
+        overflow: hidden;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-mono);
+      }
+
+      main {
+        position: relative;
+        height: 100dvh;
+        isolation: isolate;
+      }
+
+      #chart {
+        position: absolute;
+        inset: 0 0 var(--chart-bottom-padding);
+        height: auto;
+      }
+
+      #identity {
+        position: absolute;
+        z-index: 2;
+        top: max(15px, env(safe-area-inset-top));
+        left: max(18px, env(safe-area-inset-left));
+        display: grid;
+        gap: 7px;
+        max-width: calc(100% - 112px);
+        pointer-events: none;
+        text-transform: capitalize;
+        text-shadow:
+          -1px -1px 0 var(--background),
+          0 -1px 0 var(--background),
+          1px -1px 0 var(--background),
+          -1px 0 0 var(--background),
+          1px 0 0 var(--background),
+          -1px 1px 0 var(--background),
+          0 1px 0 var(--background),
+          1px 1px 0 var(--background);
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(34px, 4.5vw, 52px);
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 0.92;
+      }
+
+      #readout {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.22em;
+        min-height: 18px;
+        color: var(--foreground);
+        font-family: var(--font-serif);
+        font-size: clamp(28px, 4vw, 44px);
+        font-variant-numeric: tabular-nums;
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 0.95;
+        text-transform: capitalize;
+      }
+
+      #sentiment {
+        color: var(--sentiment-color, var(--muted));
+      }
+
+      #readout > span:first-child {
+        color: var(--muted);
+      }
+
+      #status {
+        position: absolute;
+        z-index: 3;
+        top: 50%;
+        left: 50%;
+        max-width: min(420px, calc(100% - 32px));
+        padding: 7px 10px;
+        border-radius: 6px;
+        color: var(--muted);
+        background: rgb(20 20 20 / 86%);
+        font-size: 11px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        line-height: 18px;
+        text-align: center;
+        text-transform: uppercase;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        transition: opacity 160ms ease;
+      }
+
+      #status:empty {
+        opacity: 0;
+      }
+
+      #status[data-error="true"] {
+        color: var(--foreground);
+        background: rgb(95 19 25 / 92%);
+      }
+
+      #source-credit {
+        position: absolute;
+        z-index: 2;
+        bottom: max(7px, env(safe-area-inset-bottom));
+        left: max(18px, env(safe-area-inset-left));
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        line-height: 16px;
+        text-transform: uppercase;
+      }
+
+      #source-credit a {
+        color: inherit;
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      #source-credit .credit-copy {
+        opacity: 0.45;
+      }
+
+      #source-credit a:hover,
+      #source-credit a:focus-visible {
+        color: var(--foreground);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (max-width: 600px) {
+        #identity {
+          top: max(12px, env(safe-area-inset-top));
+          left: max(12px, env(safe-area-inset-left));
+          max-width: calc(100% - 90px);
+        }
+
+        h1 {
+          font-size: 36px;
+        }
+
+        #source-credit {
+          left: max(12px, env(safe-area-inset-left));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div
+        id="chart"
+        role="img"
+        aria-busy="true"
+        aria-label="Bitcoin price colored by capital sentiment, with long and short position history"
+      ></div>
+
+      <header id="identity">
+        <h1>Bitcoin Capital Sentiment</h1>
+        <div id="readout" aria-live="polite">
+          <span>Phase:</span>
+          <span id="sentiment">--</span>
+        </div>
+      </header>
+
+      <div id="status">Loading sentiment</div>
+
+      <div id="source-credit">
+        <span class="credit-copy">Source:</span>
+        <a href="https://bitview.space" target="_blank" rel="noreferrer">
+          Bitview.space
+        </a>
+        <span class="credit-copy">· Powered by</span>
+        <a
+          href="https://bitcoinresearchkit.org"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Bitcoin Research Kit
+        </a>
+      </div>
+    </main>
+
+    <script type="module">
+      import {
+        AreaSeries,
+        CandlestickSeries,
+        CrosshairMode,
+        HistogramSeries,
+        LineSeries,
+        LineStyle,
+        PriceScaleMode,
+        createChart,
+      } from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+
+      const API_ROOT = "https://bitview.space/api";
+      const API = `${API_ROOT}/series`;
+      const LIVE_PRICE_URL = `${API_ROOT}/oracle/price`;
+      const DAY_ZERO = Date.UTC(2009, 0, 1);
+      const DAY_SECONDS = 24 * 60 * 60;
+      const LIVE_PRICE_POLL_MS = 1000;
+      const LIVE_PRICE_TIMEOUT_MS = 1500;
+      const SERIES_POLL_MS = 60 * 1000;
+      const PRICE_CANDLE_ENTER_BARS = 500;
+      const PRICE_CANDLE_EXIT_BARS = 600;
+      const PRICE_SCALE_MIN_WIDTH = 64;
+      const PRICE_SCALE_MARGINS = { top: 0.2, bottom: 0.02 };
+      const PRICE_PANE_STRETCH = 8;
+      const POSITION_PANE_STRETCH = 1;
+
+      const COLORS = Object.freeze({
+        background: "#000000",
+        foreground: "#f5f5f5",
+        muted: "#8a8a8a",
+        faint: "#202020",
+        red: "#fb2c36",
+        orange: "#ff6900",
+        yellow: "#f0b100",
+        green: "#00c950",
+        cyan: "#00b8db",
+        fuchsia: "#e12afb",
+      });
+
+      const SENTIMENT = Object.freeze({
+        [-2]: { label: "bear", color: COLORS.red },
+        [-1]: { label: "limbo", color: COLORS.orange },
+        1: { label: "cautious bull", color: COLORS.yellow },
+        2: { label: "bull", color: COLORS.green },
+      });
+
+      const ENDPOINTS = Object.freeze({
+        priceOhlc: `${API}/price_ohlc/day`,
+        score: `${API}/capital_sentiment_score/day`,
+        phase: `${API}/capital_sentiment_phase/day`,
+        isLong: `${API}/capital_sentiment_is_long/day`,
+        all: `${API}/capitalized_price/day`,
+        sth: `${API}/sth_capitalized_price/day`,
+        lth: `${API}/lth_capitalized_price/day`,
+        sma: `${API}/price_sma_1y/day`,
+      });
+
+      const REFERENCES = Object.freeze([
+        { key: "all", color: COLORS.orange, style: LineStyle.Dashed },
+        { key: "sth", color: COLORS.yellow, style: LineStyle.Dashed },
+        { key: "lth", color: COLORS.fuchsia, style: LineStyle.Dashed },
+        { key: "sma", color: COLORS.cyan, style: LineStyle.Dotted },
+      ]);
+
+      const chartElement = document.getElementById("chart");
+      const statusElement = document.getElementById("status");
+      const sentimentElement = document.getElementById("sentiment");
+      const rowsByTime = new Map();
+      const etags = new Map();
+      const seriesCache = {};
+      const NOT_MODIFIED = Symbol("not-modified");
+
+      let rows = [];
+      let latestRow = null;
+      let chartState = null;
+      let lastLivePrice = null;
+      let livePriceInFlight = false;
+      let seriesRefreshInFlight = false;
+
+      function rgba(hex, alpha) {
+        const value = Number.parseInt(hex.slice(1), 16);
+        const red = (value >> 16) & 255;
+        const green = (value >> 8) & 255;
+        const blue = value & 255;
+        return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+      }
+
+      function dayToTimestamp(day) {
+        return Math.floor(DAY_ZERO / 1000) + day * DAY_SECONDS;
+      }
+
+      function timestampForTime(time) {
+        if (Number.isFinite(time)) return time;
+        if (typeof time === "string") {
+          return Math.floor(Date.parse(time) / 1000);
+        }
+        if (time && Number.isFinite(time.year)) {
+          return Math.floor(
+            Date.UTC(time.year, time.month - 1, time.day) / 1000,
+          );
+        }
+        return null;
+      }
+
+      function seriesValue(series, day) {
+        return series.data[day - series.start];
+      }
+
+      function isPrice(value) {
+        return Number.isFinite(value) && value > 0;
+      }
+
+      function isCandle(value) {
+        return Array.isArray(value) && value.length >= 4 && value.every(isPrice);
+      }
+
+      function sentimentFor(score) {
+        return SENTIMENT[score] ?? null;
+      }
+
+      function numberToUSNumber(value, digits) {
+        return value.toLocaleString("en-US", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        });
+      }
+
+      function formatPrice(value, digits) {
+        const absoluteValue = Math.abs(value);
+        if (!Number.isFinite(value)) return "";
+
+        if (absoluteValue < 10) {
+          return numberToUSNumber(value, Math.min(3, digits || 10));
+        }
+        if (absoluteValue < 1000) {
+          return numberToUSNumber(value, Math.min(2, digits || 10));
+        }
+        if (absoluteValue < 10000) {
+          return numberToUSNumber(value, Math.min(1, digits || 10));
+        }
+        if (absoluteValue < 1000000) {
+          return numberToUSNumber(value, 0);
+        }
+        if (absoluteValue >= 1e27) return "Inf.";
+
+        const log = Math.floor(Math.log10(absoluteValue) - 6);
+        const suffixes = ["M", "B", "T", "P", "E", "Z", "Y"];
+        const suffixIndex = Math.floor(log / 3);
+        const divisor = 1000000 * 1000 ** suffixIndex;
+        const suffix = suffixes[suffixIndex];
+        const suffixDigits = log % 3 === 0 ? 3 : log % 3 === 1 ? 2 : 1;
+
+        return `${numberToUSNumber(value / divisor, suffixDigits)}${suffix}`;
+      }
+
+      function buildRows({
+        priceOhlc,
+        score,
+        phase,
+        isLong,
+        all,
+        sth,
+        lth,
+        sma,
+      }) {
+        const rows = [];
+
+        for (let index = 0; index < priceOhlc.data.length; index += 1) {
+          const day = priceOhlc.start + index;
+          const priceValue = priceOhlc.data[index];
+          const scoreValue = seriesValue(score, day);
+          const phaseValue = seriesValue(phase, day);
+          const isLongValue = seriesValue(isLong, day);
+
+          if (!isCandle(priceValue) || !sentimentFor(scoreValue)) continue;
+          if (typeof phaseValue !== "string") continue;
+          if (typeof isLongValue !== "boolean") continue;
+
+          const [open, high, low, close] = priceValue;
+          rows.push({
+            time: dayToTimestamp(day),
+            price: close,
+            open,
+            high,
+            low,
+            close,
+            score: scoreValue,
+            phase: phaseValue,
+            isLong: isLongValue,
+            all: seriesValue(all, day),
+            sth: seriesValue(sth, day),
+            lth: seriesValue(lth, day),
+            sma: seriesValue(sma, day),
+          });
+        }
+
+        return rows;
+      }
+
+      async function fetchSeries(name, url, conditional = false) {
+        const headers = {};
+        const etag = etags.get(name);
+        if (conditional && etag) headers["If-None-Match"] = etag;
+
+        const response = await fetch(url, { cache: "no-cache", headers });
+        if (response.status === 304) return NOT_MODIFIED;
+        if (!response.ok) throw new Error(`${name}: ${response.status}`);
+
+        const series = await response.json();
+        if (!Number.isFinite(series.start) || !Array.isArray(series.data)) {
+          throw new Error(`${name}: invalid data`);
+        }
+        const nextEtag = response.headers.get("etag");
+        if (nextEtag) etags.set(name, nextEtag);
+        return series;
+      }
+
+      async function fetchAllSeries(conditional = false) {
+        const entries = await Promise.all(
+          Object.entries(ENDPOINTS).map(async ([name, url]) => [
+            name,
+            await fetchSeries(name, url, conditional),
+          ]),
+        );
+
+        let changed = false;
+        for (const [name, series] of entries) {
+          if (series === NOT_MODIFIED) continue;
+          seriesCache[name] = series;
+          changed = true;
+        }
+
+        return conditional && !changed ? null : seriesCache;
+      }
+
+      function areaPoint(row) {
+        const color = sentimentFor(row.score).color;
+        return {
+          time: row.time,
+          value: row.price,
+          topColor: rgba(color, 0.58),
+          bottomColor: rgba(color, 0.045),
+        };
+      }
+
+      function positionPoint(row) {
+        return {
+          time: row.time,
+          value: row.isLong ? 1 : -1,
+          color: rgba(row.isLong ? COLORS.green : COLORS.red, 0.82),
+        };
+      }
+
+      function candlePoint(row) {
+        return {
+          time: row.time,
+          open: row.open,
+          high: row.high,
+          low: row.low,
+          close: row.close,
+        };
+      }
+
+      function referencePoint(row, key) {
+        const value = row[key];
+        return isPrice(value)
+          ? { time: row.time, value }
+          : { time: row.time };
+      }
+
+      function setReadout(row) {
+        if (!row) return;
+
+        const sentiment = sentimentFor(row.score);
+
+        sentimentElement.textContent = row.phase.replaceAll("_", " ");
+        sentimentElement.style.setProperty("--sentiment-color", sentiment.color);
+      }
+
+      function indexRows(nextRows) {
+        rows = nextRows;
+        rowsByTime.clear();
+        for (const row of rows) rowsByTime.set(row.time, row);
+        latestRow = rows.at(-1) ?? null;
+        setReadout(latestRow);
+      }
+
+      function applyRows(nextRows) {
+        const visibleRange =
+          chartState?.chart.timeScale().getVisibleLogicalRange() ?? null;
+        indexRows(nextRows);
+        if (!chartState) return;
+
+        chartState.area.setData(rows.map(areaPoint));
+        chartState.price.setData(
+          rows.map((row) => ({ time: row.time, value: row.price })),
+        );
+        chartState.candles.setData(rows.map(candlePoint));
+        chartState.position.setData(rows.map(positionPoint));
+        for (let index = 0; index < REFERENCES.length; index += 1) {
+          const definition = REFERENCES[index];
+          chartState.references[index].setData(
+            rows.map((row) => referencePoint(row, definition.key)),
+          );
+        }
+
+        if (visibleRange) {
+          chartState.chart.timeScale().setVisibleLogicalRange(visibleRange);
+        }
+      }
+
+      function applyLivePrice(value, force = false) {
+        if (!chartState || !latestRow || !isPrice(value)) return;
+        if (!force && value === lastLivePrice) return;
+        lastLivePrice = value;
+
+        const row = {
+          ...latestRow,
+          price: value,
+          high: Math.max(latestRow.high, value),
+          low: Math.min(latestRow.low, value),
+          close: value,
+        };
+        rows[rows.length - 1] = row;
+        latestRow = row;
+        rowsByTime.set(row.time, row);
+
+        chartState.area.update(areaPoint(row));
+        chartState.price.update({ time: row.time, value });
+        chartState.candles.update(candlePoint(row));
+      }
+
+      async function refreshLivePrice() {
+        if (livePriceInFlight) return;
+        livePriceInFlight = true;
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(
+          () => controller.abort(),
+          LIVE_PRICE_TIMEOUT_MS,
+        );
+        try {
+          const response = await fetch(LIVE_PRICE_URL, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`live price: ${response.status}`);
+
+          applyLivePrice(Number(await response.json()));
+        } catch (error) {
+          console.warn(error);
+        } finally {
+          window.clearTimeout(timeout);
+          livePriceInFlight = false;
+        }
+      }
+
+      async function refreshSeries() {
+        if (seriesRefreshInFlight) return;
+        seriesRefreshInFlight = true;
+        try {
+          const series = await fetchAllSeries(true);
+          if (!series) return;
+
+          const nextRows = buildRows(series);
+          if (!nextRows.length) throw new Error("No aligned sentiment data");
+          applyRows(nextRows);
+          if (isPrice(lastLivePrice)) applyLivePrice(lastLivePrice, true);
+        } catch (error) {
+          console.warn(error);
+        } finally {
+          seriesRefreshInFlight = false;
+        }
+      }
+
+      function startPolling() {
+        void refreshLivePrice();
+        window.setInterval(refreshLivePrice, LIVE_PRICE_POLL_MS);
+        window.setInterval(refreshSeries, SERIES_POLL_MS);
+      }
+
+      function createSentimentChart(rows) {
+        const chart = createChart(chartElement, {
+          autoSize: true,
+          layout: {
+            attributionLogo: false,
+            background: { color: "transparent" },
+            textColor: COLORS.muted,
+            fontFamily: getComputedStyle(document.body).fontFamily,
+            fontSize: 11,
+            panes: {
+              enableResize: false,
+              separatorColor: COLORS.faint,
+              separatorHoverColor: COLORS.faint,
+            },
+          },
+          grid: {
+            horzLines: { color: COLORS.faint },
+            vertLines: { color: COLORS.faint },
+          },
+          crosshair: {
+            mode: CrosshairMode.Normal,
+            vertLine: {
+              color: COLORS.muted,
+              labelBackgroundColor: COLORS.foreground,
+            },
+            horzLine: {
+              color: COLORS.muted,
+              labelBackgroundColor: COLORS.foreground,
+            },
+          },
+          localization: {
+            locale: "en-US",
+          },
+          rightPriceScale: {
+            mode: PriceScaleMode.Logarithmic,
+            borderColor: COLORS.faint,
+            borderVisible: true,
+            minimumWidth: PRICE_SCALE_MIN_WIDTH,
+            scaleMargins: PRICE_SCALE_MARGINS,
+          },
+          timeScale: {
+            borderColor: COLORS.faint,
+            borderVisible: true,
+            enableConflation: true,
+            lockVisibleTimeRangeOnResize: true,
+            secondsVisible: false,
+            shiftVisibleRangeOnNewBar: false,
+            timeVisible: false,
+          },
+        });
+
+        const area = chart.addSeries(AreaSeries, {
+          lineVisible: false,
+          topColor: "transparent",
+          bottomColor: "transparent",
+          relativeGradient: true,
+          priceFormat: {
+            type: "custom",
+            minMove: 0.01,
+            formatter: formatPrice,
+            tickmarksFormatter: (values) => values.map(formatPrice),
+          },
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+
+        const price = chart.addSeries(LineSeries, {
+          color: COLORS.foreground,
+          lineWidth: 1.5,
+          priceFormat: {
+            type: "custom",
+            minMove: 0.01,
+            formatter: formatPrice,
+            tickmarksFormatter: (values) => values.map(formatPrice),
+          },
+          priceLineVisible: false,
+          priceLineColor: COLORS.foreground,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+        });
+
+        const candles = chart.addSeries(CandlestickSeries, {
+          visible: false,
+          upColor: COLORS.background,
+          downColor: COLORS.foreground,
+          wickUpColor: COLORS.foreground,
+          wickDownColor: COLORS.foreground,
+          borderUpColor: COLORS.foreground,
+          borderDownColor: COLORS.foreground,
+          borderVisible: true,
+          priceFormat: {
+            type: "custom",
+            minMove: 0.01,
+            formatter: formatPrice,
+            tickmarksFormatter: (values) => values.map(formatPrice),
+          },
+          priceLineVisible: false,
+          priceLineColor: COLORS.foreground,
+          lastValueVisible: true,
+        });
+
+        const references = REFERENCES.map((definition) => {
+          const reference = chart.addSeries(LineSeries, {
+            color: rgba(definition.color, 0.75),
+            lineWidth: 1.5,
+            lineStyle: definition.style,
+            priceFormat: {
+              type: "custom",
+              minMove: 0.01,
+              formatter: formatPrice,
+              tickmarksFormatter: (values) => values.map(formatPrice),
+            },
+            priceLineVisible: false,
+            priceLineColor: rgba(definition.color, 0.75),
+            lastValueVisible: true,
+            crosshairMarkerVisible: false,
+          });
+          reference.setData(
+            rows.map((row) => referencePoint(row, definition.key)),
+          );
+          return reference;
+        });
+
+        const position = chart.addSeries(
+          HistogramSeries,
+          {
+            base: 0,
+            color: COLORS.green,
+            priceFormat: {
+              type: "custom",
+              minMove: 1,
+              formatter: (value) =>
+                value > 0 ? "long" : value < 0 ? "short" : "",
+              tickmarksFormatter: (values) => values.map(() => ""),
+            },
+            priceLineVisible: false,
+            lastValueVisible: true,
+          },
+          1,
+        );
+
+        area.setData(rows.map(areaPoint));
+        price.setData(
+          rows.map((row) => ({
+            time: row.time,
+            value: row.price,
+          })),
+        );
+        candles.setData(rows.map(candlePoint));
+        position.setData(rows.map(positionPoint));
+        area.setSeriesOrder(0);
+        for (const reference of references) reference.setSeriesOrder(1);
+        candles.setSeriesOrder(2);
+        price.setSeriesOrder(3);
+
+        chart
+          .panes()
+          .at(0)
+          ?.setStretchFactor(PRICE_PANE_STRETCH);
+        chart
+          .panes()
+          .at(1)
+          ?.setStretchFactor(POSITION_PANE_STRETCH);
+
+        chart.priceScale("right", 1).applyOptions({
+          borderColor: COLORS.faint,
+          borderVisible: true,
+          minimumWidth: PRICE_SCALE_MIN_WIDTH,
+          scaleMargins: { top: 0.12, bottom: 0.12 },
+        });
+
+        chart.subscribeCrosshairMove((parameter) => {
+          const timestamp = timestampForTime(parameter.time);
+          const row = Number.isFinite(timestamp)
+            ? rowsByTime.get(timestamp)
+            : null;
+          setReadout(row ?? latestRow);
+        });
+
+        let priceCandlesVisible = false;
+        let pendingRange = null;
+        let rangeFrame = 0;
+
+        function updatePriceVisibility(range) {
+          const visibleBars = range ? range.to - range.from : Infinity;
+          const showCandles = priceCandlesVisible
+            ? visibleBars <= PRICE_CANDLE_EXIT_BARS
+            : visibleBars <= PRICE_CANDLE_ENTER_BARS;
+          if (showCandles === priceCandlesVisible) return;
+
+          priceCandlesVisible = showCandles;
+          price.applyOptions({ visible: !showCandles });
+          candles.applyOptions({ visible: showCandles });
+        }
+
+        function schedulePriceVisibility(range) {
+          pendingRange = range;
+          if (rangeFrame) return;
+
+          rangeFrame = requestAnimationFrame(() => {
+            rangeFrame = 0;
+            updatePriceVisibility(pendingRange);
+            pendingRange = null;
+          });
+        }
+
+        chart.timeScale().fitContent();
+        chart.timeScale().subscribeVisibleLogicalRangeChange(
+          schedulePriceVisibility,
+        );
+        updatePriceVisibility(chart.timeScale().getVisibleLogicalRange());
+
+        return { chart, area, price, candles, references, position };
+      }
+
+      async function load() {
+        const series = await fetchAllSeries();
+        const nextRows = buildRows(series);
+        if (!nextRows.length) throw new Error("No aligned sentiment data");
+
+        indexRows(nextRows);
+        chartState = createSentimentChart(rows);
+        startPolling();
+
+        chartElement.setAttribute("aria-busy", "false");
+        statusElement.textContent = "";
+      }
+
+      load().catch((error) => {
+        statusElement.dataset.error = "true";
+        statusElement.textContent = "Unable to load sentiment";
+        chartElement.setAttribute("aria-busy", "false");
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

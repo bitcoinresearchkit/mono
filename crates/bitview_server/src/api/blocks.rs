@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
 };
 use brk_types::{
     BlockHash, BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex, Height, Hex,
@@ -27,12 +27,11 @@ impl BlockRoutes for ApiRouter<AppState> {
         self.api_route(
                 "/api/block/{hash}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashParam>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_json(&headers, strategy, &uri, move |q| q.block(&path.hash)).await
+                        state.respond_json(&headers, strategy, move |q| q.block(&path.hash)).await
                     },
                     |op| {
                         op.id("get_block")
@@ -52,9 +51,9 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/v1/block/{hash}",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, Path(path): Path<BlockHashParam>, _: Empty, State(state): State<AppState>| {
+                    async |headers: HeaderMap, Path(path): Path<BlockHashParam>, _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_json(&headers, strategy, &uri, move |q| {
+                        state.respond_json(&headers, strategy, move |q| {
                             let height = q.height_by_hash(&path.hash)?;
                             q.block_by_height_v1(height)
                         }).await
@@ -75,9 +74,9 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/header",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, Path(path): Path<BlockHashParam>, _: Empty, State(state): State<AppState>| {
+                    async |headers: HeaderMap, Path(path): Path<BlockHashParam>, _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_text(&headers, strategy, &uri, move |q| q.block_header_hex(&path.hash)).await
+                        state.respond_text(&headers, strategy, move |q| q.block_header_hex(&path.hash)).await
                     },
                     |op| {
                         op.id("get_block_header")
@@ -95,11 +94,10 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block-height/{height}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<HeightParam>,
                            _: Empty, State(state): State<AppState>| {
-                        state.respond_text(&headers, state.height_strategy(Version::ONE, path.height), &uri, move |q| q.block_hash_by_height(path.height).map(|h| h.to_string())).await
+                        state.respond_text(&headers, state.height_strategy(Version::ONE, path.height), move |q| q.block_hash_by_height(path.height).map(|h| h.to_string())).await
                     },
                     |op| {
                         op.id("get_block_by_height")
@@ -119,11 +117,10 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/v1/mining/blocks/timestamp/{timestamp}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<TimestampParam>,
                            _: Empty, State(state): State<AppState>| {
-                        state.respond_json(&headers, state.timestamp_strategy(Version::ONE, path.timestamp), &uri, move |q| q.block_by_timestamp(path.timestamp)).await
+                        state.respond_json(&headers, state.timestamp_strategy(Version::ONE, path.timestamp), move |q| q.block_by_timestamp(path.timestamp)).await
                     },
                     |op| {
                         op.id("get_block_by_timestamp")
@@ -141,12 +138,11 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/raw",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashParam>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_bytes(&headers, strategy, &uri, move |q| q.block_raw(&path.hash)).await
+                        state.respond_bytes(&headers, strategy, move |q| q.block_raw(&path.hash)).await
                     },
                     |op| {
                         op.id("get_block_raw")
@@ -167,11 +163,10 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/status",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashParam>,
                            _: Empty, State(state): State<AppState>| {
-                        state.respond_json(&headers, state.block_status_strategy(Version::ONE, &path.hash), &uri, move |q| q.block_status(&path.hash)).await
+                        state.respond_json(&headers, state.block_status_strategy(Version::ONE, &path.hash), move |q| q.block_status(&path.hash)).await
                     },
                     |op| {
                         op.id("get_block_status")
@@ -191,8 +186,8 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/blocks/tip/height",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                        state.respond_text(&headers, CacheStrategy::Tip, &uri, |q| Ok(q.height().to_string())).await
+                    async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                        state.respond_text(&headers, CacheStrategy::Tip, |q| Ok(q.height().to_string())).await
                     },
                     |op| {
                         op.id("get_block_tip_height")
@@ -208,8 +203,8 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/blocks/tip/hash",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                        state.respond_text(&headers, CacheStrategy::Tip, &uri, |q| Ok(q.tip_blockhash().to_string())).await
+                    async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                        state.respond_text(&headers, CacheStrategy::Tip, |q| Ok(q.tip_blockhash().to_string())).await
                     },
                     |op| {
                         op.id("get_block_tip_hash")
@@ -225,12 +220,11 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/txid/{index}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashTxIndex>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_text(&headers, strategy, &uri, move |q| q.block_txid_at_index(&path.hash, path.index).map(|t| t.to_string())).await
+                        state.respond_text(&headers, strategy, move |q| q.block_txid_at_index(&path.hash, path.index).map(|t| t.to_string())).await
                     },
                     |op| {
                         op.id("get_block_txid")
@@ -250,12 +244,11 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/txids",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashParam>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_json(&headers, strategy, &uri, move |q| q.block_txids(&path.hash)).await
+                        state.respond_json(&headers, strategy, move |q| q.block_txids(&path.hash)).await
                     },
                     |op| {
                         op.id("get_block_txids")
@@ -276,12 +269,11 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/txs",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashParam>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_json(&headers, strategy, &uri, move |q| q.block_txs(&path.hash, BlockTxIndex::default(), BLOCK_TXS_PAGE_SIZE)).await
+                        state.respond_json(&headers, strategy, move |q| q.block_txs(&path.hash, BlockTxIndex::default(), BLOCK_TXS_PAGE_SIZE)).await
                     },
                     |op| {
                         op.id("get_block_txs")
@@ -303,12 +295,11 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/block/{hash}/txs/{start_index}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<BlockHashStartIndex>,
                            _: Empty, State(state): State<AppState>| {
                         let strategy = state.block_strategy(Version::ONE, &path.hash);
-                        state.respond_json(&headers, strategy, &uri, move |q| q.block_txs(&path.hash, path.start_index, BLOCK_TXS_PAGE_SIZE)).await
+                        state.respond_json(&headers, strategy, move |q| q.block_txs(&path.hash, path.start_index, BLOCK_TXS_PAGE_SIZE)).await
                     },
                     |op| {
                         op.id("get_block_txs_from_index")
@@ -329,9 +320,9 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/blocks",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                    async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                         state
-                            .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| q.blocks(None, 10))
+                            .respond_json(&headers, CacheStrategy::Tip, move |q| q.blocks(None, 10))
                             .await
                     },
                     |op| {
@@ -348,11 +339,10 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/blocks/{height}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<HeightParam>,
                            _: Empty, State(state): State<AppState>| {
-                        state.respond_json(&headers, state.height_strategy(Version::ONE, path.height), &uri, move |q| q.blocks(Some(path.height), 10)).await
+                        state.respond_json(&headers, state.height_strategy(Version::ONE, path.height), move |q| q.blocks(Some(path.height), 10)).await
                     },
                     |op| {
                         op.id("get_blocks_from_height")
@@ -371,9 +361,9 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/v1/blocks",
                 get_with(
-                    async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                    async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                         state
-                            .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| q.blocks_v1(None, 15))
+                            .respond_json(&headers, CacheStrategy::Tip, move |q| q.blocks_v1(None, 15))
                             .await
                     },
                     |op| {
@@ -390,11 +380,10 @@ impl BlockRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api/v1/blocks/{height}",
                 get_with(
-                    async |uri: Uri,
-                           headers: HeaderMap,
+                    async |headers: HeaderMap,
                            Path(path): Path<HeightParam>,
                            _: Empty, State(state): State<AppState>| {
-                        state.respond_json(&headers, state.height_strategy(Version::ONE, path.height), &uri, move |q| q.blocks_v1(Some(path.height), 15)).await
+                        state.respond_json(&headers, state.height_strategy(Version::ONE, path.height), move |q| q.blocks_v1(Some(path.height), 15)).await
                     },
                     |op| {
                         op.id("get_blocks_v1_from_height")

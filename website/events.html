@@ -1,0 +1,1211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Bitcoin price with precomputed extreme on-chain event markers from the Bitcoin Research Kit."
+    />
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" crossorigin />
+    <title>Bitcoin Extreme Events</title>
+    <style>
+      @font-face {
+        font-family: "Lilex";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+          format("woff2-variations");
+        font-style: normal;
+        font-weight: 100 700;
+        font-display: block;
+      }
+
+      @font-face {
+        font-family: "Instrument";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 400;
+        font-display: block;
+      }
+
+      :root {
+        color-scheme: dark;
+        --background: #000;
+        --foreground: #f5f5f5;
+        --muted: #8a8a8a;
+        --faint: #111;
+        --control: rgb(18 18 18 / 82%);
+        --control-border: #303030;
+        --red: #fb2c36;
+        --yellow: #f0b100;
+        --green: #00c950;
+        --pink: #f6339a;
+        --chart-bottom-padding: max(
+          30px,
+          calc(env(safe-area-inset-bottom) + 26px)
+        );
+        --font-mono:
+          "Lilex", "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji",
+          ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
+        --font-serif:
+          "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
+          serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body,
+      main,
+      #chart {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+      }
+
+      body {
+        min-width: 320px;
+        overflow: hidden;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: var(--font-mono);
+      }
+
+      main {
+        position: relative;
+        height: 100dvh;
+        isolation: isolate;
+      }
+
+      #chart {
+        position: absolute;
+        inset: 0 0 var(--chart-bottom-padding);
+        height: auto;
+      }
+
+      #event-markers {
+        --event-marker-size: 14.4px;
+        position: absolute;
+        z-index: 1;
+        inset: 0 0 var(--chart-bottom-padding);
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      #event-markers span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: var(--event-marker-size);
+        height: var(--event-marker-size);
+        border-radius: 50%;
+        background: var(--event-color);
+        transform: translate(-50%, -50%);
+        will-change: left, top;
+        forced-color-adjust: none;
+      }
+
+      #event-markers span[data-shape="ring"] {
+        border: max(0.75px, calc(var(--event-marker-size) * 0.16)) solid
+          var(--event-color);
+        background: transparent;
+      }
+
+      #identity {
+        position: absolute;
+        z-index: 2;
+        top: max(15px, env(safe-area-inset-top));
+        left: max(18px, env(safe-area-inset-left));
+        display: grid;
+        justify-items: start;
+        gap: 9px;
+        max-width: calc(100% - 104px);
+        pointer-events: none;
+        text-shadow:
+          -1px -1px 0 var(--background),
+          0 -1px 0 var(--background),
+          1px -1px 0 var(--background),
+          -1px 0 0 var(--background),
+          1px 0 0 var(--background),
+          -1px 1px 0 var(--background),
+          0 1px 0 var(--background),
+          1px 1px 0 var(--background);
+      }
+
+      h1 {
+        margin: 0;
+        font-family: var(--font-serif);
+        font-size: clamp(34px, 4.5vw, 52px);
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 0.92;
+        text-transform: capitalize;
+      }
+
+      #controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        pointer-events: auto;
+      }
+
+      #controls label {
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        line-height: 28px;
+        text-transform: uppercase;
+      }
+
+      select {
+        min-height: 30px;
+        padding: 4px 30px 4px 9px;
+        border: 1px solid var(--control-border);
+        border-radius: 6px;
+        outline: none;
+        background: var(--control);
+        color: var(--foreground);
+        font: 500 11px/18px var(--font-mono);
+        letter-spacing: 0.04em;
+        cursor: pointer;
+      }
+
+      select:hover {
+        border-color: #4a4a4a;
+      }
+
+      select:focus-visible {
+        border-color: var(--foreground);
+        box-shadow: 0 0 0 2px rgb(255 255 255 / 12%);
+      }
+
+      #event-key {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px 12px;
+        color: var(--muted);
+        font-size: 10px;
+        font-weight: 550;
+        letter-spacing: 0.065em;
+        line-height: 16px;
+        pointer-events: auto;
+        text-transform: uppercase;
+      }
+
+      .event-key-item {
+        display: grid;
+        gap: 0;
+        padding: 0;
+        border: 0;
+        outline: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+        letter-spacing: inherit;
+        line-height: inherit;
+        text-align: left;
+        text-transform: inherit;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: opacity 140ms ease;
+      }
+
+      .event-key-item[aria-pressed="false"] {
+        opacity: 0.28;
+      }
+
+      .event-key-item:focus-visible {
+        outline: 1px solid var(--muted);
+        outline-offset: 3px;
+      }
+
+      .event-key-label {
+        display: block;
+      }
+
+      .event-key-meta {
+        display: block;
+        color: #555;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        line-height: 12px;
+      }
+
+      #event-key b {
+        display: inline-block;
+        width: 13px;
+        height: 13px;
+        margin-right: 3px;
+        border-radius: 50%;
+        background: var(--event-color);
+        vertical-align: -1px;
+        forced-color-adjust: none;
+      }
+
+      #event-key b[data-shape="ring"] {
+        border: 2px solid var(--event-color);
+        background: transparent;
+      }
+
+      #status {
+        position: absolute;
+        z-index: 3;
+        top: 50%;
+        left: 50%;
+        max-width: min(420px, calc(100% - 32px));
+        padding: 7px 10px;
+        border-radius: 6px;
+        color: var(--muted);
+        background: rgb(20 20 20 / 86%);
+        font-size: 11px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        line-height: 18px;
+        text-align: center;
+        text-transform: uppercase;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        transition: opacity 160ms ease;
+      }
+
+      #status:empty {
+        opacity: 0;
+      }
+
+      #status[data-error="true"] {
+        color: var(--foreground);
+        background: rgb(95 19 25 / 92%);
+      }
+
+      #source-credit {
+        position: absolute;
+        z-index: 2;
+        bottom: max(7px, env(safe-area-inset-bottom));
+        left: max(18px, env(safe-area-inset-left));
+        color: var(--muted);
+        font-size: 9px;
+        font-weight: 550;
+        letter-spacing: 0.08em;
+        line-height: 16px;
+        text-transform: uppercase;
+      }
+
+      #source-credit .credit-copy {
+        opacity: 0.45;
+      }
+
+      #source-credit a {
+        color: inherit;
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      #source-credit a:hover,
+      #source-credit a:focus-visible {
+        color: var(--foreground);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      @media (max-width: 650px) {
+        #identity {
+          top: max(12px, env(safe-area-inset-top));
+          left: max(12px, env(safe-area-inset-left));
+          gap: 7px;
+          max-width: calc(100% - 78px);
+        }
+
+        h1 {
+          font-size: 36px;
+        }
+
+        #event-key {
+          gap: 3px 8px;
+          font-size: 8px;
+        }
+
+        #source-credit {
+          left: max(12px, env(safe-area-inset-left));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div
+        id="chart"
+        role="img"
+        aria-busy="true"
+        aria-label="Bitcoin price with precomputed extreme event markers"
+      ></div>
+      <div id="event-markers" aria-hidden="true"></div>
+
+      <header id="identity">
+        <h1>Bitcoin Extreme Events</h1>
+
+        <div id="controls">
+          <label for="level">Level</label>
+          <select id="level" aria-label="Minimum historical extreme level">
+            <option value="1">1%</option>
+            <option value="0.5">0.5%</option>
+            <option value="0.25">0.25%</option>
+            <option value="0.1" selected>0.1%</option>
+            <option value="0.05">0.05%</option>
+            <option value="0.025">0.025%</option>
+          </select>
+        </div>
+
+        <div id="event-key" aria-label="Event marker key">
+          <button
+            class="event-key-item"
+            type="button"
+            data-event="profitTaking"
+            aria-pressed="true"
+          >
+            <span class="event-key-label"
+              ><b
+                aria-hidden="true"
+                style="--event-color: var(--green)"
+              ></b
+              >Profit taking</span
+            >
+            <small class="event-key-meta" data-tail="profitTaking">
+              Tail —
+            </small>
+          </button>
+          <button
+            class="event-key-item"
+            type="button"
+            data-event="capitulation"
+            aria-pressed="true"
+          >
+            <span class="event-key-label"
+              ><b
+                aria-hidden="true"
+                style="--event-color: var(--red)"
+              ></b
+              >Capitulation</span
+            >
+            <small class="event-key-meta" data-tail="capitulation">
+              Tail —
+            </small>
+          </button>
+          <button
+            class="event-key-item"
+            type="button"
+            data-event="peakRegret"
+            aria-pressed="true"
+          >
+            <span class="event-key-label"
+              ><b
+                aria-hidden="true"
+                style="--event-color: var(--pink)"
+              ></b
+              >Peak regret</span
+            >
+            <small class="event-key-meta" data-tail="peakRegret">
+              Tail —
+            </small>
+          </button>
+          <button
+            class="event-key-item"
+            type="button"
+            data-event="sellerExhaustion"
+            aria-pressed="true"
+          >
+            <span class="event-key-label"
+              ><b
+                aria-hidden="true"
+                style="--event-color: var(--yellow)"
+              ></b
+              >Seller exhaustion</span
+            >
+            <small class="event-key-meta" data-tail="sellerExhaustion">
+              Tail —
+            </small>
+          </button>
+          <button
+            class="event-key-item"
+            type="button"
+            data-event="coinsInLoss"
+            aria-pressed="true"
+          >
+            <span class="event-key-label"
+              ><b
+                aria-hidden="true"
+                data-shape="ring"
+                style="--event-color: var(--red)"
+              ></b
+              >Coins in loss</span
+            >
+            <small class="event-key-meta" data-tail="coinsInLoss">
+              Tail —
+            </small>
+          </button>
+        </div>
+      </header>
+
+      <div id="status">Loading extreme events</div>
+
+      <div id="source-credit">
+        <span class="credit-copy">Source:</span>
+        <a href="https://bitview.space" target="_blank" rel="noreferrer">
+          Bitview.space
+        </a>
+        <span class="credit-copy">· Powered by</span>
+        <a
+          href="https://bitcoinresearchkit.org"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Bitcoin Research Kit
+        </a>
+      </div>
+    </main>
+
+    <script type="module">
+      import {
+        CandlestickSeries,
+        CrosshairMode,
+        LineSeries,
+        PriceScaleMode,
+        createChart,
+      } from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+
+      const API_ROOT = "https://bitview.space/api";
+      const API = `${API_ROOT}/series`;
+      const LIVE_PRICE_URL = `${API_ROOT}/oracle/price`;
+      const DAY_ZERO = Date.UTC(2009, 0, 1);
+      const DAY_SECONDS = 24 * 60 * 60;
+      const LIVE_PRICE_POLL_MS = 1000;
+      const LIVE_PRICE_TIMEOUT_MS = 1500;
+      const SERIES_POLL_MS = 60 * 1000;
+      const PRICE_CANDLE_ENTER_BARS = 500;
+      const PRICE_CANDLE_EXIT_BARS = 600;
+      const PRICE_SCALE_MIN_WIDTH = 64;
+      const PRICE_SCALE_MARGINS = { top: 0.25, bottom: 0.08 };
+      const LEVEL_STORAGE_KEY = "bitcoin-extreme-events.level";
+      const LEVEL_TAIL = Object.freeze({
+        1: 1,
+        "0.5": 0.5,
+        "0.25": 0.25,
+        "0.1": 0.1,
+        "0.05": 0.05,
+        "0.025": 0.025,
+      });
+
+      const COLORS = Object.freeze({
+        background: "#000000",
+        foreground: "#f5f5f5",
+        muted: "#8a8a8a",
+        faint: "#111",
+        red: "#fb2c36",
+        yellow: "#f0b100",
+        green: "#00c950",
+        pink: "#f6339a",
+      });
+
+      const EVENTS = Object.freeze([
+        {
+          key: "profitTaking",
+          series: "profitTakingTail",
+          endpoint: "rarity_meter_profit_taking_tail",
+          color: COLORS.green,
+          position: "aboveBar",
+          priority: 5,
+        },
+        {
+          key: "capitulation",
+          series: "capitulationTail",
+          endpoint: "rarity_meter_capitulation_tail",
+          color: COLORS.red,
+          position: "belowBar",
+          priority: 4,
+        },
+        {
+          key: "peakRegret",
+          series: "peakRegretTail",
+          endpoint: "rarity_meter_peak_regret_tail",
+          color: COLORS.pink,
+          position: "belowBar",
+          priority: 3,
+        },
+        {
+          key: "sellerExhaustion",
+          series: "sellerExhaustionTail",
+          endpoint: "rarity_meter_seller_exhaustion_tail",
+          color: COLORS.yellow,
+          position: "aboveBar",
+          priority: 2,
+        },
+        {
+          key: "coinsInLoss",
+          series: "coinsInLossTail",
+          endpoint: "rarity_meter_coins_in_loss_tail",
+          shape: "ring",
+          color: COLORS.red,
+          position: "belowBar",
+          priority: 1,
+        },
+      ]);
+      const activeEvents = new Set(EVENTS.map((event) => event.key));
+
+      const ENDPOINTS = Object.freeze({
+        priceOhlc: `${API}/price_ohlc/day`,
+        ...Object.fromEntries(
+          EVENTS.map((event) => [
+            event.series,
+            `${API}/${event.endpoint}/day`,
+          ]),
+        ),
+      });
+
+      const chartElement = document.getElementById("chart");
+      const markerLayerElement = document.getElementById("event-markers");
+      const statusElement = document.getElementById("status");
+      const levelElement = document.getElementById("level");
+      const eventKeyElements = [
+        ...document.querySelectorAll("[data-event]"),
+      ];
+      const tailElements = Object.fromEntries(
+        [...document.querySelectorAll("[data-tail]")].map((element) => [
+          element.dataset.tail,
+          element,
+        ]),
+      );
+      const etags = new Map();
+      const seriesCache = {};
+      const NOT_MODIFIED = Symbol("not-modified");
+
+      let rows = [];
+      let rowsByTime = new Map();
+      let chartState = null;
+      let lastLivePrice = null;
+      let livePriceInFlight = false;
+      let seriesRefreshInFlight = false;
+
+      function dayToTimestamp(day) {
+        return Math.floor(DAY_ZERO / 1000) + day * DAY_SECONDS;
+      }
+
+      function seriesValue(series, day) {
+        return series.data[day - series.start];
+      }
+
+      function isPrice(value) {
+        return Number.isFinite(value) && value > 0;
+      }
+
+      function isCandle(value) {
+        return Array.isArray(value) && value.length >= 4 && value.every(isPrice);
+      }
+
+      function numberToUSNumber(value, digits) {
+        return value.toLocaleString("en-US", {
+          minimumFractionDigits: digits,
+          maximumFractionDigits: digits,
+        });
+      }
+
+      function formatPrice(value, digits) {
+        const absoluteValue = Math.abs(value);
+        if (!Number.isFinite(value)) return "";
+
+        if (absoluteValue < 10) {
+          return numberToUSNumber(value, Math.min(3, digits || 10));
+        }
+        if (absoluteValue < 1000) {
+          return numberToUSNumber(value, Math.min(2, digits || 10));
+        }
+        if (absoluteValue < 10000) {
+          return numberToUSNumber(value, Math.min(1, digits || 10));
+        }
+        if (absoluteValue < 1000000) {
+          return numberToUSNumber(value, 0);
+        }
+        if (absoluteValue >= 1e27) return "Inf.";
+
+        const log = Math.floor(Math.log10(absoluteValue) - 6);
+        const suffixes = ["M", "B", "T", "P", "E", "Z", "Y"];
+        const suffixIndex = Math.floor(log / 3);
+        const divisor = 1000000 * 1000 ** suffixIndex;
+        const suffix = suffixes[suffixIndex];
+        const suffixDigits = log % 3 === 0 ? 3 : log % 3 === 1 ? 2 : 1;
+
+        return `${numberToUSNumber(value / divisor, suffixDigits)}${suffix}`;
+      }
+
+      function formatTail(value) {
+        if (value <= 0) return "0%";
+        const digits = Math.min(
+          6,
+          Math.max(1, 2 - Math.floor(Math.log10(value))),
+        );
+        return `${numberToUSNumber(value, digits)}%`;
+      }
+
+      function updateTailMetadata(row = null) {
+        for (const event of EVENTS) {
+          let tail = row?.tails[event.key];
+          if (!row) {
+            for (let index = rows.length - 1; index >= 0; index -= 1) {
+              const candidate = rows[index].tails[event.key];
+              if (Number.isFinite(candidate)) {
+                tail = candidate;
+                break;
+              }
+            }
+          }
+
+          tailElements[event.key].textContent = Number.isFinite(tail)
+            ? `Tail ${formatTail(tail)}`
+            : "Tail —";
+        }
+      }
+
+      function buildRows(series) {
+        const { priceOhlc } = series;
+        const nextRows = [];
+
+        for (let index = 0; index < priceOhlc.data.length; index += 1) {
+          const day = priceOhlc.start + index;
+          const value = priceOhlc.data[index];
+          if (!isCandle(value)) continue;
+
+          const [open, high, low, close] = value;
+          const tails = Object.fromEntries(
+            EVENTS.map((event) => {
+              const tail = seriesValue(series[event.series], day);
+              return [event.key, Number.isFinite(tail) ? tail : null];
+            }),
+          );
+
+          nextRows.push({
+            time: dayToTimestamp(day),
+            open,
+            high,
+            low,
+            close,
+            tails,
+          });
+        }
+
+        return nextRows;
+      }
+
+      function pricePoint(row) {
+        return { time: row.time, value: row.close };
+      }
+
+      function candlePoint(row) {
+        return {
+          time: row.time,
+          open: row.open,
+          high: row.high,
+          low: row.low,
+          close: row.close,
+        };
+      }
+
+      function maximumTail() {
+        return LEVEL_TAIL[levelElement.value] ?? 0.1;
+      }
+
+      function storedLevel() {
+        const urlLevel = new URL(window.location.href).searchParams.get("level");
+        if (Object.hasOwn(LEVEL_TAIL, urlLevel)) return urlLevel;
+
+        try {
+          const localLevel = window.localStorage.getItem(LEVEL_STORAGE_KEY);
+          if (Object.hasOwn(LEVEL_TAIL, localLevel)) return localLevel;
+        } catch {
+          // Local storage can be unavailable in privacy-restricted contexts.
+        }
+
+        return "0.1";
+      }
+
+      function saveLevel(level) {
+        if (!Object.hasOwn(LEVEL_TAIL, level)) return;
+
+        try {
+          window.localStorage.setItem(LEVEL_STORAGE_KEY, level);
+        } catch {
+          // The URL still preserves the selection when storage is unavailable.
+        }
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("level", level);
+        window.history.replaceState(null, "", url);
+      }
+
+      function buildMarkers() {
+        const maxTail = maximumTail();
+        const markers = [];
+
+        for (const row of rows) {
+          const stacks = { aboveBar: 0, belowBar: 0 };
+
+          for (const event of EVENTS) {
+            if (!activeEvents.has(event.key)) continue;
+            const tail = row.tails[event.key];
+            if (!Number.isFinite(tail) || tail > maxTail) continue;
+
+            markers.push({
+              id: `${event.key}-${row.time}`,
+              time: row.time,
+              position: event.position,
+              price:
+                event.position === "aboveBar" ? row.high : row.low,
+              color: event.color,
+              shape: event.shape ?? "filled",
+              stack: stacks[event.position],
+              priority: event.priority,
+            });
+            stacks[event.position] += 1;
+          }
+        }
+
+        return markers.sort(
+          (left, right) =>
+            left.time - right.time || right.priority - left.priority,
+        );
+      }
+
+      class EventMarkerOverlay {
+        constructor(element, markers) {
+          this.element = element;
+          this.items = [];
+          this.chart = null;
+          this.series = null;
+          this.frame = 0;
+          this.setMarkers(markers);
+        }
+
+        attach(chart, series) {
+          this.chart = chart;
+          this.series = series;
+          this.schedule();
+        }
+
+        setMarkers(markers) {
+          const fragment = document.createDocumentFragment();
+          this.items = markers.map((marker) => {
+            const element = document.createElement("span");
+            element.dataset.shape = marker.shape;
+            element.style.setProperty("--event-color", marker.color);
+            fragment.append(element);
+            return { ...marker, element };
+          });
+          this.element.replaceChildren(fragment);
+          this.schedule();
+        }
+
+        schedule() {
+          if (this.frame) return;
+          this.frame = requestAnimationFrame(() => {
+            this.frame = 0;
+            this.draw();
+          });
+        }
+
+        draw() {
+          if (!this.chart || !this.series) return;
+
+          const timeScale = this.chart.timeScale();
+          const width = this.element.clientWidth;
+          const height = this.element.clientHeight;
+          const visibleRange = timeScale.getVisibleLogicalRange();
+          const visibleBars = visibleRange
+            ? visibleRange.to - visibleRange.from
+            : Infinity;
+          const markerSize =
+            Math.round(
+              Math.max(
+                3,
+                Math.min(
+                  10,
+                  18 -
+                    Math.max(0, Math.log2(visibleBars / 250)) * 4,
+                ),
+              ),
+            ) *
+              8 /
+              10;
+          const markerOffset = Math.max(12, markerSize * 1.05);
+          const markerStep = markerSize + 1;
+          this.element.style.setProperty(
+            "--event-marker-size",
+            `${markerSize}px`,
+          );
+
+          for (const marker of this.items) {
+            const x = timeScale.timeToCoordinate(marker.time);
+            const anchorY = this.series.priceToCoordinate(marker.price);
+            const direction = marker.position === "aboveBar" ? -1 : 1;
+            const y =
+              anchorY === null
+                ? null
+                : anchorY +
+                  direction *
+                    (markerOffset + marker.stack * markerStep);
+            const visible =
+              x !== null &&
+              y !== null &&
+              x >= -18 &&
+              x <= width + 18 &&
+              y >= -18 &&
+              y <= height + 18;
+
+            marker.element.hidden = !visible;
+            if (visible) {
+              marker.element.style.left = `${Math.round(x)}px`;
+              marker.element.style.top = `${Math.round(y)}px`;
+            }
+          }
+        }
+      }
+
+      async function fetchSeries(name, url, conditional = false) {
+        const headers = {};
+        const etag = etags.get(name);
+        if (conditional && etag) headers["If-None-Match"] = etag;
+
+        const response = await fetch(url, { cache: "no-cache", headers });
+        if (response.status === 304) return NOT_MODIFIED;
+        if (!response.ok) throw new Error(`${name}: ${response.status}`);
+
+        const series = await response.json();
+        if (!Number.isFinite(series.start) || !Array.isArray(series.data)) {
+          throw new Error(`${name}: invalid data`);
+        }
+        const nextEtag = response.headers.get("etag");
+        if (nextEtag) etags.set(name, nextEtag);
+        return series;
+      }
+
+      async function fetchAllSeries(conditional = false) {
+        const entries = await Promise.all(
+          Object.entries(ENDPOINTS).map(async ([name, url]) => [
+            name,
+            await fetchSeries(name, url, conditional),
+          ]),
+        );
+
+        let changed = false;
+        for (const [name, series] of entries) {
+          if (series === NOT_MODIFIED) continue;
+          seriesCache[name] = series;
+          changed = true;
+        }
+
+        return conditional && !changed ? null : seriesCache;
+      }
+
+      function applyRows(nextRows) {
+        const visibleRange =
+          chartState?.chart.timeScale().getVisibleLogicalRange() ?? null;
+        rows = nextRows;
+        rowsByTime = new Map(rows.map((row) => [row.time, row]));
+        updateTailMetadata();
+        if (!chartState) return;
+
+        chartState.price.setData(rows.map(pricePoint));
+        chartState.candles.setData(rows.map(candlePoint));
+        chartState.markerAnchor.setData(rows.map(pricePoint));
+        chartState.setMarkers(buildMarkers());
+        if (visibleRange) {
+          chartState.chart.timeScale().setVisibleLogicalRange(visibleRange);
+        }
+      }
+
+      function applyLivePrice(value, force = false) {
+        const latest = rows.at(-1);
+        if (!chartState || !latest || !isPrice(value)) return;
+        if (!force && value === lastLivePrice) return;
+        lastLivePrice = value;
+
+        const row = {
+          ...latest,
+          high: Math.max(latest.high, value),
+          low: Math.min(latest.low, value),
+          close: value,
+        };
+        rows[rows.length - 1] = row;
+        chartState.price.update(pricePoint(row));
+        chartState.candles.update(candlePoint(row));
+        chartState.markerAnchor.update(pricePoint(row));
+        chartState.renderMarkers();
+      }
+
+      async function refreshLivePrice() {
+        if (livePriceInFlight) return;
+        livePriceInFlight = true;
+
+        const controller = new AbortController();
+        const timeout = window.setTimeout(
+          () => controller.abort(),
+          LIVE_PRICE_TIMEOUT_MS,
+        );
+        try {
+          const response = await fetch(LIVE_PRICE_URL, {
+            cache: "no-store",
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error(`live price: ${response.status}`);
+          applyLivePrice(Number(await response.json()));
+        } catch (error) {
+          console.warn(error);
+        } finally {
+          window.clearTimeout(timeout);
+          livePriceInFlight = false;
+        }
+      }
+
+      async function refreshSeries() {
+        if (seriesRefreshInFlight) return;
+        seriesRefreshInFlight = true;
+        try {
+          const series = await fetchAllSeries(true);
+          if (!series) return;
+
+          const nextRows = buildRows(series);
+          if (!nextRows.length) throw new Error("No aligned event data");
+          applyRows(nextRows);
+          if (isPrice(lastLivePrice)) applyLivePrice(lastLivePrice, true);
+        } catch (error) {
+          console.warn(error);
+        } finally {
+          seriesRefreshInFlight = false;
+        }
+      }
+
+      function startPolling() {
+        void refreshLivePrice();
+        window.setInterval(refreshLivePrice, LIVE_PRICE_POLL_MS);
+        window.setInterval(refreshSeries, SERIES_POLL_MS);
+      }
+
+      function createEventsChart() {
+        const chart = createChart(chartElement, {
+          autoSize: true,
+          layout: {
+            attributionLogo: false,
+            background: { color: "transparent" },
+            textColor: COLORS.muted,
+            fontFamily: getComputedStyle(document.body).fontFamily,
+            fontSize: 11,
+          },
+          grid: {
+            horzLines: { color: COLORS.faint },
+            vertLines: { color: COLORS.faint },
+          },
+          crosshair: {
+            mode: CrosshairMode.Normal,
+            vertLine: {
+              color: COLORS.muted,
+              labelBackgroundColor: COLORS.foreground,
+            },
+            horzLine: {
+              color: COLORS.muted,
+              labelBackgroundColor: COLORS.foreground,
+            },
+          },
+          localization: {
+            locale: "en-US",
+          },
+          rightPriceScale: {
+            mode: PriceScaleMode.Logarithmic,
+            borderColor: COLORS.faint,
+            borderVisible: true,
+            minimumWidth: PRICE_SCALE_MIN_WIDTH,
+            scaleMargins: PRICE_SCALE_MARGINS,
+          },
+          timeScale: {
+            borderColor: COLORS.faint,
+            borderVisible: true,
+            enableConflation: true,
+            lockVisibleTimeRangeOnResize: true,
+            secondsVisible: false,
+            shiftVisibleRangeOnNewBar: false,
+            timeVisible: false,
+          },
+        });
+
+        const price = chart.addSeries(LineSeries, {
+          color: COLORS.foreground,
+          lineWidth: 1.5,
+          priceFormat: {
+            type: "custom",
+            minMove: 0.01,
+            formatter: formatPrice,
+            tickmarksFormatter: (values) => values.map(formatPrice),
+          },
+          priceLineVisible: false,
+          priceLineColor: COLORS.foreground,
+          lastValueVisible: true,
+          crosshairMarkerVisible: false,
+        });
+
+        const candles = chart.addSeries(CandlestickSeries, {
+          visible: false,
+          upColor: COLORS.background,
+          downColor: COLORS.foreground,
+          wickUpColor: COLORS.foreground,
+          wickDownColor: COLORS.foreground,
+          borderUpColor: COLORS.foreground,
+          borderDownColor: COLORS.foreground,
+          borderVisible: true,
+          priceFormat: {
+            type: "custom",
+            minMove: 0.01,
+            formatter: formatPrice,
+            tickmarksFormatter: (values) => values.map(formatPrice),
+          },
+          priceLineVisible: false,
+          priceLineColor: COLORS.foreground,
+          lastValueVisible: true,
+        });
+
+        const markerAnchor = chart.addSeries(LineSeries, {
+          color: "transparent",
+          lineVisible: false,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+        });
+
+        price.setData(rows.map(pricePoint));
+        candles.setData(rows.map(candlePoint));
+        markerAnchor.setData(rows.map(pricePoint));
+        price.setSeriesOrder(1);
+        candles.setSeriesOrder(1);
+        markerAnchor.setSeriesOrder(2);
+
+        const eventMarkers = new EventMarkerOverlay(
+          markerLayerElement,
+          buildMarkers(),
+        );
+        eventMarkers.attach(chart, markerAnchor);
+        let priceCandlesVisible = false;
+        let pendingRange = null;
+        let rangeFrame = 0;
+
+        function setMarkers(markers) {
+          eventMarkers.setMarkers(markers);
+        }
+
+        function updatePriceVisibility(range) {
+          const visibleBars = range ? range.to - range.from : Infinity;
+          const showCandles = priceCandlesVisible
+            ? visibleBars <= PRICE_CANDLE_EXIT_BARS
+            : visibleBars <= PRICE_CANDLE_ENTER_BARS;
+          if (showCandles === priceCandlesVisible) return;
+
+          priceCandlesVisible = showCandles;
+          price.applyOptions({ visible: !showCandles });
+          candles.applyOptions({ visible: showCandles });
+        }
+
+        function schedulePriceVisibility(range) {
+          pendingRange = range;
+          eventMarkers.schedule();
+          if (rangeFrame) return;
+
+          rangeFrame = requestAnimationFrame(() => {
+            rangeFrame = 0;
+            updatePriceVisibility(pendingRange);
+            pendingRange = null;
+          });
+        }
+
+        chart.timeScale().fitContent();
+        chart.timeScale().subscribeVisibleLogicalRangeChange(
+          schedulePriceVisibility,
+        );
+        chart.subscribeCrosshairMove((param) => {
+          eventMarkers.schedule();
+          if (param.time === undefined) {
+            updateTailMetadata();
+          } else {
+            updateTailMetadata(
+              rowsByTime.get(param.time) ?? { tails: {} },
+            );
+          }
+        });
+        new ResizeObserver(() => eventMarkers.schedule()).observe(chartElement);
+        chartElement.addEventListener("pointermove", () =>
+          eventMarkers.schedule(),
+        );
+        chartElement.addEventListener("pointerup", () =>
+          eventMarkers.schedule(),
+        );
+        chartElement.addEventListener("wheel", () => eventMarkers.schedule(), {
+          passive: true,
+        });
+        updatePriceVisibility(chart.timeScale().getVisibleLogicalRange());
+
+        return {
+          chart,
+          price,
+          candles,
+          markerAnchor,
+          setMarkers,
+          renderMarkers: () => eventMarkers.schedule(),
+        };
+      }
+
+      for (const element of eventKeyElements) {
+        element.addEventListener("click", () => {
+          const key = element.dataset.event;
+          if (activeEvents.has(key)) {
+            activeEvents.delete(key);
+          } else {
+            activeEvents.add(key);
+          }
+
+          element.setAttribute(
+            "aria-pressed",
+            String(activeEvents.has(key)),
+          );
+          chartState?.setMarkers(buildMarkers());
+        });
+      }
+
+      levelElement.addEventListener("change", () => {
+        saveLevel(levelElement.value);
+        chartState?.setMarkers(buildMarkers());
+      });
+
+      async function load() {
+        levelElement.value = storedLevel();
+        saveLevel(levelElement.value);
+
+        const series = await fetchAllSeries();
+        rows = buildRows(series);
+        if (!rows.length) throw new Error("No aligned event data");
+        rowsByTime = new Map(rows.map((row) => [row.time, row]));
+        updateTailMetadata();
+
+        chartState = createEventsChart();
+        startPolling();
+        chartElement.setAttribute("aria-busy", "false");
+        statusElement.textContent = "";
+      }
+
+      load().catch((error) => {
+        statusElement.dataset.error = "true";
+        statusElement.textContent = "Unable to load extreme events";
+        chartElement.setAttribute("aria-busy", "false");
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>

@@ -6,14 +6,15 @@ use bitview_query::Vecs;
 
 /// Output path configuration for each client.
 ///
-/// Rust, JavaScript, and Python take a full output file path. LLM clients take
-/// a root directory and generate their complete bundle inside it. Parent
+/// Rust, CLI, JavaScript, and Python take a full output file path. LLM clients
+/// take a root directory and generate their complete bundle inside it. Parent
 /// directories will be created automatically if they don't exist.
 ///
 /// # Example
 /// ```ignore
 /// let paths = ClientOutputPaths::new()
 ///     .rust("crates/bitview_client/src/generated.rs")
+///     .cli("crates/bitview_cli/src/generated.rs")
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
@@ -24,6 +25,8 @@ use bitview_query::Vecs;
 pub struct ClientOutputPaths {
     /// Full path to Rust client file (e.g., "crates/bitview_client/src/generated.rs")
     pub rust: Option<PathBuf>,
+    /// Full path to the generated CLI command catalog.
+    pub cli: Option<PathBuf>,
     /// Full path to JavaScript client file (e.g., "modules/bitview-client/index.js")
     pub javascript: Option<PathBuf>,
     /// Full path to Python client file (e.g., "packages/bitview_client/__init__.py")
@@ -41,6 +44,11 @@ impl ClientOutputPaths {
 
     pub fn rust(mut self, path: impl Into<PathBuf>) -> Self {
         self.rust = Some(path.into());
+        self
+    }
+
+    pub fn cli(mut self, path: impl Into<PathBuf>) -> Self {
+        self.cli = Some(path.into());
         self
     }
 
@@ -92,6 +100,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// ```ignore
 /// let paths = ClientOutputPaths::new()
 ///     .rust("crates/bitview_client/src/generated.rs")
+///     .cli("crates/bitview_cli/src/generated.rs")
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
@@ -128,6 +137,13 @@ pub fn generate_clients(
             create_dir_all(parent)?;
         }
         generate_rust_client(&metadata, &endpoints, rust_path)?;
+    }
+
+    if let Some(cli_path) = &output_paths.cli {
+        if let Some(parent) = cli_path.parent() {
+            create_dir_all(parent)?;
+        }
+        generate_cli(&endpoints, cli_path)?;
     }
 
     // Generate JavaScript client (needs schemas for type definitions)

@@ -9,8 +9,8 @@ repository.workspace = true
 exclude = ["examples/", "src/api/scalar.js"]
 
 [features]
-default = ["full"]
-full = ["chain", "series", "urpd"]
+default = ["full-api"]
+full-api = ["chain", "series", "urpd"]
 bedrock = ["bitview_query/bedrock"]
 blocks = ["bitview_query/blocks"]
 coinflow = ["bitview_query/coinflow"]

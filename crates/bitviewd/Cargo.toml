@@ -10,8 +10,8 @@ readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
 [features]
-default = ["dep:bitview_default", "full"]
-full = ["bitview/full"]
+default = ["dep:bitview_default", "full-api"]
+full-api = ["bitview/full-api"]
 bedrock = ["bitview/bedrock"]
 blocks = ["bitview/blocks"]
 coinflow = ["bitview/coinflow"]

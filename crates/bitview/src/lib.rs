@@ -1,6 +1,6 @@
 #![doc = include_str!("../README.md")]
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 
 use std::{
     path::PathBuf,
@@ -18,6 +18,10 @@ use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
 use brk_types::Port;
+use tokio::{
+    runtime::{Builder, Runtime},
+    task::JoinHandle,
+};
 use tracing::info;
 use vecdb::{Exit, ReadOnlyClone};
 
@@ -42,7 +46,8 @@ pub struct Config {
     pub server: ServerConfig,
 }
 
-/// Runs a plugin composition with resolved settings and a shutdown coordinator.
+/// Runs one process-lifetime plugin composition with resolved settings and a
+/// shutdown coordinator.
 pub fn run<P>(
     config: Config,
     exit: Exit,
@@ -75,35 +80,24 @@ where
 
     let query = AsyncQuery::build(&plugins, Some(mempool.clone()));
 
+    let runtime = Builder::new_multi_thread().enable_all().build()?;
+    let server = runtime.block_on(Server::bind(&query, server, port))?;
+    let server_handle = runtime.spawn(server.serve());
+
     let mempool_clone = mempool.clone();
     let resolver = query.sync(|q| q.indexer_prevout_resolver());
     thread::spawn(move || {
         mempool_clone.start_with(resolver);
     });
 
-    let server_query = query.clone();
-
-    let future = async move {
-        let server = Server::new(&server_query, server);
-
-        tokio::spawn(async move {
-            server.serve(port).await.unwrap();
-        });
-
-        Ok(()) as Result<()>
-    };
-
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
-
-    let _handle = runtime.spawn(future);
-
     let mut last_height = query.sync(|q| q.indexer().indexed_height());
     info!("Waiting for new blocks...");
 
     loop {
         while last_height == client.get_last_height()? {
+            if server_handle.is_finished() {
+                return server_stopped(&runtime, server_handle);
+            }
             sleep(Duration::from_secs(1));
         }
 
@@ -117,7 +111,16 @@ where
 
         update(&mut plugins, update_context)?;
 
+        if server_handle.is_finished() {
+            return server_stopped(&runtime, server_handle);
+        }
+
         info!("Total time: {:?}", total_start.elapsed());
         info!("Waiting for new blocks...");
     }
+}
+
+fn server_stopped(runtime: &Runtime, handle: JoinHandle<Result<()>>) -> Result<()> {
+    runtime.block_on(handle)??;
+    Err(Error::Internal("HTTP server stopped unexpectedly"))
 }

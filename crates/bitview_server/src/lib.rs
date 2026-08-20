@@ -22,6 +22,7 @@ use axum::{
     serve,
 };
 use bitview_query::AsyncQuery;
+use brk_error::Result;
 use tokio::net::TcpListener;
 use tower_http::{
     catch_panic::CatchPanicLayer,
@@ -71,25 +72,63 @@ fn is_json_content_type(s: &str) -> bool {
     mime == "application/json" || (mime.starts_with("application/") && mime.ends_with("+json"))
 }
 
-pub struct Server(AppState);
+pub struct Server {
+    state: AppState,
+    listener: TcpListener,
+    port: Port,
+}
 
 impl Server {
-    pub fn new(query: &AsyncQuery, config: ServerConfig) -> Self {
+    /// Binds the HTTP listener so startup failures are reported before the
+    /// caller launches the long-running server task.
+    pub async fn bind(
+        query: &AsyncQuery,
+        config: ServerConfig,
+        port: Option<Port>,
+    ) -> Result<Self> {
+        let (listener, port) = match port {
+            Some(port) => {
+                let listener = TcpListener::bind(format!("0.0.0.0:{port}")).await?;
+                (listener, port)
+            }
+            None => {
+                let max_port = *Port::DEFAULT + 100;
+                let mut port = *Port::DEFAULT;
+                let listener = loop {
+                    match TcpListener::bind(format!("0.0.0.0:{port}")).await {
+                        Ok(listener) => break listener,
+                        Err(_) if port < max_port => port += 1,
+                        Err(error) => return Err(error.into()),
+                    }
+                };
+                (listener, Port::from(port))
+            }
+        };
+
         config.website.log();
         cache::init(config.cdn_cache_mode);
-        Self(AppState {
-            query: query.clone(),
-            data_path: config.data_path,
-            website: config.website,
-            started_at: jiff::Timestamp::now(),
-            started_instant: Instant::now(),
-            max_weight: config.max_weight,
-            max_utxos: config.max_utxos,
+
+        Ok(Self {
+            state: AppState {
+                query: query.clone(),
+                data_path: config.data_path,
+                website: config.website,
+                started_at: jiff::Timestamp::now(),
+                started_instant: Instant::now(),
+                max_weight: config.max_weight,
+                max_utxos: config.max_utxos,
+            },
+            listener,
+            port,
         })
     }
 
-    pub async fn serve(self, port: Option<Port>) -> brk_error::Result<()> {
-        let state = self.0;
+    pub async fn serve(self) -> Result<()> {
+        let Self {
+            state,
+            listener,
+            port,
+        } = self;
 
         #[cfg(feature = "bindgen")]
         let vecs = state.query.inner().vecs();
@@ -252,26 +291,6 @@ impl Server {
             }))
             .layer(response_time_layer)
             .layer(trace_layer);
-
-        let (listener, port) = match port {
-            Some(port) => {
-                let listener = TcpListener::bind(format!("0.0.0.0:{port}")).await?;
-                (listener, *port)
-            }
-            None => {
-                let base_port: u16 = *Port::DEFAULT;
-                let max_port: u16 = base_port + 100;
-                let mut port = base_port;
-                let listener = loop {
-                    match TcpListener::bind(format!("0.0.0.0:{port}")).await {
-                        Ok(l) => break l,
-                        Err(_) if port < max_port => port += 1,
-                        Err(e) => return Err(e.into()),
-                    }
-                };
-                (listener, port)
-            }
-        };
 
         info!("Starting server on port {port}...");
 

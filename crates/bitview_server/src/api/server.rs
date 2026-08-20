@@ -3,7 +3,7 @@ use std::{borrow::Cow, fs, path};
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::State,
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::{IntoResponse, Response},
 };
 use bitview_types::{Health, SyncStatus};
@@ -61,9 +61,9 @@ impl ServerRoutes for ApiRouter<AppState> {
         .api_route(
             "/version",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Deploy, &uri, |_| {
+                        .respond_json(&headers, CacheStrategy::Deploy, |_| {
                             Ok(env!("CARGO_PKG_VERSION"))
                         })
                         .await
@@ -82,9 +82,9 @@ impl ServerRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/server/sync",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             let tip_height = q.client().get_last_height()?;
                             q.sync_status(tip_height)
                         })
@@ -106,10 +106,10 @@ impl ServerRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/server/disk",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     let brk_path = state.data_path.clone();
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             let brk_bytes = dir_size(&brk_path)?;
                             let bitcoin_bytes = dir_size(q.blocks_dir())?;
                             Ok(DiskUsage::new(brk_bytes, bitcoin_bytes))

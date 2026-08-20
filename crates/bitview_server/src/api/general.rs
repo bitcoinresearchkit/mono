@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Query, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
 };
 use brk_types::{DifficultyAdjustment, HistoricalPrice, Prices, Timestamp, Version};
 
@@ -20,9 +20,9 @@ impl GeneralRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/v1/difficulty-adjustment",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, |q| {
                             q.difficulty_adjustment()
                         })
                         .await
@@ -41,9 +41,9 @@ impl GeneralRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/prices",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             Ok(Prices {
                                 time: Timestamp::now(),
                                 usd: q.live_price()?,
@@ -65,8 +65,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/historical-price",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Query(params): Query<OptionalTimestampParam>,
                        State(state): State<AppState>| {
                     let strategy = params
@@ -74,7 +73,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
                         .map(|ts| state.timestamp_strategy(Version::ONE, ts))
                         .unwrap_or(CacheStrategy::Tip);
                     state
-                        .respond_json(&headers, strategy, &uri, move |q| {
+                        .respond_json(&headers, strategy, move |q| {
                             q.historical_price(params.timestamp)
                         })
                         .await

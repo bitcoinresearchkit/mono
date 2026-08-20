@@ -9,11 +9,13 @@
 
 use std::{fmt::Write, fs, io, path::Path};
 
+pub mod cli;
 pub mod javascript;
 pub mod llm;
 pub mod python;
 pub mod rust;
 
+pub use cli::generate_cli;
 pub use javascript::generate_javascript_client;
 pub use llm::generate_llm_clients;
 pub use python::generate_python_client;

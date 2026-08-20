@@ -12,6 +12,8 @@ exportable vectors for persistence and bulk export.
 - **Tree navigation**: Convert nested structs into `TreeNode` hierarchies for exploration
 - **Export iteration**: Walk all `AnyExportableVec` instances, including a public-only view
 - **Derive macro**: `#[derive(Traversable)]` with `derive` feature
+- **Read-only projection**: the derive also generates `vecdb::ReadOnlyClone`
+  for storage-mode and generic container structs
 - **Compression backends**: Support for PCO, LZ4, ZeroCopy, Zstd via feature flags
 - **Blanket implementations**: Works with `Box<T>`, `Option<T>`, `BTreeMap<K, V>`
 
@@ -23,6 +25,12 @@ pub trait Traversable {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec>;
 }
 ```
+
+For a struct generic over `M: StorageMode`, `#[derive(Traversable)]` maps its
+read-write form to the same struct with `M = Ro`. For generic container fields,
+it propagates `ReadOnlyClone` through those fields. Skipped fields are cloned
+unchanged. This gives plugin compositions a read-only query projection without
+maintaining a second field list.
 
 ## Supported Vec Types
 

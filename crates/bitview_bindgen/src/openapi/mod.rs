@@ -1,10 +1,12 @@
 mod endpoint;
 mod parameter;
+mod request_body;
 mod response_kind;
 mod text_schema;
 
-pub use endpoint::{Endpoint, RequestBody};
+pub use endpoint::Endpoint;
 pub use parameter::Parameter;
+pub use request_body::RequestBody;
 pub use response_kind::ResponseKind;
 pub use text_schema::TextSchema;
 
@@ -14,8 +16,7 @@ use crate::ref_to_type_name;
 use derive_more::{Deref, DerefMut};
 use oas3::Spec;
 use oas3::spec::{
-    ObjectOrReference, ObjectSchema, Operation, ParameterIn, PathItem, Schema, SchemaType,
-    SchemaTypeSet,
+    ObjectOrReference, ObjectSchema, Operation, ParameterIn, Schema, SchemaType, SchemaTypeSet,
 };
 use serde_json::Value;
 
@@ -106,27 +107,14 @@ pub fn extract_endpoints(spec: &Spec) -> Vec<Endpoint> {
     };
 
     for (path, path_item) in paths {
-        for (method, operation) in get_operations(path_item) {
-            if let Some(endpoint) = extract_endpoint(path, method, operation, spec) {
+        for (method, operation) in path_item.methods() {
+            if let Some(endpoint) = extract_endpoint(path, method.as_str(), operation, spec) {
                 endpoints.push(endpoint);
             }
         }
     }
 
     endpoints
-}
-
-fn get_operations(path_item: &PathItem) -> Vec<(&'static str, &Operation)> {
-    [
-        ("GET", &path_item.get),
-        ("POST", &path_item.post),
-        ("PUT", &path_item.put),
-        ("DELETE", &path_item.delete),
-        ("PATCH", &path_item.patch),
-    ]
-    .into_iter()
-    .filter_map(|(method, op)| op.as_ref().map(|o| (method, o)))
-    .collect()
 }
 
 fn extract_endpoint(
@@ -177,8 +165,8 @@ fn extract_json_response_schema(operation: &Operation) -> Option<Value> {
     serde_json::to_value(schema).ok()
 }
 
-/// Extract the request body shape, if any.
-/// Prefers `text/plain` (string) over `application/json` (typed).
+/// Extract the request body shape and media type, if any.
+/// Prefers `text/plain` over `application/json` when an operation accepts both.
 fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
     let req = operation.request_body.as_ref()?;
     let req = match req {
@@ -186,18 +174,35 @@ fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
         ObjectOrReference::Ref { .. } => return None,
     };
 
-    let body_type = if req.content.contains_key("text/plain; charset=utf-8")
-        || req.content.contains_key("text/plain")
-    {
-        "string".to_string()
-    } else if let Some(content) = req.content.get("application/json") {
-        schema_name_from_content(content).unwrap_or_else(|| "Object".to_string())
-    } else {
-        "string".to_string()
-    };
+    let (content_type, content) = [
+        "text/plain; charset=utf-8",
+        "text/plain",
+        "application/json",
+    ]
+    .into_iter()
+    .find_map(|content_type| {
+        req.content
+            .get(content_type)
+            .map(|content| (content_type, content))
+    })
+    .or_else(|| {
+        req.content
+            .iter()
+            .next()
+            .map(|(content_type, content)| (content_type.as_str(), content))
+    })?;
+
+    let body_type = schema_name_from_content(content).unwrap_or_else(|| {
+        if content_type.starts_with("text/") {
+            "string".to_string()
+        } else {
+            "Object".to_string()
+        }
+    });
 
     Some(RequestBody {
         body_type,
+        content_type: content_type.to_owned(),
         required: req.required.unwrap_or(false),
     })
 }
@@ -434,5 +439,68 @@ mod tests {
 
         assert!(endpoint.mcp_ignored);
         assert!(endpoint.should_generate());
+    }
+
+    #[test]
+    fn extracts_request_body_media_type() {
+        let spec = parse_openapi_json(
+            r#"{
+                "openapi": "3.1.0",
+                "info": { "title": "Test", "version": "1" },
+                "paths": {
+                    "/api/items": {
+                        "post": {
+                            "operationId": "post_items",
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": { "type": "object" }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": { "description": "Successful response" }
+                            }
+                        }
+                    }
+                }
+            }"#,
+        )
+        .unwrap();
+        let body = extract_endpoints(&spec)
+            .into_iter()
+            .next()
+            .unwrap()
+            .request_body
+            .unwrap();
+
+        assert_eq!(body.body_type, "Object");
+        assert_eq!(body.content_type, "application/json");
+        assert!(body.required);
+    }
+
+    #[test]
+    fn extracts_every_openapi_http_method() {
+        let spec = parse_openapi_json(
+            r#"{
+                "openapi": "3.1.0",
+                "info": { "title": "Test", "version": "1" },
+                "paths": {
+                    "/api/trace": {
+                        "trace": {
+                            "operationId": "trace_items",
+                            "responses": {
+                                "200": { "description": "Successful response" }
+                            }
+                        }
+                    }
+                }
+            }"#,
+        )
+        .unwrap();
+        let endpoint = extract_endpoints(&spec).into_iter().next().unwrap();
+
+        assert_eq!(endpoint.method, "TRACE");
     }
 }

@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
 };
 use brk_types::{
     BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash,
@@ -23,9 +23,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/mempool",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.mempool_info())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_info())
                         .await
                 },
                 |op| {
@@ -42,9 +42,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/hash",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.mempool_hash())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_hash())
                         .await
                 },
                 |op| {
@@ -61,9 +61,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/txids",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.mempool_txids())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_txids())
                         .await
                 },
                 |op| {
@@ -81,9 +81,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/recent",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.mempool_recent())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_recent())
                         .await
                 },
                 |op| {
@@ -100,9 +100,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/replacements",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.recent_replacements(false)
                         })
                         .await
@@ -121,9 +121,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/fullrbf/replacements",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.recent_replacements(true)
                         })
                         .await
@@ -142,9 +142,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/mempool/block-template",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.block_template()
                         })
                         .await
@@ -164,13 +164,12 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/mempool/block-template/diff/{hash}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(path): Path<NextBlockHashParam>,
                        _: Empty,
                        State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, move |q| {
+                        .respond_json(&headers, state.mempool_strategy(), move |q| {
                             q.block_template_diff(path.hash)
                         })
                         .await
@@ -191,9 +190,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/price",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| q.live_price())
+                        .respond_json(&headers, state.mempool_strategy(), |q| q.live_price())
                         .await
                 },
                 |op| {

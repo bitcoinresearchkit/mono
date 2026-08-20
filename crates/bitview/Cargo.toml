@@ -1,6 +1,6 @@
 [package]
 name = "bitview"
-description = "A process-agnostic runner for Bitview plugin compositions"
+description = "A composition-agnostic daemon runner for Bitview plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,7 +11,7 @@ keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
 [features]
 default = []
-full = ["chain", "series", "urpd"]
+full-api = ["chain", "series", "urpd"]
 bedrock = ["bitview_server/bedrock"]
 blocks = ["bitview_server/blocks"]
 coinflow = ["bitview_server/coinflow"]

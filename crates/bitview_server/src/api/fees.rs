@@ -1,8 +1,5 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{
-    extract::State,
-    http::{HeaderMap, Uri},
-};
+use axum::{extract::State, http::HeaderMap};
 use brk_types::{MempoolBlock, RecommendedFees};
 
 use crate::{AppState, extended::TransformResponseExtended, params::Empty};
@@ -16,9 +13,9 @@ impl FeesRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/v1/fees/mempool-blocks",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.mempool_blocks()
                         })
                         .await
@@ -37,9 +34,9 @@ impl FeesRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/fees/recommended",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.recommended_fees()
                         })
                         .await
@@ -59,9 +56,9 @@ impl FeesRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/fees/precise",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), &uri, |q| {
+                        .respond_json(&headers, state.mempool_strategy(), |q| {
                             q.recommended_fees()
                         })
                         .await

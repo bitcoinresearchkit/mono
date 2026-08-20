@@ -6,7 +6,7 @@
 //! - [`CacheParams`]   — the *resolved* etag + Cache-Control + CDN-Cache-Control,
 //!   derived from a strategy plus current chain tip.
 //! - [`CdnCacheMode`]  — operator-level toggle for the CDN cached tier
-//!   (process-global, set once via [`init`] from `Server::new`).
+//!   (process-global, set once via [`init`] from `Server::bind`).
 
 mod mode;
 mod params;

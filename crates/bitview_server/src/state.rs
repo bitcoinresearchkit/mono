@@ -2,9 +2,10 @@ use std::{path::PathBuf, time::Instant};
 
 use axum::{
     body::{Body, Bytes},
-    http::{HeaderMap, HeaderValue, Response, Uri, header},
+    http::{HeaderMap, HeaderValue, Response, header},
 };
 use bitview_query::AsyncQuery;
+use brk_error::Result;
 #[cfg(feature = "chain")]
 use brk_types::{Addr, BlockHash, BlockHashPrefix, PoolSlug, Txid};
 use brk_types::{Date, Height, ONE_HOUR_IN_SEC, Timestamp as BrkTimestamp, Version};
@@ -167,20 +168,19 @@ impl AppState {
         CacheStrategy::MempoolHash(hash)
     }
 
-    /// Shared response pipeline: etag short-circuit, body computation on the
-    /// query thread, header assembly. Used by [`AppState::respond`]
-    /// (strategy-driven) and the series endpoint (which builds [`CacheParams`]
-    /// directly from query resolution).
+    /// Shared response pipeline: ETag short-circuit, body computation on the
+    /// query thread, and header assembly. Used by [`AppState::respond`]
+    /// (strategy-driven) and series endpoints, which build [`CacheParams`]
+    /// directly from query resolution.
     pub async fn respond_with_params<F>(
         &self,
         headers: &HeaderMap,
-        _uri: &Uri,
         params: CacheParams,
         apply_content_headers: impl FnOnce(&mut HeaderMap),
         f: F,
     ) -> Response<Body>
     where
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<Bytes> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<Bytes> + Send + 'static,
     {
         if params.matches_etag(headers) {
             return ResponseExtended::new_not_modified(&params);
@@ -203,18 +203,16 @@ impl AppState {
         &self,
         headers: &HeaderMap,
         strategy: CacheStrategy,
-        uri: &Uri,
         content_type: &'static str,
         f: F,
     ) -> Response<Body>
     where
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<Bytes> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<Bytes> + Send + 'static,
     {
         let tip = self.sync(|q| q.tip_hash_prefix());
         let params = CacheParams::resolve(&strategy, tip);
         self.respond_with_params(
             headers,
-            uri,
             params,
             |h| {
                 h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
@@ -224,19 +222,18 @@ impl AppState {
         .await
     }
 
-    /// JSON response with HTTP + server-side caching
+    /// JSON response with HTTP cache validation.
     pub async fn respond_json<T, F>(
         &self,
         headers: &HeaderMap,
         strategy: CacheStrategy,
-        uri: &Uri,
         f: F,
     ) -> Response<Body>
     where
         T: Serialize + Send + 'static,
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<T> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<T> + Send + 'static,
     {
-        self.respond(headers, strategy, uri, "application/json", move |q| {
+        self.respond(headers, strategy, "application/json", move |q| {
             let value = f(q)?;
             Ok(Bytes::from(serde_json::to_vec(&value).unwrap()))
         })
@@ -255,12 +252,11 @@ impl AppState {
         &self,
         headers: &HeaderMap,
         optimistic: CacheStrategy,
-        uri: &Uri,
         f: F,
     ) -> Response<Body>
     where
         T: Serialize + Send + 'static,
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<(T, CacheStrategy)> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<(T, CacheStrategy)> + Send + 'static,
     {
         let tip = self.sync(|q| q.tip_hash_prefix());
         let optimistic_params = CacheParams::resolve(&optimistic, tip);
@@ -275,7 +271,6 @@ impl AppState {
         let params = CacheParams::resolve(&strategy, tip);
         self.respond_with_params(
             headers,
-            uri,
             params,
             |h| {
                 h.insert(
@@ -291,47 +286,39 @@ impl AppState {
         .await
     }
 
-    /// Text response with HTTP + server-side caching
+    /// Text response with HTTP cache validation.
     pub async fn respond_text<T, F>(
         &self,
         headers: &HeaderMap,
         strategy: CacheStrategy,
-        uri: &Uri,
         f: F,
     ) -> Response<Body>
     where
         T: AsRef<str> + Send + 'static,
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<T> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<T> + Send + 'static,
     {
-        self.respond(headers, strategy, uri, "text/plain", move |q| {
+        self.respond(headers, strategy, "text/plain", move |q| {
             let value = f(q)?;
             Ok(Bytes::from(value.as_ref().as_bytes().to_vec()))
         })
         .await
     }
 
-    /// Binary response with HTTP + server-side caching
+    /// Binary response with HTTP cache validation.
     pub async fn respond_bytes<T, F>(
         &self,
         headers: &HeaderMap,
         strategy: CacheStrategy,
-        uri: &Uri,
         f: F,
     ) -> Response<Body>
     where
         T: Into<Vec<u8>> + Send + 'static,
-        F: FnOnce(&bitview_query::Query) -> brk_error::Result<T> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<T> + Send + 'static,
     {
-        self.respond(
-            headers,
-            strategy,
-            uri,
-            "application/octet-stream",
-            move |q| {
-                let value = f(q)?;
-                Ok(Bytes::from(value.into()))
-            },
-        )
+        self.respond(headers, strategy, "application/octet-stream", move |q| {
+            let value = f(q)?;
+            Ok(Bytes::from(value.into()))
+        })
         .await
     }
 }

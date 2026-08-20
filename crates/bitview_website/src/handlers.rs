@@ -204,29 +204,33 @@ mod tests {
     }
 
     #[test]
-    fn serves_standalone_html_experiment() {
-        let response = serve(
-            &Website::Default,
-            "experiments/height.html",
-            &HeaderMap::new(),
-        )
-        .unwrap();
+    fn serves_standalone_html_pages() {
+        for path in [
+            "api.html",
+            "bedrock.html",
+            "brk.html",
+            "events.html",
+            "floor.html",
+            "height.html",
+            "rarity.html",
+            "sentiment.html",
+            "trail.html",
+            "wave.html",
+        ] {
+            let response = serve(&Website::Default, path, &HeaderMap::new()).unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response
-                .headers()
-                .get(header::CONTENT_TYPE)
-                .unwrap()
-                .to_str()
-                .unwrap(),
-            "text/html",
-        );
-        assert!(
-            String::from_utf8(body_bytes(response))
-                .unwrap()
-                .contains("Experiment 001"),
-        );
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(
+                response
+                    .headers()
+                    .get(header::CONTENT_TYPE)
+                    .unwrap()
+                    .to_str()
+                    .unwrap(),
+                "text/html",
+            );
+            assert!(!body_bytes(response).is_empty());
+        }
     }
 
     #[test]

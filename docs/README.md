@@ -42,7 +42,7 @@ curl https://bitview.space/api/mempool/price
 
 Query metrics and blockchain data in JSON or CSV. No rate limit.
 
-[Documentation](https://bitview.space/api) · [JavaScript](https://www.npmjs.com/package/bitview-client) · [Python](https://pypi.org/project/bitview-client) · [Rust](https://crates.io/crates/bitview_client) · [llms.txt](https://bitview.space/llms.txt) · [LLM-friendly schema](https://bitview.space/api.json)
+[Documentation](https://bitview.space/api) · [CLI](https://crates.io/crates/bitview_cli) · [JavaScript](https://www.npmjs.com/package/bitview-client) · [Python](https://pypi.org/project/bitview-client) · [Rust](https://crates.io/crates/bitview_client) · [llms.txt](https://bitview.space/llms.txt) · [LLM-friendly schema](https://bitview.space/api.json)
 
 ### MCP
 

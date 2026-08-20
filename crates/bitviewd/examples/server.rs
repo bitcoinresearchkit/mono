@@ -43,16 +43,18 @@ pub fn main() -> Result<()> {
 
     // Option 1: block_on to run and properly propagate errors
     runtime.block_on(async move {
-        let server = Server::new(
+        let server = Server::bind(
             &query,
             ServerConfig {
                 data_path: outputs_dir,
                 website: Website::Disabled,
                 ..Default::default()
             },
-        );
+            None,
+        )
+        .await?;
 
-        let handle = tokio::spawn(async move { server.serve(None).await });
+        let handle = tokio::spawn(server.serve());
 
         // Await the handle to catch both panics and errors
         match handle.await {

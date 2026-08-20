@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, Query, State},
-    http::{HeaderMap, Uri},
+    http::HeaderMap,
     response::{IntoResponse, Response},
 };
 use bitview_traversable::TreeNode;
@@ -43,8 +43,8 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metrics",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, |q| Ok(q.series_catalog())).await
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_catalog())).await
                 },
                 |op| op
                     .id("get_metrics_tree_deprecated")
@@ -63,12 +63,11 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metrics/count",
             get_with(
                 async |
-                    uri: Uri,
                     headers: HeaderMap,
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, |q| Ok(q.series_count())).await
+                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_count())).await
                 },
                 |op| op
                     .id("get_metrics_count_deprecated")
@@ -87,12 +86,11 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metrics/indexes",
             get_with(
                 async |
-                    uri: Uri,
                     headers: HeaderMap,
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, |q| Ok(q.indexes())).await
+                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.indexes())).await
                 },
                 |op| op
                     .id("get_indexes_deprecated")
@@ -111,12 +109,11 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metrics/list",
             get_with(
                 async |
-                    uri: Uri,
                     headers: HeaderMap,
                     State(state): State<AppState>,
                     Query(pagination): Query<Pagination>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, move |q| Ok(q.series_list(pagination))).await
+                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.series_list(pagination))).await
                 },
                 |op| op
                     .id("list_metrics_deprecated")
@@ -135,12 +132,11 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metrics/search",
             get_with(
                 async |
-                    uri: Uri,
                     headers: HeaderMap,
                     State(state): State<AppState>,
                     Query(query): Query<SearchQuery>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, move |q| Ok(q.search_series(&query))).await
+                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.search_series(&query))).await
                 },
                 |op| op
                     .id("search_metrics_deprecated")
@@ -159,8 +155,8 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metrics/bulk",
             get_with(
-                |uri: Uri, headers: HeaderMap, query: Query<SeriesSelection>, state: State<AppState>| async move {
-                    series_legacy::handler(uri, headers, query, state)
+                |headers: HeaderMap, query: Query<SeriesSelection>, state: State<AppState>| async move {
+                    series_legacy::handler(headers, query, state)
                         .await
                         .into_response()
                 },
@@ -183,13 +179,12 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metric/{metric}",
             get_with(
                 async |
-                    uri: Uri,
                     headers: HeaderMap,
                     _: Empty,
                     State(state): State<AppState>,
                     Path(path): Path<LegacySeriesParam>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, &uri, move |q| {
+                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| {
                         q.series_info(&path.metric).ok_or_else(|| q.series_not_found_error(&path.metric))
                     }).await
                 },
@@ -211,14 +206,13 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metric/{metric}/{index}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        state: State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>,
                        Query(range): Query<DataRangeFormat>|
                        -> Response {
                     let params = SeriesSelection::from((path.index, path.metric, range));
-                    series_legacy::handler(uri, headers, Query(params), state)
+                    series_legacy::handler(headers, Query(params), state)
                         .await
                         .into_response()
                 },
@@ -240,14 +234,13 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metric/{metric}/{index}/data",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        state: State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>,
                        Query(range): Query<DataRangeFormat>|
                        -> Response {
                     let params = SeriesSelection::from((path.index, path.metric, range));
-                    series_legacy::handler(uri, headers, Query(params), state)
+                    series_legacy::handler(headers, Query(params), state)
                         .await
                         .into_response()
                 },
@@ -269,13 +262,12 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metric/{metric}/{index}/latest",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.latest(&path.metric, path.index)
                         })
                         .await
@@ -296,13 +288,12 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metric/{metric}/{index}/len",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.len(&path.metric, path.index)
                         })
                         .await
@@ -323,13 +314,12 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/metric/{metric}/{index}/version",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.version(&path.metric, path.index)
                         })
                         .await
@@ -351,8 +341,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/vecs/{variant}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(variant): Path<String>,
                        Query(range): Query<DataRangeFormat>,
                        state: State<AppState>|
@@ -373,7 +362,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                         SeriesList::from(split.collect::<Vec<_>>().join(separator)),
                         range,
                     ));
-                    series_legacy::handler(uri, headers, Query(params), state)
+                    series_legacy::handler(headers, Query(params), state)
                         .await
                         .into_response()
                 },
@@ -394,13 +383,12 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/vecs/query",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Query(params): Query<SeriesSelectionLegacy>,
                        state: State<AppState>|
                        -> Response {
                     let params: SeriesSelection = params.into();
-                    series_legacy::handler(uri, headers, Query(params), state)
+                    series_legacy::handler(headers, Query(params), state)
                         .await
                         .into_response()
                 },

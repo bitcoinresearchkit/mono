@@ -101,6 +101,12 @@ struct QueryInner<'a> {
 
 #[cfg(feature = "indexer")]
 impl Query {
+    /// Builds the process-lifetime read-only query view.
+    ///
+    /// The cloned composition and its vector catalog are intentionally leaked
+    /// because the catalog contains references into that composition. A daemon
+    /// should call this once; repeated or multi-instance query construction is
+    /// outside this API's lifecycle contract.
     pub fn build<P>(plugins: &P, mempool: Option<Mempool>) -> Self
     where
         P: ReadOnlyClone,

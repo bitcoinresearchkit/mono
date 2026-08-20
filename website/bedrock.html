@@ -1,0 +1,1027 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Bitcoin Bedrock Model</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <style>
+    @font-face {
+      font-family: "Lilex";
+      src:
+        url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+        format("woff2-variations");
+      font-style: normal;
+      font-weight: 100 700;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "Instrument";
+      src:
+        url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        format("woff2");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+
+    :root {
+      font-family: "Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #071014;
+      background: #061a29;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    main {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    main {
+      position: relative;
+      isolation: isolate;
+      background: #58bbc4;
+    }
+
+    header {
+      position: absolute;
+      z-index: 10;
+      top: 11px;
+      left: 14px;
+      right: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      opacity: 0;
+      transform: translateY(-5px);
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+    }
+
+    main[data-interface-visible="true"] header {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    h1 {
+      margin: 0;
+      color: #071014;
+      font-family: "Instrument", serif;
+      font-size: clamp(42px, 5vw, 58px);
+      font-weight: 400;
+      line-height: 0.98;
+      letter-spacing: -0.025em;
+      white-space: nowrap;
+      pointer-events: auto;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 7px;
+      pointer-events: auto;
+    }
+
+    .control-label {
+      color: rgb(7 16 20 / 72%);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      line-height: 18px;
+      text-transform: uppercase;
+    }
+
+    select {
+      padding: 4px 9px;
+      border: 1px solid rgb(7 16 20 / 48%);
+      border-radius: 5px;
+      color: #071014;
+      background: rgb(255 255 255 / 18%);
+      font: inherit;
+      font-size: 12px;
+      line-height: 18px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition:
+        border-color 120ms ease,
+        background-color 120ms ease;
+    }
+
+    select:hover {
+      border-color: #071014;
+      background: rgb(255 255 255 / 34%);
+    }
+
+    select:focus-visible {
+      outline: 2px solid #6aaeff;
+      outline-offset: 2px;
+    }
+
+    #footer-ui {
+      position: absolute;
+      z-index: 30;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      height: 24px;
+      align-items: center;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    #interface-toggle,
+    #scale-toggle {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 24px;
+      padding: 0;
+      border: 0;
+      color: #f2f4f7;
+      background: transparent;
+      font: 500 10px/24px "Lilex", ui-monospace, monospace;
+      letter-spacing: 0.065em;
+      text-transform: uppercase;
+      cursor: pointer;
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 140ms ease;
+    }
+
+    #scale-toggle {
+      position: absolute;
+      z-index: 30;
+      top: 12px;
+      right: 14px;
+      color: #071014;
+    }
+
+    #interface-toggle:hover,
+    #interface-toggle:focus-visible,
+    #scale-toggle:hover,
+    #scale-toggle:focus-visible {
+      opacity: 1;
+    }
+
+    #interface-toggle:focus-visible,
+    #scale-toggle:focus-visible {
+      outline: 2px solid #6aaeff;
+      outline-offset: 4px;
+    }
+
+    #interface-toggle span,
+    #scale-toggle span {
+      opacity: 0.4;
+      transition: opacity 140ms ease;
+    }
+
+    #interface-toggle .mode-separator,
+    #scale-toggle .mode-separator {
+      opacity: 0.22;
+    }
+
+    #interface-toggle[aria-pressed="true"] .technical-option,
+    #interface-toggle[aria-pressed="false"] .art-option {
+      opacity: 1;
+    }
+
+    #scale-toggle[aria-pressed="true"] .log-option,
+    #scale-toggle[aria-pressed="false"] .linear-option {
+      opacity: 1;
+    }
+
+    #source-credit {
+      min-width: 0;
+      margin-right: 16px;
+      overflow: hidden;
+      color: #f2f4f7;
+      font: 500 clamp(8px, 2vw, 10px)/24px "Lilex", ui-monospace, monospace;
+      letter-spacing: 0.065em;
+      text-transform: uppercase;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 140ms ease;
+    }
+
+    main[data-interface-visible="true"] #source-credit {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    #source-credit .credit-copy {
+      opacity: 0.4;
+    }
+
+    #source-credit a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    #source-credit a:hover,
+    #source-credit a:focus-visible {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @media (hover: hover) {
+      #interface-toggle,
+      #scale-toggle {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      main:hover #interface-toggle,
+      #interface-toggle:focus-visible,
+      main:hover #scale-toggle,
+      #scale-toggle:focus-visible {
+        opacity: 1;
+        pointer-events: auto;
+      }
+    }
+
+    #chart {
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+
+    #cursor-readout {
+      display: block;
+      min-height: 20px;
+      color: rgb(7 16 20 / 72%);
+      font-family: "Lilex", ui-monospace, monospace;
+      font-size: 14px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      line-height: 20px;
+      pointer-events: none;
+    }
+
+    #status {
+      position: absolute;
+      z-index: 20;
+      right: 14px;
+      bottom: 48px;
+      max-width: min(460px, calc(100% - 28px));
+      padding: 6px 8px;
+      border-radius: 5px;
+      color: rgb(7 16 20 / 74%);
+      background: rgb(255 255 255 / 24%);
+      font-size: 11px;
+      line-height: 15px;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    #status:empty {
+      opacity: 0;
+    }
+
+    #status.error {
+      color: #f7f8f8;
+      background: rgb(75 29 29 / 86%);
+    }
+
+    @media (max-width: 760px) {
+      header {
+        top: 8px;
+        left: 9px;
+      }
+
+      #scale-toggle {
+        top: 8px;
+        right: 9px;
+      }
+
+      select {
+        padding: 3px 7px;
+        font-size: 11px;
+      }
+
+      #footer-ui {
+        bottom: 8px;
+        left: 8px;
+        right: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <button
+      id="scale-toggle"
+      type="button"
+      aria-label="Switch to linear scale"
+      aria-pressed="true"
+      title="Switch to linear scale"
+    >
+      <span class="log-option">Log</span>
+      <span class="mode-separator" aria-hidden="true">/</span>
+      <span class="linear-option">Lin</span>
+    </button>
+
+    <header>
+      <h1>Bitcoin Bedrock Model</h1>
+      <output id="cursor-readout" aria-live="off"></output>
+
+      <div class="controls">
+        <span class="control-label">Mode:</span>
+        <select id="mode" aria-label="Bedrock model mode" disabled>
+          <option value="raw">Raw</option>
+          <option value="cointime">Cointime</option>
+          <option value="coinflow" selected>Coinflow</option>
+          <option value="coinflow_8y">Coinflow 8Y</option>
+          <option value="coinflow_4y">Coinflow 4Y</option>
+          <option value="coinflow_2y">Coinflow 2Y</option>
+          <option value="coinflow_1y">Coinflow 1Y</option>
+          <option value="coinflow_6m">Coinflow 6M</option>
+          <option value="coinflow_3m">Coinflow 3M</option>
+          <option value="coinflow_1m">Coinflow 1M</option>
+        </select>
+      </div>
+    </header>
+
+    <div id="footer-ui">
+      <div id="source-credit">
+        <span class="credit-copy">Source:</span>
+        <a href="https://bitview.space" target="_blank" rel="noreferrer">Bitview.space</a>
+        <span class="credit-copy">· Powered by</span>
+        <a
+          href="https://bitcoinresearchkit.org"
+          target="_blank"
+          rel="noreferrer"
+        >Bitcoin Research Kit</a>
+      </div>
+
+      <button
+        id="interface-toggle"
+        type="button"
+        aria-label="Switch to art mode"
+        aria-pressed="true"
+        title="Switch to art mode"
+      >
+        <span class="technical-option">Data</span>
+        <span class="mode-separator" aria-hidden="true">/</span>
+        <span class="art-option">Art</span>
+      </button>
+    </div>
+
+    <div
+      id="chart"
+      role="img"
+      aria-busy="true"
+      aria-label="Loading the Bitcoin Bedrock Model"
+    ></div>
+    <output id="status" aria-live="polite">Loading Bedrock series…</output>
+  </main>
+
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const API = "https://bitview.space/api";
+      const DAY_MS = 86_400_000;
+      const INITIAL_START_DATE = "2016-01-01";
+      const INDEXES = {
+        day1: {
+          daysPerBar: 1,
+          zero: Date.UTC(2009, 0, 1),
+        },
+      };
+      const PRICE_CANDLE_ENTER_BARS = 500;
+      const PRICE_CANDLE_EXIT_BARS = 600;
+      const FLOOR_PERCENTILES = ["pct95", "pct98", "pct99", "pct99_5", "pct99_9"];
+      const LEVEL_PERCENTILES = [
+        "pct10",
+        "pct20",
+        "pct30",
+        "pct40",
+        "pct50",
+        "pct60",
+        "pct70",
+        "pct80",
+        "pct90",
+      ];
+
+      const mainElement = document.querySelector("main");
+      const chartElement = document.getElementById("chart");
+      const cursorReadout = document.getElementById("cursor-readout");
+      const statusElement = document.getElementById("status");
+      const modeSelect = document.getElementById("mode");
+      const interfaceToggle = document.getElementById("interface-toggle");
+      const scaleToggle = document.getElementById("scale-toggle");
+      const canHover = window.matchMedia("(hover: hover)");
+      const MODE_KEY = "mode";
+      const DEFAULT_MODE = "coinflow";
+      const VIEW_KEY = "view";
+      const DEFAULT_VIEW = "technical";
+      const SCALE_KEY = "scale";
+      const DEFAULT_SCALE = "log";
+      const validModes = new Set(
+        Array.from(modeSelect.options, (option) => option.value),
+      );
+      const validViews = new Set(["technical", "art"]);
+      const validScales = new Set(["log", "lin"]);
+
+      function savedMode() {
+        const urlMode = new URL(window.location.href).searchParams.get(MODE_KEY);
+        if (validModes.has(urlMode)) return urlMode;
+        try {
+          const localMode = window.localStorage.getItem(MODE_KEY);
+          if (validModes.has(localMode)) return localMode;
+        } catch (_) {}
+        return DEFAULT_MODE;
+      }
+
+      function persistMode(mode) {
+        try {
+          window.localStorage.setItem(MODE_KEY, mode);
+        } catch (_) {}
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set(MODE_KEY, mode);
+          window.history.replaceState(null, "", url);
+        } catch (_) {}
+      }
+
+      function savedView() {
+        const urlView = new URL(window.location.href).searchParams.get(VIEW_KEY);
+        if (validViews.has(urlView)) return urlView;
+        try {
+          const localView = window.localStorage.getItem(VIEW_KEY);
+          if (validViews.has(localView)) return localView;
+        } catch (_) {}
+        return DEFAULT_VIEW;
+      }
+
+      function persistView(view) {
+        try {
+          window.localStorage.setItem(VIEW_KEY, view);
+        } catch (_) {}
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set(VIEW_KEY, view);
+          window.history.replaceState(null, "", url);
+        } catch (_) {}
+      }
+
+      function savedScale() {
+        const urlScale = new URL(window.location.href).searchParams.get(SCALE_KEY);
+        if (validScales.has(urlScale)) return urlScale;
+        try {
+          const localScale = window.localStorage.getItem(SCALE_KEY);
+          if (validScales.has(localScale)) return localScale;
+        } catch (_) {}
+        return DEFAULT_SCALE;
+      }
+
+      function persistScale(scale) {
+        try {
+          window.localStorage.setItem(SCALE_KEY, scale);
+        } catch (_) {}
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set(SCALE_KEY, scale);
+          window.history.replaceState(null, "", url);
+        } catch (_) {}
+      }
+
+      modeSelect.value = savedMode();
+      persistMode(modeSelect.value);
+      let interfaceShown = savedView() === "technical";
+      persistView(interfaceShown ? "technical" : "art");
+      mainElement.dataset.interfaceVisible = String(interfaceShown);
+      interfaceToggle.setAttribute("aria-pressed", String(interfaceShown));
+      interfaceToggle.setAttribute(
+        "aria-label",
+        interfaceShown ? "Switch to art mode" : "Switch to technical mode",
+      );
+      interfaceToggle.title =
+        interfaceShown ? "Switch to art mode" : "Switch to technical mode";
+      let logarithmicScale = savedScale() === "log";
+      persistScale(logarithmicScale ? "log" : "lin");
+      scaleToggle.setAttribute("aria-pressed", String(logarithmicScale));
+      scaleToggle.setAttribute(
+        "aria-label",
+        logarithmicScale ? "Switch to linear scale" : "Switch to logarithmic scale",
+      );
+      scaleToggle.title =
+        logarithmicScale ? "Switch to linear scale" : "Switch to logarithmic scale";
+
+      const chart = LightweightCharts.createChart(chartElement, {
+        autoSize: true,
+        hoveredSeriesOnTop: false,
+        layout: {
+          background: {
+            type: LightweightCharts.ColorType.Solid,
+            color: "#58bbc4",
+          },
+          textColor: "#071014",
+          fontFamily: "Lilex, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+          attributionLogo: false,
+        },
+        grid: {
+          vertLines: { color: "rgb(188 206 215 / 8%)" },
+          horzLines: { color: "rgb(188 206 215 / 8%)" },
+        },
+        rightPriceScale: {
+          visible: false,
+          mode: logarithmicScale
+            ? LightweightCharts.PriceScaleMode.Logarithmic
+            : LightweightCharts.PriceScaleMode.Normal,
+          borderColor: "#252b32",
+          scaleMargins: { top: 0.1, bottom: 0.1 },
+        },
+        timeScale: {
+          visible: false,
+          barSpacing: 2.3,
+          minBarSpacing: 0.05,
+          fixLeftEdge: true,
+          fixRightEdge: true,
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: {
+            visible: interfaceShown,
+            color: "rgb(242 244 247 / 52%)",
+            width: 1,
+            style: LightweightCharts.LineStyle.SparseDotted,
+            labelVisible: false,
+          },
+          horzLine: {
+            visible: interfaceShown,
+            color: "rgb(242 244 247 / 52%)",
+            width: 1,
+            style: LightweightCharts.LineStyle.SparseDotted,
+            labelVisible: false,
+          },
+        },
+        localization: {
+          priceFormatter: (value) => formatPrice(value),
+        },
+      });
+
+      const bandOptions = {
+        lineColor: "rgb(0 0 0 / 0%)",
+        lineWidth: 1,
+        lineType: LightweightCharts.LineType.Simple,
+        lineVisible: false,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+      };
+      const makeBand = (topColor, bottomColor = topColor) =>
+        chart.addSeries(LightweightCharts.AreaSeries, {
+          ...bandOptions,
+          topColor,
+          bottomColor,
+        });
+
+      const bands = {
+        water5: makeBand("rgb(61 168 180 / 96%)"),
+        water4: makeBand("rgb(37 135 157 / 95%)"),
+        water3: makeBand("rgb(23 107 139 / 94%)"),
+        water2: makeBand("rgb(16 82 114 / 93%)"),
+        water1: makeBand("rgb(9 58 91 / 92%)"),
+        soil1: makeBand("rgb(201 165 75 / 96%)"),
+        soil2: makeBand("rgb(182 129 52 / 97%)"),
+        soil3: makeBand("rgb(150 90 47 / 97%)"),
+        soil4: makeBand("rgb(113 67 49 / 98%)"),
+        soil5: makeBand("rgb(75 52 46 / 98%)"),
+        bed1: makeBand("rgb(131 135 138 / 98%)"),
+        bed2: makeBand("rgb(102 106 110 / 98%)"),
+        bed3: makeBand("rgb(75 79 83 / 99%)"),
+        bed4: makeBand("rgb(48 52 56 / 99%)"),
+        bed5: makeBand("rgb(24 27 30 / 99%)", "rgb(7 9 11 / 99.5%)"),
+      };
+
+      const priceSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        visible: false,
+        color: "#f2f4f7",
+        lineWidth: 1.5,
+        lineType: LightweightCharts.LineType.Curved,
+        lastValueVisible: true,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      const priceCandles = chart.addSeries(LightweightCharts.CandlestickSeries, {
+        visible: false,
+        upColor: "#071a29",
+        downColor: "#f2f4f7",
+        wickUpColor: "#f2f4f7",
+        wickDownColor: "#f2f4f7",
+        borderUpColor: "#f2f4f7",
+        borderDownColor: "#f2f4f7",
+        borderVisible: true,
+        lastValueVisible: true,
+        priceLineVisible: false,
+      });
+
+      const PRICE_SERIES_NAMES = ["price_close", "price_ath", "price_ohlc"];
+      const indexData = new Map(
+        Object.keys(INDEXES).map((index) => [index, new Map()]),
+      );
+      const modeLoads = new Map();
+      const loadedModes = new Set();
+      const pointCache = new Map();
+      const candleCache = new Map();
+      let activeMode = modeSelect.value;
+      let loaded = false;
+      let candlesVisible = false;
+      let modeGeneration = 0;
+      let pricePresentation = "hidden";
+      let pendingVisibilityRange = null;
+      let visibilityFrame = 0;
+      let modeChangedByPointer = false;
+      let cursorActive = false;
+      let pricePoints = [];
+
+      function modelSeriesNames(mode) {
+        const prefix = `bedrock_${mode}`;
+        return [
+          ...LEVEL_PERCENTILES.map((percentile) => `${prefix}_level_${percentile}`),
+          ...FLOOR_PERCENTILES.map((percentile) => `${prefix}_floor_${percentile}`),
+        ];
+      }
+
+      function formatPrice(value) {
+        return Number.isFinite(value)
+          ? `$${Math.round(value).toLocaleString("en-US")}`
+          : "—";
+      }
+
+      function formatChartDate(time) {
+        if (typeof time === "string") return time;
+        if (typeof time === "number") {
+          return new Date(time * 1000).toISOString().slice(0, 10);
+        }
+        if (time && typeof time === "object") {
+          return [
+            time.year,
+            String(time.month).padStart(2, "0"),
+            String(time.day).padStart(2, "0"),
+          ].join("-");
+        }
+        return "";
+      }
+
+      function showReadout(date, price) {
+        cursorReadout.textContent =
+          date && Number.isFinite(price) && price > 0
+            ? `${date} · ${formatPrice(price)}`
+            : "";
+      }
+
+      function lastPriceAtOrBefore(date) {
+        let low = 0;
+        let high = pricePoints.length;
+        while (low < high) {
+          const middle = (low + high) >>> 1;
+          if (pricePoints[middle].time <= date) {
+            low = middle + 1;
+          } else {
+            high = middle;
+          }
+        }
+        return pricePoints[low - 1];
+      }
+
+      function showLastVisiblePrice() {
+        if (cursorActive || !pricePoints.length) return;
+        const visibleRange = chart.timeScale().getVisibleRange();
+        const visibleEnd = formatChartDate(visibleRange?.to);
+        const point = visibleEnd
+          ? lastPriceAtOrBefore(visibleEnd)
+          : pricePoints.at(-1);
+        showReadout(point?.time, point?.value);
+      }
+
+      function dateAt(index, indexName) {
+        const config = INDEXES[indexName];
+        return new Date(
+          config.zero + index * config.daysPerBar * DAY_MS,
+        ).toISOString().slice(0, 10);
+      }
+
+      function pointsFor(name, indexName) {
+        const key = `${indexName}:${name}`;
+        if (pointCache.has(key)) return pointCache.get(key);
+
+        const series = indexData.get(indexName)?.get(name);
+        if (!series) throw new Error(`Missing series: ${name}`);
+        const points = [];
+        series.data.forEach((value, offset) => {
+          const number = Number(value);
+          if (Number.isFinite(number) && number > 0) {
+            points.push({
+              time: dateAt(series.start + offset, indexName),
+              value: number,
+            });
+          }
+        });
+        pointCache.set(key, points);
+        return points;
+      }
+
+      function candlesFor() {
+        if (candleCache.has("day1")) return candleCache.get("day1");
+
+        const series = indexData.get("day1")?.get("price_ohlc");
+        if (!series) throw new Error("Missing series: price_ohlc");
+        const candles = [];
+        series.data.forEach((value, offset) => {
+          if (
+            Array.isArray(value) &&
+            value.length === 4 &&
+            value.every((item) => Number.isFinite(Number(item)) && Number(item) > 0)
+          ) {
+            candles.push({
+              time: dateAt(series.start + offset, "day1"),
+              open: Number(value[0]),
+              high: Number(value[1]),
+              low: Number(value[2]),
+              close: Number(value[3]),
+            });
+          }
+        });
+        candleCache.set("day1", candles);
+        return candles;
+      }
+
+      function setBand(key, name) {
+        bands[key].setData(pointsFor(name, "day1"));
+      }
+
+      function applyMode() {
+        if (!loaded) return;
+
+        const prefix = `bedrock_${activeMode}`;
+        const level = (percentile) => `${prefix}_level_pct${percentile}`;
+        const floor = (percentile) => `${prefix}_floor_${percentile}`;
+
+        setBand("water5", "price_ath");
+        setBand("water4", level(90));
+        setBand("water3", level(80));
+        setBand("water2", level(70));
+        setBand("water1", level(60));
+        setBand("soil1", level(50));
+        setBand("soil2", level(40));
+        setBand("soil3", level(30));
+        setBand("soil4", level(20));
+        setBand("soil5", level(10));
+        setBand("bed1", floor("pct95"));
+        setBand("bed2", floor("pct98"));
+        setBand("bed3", floor("pct99"));
+        setBand("bed4", floor("pct99_5"));
+        setBand("bed5", floor("pct99_9"));
+
+        chartElement.setAttribute(
+          "aria-label",
+          `Bitcoin price across ten precomputed ${modeSelect.selectedOptions[0].text} supply levels and five Bedrock floors`,
+        );
+      }
+
+      function visibleBars(range) {
+        if (!range) return Infinity;
+        return Math.max(0, range.to - range.from);
+      }
+
+      function interfaceVisible() {
+        return interfaceShown;
+      }
+
+      function applyPriceVisibility(range) {
+        const bars = visibleBars(range);
+        candlesVisible =
+          (candlesVisible
+            ? bars <= PRICE_CANDLE_EXIT_BARS
+            : bars <= PRICE_CANDLE_ENTER_BARS);
+        const visible = loaded && interfaceVisible();
+        const nextPresentation = !visible
+          ? "hidden"
+          : candlesVisible
+            ? "candles"
+            : "line";
+        if (nextPresentation === pricePresentation) return;
+        const previousPresentation = pricePresentation;
+        pricePresentation = nextPresentation;
+
+        if (nextPresentation === "line") {
+          priceSeries.applyOptions({ visible: true });
+          if (previousPresentation === "candles") {
+            priceCandles.applyOptions({ visible: false });
+          }
+        } else if (nextPresentation === "candles") {
+          priceCandles.applyOptions({ visible: true });
+          if (previousPresentation === "line") {
+            priceSeries.applyOptions({ visible: false });
+          }
+        } else if (previousPresentation === "line") {
+          priceSeries.applyOptions({ visible: false });
+        } else if (previousPresentation === "candles") {
+          priceCandles.applyOptions({ visible: false });
+        }
+      }
+
+      function schedulePriceVisibility(
+        range = chart.timeScale().getVisibleLogicalRange(),
+      ) {
+        pendingVisibilityRange = range;
+        if (visibilityFrame) return;
+        visibilityFrame = requestAnimationFrame(() => {
+          visibilityFrame = 0;
+          const nextRange = pendingVisibilityRange;
+          pendingVisibilityRange = null;
+          applyPriceVisibility(nextRange);
+          showLastVisiblePrice();
+        });
+      }
+
+      function setInterfaceVisible(visible) {
+        interfaceShown = visible;
+        persistView(visible ? "technical" : "art");
+        mainElement.dataset.interfaceVisible = String(visible);
+        interfaceToggle.setAttribute("aria-pressed", String(visible));
+        interfaceToggle.setAttribute(
+          "aria-label",
+          visible ? "Switch to art mode" : "Switch to technical mode",
+        );
+        interfaceToggle.title =
+          visible ? "Switch to art mode" : "Switch to technical mode";
+        chart.applyOptions({
+          crosshair: {
+            vertLine: { visible },
+            horzLine: { visible },
+          },
+        });
+        cursorActive = false;
+        showLastVisiblePrice();
+        schedulePriceVisibility();
+      }
+
+      function setLogarithmicScale(logarithmic) {
+        logarithmicScale = logarithmic;
+        persistScale(logarithmic ? "log" : "lin");
+        scaleToggle.setAttribute("aria-pressed", String(logarithmic));
+        scaleToggle.setAttribute(
+          "aria-label",
+          logarithmic ? "Switch to linear scale" : "Switch to logarithmic scale",
+        );
+        scaleToggle.title =
+          logarithmic ? "Switch to linear scale" : "Switch to logarithmic scale";
+        chart.priceScale("right").applyOptions({
+          mode: logarithmic
+            ? LightweightCharts.PriceScaleMode.Logarithmic
+            : LightweightCharts.PriceScaleMode.Normal,
+        });
+      }
+
+      async function fetchSeries(names, indexName) {
+        const result = await Promise.all(
+          names.map(async (name) => {
+            const response = await fetch(
+              `${API}/series/${encodeURIComponent(name)}/${encodeURIComponent(indexName)}`,
+              { cache: "no-cache" },
+            );
+            if (!response.ok) {
+              throw new Error(`${name}: server returned ${response.status}`);
+            }
+            return response.json();
+          }),
+        );
+        const target = indexData.get(indexName);
+        result.forEach((series, index) => {
+          target.set(names[index], series);
+        });
+      }
+
+      function loadMode(mode) {
+        if (modeLoads.has(mode)) return modeLoads.get(mode);
+
+        const names = modelSeriesNames(mode);
+        const load = fetchSeries(names, "day1")
+          .then(() => {
+            loadedModes.add(mode);
+          })
+          .catch((error) => {
+            modeLoads.delete(mode);
+            throw error;
+          });
+        modeLoads.set(mode, load);
+        return load;
+      }
+
+      async function selectMode(mode) {
+        const generation = ++modeGeneration;
+        activeMode = mode;
+        statusElement.classList.remove("error");
+
+        if (!loadedModes.has(mode)) {
+          statusElement.textContent = `Loading ${modeSelect.selectedOptions[0].text}…`;
+        }
+        try {
+          await loadMode(mode);
+          if (generation !== modeGeneration || mode !== activeMode) return;
+          applyMode();
+          statusElement.textContent = "";
+        } catch (error) {
+          if (generation !== modeGeneration) return;
+          statusElement.classList.add("error");
+          statusElement.textContent =
+            `Could not load ${modeSelect.selectedOptions[0].text}: ${error.message}`;
+        }
+      }
+
+      async function load() {
+        try {
+          await Promise.all([
+            fetchSeries(PRICE_SERIES_NAMES, "day1"),
+            loadMode(activeMode),
+          ]);
+
+          loaded = true;
+          modeSelect.disabled = false;
+          pricePoints = pointsFor("price_close", "day1");
+          priceSeries.setData(pricePoints);
+          priceCandles.setData(candlesFor());
+          applyMode();
+          const lastPricePoint = pricePoints.at(-1);
+          if (lastPricePoint) {
+            chart.timeScale().setVisibleRange({
+              from: INITIAL_START_DATE,
+              to: lastPricePoint.time,
+            });
+          } else {
+            chart.timeScale().fitContent();
+          }
+          schedulePriceVisibility();
+          chartElement.setAttribute("aria-busy", "false");
+          statusElement.textContent = "";
+        } catch (error) {
+          console.error(error);
+          chartElement.setAttribute("aria-busy", "false");
+          statusElement.classList.add("error");
+          statusElement.textContent =
+            `Could not load Bedrock data from ${API}: ${error.message}`;
+        }
+      }
+
+      modeSelect.addEventListener("pointerdown", () => {
+        modeChangedByPointer = true;
+      });
+      modeSelect.addEventListener("keydown", () => {
+        modeChangedByPointer = false;
+      });
+      modeSelect.addEventListener("change", () => {
+        persistMode(modeSelect.value);
+        selectMode(modeSelect.value);
+        if (modeChangedByPointer && canHover.matches) {
+          requestAnimationFrame(() => modeSelect.blur());
+        }
+      });
+      interfaceToggle.addEventListener("click", () => {
+        setInterfaceVisible(!interfaceShown);
+      });
+      scaleToggle.addEventListener("click", () => {
+        setLogarithmicScale(!logarithmicScale);
+      });
+      mainElement.addEventListener("mouseleave", () => {
+        cursorActive = false;
+        showLastVisiblePrice();
+      });
+      chart.timeScale().subscribeVisibleLogicalRangeChange(
+        schedulePriceVisibility,
+      );
+      chart.subscribeCrosshairMove((param) => {
+        if (!param.point || param.time === undefined) {
+          cursorActive = false;
+          showLastVisiblePrice();
+          return;
+        }
+
+        cursorActive = true;
+        const price = priceSeries.coordinateToPrice(param.point.y);
+        const date = formatChartDate(param.time);
+        showReadout(date, price);
+      });
+
+      load();
+    })();
+  </script>
+</body>
+</html>

@@ -6,8 +6,8 @@ license = "MIT"
 publish = false
 
 [dependencies]
-bitview = { version = "0.11.2", path = "../../crates/bitview", default-features = false, features = ["full"] }
-bitviewd = { version = "0.11.2", path = "../../crates/bitviewd", default-features = false, features = ["full"] }
+bitview = { version = "0.11.2", path = "../../crates/bitview", default-features = false }
+bitviewd = { version = "0.11.2", path = "../../crates/bitviewd", default-features = false, features = ["full-api"] }
 bitview_default = { version = "0.11.2", path = "../../crates/bitview_default" }
 bitview_plugin = { version = "0.11.2", path = "../../crates/bitview_plugin" }
 bitview_plugin_indexer = { version = "0.11.2", path = "../../crates/bitview_plugin_indexer" }

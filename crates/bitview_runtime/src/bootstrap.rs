@@ -42,6 +42,8 @@ fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = Plugin
 ///
 /// A composition may request one or more complete drop/reimport cycles to
 /// reclaim transient memory accumulated during its initial computation.
+/// Every entry under the shared plugin-data directory that is not claimed by
+/// the imported composition is removed before computation begins.
 pub fn bootstrap<P>(
     import_context: ImportContext<'_>,
     mut import: impl FnMut(ImportContext<'_>) -> Result<P>,

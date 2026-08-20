@@ -6,8 +6,8 @@ Bitview is a composable, self-hostable Bitcoin data platform built on the
 
 This package provides the `bitviewd` process shell and executable: command-line
 arguments, configuration files, logging, signal handling, and the official
-plugin composition. The process-agnostic update runner lives in the `bitview`
-crate.
+plugin composition. The composition-agnostic daemon runner lives in the
+`bitview` crate.
 
 [bitview.space](https://bitview.space) is the official free hosted instance.
 For AI clients, the official stateless, read-only MCP endpoint is
@@ -101,6 +101,10 @@ RUST_LOG=... bitviewd # Control log filtering directly
 `~/.bitview` is the default data directory and can be changed with
 `--bitviewdir`.
 
+The active composition owns the entire `plugins/` directory. At startup,
+Bitview removes every entry whose name is not claimed by an active plugin ID.
+Use a different `bitviewdir` when omitted plugin data must be preserved.
+
 Plugin compatibility is defined separately by
 [`bitview_plugin`](https://crates.io/crates/bitview_plugin). The platform and
 plugin APIs remain experimental while the built-in modules are extracted into
@@ -122,6 +126,9 @@ bitviewd = { version = "0.11.2", default-features = false, features = ["series"]
 Plugin features flow through `bitview` and `bitview_server` to `bitview_query`,
 so only the selected typed API surface and its plugin crates are compiled. The
 indexer is the mandatory runner baseline.
+
+Use `features = ["full-api"]` to enable the complete chain, series, and URPD API
+without selecting `bitview_default`.
 
 ## License
 

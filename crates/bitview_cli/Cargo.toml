@@ -1,0 +1,19 @@
+[package]
+name = "bitview_cli"
+description = "Generated command-line client for the Bitview API"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme = "README.md"
+keywords = ["bitcoin", "analytics", "api", "cli"]
+categories = ["command-line-utilities", "api-bindings"]
+
+[dependencies]
+serde_json = { workspace = true }
+ureq = { workspace = true }
+
+[[bin]]
+name = "bitview-cli"
+path = "src/main.rs"

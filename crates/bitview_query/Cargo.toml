@@ -9,8 +9,8 @@ repository.workspace = true
 exclude = ["examples/"]
 
 [features]
-default = ["full"]
-full = ["chain", "series", "urpd"]
+default = ["full-api"]
+full-api = ["chain", "series", "urpd"]
 indexer = ["dep:bitview_plugin_indexer"]
 bedrock = ["indexer", "dep:bitview_plugin_bedrock"]
 blocks = ["indexer", "dep:bitview_plugin_blocks"]

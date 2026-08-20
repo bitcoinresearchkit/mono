@@ -1,14 +1,5 @@
-use crate::openapi::{Parameter, ResponseKind};
+use crate::openapi::{Parameter, RequestBody, ResponseKind};
 use serde_json::Value;
-
-/// Request body shape for POST/PUT/PATCH endpoints.
-#[derive(Debug, Clone)]
-pub struct RequestBody {
-    /// Body content type as a name (e.g. "string" for text/plain, "Foo" for an `application/json` $ref).
-    pub body_type: String,
-    /// Whether the body is required.
-    pub required: bool,
-}
 
 /// Endpoint information extracted from OpenAPI spec.
 #[derive(Debug, Clone)]

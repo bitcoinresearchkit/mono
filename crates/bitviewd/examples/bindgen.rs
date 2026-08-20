@@ -19,12 +19,12 @@ const GENERATED_OUTPUTS: &[(&str, &str)] = &[
         "crates/bitview_client/src/generated.rs",
     ),
     (
-        "modules/bitview-client/index.js",
-        "modules/bitview-client/index.js",
+        "crates/bitview_cli/src/generated.rs",
+        "crates/bitview_cli/src/generated.rs",
     ),
     (
         "modules/bitview-client/index.js",
-        "website/scripts/modules/bitview-client/index.js",
+        "modules/bitview-client/index.js",
     ),
     (
         "packages/bitview_client/bitview_client/__init__.py",
@@ -85,7 +85,7 @@ pub fn main() -> Result<()> {
     let result = if check {
         verify_outputs(&output_root, &workspace_root)
     } else {
-        mirror_javascript_client(&workspace_root)
+        Ok(())
     };
 
     fs::remove_dir_all(&tmp)?;
@@ -106,6 +106,7 @@ pub fn main() -> Result<()> {
 fn output_paths(root: &Path) -> bitview_bindgen::ClientOutputPaths {
     bitview_bindgen::ClientOutputPaths::new()
         .rust(root.join("crates/bitview_client/src/generated.rs"))
+        .cli(root.join("crates/bitview_cli/src/generated.rs"))
         .javascript(root.join("modules/bitview-client/index.js"))
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
         .llm(root.join("website"))
@@ -142,16 +143,6 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
         fs::write(path, contents)?;
     }
 
-    Ok(())
-}
-
-fn mirror_javascript_client(root: &Path) -> Result<()> {
-    let source = root.join("modules/bitview-client/index.js");
-    let destination = root.join("website/scripts/modules/bitview-client/index.js");
-    let generated = fs::read(&source)?;
-    if fs::read(&destination).ok().as_deref() != Some(generated.as_slice()) {
-        fs::write(destination, generated)?;
-    }
     Ok(())
 }
 

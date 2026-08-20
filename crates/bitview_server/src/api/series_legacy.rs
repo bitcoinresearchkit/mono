@@ -11,7 +11,7 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     body::Bytes,
     extract::{Path, Query, State},
-    http::{HeaderMap, StatusCode, Uri},
+    http::{HeaderMap, StatusCode},
     response::Response,
 };
 use bitview_query::{OutputLegacy, Query as BrkQuery};
@@ -35,12 +35,11 @@ pub const SUNSET: &str = "2027-01-01T00:00:00Z";
 /// the response with `Deprecation` / `Sunset` headers. Reused by `metrics/*`
 /// for endpoints that must stay on the old format until sunset.
 pub async fn handler(
-    uri: Uri,
     headers: HeaderMap,
     Query(params): Query<SeriesSelection>,
     State(state): State<AppState>,
 ) -> std::result::Result<Response, crate::Error> {
-    let mut response = super::series::serve(state, uri, headers, params, legacy_bytes).await?;
+    let mut response = super::series::serve(state, headers, params, legacy_bytes).await?;
     if response.status() == StatusCode::OK {
         response.headers_mut().insert_deprecation(SUNSET);
     }
@@ -140,9 +139,9 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/series/cost-basis",
             get_with(
-                async |uri: Uri, headers: HeaderMap, _: Empty, State(state): State<AppState>| {
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Deploy, &uri, |q| q.urpd_cohorts())
+                        .respond_json(&headers, CacheStrategy::Deploy, |q| q.urpd_cohorts())
                         .await
                 },
                 |op| {
@@ -163,13 +162,12 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/series/cost-basis/{cohort}/dates",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(params): Path<CostBasisCohortParam>,
                        _: Empty,
                        State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, &uri, move |q| {
+                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
                             q.urpd_dates(&params.cohort)
                         })
                         .await
@@ -193,14 +191,13 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/series/cost-basis/{cohort}/{date}",
             get_with(
-                async |uri: Uri,
-                       headers: HeaderMap,
+                async |headers: HeaderMap,
                        Path(params): Path<CostBasisParams>,
                        Query(query): Query<CostBasisQuery>,
                        State(state): State<AppState>| {
                     let strategy = state.date_strategy(Version::ONE, params.date);
                     state
-                        .respond_json(&headers, strategy, &uri, move |q| {
+                        .respond_json(&headers, strategy, move |q| {
                             cost_basis_formatted(
                                 q,
                                 &params.cohort,

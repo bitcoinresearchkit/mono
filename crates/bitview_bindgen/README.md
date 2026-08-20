@@ -4,13 +4,13 @@ Code generation for Bitview client libraries.
 
 ## What It Enables
 
-Generate clients for Rust, JavaScript, Python, LLMs, and MCP from the OpenAPI
+Generate clients for Rust, CLI, JavaScript, Python, LLMs, and MCP from the OpenAPI
 specification and series tree. Keeps every consumer in sync with available
 series and API endpoints without manual maintenance.
 
 ## Key Features
 
-- **Multi-client**: Generates Rust, JavaScript, Python, and LLM clients
+- **Multi-client**: Generates Rust, CLI, JavaScript, Python, and LLM clients
 - **MCP catalog**: Generates the MCP tool manifest from the same OpenAPI operations
 - **OpenAPI-driven**: Extracts endpoints and schemas from the OpenAPI spec
 - **Series catalog**: Includes all series IDs and their supported indexes
@@ -24,6 +24,7 @@ use bitview_bindgen::{generate_clients, ClientOutputPaths};
 
 let paths = ClientOutputPaths::new()
     .rust("crates/bitview_client/src/generated.rs")
+    .cli("crates/bitview_cli/src/generated.rs")
     .javascript("modules/bitview-client/index.js")
     .python("packages/bitview_client/bitview_client/__init__.py")
     .llm("website")
@@ -38,6 +39,7 @@ generate_clients(&vecs, &openapi_json, &paths)?;
 | Language | Contents |
 |----------|----------|
 | Rust | Typed API client using `brk_types` and `bitview_types`, series catalog |
+| CLI | Command catalog for every non-deprecated OpenAPI operation |
 | JavaScript | ES module with JSDoc types, series catalog, fetch helpers |
 | Python | Typed client with dataclasses, series catalog |
 | LLM/MCP | Plain-text API references and the MCP tool manifest |

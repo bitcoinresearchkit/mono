@@ -1,0 +1,1219 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Bitcoin Rarity Meter</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <style>
+    @font-face {
+      font-family: "Instrument";
+      src:
+        url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+        format("woff2");
+      font-style: normal;
+      font-weight: 400;
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: dark;
+      font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", monospace;
+      color: #f5f5f5;
+      background: #000;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body,
+    main,
+    #chart {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-width: 320px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    main {
+      position: relative;
+      height: 100dvh;
+      isolation: isolate;
+    }
+
+    #chart {
+      position: absolute;
+      inset: 0;
+      background: #000;
+    }
+
+    #readout {
+      position: absolute;
+      z-index: 2;
+      top: 64px;
+      left: 18px;
+      display: grid;
+      gap: 5px;
+      pointer-events: none;
+      font-variant-numeric: tabular-nums;
+      text-transform: uppercase;
+      text-shadow:
+        -1px -1px 0 #000,
+        0 -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 0 0 #000,
+        1px 0 0 #000,
+        -1px 1px 0 #000,
+        0 1px 0 #000,
+        1px 1px 0 #000;
+    }
+
+    #date {
+      color: #a3a3a3;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.2;
+      letter-spacing: 0.04em;
+    }
+
+    #price {
+      font-size: clamp(20px, 2vw, 30px);
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.035em;
+      text-shadow:
+        -2px -2px 0 #000,
+        0 -2px 0 #000,
+        2px -2px 0 #000,
+        -2px 0 0 #000,
+        2px 0 0 #000,
+        -2px 2px 0 #000,
+        0 2px 0 #000,
+        2px 2px 0 #000;
+    }
+
+    #identity {
+      position: absolute;
+      z-index: 2;
+      top: 14px;
+      left: 18px;
+      pointer-events: none;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Instrument", Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 4vw, 48px);
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.025em;
+    }
+
+    #range {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    #status {
+      position: absolute;
+      z-index: 3;
+      top: 50%;
+      left: 50%;
+      max-width: min(420px, calc(100% - 32px));
+      padding: 8px 11px;
+      border-radius: 7px;
+      color: #b8b8b8;
+      background: rgb(20 20 20 / 88%);
+      font-size: 13px;
+      line-height: 18px;
+      text-align: center;
+      text-transform: uppercase;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    #status:empty {
+      opacity: 0;
+    }
+
+    #status.error {
+      color: #fff;
+      background: rgb(90 25 25 / 92%);
+    }
+
+    #controls {
+      position: absolute;
+      z-index: 4;
+      right: 14px;
+      bottom: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 3px;
+      padding: 3px;
+      border-radius: 8px;
+      background: rgb(0 0 0 / 64%);
+      backdrop-filter: blur(5px);
+    }
+
+    button {
+      min-width: 58px;
+      padding: 7px 10px;
+      border: 0;
+      border-radius: 6px;
+      color: #777;
+      background: transparent;
+      font: inherit;
+      font-size: 12px;
+      line-height: 16px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition:
+        color 120ms ease,
+        background-color 120ms ease;
+    }
+
+    button:hover {
+      color: #ddd;
+    }
+
+    button:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+
+    button[aria-selected="true"] {
+      color: #d0d0d0;
+      background: #292929;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.45;
+    }
+
+    #credit {
+      position: absolute;
+      z-index: 2;
+      bottom: 18px;
+      left: 18px;
+      color: #777;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 18px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    #credit a {
+      color: #aaa;
+      text-decoration: none;
+    }
+
+    #credit .credit-copy {
+      opacity: 0.45;
+    }
+
+    #credit a:hover,
+    #credit a:focus-visible {
+      color: #fff;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    @media (max-width: 720px) {
+      #readout {
+        top: 58px;
+        left: 12px;
+      }
+
+      #identity {
+        top: 10px;
+        left: 12px;
+      }
+
+      #controls {
+        right: 8px;
+        bottom: 8px;
+        left: 8px;
+        gap: 4px;
+      }
+
+      .tabs {
+        flex: 1 1 auto;
+      }
+
+      button {
+        flex: 1 1 auto;
+        min-width: 50px;
+        padding-inline: 7px;
+      }
+
+      #credit {
+        bottom: 52px;
+        left: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div
+      id="chart"
+      role="img"
+      aria-busy="true"
+      aria-label="Bitcoin price and Rarity Meter percentile bands"
+    ></div>
+
+    <header id="identity">
+      <h1>Bitcoin Rarity Meter</h1>
+    </header>
+
+    <div id="readout" aria-live="polite">
+      <time id="date"></time>
+      <strong id="price"></strong>
+      <span id="range"></span>
+    </div>
+
+    <output id="status">Loading Rarity Meter bands…</output>
+
+    <div id="controls">
+      <div id="band-tabs" class="tabs" role="tablist" aria-label="Visible percentile bands">
+        <button type="button" role="tab" data-bands="tails" aria-selected="true">Tails</button>
+        <button type="button" role="tab" data-bands="all" aria-selected="false">All</button>
+      </div>
+
+      <div id="scope-tabs" class="tabs" role="tablist" aria-label="Rarity Meter scope">
+        <button type="button" role="tab" data-scope="full" aria-selected="true">Full</button>
+        <button type="button" role="tab" data-scope="cycle" aria-selected="false">Cycle</button>
+        <button type="button" role="tab" data-scope="local" aria-selected="false">Local</button>
+      </div>
+    </div>
+
+    <div id="credit">
+      <span class="credit-copy">Source:</span>
+      <a href="https://bitview.space" target="_blank" rel="noreferrer">Bitview.space</a>
+      <span class="credit-copy">· Powered by</span>
+      <a
+        href="https://bitcoinresearchkit.org"
+        target="_blank"
+        rel="noreferrer"
+      >Bitcoin Research Kit</a>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
+  <script>
+    (() => {
+      "use strict";
+
+      const API = "https://bitview.space/api";
+      const DAY_MS = 86_400_000;
+      const DAY_ZERO = Date.UTC(2009, 0, 1);
+      const START_DATE = "2012-01-01";
+      const PREFERENCE_KEY = "brk-rarity:selection";
+
+      const scopes = {
+        full: { label: "Full", prefix: "rarity_meter" },
+        cycle: { label: "Cycle", prefix: "cycle_rarity_meter" },
+        local: { label: "Local", prefix: "local_rarity_meter" },
+      };
+
+      const percentiles = [
+        { value: 0.1, suffix: "pct0_1" },
+        { value: 0.5, suffix: "pct0_5" },
+        { value: 1, suffix: "pct01" },
+        { value: 2, suffix: "pct02" },
+        { value: 5, suffix: "pct05" },
+        { value: 10, suffix: "pct10", middle: true },
+        { value: 20, suffix: "pct20", middle: true },
+        { value: 30, suffix: "pct30", middle: true },
+        { value: 40, suffix: "pct40", middle: true },
+        { value: 50, suffix: "pct50" },
+        { value: 60, suffix: "pct60", middle: true },
+        { value: 70, suffix: "pct70", middle: true },
+        { value: 80, suffix: "pct80", middle: true },
+        { value: 90, suffix: "pct90", middle: true },
+        { value: 95, suffix: "pct95" },
+        { value: 98, suffix: "pct98" },
+        { value: 99, suffix: "pct99" },
+        { value: 99.5, suffix: "pct99_5" },
+        { value: 99.9, suffix: "pct99_9" },
+      ];
+      const background = "#000000";
+
+      function visiblePercentiles() {
+        return percentiles.filter(
+          ({ middle }) => bandMode === "all" || !middle,
+        );
+      }
+
+      function bandHue(definitions, index) {
+        const medianIndex = definitions.findIndex(({ value }) => value === 50);
+        if (index <= medianIndex) {
+          const position = Math.max(0, index - 1) / (medianIndex - 1);
+          return 265 - 80 * position;
+        }
+        const position =
+          (index - medianIndex - 1) /
+          (definitions.length - medianIndex - 2);
+        return 52 - 82 * position;
+      }
+
+      function bandColor(definitions, index) {
+        return index === 0
+          ? background
+          : `hsl(${bandHue(definitions, index)} 95% 48%)`;
+      }
+
+      function legendColor(definitions, index) {
+        return `hsl(${bandHue(definitions, index)} 100% 60%)`;
+      }
+
+      const chartElement = document.getElementById("chart");
+      const dateElement = document.getElementById("date");
+      const priceElement = document.getElementById("price");
+      const rangeElement = document.getElementById("range");
+      const statusElement = document.getElementById("status");
+      const scopeTabs = document.getElementById("scope-tabs");
+      const bandTabs = document.getElementById("band-tabs");
+      const money = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+      });
+      const dateFormatter = new Intl.DateTimeFormat("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+
+      function savedSelection() {
+        let stored = {};
+        try {
+          stored = JSON.parse(localStorage.getItem(PREFERENCE_KEY) || "{}") || {};
+        } catch (_) {}
+        const query = new URLSearchParams(location.search);
+        const scope = query.get("scope") || stored.scope;
+        const bands = query.get("bands") || stored.bands;
+        return {
+          scope: Object.hasOwn(scopes, scope) ? scope : "full",
+          bands: bands === "all" ? "all" : "tails",
+        };
+      }
+
+      function persistSelection() {
+        const selection = { scope: activeScope, bands: bandMode };
+        try {
+          localStorage.setItem(PREFERENCE_KEY, JSON.stringify(selection));
+        } catch (_) {}
+        try {
+          const url = new URL(location.href);
+          Object.entries(selection).forEach(([key, value]) =>
+            url.searchParams.set(key, value),
+          );
+          history.replaceState(null, "", url);
+        } catch (_) {}
+      }
+
+      function setStatus(message, isError = false) {
+        statusElement.textContent = message;
+        statusElement.classList.toggle("error", isError);
+      }
+
+      function dayIndexToDate(index) {
+        return new Date(DAY_ZERO + index * DAY_MS).toISOString().slice(0, 10);
+      }
+
+      function dateToDayIndex(date) {
+        return Math.round(
+          (Date.parse(date + "T00:00:00Z") - DAY_ZERO) / DAY_MS,
+        );
+      }
+
+      function seriesValue(response, dayIndex) {
+        const value = Number(response.data[dayIndex - response.start]);
+        return Number.isFinite(value) && value > 0 ? value : null;
+      }
+
+      function seriesPoints(response, minimumDayIndex = response.start) {
+        const points = [];
+        response.data.forEach((value, offset) => {
+          const number = Number(value);
+          const dayIndex = response.start + offset;
+          if (
+            dayIndex >= minimumDayIndex &&
+            Number.isFinite(number) &&
+            number > 0
+          ) {
+            points.push({ time: dayIndexToDate(dayIndex), value: number });
+          }
+        });
+        return points;
+      }
+
+      function candlePoints(response, minimumDayIndex = response.start) {
+        const points = [];
+        response.data.forEach((value, offset) => {
+          const dayIndex = response.start + offset;
+          if (
+            dayIndex >= minimumDayIndex &&
+            Array.isArray(value) &&
+            value.length === 4 &&
+            value.every(
+              (item) => Number.isFinite(Number(item)) && Number(item) > 0,
+            )
+          ) {
+            points.push({
+              time: dayIndexToDate(dayIndex),
+              open: Number(value[0]),
+              high: Number(value[1]),
+              low: Number(value[2]),
+              close: Number(value[3]),
+            });
+          }
+        });
+        return points;
+      }
+
+      async function fetchBulk(names) {
+        const directNames = names.filter((name) => name === "price_ohlc");
+        const bulkNames = names.filter((name) => name !== "price_ohlc");
+        const chunks = [];
+        for (let index = 0; index < bulkNames.length; index += 3) {
+          chunks.push(bulkNames.slice(index, index + 3));
+        }
+        const [batches, directEntries] = await Promise.all([
+          Promise.all(
+            chunks.map(async (chunk) => {
+              const query = new URLSearchParams({
+                series: chunk.join(","),
+                index: "day1",
+                start: START_DATE,
+              });
+              const response = await fetch(`${API}/series/bulk?${query}`, {
+                cache: "no-cache",
+                signal: AbortSignal.timeout(30_000),
+              });
+              if (!response.ok) {
+                throw new Error(`Bitview returned ${response.status}`);
+              }
+              const data = await response.json();
+              if (!Array.isArray(data) || data.length !== chunk.length) {
+                throw new Error("Bitview returned incomplete series data");
+              }
+              return chunk.map((name, index) => [name, data[index]]);
+            }),
+          ),
+          Promise.all(
+            directNames.map(async (name) => {
+              const query = new URLSearchParams({ start: START_DATE });
+              const response = await fetch(
+                `${API}/series/${encodeURIComponent(name)}/day1?${query}`,
+                {
+                  cache: "no-cache",
+                  signal: AbortSignal.timeout(30_000),
+                },
+              );
+              if (!response.ok) {
+                throw new Error(`Bitview returned ${response.status}`);
+              }
+              return [name, await response.json()];
+            }),
+          ),
+        ]);
+        return Object.fromEntries([...batches.flat(), ...directEntries]);
+      }
+
+      const chart = LightweightCharts.createChart(chartElement, {
+        autoSize: true,
+        hoveredSeriesOnTop: false,
+        layout: {
+          background: {
+            type: LightweightCharts.ColorType.Solid,
+            color: "#000000",
+          },
+          textColor: "#8793a8",
+          fontFamily: "Inter, system-ui, sans-serif",
+          attributionLogo: false,
+        },
+        localization: {
+          priceFormatter: (value) => money.format(value),
+        },
+        grid: {
+          vertLines: { visible: false },
+          horzLines: { visible: false },
+        },
+        rightPriceScale: {
+          mode: LightweightCharts.PriceScaleMode.Logarithmic,
+          visible: false,
+          borderVisible: false,
+          scaleMargins: { top: 0.07, bottom: 0.07 },
+        },
+        timeScale: {
+          visible: false,
+          borderVisible: false,
+          rightOffset: 0,
+          minBarSpacing: 0.05,
+          fixLeftEdge: true,
+          fixRightEdge: true,
+        },
+        crosshair: {
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: { color: "#ffffff", labelVisible: false },
+          horzLine: { color: "#ffffff", labelVisible: false },
+        },
+        handleScroll: {
+          mouseWheel: true,
+          pressedMouseMove: true,
+          horzTouchDrag: true,
+          vertTouchDrag: false,
+        },
+        handleScale: {
+          axisPressedMouseMove: true,
+          mouseWheel: true,
+          pinch: true,
+        },
+      });
+
+      class RainbowRenderer {
+        constructor() {
+          this.xs = new Int32Array(0);
+          this.ys = new Int32Array(0);
+        }
+
+        update(seriesData, options) {
+          this.seriesData = seriesData;
+          this.options = options;
+        }
+
+        ensureCapacity(rowCount, bandCount) {
+          if (this.xs.length < rowCount) {
+            this.xs = new Int32Array(2 ** Math.ceil(Math.log2(rowCount)));
+          }
+          const valueCount = rowCount * bandCount;
+          if (this.ys.length < valueCount) {
+            this.ys = new Int32Array(
+              2 ** Math.ceil(Math.log2(valueCount)),
+            );
+          }
+        }
+
+        draw(target, priceToCoordinate) {
+          const { seriesData, options } = this;
+          if (!seriesData?.visibleRange) return;
+          target.useBitmapCoordinateSpace(
+            ({
+              context,
+              horizontalPixelRatio,
+              verticalPixelRatio,
+            }) => {
+              const maximumRows =
+                seriesData.visibleRange.to - seriesData.visibleRange.from;
+              const firstBar = seriesData.bars[seriesData.visibleRange.from];
+              const bandCount = firstBar?.originalData.values.length ?? 0;
+              if (maximumRows < 2 || bandCount < 2) return;
+              this.ensureCapacity(maximumRows, bandCount);
+              const { xs, ys } = this;
+              let rowCount = 0;
+              let lastX = -Infinity;
+
+              for (
+                let index = seriesData.visibleRange.from;
+                index < seriesData.visibleRange.to;
+                index++
+              ) {
+                const bar = seriesData.bars[index];
+                const x = Math.round(bar.x * horizontalPixelRatio);
+                const row = rowCount && x === lastX ? rowCount - 1 : rowCount++;
+                xs[row] = x;
+                lastX = x;
+                const values = bar.originalData.values;
+                const offset = row * bandCount;
+                for (let band = 0; band < bandCount; band++) {
+                  ys[offset + band] = Math.round(
+                    priceToCoordinate(values[band]) * verticalPixelRatio,
+                  );
+                }
+              }
+              if (rowCount < 2) return;
+
+              for (let band = 1; band < bandCount; band++) {
+                context.beginPath();
+                context.moveTo(xs[0], ys[band]);
+                for (let row = 1; row < rowCount; row++) {
+                  context.lineTo(
+                    xs[row],
+                    ys[row * bandCount + band],
+                  );
+                }
+                for (let row = rowCount - 1; row >= 0; row--) {
+                  context.lineTo(
+                    xs[row],
+                    ys[row * bandCount + band - 1],
+                  );
+                }
+                context.closePath();
+                context.fillStyle = options.colors[band];
+                context.fill();
+              }
+
+              context.strokeStyle = options.lineColor;
+              context.lineWidth = Math.max(
+                1,
+                options.lineWidth * horizontalPixelRatio,
+              );
+              for (let band = 0; band < bandCount; band++) {
+                context.beginPath();
+                context.moveTo(xs[0], ys[band]);
+                for (let row = 1; row < rowCount; row++) {
+                  context.lineTo(
+                    xs[row],
+                    ys[row * bandCount + band],
+                  );
+                }
+                context.stroke();
+              }
+            },
+          );
+        }
+      }
+
+      class RainbowSeries {
+        constructor() {
+          this.rainbowRenderer = new RainbowRenderer();
+        }
+
+        renderer() {
+          return this.rainbowRenderer;
+        }
+
+        update(seriesData, options) {
+          this.rainbowRenderer.update(seriesData, options);
+        }
+
+        priceValueBuilder(row) {
+          return [row.values[0], row.values.at(-1)];
+        }
+
+        isWhitespace(row) {
+          return !row.values?.length;
+        }
+
+        defaultOptions() {
+          return {
+            ...LightweightCharts.customSeriesDefaultOptions,
+            colors: [],
+            lineColor: background,
+            lineWidth: 0.75,
+          };
+        }
+      }
+
+      const rainbowSeries = chart.addCustomSeries(new RainbowSeries(), {
+        lastValueVisible: false,
+        priceLineVisible: false,
+        colors: [],
+        lineColor: background,
+        lineWidth: 0.75,
+      });
+
+      const priceOutline = chart.addSeries(LightweightCharts.LineSeries, {
+        color: "#000000",
+        lineWidth: 4,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+      });
+
+      const priceSeries = chart.addSeries(LightweightCharts.LineSeries, {
+        color: "#ffffff",
+        lineWidth: 1.5,
+        lastValueVisible: false,
+        priceLineVisible: false,
+        crosshairMarkerVisible: false,
+        priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+      });
+
+      function candleWidth(barSpacing, pixelRatio) {
+        if (barSpacing >= 2.5 && barSpacing <= 4) {
+          return Math.floor(3 * pixelRatio);
+        }
+        const coefficient =
+          1 -
+          (0.2 * Math.atan(Math.max(4, barSpacing) - 4)) /
+            (Math.PI * 0.5);
+        return Math.max(
+          Math.floor(pixelRatio),
+          Math.min(
+            Math.floor(barSpacing * coefficient * pixelRatio),
+            Math.floor(barSpacing * pixelRatio),
+          ),
+        );
+      }
+
+      class CandleOutlineRenderer {
+        update(data) {
+          this.data = data;
+        }
+
+        draw(target, priceToCoordinate) {
+          const data = this.data;
+          if (!data?.visibleRange) return;
+          target.useBitmapCoordinateSpace(
+            ({
+              context,
+              horizontalPixelRatio,
+              verticalPixelRatio,
+            }) => {
+              const pixel = Math.max(1, Math.floor(horizontalPixelRatio));
+              const verticalPixel = Math.max(
+                1,
+                Math.floor(verticalPixelRatio),
+              );
+              let bodyWidth = candleWidth(
+                data.barSpacing,
+                horizontalPixelRatio,
+              );
+              if (bodyWidth >= 2 && pixel % 2 !== bodyWidth % 2) {
+                bodyWidth -= 1;
+              }
+              bodyWidth += 3 * pixel;
+              const wickWidth = Math.min(bodyWidth, 4 * pixel);
+              context.fillStyle = background;
+
+              for (
+                let index = data.visibleRange.from;
+                index < data.visibleRange.to;
+                index++
+              ) {
+                const bar = data.bars[index];
+                const candle = bar.originalData;
+                const x = Math.round(bar.x * horizontalPixelRatio);
+                const open = Math.round(
+                  priceToCoordinate(candle.open) * verticalPixelRatio,
+                );
+                const high = Math.round(
+                  priceToCoordinate(candle.high) * verticalPixelRatio,
+                );
+                const low = Math.round(
+                  priceToCoordinate(candle.low) * verticalPixelRatio,
+                );
+                const close = Math.round(
+                  priceToCoordinate(candle.close) * verticalPixelRatio,
+                );
+                context.fillRect(
+                  x - Math.floor(wickWidth / 2),
+                  high - verticalPixel,
+                  wickWidth,
+                  low - high + 1 + 2 * verticalPixel,
+                );
+                const top = Math.min(open, close) - verticalPixel;
+                const bottom = Math.max(open, close) + verticalPixel;
+                context.fillRect(
+                  x - Math.floor(bodyWidth / 2),
+                  top,
+                  bodyWidth,
+                  bottom - top + 1,
+                );
+              }
+            },
+          );
+        }
+      }
+
+      class CandleOutlineSeries {
+        constructor() {
+          this.outlineRenderer = new CandleOutlineRenderer();
+        }
+
+        renderer() {
+          return this.outlineRenderer;
+        }
+
+        update(data) {
+          this.outlineRenderer.update(data);
+        }
+
+        priceValueBuilder(candle) {
+          return [candle.high, candle.low, candle.close];
+        }
+
+        isWhitespace(candle) {
+          return candle.open === undefined;
+        }
+
+        defaultOptions() {
+          return {
+            ...LightweightCharts.customSeriesDefaultOptions,
+            color: background,
+          };
+        }
+      }
+
+      let candleData = [];
+      let candleOutline;
+      let candles;
+      let candlesVisible = false;
+      let visibilityFrame = 0;
+
+      function ensureCandles() {
+        if (candles) return;
+        candleOutline = chart.addCustomSeries(new CandleOutlineSeries(), {
+          visible: false,
+          lastValueVisible: false,
+          priceLineVisible: false,
+          priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+        });
+        candleOutline.setData(candleData);
+        candles = chart.addSeries(LightweightCharts.CandlestickSeries, {
+          visible: false,
+          upColor: background,
+          downColor: "#ffffff",
+          wickUpColor: "#ffffff",
+          wickDownColor: "#ffffff",
+          borderUpColor: "#ffffff",
+          borderDownColor: "#ffffff",
+          borderVisible: true,
+          lastValueVisible: false,
+          priceLineVisible: false,
+          priceFormat: { type: "price", precision: 2, minMove: 0.01 },
+        });
+        candles.setData(candleData);
+      }
+
+      function updatePriceVisibility(range) {
+        const visibleBars = range ? range.to - range.from : Infinity;
+        const showCandles = candlesVisible
+          ? visibleBars <= 360
+          : visibleBars <= 300;
+        if (showCandles === candlesVisible) return;
+        const visibleRange = chart.timeScale().getVisibleLogicalRange();
+        candlesVisible = showCandles;
+        if (showCandles) ensureCandles();
+        priceOutline.applyOptions({ visible: !showCandles });
+        priceSeries.applyOptions({ visible: !showCandles });
+        candleOutline?.applyOptions({ visible: showCandles });
+        candles?.applyOptions({ visible: showCandles });
+        if (visibleRange) {
+          chart.timeScale().setVisibleLogicalRange(visibleRange);
+        }
+      }
+
+      const cache = new Map();
+      const selection = savedSelection();
+      let activeScope = selection.scope;
+      let bandMode = selection.bands;
+      let activeData;
+      let marketReady = false;
+      let activation = 0;
+      let cursorDayIndex = null;
+      let cursorPrice = null;
+      let visibleDayIndex = null;
+      let readoutFrame = 0;
+      let marketStartDay = null;
+
+      async function loadScope(scope) {
+        if (cache.has(scope)) return cache.get(scope);
+        const prefix = scopes[scope].prefix;
+        const names = [
+          "date",
+          "price_close",
+          "price_ohlc",
+          ...percentiles.map(({ suffix }) => `${prefix}_${suffix}`),
+        ];
+        const request = fetchBulk(names)
+          .then((responses) => {
+            const bands = new Map(
+              percentiles.map(({ value, suffix }) => [
+                value,
+                responses[`${prefix}_${suffix}`],
+              ]),
+            );
+            const required = percentiles;
+            const start = Math.max(
+              responses.date.start,
+              responses.price_close.start,
+              responses.price_ohlc.start,
+              ...required.map(({ value }) => bands.get(value).start),
+            );
+            const end = Math.min(
+              responses.date.start + responses.date.data.length,
+              responses.price_close.start + responses.price_close.data.length,
+              responses.price_ohlc.start + responses.price_ohlc.data.length,
+              ...required.map(
+                ({ value }) =>
+                  bands.get(value).start + bands.get(value).data.length,
+              ),
+            );
+            let firstCompleteDay = start;
+            while (
+              firstCompleteDay < end &&
+              required.some(
+                ({ value }) => seriesValue(bands.get(value), firstCompleteDay) === null,
+              )
+            ) {
+              firstCompleteDay++;
+            }
+            return {
+              scope,
+              dates: responses.date,
+              price: responses.price_close,
+              ohlc: responses.price_ohlc,
+              bands,
+              firstCompleteDay,
+              lastDay: end - 1,
+            };
+          })
+          .catch((error) => {
+            cache.delete(scope);
+            throw error;
+          });
+        cache.set(scope, request);
+        return request;
+      }
+
+      function updateTabs() {
+        scopeTabs.querySelectorAll("button").forEach((button) => {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.scope === activeScope),
+          );
+        });
+        bandTabs.querySelectorAll("button").forEach((button) => {
+          button.setAttribute(
+            "aria-selected",
+            String(button.dataset.bands === bandMode),
+          );
+        });
+      }
+
+      function renderBands() {
+        if (!activeData) return;
+        const definitions = visiblePercentiles();
+        rainbowSeries.applyOptions({
+          colors: definitions.map((_, index) =>
+            bandColor(definitions, index),
+          ),
+        });
+        const points = [];
+        for (
+          let dayIndex = activeData.firstCompleteDay;
+          dayIndex <= activeData.lastDay;
+          dayIndex++
+        ) {
+          const values = definitions.map(({ value }) =>
+            seriesValue(activeData.bands.get(value), dayIndex),
+          );
+          if (values.every(Number.isFinite)) {
+            points.push({ time: dayIndexToDate(dayIndex), values });
+          }
+        }
+        rainbowSeries.setData(points);
+      }
+
+      function quantileRange(dayIndex, price) {
+        if (!activeData || !Number.isFinite(price)) return null;
+        const definitions = visiblePercentiles();
+        let completeDay = dayIndex;
+        while (
+          completeDay >= activeData.firstCompleteDay &&
+          definitions.some(
+            ({ value }) =>
+              seriesValue(activeData.bands.get(value), completeDay) === null,
+          )
+        ) {
+          completeDay--;
+        }
+        if (completeDay < activeData.firstCompleteDay) return null;
+
+        const first = definitions[0];
+        if (price < seriesValue(activeData.bands.get(first.value), completeDay)) {
+          return {
+            label: `< Q${first.value}`,
+            color: legendColor(definitions, 0),
+          };
+        }
+        for (let index = 1; index < definitions.length; index++) {
+          const lower = definitions[index - 1];
+          const upper = definitions[index];
+          if (
+            price <
+            seriesValue(activeData.bands.get(upper.value), completeDay)
+          ) {
+            return {
+              label: `Q${lower.value} – Q${upper.value}`,
+              color: legendColor(definitions, index),
+            };
+          }
+        }
+        const last = definitions.at(-1);
+        return {
+          label: `> Q${last.value}`,
+          color: legendColor(definitions, definitions.length - 1),
+        };
+      }
+
+      function showReadout(dayIndex, price) {
+        if (!activeData) return;
+        const resolvedPrice =
+          Number.isFinite(price) && price > 0
+            ? price
+            : seriesValue(activeData.price, dayIndex);
+        if (!resolvedPrice) return;
+        const date =
+          activeData.dates.data[dayIndex - activeData.dates.start] ||
+          dayIndexToDate(dayIndex);
+        const rarity = quantileRange(dayIndex, resolvedPrice);
+        dateElement.textContent = dateFormatter.format(
+          new Date(`${date}T00:00:00Z`),
+        );
+        priceElement.textContent = money.format(resolvedPrice);
+        rangeElement.textContent = rarity
+          ? `${scopes[activeScope].label} · ${rarity.label}`
+          : scopes[activeScope].label;
+        rangeElement.style.color = rarity?.color || "#a3a3a3";
+      }
+
+      function scheduleReadout() {
+        if (readoutFrame) return;
+        readoutFrame = requestAnimationFrame(() => {
+          readoutFrame = 0;
+          const dayIndex =
+            cursorDayIndex ?? visibleDayIndex ?? activeData?.lastDay;
+          if (Number.isInteger(dayIndex)) {
+            showReadout(dayIndex, cursorPrice);
+          }
+        });
+      }
+
+      async function activateScope(scope, preserveRange = true) {
+        const version = ++activation;
+        const visibleRange = preserveRange
+          ? chart.timeScale().getVisibleRange()
+          : null;
+        activeScope = scope;
+        updateTabs();
+        scopeTabs.querySelectorAll("button").forEach((button) => {
+          button.disabled = true;
+        });
+        setStatus(`Loading ${scopes[scope].label} bands…`);
+
+        try {
+          const data = await loadScope(scope);
+          if (version !== activation) return;
+          activeData = data;
+          const minimumDay = data.firstCompleteDay;
+
+          renderBands();
+
+          if (!marketReady) {
+            const pricePoints = seriesPoints(data.price, minimumDay);
+            candleData = candlePoints(data.ohlc, minimumDay);
+            priceOutline.setData(pricePoints);
+            priceSeries.setData(pricePoints);
+            marketStartDay = minimumDay;
+            marketReady = true;
+          }
+
+          visibleDayIndex = data.lastDay;
+          cursorDayIndex = null;
+          cursorPrice = null;
+          scheduleReadout();
+          chartElement.setAttribute("aria-busy", "false");
+          setStatus("");
+          persistSelection();
+
+          if (visibleRange) {
+            chart.timeScale().setVisibleRange(visibleRange);
+          } else {
+            chart.timeScale().fitContent();
+          }
+        } catch (error) {
+          if (version !== activation) return;
+          console.error(error);
+          chartElement.setAttribute("aria-busy", "false");
+          setStatus(`Could not load Rarity Meter data: ${error.message}`, true);
+        } finally {
+          if (version === activation) {
+            scopeTabs.querySelectorAll("button").forEach((button) => {
+              button.disabled = false;
+            });
+          }
+        }
+      }
+
+      scopeTabs.addEventListener("click", (event) => {
+        const scope = event.target.dataset.scope;
+        if (Object.hasOwn(scopes, scope) && scope !== activeScope) {
+          activateScope(scope);
+        }
+      });
+
+      bandTabs.addEventListener("click", (event) => {
+        const nextMode = event.target.dataset.bands;
+        if (!["tails", "all"].includes(nextMode) || nextMode === bandMode) return;
+        bandMode = nextMode;
+        updateTabs();
+        renderBands();
+        scheduleReadout();
+        persistSelection();
+      });
+
+      chart.timeScale().subscribeVisibleLogicalRangeChange((range) => {
+        cancelAnimationFrame(visibilityFrame);
+        visibilityFrame = requestAnimationFrame(() => {
+          visibilityFrame = 0;
+          updatePriceVisibility(range);
+          if (range && activeData) {
+            visibleDayIndex = Math.max(
+              activeData.firstCompleteDay,
+              Math.min(
+                activeData.lastDay,
+                marketStartDay + Math.floor(range.to),
+              ),
+            );
+          }
+          if (cursorDayIndex === null) scheduleReadout();
+        });
+      });
+
+      chart.subscribeCrosshairMove((param) => {
+        cursorDayIndex =
+          typeof param.time === "string" ? dateToDayIndex(param.time) : null;
+        cursorPrice = param.point
+          ? priceSeries.coordinateToPrice(param.point.y)
+          : null;
+        scheduleReadout();
+      });
+
+      chartElement.addEventListener("dblclick", () =>
+        chart.timeScale().fitContent(),
+      );
+
+      updateTabs();
+      activateScope(activeScope, false);
+    })();
+  </script>
+</body>
+</html>

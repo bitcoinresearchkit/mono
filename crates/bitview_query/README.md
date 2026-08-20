@@ -82,9 +82,10 @@ Plugin features (`indexer`, `blocks`, `distribution`, `mappings`, `price`, and
 the other built-in plugin IDs) are the source of truth. Enabling one adds its
 typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
 
-`chain`, `series`, `urpd`, and `full` are convenience aggregators. `full` is the
-default for standalone users; composition and adapter crates should disable
-default features and select only what they expose. Generic `Vecs` discovery
-works with any `Traversable` plugin without a feature or dependency on that
-plugin crate. Query construction validates the enabled capabilities once and
-then keeps direct typed references, so hot paths perform no dynamic lookup.
+`chain`, `series`, `urpd`, and `full-api` are convenience aggregators.
+`full-api` is the default for standalone users; composition and adapter crates
+should disable default features and select only what they expose. Generic
+`Vecs` discovery works with any `Traversable` plugin without a feature or
+dependency on that plugin crate. Query construction validates the enabled
+capabilities once and then keeps direct typed references, so hot paths perform
+no dynamic lookup.

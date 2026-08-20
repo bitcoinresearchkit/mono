@@ -8,28 +8,30 @@ HTTP API server for Bitcoin on-chain analytics.
 - **LLM-optimized**: Compact spec at `/api.json` for AI tools
 - **MCP-ready**: The same OpenAPI operations are available through the official
   stateless, read-only endpoint at [mcp.bitview.space](https://mcp.bitview.space/)
-- **Response caching**: ETag-based with LRU cache (1000 entries by default, configurable via `ServerConfig::cache_size`)
+- **HTTP caching**: ETag revalidation with separate browser and CDN policies
 - **Compression**: Brotli, gzip, deflate, zstd
 - **Static files**: Optional web interface hosting
 
 Plugin features mirror `bitview_query` and gate the routes that can use them.
-`chain`, `series`, `urpd`, and `full` are convenience aggregators; the default
-is `full`. Custom compositions can disable default features and enable only the
-plugins and route families they provide. This crate does not depend on the
-official Bitview composition.
+`chain`, `series`, `urpd`, and `full-api` are convenience aggregators; the
+default is `full-api`. Custom compositions can disable default features and
+enable only the plugins and route families they provide. This crate does not
+depend on the official Bitview composition.
 
 ## Usage
 
 ```rust,ignore
-let server = Server::new(
+let server = Server::bind(
     &async_query,
     ServerConfig {
         data_path,
         website: Website::Filesystem(files_path),
         ..Default::default()
     },
-);
-server.serve(None).await?;
+    None,
+)
+.await?;
+server.serve().await?;
 ```
 
 ## Endpoints
