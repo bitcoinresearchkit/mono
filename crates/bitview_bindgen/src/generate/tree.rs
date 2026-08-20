@@ -2,7 +2,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 
 use crate::{
     ClientMetadata, PatternBaseResult, PatternField, child_type_name, get_fields_with_child_info,

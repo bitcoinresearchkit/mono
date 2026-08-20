@@ -50,7 +50,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
         source_prefix: &str,
         series_prefix: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         total_data: &CachedBoxedVec<Height, Bytes>,
         block_size: &CachedBoxedVec<Height, StoredU64>,
@@ -67,7 +67,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })
@@ -85,7 +85,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     );
                     DataBytesSeries::new(
@@ -94,7 +94,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         data_bytes,
                         total_data.clone(),
                         block_size.clone(),
-                        indexes,
+                        mappings,
                     )
                 })
             },
@@ -110,7 +110,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })
@@ -127,7 +127,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })
@@ -145,7 +145,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     );
                     FeesSeries::new(
@@ -154,7 +154,7 @@ impl<C: BreakdownAxis> BreakdownVecs<C> {
                         fees,
                         chain_fees.clone(),
                         cached_starts,
-                        indexes,
+                        mappings,
                     )
                 })
             },

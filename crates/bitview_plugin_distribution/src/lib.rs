@@ -19,4 +19,12 @@ use metrics::CohortMetrics;
 pub use state::UTXOStates;
 pub use vecs::Vecs;
 
-pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("distribution");
+use bitview_plugin::{PluginId, PluginStorage};
+use brk_oracle::VERSION as ORACLE_VERSION;
+use brk_types::Version;
+
+const STORAGE: PluginStorage = PluginStorage::new(
+    PluginId::new("distribution"),
+    Version::new(39 + ORACLE_VERSION),
+);
+pub const ID: PluginId = STORAGE.id();

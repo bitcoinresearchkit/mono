@@ -9,15 +9,12 @@ mod ohlcs;
 
 use brk_error::Result;
 
-use std::path::Path;
-
 use bitview_compute::{
     CACHE_BUDGET, CachedPerBlock, CentsUnsignedToDollars, CentsUnsignedToSats, LazyIndexes,
     LazyPerBlock, OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents,
     OhlcCentsToOpenCents, OhlcCentsToSats, Resolutions,
-    db_utils::{finalize_db, open_db},
 };
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{ImportContext, Plugin, PluginGate, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::Version;
@@ -28,7 +25,9 @@ pub use dependencies::Dependencies;
 pub use has::HasPrice;
 use ohlcs::{LazyIndexesFromOhlc, LazyOhlcCentsVecs, LazyOhlcVecs};
 
-pub const ID: PluginId = PluginId::new("price");
+const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -50,8 +49,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
@@ -60,38 +59,33 @@ where
 }
 
 impl Vecs {
-    pub fn forced_import(
-        parent: &Path,
-        version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent, ID.as_str(), 100_000)?;
-        let this = Self::forced_import_inner(&db, version, indexes)?;
-        finalize_db(&this.db, &this)?;
+        let db = STORAGE.open_database(context, 100_000)?;
+        let this = Self::forced_import_inner(&db, STORAGE.schema_version(), mappings)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 
     fn forced_import_inner(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
-        // `ORACLE_VERSION` folds in the on-chain oracle algorithm version so
-        // every price-derived module invalidates when computed prices change.
-        let version = version + Version::new(11 + ORACLE_VERSION);
-
-        let price_cents = CachedPerBlock::forced_import(db, "price_cents", version, indexes)?;
+        let price_cents = CachedPerBlock::forced_import(db, "price_cents", version, mappings)?;
         let close_cents = Resolutions::from_boxed_height_source(
             "price_close_cents",
             price_cents.height.read_only_boxed_clone(),
             version,
-            indexes,
+            mappings,
         );
 
         let ohlc_cents = LazyOhlcCentsVecs::new(
             "price_ohlc_cents",
             version,
-            indexes,
+            mappings,
             price_cents.height.read_only_cached_boxed_clone(),
         );
 
@@ -135,7 +129,7 @@ impl Vecs {
         );
 
         let source = CACHE_BUDGET.wrap(price_usd.height.clone());
-        let close_usd = Resolutions::from_height_source("price_close", source, version, indexes);
+        let close_usd = Resolutions::from_height_source("price_close", source, version, mappings);
 
         let ohlc_usd = LazyOhlcVecs::from_ohlc_indexes::<OhlcCentsToDollars>(
             "price_ohlc",
@@ -169,7 +163,7 @@ impl Vecs {
 
         let source = CACHE_BUDGET.wrap(price_sats.height.clone());
         let close_sats =
-            Resolutions::from_height_source("price_close_sats", source, version, indexes);
+            Resolutions::from_height_source("price_close_sats", source, version, mappings);
 
         // OhlcCentsToSats handles the high↔low swap internally
         let ohlc_sats = LazyOhlcVecs::from_ohlc_indexes::<OhlcCentsToSats>(

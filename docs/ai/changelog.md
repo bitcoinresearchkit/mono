@@ -95,17 +95,17 @@ Where PREVIOUS is the previous release tag and CURRENT is the current release ta
 ## WORKSPACE-SPECIFIC RULES
 
 ### Crate Identification:
-- **Determine crate from file paths** in the diff (e.g., `crates/brk-core/src/lib.rs` → `brk-core`)
+- **Determine crate from file paths** in the diff (e.g., `crates/bitview_query/src/lib.rs` → `bitview_query`)
 - **Group all changes by their crate** before writing changelog entries
 - **Use crate name as subheading** under each change type section
 - **For root-level files**: Use `workspace` as the crate name
 
 ### Cross-Crate Changes:
 - **When changes span multiple crates** for one feature, mention the relationship
-- **Example**: "Added new transaction API in `brk-core` with corresponding HTTP endpoints in `brk-api`"
+- **Example**: "Added a new transaction query in `bitview_query` with corresponding HTTP endpoints in `bitview_server`"
 
 ### Crate Naming:
-- **Use backticks** around crate names: `brk-core`, `brk-api`
+- **Use backticks** around crate names: `bitview_query`, `bitview_server`
 - **Use workspace structure** as shown in file paths, not display names
 
 ### File Header (if missing):
@@ -177,19 +177,19 @@ Where PREVIOUS is the previous release tag and CURRENT is the current release ta
 ### ✅ GOOD (Specific, complete, grouped by crate, with source links):
 ```markdown
 ### New Features
-#### `brk-core`
-- Added `TransactionAnalyzer` struct with fee calculation and coinbase detection methods ([source](https://github.com/bitcoinresearchkit/brk/blob/v0.0.108/crates/brk-core/src/analyzer.rs))
+#### `bitview_query`
+- Added a transaction lookup method with fee and coinbase data ([source](https://github.com/bitcoinresearchkit/brk/blob/vX.Y.Z/crates/bitview_query/src/impl/tx.rs))
 - Implemented in-memory caching layer for blockchain queries using HashMap storage
 
-#### `brk-api`
-- Added three new API endpoints: `/api/blocks/{hash}`, `/api/transactions/search`, and `/api/stats/network` ([source](https://github.com/bitcoinresearchkit/brk/blob/v0.0.108/crates/brk-api/src/routes.rs))
+#### `bitview_server`
+- Added three new API endpoints: `/api/blocks/{hash}`, `/api/transactions/search`, and `/api/stats/network` ([source](https://github.com/bitcoinresearchkit/brk/blob/vX.Y.Z/crates/bitview_server/src/api/transactions.rs))
 - Implemented standardized error responses with error codes and descriptions
 
 ### Bug Fixes
-#### `brk-core`
-- Fixed panic when processing blocks with zero transactions by adding explicit empty block validation ([source](https://github.com/bitcoinresearchkit/brk/blob/v0.0.108/crates/brk-core/src/block.rs))
+#### `bitview_query`
+- Fixed an empty-result panic by adding explicit validation ([source](https://github.com/bitcoinresearchkit/brk/blob/vX.Y.Z/crates/bitview_query/src/impl/tx.rs))
 
-#### `brk-api`
+#### `bitview_server`
 - Resolved memory leak in connection pool by implementing proper cleanup in Drop trait
 
 [View changes](https://github.com/bitcoinresearchkit/brk/compare/v0.0.107...v0.0.108)

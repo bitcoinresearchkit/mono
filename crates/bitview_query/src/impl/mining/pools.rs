@@ -324,14 +324,14 @@ impl Query {
         let plugins = self.plugins();
         let current_height = self.height();
         let start_day = plugins
-            .indexes
+            .mappings
             .height
             .day1
             .collect_one_at(start_height)
             .data()?
             .to_usize();
         let end_day = plugins
-            .indexes
+            .mappings
             .height
             .day1
             .collect_one(current_height)
@@ -346,7 +346,7 @@ impl Query {
             .day1
             .collect_range_at(start_day, end_day);
         let first_heights = plugins
-            .indexes
+            .mappings
             .day1
             .first_height
             .collect_range_at(start_day, end_day);

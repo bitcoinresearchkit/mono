@@ -4,7 +4,7 @@ use std::{fs, ops::Range, path::Path, time::Instant};
 
 use rustc_hash::FxHashSet;
 
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_error::{Error, OptionData};
 use brk_store::{AnyStore, Kind, Mode, PendingIngest, Store};
 use brk_types::{

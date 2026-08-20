@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AmountRange, CohortContext};
 use bitview_traversable::Traversable;
-use brk_cohort::{AmountRange, CohortContext};
 use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
@@ -27,11 +27,11 @@ impl FundedAddrCountsVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            counts: AddrCountsVecs::forced_import(db, "addr_count", version, indexes)?,
+            counts: AddrCountsVecs::forced_import(db, "addr_count", version, mappings)?,
             balance: ColumnarAmount::forced_import(
                 db,
                 "addrs_addr_count_by_balance_range",
@@ -44,7 +44,7 @@ impl FundedAddrCountsVecs {
                         version + Version::ONE,
                         source,
                         Version::TWO,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 },

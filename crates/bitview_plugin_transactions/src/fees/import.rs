@@ -17,17 +17,17 @@ const VERSION: Version = Version::new(5);
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let v = version + VERSION;
@@ -44,7 +44,7 @@ impl Vecs {
                 version,
                 &counts,
                 CpfpRoleId::Parent,
-                indexes,
+                mappings,
                 cached_starts,
             ),
             cpfp_child: LazyColumnPerBlockCumulativeRolling::new(
@@ -52,7 +52,7 @@ impl Vecs {
                 version,
                 &counts,
                 CpfpRoleId::Child,
-                indexes,
+                mappings,
                 cached_starts,
             ),
             source: count_source,
@@ -70,13 +70,13 @@ impl Vecs {
             count,
             input_value: EagerVec::forced_import(db, "input_value", version)?,
             output_value: EagerVec::forced_import(db, "output_value", version)?,
-            fee: PerTxDistribution::forced_import(db, "fee", v, indexes)?,
+            fee: PerTxDistribution::forced_import(db, "fee", v, mappings)?,
             fee_rate: EagerVec::forced_import(db, "fee_rate", v)?,
             effective_fee_rate: PerTxDistribution::forced_import(
                 db,
                 "effective_fee_rate",
                 v,
-                indexes,
+                mappings,
             )?,
             cpfp_flags: CpfpFlags {
                 is_cpfp_parent: flags.column("is_cpfp_parent", version, CpfpRoleId::Parent),

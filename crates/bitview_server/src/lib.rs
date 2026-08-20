@@ -286,7 +286,7 @@ impl Server {
                 .to_path_buf();
 
             let output_paths = bitview_bindgen::ClientOutputPaths::new()
-                .rust(workspace_root.join("crates/bitview_client/src/lib.rs"))
+                .rust(workspace_root.join("crates/bitview_client/src/generated.rs"))
                 .javascript(workspace_root.join("modules/bitview-client/index.js"))
                 .python(workspace_root.join("packages/bitview_client/bitview_client/__init__.py"))
                 .llm(workspace_root.join("website"))

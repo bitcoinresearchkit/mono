@@ -1,10 +1,9 @@
 use std::{collections::HashSet, fs, path::Path};
 
-use bitview_plugin::{PLUGIN_DATA_DIR, PluginId};
+use bitview_plugin::{ImportContext, PluginId, PluginStorage, UpdateContext};
 use brk_alloc::Mimalloc;
 use brk_error::{Error, Result};
 use tracing::info;
-use vecdb::Exit;
 
 use crate::{BootstrapAction, ComputePluginSet, update::bootstrap_update};
 
@@ -44,29 +43,35 @@ fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = Plugin
 /// A composition may request one or more complete drop/reimport cycles to
 /// reclaim transient memory accumulated during its initial computation.
 pub fn bootstrap<P>(
-    outputs_path: &Path,
-    mut import: impl FnMut() -> Result<P>,
-    exit: &Exit,
+    import_context: ImportContext<'_>,
+    mut import: impl FnMut(ImportContext<'_>) -> Result<P>,
+    update_context: UpdateContext<'_>,
 ) -> Result<P>
 where
     P: ComputePluginSet,
 {
-    let plugins_path = outputs_path.join(PLUGIN_DATA_DIR);
+    let plugins_path = PluginStorage::plugins_path(import_context);
+    let mut needs_final_reimport = false;
 
     loop {
-        let mut plugins = import()?;
+        let mut plugins = import(import_context)?;
         let mut plugin_ids = Vec::new();
         plugins.for_each_plugin(&mut |plugin| plugin_ids.push(plugin.id()));
         sync_plugin_dirs(&plugins_path, plugin_ids.into_iter())?;
 
-        match bootstrap_update(&mut plugins, exit)? {
+        match bootstrap_update(&mut plugins, update_context)? {
+            BootstrapAction::Ready if needs_final_reimport => {
+                needs_final_reimport = false;
+            }
             BootstrapAction::Ready => return Ok(plugins),
             BootstrapAction::Reimport => {
-                info!("Dropping and reimporting plugins to reclaim memory...");
-                drop(plugins);
-                Mimalloc::collect();
+                needs_final_reimport = true;
             }
         }
+
+        info!("Dropping and reimporting plugins to reclaim memory...");
+        drop(plugins);
+        Mimalloc::collect();
     }
 }
 
@@ -77,60 +82,91 @@ mod tests {
         atomic::{AtomicUsize, Ordering},
     };
 
-    use bitview_plugin::{Plugin, PluginId};
+    use bitview_plugin::PluginId;
+    use vecdb::Exit;
 
     use super::*;
 
+    #[derive(crate::PluginSet)]
     struct TestPlugins {
+        #[plugin_set(skip)]
         import: usize,
+        #[plugin_set(skip)]
         computes: Arc<AtomicUsize>,
-    }
-
-    impl crate::PluginSet for TestPlugins {
-        fn for_each_plugin<'a>(&'a self, _visit: &mut dyn FnMut(&'a dyn Plugin)) {}
+        #[plugin_set(skip)]
+        reimport_first: bool,
     }
 
     impl ComputePluginSet for TestPlugins {
-        fn bootstrap_compute(&mut self, _exit: &Exit) -> Result<BootstrapAction> {
+        fn bootstrap_compute(&mut self, _context: UpdateContext<'_>) -> Result<BootstrapAction> {
             self.computes.fetch_add(1, Ordering::Relaxed);
-            Ok(if self.import == 1 {
+            Ok(if self.reimport_first && self.import == 1 {
                 BootstrapAction::Reimport
             } else {
                 BootstrapAction::Ready
             })
         }
 
-        fn compute(&mut self, _exit: &Exit) -> Result<()> {
+        fn compute(&mut self, _context: UpdateContext<'_>) -> Result<()> {
             unreachable!()
         }
     }
 
     #[test]
-    fn reimports_before_returning_the_ready_composition() -> Result<()> {
+    fn reimport_is_followed_by_a_clean_ready_import() -> Result<()> {
         let directory = tempfile::tempdir()?;
         let imports = Arc::new(AtomicUsize::new(0));
         let computes = Arc::new(AtomicUsize::new(0));
+        let import_context = ImportContext::new(directory.path());
+        let exit = Exit::new();
         let plugins = bootstrap(
-            directory.path(),
-            || {
+            import_context,
+            |_context| {
                 Ok(TestPlugins {
                     import: imports.fetch_add(1, Ordering::Relaxed) + 1,
                     computes: computes.clone(),
+                    reimport_first: true,
                 })
             },
-            &Exit::new(),
+            UpdateContext::new(&exit),
         )?;
 
-        assert_eq!(plugins.import, 2);
-        assert_eq!(imports.load(Ordering::Relaxed), 2);
-        assert_eq!(computes.load(Ordering::Relaxed), 2);
+        assert_eq!(plugins.import, 3);
+        assert_eq!(imports.load(Ordering::Relaxed), 3);
+        assert_eq!(computes.load(Ordering::Relaxed), 3);
+        Ok(())
+    }
+
+    #[test]
+    fn ready_composition_is_returned_without_reimport() -> Result<()> {
+        let directory = tempfile::tempdir()?;
+        let imports = Arc::new(AtomicUsize::new(0));
+        let computes = Arc::new(AtomicUsize::new(0));
+        let import_context = ImportContext::new(directory.path());
+        let exit = Exit::new();
+        let plugins = bootstrap(
+            import_context,
+            |_context| {
+                Ok(TestPlugins {
+                    import: imports.fetch_add(1, Ordering::Relaxed) + 1,
+                    computes: computes.clone(),
+                    reimport_first: false,
+                })
+            },
+            UpdateContext::new(&exit),
+        )?;
+
+        assert_eq!(plugins.import, 1);
+        assert_eq!(imports.load(Ordering::Relaxed), 1);
+        assert_eq!(computes.load(Ordering::Relaxed), 1);
         Ok(())
     }
 
     #[test]
     fn cleanup_retains_only_claimed_plugin_data() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let plugins = directory.path().join(PLUGIN_DATA_DIR);
+        let context = ImportContext::new(directory.path());
+        let plugins = PluginStorage::plugins_path(context);
         let blocks = plugins.join("blocks");
         let stale = plugins.join("stale");
         fs::create_dir_all(&blocks)?;
@@ -154,7 +190,8 @@ mod tests {
     #[test]
     fn duplicate_plugin_ids_are_rejected_before_sync() -> Result<()> {
         let directory = tempfile::tempdir()?;
-        let plugins = directory.path().join(PLUGIN_DATA_DIR);
+        let context = ImportContext::new(directory.path());
+        let plugins = PluginStorage::plugins_path(context);
         let blocks = PluginId::new("blocks");
 
         assert!(sync_plugin_dirs(&plugins, [blocks, blocks].into_iter()).is_err());

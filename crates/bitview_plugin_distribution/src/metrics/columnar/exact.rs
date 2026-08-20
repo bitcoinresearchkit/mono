@@ -2,11 +2,11 @@ use brk_error::Result;
 
 use std::ops::AddAssign;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     Filter, OVER_AGE_FILTERS, OVER_AMOUNT_FILTERS, OverAgeId, OverAmountId, UNDER_AGE_FILTERS,
     UNDER_AMOUNT_FILTERS, UTXO_AGGREGATE_FILTERS, UTXOAggregateId, UnderAgeId, UnderAmountId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, ImportableVec, PcoVec,

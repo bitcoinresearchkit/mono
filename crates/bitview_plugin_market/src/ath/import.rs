@@ -14,25 +14,25 @@ const VERSION: Version = Version::ONE;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     spot_price: &CachedBoxedVec<Height, Cents>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, spot_price)
+    Vecs::forced_import(db, version, mappings, spot_price)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        let high = Price::forced_import(db, "price_ath", v, indexes)?;
+        let high = Price::forced_import(db, "price_ath", v, mappings)?;
 
         let max_days_between =
-            PerBlock::forced_import(db, "max_days_between_price_ath", v, indexes)?;
+            PerBlock::forced_import(db, "max_days_between_price_ath", v, mappings)?;
 
         let max_years_between = LazyPerBlock::from_computed::<DaysToYears>(
             "max_years_between_price_ath",
@@ -41,7 +41,7 @@ impl Vecs {
             &max_days_between,
         );
 
-        let days_since = PerBlock::forced_import(db, "days_since_price_ath", v, indexes)?;
+        let days_since = PerBlock::forced_import(db, "days_since_price_ath", v, mappings)?;
 
         let years_since = LazyPerBlock::from_computed::<DaysToYears>(
             "years_since_price_ath",
@@ -59,7 +59,7 @@ impl Vecs {
         );
         let drawdown_source = CACHE_BUDGET.wrap(drawdown_source);
         let drawdown =
-            LazyPercentPerBlock::from_height_source("price_drawdown", v, drawdown_source, indexes);
+            LazyPercentPerBlock::from_height_source("price_drawdown", v, drawdown_source, mappings);
 
         Ok(Self {
             high,

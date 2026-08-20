@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
 use axum::{
     ServiceExt,
@@ -20,10 +20,7 @@ use tracing::{error, info};
 async fn main() -> std::io::Result<()> {
     let _ = brk_logger::init(None);
 
-    // Use the embedded website (default in release mode)
-    // Or use Website::Filesystem(path) to serve from a custom path
-    // let website = Website::Default;
-    let website = Website::Filesystem(PathBuf::from("./website_next"));
+    let website = Website::Default;
 
     if !website.is_enabled() {
         eprintln!("Website is disabled");

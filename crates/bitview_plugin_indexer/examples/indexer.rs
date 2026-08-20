@@ -5,6 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use brk_alloc::Mimalloc;
 use brk_reader::Reader;
@@ -32,7 +33,8 @@ fn main() -> color_eyre::Result<()> {
     let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
     debug!("Reader created.");
 
-    let mut indexer = Indexer::import(&outputs_dir, &reader)?;
+    let context = ImportContext::new(&outputs_dir);
+    let mut indexer = Indexer::import(context, &reader)?;
     debug!("Indexer imported.");
 
     let exit = Exit::new();

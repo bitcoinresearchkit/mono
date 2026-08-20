@@ -10,8 +10,9 @@ mod returns;
 mod technical;
 mod volatility;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use ath::Vecs as AthVecs;
@@ -24,7 +25,8 @@ use returns::Vecs as ReturnsVecs;
 use technical::Vecs as TechnicalVecs;
 use volatility::Vecs as VolatilityVecs;
 
-pub const ID: PluginId = PluginId::new("market");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("market"), Version::new(9));
+pub const ID: PluginId = STORAGE.id();
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
@@ -47,8 +49,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

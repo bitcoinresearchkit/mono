@@ -1,11 +1,12 @@
 mod compute;
 mod import;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginStorage};
 use bitview_traversable::Traversable;
 use vecdb::{Database, Rw, StorageMode};
 
 use super::{AgeRangeVecs, AggregateSources, AggregateVecs};
+use crate::STORAGE;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -26,8 +27,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        crate::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

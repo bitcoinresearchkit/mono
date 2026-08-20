@@ -5,13 +5,13 @@ const client = new BitviewClient("http://localhost:3110");
 console.log("Testing idiomatic API...\n");
 
 // Test getter access (property)
-console.log("1. Getter access (.by.dateindex):");
+console.log("1. Getter access (.by.day1):");
 const all = await client.series.price.split.close.usd.by.day1;
 console.log(`   Got: ${all.data.length} items\n`);
 
 // Test dynamic access (bracket notation)
-console.log("2. Dynamic access (.by['dateindex']):");
-const allDynamic = await client.series.price.split.close.usd.by.day1;
+console.log("2. Dynamic access (.by['day1']):");
+const allDynamic = await client.series.price.split.close.usd.by["day1"];
 console.log(`   Got: ${allDynamic.data.length} items\n`);
 
 // Test fetch all (explicit .fetch())

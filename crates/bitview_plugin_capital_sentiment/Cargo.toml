@@ -11,7 +11,7 @@ repository.workspace = true
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution = { workspace = true }
-bitview_plugin_indexes = { workspace = true }
+bitview_plugin_mappings = { workspace = true }
 bitview_plugin_market = { workspace = true }
 bitview_plugin_price = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }

@@ -15,10 +15,10 @@ pub fn forced_import(
     db: &Database,
     version: Version,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexer, indexes, cached_starts)
+    Vecs::forced_import(db, version, indexer, mappings, cached_starts)
 }
 
 impl Vecs {
@@ -26,30 +26,30 @@ impl Vecs {
         db: &Database,
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let coinbase_version = version
             + indexer.vecs().transactions.first_txout_index.version()
-            + indexes.tx_index.output_count.version()
+            + mappings.tx_index.output_count.version()
             + indexer.vecs().outputs.value.version();
 
         let coinbase = ValuePerBlockCumulativeRolling::forced_import(
             db,
             "coinbase",
             coinbase_version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let subsidy = ValuePerBlockCumulativeRolling::forced_import(
             db,
             "subsidy",
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let fees =
-            CachedValuePerBlockFull::forced_import(db, "fees", version, indexes, cached_starts)?;
+            CachedValuePerBlockFull::forced_import(db, "fees", version, mappings, cached_starts)?;
         let cached_fees = fees.cached_cumulative_sats();
 
         let fee_dominance =
@@ -63,7 +63,7 @@ impl Vecs {
                 cached_fees.clone(),
                 &coinbase.cumulative.sats.height,
                 cached_starts,
-                indexes,
+                mappings,
             );
         let subsidy_dominance = LazyPercentCumulativeRolling::from_lazy_source::<OneMinusPpm>(
             "subsidy_dominance",
@@ -80,7 +80,7 @@ impl Vecs {
             cached_fees,
             &subsidy.cumulative.sats.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Ok(Self {
@@ -92,7 +92,7 @@ impl Vecs {
                 db,
                 "unclaimed_rewards",
                 version,
-                indexes,
+                mappings,
             )?,
             fee_dominance,
             subsidy_dominance,

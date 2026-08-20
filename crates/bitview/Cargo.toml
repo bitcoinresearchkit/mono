@@ -1,6 +1,6 @@
 [package]
 name = "bitview"
-description = "A self-hostable Bitcoin data platform built on BRK"
+description = "A process-agnostic runner for Bitview plugin compositions"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,33 +9,58 @@ repository.workspace = true
 readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
+[features]
+default = []
+full = ["chain", "series", "urpd"]
+bedrock = ["bitview_server/bedrock"]
+blocks = ["bitview_server/blocks"]
+coinflow = ["bitview_server/coinflow"]
+cointime = ["bitview_server/cointime"]
+distribution = ["bitview_server/distribution"]
+mappings = ["bitview_server/mappings"]
+inputs = ["bitview_server/inputs"]
+mining = ["bitview_server/mining"]
+outputs = ["bitview_server/outputs"]
+pools = ["bitview_server/pools"]
+price = ["mappings", "bitview_server/price"]
+transactions = ["bitview_server/transactions"]
+chain = [
+    "blocks",
+    "distribution",
+    "mappings",
+    "inputs",
+    "mining",
+    "outputs",
+    "pools",
+    "price",
+    "transactions",
+    "bitview_server/chain",
+]
+series = ["mappings", "bitview_server/series"]
+urpd = [
+    "bedrock",
+    "coinflow",
+    "cointime",
+    "distribution",
+    "price",
+    "bitview_server/urpd",
+]
+bindgen = ["bitview_server/bindgen"]
+
 [dependencies]
-anyhow = "1.0"
-bitview_plugin = { workspace = true }
-bitview_composition = { workspace = true }
+bitview_query = { workspace = true, features = ["tokio"] }
 bitview_runtime = { workspace = true }
-bitview_traversable = { workspace = true }
-brk_alloc = { workspace = true }
+bitview_server = { workspace = true }
 brk_error = { workspace = true, features = ["tokio", "vecdb"] }
-bitview_plugin_indexer = { workspace = true }
-brk_logger = { workspace = true }
 brk_mempool = { workspace = true }
-bitview_query = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
-bitview_server = { workspace = true }
 brk_types = { workspace = true }
-lexopt = "0.3"
-owo-colors = { workspace = true }
-serde = { workspace = true }
 tokio = { workspace = true }
-toml = "1.1.4"
 tracing = { workspace = true }
 vecdb = { workspace = true }
 
 [dev-dependencies]
-bitview_bencher = { workspace = true }
-bitview_compute = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
-color-eyre = { workspace = true }
-serde_json = { workspace = true }
+bitview_plugin = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
+bitview_traversable = { workspace = true }

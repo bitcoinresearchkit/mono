@@ -1681,7 +1681,7 @@ curl -s "https://bitview.space/version"
 - `total`: `integer` (required) — Total number of series-index combinations across all timeframes
 - `lazy`: `integer` (required) — Number of lazy (computed on-the-fly) series-index combinations
 - `stored`: `integer` (required) — Number of eager (stored on disk) series-index combinations
-- `by_db`: `object` (required) — Per-database breakdown of counts
+- `by_db`: `object` (required) — Per-database breakdown of counts.
 
 ### `DifficultyAdjustment`
 
@@ -1955,10 +1955,10 @@ curl -s "https://bitview.space/version"
 
 ### `SeriesLeafWithSchema`
 
-- `name`: `string` (required) — The series name/identifier
-- `kind`: `string` (required) — The Rust type (e.g., "Sats", "StoredF64")
-- `indexes`: `Index[]` (required) — Available indexes for this series
-- `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object")
+- `name`: `string` (required) — The series name/identifier.
+- `kind`: `string` (required) — The Rust type (e.g., "Sats", "StoredF64").
+- `indexes`: `Index[]` (required) — Available indexes for this series.
+- `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
 
 ### `SigOps`
 

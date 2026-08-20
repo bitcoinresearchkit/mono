@@ -1,29 +1,24 @@
 use brk_error::Result;
 
-use std::path::Path;
-
-use bitview_compute::{
-    CachedWindowStartVec, Windows,
-    db_utils::{finalize_db, open_db},
-};
+use bitview_compute::{CachedWindowStartVec, Windows};
+use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
-use brk_types::Version;
 
-use super::Vecs;
+use super::{STORAGE, Vecs};
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
+    pub fn import(
+        context: ImportContext<'_>,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, super::ID.as_str(), 1_000_000)?;
-        let version = parent_version;
+        let db = STORAGE.open_database(context, 1_000_000)?;
+        let version = STORAGE.schema_version();
 
-        let rewards = super::rewards::forced_import(&db, version, indexer, indexes, cached_starts)?;
-        let hashrate = super::hashrate::forced_import(&db, version, indexes)?;
+        let rewards =
+            super::rewards::forced_import(&db, version, indexer, mappings, cached_starts)?;
+        let hashrate = super::hashrate::forced_import(&db, version, mappings)?;
 
         let this = Self {
             plugin_gate: Default::default(),
@@ -31,7 +26,7 @@ impl Vecs {
             rewards,
             hashrate,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 }

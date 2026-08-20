@@ -8,38 +8,62 @@ use axum::{
 
 use crate::{
     Error,
-    api::{
-        metrics::ApiMetricsLegacyRoutes, series::ApiSeriesRoutes,
-        series_legacy::ApiSeriesLegacyRoutes, server::ServerRoutes, urpd::ApiUrpdRoutes,
-    },
+    api::server::ServerRoutes,
     extended::{ResponseExtended, TransformResponseExtended},
 };
 
+#[cfg(feature = "series")]
+use crate::api::series::ApiSeriesRoutes;
+#[cfg(feature = "urpd")]
+use crate::api::urpd::ApiUrpdRoutes;
+#[cfg(all(feature = "series", feature = "urpd"))]
+use crate::api::{metrics::ApiMetricsLegacyRoutes, series_legacy::ApiSeriesLegacyRoutes};
+
 use super::AppState;
 
+#[cfg(feature = "chain")]
 mod addrs;
+#[cfg(feature = "chain")]
 mod blocks;
+#[cfg(feature = "chain")]
 mod fees;
+#[cfg(feature = "chain")]
 mod general;
+#[cfg(feature = "chain")]
 mod mempool;
+#[cfg(all(feature = "series", feature = "urpd"))]
 mod metrics;
+#[cfg(feature = "chain")]
 mod mining;
 mod openapi;
+#[cfg(feature = "price")]
 mod oracle;
+#[cfg(feature = "series")]
 mod series;
+#[cfg(all(feature = "series", feature = "urpd"))]
 mod series_legacy;
 mod server;
+#[cfg(feature = "chain")]
 mod transactions;
+#[cfg(feature = "urpd")]
 mod urpd;
 
+#[cfg(feature = "chain")]
 use addrs::AddrRoutes;
+#[cfg(feature = "chain")]
 use blocks::BlockRoutes;
+#[cfg(feature = "chain")]
 use fees::FeesRoutes;
+#[cfg(feature = "chain")]
 use general::GeneralRoutes;
+#[cfg(feature = "chain")]
 use mempool::MempoolRoutes;
+#[cfg(feature = "chain")]
 use mining::MiningRoutes;
 pub use openapi::*;
+#[cfg(feature = "price")]
 use oracle::OracleRoutes;
+#[cfg(feature = "chain")]
 use transactions::TxRoutes;
 
 pub trait ApiRoutes {
@@ -48,19 +72,28 @@ pub trait ApiRoutes {
 
 impl ApiRoutes for ApiRouter<AppState> {
     fn add_api_routes(self) -> Self {
-        self.add_server_routes()
-            .add_series_routes()
+        let router = self.add_server_routes();
+        #[cfg(feature = "series")]
+        let router = router.add_series_routes();
+        #[cfg(all(feature = "series", feature = "urpd"))]
+        let router = router
             .add_series_legacy_routes()
-            .add_urpd_routes()
-            .add_metrics_legacy_routes()
+            .add_metrics_legacy_routes();
+        #[cfg(feature = "urpd")]
+        let router = router.add_urpd_routes();
+        #[cfg(feature = "chain")]
+        let router = router
             .add_general_routes()
             .add_addr_routes()
             .add_block_routes()
             .add_mining_routes()
             .add_fees_routes()
             .add_mempool_routes()
-            .add_oracle_routes()
-            .add_tx_routes()
+            .add_tx_routes();
+        #[cfg(feature = "price")]
+        let router = router.add_oracle_routes();
+
+        router
             .api_route(
                 "/openapi.json",
                 get_with(

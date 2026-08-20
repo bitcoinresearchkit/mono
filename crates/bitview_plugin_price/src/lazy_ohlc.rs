@@ -6,7 +6,7 @@ use vecdb::{
     AnyExportableVec, AnyVec, CachedBoxedVec, ReadableVec, TypedVec, VecIndex, short_type_name,
 };
 
-use bitview_plugin_indexes::CachedFirstHeightVec;
+use bitview_plugin_mappings::CachedFirstHeightVec;
 
 /// OHLC candles derived directly from pinned spot prices and period boundaries.
 #[derive(Clone)]

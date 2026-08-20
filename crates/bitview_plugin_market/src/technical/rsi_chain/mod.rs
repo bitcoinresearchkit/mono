@@ -57,24 +57,24 @@ pub fn forced_import(
     db: &Database,
     tf: &str,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
 ) -> Result<RsiChain> {
     macro_rules! import {
         ($name:expr) => {
-            PerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, indexes)?
+            PerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
         };
     }
 
     macro_rules! percent_import {
         ($name:expr) => {
-            PercentPerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, indexes)?
+            PercentPerBlock::forced_import(db, &format!("rsi_{}_{}", $name, tf), version, mappings)?
         };
     }
 
     let average_gain = import!("average_gain");
     let average_loss = import!("average_loss");
-    let rsi = PercentPerBlock::forced_import(db, &format!("rsi_{tf}"), version, indexes)?;
+    let rsi = PercentPerBlock::forced_import(db, &format!("rsi_{tf}"), version, mappings)?;
 
     Ok(RsiChain {
         gains: LazyPerBlock::from_lazy::<Gain, PartsPerMillionSigned64>(

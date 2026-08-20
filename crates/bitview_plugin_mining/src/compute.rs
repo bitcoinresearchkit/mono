@@ -1,16 +1,17 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
+use crate::Dependencies;
 
 impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         blocks: &bitview_plugin_blocks::Vecs,
         transactions: &bitview_plugin_transactions::Vecs,
         prices: &bitview_plugin_price::Vecs,
@@ -22,7 +23,7 @@ impl Vecs {
         super::rewards::compute(
             &mut self.rewards,
             indexer,
-            indexes,
+            mappings,
             &blocks.lookback,
             transactions,
             prices,
@@ -50,21 +51,21 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.blocks,
             dependencies.transactions,
             dependencies.price,
-            exit,
+            context.exit(),
         )
     }
 }

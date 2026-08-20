@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, PartsPerMillion32, Sats, Version};
 use vecdb::{AnyStoredVec, AnyVec, Database, Rw, StorageMode};
 
@@ -77,39 +77,39 @@ impl CostBasisVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let aggregate_version = version + Version::ONE;
         let in_profit_per_coin_source = Self::import_prices(
             db,
             "cost_basis_in_profit_per_coin",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let in_profit_per_dollar_source = Self::import_prices(
             db,
             "cost_basis_in_profit_per_dollar",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let in_loss_per_coin_source = Self::import_prices(
             db,
             "cost_basis_in_loss_per_coin",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let in_loss_per_dollar_source = Self::import_prices(
             db,
             "cost_basis_in_loss_per_dollar",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
-        let min_source = Self::import_prices(db, "cost_basis_min", aggregate_version, indexes)?;
-        let max_source = Self::import_prices(db, "cost_basis_max", aggregate_version, indexes)?;
+        let min_source = Self::import_prices(db, "cost_basis_min", aggregate_version, mappings)?;
+        let max_source = Self::import_prices(db, "cost_basis_max", aggregate_version, mappings)?;
         let per_coin_sources =
-            Self::import_percentiles(db, "cost_basis_per_coin", version, indexes)?;
+            Self::import_percentiles(db, "cost_basis_per_coin", version, mappings)?;
         let per_dollar_sources =
-            Self::import_percentiles(db, "cost_basis_per_dollar", version, indexes)?;
+            Self::import_percentiles(db, "cost_basis_per_dollar", version, mappings)?;
         let supply_density_source = ColumnarPerBlock::forced_import(
             db,
             "supply_density_by_aggregate",
@@ -121,7 +121,7 @@ impl CostBasisVecs {
                         aggregate_version,
                         source,
                         id,
-                        indexes,
+                        mappings,
                     )
                 })
             },
@@ -160,7 +160,7 @@ impl CostBasisVecs {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<
         ColumnarPerBlock<
             Cents,
@@ -179,7 +179,7 @@ impl CostBasisVecs {
                         version,
                         source,
                         id,
-                        indexes,
+                        mappings,
                     )
                 })
             },
@@ -190,7 +190,7 @@ impl CostBasisVecs {
         db: &Database,
         metric: &str,
         base_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<UTXOAggregate<PercentilesVecs>> {
         UTXOAggregate::try_from_fn(|id| {
             let version = if matches!(id, UTXOAggregateId::All) {
@@ -202,7 +202,7 @@ impl CostBasisVecs {
                 db,
                 &Self::cohort_metric_name(id, metric),
                 version,
-                indexes,
+                mappings,
             )
         })
     }

@@ -1,10 +1,10 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     ByTerm, CohortContext, TERM_FILTERS, TERM_NAMES, TermId, UTXO_AGGREGATE_FILTERS,
     UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, PartsPerMillion32, PartsPerMillionSigned32, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Exit, Rw, StorageMode};
 
@@ -64,38 +64,38 @@ impl RelativeVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         all_chain: &AllChainSources,
         sources: &UTXOAggregate<RelativeSource<'_>>,
     ) -> Result<Self> {
         let aggregate_version = version + Version::ONE;
         let supply_profitability_shares =
-            SupplyProfitabilityShares::forced_import(db, aggregate_version, indexes)?;
+            SupplyProfitabilityShares::forced_import(db, aggregate_version, mappings)?;
         let unrealized_profit_to_own_mcap = Self::import_term_percent(
             db,
             "unrealized_profit_to_own_mcap",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let unrealized_loss_to_own_mcap = Self::import_term_percent(
             db,
             "unrealized_loss_to_own_mcap",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let gross_pnl_composition =
-            GrossPnlComposition::forced_import(db, aggregate_version, indexes)?;
+            GrossPnlComposition::forced_import(db, aggregate_version, mappings)?;
         let invested_capital_in_profit_share = AggregatePercentPerBlock::forced_import(
             db,
             "invested_capital_in_profit_share",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let invested_capital_in_loss_share = AggregatePercentPerBlock::forced_import(
             db,
             "invested_capital_in_loss_share",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
 
         let unrealized_profit_to_mcap = UTXOAggregate::from_fn(|id| {
@@ -107,7 +107,7 @@ impl RelativeVecs {
                 &source.unrealized.profit.cents.height,
                 |_, value, market_cap| Self::ratio_to_market_cap(value, market_cap),
             );
-            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, indexes)
+            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, mappings)
         });
         let unrealized_loss_to_mcap = UTXOAggregate::from_fn(|id| {
             let source = id.select(sources);
@@ -118,7 +118,7 @@ impl RelativeVecs {
                 &source.unrealized.loss.cents.height,
                 |_, value, market_cap| Self::ratio_to_market_cap(value, market_cap),
             );
-            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, indexes)
+            LazyPercentPerBlock::from_height_source(&name, Version::new(2), source, mappings)
         });
         let net_unrealized_pnl_to_own_mcap = ByTerm::from_fn(|term_id| {
             let aggregate_id = match term_id {
@@ -130,7 +130,7 @@ impl RelativeVecs {
                 &Self::aggregate_metric_name(aggregate_id, "net_unrealized_pnl_to_own_mcap"),
                 version + Version::new(4),
                 source,
-                indexes,
+                mappings,
             )
         });
 
@@ -151,7 +151,7 @@ impl RelativeVecs {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<
         ColumnarPerBlock<
             PartsPerMillion32,
@@ -166,7 +166,7 @@ impl RelativeVecs {
                     id.select(&TERM_NAMES).id,
                     metric,
                 );
-                LazyColumnPercentPerBlock::new(&name, version, source, id, indexes)
+                LazyColumnPercentPerBlock::new(&name, version, source, id, mappings)
             })
         })
     }

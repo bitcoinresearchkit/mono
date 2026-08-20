@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::AddrTypeId;
 use bitview_traversable::Traversable;
-use brk_cohort::AddrTypeId;
 use brk_types::{StoredU64, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::*;
@@ -30,13 +30,13 @@ impl AddrCountsVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         Ok(Self(ColumnarPerBlock::forced_import(
             db,
             &format!("{name}_by_type"),
             version,
-            |source| WithAddrTypes::from_columnar_source(name, version, source, indexes),
+            |source| WithAddrTypes::from_columnar_source(name, version, source, mappings),
         )?))
     }
 

@@ -9,17 +9,17 @@ use super::Vecs;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
@@ -27,7 +27,7 @@ impl Vecs {
                 db,
                 "total_sigop_cost",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
         })

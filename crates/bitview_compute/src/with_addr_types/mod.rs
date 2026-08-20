@@ -1,7 +1,7 @@
 mod columnar;
 
+use bitview_cohort::ByAddrType;
 use bitview_traversable::Traversable;
-use brk_cohort::ByAddrType;
 
 /// `all` aggregate plus a per-address-type breakdown.
 #[derive(Clone, Traversable)]

@@ -1,9 +1,10 @@
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{PartsPerMillion32, PartsPerMillion64, StoredF32};
 use vecdb::{Database, Rw, StorageMode};
 
 use super::dormancy_vecs::DormancyVecs;
+use crate::STORAGE;
 use bitview_compute::{LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock};
 
 #[derive(Traversable)]
@@ -53,8 +54,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        crate::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

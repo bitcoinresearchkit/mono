@@ -1,50 +1,50 @@
+use bitview_compute::{
+    Identity, LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock,
+};
+use bitview_plugin::ImportContext;
+use bitview_plugin_distribution::AllChainSources;
 use brk_error::Result;
-
-use std::path::Path;
-
 use brk_types::{Bitcoin, Cents, PartsPerMillion64, Sats, StoredF32, Version};
 
 use super::Vecs;
-use bitview_compute::{
-    Identity, LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock,
-    db_utils::{finalize_db, open_db},
-};
-use bitview_plugin_distribution::AllChainSources;
+use crate::{STORAGE, dormancy_vecs::DormancyVecs};
 
-const VERSION: Version = Version::new(1);
 const COINYEARS_DESTROYED_SUPPLY_ADJ_VERSION: Version = Version::ONE;
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         all_chain: &AllChainSources,
         mining: &bitview_plugin_mining::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         transactions: &bitview_plugin_transactions::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
-        let v = parent_version + VERSION;
+        let db = STORAGE.open_database(context, 100_000)?;
+        let v = STORAGE.schema_version();
 
-        let puell_multiple = RatioPerBlock::forced_import_ppm(&db, "puell_multiple", v, indexes)?;
+        let puell_multiple = RatioPerBlock::forced_import_ppm(&db, "puell_multiple", v, mappings)?;
         let nvt_source = all_chain.with_market_cap(
             "nvt_ppm_source",
             v,
             &transactions.volume.transfer_volume.sum._24h.cents.height,
             |_, volume, market_cap| Self::market_ratio(market_cap, volume),
         );
-        let nvt = LazyRatioPerBlock::from_height_source("nvt", v, nvt_source, indexes);
-        let gini = PercentPerBlock::forced_import(&db, "gini", v, indexes)?;
-        let rhodl_ratio = RatioPerBlock::forced_import_ppm(&db, "rhodl_ratio", v, indexes)?;
+        let nvt = LazyRatioPerBlock::from_height_source("nvt", v, nvt_source, mappings);
+        let gini = PercentPerBlock::forced_import(&db, "gini", v, mappings)?;
+        let rhodl_ratio = RatioPerBlock::forced_import_ppm(&db, "rhodl_ratio", v, mappings)?;
         let thermo_source = all_chain.with_market_cap(
             "thermo_cap_multiple_ppm_source",
             v,
             &mining.rewards.subsidy.cumulative.cents.height,
             |_, thermo_cap, market_cap| Self::market_ratio(market_cap, thermo_cap),
         );
-        let thermo_cap_multiple =
-            LazyRatioPerBlock::from_height_source("thermo_cap_multiple", v, thermo_source, indexes);
+        let thermo_cap_multiple = LazyRatioPerBlock::from_height_source(
+            "thermo_cap_multiple",
+            v,
+            thermo_source,
+            mappings,
+        );
 
         let activity = &distribution.cohorts.activity;
         let cdd_source = all_chain.with_supply(
@@ -57,7 +57,7 @@ impl Vecs {
             "coindays_destroyed_supply_adj",
             v,
             cdd_source,
-            indexes,
+            mappings,
         );
         let cyd_version = v + COINYEARS_DESTROYED_SUPPLY_ADJ_VERSION;
         let cyd_source = all_chain.with_supply(
@@ -70,7 +70,7 @@ impl Vecs {
             "coinyears_destroyed_supply_adj",
             cyd_version,
             cyd_source,
-            indexes,
+            mappings,
         );
         let dormancy_24h = &activity.dormancy.all._24h.height;
         let dormancy_supply_source = all_chain.with_supply(
@@ -85,18 +85,18 @@ impl Vecs {
             dormancy_24h,
             |_, dormancy, supply| Self::dormancy_flow(dormancy, supply),
         );
-        let dormancy = crate::dormancy_vecs::DormancyVecs {
+        let dormancy = DormancyVecs {
             supply_adj: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "dormancy_supply_adj",
                 v,
                 dormancy_supply_source,
-                indexes,
+                mappings,
             ),
             flow: LazyPerBlock::from_height_source::<Identity<StoredF32>>(
                 "dormancy_flow",
                 v,
                 dormancy_flow_source,
-                indexes,
+                mappings,
             ),
         };
         let stock_source = all_chain.with_supply(
@@ -109,9 +109,9 @@ impl Vecs {
             "stock_to_flow",
             v,
             stock_source,
-            indexes,
+            mappings,
         );
-        let seller_exhaustion = PerBlock::forced_import(&db, "seller_exhaustion", v, indexes)?;
+        let seller_exhaustion = PerBlock::forced_import(&db, "seller_exhaustion", v, mappings)?;
 
         let this = Self {
             plugin_gate: Default::default(),
@@ -127,7 +127,7 @@ impl Vecs {
             stock_to_flow,
             seller_exhaustion,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 

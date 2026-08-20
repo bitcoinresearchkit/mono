@@ -1,32 +1,27 @@
+use bitview_compute::{CachedWindowStartVec, Windows};
+use bitview_plugin::ImportContext;
 use brk_error::Result;
-
-use std::path::Path;
-
 use brk_types::{Height, Sats, StoredU64, Version};
 use vecdb::CachedBoxedVec;
 
 use super::Vecs;
-use crate::{breakdown::BreakdownVecs, total::Total};
-use bitview_compute::{
-    CachedWindowStartVec, Windows,
-    db_utils::{finalize_db, open_db},
-};
+use crate::{STORAGE, breakdown::BreakdownVecs, total::Total};
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         block_size: CachedBoxedVec<Height, StoredU64>,
         chain_fees: CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::ID.as_str(), 1_000_000)?;
+        let db = STORAGE.open_database(context, 1_000_000)?;
+        let version = STORAGE.schema_version();
         let total = Total::forced_import(
             &db,
             "op_return",
             version,
-            indexes,
+            mappings,
             cached_starts,
             &block_size,
             &chain_fees,
@@ -38,7 +33,7 @@ impl Vecs {
             "op_return_cumulative_by_kind",
             "op_return",
             columnar_version,
-            indexes,
+            mappings,
             cached_starts,
             &total_data,
             &block_size,
@@ -49,7 +44,7 @@ impl Vecs {
             "op_return_cumulative_policy",
             "op_return_policy",
             columnar_version,
-            indexes,
+            mappings,
             cached_starts,
             &total_data,
             &block_size,
@@ -63,7 +58,7 @@ impl Vecs {
             by_kind,
             policy,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 }

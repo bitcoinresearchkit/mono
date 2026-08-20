@@ -33,7 +33,7 @@ impl Query {
         let day1 = Day1::try_from(date).unwrap_or_default();
 
         let first_height_of_day = plugins
-            .indexes
+            .mappings
             .day1
             .first_height
             .collect_one(day1)

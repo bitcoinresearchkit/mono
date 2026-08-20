@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Relative\_InvestedCapital\_InProfit
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14513](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14513)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14475](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14475)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14513](https://github
 
 > **share**: [`SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share`](SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14514](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14514)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14476](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14476)

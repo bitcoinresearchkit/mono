@@ -28,12 +28,12 @@ pub struct Components<M: StorageMode = Rw> {
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     distribution: &bitview_plugin_distribution::Vecs,
     cointime: &bitview_plugin_cointime::Vecs,
     coinflow: &bitview_plugin_coinflow::Vecs,
 ) -> Result<Components> {
-    Components::forced_import(db, version, indexes, distribution, cointime, coinflow)
+    Components::forced_import(db, version, mappings, distribution, cointime, coinflow)
 }
 
 pub fn compute(
@@ -51,7 +51,7 @@ impl Components {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         cointime: &bitview_plugin_cointime::Vecs,
         coinflow: &bitview_plugin_coinflow::Vecs,
@@ -62,7 +62,7 @@ impl Components {
 
         macro_rules! import {
             ($name:expr, $source:expr) => {
-                component::forced_import(db, $name, version, indexes, &$source.cents.height)?
+                component::forced_import(db, $name, version, mappings, &$source.cents.height)?
             };
         }
 

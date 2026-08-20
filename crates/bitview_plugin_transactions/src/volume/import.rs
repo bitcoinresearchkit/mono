@@ -12,18 +12,18 @@ use super::Vecs;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
     tx_count_sums: &LazyRollingSumsFromHeight<StoredU64>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts, tx_count_sums)
+    Vecs::forced_import(db, version, mappings, cached_starts, tx_count_sums)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         tx_count_sums: &LazyRollingSumsFromHeight<StoredU64>,
     ) -> Result<Self> {
@@ -33,7 +33,7 @@ impl Vecs {
                 db,
                 "transfer_volume_bis",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             tx_per_sec: LazyPerSecondWindows::new("tx_per_sec", v, tx_count_sums),

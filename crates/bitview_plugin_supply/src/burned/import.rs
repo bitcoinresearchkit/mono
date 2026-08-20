@@ -9,23 +9,23 @@ use bitview_compute::ValuePerBlockCumulative;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes)
+    Vecs::forced_import(db, version, mappings)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         Ok(Self {
             total: ValuePerBlockCumulative::forced_import(
                 db,
                 "unspendable_supply",
                 version,
-                indexes,
+                mappings,
             )?,
         })
     }

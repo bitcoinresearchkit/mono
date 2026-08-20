@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use brk_types::{StoredF64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
@@ -20,7 +20,7 @@ impl CoindaysDestroyedByCohort {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let cumulative = CumulativeUTXOColumnarMetricWithoutAmountOrType::forced_import(
@@ -39,7 +39,7 @@ impl CoindaysDestroyedByCohort {
                 version,
                 source,
                 cached_starts,
-                indexes,
+                mappings,
             )
         });
         Ok(Self {

@@ -3,12 +3,13 @@ mod import;
 
 use brk_error::Result;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{Height, OpReturnKind, OpReturnPolicyId, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use super::{breakdown::BreakdownVecs, total::Total};
+use crate::STORAGE;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -34,8 +35,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        super::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

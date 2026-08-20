@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_Funded\_Balance
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7870](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L7870)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7873](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7873)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7870](https://github.
 
 > **matrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7874](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L7874)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7877](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7877)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7874](https://github.
 
 > **over**: [`SeriesTree_Addrs_Funded_Balance_Over`](SeriesTree_Addrs_Funded_Balance_Over.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7873](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L7873)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7876](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7876)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7873](https://github.
 
 > **range**: [`SeriesTree_Addrs_Funded_Balance_Range`](SeriesTree_Addrs_Funded_Balance_Range.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7871](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L7871)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7874](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7874)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7871](https://github.
 
 > **under**: [`SeriesTree_Addrs_Funded_Balance_Under`](SeriesTree_Addrs_Funded_Balance_Under.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7872](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L7872)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7875](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7875)

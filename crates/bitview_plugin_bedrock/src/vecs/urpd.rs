@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::path::PathBuf;
 
-use brk_cohort::AgeRangeId;
+use bitview_cohort::AgeRangeId;
 use brk_types::{Cohort, Date, Day1, UrpdRaw, UrpdWeight};
 use vecdb::{ColumnId, ReadableVec, StorageMode};
 

@@ -15,10 +15,9 @@ pub use value::*;
 /// Uses the `Bytes` trait to serialize values with `to_bytes()/from_bytes()` in
 /// **LITTLE-ENDIAN** format, ensuring **portability across different endianness systems**.
 ///
-/// Like `ZeroCopyVec`, this wraps `ReadWriteRawVec` and supports:
-/// - Holes (deleted indices)
-/// - Updated values (modifications to stored data)
-/// - Push/rollback operations
+/// Like `ZeroCopyVec`, this is an append-only raw vector with push, truncate,
+/// and rollback support. Wrap it in [`MutableVec`](crate::MutableVec) when
+/// existing values must be updated or deleted.
 ///
 /// The only difference from `ZeroCopyVec` is the serialization strategy:
 /// - `BytesVec`: Explicit little-endian, portable across architectures
@@ -51,5 +50,6 @@ impl_vec_wrapper!(
     ReadWriteRawVec<I, T, BytesStrategy<T>>,
     BytesVecValue,
     Format::Bytes,
-    ReadOnlyRawVec<I, T, BytesStrategy<T>>
+    ReadOnlyRawVec<I, T, BytesStrategy<T>>,
+    no_deref_mut
 );

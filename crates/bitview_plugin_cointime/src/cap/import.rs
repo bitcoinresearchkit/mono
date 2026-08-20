@@ -12,17 +12,17 @@ use bitview_compute::{
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     subsidy_cents: &PerBlock<Cents>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, subsidy_cents)
+    Vecs::forced_import(db, version, mappings, subsidy_cents)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         subsidy_cents: &PerBlock<Cents>,
     ) -> Result<Self> {
         let thermo_cents = LazyPerBlock::from_computed::<Identity<Cents>>(
@@ -41,16 +41,16 @@ impl Vecs {
                 usd: thermo_usd,
                 cents: thermo_cents,
             },
-            investor: FiatPerBlock::forced_import(db, "investor_cap", version, indexes)?,
-            vaulted: FiatPerBlock::forced_import(db, "vaulted_cap", version, indexes)?,
-            active: FiatPerBlock::forced_import(db, "active_cap", version, indexes)?,
+            investor: FiatPerBlock::forced_import(db, "investor_cap", version, mappings)?,
+            vaulted: FiatPerBlock::forced_import(db, "vaulted_cap", version, mappings)?,
+            active: FiatPerBlock::forced_import(db, "active_cap", version, mappings)?,
             cointime: FiatPerBlock::forced_import(
                 db,
                 "cointime_cap",
                 version + Version::ONE,
-                indexes,
+                mappings,
             )?,
-            aviv: RatioPerBlock::forced_import(db, "aviv", version, indexes)?,
+            aviv: RatioPerBlock::forced_import(db, "aviv", version, mappings)?,
         })
     }
 }

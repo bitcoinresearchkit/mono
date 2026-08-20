@@ -1,6 +1,6 @@
 [package]
 name = "bitview_website"
-description = "Standalone website server for BRK"
+description = "Standalone website server for Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

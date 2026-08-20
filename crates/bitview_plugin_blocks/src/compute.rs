@@ -2,12 +2,12 @@ use brk_error::Result;
 
 use std::thread;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use vecdb::Exit;
 
-use super::Vecs;
-use super::{interval::Compute as _, lookback::Invalidate as _, size::Compute as _};
+use super::{Vecs, interval::Compute as _, lookback::Invalidate as _, size::Compute as _};
+use crate::Dependencies;
 
 impl Vecs {
     fn compute_inner(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
@@ -41,14 +41,14 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
-        self.compute_inner(dependencies.indexer, exit)
+        self.compute_inner(dependencies.indexer, context.exit())
     }
 }

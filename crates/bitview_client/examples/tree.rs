@@ -4,7 +4,8 @@
 //! and fetch data from each endpoint. Run with: cargo run --example tree
 
 use bitview_client::BitviewClient;
-use brk_types::{Index, RangeIndex, TreeNode};
+use bitview_types::TreeNode;
+use brk_types::{Index, RangeIndex};
 use std::collections::BTreeSet;
 
 /// A collected metric with its path and available indexes.

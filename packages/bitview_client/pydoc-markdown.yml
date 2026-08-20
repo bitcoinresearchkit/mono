@@ -5,7 +5,7 @@ loaders:
 
 processors:
   - type: filter
-    expression: name in ('BitviewClient', 'BitviewError', 'MetricData', 'MetricEndpoint', 'bitview_client') or (obj.parent and obj.parent.name == 'BitviewClient')
+    expression: name in ('BitviewClient', 'BitviewError', 'SeriesData', 'DateSeriesData', 'SeriesEndpoint', 'DateSeriesEndpoint', 'bitview_client') or (obj.parent and obj.parent.name == 'BitviewClient')
     documented_only: false
 
 renderer:

@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, sync::LazyLock};
 
-use brk_cohort::CohortName;
+use bitview_cohort::CohortName;
 
 static ALIASES: LazyLock<Vec<Alias>> = LazyLock::new(Alias::all);
 

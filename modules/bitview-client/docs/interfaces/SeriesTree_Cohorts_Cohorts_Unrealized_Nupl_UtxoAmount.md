@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Unrealized\_Nupl\_UtxoAmount
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14352](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14352)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14314](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14314)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14352](https://github
 
 > **over**: [`SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over`](SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14355](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14355)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14317](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14317)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14355](https://github
 
 > **range**: [`SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range`](SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14353](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14353)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14315](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14315)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14353](https://github
 
 > **under**: [`SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under`](SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14354](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L14354)
+Defined in: [Developer/brk/modules/bitview-client/index.js:14316](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L14316)

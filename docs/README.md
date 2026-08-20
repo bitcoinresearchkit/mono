@@ -1,6 +1,6 @@
 # Bitcoin Research Kit
 
-[![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bitcoinresearchkit/brk/blob/main/docs/LICENSE.md)
+[![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bitcoinresearchkit/brk/blob/main/LICENSE)
 [![Crates.io](https://img.shields.io/crates/v/brk.svg)](https://crates.io/crates/brk)
 [![docs.rs](https://img.shields.io/docsrs/brk)](https://docs.rs/brk)
 [![Supported by OpenSats](https://img.shields.io/badge/supported%20by-opensats-ff7b00)](https://opensats.org/)
@@ -58,14 +58,14 @@ are generated from the same OpenAPI operations as the typed clients.
 ### Self-host
 
 ```bash
-cargo install --locked bitview && bitview
+cargo install --locked bitviewd && bitviewd
 ```
 
 Run your own website and API. All you need is Bitcoin Core.
 
 > **Note:** BRK uses [sparse files](https://en.wikipedia.org/wiki/Sparse_file). Tools like `ls -l` or Finder report the logical file size (>1 TB), not actual disk usage (~350 GB). Use `du -sh` to see real usage.
 
-[Guide](https://github.com/bitcoinresearchkit/brk/blob/main/crates/bitview/README.md) · [Professional hosting](./PROFESSIONAL_HOSTING.md)
+[Guide](https://github.com/bitcoinresearchkit/brk/blob/main/crates/bitviewd/README.md) · [Professional hosting](./PROFESSIONAL_HOSTING.md)
 
 ### Library
 
@@ -109,4 +109,4 @@ composed indexer, compute plugins, query layer, and server.
 
 ## License
 
-[MIT](./LICENSE.md)
+[MIT](../LICENSE)

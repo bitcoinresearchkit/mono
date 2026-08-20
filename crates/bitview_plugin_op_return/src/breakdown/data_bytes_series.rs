@@ -26,7 +26,7 @@ impl<C: ColumnId> DataBytesSeries<C> {
         data_bytes: LazyColumnPerBlockCumulativeRolling<Bytes, C>,
         total_data: CachedBoxedVec<Height, Bytes>,
         block_size: CachedBoxedVec<Height, StoredU64>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Self {
         let data_share =
             LazyPercentPerBlock::from_cached_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
@@ -34,7 +34,7 @@ impl<C: ColumnId> DataBytesSeries<C> {
                 version,
                 &data_bytes.cumulative.height,
                 total_data,
-                indexes,
+                mappings,
             );
         let chain_share =
             LazyPercentPerBlock::from_cached_ratio::<Bytes, _, RatioBytes<PartsPerMillion32>>(
@@ -42,7 +42,7 @@ impl<C: ColumnId> DataBytesSeries<C> {
                 version,
                 &data_bytes.cumulative.height,
                 block_size,
-                indexes,
+                mappings,
             );
 
         Self {

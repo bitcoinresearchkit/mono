@@ -7,7 +7,7 @@ use std::{
     path::Path,
 };
 
-use brk_cohort::{
+use bitview_cohort::{
     AgeRangeId, ByTerm, CohortContext, TERM_FILTERS, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate,
 };
 use brk_types::{CentsCompact, Date, Sats, UrpdRaw, UrpdWeight, Version};
@@ -269,7 +269,7 @@ impl DayUrpds {
 
 #[cfg(test)]
 mod tests {
-    use brk_cohort::{AgeRange, AgeRangeId};
+    use bitview_cohort::{AgeRange, AgeRangeId};
     use brk_types::{CentsCompact, Sats};
 
     use super::{DayUrpds, ModeWeights};

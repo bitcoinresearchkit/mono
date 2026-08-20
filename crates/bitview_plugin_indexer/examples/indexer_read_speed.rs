@@ -1,5 +1,6 @@
 use std::{fs, path::Path, time::Instant};
 
+use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
@@ -37,7 +38,8 @@ fn main() -> brk_error::Result<()> {
         Auth::CookieFile(bitcoin_dir.join(".cookie")),
     )?;
     let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
-    let indexer = Indexer::import(&outputs_dir, &reader)?;
+    let context = ImportContext::new(&outputs_dir);
+    let indexer = Indexer::import(context, &reader)?;
     println!("Indexer loaded.\n");
 
     // Warmup run

@@ -9,7 +9,6 @@ version.workspace = true
 
 [features]
 full = [
-    "cohort",
     "error",
     "fetcher",
     "iterator",
@@ -21,7 +20,6 @@ full = [
     "store",
     "types",
 ]
-cohort = ["brk_cohort"]
 error = ["brk_error"]
 fetcher = ["brk_fetcher"]
 iterator = ["brk_iterator"]
@@ -34,7 +32,6 @@ store = ["brk_store"]
 types = ["brk_types"]
 
 [dependencies]
-brk_cohort = { workspace = true, optional = true }
 brk_error = { workspace = true, optional = true }
 brk_fetcher = { workspace = true, optional = true }
 brk_iterator = { workspace = true, optional = true }

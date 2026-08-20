@@ -5,10 +5,9 @@ use axum::{
     http::{HeaderMap, HeaderValue, Response, Uri, header},
 };
 use bitview_query::AsyncQuery;
-use brk_types::{
-    Addr, BlockHash, BlockHashPrefix, Date, Height, ONE_HOUR_IN_SEC, PoolSlug,
-    Timestamp as BrkTimestamp, Txid, Version,
-};
+#[cfg(feature = "chain")]
+use brk_types::{Addr, BlockHash, BlockHashPrefix, PoolSlug, Txid};
+use brk_types::{Date, Height, ONE_HOUR_IN_SEC, Timestamp as BrkTimestamp, Version};
 use derive_more::Deref;
 use jiff::Timestamp;
 use serde::Serialize;
@@ -78,6 +77,7 @@ impl AppState {
     /// `before_txid` narrows the on-chain branch to the newest activity strictly
     /// older than the cursor, so paginated chain pages stay cacheable when newer
     /// activity arrives above the cursor.
+    #[cfg(feature = "chain")]
     pub fn addr_strategy(
         &self,
         version: Version,
@@ -103,6 +103,7 @@ impl AppState {
 
     /// `Immutable` if the block is >6 deep (status stable), `Tip` otherwise.
     /// For block status which changes when the next block arrives.
+    #[cfg(feature = "chain")]
     pub fn block_status_strategy(&self, version: Version, hash: &BlockHash) -> CacheStrategy {
         self.sync(|q| {
             q.height_by_hash(hash)
@@ -118,6 +119,7 @@ impl AppState {
     }
 
     /// `BlockBound` if the block exists (reorg-safe via block hash), `Tip` if not found.
+    #[cfg(feature = "chain")]
     pub fn block_strategy(&self, version: Version, hash: &BlockHash) -> CacheStrategy {
         self.sync(|q| {
             if q.height_by_hash(hash).is_ok() {
@@ -129,6 +131,7 @@ impl AppState {
     }
 
     /// Mempool → `MempoolHash`, confirmed → `BlockBound`, unknown → `Tip`.
+    #[cfg(feature = "chain")]
     pub fn tx_strategy(&self, version: Version, txid: &Txid) -> CacheStrategy {
         self.sync(|q| {
             if let Some(mempool) = q.mempool()
@@ -148,6 +151,7 @@ impl AppState {
     /// `BlockBound` on the pool's last-mined block hash, `Tip` if the pool has
     /// never mined. Lets the no-cursor pool-blocks page stay cached when *other*
     /// pools mine; only invalidates when this pool itself mines.
+    #[cfg(feature = "chain")]
     pub fn pool_blocks_strategy(&self, version: Version, slug: PoolSlug) -> CacheStrategy {
         self.sync(|q| {
             let last = q.pools().heights.latest_height(slug, q.height());

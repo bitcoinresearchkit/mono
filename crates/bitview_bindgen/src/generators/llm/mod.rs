@@ -6,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 use oas3::Spec;
 use serde_json::Value;
 

@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::SpendableTypeId;
 use bitview_plugin_indexer::Indexer;
-use brk_cohort::SpendableTypeId;
 use brk_error::OptionData;
 use brk_types::{StoredU16, StoredU64};
 use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};

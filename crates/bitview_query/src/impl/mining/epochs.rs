@@ -19,7 +19,7 @@ pub fn iter_difficulty_epochs(
     end_height: usize,
 ) -> brk_error::Result<Vec<DifficultyAdjustmentEntry>> {
     let start_epoch = plugins
-        .indexes
+        .mappings
         .height
         .epoch
         .collect_one(Height::from(start_height))
@@ -27,7 +27,7 @@ pub fn iter_difficulty_epochs(
             "iter_difficulty_epochs: start_height not in epoch index",
         ))?;
     let end_epoch = plugins
-        .indexes
+        .mappings
         .height
         .epoch
         .collect_one(Height::from(end_height))
@@ -35,8 +35,8 @@ pub fn iter_difficulty_epochs(
             "iter_difficulty_epochs: end_height not in epoch index",
         ))?;
 
-    let mut height_cursor = plugins.indexes.epoch.first_height.cursor();
-    let mut timestamp_cursor = plugins.indexes.timestamp.epoch.cursor();
+    let mut height_cursor = plugins.mappings.epoch.first_height.cursor();
+    let mut timestamp_cursor = plugins.mappings.timestamp.epoch.cursor();
     let mut difficulty_cursor = plugins.blocks.difficulty.value.epoch.cursor();
 
     let mut results = Vec::with_capacity(end_epoch.to_usize() - start_epoch.to_usize() + 1);

@@ -1,12 +1,13 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use brk_types::{Bytes, OP_RETURN_KIND_COUNT, OpReturnKind, OpReturnPolicyId, Sats, VSize};
 use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};
 
 use super::Vecs;
-use crate::{breakdown::BlockMetrics, policy::Policy};
+use crate::{Dependencies, breakdown::BlockMetrics, policy::Policy};
+
 const OLD_STANDARD_MAX_POST_OP_RETURN_BYTES: Bytes = Bytes::new(82);
 const WRITE_INTERVAL: usize = 10_000;
 const _: () = assert!(OP_RETURN_KIND_COUNT <= u32::BITS as usize);
@@ -23,15 +24,15 @@ struct Carrier {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
-        self.compute_inner(dependencies.indexer, dependencies.fees, exit)
+        self.compute_inner(dependencies.indexer, dependencies.fees, context.exit())
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::{
-    BytesStrategy, BytesVec, BytesVecReader, OverflowVecValue, ReadOnlyRawVec, VecIndex, unlikely,
+    BytesStrategy, BytesVec, BytesVecReader, MutableVec, OverflowVecValue, ReadOnlyMutableVec,
+    ReadOnlyRawVec, VecIndex, unlikely,
 };
 
 /// Reusable random-access reader for an [`OverflowVec`](crate::OverflowVec).
@@ -18,7 +19,10 @@ where
     T: OverflowVecValue,
 {
     #[doc(hidden)]
-    pub fn new(compact: &BytesVec<I, T::Compact>, overflow: &BytesVec<usize, T>) -> Self {
+    pub fn new(
+        compact: &MutableVec<BytesVec<I, T::Compact>>,
+        overflow: &MutableVec<BytesVec<usize, T>>,
+    ) -> Self {
         Self {
             compact: compact.reader(),
             overflow: overflow.reader(),
@@ -27,8 +31,8 @@ where
 
     #[doc(hidden)]
     pub fn from_read_only(
-        compact: &ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>,
-        overflow: &ReadOnlyRawVec<usize, T, BytesStrategy<T>>,
+        compact: &ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
+        overflow: &ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
     ) -> Self {
         Self {
             compact: BytesVecReader::new(compact.reader()),
@@ -92,13 +96,17 @@ where
 
     #[inline(always)]
     #[doc(hidden)]
-    pub fn compact(&self, vec: &BytesVec<I, T::Compact>, index: I) -> Option<T::Compact> {
+    pub fn compact(
+        &self,
+        vec: &MutableVec<BytesVec<I, T::Compact>>,
+        index: I,
+    ) -> Option<T::Compact> {
         vec.get_with_reader(index, &self.compact)
     }
 
     #[inline(always)]
     #[doc(hidden)]
-    pub fn overflow(&self, vec: &BytesVec<usize, T>, index: usize) -> Option<T> {
+    pub fn overflow(&self, vec: &MutableVec<BytesVec<usize, T>>, index: usize) -> Option<T> {
         vec.get_with_reader_at(index, &self.overflow)
     }
 }

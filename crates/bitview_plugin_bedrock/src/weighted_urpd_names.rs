@@ -1,4 +1,4 @@
-use brk_cohort::UTXOAggregate;
+use bitview_cohort::UTXOAggregate;
 use derive_more::Deref;
 
 use super::WeightedPair;

@@ -26,7 +26,7 @@ impl Query {
         let current_height_u32: u32 = current_height.into();
 
         let current_epoch = plugins
-            .indexes
+            .mappings
             .height
             .epoch
             .collect_one(current_height)
@@ -34,7 +34,7 @@ impl Query {
         let current_epoch_usize: usize = current_epoch.into();
 
         let epoch_start_height = plugins
-            .indexes
+            .mappings
             .epoch
             .first_height
             .collect_one(current_epoch)
@@ -47,7 +47,7 @@ impl Query {
         let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_EPOCH as f64) * 100.0;
 
         let epoch_start_timestamp = plugins
-            .indexes
+            .mappings
             .timestamp
             .epoch
             .collect_one(current_epoch)
@@ -98,7 +98,7 @@ impl Query {
         let (previous_retarget, previous_time) = if current_epoch_usize > 0 {
             let prev_epoch = Epoch::from(current_epoch_usize - 1);
             let prev_epoch_start = plugins
-                .indexes
+                .mappings
                 .epoch
                 .first_height
                 .collect_one(prev_epoch)

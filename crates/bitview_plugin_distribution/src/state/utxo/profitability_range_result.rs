@@ -1,4 +1,4 @@
-use brk_cohort::ByTerm;
+use bitview_cohort::ByTerm;
 use brk_types::{Cents, CentsSats, Sats};
 
 #[derive(Debug, Clone, Copy, Default)]

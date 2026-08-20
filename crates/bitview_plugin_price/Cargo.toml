@@ -6,11 +6,12 @@ edition.workspace = true
 license.workspace = true
 homepage = "https://bitview.dev"
 repository.workspace = true
+exclude = ["examples/"]
 
 [dependencies]
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_indexes = { workspace = true }
+bitview_plugin_mappings = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_plugin_indexer = { workspace = true }
 brk_oracle = { workspace = true }
@@ -21,3 +22,8 @@ schemars = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
+
+[dev-dependencies]
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+serde_json = { workspace = true }

@@ -1,57 +1,105 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::module_inception)]
+#![allow(clippy::type_complexity)]
 
-#[cfg(feature = "chain")]
+#[cfg(feature = "price")]
 use std::sync::RwLock;
+#[cfg(feature = "indexer")]
 use std::{path::Path, sync::Arc};
 
+#[cfg(feature = "bedrock")]
+use bitview_plugin_bedrock::Vecs as Bedrock;
+#[cfg(feature = "blocks")]
+use bitview_plugin_blocks::Vecs as Blocks;
+#[cfg(feature = "coinflow")]
+use bitview_plugin_coinflow::Vecs as Coinflow;
+#[cfg(feature = "cointime")]
+use bitview_plugin_cointime::Vecs as Cointime;
+#[cfg(feature = "distribution")]
+use bitview_plugin_distribution::Vecs as Distribution;
+#[cfg(feature = "indexer")]
 use bitview_plugin_indexer::{Indexer, Lengths};
-#[cfg(feature = "chain")]
+#[cfg(feature = "inputs")]
+use bitview_plugin_inputs::Vecs as Inputs;
+#[cfg(feature = "mappings")]
+use bitview_plugin_mappings::Vecs as Mappings;
+#[cfg(feature = "mining")]
+use bitview_plugin_mining::Vecs as Mining;
+#[cfg(feature = "outputs")]
+use bitview_plugin_outputs::Vecs as Outputs;
+#[cfg(feature = "pools")]
 use bitview_plugin_pools::Vecs as Pools;
-#[cfg(feature = "chain")]
+#[cfg(feature = "price")]
 use bitview_plugin_price::Vecs as Price;
+#[cfg(feature = "transactions")]
+use bitview_plugin_transactions::Vecs as Transactions;
+#[cfg(feature = "indexer")]
+use bitview_types::SyncStatus;
+#[cfg(feature = "indexer")]
 use brk_error::{OptionData, Result};
+#[cfg(feature = "indexer")]
 use brk_mempool::Mempool;
-#[cfg(feature = "chain")]
+#[cfg(feature = "price")]
 use brk_oracle::Oracle;
+#[cfg(feature = "indexer")]
 use brk_reader::Reader;
+#[cfg(feature = "indexer")]
 use brk_rpc::Client;
-use brk_types::{BlockHash, BlockHashPrefix, Height, SyncStatus};
+#[cfg(feature = "indexer")]
+use brk_types::{BlockHash, BlockHashPrefix, Height};
 #[cfg(feature = "series")]
 use brk_types::{Epoch, Halving, Index};
 #[cfg(feature = "series")]
 use vecdb::ReadBounds;
+#[cfg(feature = "indexer")]
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
 #[cfg(feature = "tokio")]
 mod r#async;
+mod output;
+#[cfg(feature = "indexer")]
 mod query_plugin_set;
+#[cfg(feature = "indexer")]
 mod query_plugins;
+mod series_output;
+mod series_output_legacy;
 mod vecs;
 
+#[cfg(feature = "indexer")]
 mod r#impl;
 
 #[cfg(feature = "tokio")]
 pub use r#async::*;
 #[cfg(feature = "series")]
 pub use r#impl::ResolvedQuery;
+pub use output::*;
+#[cfg(feature = "indexer")]
 pub use query_plugin_set::{
-    QueryPluginSet, SupportsChainQueries, SupportsSeriesQueries, SupportsUrpdQueries,
+    QueryPluginSet, SupportsBedrock, SupportsBlocks, SupportsChainQueries, SupportsCoinflow,
+    SupportsCointime, SupportsDistribution, SupportsInputs, SupportsMappings, SupportsMining,
+    SupportsOutputs, SupportsPools, SupportsPrice, SupportsSeriesQueries, SupportsTransactions,
+    SupportsUrpdQueries,
 };
+pub use series_output::*;
+pub use series_output_legacy::*;
 pub use vecs::Vecs;
 
+#[cfg(feature = "indexer")]
 use query_plugins::QueryPlugins;
 
+#[cfg(feature = "indexer")]
 #[derive(Clone)]
 pub struct Query(Arc<QueryInner<'static>>);
+#[cfg(feature = "indexer")]
 struct QueryInner<'a> {
     vecs: &'a Vecs<'a>,
     plugins: QueryPlugins<'a>,
     mempool: Option<Mempool>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "price")]
     live_oracle: RwLock<Option<(Height, Arc<Oracle>)>>,
 }
 
+#[cfg(feature = "indexer")]
 impl Query {
     pub fn build<P>(plugins: &P, mempool: Option<Mempool>) -> Self
     where
@@ -66,7 +114,7 @@ impl Query {
             vecs,
             plugins,
             mempool,
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "price")]
             live_oracle: RwLock::new(None),
         }))
     }
@@ -199,22 +247,87 @@ impl Query {
         self.0.plugins.indexer
     }
 
+    #[cfg(feature = "bedrock")]
     #[inline]
-    #[cfg(any(feature = "chain", feature = "series", feature = "urpd"))]
+    pub fn bedrock(&self) -> &Bedrock<Ro> {
+        self.0.plugins.bedrock
+    }
+
+    #[cfg(feature = "blocks")]
+    #[inline]
+    pub fn blocks_plugin(&self) -> &Blocks<Ro> {
+        self.0.plugins.blocks
+    }
+
+    #[cfg(feature = "coinflow")]
+    #[inline]
+    pub fn coinflow(&self) -> &Coinflow<Ro> {
+        self.0.plugins.coinflow
+    }
+
+    #[cfg(feature = "cointime")]
+    #[inline]
+    pub fn cointime(&self) -> &Cointime<Ro> {
+        self.0.plugins.cointime
+    }
+
+    #[cfg(feature = "distribution")]
+    #[inline]
+    pub fn distribution(&self) -> &Distribution<Ro> {
+        self.0.plugins.distribution
+    }
+
+    #[cfg(feature = "inputs")]
+    #[inline]
+    pub fn inputs(&self) -> &Inputs<Ro> {
+        self.0.plugins.inputs
+    }
+
+    #[cfg(feature = "mappings")]
+    #[inline]
+    pub fn mappings(&self) -> &Mappings<Ro> {
+        self.0.plugins.mappings
+    }
+
+    #[cfg(feature = "mining")]
+    #[inline]
+    pub fn mining(&self) -> &Mining<Ro> {
+        self.0.plugins.mining
+    }
+
+    #[cfg(feature = "outputs")]
+    #[inline]
+    pub fn outputs(&self) -> &Outputs<Ro> {
+        self.0.plugins.outputs
+    }
+
+    #[inline]
+    #[cfg(any(
+        feature = "chain",
+        feature = "series",
+        feature = "urpd",
+        feature = "price"
+    ))]
     fn plugins(&self) -> &QueryPlugins<'static> {
         &self.0.plugins
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "pools")]
     #[inline]
     pub fn pools(&self) -> &Pools<Ro> {
         self.0.plugins.pools
     }
 
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "price")]
     #[inline]
     pub fn price(&self) -> &Price<Ro> {
         self.0.plugins.price
+    }
+
+    #[cfg(feature = "transactions")]
+    #[inline]
+    pub fn transactions(&self) -> &Transactions<Ro> {
+        self.0.plugins.transactions
     }
 
     #[inline]

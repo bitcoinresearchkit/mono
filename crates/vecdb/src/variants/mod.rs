@@ -4,6 +4,7 @@ mod compressed;
 mod eager;
 mod lazy;
 mod macros;
+mod mutable;
 mod overflow;
 mod raw;
 
@@ -14,5 +15,6 @@ pub use eager::*;
 pub use lazy::*;
 #[allow(unused_imports)]
 pub use macros::*;
+pub use mutable::*;
 pub use overflow::*;
 pub use raw::*;

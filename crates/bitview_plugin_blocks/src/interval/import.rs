@@ -10,7 +10,7 @@ pub trait Import: Sized {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self>;
 }
@@ -19,14 +19,14 @@ impl Import for Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let interval = PerBlockCumulativeAverage::forced_import(
             db,
             "block_interval",
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
 

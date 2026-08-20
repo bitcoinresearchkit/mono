@@ -72,7 +72,7 @@ impl Query {
             return Err(Error::UnknownTxid);
         }
         self.plugins()
-            .indexes
+            .mappings
             .tx_heights
             .get_shared(tx_index)
             .data()
@@ -227,7 +227,7 @@ impl Query {
         let txin_index_reader = self.plugins().outputs.spent.txin_index.reader();
         let txid_reader = indexer.vecs().transactions.txid.reader();
 
-        let tx_heights = &self.plugins().indexes.tx_heights;
+        let tx_heights = &self.plugins().mappings.tx_heights;
         let mut input_tx_cursor = indexer.vecs().inputs.tx_index.cursor();
         let mut first_txin_cursor = indexer.vecs().transactions.first_txin_index.cursor();
 

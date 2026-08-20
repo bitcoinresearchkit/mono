@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10129](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10129)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10091](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10091)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10129](https://github
 
 > **cohorts**: [`SeriesTree_Cohorts_Cohorts`](SeriesTree_Cohorts_Cohorts.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10130](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10130)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10092](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10092)

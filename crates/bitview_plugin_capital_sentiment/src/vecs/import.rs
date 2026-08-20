@@ -1,17 +1,12 @@
 use brk_error::Result;
 
-use std::path::Path;
-
-use brk_types::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8, Version};
+use brk_types::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
 use vecdb::{ReadableCloneableVec, UnaryTransform};
 
 use super::Vecs;
-use bitview_compute::{
-    DailyMappings, DailyMetric, LazyDailyMetric,
-    db_utils::{finalize_db, open_db},
-};
-
-const VERSION: Version = Version::new(5);
+use crate::STORAGE;
+use bitview_compute::{DailyMappings, DailyMetric, LazyDailyMetric};
+use bitview_plugin::ImportContext;
 
 struct CodeToPhase;
 
@@ -48,14 +43,13 @@ impl UnaryTransform<StoredBool, StoredBool> for IsLongToIsShort {
 }
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
-        let version = parent_version + VERSION;
-        let mappings = DailyMappings::new(indexes);
+        let db = STORAGE.open_database(context, 100_000)?;
+        let version = STORAGE.schema_version();
+        let mappings = DailyMappings::new(mappings);
 
         let phase_code =
             DailyMetric::forced_import(&db, "capital_sentiment_phase_code", version, &mappings)?;
@@ -93,7 +87,7 @@ impl Vecs {
             phase,
             score,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 }

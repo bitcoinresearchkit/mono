@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_traversable::Traversable;
-use brk_cohort::{AddrTypeId, ByAddrType};
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{
@@ -32,7 +32,7 @@ impl AvgAmountVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_chain: &AllChainSources,
         utxo_count: &(impl ReadableCloneableVec<Height, StoredU64> + 'static),
@@ -61,7 +61,7 @@ impl AvgAmountVecs {
                 "avg_utxo_amount",
                 version,
                 avg_utxo,
-                indexes,
+                mappings,
                 spot_price,
             ),
             by_addr_type: AddrTypeId::series(|column, type_name| {
@@ -70,7 +70,7 @@ impl AvgAmountVecs {
                     version,
                     &utxo_columns,
                     column,
-                    indexes,
+                    mappings,
                     spot_price,
                 )
             }),
@@ -80,7 +80,7 @@ impl AvgAmountVecs {
                 "avg_addr_amount",
                 version,
                 avg_addr,
-                indexes,
+                mappings,
                 spot_price,
             ),
             by_addr_type: AddrTypeId::series(|column, type_name| {
@@ -89,7 +89,7 @@ impl AvgAmountVecs {
                     version,
                     &addr_columns,
                     column,
-                    indexes,
+                    mappings,
                     spot_price,
                 )
             }),

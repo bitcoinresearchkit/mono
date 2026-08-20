@@ -11,9 +11,9 @@ pub fn forced_import(
     db: &Database,
     version: Version,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexer, indexes)
+    Vecs::forced_import(db, version, indexer, mappings)
 }
 
 impl Vecs {
@@ -21,9 +21,9 @@ impl Vecs {
         db: &Database,
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
-        let weight = TxDerivedDistribution::forced_import(db, "tx_weight", version, indexes)?;
+        let weight = TxDerivedDistribution::forced_import(db, "tx_weight", version, mappings)?;
 
         let tx_index_to_vsize = LazyVec::transformed::<WeightToVSize>(
             "tx_vsize",

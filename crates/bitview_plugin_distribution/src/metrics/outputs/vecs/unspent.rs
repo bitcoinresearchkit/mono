@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AmountRange, CohortContext, UTXOGroups};
 use bitview_traversable::Traversable;
-use brk_cohort::{AmountRange, CohortContext, UTXOGroups};
 use brk_types::{PartsPerMillionSigned64, StoredI64, StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
@@ -25,7 +25,7 @@ impl UnspentOutputCount {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetric::forced_import(db, "utxo_count", version)?;
@@ -38,7 +38,7 @@ impl UnspentOutputCount {
                     .additive_source(&filter, &name, version)
                     .expect("unspent-output cohort source"),
                 Version::TWO,
-                indexes,
+                mappings,
                 cached_starts,
             )
         });
@@ -54,7 +54,7 @@ impl UnspentOutputCount {
                     version + Version::ONE,
                     source,
                     Version::TWO,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },

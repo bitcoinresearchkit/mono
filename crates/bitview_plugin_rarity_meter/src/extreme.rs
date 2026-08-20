@@ -108,7 +108,7 @@ where
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let thresholds = ColumnarPerBlock::forced_import(
             db,
@@ -121,15 +121,15 @@ where
                         ExtremeThresholdId::Pct0_05 => format!("{name}_threshold_pct0_05"),
                         ExtremeThresholdId::Pct0_025 => format!("{name}_threshold"),
                     };
-                    LazyColumnPerBlock::new(&series_name, version, source, threshold, indexes)
+                    LazyColumnPerBlock::new(&series_name, version, source, threshold, mappings)
                 })
             },
         )?;
 
         Ok(Self {
             thresholds,
-            tail: PercentPerBlock::forced_import(db, &format!("{name}_tail"), version, indexes)?,
-            rank: PerBlock::forced_import(db, &format!("{name}_rank"), version, indexes)?,
+            tail: PercentPerBlock::forced_import(db, &format!("{name}_tail"), version, mappings)?,
+            rank: PerBlock::forced_import(db, &format!("{name}_rank"), version, mappings)?,
             history: LiveHistory::new(),
         })
     }

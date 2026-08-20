@@ -16,7 +16,7 @@ pub trait Import {
     fn new(
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self;
 }
@@ -25,7 +25,7 @@ impl Import for Vecs {
     fn new(
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let total_source = LazyVec::init(
@@ -41,22 +41,22 @@ impl Import for Vecs {
                 _24h: ConstantVecs::new::<BlockCountTarget24h>(
                     "block_count_target_24h",
                     version,
-                    indexes,
+                    mappings,
                 ),
                 _1w: ConstantVecs::new::<BlockCountTarget1w>(
                     "block_count_target_1w",
                     version,
-                    indexes,
+                    mappings,
                 ),
                 _1m: ConstantVecs::new::<BlockCountTarget1m>(
                     "block_count_target_1m",
                     version,
-                    indexes,
+                    mappings,
                 ),
                 _1y: ConstantVecs::new::<BlockCountTarget1y>(
                     "block_count_target_1y",
                     version,
-                    indexes,
+                    mappings,
                 ),
             },
             total: LazyPerBlockCumulativeRolling::from_cumulative_source(
@@ -64,7 +64,7 @@ impl Import for Vecs {
                 version + Version::ONE,
                 total_source,
                 cached_starts,
-                indexes,
+                mappings,
             ),
         }
     }

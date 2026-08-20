@@ -45,10 +45,9 @@ brk = { version = "0.11", features = ["full"] }
 | [brk_store](https://docs.rs/brk_store) | Key-value storage (fjall wrapper) |
 | [brk_fetcher](https://docs.rs/brk_fetcher) | Fetch price data from exchanges |
 | [brk_iterator](https://docs.rs/brk_iterator) | Unified block iteration with automatic source selection |
-| [brk_cohort](https://docs.rs/brk_cohort) | UTXO and address cohort filtering |
 | [brk_error](https://docs.rs/brk_error) | Shared error types |
 | [brk_logger](https://docs.rs/brk_logger) | Logging infrastructure |
 
 Indexing, computation, querying, clients, and serving belong to Bitview. The
 complete self-hosted platform and executable are provided by
-[`bitview`](https://docs.rs/bitview) (`cargo install --locked bitview`).
+[`bitviewd`](https://docs.rs/bitviewd) (`cargo install --locked bitviewd`).

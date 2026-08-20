@@ -1,10 +1,10 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AgeRangeId, AmountRangeId, ClassId, EntryId, EpochId, Filter, OVER_AMOUNT_FILTERS,
     SPENDABLE_TYPE_FILTERS, SpendableTypeId, UNDER_AMOUNT_FILTERS,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, ColumnId, Database, ReadableBoxedVec, Rw, StorageMode};
 

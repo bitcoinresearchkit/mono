@@ -6,7 +6,7 @@ use std::{
 };
 
 use bitview_bencher::Bencher;
-use bitview_plugin::PLUGIN_DATA_DIR;
+use bitview_plugin::{ImportContext, PLUGIN_DATA_DIR};
 use bitview_plugin_indexer::{ID, Indexer};
 use brk_alloc::Mimalloc;
 use brk_reader::Reader;
@@ -32,7 +32,8 @@ fn main() -> brk_error::Result<()> {
 
     let reader = Reader::new(bitcoin_dir.join("blocks"), &client);
 
-    let mut indexer = Indexer::import(&outputs_dir, &reader)?;
+    let context = ImportContext::new(&outputs_dir);
+    let mut indexer = Indexer::import(context, &reader)?;
 
     let mut bencher = Bencher::from_cargo_env(
         env!("CARGO_PKG_NAME"),

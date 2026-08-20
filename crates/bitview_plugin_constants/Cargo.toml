@@ -7,6 +7,9 @@ license.workspace = true
 homepage = "https://bitview.dev"
 repository.workspace = true
 
+[package.metadata.cargo-machete]
+ignored = ["vecdb"]
+
 [dependencies]
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }

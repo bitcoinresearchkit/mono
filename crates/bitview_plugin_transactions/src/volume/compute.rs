@@ -9,19 +9,19 @@ use crate::fees;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     prices: &bitview_plugin_price::Vecs,
     fees_vecs: &fees::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, indexes, prices, fees_vecs, exit)
+    vecs.compute(indexer, mappings, prices, fees_vecs, exit)
 }
 
 impl Vecs {
     fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         prices: &bitview_plugin_price::Vecs,
         fees_vecs: &fees::Vecs,
         exit: &Exit,
@@ -32,7 +32,7 @@ impl Vecs {
             starting_height,
             &prices.spot.cents.height,
             &indexer.vecs().transactions.first_tx_index,
-            &indexes.height.tx_index_count,
+            &mappings.height.tx_index_count,
             &fees_vecs.input_value,
             |sats| !sats.is_max(),
             exit,

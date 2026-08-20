@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_cohort::OutputTypeId;
+use bitview_cohort::OutputTypeId;
 use brk_types::{Height, StoredU16, StoredU64, Version};
 use vecdb::Database;
 
@@ -16,21 +16,21 @@ fn identity(_: Height, value: StoredU64) -> StoredU64 {
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let columnar_version = version + Version::ONE;
-        let all_output_count = indexes.output_count_source();
+        let all_output_count = mappings.output_count_source();
         let output_count = ColumnarPerBlock::<StoredU16, OutputTypeId, _>::forced_import(
             db,
             "output_count_by_type",
@@ -42,7 +42,7 @@ impl Vecs {
                     columnar_version,
                     (all_output_count, identity),
                     source,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },
@@ -51,9 +51,9 @@ impl Vecs {
             columnar_version,
             |name| format!("{name}_output_share"),
             cached_starts,
-            indexes,
+            mappings,
         );
-        let all_tx_count = indexes.transaction_count_source();
+        let all_tx_count = mappings.transaction_count_source();
         let tx_count =
             ColumnarPerBlockCumulativeRolling::<StoredU64, OutputTypeId, _>::forced_import(
                 db,
@@ -66,7 +66,7 @@ impl Vecs {
                         columnar_version,
                         (all_tx_count, identity),
                         source,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 },
@@ -75,7 +75,7 @@ impl Vecs {
             columnar_version,
             |name| format!("tx_share_with_{name}_output"),
             cached_starts,
-            indexes,
+            mappings,
         );
 
         let op_return_count = output_count
@@ -84,7 +84,7 @@ impl Vecs {
             .op_return
             .cached_cumulative();
         let spendable_output_count =
-            CachedSpendableOutputCount::new(version, &op_return_count, indexes, cached_starts);
+            CachedSpendableOutputCount::new(version, &op_return_count, mappings, cached_starts);
 
         Ok(Self {
             output_count,

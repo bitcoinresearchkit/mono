@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, UTXOGroups};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroups};
 use brk_types::{StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
@@ -20,7 +20,7 @@ impl SpentOutputCount {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
@@ -39,7 +39,7 @@ impl SpentOutputCount {
                     .additive_source(&filter, &format!("{name}_cumulative"), version)
                     .expect("spent-output cohort source"),
                 cached_starts,
-                indexes,
+                mappings,
             )
         });
         Ok(Self {

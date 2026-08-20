@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AgeRangeId, AmountRange, CohortContext, Filter, UTXOGroups};
 use bitview_traversable::Traversable;
-use brk_cohort::{AgeRangeId, AmountRange, CohortContext, Filter, UTXOGroups};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
     AnyStoredVec, CachedBoxedVec, ColumnId, Database, ReadOnlyClone, ReadableColumnarVec, Rw,
@@ -26,7 +26,7 @@ impl SupplyTotal {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetric::forced_import(db, "supply_sats", version)?;
@@ -39,7 +39,7 @@ impl SupplyTotal {
                 version,
                 AgeRangeId::ALL.iter().copied(),
             ),
-            indexes,
+            mappings,
             spot_price,
         );
         let cohorts = UTXOGroups::new(|filter, cohort_name| {
@@ -51,7 +51,7 @@ impl SupplyTotal {
                     .additive_source(&filter, &format!("{name}_sats"), version)
                     .expect("total-supply cohort source");
                 LazySpotValuePerBlock::from_boxed_sats_source(
-                    &name, version, source, indexes, spot_price,
+                    &name, version, source, mappings, spot_price,
                 )
             }
         });
@@ -66,7 +66,7 @@ impl SupplyTotal {
                     name,
                     version + Version::ONE,
                     source,
-                    indexes,
+                    mappings,
                     spot_price,
                 )
             },

@@ -1,4 +1,4 @@
-use brk_cohort::AgeRange;
+use bitview_cohort::AgeRange;
 use derive_more::{Deref, DerefMut};
 
 use super::{ModeId, Modes};

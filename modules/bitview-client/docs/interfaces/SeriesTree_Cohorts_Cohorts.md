@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10134](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10134)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10096](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10096)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10134](https://github
 
 > **activity**: [`SeriesTree_Cohorts_Cohorts_Activity`](SeriesTree_Cohorts_Cohorts_Activity.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10137](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10137)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10099](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10099)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10137](https://github
 
 > **costBasis**: [`SeriesTree_Cohorts_Cohorts_CostBasis`](SeriesTree_Cohorts_Cohorts_CostBasis.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10140](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10140)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10102](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10102)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10140](https://github
 
 > **outputs**: [`SeriesTree_Cohorts_Cohorts_Outputs`](SeriesTree_Cohorts_Cohorts_Outputs.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10136](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10136)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10098](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10098)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10136](https://github
 
 > **profitability**: [`SeriesTree_Cohorts_Cohorts_Profitability`](SeriesTree_Cohorts_Cohorts_Profitability.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10142](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10142)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10104](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10104)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10142](https://github
 
 > **realized**: [`SeriesTree_Cohorts_Cohorts_Realized`](SeriesTree_Cohorts_Cohorts_Realized.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10138](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10138)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10100](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10100)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10138](https://github
 
 > **relative**: [`SeriesTree_Cohorts_Cohorts_Relative`](SeriesTree_Cohorts_Cohorts_Relative.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10141](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10141)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10103](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10103)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10141](https://github
 
 > **supply**: [`SeriesTree_Cohorts_Cohorts_Supply`](SeriesTree_Cohorts_Cohorts_Supply.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10135](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10135)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10097](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10097)
 
 ***
 
@@ -70,4 +70,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10135](https://github
 
 > **unrealized**: [`SeriesTree_Cohorts_Cohorts_Unrealized`](SeriesTree_Cohorts_Cohorts_Unrealized.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10139](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L10139)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10101](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10101)

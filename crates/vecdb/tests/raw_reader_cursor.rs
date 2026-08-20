@@ -1,6 +1,6 @@
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{AnyStoredVec, BytesVec, ImportableVec, Version, WritableVec};
+use vecdb::{AnyStoredVec, BytesVec, ImportableVec, MutableVec, Version, WritableVec};
 
 #[test]
 fn raw_reader_cursor_reads_persisted_values() -> vecdb::Result<()> {
@@ -60,7 +60,7 @@ fn raw_reader_cursor_reads_persisted_values() -> vecdb::Result<()> {
 fn append_only_reader_rejects_dirty_vectors() {
     let temp = TempDir::new().unwrap();
     let db = Database::open(temp.path()).unwrap();
-    let mut vec = BytesVec::<usize, u64>::import(&db, "values", Version::ONE).unwrap();
+    let mut vec = MutableVec::<BytesVec<usize, u64>>::import(&db, "values", Version::ONE).unwrap();
     vec.push(1);
     vec.write().unwrap();
 

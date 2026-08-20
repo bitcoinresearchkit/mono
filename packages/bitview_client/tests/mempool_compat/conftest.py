@@ -10,10 +10,10 @@ Usage:
     uv run pytest tests/mempool_compat -sv                              # all
     uv run pytest tests/mempool_compat/blocks -sv                       # one category
     uv run pytest tests/mempool_compat/blocks/test_block.py -sv         # one endpoint
-    BRK_URL=http://host:port uv run pytest tests/mempool_compat -sv     # custom server
+    BITVIEW_URL=http://host:port uv run pytest tests/mempool_compat -sv # custom server
 
 Environment variables:
-    BRK_URL      brk server base URL                       (default: http://localhost:3110)
+    BITVIEW_URL  Bitview server base URL                   (default: http://localhost:3110)
     MEMPOOL_URL  mempool.space base URL                     (default: https://mempool.space)
     RATE_LIMIT   seconds between mempool.space requests     (default: 0.5)
 """
@@ -33,7 +33,7 @@ from bitview_client import BitviewClient
 # Make `_lib` and `_endpoints` importable from any nested test file.
 sys.path.insert(0, str(Path(__file__).parent))
 
-BRK_BASE = os.environ.get("BRK_URL", "http://localhost:3110")
+BITVIEW_BASE = os.environ.get("BITVIEW_URL", "http://localhost:3110")
 MEMPOOL_BASE = os.environ.get("MEMPOOL_URL", "https://mempool.space")
 RATE_LIMIT = float(os.environ.get("RATE_LIMIT", "0.5"))
 
@@ -120,14 +120,14 @@ class LiveData:
 
 @pytest.fixture(scope="session")
 def brk():
-    """Typed bitview_client SDK pointed at the brk server under test.
+    """Typed bitview_client SDK pointed at the Bitview server under test.
 
     All tests must go through this fixture's typed methods (e.g.
     `brk.get_difficulty_adjustment()`). If a typed method is missing or
     broken, that's an SDK finding — fix the bindgen before adapting the
     test. Never reach into raw HTTP from a compat test.
     """
-    client = BitviewClient(BRK_BASE)
+    client = BitviewClient(BITVIEW_BASE)
     yield client
     client.close()
 
@@ -141,9 +141,9 @@ def mempool():
 def check_servers(mempool):
     """Fail fast if either server is unreachable."""
     try:
-        BitviewClient(BRK_BASE).get_text("/api/blocks/tip/height")
+        BitviewClient(BITVIEW_BASE).get_text("/api/blocks/tip/height")
     except Exception as e:
-        pytest.exit(f"brk server not reachable at {BRK_BASE}: {e}")
+        pytest.exit(f"Bitview server not reachable at {BITVIEW_BASE}: {e}")
     try:
         mempool.get("/api/blocks/tip/height")
     except Exception as e:

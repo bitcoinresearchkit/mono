@@ -17,7 +17,7 @@ impl DeltaVecs {
         version: Version,
         addr_count: &AddrCountsVecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Self {
         let version = version + Version::new(3);
 
@@ -26,7 +26,7 @@ impl DeltaVecs {
             version,
             &addr_count.all.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         let by_addr_type = addr_count.by_addr_type.map_with_name(|name, addr| {
@@ -35,7 +35,7 @@ impl DeltaVecs {
                 version,
                 &addr.height,
                 cached_starts,
-                indexes,
+                mappings,
             )
         });
 

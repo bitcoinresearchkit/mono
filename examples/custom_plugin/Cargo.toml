@@ -1,0 +1,23 @@
+[package]
+name = "bitview-custom-plugin-example"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[dependencies]
+bitview = { version = "0.11.2", path = "../../crates/bitview", default-features = false, features = ["full"] }
+bitviewd = { version = "0.11.2", path = "../../crates/bitviewd", default-features = false, features = ["full"] }
+bitview_default = { version = "0.11.2", path = "../../crates/bitview_default" }
+bitview_plugin = { version = "0.11.2", path = "../../crates/bitview_plugin" }
+bitview_plugin_indexer = { version = "0.11.2", path = "../../crates/bitview_plugin_indexer" }
+bitview_runtime = { version = "0.11.2", path = "../../crates/bitview_runtime" }
+bitview_traversable = { version = "0.11.2", path = "../../crates/bitview_traversable", features = ["derive", "pco"] }
+brk_error = { version = "0.11.2", path = "../../crates/brk_error" }
+brk_reader = { version = "0.11.2", path = "../../crates/brk_reader" }
+brk_types = { version = "0.11.2", path = "../../crates/brk_types" }
+vecdb = { version = "0.11.2", path = "../../crates/vecdb", features = ["pco", "serde"] }
+
+[dev-dependencies]
+bitview_query = { version = "0.11.2", path = "../../crates/bitview_query", default-features = false }
+tempfile = "3.27.0"

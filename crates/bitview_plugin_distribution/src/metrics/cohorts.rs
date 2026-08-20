@@ -1,11 +1,11 @@
 use brk_error::Result;
 
-use bitview_plugin_indexer::Lengths;
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AgeRange, AgeRangeId, AmountRange, ByEntry, ByEpoch, Class, Filter, SpendableType, Term,
     UTXO_AGGREGATE_FILTERS, UTXOAggregate, UTXOAllAndSth, UTXOGroupsWithoutAmountOrType,
 };
+use bitview_plugin_indexer::Lengths;
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{
@@ -43,7 +43,7 @@ impl CohortMetrics<Rw> {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
@@ -53,18 +53,18 @@ impl CohortMetrics<Rw> {
         let supply = Box::new(SupplyVecs::forced_import(
             db,
             v,
-            indexes,
+            mappings,
             cached_starts,
             spot_price,
         )?);
         let all_chain_sources =
             AllChainSources::new(supply.total.all_supply(), supply.total.all_market_cap());
-        let outputs = Box::new(OutputsVecs::forced_import(db, v, indexes, cached_starts)?);
-        let activity = Box::new(ActivityVecs::forced_import(db, v, indexes, cached_starts)?);
+        let outputs = Box::new(OutputsVecs::forced_import(db, v, mappings, cached_starts)?);
+        let activity = Box::new(ActivityVecs::forced_import(db, v, mappings, cached_starts)?);
         let realized = Box::new(RealizedVecs::forced_import(
             db,
             v,
-            indexes,
+            mappings,
             cached_starts,
             spot_price,
             &all_chain_sources,
@@ -72,14 +72,14 @@ impl CohortMetrics<Rw> {
         let unrealized = Box::new(UnrealizedVecs::forced_import(
             db,
             v,
-            indexes,
+            mappings,
             &realized.price.cohorts,
         )?);
-        let cost_basis = Box::new(CostBasisVecs::forced_import(db, v, indexes)?);
+        let cost_basis = Box::new(CostBasisVecs::forced_import(db, v, mappings)?);
         let profitability = Box::new(ProfitabilityVecs::forced_import(
             db,
             v,
-            indexes,
+            mappings,
             cached_starts,
             spot_price,
         )?);
@@ -103,7 +103,7 @@ impl CohortMetrics<Rw> {
         let relative = Box::new(RelativeVecs::forced_import(
             db,
             v,
-            indexes,
+            mappings,
             &all_chain_sources,
             &relative_sources,
         )?);

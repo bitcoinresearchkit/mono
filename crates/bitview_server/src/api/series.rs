@@ -11,14 +11,14 @@ use axum::{
     http::{HeaderMap, Uri},
     response::{IntoResponse, Response},
 };
-use bitview_query::{Query as BrkQuery, ResolvedQuery};
+use bitview_query::{Output, Query as BrkQuery, ResolvedQuery, SeriesOutput};
 use bitview_traversable::TreeNode;
-use brk_error::Result;
-use brk_types::{
-    DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, Output, PaginatedSeries, Pagination,
-    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesOutput, SeriesSelection,
-    Version,
+use bitview_types::{
+    DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
+    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
 };
+use brk_error::Result;
+use brk_types::Version;
 
 use crate::{
     AppState, CacheParams, CacheStrategy, Error,

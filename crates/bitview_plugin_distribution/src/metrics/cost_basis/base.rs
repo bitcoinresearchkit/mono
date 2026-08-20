@@ -1,5 +1,5 @@
+use bitview_cohort::UTXOAggregateId;
 use bitview_traversable::Traversable;
-use brk_cohort::UTXOAggregateId;
 use brk_types::{Cents, PartsPerMillion32, PercentileId};
 
 use bitview_compute::{LazyColumnPerBlock, LazyColumnPercentPerBlock, PercentilePrices, Price};

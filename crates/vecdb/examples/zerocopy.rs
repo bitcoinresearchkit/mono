@@ -1,8 +1,8 @@
 use std::{collections::BTreeSet, fs, path::Path};
 
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, ImportableVec, ReadableVec, Stamp, Version, WritableVec,
-    ZeroCopyVec,
+    AnyStoredVec, AnyVec, Database, ImportableVec, MutableVec, ReadableVec, Stamp, Version,
+    WritableVec, ZeroCopyVec,
 };
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -15,7 +15,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut options = (&database, "vec", version).into();
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         (0..21_u32).for_each(|v| {
             vec.push(v);
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         vec.mut_header().update_stamp(Stamp::new(100));
 
@@ -56,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(vec.header().stamp(), Stamp::new(100));
 
@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         let all = vec.collect();
         assert_eq!(*all.last().unwrap(), 14);
@@ -135,7 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert!(vec.holes() == &BTreeSet::from([10]));
 
@@ -158,7 +158,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     options = options.with_saved_stamped_changes(10);
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(
             vec.collect(),
@@ -206,7 +206,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(vec.collect(), vec![10, 1, 2, 5, 4, 6, 7, 8, 9, 21]);
 
@@ -242,7 +242,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(
             vec.collect_holed(),
@@ -338,7 +338,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         dbg!((
             vec.stored_len(),
@@ -386,7 +386,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(vec.collect(), vec![10, 1, 2, 5, 4, 6, 7, 8, 9, 21]);
 
@@ -422,7 +422,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
         assert_eq!(
             vec.collect_holed(),
@@ -502,7 +502,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     {
-        let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
         dbg!(("0", vec.prev_holes(), vec.updated()));
 
         dbg!((
@@ -706,7 +706,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         vec.stamped_write_with_changes(Stamp::new(0))?;
 
-        let vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+        let vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
         dbg!(("0", vec.prev_holes(), vec.updated()));
 
         assert_eq!(
@@ -718,7 +718,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // {
-    //     let mut vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+    //     let mut vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
 
     //     dbg!(("0", vec.stamp(), vec.stored_len()));
 
@@ -819,7 +819,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     //     vec.stamped_write_with_changes(Stamp::new(0))?;
 
-    //     let vec: ZeroCopyVec<usize, u32> = ZeroCopyVec::forced_import_with(options)?;
+    //     let vec: MutableVec<ZeroCopyVec<usize, u32>> = MutableVec::forced_import_with(options)?;
     //     dbg!(("0", vec.prev_holes(), vec.updated()));
 
     //     assert_eq!(

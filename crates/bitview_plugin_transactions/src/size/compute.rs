@@ -8,23 +8,23 @@ use super::Vecs;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, indexes, exit)
+    vecs.compute(indexer, mappings, exit)
 }
 
 impl Vecs {
     fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_lengths = indexer.safe_lengths();
 
         self.weight.derive_from(
-            indexes,
+            mappings,
             &starting_lengths,
             &indexer.vecs().transactions.first_tx_index,
             &indexer.vecs().transactions.weight,

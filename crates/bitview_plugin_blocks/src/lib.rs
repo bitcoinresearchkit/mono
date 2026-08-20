@@ -11,8 +11,9 @@ mod weight;
 mod compute;
 mod import;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 pub use count::Vecs as CountVecs;
@@ -25,7 +26,8 @@ pub use lookback::Vecs as LookbackVecs;
 use size::Vecs as SizeVecs;
 use weight::Vecs as WeightVecs;
 
-pub const ID: PluginId = PluginId::new("blocks");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(9));
+pub const ID: PluginId = STORAGE.id();
 
 pub const ONE_TERA_HASH: f64 = 1_000_000_000_000.0;
 
@@ -56,8 +58,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Profitability\_Nupl
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15423](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L15423)
+Defined in: [Developer/brk/modules/bitview-client/index.js:15385](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L15385)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15423](https://github
 
 > **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15427](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L15427)
+Defined in: [Developer/brk/modules/bitview-client/index.js:15389](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L15389)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15427](https://github
 
 > **loss**: [`SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss`](SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15426](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L15426)
+Defined in: [Developer/brk/modules/bitview-client/index.js:15388](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L15388)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15426](https://github
 
 > **profit**: [`SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit`](SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15425](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L15425)
+Defined in: [Developer/brk/modules/bitview-client/index.js:15387](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L15387)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15425](https://github
 
 > **range**: [`SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range`](SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15424](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L15424)
+Defined in: [Developer/brk/modules/bitview-client/index.js:15386](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L15386)

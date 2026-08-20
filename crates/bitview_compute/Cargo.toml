@@ -8,7 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
-brk_cohort = { workspace = true }
+bitview_cohort = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true }

@@ -7,7 +7,7 @@ pub use source::InputSource;
 use brk_error::Result;
 
 use bitcoin::Transaction;
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_store::Store;
 use brk_types::{
     AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, OutputType, TxInIndex, TxIndex, TxOutIndex,

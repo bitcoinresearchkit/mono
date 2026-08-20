@@ -496,14 +496,14 @@ ancestors and no descendants (matches mempool.space).
 /** @typedef {number} Day1 */
 /** @typedef {number} Day3 */
 /**
- * Detailed series count with per-database breakdown
+ * Detailed series count with per-database breakdown.
  *
  * @typedef {Object} DetailedSeriesCount
  * @property {number} distinct - Number of unique series available (e.g., realized_price, market_cap)
  * @property {number} total - Total number of series-index combinations across all timeframes
  * @property {number} lazy - Number of lazy (computed on-the-fly) series-index combinations
  * @property {number} stored - Number of eager (stored on disk) series-index combinations
- * @property {{ [key: string]: SeriesCount }} byDb - Per-database breakdown of counts
+ * @property {{ [key: string]: SeriesCount }} byDb - Per-database breakdown of counts.
  */
 /**
  * Difficulty adjustment information.
@@ -1186,13 +1186,13 @@ on serialization otherwise.
  * @property {string} type - Value type (e.g. "f32", "u64", "Sats")
  */
 /**
- * SeriesLeaf with JSON Schema for client generation
+ * Series leaf with JSON Schema for client generation.
  *
  * @typedef {Object} SeriesLeafWithSchema
- * @property {string} name - The series name/identifier
- * @property {string} kind - The Rust type (e.g., "Sats", "StoredF64")
- * @property {Index[]} indexes - Available indexes for this series
- * @property {string} type - JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object")
+ * @property {string} name - The series name/identifier.
+ * @property {string} kind - The Rust type (e.g., "Sats", "StoredF64").
+ * @property {Index[]} indexes - Available indexes for this series.
+ * @property {string} type - JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
  */
 /**
  * Comma-separated list of series names
@@ -7250,10 +7250,13 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Scripts} scripts
  * @property {SeriesTree_OpReturn} opReturn
  * @property {SeriesTree_Mining} mining
- * @property {SeriesTree_Frameworks} frameworks
- * @property {SeriesTree_Models} models
+ * @property {SeriesTree_Cointime} cointime
+ * @property {SeriesTree_Coinflow} coinflow
+ * @property {SeriesTree_Bedrock} bedrock
+ * @property {SeriesTree_CapitalSentiment} capitalSentiment
+ * @property {SeriesTree_RarityMeter} rarityMeter
  * @property {SeriesTree_Constants} constants
- * @property {SeriesTree_Indexes} indexes
+ * @property {SeriesTree_Mappings} mappings
  * @property {SeriesTree_Indicators} indicators
  * @property {SeriesTree_Investing} investing
  * @property {SeriesTree_Market} market
@@ -7261,7 +7264,7 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesTree_Price} price
  * @property {SeriesTree_Supply} supply
  * @property {SeriesTree_Cohorts} cohorts
- * @property {SeriesTree_Cointime} cointime
+ * @property {SeriesTree_Frameworks} frameworks
  */
 
 /**
@@ -8575,48 +8578,42 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks
- * @property {SeriesTree_Frameworks_Cointime} cointime
- * @property {SeriesTree_Frameworks_Coinflow} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Frameworks_Cointime
- * @property {SeriesTree_Frameworks_Cointime_Activity} activity
- * @property {SeriesTree_Frameworks_Cointime_AgeRange} ageRange
- * @property {SeriesTree_Frameworks_Cointime_Awake} awake
+ * @typedef {Object} SeriesTree_Cointime
+ * @property {SeriesTree_Cointime_Activity} activity
+ * @property {SeriesTree_Cointime_AgeRange} ageRange
+ * @property {SeriesTree_Cointime_Awake} awake
  * @property {SupplyPattern2} dormant
- * @property {SeriesTree_Frameworks_Cointime_Sth} sth
- * @property {SeriesTree_Frameworks_Cointime_Lth} lth
- * @property {SeriesTree_Frameworks_Cointime_Sources} sources
- * @property {SeriesTree_Frameworks_Cointime_Supply} supply
- * @property {SeriesTree_Frameworks_Cointime_Value} value
- * @property {SeriesTree_Frameworks_Cointime_Cap} cap
- * @property {SeriesTree_Frameworks_Cointime_Prices} prices
- * @property {SeriesTree_Frameworks_Cointime_Adjusted} adjusted
- * @property {SeriesTree_Frameworks_Cointime_ReserveRisk} reserveRisk
+ * @property {SeriesTree_Cointime_Sth} sth
+ * @property {SeriesTree_Cointime_Lth} lth
+ * @property {SeriesTree_Cointime_Sources} sources
+ * @property {SeriesTree_Cointime_Supply} supply
+ * @property {SeriesTree_Cointime_Value} value
+ * @property {SeriesTree_Cointime_Cap} cap
+ * @property {SeriesTree_Cointime_Prices} prices
+ * @property {SeriesTree_Cointime_Adjusted} adjusted
+ * @property {SeriesTree_Cointime_ReserveRisk} reserveRisk
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Activity
+ * @typedef {Object} SeriesTree_Cointime_Activity
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} coinblocksCreated
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} coinblocksStored
  * @property {SeriesPattern1<StoredF64>} liveliness
  * @property {SeriesPattern1<StoredF64>} vaultedness
  * @property {SeriesPattern1<StoredF64>} ratio
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} coinblocksDestroyed
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed} coindaysConsumed
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored} coindaysStored
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Activity} activity
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Supply} supply
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated} coindaysCreated
+ * @typedef {Object} SeriesTree_Cointime_AgeRange
+ * @property {SeriesTree_Cointime_AgeRange_CoindaysConsumed} coindaysConsumed
+ * @property {SeriesTree_Cointime_AgeRange_CoindaysStored} coindaysStored
+ * @property {SeriesTree_Cointime_AgeRange_Activity} activity
+ * @property {SeriesTree_Cointime_AgeRange_Supply} supply
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysConsumed
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_CoindaysConsumed
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
@@ -8644,7 +8641,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysStored
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_CoindaysStored
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
@@ -8672,15 +8669,15 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Activity
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Activity_Wakefulness} wakefulness
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Activity_Dormancy} dormancy
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Activity_WakefulnessToDormancy} wakefulnessToDormancy
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Activity
+ * @property {SeriesTree_Cointime_AgeRange_Activity_Wakefulness} wakefulness
+ * @property {SeriesTree_Cointime_AgeRange_Activity_Dormancy} dormancy
+ * @property {SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy} wakefulnessToDormancy
  * @property {SeriesPattern18<StoredF64>} height
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Activity_Wakefulness
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Activity_Wakefulness
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -8707,7 +8704,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Activity_Dormancy
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Activity_Dormancy
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -8734,7 +8731,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Activity_WakefulnessToDormancy
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -8761,13 +8758,13 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Supply
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Supply_Awake} awake
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_Supply_Dormant} dormant
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Supply
+ * @property {SeriesTree_Cointime_AgeRange_Supply_Awake} awake
+ * @property {SeriesTree_Cointime_AgeRange_Supply_Dormant} dormant
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Supply_Awake
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Supply_Awake
  * @property {BtcCentsSatsUsdPattern} under1h
  * @property {BtcCentsSatsUsdPattern} _1hTo1d
  * @property {BtcCentsSatsUsdPattern} _1dTo1w
@@ -8795,7 +8792,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_Supply_Dormant
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_Supply_Dormant
  * @property {BtcCentsSatsUsdPattern} under1h
  * @property {BtcCentsSatsUsdPattern} _1hTo1d
  * @property {BtcCentsSatsUsdPattern} _1dTo1w
@@ -8823,42 +8820,14 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
- * @property {SeriesPattern18<StoredF64>} cumulative
- */
-
-/**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Awake
- * @property {SeriesTree_Frameworks_Cointime_Awake_Supply} supply
+ * @typedef {Object} SeriesTree_Cointime_Awake
+ * @property {SeriesTree_Cointime_Awake_Supply} supply
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Awake_Supply
+ * @typedef {Object} SeriesTree_Cointime_Awake_Supply
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -8867,20 +8836,20 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Sth
- * @property {SeriesTree_Frameworks_Cointime_Sth_Awake} awake
+ * @typedef {Object} SeriesTree_Cointime_Sth
+ * @property {SeriesTree_Cointime_Sth_Awake} awake
  * @property {SupplyPattern2} dormant
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Sth_Awake
- * @property {SeriesTree_Frameworks_Cointime_Sth_Awake_Supply} supply
+ * @typedef {Object} SeriesTree_Cointime_Sth_Awake
+ * @property {SeriesTree_Cointime_Sth_Awake_Supply} supply
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Sth_Awake_Supply
+ * @typedef {Object} SeriesTree_Cointime_Sth_Awake_Supply
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -8889,20 +8858,20 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Lth
- * @property {SeriesTree_Frameworks_Cointime_Lth_Awake} awake
+ * @typedef {Object} SeriesTree_Cointime_Lth
+ * @property {SeriesTree_Cointime_Lth_Awake} awake
  * @property {SupplyPattern2} dormant
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Lth_Awake
- * @property {SeriesTree_Frameworks_Cointime_Lth_Awake_Supply} supply
+ * @typedef {Object} SeriesTree_Cointime_Lth_Awake
+ * @property {SeriesTree_Cointime_Lth_Awake_Supply} supply
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Lth_Awake_Supply
+ * @typedef {Object} SeriesTree_Cointime_Lth_Awake_Supply
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -8911,7 +8880,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Sources
+ * @typedef {Object} SeriesTree_Cointime_Sources
  * @property {SeriesPattern18<Sats>} awakeSupply
  * @property {SeriesPattern18<Sats>} dormantSupply
  * @property {SeriesPattern18<Cents>} awakeCap
@@ -8920,13 +8889,13 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Supply
+ * @typedef {Object} SeriesTree_Cointime_Supply
  * @property {BtcCentsSatsUsdPattern} vaulted
- * @property {SeriesTree_Frameworks_Cointime_Supply_Active} active
+ * @property {SeriesTree_Cointime_Supply_Active} active
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Supply_Active
+ * @typedef {Object} SeriesTree_Cointime_Supply_Active
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -8935,7 +8904,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Value
+ * @typedef {Object} SeriesTree_Cointime_Value
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} destroyed
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} created
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} stored
@@ -8943,7 +8912,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Cap
+ * @typedef {Object} SeriesTree_Cointime_Cap
  * @property {CentsUsdPattern} thermo
  * @property {CentsUsdPattern} investor
  * @property {CentsUsdPattern} vaulted
@@ -8953,7 +8922,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Prices
+ * @typedef {Object} SeriesTree_Cointime_Prices
  * @property {CentsPpmRatioSatsUsdPattern} vaulted
  * @property {CentsPpmRatioSatsUsdPattern} active
  * @property {CentsPpmRatioSatsUsdPattern} trueMarketMean
@@ -8961,40 +8930,40 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_Adjusted
+ * @typedef {Object} SeriesTree_Cointime_Adjusted
  * @property {PercentPpmRatioPattern} inflationRate
  * @property {SeriesPattern1<StoredF64>} txVelocityNative
  * @property {SeriesPattern1<StoredF64>} txVelocityFiat
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_ReserveRisk
+ * @typedef {Object} SeriesTree_Cointime_ReserveRisk
  * @property {SeriesPattern1<StoredF64>} value
  * @property {SeriesPattern18<StoredF64>} vocddMedian1y
  * @property {SeriesPattern18<StoredF64>} hodlBank
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange} ageRange
- * @property {SeriesTree_Frameworks_Coinflow_Supply} supply
+ * @typedef {Object} SeriesTree_Coinflow
+ * @property {SeriesTree_Coinflow_AgeRange} ageRange
+ * @property {SeriesTree_Coinflow_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
- * @property {SeriesTree_Frameworks_Coinflow_Sth} sth
- * @property {SeriesTree_Frameworks_Coinflow_Lth} lth
- * @property {SeriesTree_Frameworks_Coinflow_AggregateSources} aggregateSources
+ * @property {SeriesTree_Coinflow_Sth} sth
+ * @property {SeriesTree_Coinflow_Lth} lth
+ * @property {SeriesTree_Coinflow_AggregateSources} aggregateSources
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_SpendingRate} spendingRate
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_SpendingExposure} spendingExposure
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_Supply} supply
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange
+ * @property {SeriesTree_Coinflow_AgeRange_SpendingRate} spendingRate
+ * @property {SeriesTree_Coinflow_AgeRange_SpendingExposure} spendingExposure
+ * @property {SeriesTree_Coinflow_AgeRange_Supply} supply
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_SpendingRate
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_SpendingRate
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -9022,7 +8991,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_SpendingExposure
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_SpendingExposure
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -9046,12 +9015,12 @@ function createMatrixPattern(client, acc) {
  * @property {SeriesPattern1<StoredF64>} _10yTo12y
  * @property {SeriesPattern1<StoredF64>} _12yTo15y
  * @property {SeriesPattern1<StoredF64>} over15y
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_SpendingExposure_Mobility} mobility
+ * @property {SeriesTree_Coinflow_AgeRange_SpendingExposure_Mobility} mobility
  * @property {SeriesPattern18<StoredF64>} height
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_SpendingExposure_Mobility
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_SpendingExposure_Mobility
  * @property {SeriesPattern1<StoredF64>} under1h
  * @property {SeriesPattern1<StoredF64>} _1hTo1d
  * @property {SeriesPattern1<StoredF64>} _1dTo1w
@@ -9078,13 +9047,13 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_Supply
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_Supply_Mobile} mobile
- * @property {SeriesTree_Frameworks_Coinflow_AgeRange_Supply_Immobile} immobile
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_Supply
+ * @property {SeriesTree_Coinflow_AgeRange_Supply_Mobile} mobile
+ * @property {SeriesTree_Coinflow_AgeRange_Supply_Immobile} immobile
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_Supply_Mobile
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_Supply_Mobile
  * @property {BtcCentsSatsUsdPattern} under1h
  * @property {BtcCentsSatsUsdPattern} _1hTo1d
  * @property {BtcCentsSatsUsdPattern} _1dTo1w
@@ -9112,7 +9081,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AgeRange_Supply_Immobile
+ * @typedef {Object} SeriesTree_Coinflow_AgeRange_Supply_Immobile
  * @property {BtcCentsSatsUsdPattern} under1h
  * @property {BtcCentsSatsUsdPattern} _1hTo1d
  * @property {BtcCentsSatsUsdPattern} _1dTo1w
@@ -9140,13 +9109,13 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Supply
- * @property {SeriesTree_Frameworks_Coinflow_Supply_Mobile} mobile
+ * @typedef {Object} SeriesTree_Coinflow_Supply
+ * @property {SeriesTree_Coinflow_Supply_Mobile} mobile
  * @property {BtcCentsSatsUsdPattern} immobile
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Supply_Mobile
+ * @typedef {Object} SeriesTree_Coinflow_Supply_Mobile
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -9155,21 +9124,21 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Sth
- * @property {SeriesTree_Frameworks_Coinflow_Sth_Supply} supply
+ * @typedef {Object} SeriesTree_Coinflow_Sth
+ * @property {SeriesTree_Coinflow_Sth_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Sth_Supply
- * @property {SeriesTree_Frameworks_Coinflow_Sth_Supply_Mobile} mobile
+ * @typedef {Object} SeriesTree_Coinflow_Sth_Supply
+ * @property {SeriesTree_Coinflow_Sth_Supply_Mobile} mobile
  * @property {BtcCentsSatsUsdPattern} immobile
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Sth_Supply_Mobile
+ * @typedef {Object} SeriesTree_Coinflow_Sth_Supply_Mobile
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -9178,21 +9147,21 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Lth
- * @property {SeriesTree_Frameworks_Coinflow_Lth_Supply} supply
+ * @typedef {Object} SeriesTree_Coinflow_Lth
+ * @property {SeriesTree_Coinflow_Lth_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern2} horizon
  * @property {CentsUsdPattern} cap
  * @property {CentsPpmRatioSatsUsdPattern} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Lth_Supply
- * @property {SeriesTree_Frameworks_Coinflow_Lth_Supply_Mobile} mobile
+ * @typedef {Object} SeriesTree_Coinflow_Lth_Supply
+ * @property {SeriesTree_Coinflow_Lth_Supply_Mobile} mobile
  * @property {BtcCentsSatsUsdPattern} immobile
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_Lth_Supply_Mobile
+ * @typedef {Object} SeriesTree_Coinflow_Lth_Supply_Mobile
  * @property {SeriesPattern1<Bitcoin>} btc
  * @property {SeriesPattern1<Sats>} sats
  * @property {SeriesPattern1<Dollars>} usd
@@ -9201,22 +9170,22 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AggregateSources
- * @property {SeriesTree_Frameworks_Coinflow_AggregateSources_Supply} supply
+ * @typedef {Object} SeriesTree_Coinflow_AggregateSources
+ * @property {SeriesTree_Coinflow_AggregateSources_Supply} supply
  * @property {SeriesPattern18<StoredF64>} supplyInLossShare
- * @property {SeriesTree_Frameworks_Coinflow_AggregateSources_Horizon} horizon
+ * @property {SeriesTree_Coinflow_AggregateSources_Horizon} horizon
  * @property {SeriesPattern18<Cents>} cap
  * @property {SeriesPattern18<Cents>} price
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AggregateSources_Supply
+ * @typedef {Object} SeriesTree_Coinflow_AggregateSources_Supply
  * @property {SeriesPattern18<Sats>} mobile
  * @property {SeriesPattern18<Sats>} immobile
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Coinflow_AggregateSources_Horizon
+ * @typedef {Object} SeriesTree_Coinflow_AggregateSources_Horizon
  * @property {SeriesPattern18<StoredF64>} _8y
  * @property {SeriesPattern18<StoredF64>} _4y
  * @property {SeriesPattern18<StoredF64>} _2y
@@ -9227,14 +9196,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Models
- * @property {SeriesTree_Models_Bedrock} bedrock
- * @property {SeriesTree_Models_CapitalSentiment} capitalSentiment
- * @property {SeriesTree_Models_RarityMeter} rarityMeter
- */
-
-/**
- * @typedef {Object} SeriesTree_Models_Bedrock
+ * @typedef {Object} SeriesTree_Bedrock
  * @property {FloorLevelLossPattern} raw
  * @property {FloorLevelLossPattern} cointime
  * @property {FloorLevelLossPattern} coinflow
@@ -9248,7 +9210,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_CapitalSentiment
+ * @typedef {Object} SeriesTree_CapitalSentiment
  * @property {SeriesPattern1<StoredBool>} isLong
  * @property {SeriesPattern1<StoredBool>} isShort
  * @property {SeriesPattern1<CapitalSentimentPhase>} phase
@@ -9256,16 +9218,16 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_RarityMeter
- * @property {SeriesTree_Models_RarityMeter_Components} components
- * @property {SeriesTree_Models_RarityMeter_Extremes} extremes
+ * @typedef {Object} SeriesTree_RarityMeter
+ * @property {SeriesTree_RarityMeter_Components} components
+ * @property {SeriesTree_RarityMeter_Extremes} extremes
  * @property {HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern} full
  * @property {HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern} local
  * @property {HeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern} cycle
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_RarityMeter_Components
+ * @typedef {Object} SeriesTree_RarityMeter_Components
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern} realizedPrice
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern} capitalizedPrice
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern} sthRealizedPrice
@@ -9284,16 +9246,16 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_RarityMeter_Extremes
- * @property {SeriesTree_Models_RarityMeter_Extremes_CoinsInLoss} coinsInLoss
+ * @typedef {Object} SeriesTree_RarityMeter_Extremes
+ * @property {SeriesTree_RarityMeter_Extremes_CoinsInLoss} coinsInLoss
  * @property {HeightRankTailThresholdPattern} profitTaking
  * @property {HeightRankTailThresholdPattern} capitulation
  * @property {HeightRankTailThresholdPattern} peakRegret
- * @property {SeriesTree_Models_RarityMeter_Extremes_SellerExhaustion} sellerExhaustion
+ * @property {SeriesTree_RarityMeter_Extremes_SellerExhaustion} sellerExhaustion
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_RarityMeter_Extremes_CoinsInLoss
+ * @typedef {Object} SeriesTree_RarityMeter_Extremes_CoinsInLoss
  * @property {SeriesPattern1<Bitcoin>} thresholdPct01
  * @property {SeriesPattern1<Bitcoin>} thresholdPct005
  * @property {SeriesPattern1<Bitcoin>} thresholdPct0025
@@ -9303,7 +9265,7 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Models_RarityMeter_Extremes_SellerExhaustion
+ * @typedef {Object} SeriesTree_RarityMeter_Extremes_SellerExhaustion
  * @property {SeriesPattern1<StoredF32>} thresholdPct01
  * @property {SeriesPattern1<StoredF32>} thresholdPct005
  * @property {SeriesPattern1<StoredF32>} thresholdPct0025
@@ -9335,116 +9297,116 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes
- * @property {SeriesTree_Indexes_Addr} addr
- * @property {SeriesTree_Indexes_Height} height
- * @property {SeriesTree_Indexes_Epoch} epoch
- * @property {SeriesTree_Indexes_Halving} halving
- * @property {SeriesTree_Indexes_Minute10} minute10
- * @property {SeriesTree_Indexes_Minute30} minute30
- * @property {SeriesTree_Indexes_Hour1} hour1
- * @property {SeriesTree_Indexes_Hour4} hour4
- * @property {SeriesTree_Indexes_Hour12} hour12
- * @property {SeriesTree_Indexes_Day1} day1
- * @property {SeriesTree_Indexes_Day3} day3
- * @property {SeriesTree_Indexes_Week1} week1
- * @property {SeriesTree_Indexes_Month1} month1
- * @property {SeriesTree_Indexes_Month3} month3
- * @property {SeriesTree_Indexes_Month6} month6
- * @property {SeriesTree_Indexes_Year1} year1
- * @property {SeriesTree_Indexes_Year10} year10
- * @property {SeriesTree_Indexes_TxIndex} txIndex
- * @property {SeriesTree_Indexes_TxinIndex} txinIndex
- * @property {SeriesTree_Indexes_TxoutIndex} txoutIndex
- * @property {SeriesTree_Indexes_Timestamp} timestamp
+ * @typedef {Object} SeriesTree_Mappings
+ * @property {SeriesTree_Mappings_Addr} addr
+ * @property {SeriesTree_Mappings_Height} height
+ * @property {SeriesTree_Mappings_Epoch} epoch
+ * @property {SeriesTree_Mappings_Halving} halving
+ * @property {SeriesTree_Mappings_Minute10} minute10
+ * @property {SeriesTree_Mappings_Minute30} minute30
+ * @property {SeriesTree_Mappings_Hour1} hour1
+ * @property {SeriesTree_Mappings_Hour4} hour4
+ * @property {SeriesTree_Mappings_Hour12} hour12
+ * @property {SeriesTree_Mappings_Day1} day1
+ * @property {SeriesTree_Mappings_Day3} day3
+ * @property {SeriesTree_Mappings_Week1} week1
+ * @property {SeriesTree_Mappings_Month1} month1
+ * @property {SeriesTree_Mappings_Month3} month3
+ * @property {SeriesTree_Mappings_Month6} month6
+ * @property {SeriesTree_Mappings_Year1} year1
+ * @property {SeriesTree_Mappings_Year10} year10
+ * @property {SeriesTree_Mappings_TxIndex} txIndex
+ * @property {SeriesTree_Mappings_TxinIndex} txinIndex
+ * @property {SeriesTree_Mappings_TxoutIndex} txoutIndex
+ * @property {SeriesTree_Mappings_Timestamp} timestamp
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr
- * @property {SeriesTree_Indexes_Addr_P2pk33} p2pk33
- * @property {SeriesTree_Indexes_Addr_P2pk65} p2pk65
- * @property {SeriesTree_Indexes_Addr_P2pkh} p2pkh
- * @property {SeriesTree_Indexes_Addr_P2sh} p2sh
- * @property {SeriesTree_Indexes_Addr_P2tr} p2tr
- * @property {SeriesTree_Indexes_Addr_P2wpkh} p2wpkh
- * @property {SeriesTree_Indexes_Addr_P2wsh} p2wsh
- * @property {SeriesTree_Indexes_Addr_P2a} p2a
- * @property {SeriesTree_Indexes_Addr_P2ms} p2ms
- * @property {SeriesTree_Indexes_Addr_Empty} empty
- * @property {SeriesTree_Indexes_Addr_Unknown} unknown
- * @property {SeriesTree_Indexes_Addr_OpReturn} opReturn
+ * @typedef {Object} SeriesTree_Mappings_Addr
+ * @property {SeriesTree_Mappings_Addr_P2pk33} p2pk33
+ * @property {SeriesTree_Mappings_Addr_P2pk65} p2pk65
+ * @property {SeriesTree_Mappings_Addr_P2pkh} p2pkh
+ * @property {SeriesTree_Mappings_Addr_P2sh} p2sh
+ * @property {SeriesTree_Mappings_Addr_P2tr} p2tr
+ * @property {SeriesTree_Mappings_Addr_P2wpkh} p2wpkh
+ * @property {SeriesTree_Mappings_Addr_P2wsh} p2wsh
+ * @property {SeriesTree_Mappings_Addr_P2a} p2a
+ * @property {SeriesTree_Mappings_Addr_P2ms} p2ms
+ * @property {SeriesTree_Mappings_Addr_Empty} empty
+ * @property {SeriesTree_Mappings_Addr_Unknown} unknown
+ * @property {SeriesTree_Mappings_Addr_OpReturn} opReturn
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2pk33
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2pk33
  * @property {SeriesPattern26<P2PK33AddrIndex>} identity
  * @property {SeriesPattern26<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2pk65
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2pk65
  * @property {SeriesPattern27<P2PK65AddrIndex>} identity
  * @property {SeriesPattern27<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2pkh
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2pkh
  * @property {SeriesPattern28<P2PKHAddrIndex>} identity
  * @property {SeriesPattern28<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2sh
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2sh
  * @property {SeriesPattern29<P2SHAddrIndex>} identity
  * @property {SeriesPattern29<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2tr
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2tr
  * @property {SeriesPattern30<P2TRAddrIndex>} identity
  * @property {SeriesPattern30<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2wpkh
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2wpkh
  * @property {SeriesPattern31<P2WPKHAddrIndex>} identity
  * @property {SeriesPattern31<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2wsh
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2wsh
  * @property {SeriesPattern32<P2WSHAddrIndex>} identity
  * @property {SeriesPattern32<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2a
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2a
  * @property {SeriesPattern24<P2AAddrIndex>} identity
  * @property {SeriesPattern24<Addr>} addr
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_P2ms
+ * @typedef {Object} SeriesTree_Mappings_Addr_P2ms
  * @property {SeriesPattern25<P2MSOutputIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_Empty
+ * @typedef {Object} SeriesTree_Mappings_Addr_Empty
  * @property {SeriesPattern22<EmptyOutputIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_Unknown
+ * @typedef {Object} SeriesTree_Mappings_Addr_Unknown
  * @property {SeriesPattern33<UnknownOutputIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Addr_OpReturn
+ * @typedef {Object} SeriesTree_Mappings_Addr_OpReturn
  * @property {SeriesPattern23<OpReturnIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Height
+ * @typedef {Object} SeriesTree_Mappings_Height
  * @property {SeriesPattern18<Minute10>} minute10
  * @property {SeriesPattern18<Minute30>} minute30
  * @property {SeriesPattern18<Hour1>} hour1
@@ -9464,107 +9426,107 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Epoch
+ * @typedef {Object} SeriesTree_Mappings_Epoch
  * @property {SeriesPattern17<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Halving
+ * @typedef {Object} SeriesTree_Mappings_Halving
  * @property {SeriesPattern16<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Minute10
+ * @typedef {Object} SeriesTree_Mappings_Minute10
  * @property {SeriesPattern3<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Minute30
+ * @typedef {Object} SeriesTree_Mappings_Minute30
  * @property {SeriesPattern4<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Hour1
+ * @typedef {Object} SeriesTree_Mappings_Hour1
  * @property {SeriesPattern5<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Hour4
+ * @typedef {Object} SeriesTree_Mappings_Hour4
  * @property {SeriesPattern6<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Hour12
+ * @typedef {Object} SeriesTree_Mappings_Hour12
  * @property {SeriesPattern7<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Day1
+ * @typedef {Object} SeriesTree_Mappings_Day1
  * @property {SeriesPattern8<Date>} date
  * @property {SeriesPattern8<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Day3
+ * @typedef {Object} SeriesTree_Mappings_Day3
  * @property {SeriesPattern9<Date>} date
  * @property {SeriesPattern9<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Week1
+ * @typedef {Object} SeriesTree_Mappings_Week1
  * @property {SeriesPattern10<Date>} date
  * @property {SeriesPattern10<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Month1
+ * @typedef {Object} SeriesTree_Mappings_Month1
  * @property {SeriesPattern11<Date>} date
  * @property {SeriesPattern11<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Month3
+ * @typedef {Object} SeriesTree_Mappings_Month3
  * @property {SeriesPattern12<Date>} date
  * @property {SeriesPattern12<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Month6
+ * @typedef {Object} SeriesTree_Mappings_Month6
  * @property {SeriesPattern13<Date>} date
  * @property {SeriesPattern13<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Year1
+ * @typedef {Object} SeriesTree_Mappings_Year1
  * @property {SeriesPattern14<Date>} date
  * @property {SeriesPattern14<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Year10
+ * @typedef {Object} SeriesTree_Mappings_Year10
  * @property {SeriesPattern15<Date>} date
  * @property {SeriesPattern15<Height>} firstHeight
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_TxIndex
+ * @typedef {Object} SeriesTree_Mappings_TxIndex
  * @property {SeriesPattern19<TxIndex>} identity
  * @property {SeriesPattern19<StoredU64>} inputCount
  * @property {SeriesPattern19<StoredU64>} outputCount
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_TxinIndex
+ * @typedef {Object} SeriesTree_Mappings_TxinIndex
  * @property {SeriesPattern20<TxInIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_TxoutIndex
+ * @typedef {Object} SeriesTree_Mappings_TxoutIndex
  * @property {SeriesPattern21<TxOutIndex>} identity
  */
 
 /**
- * @typedef {Object} SeriesTree_Indexes_Timestamp
+ * @typedef {Object} SeriesTree_Mappings_Timestamp
  * @property {SeriesPattern18<Timestamp>} monotonic
  * @property {SeriesPattern2<Timestamp>} resolutions
  */
@@ -15488,13 +15450,46 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Cointime
- * @property {SeriesTree_Cointime_Activity} activity
+ * @typedef {Object} SeriesTree_Frameworks
+ * @property {SeriesTree_Frameworks_Cointime} cointime
  */
 
 /**
- * @typedef {Object} SeriesTree_Cointime_Activity
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} coinblocksDestroyed
+ * @typedef {Object} SeriesTree_Frameworks_Cointime
+ * @property {SeriesTree_Frameworks_Cointime_AgeRange} ageRange
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange
+ * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated} coindaysCreated
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
+ * @property {SeriesPattern18<StoredF64>} cumulative
  */
 
 /**
@@ -17734,574 +17729,545 @@ class BitviewClient extends BitviewClientBase {
           value: createPhsReboundThsPattern(this, 'hash_value'),
         },
       },
-      frameworks: {
-        cointime: {
+      cointime: {
+        activity: {
+          coinblocksCreated: createAverageBlockCumulativeSumPattern(this, 'coinblocks_created'),
+          coinblocksStored: createAverageBlockCumulativeSumPattern(this, 'coinblocks_stored'),
+          liveliness: createSeriesPattern1(this, 'liveliness'),
+          vaultedness: createSeriesPattern1(this, 'vaultedness'),
+          ratio: createSeriesPattern1(this, 'activity_to_vaultedness'),
+          coinblocksDestroyed: createAverageBlockCumulativeSumPattern(this, 'coinblocks_destroyed'),
+        },
+        ageRange: {
+          coindaysConsumed: {
+            under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_consumed'),
+            _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_consumed'),
+            _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_consumed'),
+            _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_consumed'),
+            _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_consumed'),
+            _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_consumed'),
+            _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_consumed'),
+            _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_consumed'),
+            _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_consumed'),
+            _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_consumed'),
+            _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_consumed'),
+            _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_consumed'),
+            _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_consumed'),
+            _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_consumed'),
+            _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_consumed'),
+            _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_consumed'),
+            _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_consumed'),
+            _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_consumed'),
+            _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_consumed'),
+            _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_consumed'),
+            _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_consumed'),
+            _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_consumed'),
+            over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_consumed'),
+            cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_consumed_cumulative'),
+          },
+          coindaysStored: {
+            under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_stored'),
+            _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_stored'),
+            _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_stored'),
+            _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_stored'),
+            _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_stored'),
+            _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_stored'),
+            _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_stored'),
+            _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_stored'),
+            _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_stored'),
+            _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_stored'),
+            _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_stored'),
+            _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_stored'),
+            _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_stored'),
+            _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_stored'),
+            _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_stored'),
+            _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_stored'),
+            _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_stored'),
+            _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_stored'),
+            _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_stored'),
+            _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_stored'),
+            _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_stored'),
+            _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_stored'),
+            over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_stored'),
+            cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_stored_cumulative'),
+          },
           activity: {
-            coinblocksCreated: createAverageBlockCumulativeSumPattern(this, 'coinblocks_created'),
-            coinblocksStored: createAverageBlockCumulativeSumPattern(this, 'coinblocks_stored'),
-            liveliness: createSeriesPattern1(this, 'liveliness'),
-            vaultedness: createSeriesPattern1(this, 'vaultedness'),
-            ratio: createSeriesPattern1(this, 'activity_to_vaultedness'),
-          },
-          ageRange: {
-            coindaysConsumed: {
-              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_consumed'),
-              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_consumed'),
-              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_consumed'),
-              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_consumed'),
-              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_consumed'),
-              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_consumed'),
-              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_consumed'),
-              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_consumed'),
-              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_consumed'),
-              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_consumed'),
-              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_consumed'),
-              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_consumed'),
-              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_consumed'),
-              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_consumed'),
-              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_consumed'),
-              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_consumed'),
-              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_consumed'),
-              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_consumed'),
-              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_consumed'),
-              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_consumed'),
-              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_consumed'),
-              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_consumed'),
-              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_consumed'),
-              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_consumed_cumulative'),
+            wakefulness: {
+              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_wakefulness'),
+              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_wakefulness'),
+              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_wakefulness'),
+              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_wakefulness'),
+              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_wakefulness'),
+              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_wakefulness'),
+              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_wakefulness'),
+              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_wakefulness'),
+              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_wakefulness'),
+              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_wakefulness'),
+              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_wakefulness'),
+              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_wakefulness'),
+              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_wakefulness'),
+              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_wakefulness'),
+              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_wakefulness'),
+              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_wakefulness'),
+              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_wakefulness'),
+              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_wakefulness'),
+              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_wakefulness'),
+              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_wakefulness'),
+              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_wakefulness'),
+              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_wakefulness'),
+              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_wakefulness'),
             },
-            coindaysStored: {
-              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_stored'),
-              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_stored'),
-              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_stored'),
-              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_stored'),
-              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_stored'),
-              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_stored'),
-              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_stored'),
-              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_stored'),
-              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_stored'),
-              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_stored'),
-              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_stored'),
-              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_stored'),
-              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_stored'),
-              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_stored'),
-              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_stored'),
-              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_stored'),
-              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_stored'),
-              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_stored'),
-              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_stored'),
-              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_stored'),
-              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_stored'),
-              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_stored'),
-              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_stored'),
-              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_stored_cumulative'),
+            dormancy: {
+              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_dormancy'),
+              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_dormancy'),
+              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_dormancy'),
+              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_dormancy'),
+              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_dormancy'),
+              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_dormancy'),
+              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_dormancy'),
+              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_dormancy'),
+              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_dormancy'),
+              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_dormancy'),
+              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_dormancy'),
+              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_dormancy'),
+              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_dormancy'),
+              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_dormancy'),
+              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_dormancy'),
+              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_dormancy'),
+              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_dormancy'),
+              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_dormancy'),
+              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_dormancy'),
+              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_dormancy'),
+              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_dormancy'),
+              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_dormancy'),
+              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_dormancy'),
             },
-            activity: {
-              wakefulness: {
-                under1h: createSeriesPattern1(this, 'utxos_under_1h_old_wakefulness'),
-                _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_wakefulness'),
-                _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_wakefulness'),
-                _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_wakefulness'),
-                _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_wakefulness'),
-                _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_wakefulness'),
-                _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_wakefulness'),
-                _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_wakefulness'),
-                _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_wakefulness'),
-                _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_wakefulness'),
-                _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_wakefulness'),
-                _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_wakefulness'),
-                _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_wakefulness'),
-                _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_wakefulness'),
-                _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_wakefulness'),
-                _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_wakefulness'),
-                _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_wakefulness'),
-                _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_wakefulness'),
-                _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_wakefulness'),
-                _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_wakefulness'),
-                _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_wakefulness'),
-                _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_wakefulness'),
-                over15y: createSeriesPattern1(this, 'utxos_over_15y_old_wakefulness'),
-              },
-              dormancy: {
-                under1h: createSeriesPattern1(this, 'utxos_under_1h_old_dormancy'),
-                _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_dormancy'),
-                _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_dormancy'),
-                _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_dormancy'),
-                _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_dormancy'),
-                _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_dormancy'),
-                _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_dormancy'),
-                _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_dormancy'),
-                _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_dormancy'),
-                _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_dormancy'),
-                _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_dormancy'),
-                _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_dormancy'),
-                _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_dormancy'),
-                _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_dormancy'),
-                _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_dormancy'),
-                _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_dormancy'),
-                _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_dormancy'),
-                _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_dormancy'),
-                _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_dormancy'),
-                _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_dormancy'),
-                _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_dormancy'),
-                _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_dormancy'),
-                over15y: createSeriesPattern1(this, 'utxos_over_15y_old_dormancy'),
-              },
-              wakefulnessToDormancy: {
-                under1h: createSeriesPattern1(this, 'utxos_under_1h_old_wakefulness_to_dormancy'),
-                _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_wakefulness_to_dormancy'),
-                _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_wakefulness_to_dormancy'),
-                _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_wakefulness_to_dormancy'),
-                _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_wakefulness_to_dormancy'),
-                _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_wakefulness_to_dormancy'),
-                _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_wakefulness_to_dormancy'),
-                _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_wakefulness_to_dormancy'),
-                _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_wakefulness_to_dormancy'),
-                _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_wakefulness_to_dormancy'),
-                _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_wakefulness_to_dormancy'),
-                _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_wakefulness_to_dormancy'),
-                _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_wakefulness_to_dormancy'),
-                _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_wakefulness_to_dormancy'),
-                _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_wakefulness_to_dormancy'),
-                _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_wakefulness_to_dormancy'),
-                _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_wakefulness_to_dormancy'),
-                _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_wakefulness_to_dormancy'),
-                _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_wakefulness_to_dormancy'),
-                _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_wakefulness_to_dormancy'),
-                _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_wakefulness_to_dormancy'),
-                _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_wakefulness_to_dormancy'),
-                over15y: createSeriesPattern1(this, 'utxos_over_15y_old_wakefulness_to_dormancy'),
-              },
-              height: createSeriesPattern18(this, 'utxos_age_range_wakefulness'),
+            wakefulnessToDormancy: {
+              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_wakefulness_to_dormancy'),
+              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_wakefulness_to_dormancy'),
+              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_wakefulness_to_dormancy'),
+              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_wakefulness_to_dormancy'),
+              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_wakefulness_to_dormancy'),
+              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_wakefulness_to_dormancy'),
+              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_wakefulness_to_dormancy'),
+              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_wakefulness_to_dormancy'),
+              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_wakefulness_to_dormancy'),
+              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_wakefulness_to_dormancy'),
+              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_wakefulness_to_dormancy'),
+              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_wakefulness_to_dormancy'),
+              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_wakefulness_to_dormancy'),
+              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_wakefulness_to_dormancy'),
+              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_wakefulness_to_dormancy'),
+              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_wakefulness_to_dormancy'),
+              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_wakefulness_to_dormancy'),
+              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_wakefulness_to_dormancy'),
+              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_wakefulness_to_dormancy'),
+              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_wakefulness_to_dormancy'),
+              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_wakefulness_to_dormancy'),
+              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_wakefulness_to_dormancy'),
+              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_wakefulness_to_dormancy'),
             },
-            supply: {
-              awake: {
-                under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_awake_supply'),
-                _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_awake_supply'),
-                _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_awake_supply'),
-                _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_awake_supply'),
-                _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_awake_supply'),
-                _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_awake_supply'),
-                _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_awake_supply'),
-                _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_awake_supply'),
-                _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_awake_supply'),
-                _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_awake_supply'),
-                _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_awake_supply'),
-                _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_awake_supply'),
-                _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_awake_supply'),
-                _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_awake_supply'),
-                _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_awake_supply'),
-                _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_awake_supply'),
-                _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_awake_supply'),
-                _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_awake_supply'),
-                _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_awake_supply'),
-                _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_awake_supply'),
-                _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_awake_supply'),
-                _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_awake_supply'),
-                over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_awake_supply'),
-                height: createSeriesPattern18(this, 'utxos_age_range_awake_supply_sats'),
-              },
-              dormant: {
-                under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_dormant_supply'),
-                _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_dormant_supply'),
-                _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_dormant_supply'),
-                _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_dormant_supply'),
-                _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_dormant_supply'),
-                _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_dormant_supply'),
-                _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_dormant_supply'),
-                _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_dormant_supply'),
-                _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_dormant_supply'),
-                _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_dormant_supply'),
-                _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_dormant_supply'),
-                _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_dormant_supply'),
-                _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_dormant_supply'),
-                _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_dormant_supply'),
-                _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_dormant_supply'),
-                _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_dormant_supply'),
-                _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_dormant_supply'),
-                _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_dormant_supply'),
-                _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_dormant_supply'),
-                _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_dormant_supply'),
-                _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_dormant_supply'),
-                _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_dormant_supply'),
-                over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_dormant_supply'),
-                height: createSeriesPattern18(this, 'utxos_age_range_dormant_supply_sats'),
-              },
-            },
-            coindaysCreated: {
-              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_created'),
-              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_created'),
-              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_created'),
-              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_created'),
-              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_created'),
-              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_created'),
-              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_created'),
-              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_created'),
-              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_created'),
-              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_created'),
-              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_created'),
-              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_created'),
-              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_created'),
-              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_created'),
-              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_created'),
-              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_created'),
-              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_created'),
-              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_created'),
-              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_created'),
-              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_created'),
-              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_created'),
-              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_created'),
-              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_created'),
-              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_created_cumulative'),
-            },
-          },
-          awake: {
-            supply: {
-              btc: createSeriesPattern1(this, 'all_awake_supply'),
-              sats: createSeriesPattern1(this, 'all_awake_supply_sats'),
-              usd: createSeriesPattern1(this, 'all_awake_supply_usd'),
-              cents: createSeriesPattern1(this, 'all_awake_supply_cents'),
-              inLoss: createSharePattern3(this, 'all_awake_supply_in_loss_share'),
-            },
-            cap: createCentsUsdPattern(this, 'all_awake_cap'),
-            price: createCentsPpmRatioSatsUsdPattern(this, 'all_awake_price'),
-          },
-          dormant: createSupplyPattern2(this, 'all_dormant_supply'),
-          sth: {
-            awake: {
-              supply: {
-                btc: createSeriesPattern1(this, 'sth_awake_supply'),
-                sats: createSeriesPattern1(this, 'sth_awake_supply_sats'),
-                usd: createSeriesPattern1(this, 'sth_awake_supply_usd'),
-                cents: createSeriesPattern1(this, 'sth_awake_supply_cents'),
-                inLoss: createSharePattern3(this, 'sth_awake_supply_in_loss_share'),
-              },
-              cap: createCentsUsdPattern(this, 'sth_awake_cap'),
-              price: createCentsPpmRatioSatsUsdPattern(this, 'sth_awake_price'),
-            },
-            dormant: createSupplyPattern2(this, 'sth_dormant_supply'),
-          },
-          lth: {
-            awake: {
-              supply: {
-                btc: createSeriesPattern1(this, 'lth_awake_supply'),
-                sats: createSeriesPattern1(this, 'lth_awake_supply_sats'),
-                usd: createSeriesPattern1(this, 'lth_awake_supply_usd'),
-                cents: createSeriesPattern1(this, 'lth_awake_supply_cents'),
-                inLoss: createSharePattern3(this, 'lth_awake_supply_in_loss_share'),
-              },
-              cap: createCentsUsdPattern(this, 'lth_awake_cap'),
-              price: createCentsPpmRatioSatsUsdPattern(this, 'lth_awake_price'),
-            },
-            dormant: createSupplyPattern2(this, 'lth_dormant_supply'),
-          },
-          sources: {
-            awakeSupply: createSeriesPattern18(this, 'cointime_awake_supply_sats_by_term'),
-            dormantSupply: createSeriesPattern18(this, 'cointime_dormant_supply_sats_by_term'),
-            awakeCap: createSeriesPattern18(this, 'cointime_awake_cap_cents_by_term'),
-            awakePrice: createSeriesPattern18(this, 'cointime_awake_price_cents_by_aggregate'),
-            supplyInLossShare: createSeriesPattern18(this, 'cointime_awake_supply_in_loss_share_by_term'),
+            height: createSeriesPattern18(this, 'utxos_age_range_wakefulness'),
           },
           supply: {
-            vaulted: createBtcCentsSatsUsdPattern(this, 'vaulted_supply'),
-            active: {
-              btc: createSeriesPattern1(this, 'active_supply'),
-              sats: createSeriesPattern1(this, 'active_supply_sats'),
-              usd: createSeriesPattern1(this, 'active_supply_usd'),
-              cents: createSeriesPattern1(this, 'active_supply_cents'),
-              inLoss: createSharePattern3(this, 'cointime_supply_in_loss_share'),
+            awake: {
+              under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_awake_supply'),
+              _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_awake_supply'),
+              _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_awake_supply'),
+              _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_awake_supply'),
+              _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_awake_supply'),
+              _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_awake_supply'),
+              _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_awake_supply'),
+              _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_awake_supply'),
+              _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_awake_supply'),
+              _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_awake_supply'),
+              _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_awake_supply'),
+              _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_awake_supply'),
+              _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_awake_supply'),
+              _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_awake_supply'),
+              _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_awake_supply'),
+              _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_awake_supply'),
+              _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_awake_supply'),
+              _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_awake_supply'),
+              _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_awake_supply'),
+              _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_awake_supply'),
+              _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_awake_supply'),
+              _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_awake_supply'),
+              over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_awake_supply'),
+              height: createSeriesPattern18(this, 'utxos_age_range_awake_supply_sats'),
             },
-          },
-          value: {
-            destroyed: createAverageBlockCumulativeSumPattern(this, 'cointime_value_destroyed'),
-            created: createAverageBlockCumulativeSumPattern(this, 'cointime_value_created'),
-            stored: createAverageBlockCumulativeSumPattern(this, 'cointime_value_stored'),
-            vocdd: createAverageBlockCumulativeSumPattern(this, 'vocdd'),
-          },
-          cap: {
-            thermo: createCentsUsdPattern(this, 'thermo_cap'),
-            investor: createCentsUsdPattern(this, 'investor_cap'),
-            vaulted: createCentsUsdPattern(this, 'vaulted_cap'),
-            active: createCentsUsdPattern(this, 'active_cap'),
-            cointime: createCentsUsdPattern(this, 'cointime_cap'),
-            aviv: createPpmRatioPattern2(this, 'aviv_ratio'),
-          },
-          prices: {
-            vaulted: createCentsPpmRatioSatsUsdPattern(this, 'vaulted_price'),
-            active: createCentsPpmRatioSatsUsdPattern(this, 'active_price'),
-            trueMarketMean: createCentsPpmRatioSatsUsdPattern(this, 'true_market_mean'),
-            cointime: createCentsPpmRatioSatsUsdPattern(this, 'cointime_price'),
-          },
-          adjusted: {
-            inflationRate: createPercentPpmRatioPattern(this, 'cointime_adj_inflation_rate'),
-            txVelocityNative: createSeriesPattern1(this, 'cointime_adj_tx_velocity_btc'),
-            txVelocityFiat: createSeriesPattern1(this, 'cointime_adj_tx_velocity_usd'),
-          },
-          reserveRisk: {
-            value: createSeriesPattern1(this, 'reserve_risk'),
-            vocddMedian1y: createSeriesPattern18(this, 'vocdd_median_1y'),
-            hodlBank: createSeriesPattern18(this, 'hodl_bank'),
+            dormant: {
+              under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_dormant_supply'),
+              _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_dormant_supply'),
+              _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_dormant_supply'),
+              _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_dormant_supply'),
+              _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_dormant_supply'),
+              _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_dormant_supply'),
+              _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_dormant_supply'),
+              _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_dormant_supply'),
+              _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_dormant_supply'),
+              _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_dormant_supply'),
+              _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_dormant_supply'),
+              _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_dormant_supply'),
+              _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_dormant_supply'),
+              _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_dormant_supply'),
+              _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_dormant_supply'),
+              _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_dormant_supply'),
+              _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_dormant_supply'),
+              _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_dormant_supply'),
+              _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_dormant_supply'),
+              _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_dormant_supply'),
+              _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_dormant_supply'),
+              _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_dormant_supply'),
+              over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_dormant_supply'),
+              height: createSeriesPattern18(this, 'utxos_age_range_dormant_supply_sats'),
+            },
           },
         },
-        coinflow: {
-          ageRange: {
-            spendingRate: {
-              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_spending_rate'),
-              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_spending_rate'),
-              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_spending_rate'),
-              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_spending_rate'),
-              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_spending_rate'),
-              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_spending_rate'),
-              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_spending_rate'),
-              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_spending_rate'),
-              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_spending_rate'),
-              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_spending_rate'),
-              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_spending_rate'),
-              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_spending_rate'),
-              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_spending_rate'),
-              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_spending_rate'),
-              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_spending_rate'),
-              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_spending_rate'),
-              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_spending_rate'),
-              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_spending_rate'),
-              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_spending_rate'),
-              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_spending_rate'),
-              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_spending_rate'),
-              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_spending_rate'),
-              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_spending_rate'),
-              height: createSeriesPattern18(this, 'utxos_age_range_spending_rate'),
-            },
-            spendingExposure: {
-              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_spending_exposure'),
-              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_spending_exposure'),
-              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_spending_exposure'),
-              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_spending_exposure'),
-              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_spending_exposure'),
-              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_spending_exposure'),
-              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_spending_exposure'),
-              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_spending_exposure'),
-              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_spending_exposure'),
-              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_spending_exposure'),
-              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_spending_exposure'),
-              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_spending_exposure'),
-              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_spending_exposure'),
-              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_spending_exposure'),
-              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_spending_exposure'),
-              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_spending_exposure'),
-              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_spending_exposure'),
-              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_spending_exposure'),
-              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_spending_exposure'),
-              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_spending_exposure'),
-              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_spending_exposure'),
-              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_spending_exposure'),
-              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_spending_exposure'),
-              mobility: {
-                under1h: createSeriesPattern1(this, 'utxos_under_1h_old_mobility'),
-                _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_mobility'),
-                _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_mobility'),
-                _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_mobility'),
-                _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_mobility'),
-                _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_mobility'),
-                _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_mobility'),
-                _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_mobility'),
-                _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_mobility'),
-                _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_mobility'),
-                _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_mobility'),
-                _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_mobility'),
-                _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_mobility'),
-                _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_mobility'),
-                _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_mobility'),
-                _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_mobility'),
-                _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_mobility'),
-                _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_mobility'),
-                _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_mobility'),
-                _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_mobility'),
-                _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_mobility'),
-                _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_mobility'),
-                over15y: createSeriesPattern1(this, 'utxos_over_15y_old_mobility'),
-              },
-              height: createSeriesPattern18(this, 'utxos_age_range_spending_exposure'),
-            },
+        awake: {
+          supply: {
+            btc: createSeriesPattern1(this, 'all_awake_supply'),
+            sats: createSeriesPattern1(this, 'all_awake_supply_sats'),
+            usd: createSeriesPattern1(this, 'all_awake_supply_usd'),
+            cents: createSeriesPattern1(this, 'all_awake_supply_cents'),
+            inLoss: createSharePattern3(this, 'all_awake_supply_in_loss_share'),
+          },
+          cap: createCentsUsdPattern(this, 'all_awake_cap'),
+          price: createCentsPpmRatioSatsUsdPattern(this, 'all_awake_price'),
+        },
+        dormant: createSupplyPattern2(this, 'all_dormant_supply'),
+        sth: {
+          awake: {
             supply: {
-              mobile: {
-                under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_mobile_supply'),
-                _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_mobile_supply'),
-                _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_mobile_supply'),
-                _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_mobile_supply'),
-                _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_mobile_supply'),
-                _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_mobile_supply'),
-                _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_mobile_supply'),
-                _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_mobile_supply'),
-                _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_mobile_supply'),
-                _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_mobile_supply'),
-                _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_mobile_supply'),
-                _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_mobile_supply'),
-                _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_mobile_supply'),
-                _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_mobile_supply'),
-                _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_mobile_supply'),
-                _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_mobile_supply'),
-                _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_mobile_supply'),
-                _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_mobile_supply'),
-                _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_mobile_supply'),
-                _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_mobile_supply'),
-                _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_mobile_supply'),
-                _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_mobile_supply'),
-                over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_mobile_supply'),
-                height: createSeriesPattern18(this, 'utxos_age_range_mobile_supply_sats'),
-              },
-              immobile: {
-                under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_immobile_supply'),
-                _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_immobile_supply'),
-                _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_immobile_supply'),
-                _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_immobile_supply'),
-                _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_immobile_supply'),
-                _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_immobile_supply'),
-                _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_immobile_supply'),
-                _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_immobile_supply'),
-                _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_immobile_supply'),
-                _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_immobile_supply'),
-                _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_immobile_supply'),
-                _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_immobile_supply'),
-                _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_immobile_supply'),
-                _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_immobile_supply'),
-                _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_immobile_supply'),
-                _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_immobile_supply'),
-                _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_immobile_supply'),
-                _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_immobile_supply'),
-                _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_immobile_supply'),
-                _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_immobile_supply'),
-                _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_immobile_supply'),
-                _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_immobile_supply'),
-                over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_immobile_supply'),
-                height: createSeriesPattern18(this, 'utxos_age_range_immobile_supply_sats'),
-              },
+              btc: createSeriesPattern1(this, 'sth_awake_supply'),
+              sats: createSeriesPattern1(this, 'sth_awake_supply_sats'),
+              usd: createSeriesPattern1(this, 'sth_awake_supply_usd'),
+              cents: createSeriesPattern1(this, 'sth_awake_supply_cents'),
+              inLoss: createSharePattern3(this, 'sth_awake_supply_in_loss_share'),
             },
+            cap: createCentsUsdPattern(this, 'sth_awake_cap'),
+            price: createCentsPpmRatioSatsUsdPattern(this, 'sth_awake_price'),
+          },
+          dormant: createSupplyPattern2(this, 'sth_dormant_supply'),
+        },
+        lth: {
+          awake: {
+            supply: {
+              btc: createSeriesPattern1(this, 'lth_awake_supply'),
+              sats: createSeriesPattern1(this, 'lth_awake_supply_sats'),
+              usd: createSeriesPattern1(this, 'lth_awake_supply_usd'),
+              cents: createSeriesPattern1(this, 'lth_awake_supply_cents'),
+              inLoss: createSharePattern3(this, 'lth_awake_supply_in_loss_share'),
+            },
+            cap: createCentsUsdPattern(this, 'lth_awake_cap'),
+            price: createCentsPpmRatioSatsUsdPattern(this, 'lth_awake_price'),
+          },
+          dormant: createSupplyPattern2(this, 'lth_dormant_supply'),
+        },
+        sources: {
+          awakeSupply: createSeriesPattern18(this, 'cointime_awake_supply_sats_by_term'),
+          dormantSupply: createSeriesPattern18(this, 'cointime_dormant_supply_sats_by_term'),
+          awakeCap: createSeriesPattern18(this, 'cointime_awake_cap_cents_by_term'),
+          awakePrice: createSeriesPattern18(this, 'cointime_awake_price_cents_by_aggregate'),
+          supplyInLossShare: createSeriesPattern18(this, 'cointime_awake_supply_in_loss_share_by_term'),
+        },
+        supply: {
+          vaulted: createBtcCentsSatsUsdPattern(this, 'vaulted_supply'),
+          active: {
+            btc: createSeriesPattern1(this, 'active_supply'),
+            sats: createSeriesPattern1(this, 'active_supply_sats'),
+            usd: createSeriesPattern1(this, 'active_supply_usd'),
+            cents: createSeriesPattern1(this, 'active_supply_cents'),
+            inLoss: createSharePattern3(this, 'cointime_supply_in_loss_share'),
+          },
+        },
+        value: {
+          destroyed: createAverageBlockCumulativeSumPattern(this, 'cointime_value_destroyed'),
+          created: createAverageBlockCumulativeSumPattern(this, 'cointime_value_created'),
+          stored: createAverageBlockCumulativeSumPattern(this, 'cointime_value_stored'),
+          vocdd: createAverageBlockCumulativeSumPattern(this, 'vocdd'),
+        },
+        cap: {
+          thermo: createCentsUsdPattern(this, 'thermo_cap'),
+          investor: createCentsUsdPattern(this, 'investor_cap'),
+          vaulted: createCentsUsdPattern(this, 'vaulted_cap'),
+          active: createCentsUsdPattern(this, 'active_cap'),
+          cointime: createCentsUsdPattern(this, 'cointime_cap'),
+          aviv: createPpmRatioPattern2(this, 'aviv_ratio'),
+        },
+        prices: {
+          vaulted: createCentsPpmRatioSatsUsdPattern(this, 'vaulted_price'),
+          active: createCentsPpmRatioSatsUsdPattern(this, 'active_price'),
+          trueMarketMean: createCentsPpmRatioSatsUsdPattern(this, 'true_market_mean'),
+          cointime: createCentsPpmRatioSatsUsdPattern(this, 'cointime_price'),
+        },
+        adjusted: {
+          inflationRate: createPercentPpmRatioPattern(this, 'cointime_adj_inflation_rate'),
+          txVelocityNative: createSeriesPattern1(this, 'cointime_adj_tx_velocity_btc'),
+          txVelocityFiat: createSeriesPattern1(this, 'cointime_adj_tx_velocity_usd'),
+        },
+        reserveRisk: {
+          value: createSeriesPattern1(this, 'reserve_risk'),
+          vocddMedian1y: createSeriesPattern18(this, 'vocdd_median_1y'),
+          hodlBank: createSeriesPattern18(this, 'hodl_bank'),
+        },
+      },
+      coinflow: {
+        ageRange: {
+          spendingRate: {
+            under1h: createSeriesPattern1(this, 'utxos_under_1h_old_spending_rate'),
+            _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_spending_rate'),
+            _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_spending_rate'),
+            _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_spending_rate'),
+            _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_spending_rate'),
+            _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_spending_rate'),
+            _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_spending_rate'),
+            _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_spending_rate'),
+            _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_spending_rate'),
+            _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_spending_rate'),
+            _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_spending_rate'),
+            _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_spending_rate'),
+            _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_spending_rate'),
+            _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_spending_rate'),
+            _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_spending_rate'),
+            _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_spending_rate'),
+            _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_spending_rate'),
+            _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_spending_rate'),
+            _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_spending_rate'),
+            _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_spending_rate'),
+            _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_spending_rate'),
+            _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_spending_rate'),
+            over15y: createSeriesPattern1(this, 'utxos_over_15y_old_spending_rate'),
+            height: createSeriesPattern18(this, 'utxos_age_range_spending_rate'),
+          },
+          spendingExposure: {
+            under1h: createSeriesPattern1(this, 'utxos_under_1h_old_spending_exposure'),
+            _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_spending_exposure'),
+            _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_spending_exposure'),
+            _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_spending_exposure'),
+            _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_spending_exposure'),
+            _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_spending_exposure'),
+            _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_spending_exposure'),
+            _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_spending_exposure'),
+            _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_spending_exposure'),
+            _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_spending_exposure'),
+            _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_spending_exposure'),
+            _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_spending_exposure'),
+            _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_spending_exposure'),
+            _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_spending_exposure'),
+            _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_spending_exposure'),
+            _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_spending_exposure'),
+            _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_spending_exposure'),
+            _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_spending_exposure'),
+            _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_spending_exposure'),
+            _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_spending_exposure'),
+            _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_spending_exposure'),
+            _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_spending_exposure'),
+            over15y: createSeriesPattern1(this, 'utxos_over_15y_old_spending_exposure'),
+            mobility: {
+              under1h: createSeriesPattern1(this, 'utxos_under_1h_old_mobility'),
+              _1hTo1d: createSeriesPattern1(this, 'utxos_1h_to_1d_old_mobility'),
+              _1dTo1w: createSeriesPattern1(this, 'utxos_1d_to_1w_old_mobility'),
+              _1wTo1m: createSeriesPattern1(this, 'utxos_1w_to_1m_old_mobility'),
+              _1mTo2m: createSeriesPattern1(this, 'utxos_1m_to_2m_old_mobility'),
+              _2mTo3m: createSeriesPattern1(this, 'utxos_2m_to_3m_old_mobility'),
+              _3mTo4m: createSeriesPattern1(this, 'utxos_3m_to_4m_old_mobility'),
+              _4mTo5m: createSeriesPattern1(this, 'utxos_4m_to_5m_old_mobility'),
+              _5mTo6m: createSeriesPattern1(this, 'utxos_5m_to_6m_old_mobility'),
+              _6mTo9m: createSeriesPattern1(this, 'utxos_6m_to_9m_old_mobility'),
+              _9mTo1y: createSeriesPattern1(this, 'utxos_9m_to_1y_old_mobility'),
+              _1yTo18m: createSeriesPattern1(this, 'utxos_1y_to_18m_old_mobility'),
+              _18mTo2y: createSeriesPattern1(this, 'utxos_18m_to_2y_old_mobility'),
+              _2yTo3y: createSeriesPattern1(this, 'utxos_2y_to_3y_old_mobility'),
+              _3yTo4y: createSeriesPattern1(this, 'utxos_3y_to_4y_old_mobility'),
+              _4yTo5y: createSeriesPattern1(this, 'utxos_4y_to_5y_old_mobility'),
+              _5yTo6y: createSeriesPattern1(this, 'utxos_5y_to_6y_old_mobility'),
+              _6yTo7y: createSeriesPattern1(this, 'utxos_6y_to_7y_old_mobility'),
+              _7yTo8y: createSeriesPattern1(this, 'utxos_7y_to_8y_old_mobility'),
+              _8yTo10y: createSeriesPattern1(this, 'utxos_8y_to_10y_old_mobility'),
+              _10yTo12y: createSeriesPattern1(this, 'utxos_10y_to_12y_old_mobility'),
+              _12yTo15y: createSeriesPattern1(this, 'utxos_12y_to_15y_old_mobility'),
+              over15y: createSeriesPattern1(this, 'utxos_over_15y_old_mobility'),
+            },
+            height: createSeriesPattern18(this, 'utxos_age_range_spending_exposure'),
           },
           supply: {
             mobile: {
-              btc: createSeriesPattern1(this, 'all_mobile_supply'),
-              sats: createSeriesPattern1(this, 'all_mobile_supply_sats'),
-              usd: createSeriesPattern1(this, 'all_mobile_supply_usd'),
-              cents: createSeriesPattern1(this, 'all_mobile_supply_cents'),
-              inLoss: createSharePattern3(this, 'all_coinflow_supply_in_loss_share'),
+              under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_mobile_supply'),
+              _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_mobile_supply'),
+              _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_mobile_supply'),
+              _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_mobile_supply'),
+              _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_mobile_supply'),
+              _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_mobile_supply'),
+              _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_mobile_supply'),
+              _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_mobile_supply'),
+              _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_mobile_supply'),
+              _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_mobile_supply'),
+              _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_mobile_supply'),
+              _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_mobile_supply'),
+              _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_mobile_supply'),
+              _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_mobile_supply'),
+              _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_mobile_supply'),
+              _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_mobile_supply'),
+              _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_mobile_supply'),
+              _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_mobile_supply'),
+              _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_mobile_supply'),
+              _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_mobile_supply'),
+              _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_mobile_supply'),
+              _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_mobile_supply'),
+              over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_mobile_supply'),
+              height: createSeriesPattern18(this, 'utxos_age_range_mobile_supply_sats'),
             },
-            immobile: createBtcCentsSatsUsdPattern(this, 'all_immobile_supply'),
+            immobile: {
+              under1h: createBtcCentsSatsUsdPattern(this, 'utxos_under_1h_old_immobile_supply'),
+              _1hTo1d: createBtcCentsSatsUsdPattern(this, 'utxos_1h_to_1d_old_immobile_supply'),
+              _1dTo1w: createBtcCentsSatsUsdPattern(this, 'utxos_1d_to_1w_old_immobile_supply'),
+              _1wTo1m: createBtcCentsSatsUsdPattern(this, 'utxos_1w_to_1m_old_immobile_supply'),
+              _1mTo2m: createBtcCentsSatsUsdPattern(this, 'utxos_1m_to_2m_old_immobile_supply'),
+              _2mTo3m: createBtcCentsSatsUsdPattern(this, 'utxos_2m_to_3m_old_immobile_supply'),
+              _3mTo4m: createBtcCentsSatsUsdPattern(this, 'utxos_3m_to_4m_old_immobile_supply'),
+              _4mTo5m: createBtcCentsSatsUsdPattern(this, 'utxos_4m_to_5m_old_immobile_supply'),
+              _5mTo6m: createBtcCentsSatsUsdPattern(this, 'utxos_5m_to_6m_old_immobile_supply'),
+              _6mTo9m: createBtcCentsSatsUsdPattern(this, 'utxos_6m_to_9m_old_immobile_supply'),
+              _9mTo1y: createBtcCentsSatsUsdPattern(this, 'utxos_9m_to_1y_old_immobile_supply'),
+              _1yTo18m: createBtcCentsSatsUsdPattern(this, 'utxos_1y_to_18m_old_immobile_supply'),
+              _18mTo2y: createBtcCentsSatsUsdPattern(this, 'utxos_18m_to_2y_old_immobile_supply'),
+              _2yTo3y: createBtcCentsSatsUsdPattern(this, 'utxos_2y_to_3y_old_immobile_supply'),
+              _3yTo4y: createBtcCentsSatsUsdPattern(this, 'utxos_3y_to_4y_old_immobile_supply'),
+              _4yTo5y: createBtcCentsSatsUsdPattern(this, 'utxos_4y_to_5y_old_immobile_supply'),
+              _5yTo6y: createBtcCentsSatsUsdPattern(this, 'utxos_5y_to_6y_old_immobile_supply'),
+              _6yTo7y: createBtcCentsSatsUsdPattern(this, 'utxos_6y_to_7y_old_immobile_supply'),
+              _7yTo8y: createBtcCentsSatsUsdPattern(this, 'utxos_7y_to_8y_old_immobile_supply'),
+              _8yTo10y: createBtcCentsSatsUsdPattern(this, 'utxos_8y_to_10y_old_immobile_supply'),
+              _10yTo12y: createBtcCentsSatsUsdPattern(this, 'utxos_10y_to_12y_old_immobile_supply'),
+              _12yTo15y: createBtcCentsSatsUsdPattern(this, 'utxos_12y_to_15y_old_immobile_supply'),
+              over15y: createBtcCentsSatsUsdPattern(this, 'utxos_over_15y_old_immobile_supply'),
+              height: createSeriesPattern18(this, 'utxos_age_range_immobile_supply_sats'),
+            },
           },
-          horizon: create_1m1y2y3m4y6m8yPattern2(this, 'all_coinflow'),
-          cap: createCentsUsdPattern(this, 'all_coinflow_cap'),
-          price: createCentsPpmRatioSatsUsdPattern(this, 'all_coinflow_price'),
-          sth: {
-            supply: {
-              mobile: {
-                btc: createSeriesPattern1(this, 'sth_mobile_supply'),
-                sats: createSeriesPattern1(this, 'sth_mobile_supply_sats'),
-                usd: createSeriesPattern1(this, 'sth_mobile_supply_usd'),
-                cents: createSeriesPattern1(this, 'sth_mobile_supply_cents'),
-                inLoss: createSharePattern3(this, 'sth_coinflow_supply_in_loss_share'),
-              },
-              immobile: createBtcCentsSatsUsdPattern(this, 'sth_immobile_supply'),
-            },
-            horizon: create_1m1y2y3m4y6m8yPattern2(this, 'sth_coinflow'),
-            cap: createCentsUsdPattern(this, 'sth_coinflow_cap'),
-            price: createCentsPpmRatioSatsUsdPattern(this, 'sth_coinflow_price'),
+        },
+        supply: {
+          mobile: {
+            btc: createSeriesPattern1(this, 'all_mobile_supply'),
+            sats: createSeriesPattern1(this, 'all_mobile_supply_sats'),
+            usd: createSeriesPattern1(this, 'all_mobile_supply_usd'),
+            cents: createSeriesPattern1(this, 'all_mobile_supply_cents'),
+            inLoss: createSharePattern3(this, 'all_coinflow_supply_in_loss_share'),
           },
-          lth: {
-            supply: {
-              mobile: {
-                btc: createSeriesPattern1(this, 'lth_mobile_supply'),
-                sats: createSeriesPattern1(this, 'lth_mobile_supply_sats'),
-                usd: createSeriesPattern1(this, 'lth_mobile_supply_usd'),
-                cents: createSeriesPattern1(this, 'lth_mobile_supply_cents'),
-                inLoss: createSharePattern3(this, 'lth_coinflow_supply_in_loss_share'),
-              },
-              immobile: createBtcCentsSatsUsdPattern(this, 'lth_immobile_supply'),
+          immobile: createBtcCentsSatsUsdPattern(this, 'all_immobile_supply'),
+        },
+        horizon: create_1m1y2y3m4y6m8yPattern2(this, 'all_coinflow'),
+        cap: createCentsUsdPattern(this, 'all_coinflow_cap'),
+        price: createCentsPpmRatioSatsUsdPattern(this, 'all_coinflow_price'),
+        sth: {
+          supply: {
+            mobile: {
+              btc: createSeriesPattern1(this, 'sth_mobile_supply'),
+              sats: createSeriesPattern1(this, 'sth_mobile_supply_sats'),
+              usd: createSeriesPattern1(this, 'sth_mobile_supply_usd'),
+              cents: createSeriesPattern1(this, 'sth_mobile_supply_cents'),
+              inLoss: createSharePattern3(this, 'sth_coinflow_supply_in_loss_share'),
             },
-            horizon: create_1m1y2y3m4y6m8yPattern2(this, 'lth_coinflow'),
-            cap: createCentsUsdPattern(this, 'lth_coinflow_cap'),
-            price: createCentsPpmRatioSatsUsdPattern(this, 'lth_coinflow_price'),
+            immobile: createBtcCentsSatsUsdPattern(this, 'sth_immobile_supply'),
           },
-          aggregateSources: {
-            supply: {
-              mobile: createSeriesPattern18(this, 'coinflow_mobile_supply_sats_by_term'),
-              immobile: createSeriesPattern18(this, 'coinflow_immobile_supply_sats_by_term'),
+          horizon: create_1m1y2y3m4y6m8yPattern2(this, 'sth_coinflow'),
+          cap: createCentsUsdPattern(this, 'sth_coinflow_cap'),
+          price: createCentsPpmRatioSatsUsdPattern(this, 'sth_coinflow_price'),
+        },
+        lth: {
+          supply: {
+            mobile: {
+              btc: createSeriesPattern1(this, 'lth_mobile_supply'),
+              sats: createSeriesPattern1(this, 'lth_mobile_supply_sats'),
+              usd: createSeriesPattern1(this, 'lth_mobile_supply_usd'),
+              cents: createSeriesPattern1(this, 'lth_mobile_supply_cents'),
+              inLoss: createSharePattern3(this, 'lth_coinflow_supply_in_loss_share'),
             },
-            supplyInLossShare: createSeriesPattern18(this, 'coinflow_supply_in_loss_share_by_aggregate'),
-            horizon: {
-              _8y: createSeriesPattern18(this, 'coinflow_8y_supply_in_loss_share_by_aggregate'),
-              _4y: createSeriesPattern18(this, 'coinflow_4y_supply_in_loss_share_by_aggregate'),
-              _2y: createSeriesPattern18(this, 'coinflow_2y_supply_in_loss_share_by_aggregate'),
-              _1y: createSeriesPattern18(this, 'coinflow_1y_supply_in_loss_share_by_aggregate'),
-              _6m: createSeriesPattern18(this, 'coinflow_6m_supply_in_loss_share_by_aggregate'),
-              _3m: createSeriesPattern18(this, 'coinflow_3m_supply_in_loss_share_by_aggregate'),
-              _1m: createSeriesPattern18(this, 'coinflow_1m_supply_in_loss_share_by_aggregate'),
-            },
-            cap: createSeriesPattern18(this, 'coinflow_cap_cents_by_term'),
-            price: createSeriesPattern18(this, 'coinflow_price_cents_by_aggregate'),
+            immobile: createBtcCentsSatsUsdPattern(this, 'lth_immobile_supply'),
           },
+          horizon: create_1m1y2y3m4y6m8yPattern2(this, 'lth_coinflow'),
+          cap: createCentsUsdPattern(this, 'lth_coinflow_cap'),
+          price: createCentsPpmRatioSatsUsdPattern(this, 'lth_coinflow_price'),
+        },
+        aggregateSources: {
+          supply: {
+            mobile: createSeriesPattern18(this, 'coinflow_mobile_supply_sats_by_term'),
+            immobile: createSeriesPattern18(this, 'coinflow_immobile_supply_sats_by_term'),
+          },
+          supplyInLossShare: createSeriesPattern18(this, 'coinflow_supply_in_loss_share_by_aggregate'),
+          horizon: {
+            _8y: createSeriesPattern18(this, 'coinflow_8y_supply_in_loss_share_by_aggregate'),
+            _4y: createSeriesPattern18(this, 'coinflow_4y_supply_in_loss_share_by_aggregate'),
+            _2y: createSeriesPattern18(this, 'coinflow_2y_supply_in_loss_share_by_aggregate'),
+            _1y: createSeriesPattern18(this, 'coinflow_1y_supply_in_loss_share_by_aggregate'),
+            _6m: createSeriesPattern18(this, 'coinflow_6m_supply_in_loss_share_by_aggregate'),
+            _3m: createSeriesPattern18(this, 'coinflow_3m_supply_in_loss_share_by_aggregate'),
+            _1m: createSeriesPattern18(this, 'coinflow_1m_supply_in_loss_share_by_aggregate'),
+          },
+          cap: createSeriesPattern18(this, 'coinflow_cap_cents_by_term'),
+          price: createSeriesPattern18(this, 'coinflow_price_cents_by_aggregate'),
         },
       },
-      models: {
-        bedrock: {
-          raw: createFloorLevelLossPattern(this, 'bedrock_raw'),
-          cointime: createFloorLevelLossPattern(this, 'bedrock_cointime'),
-          coinflow: createFloorLevelLossPattern(this, 'bedrock_coinflow'),
-          coinflow8y: createFloorLevelLossPattern(this, 'bedrock_coinflow_8y'),
-          coinflow4y: createFloorLevelLossPattern(this, 'bedrock_coinflow_4y'),
-          coinflow2y: createFloorLevelLossPattern(this, 'bedrock_coinflow_2y'),
-          coinflow1y: createFloorLevelLossPattern(this, 'bedrock_coinflow_1y'),
-          coinflow6m: createFloorLevelLossPattern(this, 'bedrock_coinflow_6m'),
-          coinflow3m: createFloorLevelLossPattern(this, 'bedrock_coinflow_3m'),
-          coinflow1m: createFloorLevelLossPattern(this, 'bedrock_coinflow_1m'),
+      bedrock: {
+        raw: createFloorLevelLossPattern(this, 'bedrock_raw'),
+        cointime: createFloorLevelLossPattern(this, 'bedrock_cointime'),
+        coinflow: createFloorLevelLossPattern(this, 'bedrock_coinflow'),
+        coinflow8y: createFloorLevelLossPattern(this, 'bedrock_coinflow_8y'),
+        coinflow4y: createFloorLevelLossPattern(this, 'bedrock_coinflow_4y'),
+        coinflow2y: createFloorLevelLossPattern(this, 'bedrock_coinflow_2y'),
+        coinflow1y: createFloorLevelLossPattern(this, 'bedrock_coinflow_1y'),
+        coinflow6m: createFloorLevelLossPattern(this, 'bedrock_coinflow_6m'),
+        coinflow3m: createFloorLevelLossPattern(this, 'bedrock_coinflow_3m'),
+        coinflow1m: createFloorLevelLossPattern(this, 'bedrock_coinflow_1m'),
+      },
+      capitalSentiment: {
+        isLong: createSeriesPattern1(this, 'capital_sentiment_is_long'),
+        isShort: createSeriesPattern1(this, 'capital_sentiment_is_short'),
+        phase: createSeriesPattern1(this, 'capital_sentiment_phase'),
+        score: createSeriesPattern1(this, 'capital_sentiment_score'),
+      },
+      rarityMeter: {
+        components: {
+          realizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'realized_price'),
+          capitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'capitalized_price'),
+          sthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'sth_realized_price'),
+          sthCapitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'sth_capitalized_price'),
+          lthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'lth_realized_price'),
+          lthCapitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'lth_capitalized_price'),
+          over6mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'over_6m_realized_price'),
+          over4mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'over_4m_realized_price'),
+          under4mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'under_4m_realized_price'),
+          under6mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'under_6m_realized_price'),
+          vaultedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'vaulted_price'),
+          activePrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'active_price'),
+          trueMarketMeanPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'true_market_mean_price'),
+          cointimePrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'cointime_price'),
+          coinflowPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'coinflow_price'),
         },
-        capitalSentiment: {
-          isLong: createSeriesPattern1(this, 'capital_sentiment_is_long'),
-          isShort: createSeriesPattern1(this, 'capital_sentiment_is_short'),
-          phase: createSeriesPattern1(this, 'capital_sentiment_phase'),
-          score: createSeriesPattern1(this, 'capital_sentiment_score'),
-        },
-        rarityMeter: {
-          components: {
-            realizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'realized_price'),
-            capitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'capitalized_price'),
-            sthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'sth_realized_price'),
-            sthCapitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'sth_capitalized_price'),
-            lthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'lth_realized_price'),
-            lthCapitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'lth_capitalized_price'),
-            over6mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'over_6m_realized_price'),
-            over4mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'over_4m_realized_price'),
-            under4mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'under_4m_realized_price'),
-            under6mRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'under_6m_realized_price'),
-            vaultedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'vaulted_price'),
-            activePrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'active_price'),
-            trueMarketMeanPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'true_market_mean_price'),
-            cointimePrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'cointime_price'),
-            coinflowPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99RatiosPattern(this, 'coinflow_price'),
+        extremes: {
+          coinsInLoss: {
+            thresholdPct01: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold_pct0_1'),
+            thresholdPct005: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold_pct0_05'),
+            thresholdPct0025: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold'),
+            height: createSeriesPattern18(this, 'rarity_meter_coins_in_loss_thresholds'),
+            tail: createPercentPpmRatioPattern2(this, 'rarity_meter_coins_in_loss_tail'),
+            rank: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_rank'),
           },
-          extremes: {
-            coinsInLoss: {
-              thresholdPct01: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold_pct0_1'),
-              thresholdPct005: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold_pct0_05'),
-              thresholdPct0025: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_threshold'),
-              height: createSeriesPattern18(this, 'rarity_meter_coins_in_loss_thresholds'),
-              tail: createPercentPpmRatioPattern2(this, 'rarity_meter_coins_in_loss_tail'),
-              rank: createSeriesPattern1(this, 'rarity_meter_coins_in_loss_rank'),
-            },
-            profitTaking: createHeightRankTailThresholdPattern(this, 'rarity_meter_profit_taking'),
-            capitulation: createHeightRankTailThresholdPattern(this, 'rarity_meter_capitulation'),
-            peakRegret: createHeightRankTailThresholdPattern(this, 'rarity_meter_peak_regret'),
-            sellerExhaustion: {
-              thresholdPct01: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold_pct0_1'),
-              thresholdPct005: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold_pct0_05'),
-              thresholdPct0025: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold'),
-              height: createSeriesPattern18(this, 'rarity_meter_seller_exhaustion_thresholds'),
-              tail: createPercentPpmRatioPattern2(this, 'rarity_meter_seller_exhaustion_tail'),
-              rank: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_rank'),
-            },
+          profitTaking: createHeightRankTailThresholdPattern(this, 'rarity_meter_profit_taking'),
+          capitulation: createHeightRankTailThresholdPattern(this, 'rarity_meter_capitulation'),
+          peakRegret: createHeightRankTailThresholdPattern(this, 'rarity_meter_peak_regret'),
+          sellerExhaustion: {
+            thresholdPct01: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold_pct0_1'),
+            thresholdPct005: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold_pct0_05'),
+            thresholdPct0025: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_threshold'),
+            height: createSeriesPattern18(this, 'rarity_meter_seller_exhaustion_thresholds'),
+            tail: createPercentPpmRatioPattern2(this, 'rarity_meter_seller_exhaustion_tail'),
+            rank: createSeriesPattern1(this, 'rarity_meter_seller_exhaustion_rank'),
           },
-          full: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'rarity_meter'),
-          local: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'local_rarity_meter'),
-          cycle: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'cycle_rarity_meter'),
         },
+        full: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'rarity_meter'),
+        local: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'local_rarity_meter'),
+        cycle: createHeightIndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern(this, 'cycle_rarity_meter'),
       },
       constants: {
         _0: createSeriesPattern1(this, 'constant_0'),
@@ -18323,7 +18289,7 @@ class BitviewClient extends BitviewClientBase {
         minus3: createSeriesPattern1(this, 'constant_minus_3'),
         minus4: createSeriesPattern1(this, 'constant_minus_4'),
       },
-      indexes: {
+      mappings: {
         addr: {
           p2pk33: {
             identity: createSeriesPattern26(this, 'p2pk33_addr_index'),
@@ -23050,9 +23016,36 @@ class BitviewClient extends BitviewClientBase {
           },
         },
       },
-      cointime: {
-        activity: {
-          coinblocksDestroyed: createAverageBlockCumulativeSumPattern(this, 'coinblocks_destroyed'),
+      frameworks: {
+        cointime: {
+          ageRange: {
+            coindaysCreated: {
+              under1h: createAverageBlockCumulativeSumPattern(this, 'utxos_under_1h_old_coindays_created'),
+              _1hTo1d: createAverageBlockCumulativeSumPattern(this, 'utxos_1h_to_1d_old_coindays_created'),
+              _1dTo1w: createAverageBlockCumulativeSumPattern(this, 'utxos_1d_to_1w_old_coindays_created'),
+              _1wTo1m: createAverageBlockCumulativeSumPattern(this, 'utxos_1w_to_1m_old_coindays_created'),
+              _1mTo2m: createAverageBlockCumulativeSumPattern(this, 'utxos_1m_to_2m_old_coindays_created'),
+              _2mTo3m: createAverageBlockCumulativeSumPattern(this, 'utxos_2m_to_3m_old_coindays_created'),
+              _3mTo4m: createAverageBlockCumulativeSumPattern(this, 'utxos_3m_to_4m_old_coindays_created'),
+              _4mTo5m: createAverageBlockCumulativeSumPattern(this, 'utxos_4m_to_5m_old_coindays_created'),
+              _5mTo6m: createAverageBlockCumulativeSumPattern(this, 'utxos_5m_to_6m_old_coindays_created'),
+              _6mTo9m: createAverageBlockCumulativeSumPattern(this, 'utxos_6m_to_9m_old_coindays_created'),
+              _9mTo1y: createAverageBlockCumulativeSumPattern(this, 'utxos_9m_to_1y_old_coindays_created'),
+              _1yTo18m: createAverageBlockCumulativeSumPattern(this, 'utxos_1y_to_18m_old_coindays_created'),
+              _18mTo2y: createAverageBlockCumulativeSumPattern(this, 'utxos_18m_to_2y_old_coindays_created'),
+              _2yTo3y: createAverageBlockCumulativeSumPattern(this, 'utxos_2y_to_3y_old_coindays_created'),
+              _3yTo4y: createAverageBlockCumulativeSumPattern(this, 'utxos_3y_to_4y_old_coindays_created'),
+              _4yTo5y: createAverageBlockCumulativeSumPattern(this, 'utxos_4y_to_5y_old_coindays_created'),
+              _5yTo6y: createAverageBlockCumulativeSumPattern(this, 'utxos_5y_to_6y_old_coindays_created'),
+              _6yTo7y: createAverageBlockCumulativeSumPattern(this, 'utxos_6y_to_7y_old_coindays_created'),
+              _7yTo8y: createAverageBlockCumulativeSumPattern(this, 'utxos_7y_to_8y_old_coindays_created'),
+              _8yTo10y: createAverageBlockCumulativeSumPattern(this, 'utxos_8y_to_10y_old_coindays_created'),
+              _10yTo12y: createAverageBlockCumulativeSumPattern(this, 'utxos_10y_to_12y_old_coindays_created'),
+              _12yTo15y: createAverageBlockCumulativeSumPattern(this, 'utxos_12y_to_15y_old_coindays_created'),
+              over15y: createAverageBlockCumulativeSumPattern(this, 'utxos_over_15y_old_coindays_created'),
+              cumulative: createSeriesPattern18(this, 'utxos_age_range_coindays_created_cumulative'),
+            },
+          },
         },
       },
     };
@@ -24428,82 +24421,6 @@ address payload bytes.
   }
 
   /**
-   * Live BTC/USD price
-   *
-   * Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
-   *
-   * Endpoint: `GET /api/oracle/price`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Dollars>}
-   */
-  async getOraclePrice({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/price`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Live payment output histogram
-   *
-   * Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the forming mempool block. A flat array of log-scale bins.
-   *
-   * Endpoint: `GET /api/oracle/histogram/payments/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
-   */
-  async getOracleHistogramPaymentsLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/payments/live`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Payment output histogram at height or day
-   *
-   * Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
-   *
-   * Endpoint: `GET /api/oracle/histogram/payments/{point}`
-   *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
-   */
-  async getOracleHistogramPayments(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/payments/${point}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Live output value histogram
-   *
-   * Live unfiltered output value histogram for the forming mempool block. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
-   *
-   * Endpoint: `GET /api/oracle/histogram/outputs/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
-   */
-  async getOracleHistogramOutputsLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/outputs/live`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Output value histogram at height or day
-   *
-   * Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
-   *
-   * Endpoint: `GET /api/oracle/histogram/outputs/{point}`
-   *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
-   */
-  async getOracleHistogramOutputs(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/outputs/${point}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
    * Txid by index
    *
    * Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
@@ -24737,6 +24654,82 @@ address payload bytes.
   async postTx(body, { signal } = {}) {
     const path = `/api/tx`;
     return this.postJson(path, body, { signal });
+  }
+
+  /**
+   * Live BTC/USD price
+   *
+   * Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+   *
+   * Endpoint: `GET /api/oracle/price`
+   * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Dollars>}
+   */
+  async getOraclePrice({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/price`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Live payment output histogram
+   *
+   * Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the forming mempool block. A flat array of log-scale bins.
+   *
+   * Endpoint: `GET /api/oracle/histogram/payments/live`
+   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<number[]>}
+   */
+  async getOracleHistogramPaymentsLive({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/histogram/payments/live`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Payment output histogram at height or day
+   *
+   * Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
+   *
+   * Endpoint: `GET /api/oracle/histogram/payments/{point}`
+   *
+   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
+`YYYY-MM-DD` format.
+   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<number[]>}
+   */
+  async getOracleHistogramPayments(point, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/histogram/payments/${point}`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Live output value histogram
+   *
+   * Live unfiltered output value histogram for the forming mempool block. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+   *
+   * Endpoint: `GET /api/oracle/histogram/outputs/live`
+   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<number[]>}
+   */
+  async getOracleHistogramOutputsLive({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/histogram/outputs/live`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Output value histogram at height or day
+   *
+   * Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+   *
+   * Endpoint: `GET /api/oracle/histogram/outputs/{point}`
+   *
+   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
+`YYYY-MM-DD` format.
+   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<number[]>}
+   */
+  async getOracleHistogramOutputs(point, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/histogram/outputs/${point}`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**

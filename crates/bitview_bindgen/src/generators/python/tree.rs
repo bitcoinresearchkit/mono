@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 
 use crate::{
     ClientMetadata, LanguageSyntax, PatternField, PythonSyntax, build_child_path,
@@ -61,7 +61,7 @@ fn generate_tree_class(
     // THEN generate the current class (after all children are defined)
     writeln!(output, "class {}:", name).unwrap();
     writeln!(output, "    \"\"\"Series tree node.\"\"\"").unwrap();
-    writeln!(output, "    ").unwrap();
+    writeln!(output).unwrap();
     writeln!(
         output,
         "    def __init__(self, client: BitviewClient, base_path: str = ''):"

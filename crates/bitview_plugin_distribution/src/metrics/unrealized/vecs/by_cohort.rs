@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use std::ops::AddAssign;
 
+use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmount};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroupsWithoutAmount};
 use brk_types::Version;
 use vecdb::{Database, PcoVecValue, Rw, StorageMode};
 
@@ -29,7 +29,7 @@ where
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let matrices = UTXOColumnarMetricWithoutAmount::forced_import(
             db,
@@ -41,7 +41,7 @@ where
             let source = matrices
                 .additive_source(&filter, &format!("{name}_cents"), version)
                 .expect("supported unrealized cohort");
-            LazyFiatPerBlock::from_boxed_cents_source(&name, version, source, indexes)
+            LazyFiatPerBlock::from_boxed_cents_source(&name, version, source, mappings)
         });
         Ok(Self { cohorts, matrices })
     }

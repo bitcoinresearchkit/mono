@@ -1,9 +1,8 @@
 use std::{mem, path::PathBuf};
 
-use log::debug;
-use rawdb::{Database, Region, unlikely};
+use rawdb::{Database, Region};
 
-use crate::{AnyStoredVec, Bytes, HEADER_OFFSET, Header, Stamp, WritableVec};
+use crate::{AnyStoredVec, AnyVec, Error, HEADER_OFFSET, Header, Stamp, WritableVec};
 
 use super::{super::RawStrategy, ReadWriteRawVec};
 
@@ -53,16 +52,17 @@ where
         let stored_len = self.stored_len();
         let pushed_len = self.base.pushed().len();
         let real_stored_len = self.real_stored_len();
-        // After rollback, stored_len can be > real_stored_len (missing items are in updated map)
         let truncated = stored_len < real_stored_len;
-        let expanded = stored_len > real_stored_len;
         let has_new_data = pushed_len != 0;
-        let has_updated_data = !self.updated().is_empty();
-        let has_holes = !self.holes().is_empty();
-        let had_holes = self.has_stored_holes;
 
-        if !truncated && !expanded && !has_new_data && !has_updated_data && !has_holes && !had_holes
-        {
+        if stored_len > real_stored_len {
+            return Err(Error::CorruptedRegion {
+                name: self.name().to_string(),
+                region_len: real_stored_len,
+            });
+        }
+
+        if !truncated && !has_new_data {
             return Ok(false);
         }
 
@@ -91,52 +91,6 @@ where
             self.base.update_stored_len(stored_len + pushed_len);
         } else if truncated {
             self.region().truncate(from)?;
-        }
-
-        if has_updated_data {
-            let updated = self.updated.take_current();
-            let region = self.region();
-
-            if unlikely(expanded) {
-                // After rollback, updates may extend beyond current disk length.
-                // Use write_at which handles extension (slower but necessary).
-                let mut bytes = Vec::with_capacity(Self::SIZE_OF_T);
-                for (index, value) in updated {
-                    let offset = index * Self::SIZE_OF_T + HEADER_OFFSET;
-                    bytes.clear();
-                    S::write_to_vec(&value, &mut bytes);
-                    region.write_at(&bytes, offset)?;
-                }
-            } else {
-                // Normal case: write directly to mmap, no intermediate allocations
-                region.batch_write_ordered(
-                    updated
-                        .into_iter()
-                        .map(|(index, value)| (index * Self::SIZE_OF_T + HEADER_OFFSET, value)),
-                    Self::SIZE_OF_T,
-                    S::write_to_slice,
-                );
-            }
-        }
-
-        if has_holes {
-            self.has_stored_holes = true;
-            let holes_region = self
-                .region()
-                .db()
-                .create_region_if_needed(&self.holes_region_name())?;
-            let holes = self.holes();
-            let mut bytes = Vec::with_capacity(holes.len() * size_of::<usize>());
-            for i in holes {
-                bytes.extend(i.to_bytes());
-            }
-            holes_region.truncate_write(0, &bytes)?;
-        } else if had_holes {
-            self.has_stored_holes = false;
-            let db = self.region().db();
-            let holes_name = self.holes_region_name();
-            debug!("{}: removing holes region '{}'", db, holes_name);
-            db.remove_region(&holes_name)?;
         }
 
         Ok(true)

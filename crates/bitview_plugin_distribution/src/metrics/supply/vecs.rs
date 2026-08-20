@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AgeRange, AgeRangeId, Amount, CohortContext, Filter, UTXOGroups, UTXOGroupsWithoutAmount,
 };
+use bitview_traversable::Traversable;
 use brk_types::{
     Cents, Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version,
 };
@@ -63,16 +63,16 @@ impl SupplyVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let total = SupplyTotal::forced_import(db, version, indexes, spot_price)?;
+        let total = SupplyTotal::forced_import(db, version, mappings, spot_price)?;
         let all_supply = total.all_supply();
         let in_profit =
-            SupplyByCohort::forced_import(db, "supply_in_profit", version, indexes, spot_price)?;
+            SupplyByCohort::forced_import(db, "supply_in_profit", version, mappings, spot_price)?;
         let in_loss =
-            SupplyByCohort::forced_import(db, "supply_in_loss", version, indexes, spot_price)?;
+            SupplyByCohort::forced_import(db, "supply_in_loss", version, mappings, spot_price)?;
         let bases = total.cohorts.map_named(|filter, cohort_name, total| {
             let full_name = CohortContext::Utxo.full_name(filter, cohort_name);
             if matches!(filter, Filter::All) {
@@ -80,7 +80,7 @@ impl SupplyVecs {
                     &full_name,
                     version,
                     total.clone(),
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             } else {
@@ -89,7 +89,7 @@ impl SupplyVecs {
                     version,
                     total.clone(),
                     all_supply,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             }
@@ -103,7 +103,7 @@ impl SupplyVecs {
                 version + Version::ONE,
                 total.clone(),
                 all_supply,
-                indexes,
+                mappings,
                 cached_starts,
             )
         });
@@ -147,7 +147,7 @@ impl SupplyVecs {
                         matured_version,
                         sats,
                         cents,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })

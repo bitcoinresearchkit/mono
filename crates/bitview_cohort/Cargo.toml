@@ -1,0 +1,20 @@
+[package]
+name = "bitview_cohort"
+description = "Cohort definitions used throughout Bitview"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+bitview_traversable = { workspace = true }
+brk_error = { workspace = true, features = ["vecdb"] }
+brk_types = { workspace = true }
+vecdb = { workspace = true }
+rayon = { workspace = true }
+schemars = { workspace = true }
+serde = { workspace = true }
+
+[package.metadata.cargo-machete]
+ignored = ["vecdb"]

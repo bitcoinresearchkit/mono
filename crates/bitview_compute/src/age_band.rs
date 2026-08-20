@@ -1,4 +1,4 @@
-use brk_cohort::{AgeRange, AgeRangeId};
+use bitview_cohort::{AgeRange, AgeRangeId};
 use vecdb::ColumnId;
 
 const HOURS_PER_DAY: f64 = 24.0;

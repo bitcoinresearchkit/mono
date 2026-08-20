@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>bitview</title>
+    <meta name="description" content="Bitcoin transparency, amplified" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- Keep URL in sync with @font-face in styles/fonts.css -->
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      href="/assets/fonts/Lilex[wght]-v2_620.woff2"
+      crossorigin
+    />
+
+    <!-- IMPORTMAP -->
+    <link rel="stylesheet" href="/src/explorer/chain/cube/style.css" />
+    <link rel="stylesheet" href="/src/explorer/chain/style.css" />
+    <link rel="stylesheet" href="/styles/chart.css" />
+    <link rel="stylesheet" href="/styles/components.css" />
+    <link rel="stylesheet" href="/styles/elements.css" />
+    <link rel="stylesheet" href="/styles/fonts.css" />
+    <link rel="stylesheet" href="/styles/main.css" />
+    <link rel="stylesheet" href="/styles/nav.css" />
+    <link rel="stylesheet" href="/styles/panes/chart.css" />
+    <link rel="stylesheet" href="/styles/panes/explorer.css" />
+    <link rel="stylesheet" href="/styles/reset.css" />
+    <link rel="stylesheet" href="/styles/search.css" />
+    <link rel="stylesheet" href="/styles/variables.css" />
+    <link rel="stylesheet" href="/src/heatmap/style.css" />
+    <!-- /IMPORTMAP -->
+
+    <!-- ------- -->
+    <!-- Scripts -->
+    <!-- ------- -->
+
+    <script>
+      const preferredColorSchemeMatchMedia = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      );
+
+      let storedTheme;
+      try {
+        storedTheme = localStorage.getItem("theme");
+      } catch (_) {}
+      const isDark = storedTheme
+        ? storedTheme === "dark"
+        : preferredColorSchemeMatchMedia.matches;
+      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+
+      const themeColor = window.document.createElement("meta");
+      themeColor.name = "theme-color";
+      window.document.getElementsByTagName("head")[0].appendChild(themeColor);
+
+      /** @param {boolean} dark */
+      function updateThemeColor(dark) {
+        const theme = getComputedStyle(
+          window.document.documentElement,
+        ).getPropertyValue(dark ? "--black" : "--white");
+        themeColor.content = theme;
+      }
+
+      updateThemeColor(isDark);
+      preferredColorSchemeMatchMedia.addEventListener(
+        "change",
+        ({ matches }) => {
+          updateThemeColor(matches);
+        },
+      );
+
+      if ("standalone" in window.navigator && !!window.navigator.standalone) {
+        window.document.documentElement.dataset.display = "standalone";
+      }
+
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/service-worker.js", {
+            scope: "/",
+          });
+        });
+      }
+
+      let storedLayout;
+      try {
+        storedLayout = localStorage.getItem("split-view");
+      } catch (_) {}
+      const isSplit =
+        storedLayout !== "false" &&
+        window.matchMedia("(min-width: 768px)").matches;
+      document.documentElement.dataset.layout = isSplit ? "split" : "full";
+
+      try {
+        const savedWidth = localStorage.getItem("bar-width");
+        if (savedWidth) {
+          window.document.documentElement.style.setProperty(
+            "--sidebar-width",
+            `${savedWidth}px`,
+          );
+        }
+      } catch (_) {}
+    </script>
+    <script type="module" src="/scripts/entry.js" fetchpriority="high"></script>
+
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="96x96"
+      href="/assets/favicon/favicon-96x96.png"
+    />
+    <link rel="shortcut icon" href="/assets/favicon/favicon.ico" />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/assets/favicon/apple-touch-icon.png"
+    />
+    <meta name="apple-mobile-web-app-title" content="bitview" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+  </head>
+  <body>
+    <main id="main">
+      <nav id="nav" hidden></nav>
+
+      <search id="search" hidden>
+        <header>
+          <div>
+            <h3
+              style="
+                display: flex;
+                flex-direction: column;
+                text-transform: uppercase;
+              "
+            >
+              <input placeholder="Search..." id="search-input" />
+            </h3>
+          </div>
+        </header>
+        <ul id="search-results"></ul>
+      </search>
+    </main>
+    <div id="resize-bar"></div>
+    <aside id="aside">
+      <div id="explorer" hidden></div>
+      <div id="chart" hidden></div>
+      <div id="heatmap" hidden></div>
+    </aside>
+    <footer>
+      <fieldset id="frame-selectors">
+        <label
+          id="aside-selector-label"
+          for="aside-selector"
+          title="View sidebar"
+          class="full-only"
+        >
+          <input type="radio" name="frame" id="aside-selector" value="aside" />
+          View
+        </label>
+
+        <label id="nav-selector-label" for="nav-selector" title="Nav">
+          <input type="radio" name="frame" id="nav-selector" value="nav" />
+          Browse
+        </label>
+
+        <label id="search-selector-label" for="search-selector" title="Search">
+          <input
+            type="radio"
+            name="frame"
+            id="search-selector"
+            value="search"
+          />
+          Search
+        </label>
+
+        <button id="share-button" title="Share">Share</button>
+        <button id="theme-button" title="Invert theme">Theme</button>
+        <button id="layout-button"></button>
+      </fieldset>
+    </footer>
+    <div id="share-div" hidden>
+      <div id="share-content-div">
+        <img id="share-img" src="" />
+        <a id="share-anchor" href="/"></a>
+      </div>
+    </div>
+  </body>
+</html>

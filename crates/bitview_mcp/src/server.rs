@@ -141,8 +141,8 @@ impl BrkMcp {
                     .with_website_url(&self.state.public_url),
             )
             .with_instructions(
-                "Read-only Bitcoin analytics tools backed by BRK REST GET endpoints. \
-                 Calls use the configured public Cloudflare-cached API and never mutate BRK state. \
+                "Read-only Bitcoin analytics tools backed by Bitview REST GET endpoints. \
+                 Calls use the configured public Cloudflare-cached API and never mutate upstream state. \
                  Tool descriptions preserve the OpenAPI documentation and identify their underlying \
                  REST operation. Use available list, search, and info operations to discover \
                  identifiers before querying dynamic datasets. Binary responses are returned as \

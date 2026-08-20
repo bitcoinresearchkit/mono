@@ -27,13 +27,13 @@ fn unclaimed_rewards(height: brk_types::Height, subsidy: Sats) -> Sats {
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     lookback: &bitview_plugin_blocks::LookbackVecs,
     transactions: &bitview_plugin_transactions::Vecs,
     prices: &bitview_plugin_price::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, indexes, lookback, transactions, prices, exit)
+    vecs.compute(indexer, mappings, lookback, transactions, prices, exit)
 }
 
 impl Vecs {
@@ -41,7 +41,7 @@ impl Vecs {
     fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         lookback: &bitview_plugin_blocks::LookbackVecs,
         transactions: &bitview_plugin_transactions::Vecs,
         prices: &bitview_plugin_price::Vecs,
@@ -64,7 +64,7 @@ impl Vecs {
                             .first_txout_index
                             .reader()
                             .cursor();
-                        let mut count_cursor = indexes.tx_index.output_count.cursor();
+                        let mut count_cursor = mappings.tx_index.output_count.cursor();
 
                         let ti = tx_index.to_usize();
 
@@ -90,7 +90,7 @@ impl Vecs {
                     &window_starts,
                     &prices.spot.cents.height,
                     &indexer.vecs().transactions.first_tx_index,
-                    &indexes.height.tx_index_count,
+                    &mappings.height.tx_index_count,
                     &transactions.fees.fee.tx_index,
                     exit,
                 )

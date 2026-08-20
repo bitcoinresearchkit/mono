@@ -1,8 +1,6 @@
 use serde::{Deserialize, Deserializer};
 use serde_json::Value;
 
-use crate::Limit;
-
 pub fn de_unquote_i64<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
 where
     D: Deserializer<'de>,
@@ -57,11 +55,4 @@ where
     } else {
         Err(serde::de::Error::custom("expected a string or number"))
     }
-}
-
-pub fn de_unquote_limit<'de, D>(deserializer: D) -> Result<Option<Limit>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    de_unquote_usize(deserializer).map(|opt| opt.map(Limit::from))
 }

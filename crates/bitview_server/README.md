@@ -12,6 +12,12 @@ HTTP API server for Bitcoin on-chain analytics.
 - **Compression**: Brotli, gzip, deflate, zstd
 - **Static files**: Optional web interface hosting
 
+Plugin features mirror `bitview_query` and gate the routes that can use them.
+`chain`, `series`, `urpd`, and `full` are convenience aggregators; the default
+is `full`. Custom compositions can disable default features and enable only the
+plugins and route families they provide. This crate does not depend on the
+official Bitview composition.
+
 ## Usage
 
 ```rust,ignore
@@ -38,7 +44,8 @@ server.serve(None).await?;
 | `/api/block-height/{height}` | Block by height |
 | `/api/tx/{txid}` | Transaction details, status, hex |
 | `/api/mempool` | Fee estimates, mempool stats |
-| `/api/metrics` | Metric catalog and data queries |
+| `/api/series` | Hierarchical series catalog |
+| `/api/series/{series}/{index}` | Series data and range queries |
 | `/api/v1/mining/...` | Hashrate, difficulty, pools |
 
 ## Caching

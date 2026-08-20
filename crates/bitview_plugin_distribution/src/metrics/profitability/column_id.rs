@@ -1,6 +1,6 @@
 use std::ops::AddAssign;
 
-use brk_cohort::{ByTerm, ProfitabilityRange, ProfitabilityRangeId, TermId, UTXOAggregateId};
+use bitview_cohort::{ByTerm, ProfitabilityRange, ProfitabilityRangeId, TermId, UTXOAggregateId};
 use brk_types::{Height, Version};
 use vecdb::{
     ColumnId, PcoVec, PcoVecValue, ReadOnlyColumnarVec, ReadableBoxedVec, ReadableCloneableVec,
@@ -145,7 +145,7 @@ impl ColumnId for TermProfitabilityRangeId {
 
 #[cfg(test)]
 mod tests {
-    use brk_cohort::{ProfitabilityRangeId, TermId};
+    use bitview_cohort::{ProfitabilityRangeId, TermId};
     use vecdb::ColumnId;
 
     use super::TermProfitabilityRangeId;

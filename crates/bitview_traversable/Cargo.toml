@@ -1,6 +1,6 @@
 [package]
 name = "bitview_traversable"
-description = "Traits for Vecs structs throughout BRK"
+description = "Traits for Vecs structs throughout Bitview"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -15,8 +15,9 @@ lz4 = ["vecdb/lz4"]
 zstd = ["vecdb/zstd"]
 
 [dependencies]
-brk_types = { workspace = true }
 bitview_traversable_derive = { workspace = true, optional = true }
+bitview_types = { workspace = true }
+brk_types = { workspace = true }
 indexmap = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }

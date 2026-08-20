@@ -5,21 +5,22 @@
 use rawdb::Database;
 use sha2::{Digest, Sha256};
 use std::fs;
-use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 use tempfile::TempDir;
 use vecdb::{
-    AnyStoredVec, ImportOptions, ImportableVec, RawStrategy, ReadWriteRawVec, ReadableVec, Stamp,
-    StoredVec, VecReader, Version, WritableVec,
+    BytesVec, BytesVecReader, ImportOptions, ImportableVec, MutableVec, Stamp, StoredVec, Version,
+    WritableVec,
 };
 
+#[cfg(feature = "zerocopy")]
+use vecdb::{VecReader, ZeroCopyStrategy, ZeroCopyVec};
+
 // ============================================================================
-// Traits for Raw Vec Types (supporting holes/updates)
+// Traits for MutableVec over Raw Vec Types
 // ============================================================================
 
-pub trait IntegrityVec: StoredVec<I = usize, T = u32> + DerefMut + ImportableVec + Sized
-where
-    Self::Target: IntegrityOps,
+pub trait IntegrityVec:
+    StoredVec<I = usize, T = u32> + IntegrityOps + ImportableVec + Sized
 {
     fn import_with_changes<'a>(
         db: &'a Database,
@@ -33,54 +34,59 @@ pub trait IntegrityOps {
 
     fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()>;
     fn take(&mut self, index: usize) -> Option<u32>;
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()>;
-    fn stamp(&self) -> Stamp;
-    fn collect(&self) -> Vec<u32>;
     fn collect_holed(&self) -> Vec<Option<u32>>;
     fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32>;
     fn reader(&self) -> Self::Reader;
 }
 
-// Generic implementations for any ReadWriteRawVec strategy
-impl<S> IntegrityOps for ReadWriteRawVec<usize, u32, S>
-where
-    S: RawStrategy<u32>,
-{
-    type Reader = VecReader<usize, u32, S>;
+impl IntegrityOps for MutableVec<BytesVec<usize, u32>> {
+    type Reader = BytesVecReader<usize, u32>;
 
     fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
-        ReadWriteRawVec::update(self, index, value)
+        MutableVec::<BytesVec<usize, u32>>::update(self, index, value)
     }
 
     fn take(&mut self, index: usize) -> Option<u32> {
-        let reader = self.reader();
-        let result = ReadWriteRawVec::take(self, index, &reader);
-        drop(reader);
-        result
-    }
-
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> vecdb::Result<()> {
-        WritableVec::stamped_write_with_changes(self, stamp)
-    }
-
-    fn stamp(&self) -> Stamp {
-        AnyStoredVec::stamp(self)
-    }
-
-    fn collect(&self) -> Vec<u32> {
-        ReadableVec::collect(self)
+        let reader = MutableVec::<BytesVec<usize, u32>>::reader(self);
+        MutableVec::<BytesVec<usize, u32>>::take(self, index, &reader)
     }
 
     fn collect_holed(&self) -> Vec<Option<u32>> {
-        ReadWriteRawVec::collect_holed(self)
+        MutableVec::<BytesVec<usize, u32>>::collect_holed(self)
     }
 
     fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32> {
-        ReadWriteRawVec::get_with_reader(self, index, reader)
+        MutableVec::<BytesVec<usize, u32>>::get_with_reader(self, index, reader)
     }
 
     fn reader(&self) -> Self::Reader {
-        ReadWriteRawVec::reader(self)
+        MutableVec::<BytesVec<usize, u32>>::reader(self)
+    }
+}
+
+#[cfg(feature = "zerocopy")]
+impl IntegrityOps for MutableVec<ZeroCopyVec<usize, u32>> {
+    type Reader = VecReader<usize, u32, ZeroCopyStrategy<u32>>;
+
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::update(self, index, value)
+    }
+
+    fn take(&mut self, index: usize) -> Option<u32> {
+        let reader = MutableVec::<ZeroCopyVec<usize, u32>>::reader(self);
+        MutableVec::<ZeroCopyVec<usize, u32>>::take(self, index, &reader)
+    }
+
+    fn collect_holed(&self) -> Vec<Option<u32>> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::collect_holed(self)
+    }
+
+    fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::get_with_reader(self, index, reader)
+    }
+
+    fn reader(&self) -> Self::Reader {
+        MutableVec::<ZeroCopyVec<usize, u32>>::reader(self)
     }
 }
 
@@ -154,7 +160,6 @@ fn compute_directory_hash(dir: &Path) -> Result<String, Box<dyn std::error::Erro
 fn run_data_integrity_rollback_flush_reopen<V>() -> Result<(), Box<dyn std::error::Error>>
 where
     V: IntegrityVec + WritableVec<usize, u32>,
-    <V as Deref>::Target: IntegrityOps,
 {
     println!("=== Data Integrity Test: Rollback + Flush + Reopen ===\n");
     println!("This test verifies:");
@@ -174,23 +179,23 @@ where
     for i in 0..5 {
         vec.push(i);
     }
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(1))?;
+    vec.stamped_write_with_changes(Stamp::new(1))?;
     println!("✓ Added values [0, 1, 2, 3, 4] and flushed (stamp 1)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Step 2: More work and flush
     println!("\n--- Phase 2: More work ---");
     for i in 5..10 {
         vec.push(i);
     }
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(2))?;
+    vec.stamped_write_with_changes(Stamp::new(2))?;
     println!("✓ Added values [5, 6, 7, 8, 9] and flushed (stamp 2)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Step 3: Checkpoint 1 - Save hash and data state
     println!("\n--- Checkpoint 1 ---");
-    let checkpoint1_data = vec.deref_mut().collect_holed();
-    let checkpoint1_stamp = vec.deref_mut().stamp();
+    let checkpoint1_data = vec.collect_holed();
+    let checkpoint1_stamp = vec.stamp();
     let checkpoint1_hash = compute_directory_hash(test_path)?;
     println!("✓ Saved checkpoint1 at stamp {:?}", checkpoint1_stamp);
     println!("  Data: {:?}", checkpoint1_data);
@@ -201,31 +206,31 @@ where
     println!("\n--- Phase 3: Three more operations ---");
 
     // Operation 1: Update some values
-    vec.deref_mut().update(2, 100)?;
-    vec.deref_mut().update(7, 200)?;
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(3))?;
+    vec.update(2, 100)?;
+    vec.update(7, 200)?;
+    vec.stamped_write_with_changes(Stamp::new(3))?;
     println!("✓ Operation 1: Updated index 2→100, 7→200 (stamp 3)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Operation 2: Add more values
     vec.push(20);
     vec.push(21);
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(4))?;
+    vec.stamped_write_with_changes(Stamp::new(4))?;
     println!("✓ Operation 2: Added values [20, 21] (stamp 4)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Operation 3: Create a hole and add value
-    let _ = vec.deref_mut().take(5);
+    let _ = vec.take(5);
     vec.push(30);
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(5))?;
+    vec.stamped_write_with_changes(Stamp::new(5))?;
     println!("✓ Operation 3: Removed index 5, added value 30 (stamp 5)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
-    println!("  Data with holes: {:?}", vec.deref_mut().collect_holed());
+    println!("  Current data: {:?}", vec.collect());
+    println!("  Data with holes: {:?}", vec.collect_holed());
 
     // Step 7: Checkpoint 2 - Save hash and data state
     println!("\n--- Checkpoint 2 ---");
-    let checkpoint2_data = vec.deref_mut().collect_holed();
-    let checkpoint2_stamp = vec.deref_mut().stamp();
+    let checkpoint2_data = vec.collect_holed();
+    let checkpoint2_stamp = vec.stamp();
     let checkpoint2_hash = compute_directory_hash(test_path)?;
     println!("✓ Saved checkpoint2 at stamp {:?}", checkpoint2_stamp);
     println!("  Data: {:?}", checkpoint2_data);
@@ -235,21 +240,21 @@ where
     // Step 8: Undo last 3 operations
     println!("\n--- Phase 4: Undo last 3 operations ---");
     vec.rollback()?;
-    println!("✓ Rollback 1: Now at stamp {:?}", vec.deref_mut().stamp());
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("✓ Rollback 1: Now at stamp {:?}", vec.stamp());
+    println!("  Current data: {:?}", vec.collect());
 
     vec.rollback()?;
-    println!("✓ Rollback 2: Now at stamp {:?}", vec.deref_mut().stamp());
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("✓ Rollback 2: Now at stamp {:?}", vec.stamp());
+    println!("  Current data: {:?}", vec.collect());
 
     vec.rollback()?;
-    println!("✓ Rollback 3: Now at stamp {:?}", vec.deref_mut().stamp());
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("✓ Rollback 3: Now at stamp {:?}", vec.stamp());
+    println!("  Current data: {:?}", vec.collect());
 
     // Step 9: Verify in-memory data matches checkpoint1
     println!("\n--- Verification 1: After undo (in-memory) ---");
-    let after_undo_data = vec.deref_mut().collect_holed();
-    let after_undo_stamp = vec.deref_mut().stamp();
+    let after_undo_data = vec.collect_holed();
+    let after_undo_stamp = vec.stamp();
     println!("In-memory state after rollback:");
     println!(
         "  Stamp: {:?} (expected: {:?})",
@@ -269,8 +274,7 @@ where
 
     // Flush and close
     println!("\n--- Step 10: Flush, close, and reopen ---");
-    vec.deref_mut()
-        .stamped_write_with_changes(checkpoint1_stamp)?;
+    vec.stamped_write_with_changes(checkpoint1_stamp)?;
     let after_flush_hash = compute_directory_hash(test_path)?;
     println!("✓ Flushed to disk");
     println!("  File hash: {}", after_flush_hash);
@@ -288,15 +292,15 @@ where
     // Reopen the database
     let (mut vec, _options) = V::import_with_changes(&database, "vec", 10)?;
     println!("✓ Reopened vecdb");
-    println!("  Stamp after reopen: {:?}", vec.deref_mut().stamp());
+    println!("  Stamp after reopen: {:?}", vec.stamp());
     println!("  Length after reopen: {}", vec.len());
 
     // Verify using individual gets
     println!("\n--- Verification 2: After reopen (using gets) ---");
-    let reader = vec.deref_mut().reader();
+    let reader = vec.reader();
     let mut data_via_gets = Vec::new();
     for i in 0..vec.len() {
-        let value = vec.deref_mut().get_with_reader(i, &reader);
+        let value = vec.get_with_reader(i, &reader);
         data_via_gets.push(value);
     }
     drop(reader);
@@ -310,7 +314,7 @@ where
 
     // Verify using iterator
     println!("\n--- Verification 3: After reopen (using iterator) ---");
-    let data_via_iter = vec.deref_mut().collect_holed();
+    let data_via_iter = vec.collect_holed();
     println!("Data read via iterator: {:?}", data_via_iter);
     assert_eq!(
         data_via_iter, checkpoint1_data,
@@ -319,7 +323,7 @@ where
     println!("✓ PASS: Data correct when reading via iterator");
 
     // Also test the clean iterator (non-holed)
-    let data_via_clean_iter: Vec<u32> = vec.deref_mut().collect();
+    let data_via_clean_iter: Vec<u32> = vec.collect();
     let expected_clean: Vec<u32> = checkpoint1_data.iter().filter_map(|x| *x).collect();
     println!("Data via clean iterator: {:?}", data_via_clean_iter);
     assert_eq!(
@@ -334,31 +338,31 @@ where
     println!("\n--- Phase 5: Redo same 3 operations ---");
 
     // Redo Operation 1: Update same values
-    vec.deref_mut().update(2, 100)?;
-    vec.deref_mut().update(7, 200)?;
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(3))?;
+    vec.update(2, 100)?;
+    vec.update(7, 200)?;
+    vec.stamped_write_with_changes(Stamp::new(3))?;
     println!("✓ Redo operation 1: Updated index 2→100, 7→200 (stamp 3)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Redo Operation 2: Add same values
     vec.push(20);
     vec.push(21);
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(4))?;
+    vec.stamped_write_with_changes(Stamp::new(4))?;
     println!("✓ Redo operation 2: Added values [20, 21] (stamp 4)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
+    println!("  Current data: {:?}", vec.collect());
 
     // Redo Operation 3: Create hole and add value
-    let _ = vec.deref_mut().take(5);
+    let _ = vec.take(5);
     vec.push(30);
-    vec.deref_mut().stamped_write_with_changes(Stamp::new(5))?;
+    vec.stamped_write_with_changes(Stamp::new(5))?;
     println!("✓ Redo operation 3: Removed index 5, added value 30 (stamp 5)");
-    println!("  Current data: {:?}", vec.deref_mut().collect());
-    println!("  Data with holes: {:?}", vec.deref_mut().collect_holed());
+    println!("  Current data: {:?}", vec.collect());
+    println!("  Data with holes: {:?}", vec.collect_holed());
 
     // Step 11: Verify in-memory data matches checkpoint2
     println!("\n--- Verification 4: After redo (in-memory) ---");
-    let after_redo_data = vec.deref_mut().collect_holed();
-    let after_redo_stamp = vec.deref_mut().stamp();
+    let after_redo_data = vec.collect_holed();
+    let after_redo_stamp = vec.stamp();
     println!("In-memory state after redo:");
     println!(
         "  Stamp: {:?} (expected: {:?})",
@@ -378,8 +382,7 @@ where
 
     // Flush and close
     println!("\n--- Step 12: Flush, close, and reopen (after redo) ---");
-    vec.deref_mut()
-        .stamped_write_with_changes(checkpoint2_stamp)?;
+    vec.stamped_write_with_changes(checkpoint2_stamp)?;
     let after_redo_flush_hash = compute_directory_hash(test_path)?;
     println!("✓ Flushed to disk");
     println!("  File hash: {}", after_redo_flush_hash);
@@ -396,17 +399,17 @@ where
     drop(vec);
     println!("✓ Closed vecdb");
 
-    let (mut vec, _options) = V::import_with_changes(&database, "vec", 10)?;
+    let (vec, _options) = V::import_with_changes(&database, "vec", 10)?;
     println!("✓ Reopened vecdb");
-    println!("  Stamp after reopen: {:?}", vec.deref_mut().stamp());
+    println!("  Stamp after reopen: {:?}", vec.stamp());
     println!("  Length after reopen: {}", vec.len());
 
     // Verify using individual gets
     println!("\n--- Verification 5: After reopen (using gets) ---");
-    let reader = vec.deref_mut().reader();
+    let reader = vec.reader();
     let mut data_via_gets = Vec::new();
     for i in 0..vec.len() {
-        let value = vec.deref_mut().get_with_reader(i, &reader);
+        let value = vec.get_with_reader(i, &reader);
         data_via_gets.push(value);
     }
     drop(reader);
@@ -420,7 +423,7 @@ where
 
     // Verify using iterator
     println!("\n--- Verification 6: After reopen (using iterator) ---");
-    let data_via_iter = vec.deref_mut().collect_holed();
+    let data_via_iter = vec.collect_holed();
     println!("Data read via iterator: {:?}", data_via_iter);
     assert_eq!(
         data_via_iter, checkpoint2_data,
@@ -429,7 +432,7 @@ where
     println!("✓ PASS: Data correct when reading via iterator");
 
     // Also test the clean iterator (non-holed)
-    let data_via_clean_iter: Vec<u32> = vec.deref_mut().collect();
+    let data_via_clean_iter: Vec<u32> = vec.collect();
     let expected_clean: Vec<u32> = checkpoint2_data.iter().filter_map(|x| *x).collect();
     println!("Data via clean iterator: {:?}", data_via_clean_iter);
     assert_eq!(
@@ -468,9 +471,8 @@ where
 
 mod bytes {
     use super::*;
-    use vecdb::BytesVec;
 
-    impl IntegrityVec for BytesVec<usize, u32> {
+    impl IntegrityVec for MutableVec<BytesVec<usize, u32>> {
         fn import_with_changes<'a>(
             db: &'a Database,
             name: &'a str,
@@ -485,7 +487,7 @@ mod bytes {
 
     #[test]
     fn data_integrity_rollback_flush_reopen() -> Result<(), Box<dyn std::error::Error>> {
-        run_data_integrity_rollback_flush_reopen::<BytesVec<usize, u32>>()
+        run_data_integrity_rollback_flush_reopen::<MutableVec<BytesVec<usize, u32>>>()
     }
 }
 
@@ -496,9 +498,8 @@ mod bytes {
 #[cfg(feature = "zerocopy")]
 mod zerocopy {
     use super::*;
-    use vecdb::ZeroCopyVec;
 
-    impl IntegrityVec for ZeroCopyVec<usize, u32> {
+    impl IntegrityVec for MutableVec<ZeroCopyVec<usize, u32>> {
         fn import_with_changes<'a>(
             db: &'a Database,
             name: &'a str,
@@ -513,6 +514,6 @@ mod zerocopy {
 
     #[test]
     fn data_integrity_rollback_flush_reopen() -> Result<(), Box<dyn std::error::Error>> {
-        run_data_integrity_rollback_flush_reopen::<ZeroCopyVec<usize, u32>>()
+        run_data_integrity_rollback_flush_reopen::<MutableVec<ZeroCopyVec<usize, u32>>>()
     }
 }

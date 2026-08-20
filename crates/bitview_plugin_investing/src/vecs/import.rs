@@ -1,6 +1,9 @@
-use brk_error::Result;
-
-use brk_error::Error;
+use bitview_compute::{
+    ByDcaCagr, ByDcaPeriod, CentsUnsignedToDollars, Identity, LazyIndexedVec, LazyPerBlock,
+    LazyPercentPerBlock, LazyPreviousDeltaVec, LazySinceDayVec, LazyWindowVec, Price,
+    RatioDiffCents, SatsToBitcoin, SatsToCents,
+};
+use brk_error::{Error, Result};
 use brk_types::{
     Bitcoin, Cents, Date, Day1, Dollars, Height, PartsPerMillionSigned64, Sats, Version,
 };
@@ -10,27 +13,20 @@ use vecdb::{
 };
 
 use super::Vecs;
-use crate::{DCA_AMOUNT, by_class, cached_dca_sats::CachedDcaSats};
 use crate::{
-    class_vecs::ClassVecs, dca_stack::DcaStack, lump_sum_stack::LumpSumStack,
-    period_vecs::PeriodVecs,
-};
-use bitview_compute::{
-    ByDcaCagr, ByDcaPeriod, CentsUnsignedToDollars, Identity, LazyIndexedVec, LazyPerBlock,
-    LazyPercentPerBlock, LazyPreviousDeltaVec, LazySinceDayVec, LazyWindowVec, Price,
-    RatioDiffCents, SatsToBitcoin, SatsToCents,
+    DCA_AMOUNT, STORAGE, by_class, cached_dca_sats::CachedDcaSats, class_vecs::ClassVecs,
+    dca_stack::DcaStack, lump_sum_stack::LumpSumStack, period_vecs::PeriodVecs,
 };
 
 impl Vecs {
-    pub fn forced_import(
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        mappings: &bitview_plugin_mappings::Vecs,
         blocks: &bitview_plugin_blocks::Vecs,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
-        let version = parent_version;
+        let version = STORAGE.schema_version();
 
-        let cached_days = indexes.height.day1_cached_boxed_clone();
+        let cached_days = mappings.height.day1_cached_boxed_clone();
         let cached_dca_sats = CachedDcaSats::new(
             prices.split.close.usd.day1.read_only_boxed_clone(),
             cached_days.clone(),
@@ -60,7 +56,7 @@ impl Vecs {
                     true,
                     |current, before, _| current.checked_sub(before).unwrap_or_default(),
                 );
-                dca_stack_from_source(&metric_name, version, indexes, source, &spot_price)
+                dca_stack_from_source(&metric_name, version, mappings, source, &spot_price)
             })?;
 
         let first_price_day = Day1::try_from(Date::new(2010, 7, 12)).unwrap();
@@ -84,7 +80,7 @@ impl Vecs {
                 &metric_name,
                 version,
                 source,
-                indexes,
+                mappings,
             ))
         })?;
 
@@ -104,7 +100,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 
@@ -123,7 +119,7 @@ impl Vecs {
                     &format!("lump_sum_stack_{name}"),
                     days,
                     version,
-                    indexes,
+                    mappings,
                     window_starts,
                     prices,
                 )
@@ -146,7 +142,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 
@@ -160,7 +156,7 @@ impl Vecs {
                 day,
                 |current, before| current.checked_sub(before).unwrap_or_default(),
             );
-            dca_stack_from_source(&metric_name, version, indexes, source, &spot_price)
+            dca_stack_from_source(&metric_name, version, mappings, source, &spot_price)
         })?;
 
         let class_cost_basis =
@@ -183,7 +179,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 
@@ -203,7 +199,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 
@@ -231,7 +227,7 @@ impl Vecs {
 fn dca_stack_from_source<V>(
     name: &str,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     source: V,
     spot_price: &CachedBoxedVec<Height, Cents>,
 ) -> Result<DcaStack>
@@ -242,7 +238,7 @@ where
         &format!("{name}_sats"),
         version,
         source,
-        indexes,
+        mappings,
     );
     let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
     let cents_source = LazyIndexedVec::new(
@@ -256,7 +252,7 @@ where
         &format!("{name}_cents"),
         version,
         cents_source,
-        indexes,
+        mappings,
     );
     let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
         &format!("{name}_usd"),
@@ -275,7 +271,7 @@ fn lump_sum_stack(
     name: &str,
     days: u32,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     window_starts: &CachedBoxedVec<Height, Height>,
     prices: &bitview_plugin_price::Vecs,
 ) -> Result<LumpSumStack> {
@@ -293,7 +289,7 @@ fn lump_sum_stack(
         &format!("{name}_sats"),
         version,
         sats_source,
-        indexes,
+        mappings,
     );
     let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
 
@@ -309,7 +305,7 @@ fn lump_sum_stack(
         &format!("{name}_cents"),
         version,
         cents_source,
-        indexes,
+        mappings,
     );
     let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
         &format!("{name}_usd"),

@@ -13,10 +13,9 @@ pub use value::*;
 /// Uses the `zerocopy` crate for direct memory-mapped access without copying, providing
 /// the fastest possible performance. Values are stored in **NATIVE byte order**.
 ///
-/// Like `BytesVec`, this wraps `ReadWriteRawVec` and supports:
-/// - Holes (deleted indices)
-/// - Updated values (modifications to stored data)
-/// - Push/rollback operations
+/// Like `BytesVec`, this is an append-only raw vector with push, truncate, and
+/// rollback support. Wrap it in [`MutableVec`](crate::MutableVec) when
+/// existing values must be updated or deleted.
 ///
 /// The only difference from `BytesVec` is the serialization strategy:
 /// - `ZeroCopyVec`: Native byte order, faster but not portable
@@ -51,9 +50,7 @@ where
     /// Very efficient for large types or frequent reads.
     ///
     /// Returns `None` if:
-    /// - Index is marked as a hole (deleted)
     /// - Index is beyond stored length (might be in pushed layer)
-    /// - Index has an updated value (in the updated map, not on disk)
     #[inline]
     pub fn read_ref<'a>(
         &self,
@@ -70,21 +67,11 @@ where
         index: usize,
         reader: &'a VecReader<I, T, ZeroCopyStrategy<T>>,
     ) -> Option<&'a T> {
-        // Cannot return ref for holes
-        if !self.holes().is_empty() && self.holes().contains(&index) {
-            return None;
-        }
-
         let stored_len = reader.len();
         debug_assert_eq!(stored_len, self.stored_len(), "stale VecReader");
 
         // Cannot return ref for pushed values (they're in a Vec, not mmap)
         if index >= stored_len {
-            return None;
-        }
-
-        // Cannot return ref for updated values (they're in a BTreeMap, not mmap)
-        if !self.updated().is_empty() && self.updated().contains_key(&index) {
             return None;
         }
 
@@ -108,5 +95,6 @@ impl_vec_wrapper!(
     ReadWriteRawVec<I, T, ZeroCopyStrategy<T>>,
     ZeroCopyVecValue,
     Format::ZeroCopy,
-    ReadOnlyRawVec<I, T, ZeroCopyStrategy<T>>
+    ReadOnlyRawVec<I, T, ZeroCopyStrategy<T>>,
+    no_deref_mut
 );

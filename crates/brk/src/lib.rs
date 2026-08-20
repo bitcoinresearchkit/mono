@@ -1,9 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "cohort")]
-#[doc(inline)]
-pub use brk_cohort as cohort;
-
 #[cfg(feature = "error")]
 #[doc(inline)]
 pub use brk_error as error;

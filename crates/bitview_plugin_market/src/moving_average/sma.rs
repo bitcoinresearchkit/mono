@@ -41,7 +41,7 @@ const VERSION: Version = Version::ONE;
 impl SmaVecs {
     pub fn new(
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         lookback: &bitview_plugin_blocks::LookbackVecs,
         spot_price: CachedBoxedVec<Height, Cents>,
     ) -> Self {
@@ -63,7 +63,7 @@ impl SmaVecs {
                         lookback.start_vec($days).read_only_boxed_clone(),
                         prefix_sum.cached_boxed_clone(),
                     ),
-                    indexes,
+                    mappings,
                     &spot_price,
                 )
             };

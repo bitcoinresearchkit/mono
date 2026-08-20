@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Activity\_TransferVolume\_AddrBalance
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11600](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11600)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11562](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11562)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11600](https://github
 
 > **over**: [`_100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern2`](100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11603](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11603)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11565](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11565)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11603](https://github
 
 > **range**: [`_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2`](0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11601](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11601)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11563](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11563)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11601](https://github
 
 > **under**: [`_100btc100k100sats10btc10k10m10sats1btc1k1mPattern2`](100btc100k100sats10btc10k10m10sats1btc1k1mPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11602](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11602)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11564](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11564)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11602](https://github
 
 > **values**: [`CentsSatsPattern`](CentsSatsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11604](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11604)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11566](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11566)

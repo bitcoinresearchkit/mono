@@ -1,4 +1,4 @@
-use brk_cohort::{AddrTypeId, ByAddrType};
+use bitview_cohort::{AddrTypeId, ByAddrType};
 use brk_types::{StoredU32, StoredU64};
 use derive_more::{Deref, DerefMut};
 use vecdb::ColumnId;

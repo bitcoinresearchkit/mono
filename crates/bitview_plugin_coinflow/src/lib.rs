@@ -15,6 +15,10 @@ use vecs::{
     SpendingExposureSeries,
 };
 
-pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("coinflow");
+use bitview_plugin::{PluginId, PluginStorage};
+use brk_types::Version;
 
-const AGE_COHORT_COUNT: usize = brk_cohort::AGE_RANGE_COUNT;
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("coinflow"), Version::new(14));
+pub const ID: PluginId = STORAGE.id();
+
+const AGE_COHORT_COUNT: usize = bitview_cohort::AGE_RANGE_COUNT;

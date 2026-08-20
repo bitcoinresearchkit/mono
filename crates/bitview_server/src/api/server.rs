@@ -6,7 +6,8 @@ use axum::{
     http::{HeaderMap, Uri},
     response::{IntoResponse, Response},
 };
-use brk_types::{DiskUsage, Health, SyncStatus};
+use bitview_types::{Health, SyncStatus};
+use brk_types::DiskUsage;
 
 use crate::{
     CacheStrategy, VERSION,

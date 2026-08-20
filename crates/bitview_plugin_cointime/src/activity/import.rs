@@ -14,7 +14,7 @@ impl DerivedVecs {
         db: &Database,
         prefix: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let name = |metric: &str| {
             if prefix.is_empty() {
@@ -24,7 +24,7 @@ impl DerivedVecs {
             }
         };
         let liveliness_name = name("liveliness");
-        let liveliness = PerBlock::forced_import(db, &liveliness_name, version, indexes)?;
+        let liveliness = PerBlock::forced_import(db, &liveliness_name, version, mappings)?;
         let vaultedness = LazyPerBlock::from_computed::<OneMinusF64>(
             &name("vaultedness"),
             version,
@@ -49,17 +49,17 @@ impl DerivedVecs {
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
@@ -67,17 +67,17 @@ impl Vecs {
                 db,
                 "coinblocks_created",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             coinblocks_stored: PerBlockCumulativeRolling::forced_import(
                 db,
                 "coinblocks_stored",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
-            derived: DerivedVecs::forced_import_with_prefix(db, "", version, indexes)?,
+            derived: DerivedVecs::forced_import_with_prefix(db, "", version, mappings)?,
         })
     }
 }

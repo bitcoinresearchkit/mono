@@ -1,4 +1,4 @@
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_types::{OutputType, Sats, TypeIndex};
 use rustc_hash::FxHashSet;
 

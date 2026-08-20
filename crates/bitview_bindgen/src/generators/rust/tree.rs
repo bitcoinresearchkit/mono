@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::fmt::Write;
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 
 use crate::{
     ClientMetadata, GenericSyntax, LanguageSyntax, PatternField, RustSyntax, build_child_path,

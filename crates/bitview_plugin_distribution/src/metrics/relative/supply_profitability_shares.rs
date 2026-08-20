@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, Database, Exit, LazyVec, PcoVec, ReadOnlyClone,
@@ -34,7 +34,7 @@ impl SupplyProfitabilityShares {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let version = version + VERSION;
         let profit_share_source = ColumnarPerBlock::forced_import(
@@ -49,14 +49,14 @@ impl SupplyProfitabilityShares {
             "supply_in_profit_share",
             version,
             Self::public_profit_share,
-            indexes,
+            mappings,
         );
         let supply_in_loss_share = Self::views(
             &source,
             "supply_in_loss_share",
             version,
             Self::public_loss_share,
-            indexes,
+            mappings,
         );
 
         Ok(Self {
@@ -71,7 +71,7 @@ impl SupplyProfitabilityShares {
         metric: &str,
         version: Version,
         compute: fn(Height, PartsPerMillion32) -> PartsPerMillion32,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>> {
         UTXOAggregate::from_fn(|id| {
             let name = CohortContext::Utxo.metric_name(
@@ -86,7 +86,7 @@ impl SupplyProfitabilityShares {
                 source.read_only_boxed_clone(),
                 compute,
             );
-            LazyPercentPerBlock::from_height_source(&name, version, source, indexes)
+            LazyPercentPerBlock::from_height_source(&name, version, source, mappings)
         })
     }
 

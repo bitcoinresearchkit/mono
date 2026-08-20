@@ -6,7 +6,7 @@
 
 # Interface: AgeAllClassCumulativeEntryEpochTermPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5088](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5088)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5088](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5088)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5088](https://github.
 
 > **age**: [`OverRangeUnderPattern2`](OverRangeUnderPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5089](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5089)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5089](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5089)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5089](https://github.
 
 > **all**: [`AverageBlockCumulativeSumPattern2`](AverageBlockCumulativeSumPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5090](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5090)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5090](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5090)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5090](https://github.
 
 > **class**: [`_200920102011201220132014201520162017201820192020202120222023202420252026Pattern2`](200920102011201220132014201520162017201820192020202120222023202420252026Pattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5091](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5091)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5091](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5091)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5091](https://github.
 
 > **cumulative**: [`AgeClassEntryEpochPattern`](AgeClassEntryEpochPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5092](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5092)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5092](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5092)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5092](https://github.
 
 > **entry**: [`DiscountPremiumPattern2`](DiscountPremiumPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5093](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5093)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5093](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5093)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5093](https://github.
 
 > **epoch**: [`_01234Pattern2`](01234Pattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5094](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5094)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5094](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5094)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5094](https://github.
 
 > **term**: [`LongShortPattern2`](LongShortPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5095](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5095)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5095](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5095)

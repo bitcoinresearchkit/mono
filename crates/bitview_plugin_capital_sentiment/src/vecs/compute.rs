@@ -1,12 +1,13 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_compute::db_utils::validate_any_computed_version_or_reset;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use brk_types::{CapitalSentimentPhase, Cents, Day1, Height, StoredBool, StoredU8, Version};
 use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
-use bitview_compute::db_utils::validate_any_computed_version_or_reset;
+use crate::Dependencies;
 
 const WRITE_INTERVAL_DAYS: usize = 1_000;
 
@@ -14,7 +15,7 @@ impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         prices: &bitview_plugin_price::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         moving_average: &bitview_plugin_market::MovingAverageVecs,
@@ -48,7 +49,7 @@ impl Vecs {
             .lth
             .cents
             .height;
-        let first_height = &indexes.day1.first_height;
+        let first_height = &mappings.day1.first_height;
 
         let source_version: Version = [
             spot.version(),
@@ -68,8 +69,8 @@ impl Vecs {
             .min()
             .unwrap_or_default();
         let first_heights = first_height.collect();
-        let source_end = indexes.day1.date.len().min(first_heights.len());
-        let recompute_from = recompute_day(indexer, indexes)
+        let source_end = mappings.day1.date.len().min(first_heights.len());
+        let recompute_from = recompute_day(indexer, mappings)
             .map(usize::from)
             .unwrap_or_default();
         let start = self
@@ -130,21 +131,21 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.price,
             dependencies.distribution,
             dependencies.moving_average,
-            exit,
+            context.exit(),
         )
     }
 }
@@ -310,16 +311,16 @@ fn classify_phase(
     Phase::EarlyBear
 }
 
-fn recompute_day(indexer: &Indexer, indexes: &bitview_plugin_indexes::Vecs) -> Option<Day1> {
+fn recompute_day(indexer: &Indexer, mappings: &bitview_plugin_mappings::Vecs) -> Option<Day1> {
     let starting_height = indexer.safe_lengths().height;
-    indexes
+    mappings
         .height
         .day1
         .collect_one(starting_height)
         .or_else(|| {
             starting_height
                 .decremented()
-                .and_then(|height| indexes.height.day1.collect_one(height))
+                .and_then(|height| mappings.height.day1.collect_one(height))
         })
 }
 

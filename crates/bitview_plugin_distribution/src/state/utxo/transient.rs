@@ -1,4 +1,4 @@
-use brk_cohort::AGE_RANGE_COUNT;
+use bitview_cohort::AGE_RANGE_COUNT;
 
 use super::fenwick::CostBasisFenwick;
 

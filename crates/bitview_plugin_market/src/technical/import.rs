@@ -12,16 +12,17 @@ fn forced_import_macd(
     db: &Database,
     tf: &str,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<MacdChain> {
-    let line = PerBlock::forced_import(db, &format!("macd_line_{tf}"), version, indexes)?;
-    let signal = PerBlock::forced_import(db, &format!("macd_signal_{tf}"), version, indexes)?;
+    let line = PerBlock::forced_import(db, &format!("macd_line_{tf}"), version, mappings)?;
+    let signal = PerBlock::forced_import(db, &format!("macd_signal_{tf}"), version, mappings)?;
 
-    let histogram = PerBlock::forced_import(db, &format!("macd_histogram_{tf}"), version, indexes)?;
+    let histogram =
+        PerBlock::forced_import(db, &format!("macd_histogram_{tf}"), version, mappings)?;
 
     Ok(MacdChain {
-        ema_fast: PerBlock::forced_import(db, &format!("macd_ema_fast_{tf}"), version, indexes)?,
-        ema_slow: PerBlock::forced_import(db, &format!("macd_ema_slow_{tf}"), version, indexes)?,
+        ema_fast: PerBlock::forced_import(db, &format!("macd_ema_fast_{tf}"), version, mappings)?,
+        ema_slow: PerBlock::forced_import(db, &format!("macd_ema_slow_{tf}"), version, mappings)?,
         line,
         signal,
         histogram,
@@ -31,27 +32,27 @@ fn forced_import_macd(
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, returns)
+    Vecs::forced_import(db, version, mappings, returns)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         returns: &LazyPerBlock<StoredF32, PartsPerMillionSigned64>,
     ) -> Result<Self> {
         let v = version + VERSION;
 
         let rsi = WindowsTo1m::try_from_fn(|tf| {
-            rsi_chain::forced_import(db, tf, v + Version::TWO, indexes, returns)
+            rsi_chain::forced_import(db, tf, v + Version::TWO, mappings, returns)
         })?;
-        let macd = WindowsTo1m::try_from_fn(|tf| forced_import_macd(db, tf, v, indexes))?;
+        let macd = WindowsTo1m::try_from_fn(|tf| forced_import_macd(db, tf, v, mappings))?;
 
-        let pi_cycle = RatioPerBlock::forced_import_ppm(db, "pi_cycle", v, indexes)?;
+        let pi_cycle = RatioPerBlock::forced_import_ppm(db, "pi_cycle", v, mappings)?;
 
         Ok(Self {
             rsi,

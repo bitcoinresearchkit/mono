@@ -1,8 +1,10 @@
 use brk_error::Result;
 
-use std::{collections::BTreeMap, path::Path};
+use std::collections::BTreeMap;
 
-use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin::{
+    ComputePlugin, ImportContext, Plugin, PluginGate, PluginId, PluginStorage, UpdateContext,
+};
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_types::{
@@ -25,12 +27,10 @@ pub use dependencies::Dependencies;
 pub use has::HasPools;
 use pool_heights::PoolHeights;
 
-use bitview_compute::{
-    CachedWindowStartVec, Windows,
-    db_utils::{finalize_db, open_db},
-};
+use bitview_compute::{CachedWindowStartVec, Windows};
 
-pub const ID: PluginId = PluginId::new("pools");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -56,8 +56,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
@@ -66,19 +66,16 @@ where
 }
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
-        let db = open_db(parent_path, ID.as_str(), 100_000)?;
+        let db = STORAGE.open_database(context, 100_000)?;
         let pools = pools();
 
-        let version = parent_version
-            + Version::new(4)
-            + POOL_ATTRIBUTION_VERSION
-            + Version::new(pools.len() as u32);
+        let version =
+            STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
 
         let pool = BytesVec::forced_import(&db, "pool", version)?;
         let pool_heights = PoolHeights::build(&pool);
@@ -95,7 +92,7 @@ impl Vecs {
                         pool.slug,
                         pool_heights.clone(),
                         version,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )?,
                 );
@@ -106,7 +103,7 @@ impl Vecs {
                         pool.slug,
                         pool_heights.clone(),
                         version,
-                        indexes,
+                        mappings,
                         cached_starts,
                     ),
                 );
@@ -123,21 +120,21 @@ impl Vecs {
             db,
         };
 
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         prices: &bitview_plugin_price::Vecs,
         mining: &bitview_plugin_mining::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         self.db.sync_bg_tasks()?;
 
-        self.compute_pool(indexer, indexes, exit)?;
+        self.compute_pool(indexer, mappings, exit)?;
 
         self.major
             .par_iter_mut()
@@ -154,7 +151,7 @@ impl Vecs {
     fn compute_pool(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
@@ -163,7 +160,7 @@ impl Vecs {
             indexer.vecs().blocks.coinbase_tag.version(),
             indexer.vecs().transactions.first_tx_index.version(),
             indexer.vecs().transactions.first_txout_index.version(),
-            indexes.tx_index.output_count.version(),
+            mappings.tx_index.output_count.version(),
             indexer.vecs().outputs.output_type.version(),
             indexer.vecs().outputs.type_index.version(),
             indexer.vecs().addrs.p2pk65.bytes.version(),
@@ -209,7 +206,7 @@ impl Vecs {
         // increasing, so both cursors only advance forward.
         let mut first_tx_index_cursor = indexer.vecs().transactions.first_tx_index.cursor();
         first_tx_index_cursor.advance(min);
-        let mut output_count_cursor = indexes.tx_index.output_count.cursor();
+        let mut output_count_cursor = mappings.tx_index.output_count.cursor();
 
         self.pool.truncate_if_needed_at(min)?;
         self.heights.truncate(min);
@@ -265,20 +262,20 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.price,
             dependencies.mining,
-            exit,
+            context.exit(),
         )
     }
 }

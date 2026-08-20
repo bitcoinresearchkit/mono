@@ -1,6 +1,6 @@
 use std::{collections::hash_map::Entry, mem};
 
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_types::{OutputType, TypeIndex};
 use derive_more::{Deref, DerefMut};
 use rustc_hash::FxHashMap;

@@ -6,7 +6,7 @@
 
 use std::collections::BTreeMap;
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 
 use super::{
     find_common_prefix, find_common_suffix, get_node_fields, get_shortest_leaf_name,
@@ -1288,7 +1288,7 @@ mod tests {
     fn test_loss_with_neg_suffix_has_correct_field_parts() {
         // Integration test: "loss" child has suffix-named children (realized_loss,
         // realized_loss_neg) so it returns a proper base that differs from parent.
-        use brk_types::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
+        use bitview_types::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
 
         fn leaf(name: &str) -> TreeNode {
             TreeNode::Leaf(SeriesLeafWithSchema::new(

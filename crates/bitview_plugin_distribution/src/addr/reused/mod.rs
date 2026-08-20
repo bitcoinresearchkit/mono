@@ -22,9 +22,9 @@ pub use events::{AddrEventsVecs, AddrTypeToAddrEventCount};
 
 use brk_error::Result;
 
+use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
-use brk_cohort::ByAddrType;
 use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Exit, ReadableVec, Rw, StorageMode};
@@ -61,26 +61,26 @@ impl ReusedAddrVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
         outputs_by_type: &bitview_plugin_outputs::ByTypeVecs,
         inputs_by_type: &bitview_plugin_inputs::ByTypeVecs,
         all_supply: &CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let count = AddrCountFundedTotalVecs::forced_import(db, name, version, indexes)?;
+        let count = AddrCountFundedTotalVecs::forced_import(db, name, version, mappings)?;
         let events = AddrEventsVecs::forced_import(
             db,
             name,
             version,
-            indexes,
+            mappings,
             cached_starts,
             outputs_by_type,
             inputs_by_type,
         )?;
-        let supply = AddrSupplyVecs::forced_import(db, name, version, indexes, spot_price)?;
+        let supply = AddrSupplyVecs::forced_import(db, name, version, mappings, spot_price)?;
         let supply_share =
-            AddrSupplyShareVecs::forced_import(db, name, version, indexes, &supply, all_supply)?;
+            AddrSupplyShareVecs::forced_import(db, name, version, mappings, &supply, all_supply)?;
 
         Ok(Self {
             count,

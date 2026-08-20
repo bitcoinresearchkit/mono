@@ -1,27 +1,27 @@
-#[cfg(feature = "urpd")]
+#[cfg(feature = "bedrock")]
 use bitview_plugin_bedrock::{HasBedrock, Vecs as Bedrock};
-#[cfg(feature = "chain")]
+#[cfg(feature = "blocks")]
 use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
-#[cfg(feature = "urpd")]
+#[cfg(feature = "coinflow")]
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
-#[cfg(feature = "urpd")]
+#[cfg(feature = "cointime")]
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "distribution")]
 use bitview_plugin_distribution::{HasDistribution, Vecs as Distribution};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
-#[cfg(any(feature = "chain", feature = "series"))]
-use bitview_plugin_indexes::{HasIndexes, Vecs as Indexes};
-#[cfg(feature = "chain")]
+#[cfg(feature = "inputs")]
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
-#[cfg(feature = "chain")]
+#[cfg(feature = "mappings")]
+use bitview_plugin_mappings::{HasMappings, Vecs as Mappings};
+#[cfg(feature = "mining")]
 use bitview_plugin_mining::{HasMining, Vecs as Mining};
-#[cfg(feature = "chain")]
+#[cfg(feature = "outputs")]
 use bitview_plugin_outputs::{HasOutputs, Vecs as Outputs};
-#[cfg(feature = "chain")]
+#[cfg(feature = "pools")]
 use bitview_plugin_pools::{HasPools, Vecs as Pools};
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "price")]
 use bitview_plugin_price::{HasPrice, Vecs as Price};
-#[cfg(feature = "chain")]
+#[cfg(feature = "transactions")]
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
 use vecdb::Ro;
 
@@ -29,29 +29,29 @@ use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
     pub indexer: &'a Indexer<Ro>,
-    #[cfg(any(feature = "chain", feature = "urpd"))]
+    #[cfg(feature = "distribution")]
     pub distribution: &'a Distribution<Ro>,
-    #[cfg(any(feature = "chain", feature = "series"))]
-    pub indexes: &'a Indexes<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "mappings")]
+    pub mappings: &'a Mappings<Ro>,
+    #[cfg(feature = "blocks")]
     pub blocks: &'a Blocks<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "inputs")]
     pub inputs: &'a Inputs<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "mining")]
     pub mining: &'a Mining<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "outputs")]
     pub outputs: &'a Outputs<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "pools")]
     pub pools: &'a Pools<Ro>,
-    #[cfg(any(feature = "chain", feature = "urpd"))]
+    #[cfg(feature = "price")]
     pub price: &'a Price<Ro>,
-    #[cfg(feature = "chain")]
+    #[cfg(feature = "transactions")]
     pub transactions: &'a Transactions<Ro>,
-    #[cfg(feature = "urpd")]
+    #[cfg(feature = "bedrock")]
     pub bedrock: &'a Bedrock<Ro>,
-    #[cfg(feature = "urpd")]
+    #[cfg(feature = "coinflow")]
     pub coinflow: &'a Coinflow<Ro>,
-    #[cfg(feature = "urpd")]
+    #[cfg(feature = "cointime")]
     pub cointime: &'a Cointime<Ro>,
 }
 
@@ -64,29 +64,29 @@ impl<'a> QueryPlugins<'a> {
 
         Self {
             indexer: plugins.indexer(),
-            #[cfg(any(feature = "chain", feature = "urpd"))]
+            #[cfg(feature = "distribution")]
             distribution: plugins.distribution(),
-            #[cfg(any(feature = "chain", feature = "series"))]
-            indexes: plugins.indexes(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "mappings")]
+            mappings: plugins.mappings(),
+            #[cfg(feature = "blocks")]
             blocks: plugins.blocks(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "inputs")]
             inputs: plugins.inputs(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "mining")]
             mining: plugins.mining(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "outputs")]
             outputs: plugins.outputs(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "pools")]
             pools: plugins.pools(),
-            #[cfg(any(feature = "chain", feature = "urpd"))]
+            #[cfg(feature = "price")]
             price: plugins.price(),
-            #[cfg(feature = "chain")]
+            #[cfg(feature = "transactions")]
             transactions: plugins.transactions(),
-            #[cfg(feature = "urpd")]
+            #[cfg(feature = "bedrock")]
             bedrock: plugins.bedrock(),
-            #[cfg(feature = "urpd")]
+            #[cfg(feature = "coinflow")]
             coinflow: plugins.coinflow(),
-            #[cfg(feature = "urpd")]
+            #[cfg(feature = "cointime")]
             cointime: plugins.cointime(),
         }
     }

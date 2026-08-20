@@ -1,9 +1,10 @@
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, CentsSigned, PartsPerMillionSigned64};
 use vecdb::{Database, Rw, StorageMode};
 
 use super::{burned, velocity};
+use crate::STORAGE;
 use bitview_compute::{
     LazyFiatPerBlock, LazyPerBlock, LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight,
     LazySpotValuePerBlock, LazyValuePerBlock, Windows,
@@ -46,8 +47,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        crate::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

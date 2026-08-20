@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "examples/custom_plugin"]
 package.description = "The Bitcoin Research Kit is a suite of tools designed to extract, compute and display data stored on a Bitcoin Core node"
 package.license = "MIT"
 package.edition = "2024"
@@ -36,9 +36,14 @@ debug = true
 aide = { version = "0.16.0-alpha.4", features = ["axum-json", "axum-query"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "tracing"] }
 bitcoin = { version = "0.32.102", features = ["serde"] }
-bitview = { version = "0.11.2", path = "crates/bitview" }
+bitview = { version = "0.11.2", path = "crates/bitview", default-features = false }
+bitviewd = { version = "0.11.2", path = "crates/bitviewd" }
+bitview_bencher = { version = "0.11.2", path = "crates/bitview_bencher" }
+bitview_bindgen = { version = "0.11.2", path = "crates/bitview_bindgen" }
+bitview_client = { version = "0.11.2", path = "crates/bitview_client" }
+bitview_cohort = { version = "0.11.2", path = "crates/bitview_cohort" }
 bitview_compute = { version = "0.11.2", path = "crates/bitview_compute" }
-bitview_composition = { version = "0.11.2", path = "crates/bitview_composition" }
+bitview_default = { version = "0.11.2", path = "crates/bitview_default" }
 bitview_plugin = { version = "0.11.2", path = "crates/bitview_plugin" }
 bitview_plugin_bedrock = { version = "0.11.2", path = "crates/bitview_plugin_bedrock" }
 bitview_plugin_blocks = { version = "0.11.2", path = "crates/bitview_plugin_blocks" }
@@ -49,7 +54,7 @@ bitview_plugin_constants = { version = "0.11.2", path = "crates/bitview_plugin_c
 bitview_plugin_distribution = { version = "0.11.2", path = "crates/bitview_plugin_distribution" }
 bitview_plugin_indicators = { version = "0.11.2", path = "crates/bitview_plugin_indicators" }
 bitview_plugin_indexer = { version = "0.11.2", path = "crates/bitview_plugin_indexer" }
-bitview_plugin_indexes = { version = "0.11.2", path = "crates/bitview_plugin_indexes" }
+bitview_plugin_mappings = { version = "0.11.2", path = "crates/bitview_plugin_mappings" }
 bitview_plugin_investing = { version = "0.11.2", path = "crates/bitview_plugin_investing" }
 bitview_plugin_inputs = { version = "0.11.2", path = "crates/bitview_plugin_inputs" }
 bitview_plugin_market = { version = "0.11.2", path = "crates/bitview_plugin_market" }
@@ -61,27 +66,25 @@ bitview_plugin_price = { version = "0.11.2", path = "crates/bitview_plugin_price
 bitview_plugin_rarity_meter = { version = "0.11.2", path = "crates/bitview_plugin_rarity_meter" }
 bitview_plugin_supply = { version = "0.11.2", path = "crates/bitview_plugin_supply" }
 bitview_plugin_transactions = { version = "0.11.2", path = "crates/bitview_plugin_transactions" }
+bitview_query = { version = "0.11.2", path = "crates/bitview_query", default-features = false }
 bitview_runtime = { version = "0.11.2", path = "crates/bitview_runtime" }
+bitview_runtime_derive = { version = "0.11.2", path = "crates/bitview_runtime_derive" }
+bitview_server = { version = "0.11.2", path = "crates/bitview_server", default-features = false }
+bitview_traversable = { version = "0.11.2", path = "crates/bitview_traversable", features = ["pco", "derive"] }
+bitview_traversable_derive = { version = "0.11.2", path = "crates/bitview_traversable_derive" }
+bitview_types = { version = "0.11.2", path = "crates/bitview_types" }
+bitview_website = { version = "0.11.2", path = "crates/bitview_website" }
 brk_alloc = { version = "0.11.2", path = "crates/brk_alloc" }
-bitview_bencher = { version = "0.11.2", path = "crates/bitview_bencher" }
-bitview_bindgen = { version = "0.11.2", path = "crates/bitview_bindgen" }
-bitview_client = { version = "0.11.2", path = "crates/bitview_client" }
-brk_cohort = { version = "0.11.2", path = "crates/brk_cohort" }
 brk_error = { version = "0.11.2", path = "crates/brk_error" }
 brk_fetcher = { version = "0.11.2", path = "crates/brk_fetcher" }
 brk_iterator = { version = "0.11.2", path = "crates/brk_iterator" }
 brk_logger = { version = "0.11.2", path = "crates/brk_logger" }
 brk_mempool = { version = "0.11.2", path = "crates/brk_mempool" }
 brk_oracle = { version = "0.11.2", path = "crates/brk_oracle" }
-bitview_query = { version = "0.11.2", path = "crates/bitview_query", features = ["tokio"] }
 brk_reader = { version = "0.11.2", path = "crates/brk_reader" }
 brk_rpc = { version = "0.11.2", path = "crates/brk_rpc" }
-bitview_server = { version = "0.11.2", path = "crates/bitview_server" }
 brk_store = { version = "0.11.2", path = "crates/brk_store" }
-bitview_traversable = { version = "0.11.2", path = "crates/bitview_traversable", features = ["pco", "derive"] }
-bitview_traversable_derive = { version = "0.11.2", path = "crates/bitview_traversable_derive" }
 brk_types = { version = "0.11.2", path = "crates/brk_types" }
-bitview_website = { version = "0.11.2", path = "crates/bitview_website" }
 byteview = { package = "brk_byteview", version = "0.11.2", path = "crates/byteview" }
 color-eyre = "0.6.5"
 corepc-jsonrpc = { package = "jsonrpc", version = "0.19.0", features = ["simple_http"], default-features = false }

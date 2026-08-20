@@ -1,5 +1,5 @@
+use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_traversable::Traversable;
-use brk_cohort::{AgeRange, AgeRangeId};
 use brk_types::StoredF64;
 
 use bitview_compute::{LazyColumnPerBlock, LazyPerBlock};

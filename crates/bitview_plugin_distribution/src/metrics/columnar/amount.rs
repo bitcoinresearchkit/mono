@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use std::ops::AddAssign;
 
+use bitview_cohort::{Amount, AmountRange, AmountRangeId, CohortContext, Filter};
 use bitview_traversable::Traversable;
-use brk_cohort::{Amount, AmountRange, AmountRangeId, CohortContext, Filter};
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{

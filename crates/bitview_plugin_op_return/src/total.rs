@@ -37,7 +37,7 @@ impl Total {
         db: &Database,
         prefix: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         block_size: &CachedBoxedVec<Height, StoredU64>,
         chain_fees: &CachedBoxedVec<Height, Sats>,
@@ -46,28 +46,28 @@ impl Total {
             db,
             &format!("{prefix}_data_bytes"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let tx_count = PerBlockCumulativeRolling::forced_import(
             db,
             &format!("{prefix}_tx_count"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let tx_vsize = PerBlockCumulativeRolling::forced_import(
             db,
             &format!("{prefix}_tx_vsize"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let fees = PerBlockCumulativeRolling::forced_import(
             db,
             &format!("{prefix}_fees"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
 
@@ -77,7 +77,7 @@ impl Total {
                 version,
                 &data_bytes,
                 block_size.clone(),
-                indexes,
+                mappings,
             ),
             fee_share: Self::lazy_fee_share(
                 prefix,
@@ -85,7 +85,7 @@ impl Total {
                 &fees,
                 chain_fees.clone(),
                 cached_starts,
-                indexes,
+                mappings,
             ),
             data_bytes,
             tx_count,
@@ -99,7 +99,7 @@ impl Total {
         version: Version,
         data_bytes: &CachedPerBlockCumulativeRolling<Bytes>,
         block_size: CachedBoxedVec<Height, StoredU64>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> LazyPercentPerBlock<PartsPerMillion32> {
         let data_bytes = data_bytes.cumulative.height.read_only_clone();
         LazyPercentPerBlock::from_cached_ratio::<Bytes, StoredU64, RatioBytes<PartsPerMillion32>>(
@@ -107,7 +107,7 @@ impl Total {
             version,
             &data_bytes,
             block_size,
-            indexes,
+            mappings,
         )
     }
 
@@ -117,7 +117,7 @@ impl Total {
         fees: &PerBlockCumulativeRolling<Sats>,
         chain_fees: CachedBoxedVec<Height, Sats>,
         cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> LazyPercentCumulativeRolling<PartsPerMillion32> {
         LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
@@ -129,7 +129,7 @@ impl Total {
             &fees.cumulative.height,
             chain_fees,
             cached_starts,
-            indexes,
+            mappings,
         )
     }
 

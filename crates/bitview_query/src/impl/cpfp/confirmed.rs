@@ -114,7 +114,7 @@ impl Query {
         };
 
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
-        let mut input_count = plugins.indexes.tx_index.input_count.cursor();
+        let mut input_count = plugins.mappings.tx_index.input_count.cursor();
         let mut outpoint = indexer.vecs().inputs.outpoint.cursor();
         let first_txout = indexer
             .vecs()
@@ -122,7 +122,7 @@ impl Query {
             .first_txout_index
             .reader()
             .cursor();
-        let mut output_count = plugins.indexes.tx_index.output_count.cursor();
+        let mut output_count = plugins.mappings.tx_index.output_count.cursor();
         let spent = plugins.outputs.spent.txin_index.reader().cursor();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 

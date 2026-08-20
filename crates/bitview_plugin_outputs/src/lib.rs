@@ -9,9 +9,10 @@ mod value;
 mod compute;
 mod import;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use vecdb::{AnyVec, Database, Rw, StorageMode};
+use brk_types::Version;
+use vecdb::{Database, Rw, StorageMode};
 
 use bitview_compute::LazyPerSecondWindows;
 
@@ -23,7 +24,8 @@ use spent::Vecs as SpentVecs;
 use unspent::Vecs as UnspentVecs;
 use value::Vecs as ValueVecs;
 
-pub const ID: PluginId = PluginId::new("outputs");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("outputs"), Version::new(9));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -45,15 +47,11 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
         &self.plugin_gate
-    }
-
-    fn mutates_existing(&self, vec: &dyn AnyVec) -> bool {
-        std::ptr::addr_eq(vec, &self.spent.txin_index as &dyn AnyVec)
     }
 }

@@ -2,193 +2,526 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>bitview</title>
-    <meta name="description" content="Bitcoin transparency, amplified" />
-    <meta name="referrer" content="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      name="description"
+      content="Bitview is a collection of ways to explore and understand Bitcoin."
     />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="mobile-web-app-capable" content="yes" />
-
-    <!-- Keep URL in sync with @font-face in styles/fonts.css -->
-    <link
-      rel="preload"
-      as="font"
-      type="font/woff2"
-      href="/assets/fonts/Lilex[wght]-v2_620.woff2"
-      crossorigin
-    />
-
-    <!-- IMPORTMAP -->
-    <link rel="stylesheet" href="/src/explorer/chain/cube/style.css" />
-    <link rel="stylesheet" href="/src/explorer/chain/style.css" />
-    <link rel="stylesheet" href="/styles/chart.css" />
-    <link rel="stylesheet" href="/styles/components.css" />
-    <link rel="stylesheet" href="/styles/elements.css" />
-    <link rel="stylesheet" href="/styles/fonts.css" />
-    <link rel="stylesheet" href="/styles/main.css" />
-    <link rel="stylesheet" href="/styles/nav.css" />
-    <link rel="stylesheet" href="/styles/panes/chart.css" />
-    <link rel="stylesheet" href="/styles/panes/explorer.css" />
-    <link rel="stylesheet" href="/styles/reset.css" />
-    <link rel="stylesheet" href="/styles/search.css" />
-    <link rel="stylesheet" href="/styles/variables.css" />
-    <link rel="stylesheet" href="/src/heatmap/style.css" />
-    <!-- /IMPORTMAP -->
-
-    <!-- ------- -->
-    <!-- Scripts -->
-    <!-- ------- -->
-
-    <script>
-      const preferredColorSchemeMatchMedia = window.matchMedia(
-        "(prefers-color-scheme: dark)",
-      );
-
-      let storedTheme;
-      try {
-        storedTheme = localStorage.getItem("theme");
-      } catch (_) {}
-      const isDark = storedTheme
-        ? storedTheme === "dark"
-        : preferredColorSchemeMatchMedia.matches;
-      document.documentElement.style.colorScheme = isDark ? "dark" : "light";
-
-      const themeColor = window.document.createElement("meta");
-      themeColor.name = "theme-color";
-      window.document.getElementsByTagName("head")[0].appendChild(themeColor);
-
-      /** @param {boolean} dark */
-      function updateThemeColor(dark) {
-        const theme = getComputedStyle(
-          window.document.documentElement,
-        ).getPropertyValue(dark ? "--black" : "--white");
-        themeColor.content = theme;
+    <meta name="theme-color" content="#0b0b0b" />
+    <title>bitview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #0b0b0b;
+        --surface: #171717;
+        --surface-hover: #1e1e1e;
+        --line: #2a2a2a;
+        --muted: #99958e;
+        --text: #f3f0e9;
+        --orange: #f7931a;
+        --radius: 1.35rem;
       }
 
-      updateThemeColor(isDark);
-      preferredColorSchemeMatchMedia.addEventListener(
-        "change",
-        ({ matches }) => {
-          updateThemeColor(matches);
-        },
-      );
-
-      if ("standalone" in window.navigator && !!window.navigator.standalone) {
-        window.document.documentElement.dataset.display = "standalone";
+      * {
+        box-sizing: border-box;
       }
 
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/service-worker.js", {
-            scope: "/",
-          });
-        });
+      html {
+        background: var(--background);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
       }
 
-      let storedLayout;
-      try {
-        storedLayout = localStorage.getItem("split-view");
-      } catch (_) {}
-      const isSplit =
-        storedLayout !== "false" &&
-        window.matchMedia("(min-width: 768px)").matches;
-      document.documentElement.dataset.layout = isSplit ? "split" : "full";
+      body {
+        min-width: 20rem;
+        min-height: 100vh;
+        margin: 0;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 12% -10%, #332310 0, transparent 31rem),
+          var(--background);
+      }
 
-      try {
-        const savedWidth = localStorage.getItem("bar-width");
-        if (savedWidth) {
-          window.document.documentElement.style.setProperty(
-            "--sidebar-width",
-            `${savedWidth}px`,
-          );
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .shell {
+        width: min(100% - 2rem, 78rem);
+        margin-inline: auto;
+        padding-block: 1.25rem 3rem;
+      }
+
+      .topbar,
+      .intro,
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .topbar {
+        min-height: 3rem;
+      }
+
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.58rem;
+        font-size: 1rem;
+        font-weight: 660;
+        letter-spacing: -0.025em;
+      }
+
+      .wordmark::before {
+        width: 0.72rem;
+        height: 0.72rem;
+        border-radius: 50%;
+        background: var(--orange);
+        box-shadow: 0 0 1.5rem #f7931a73;
+        content: "";
+      }
+
+      .topbar nav {
+        display: flex;
+        gap: 0.4rem;
+      }
+
+      .quiet-link {
+        padding: 0.55rem 0.75rem;
+        border-radius: 999px;
+        color: var(--muted);
+        font-size: 0.78rem;
+        transition:
+          color 160ms ease,
+          background 160ms ease;
+      }
+
+      .quiet-link:hover {
+        color: var(--text);
+        background: #ffffff0b;
+      }
+
+      .intro {
+        align-items: end;
+        padding-block: clamp(4rem, 10vw, 8.5rem) clamp(2.2rem, 5vw, 4rem);
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 12ch;
+        font-size: clamp(3rem, 7.7vw, 7.2rem);
+        font-weight: 550;
+        line-height: 0.9;
+        letter-spacing: -0.075em;
+      }
+
+      .intro p {
+        max-width: 24rem;
+        padding-bottom: 0.45rem;
+        color: var(--muted);
+        font-size: clamp(0.95rem, 1.5vw, 1.12rem);
+        line-height: 1.55;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        grid-auto-rows: minmax(9.5rem, auto);
+        gap: 0.75rem;
+      }
+
+      .card {
+        position: relative;
+        display: flex;
+        min-height: 12rem;
+        overflow: hidden;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: clamp(1.25rem, 2.5vw, 2rem);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        isolation: isolate;
+      }
+
+      a.card {
+        transition:
+          border-color 180ms ease,
+          background 180ms ease,
+          transform 180ms ease;
+      }
+
+      a.card:hover {
+        border-color: #454545;
+        background: var(--surface-hover);
+        transform: translateY(-2px);
+      }
+
+      a.card:focus-visible,
+      .quiet-link:focus-visible {
+        outline: 2px solid var(--orange);
+        outline-offset: 3px;
+      }
+
+      .card-current {
+        grid-column: span 7;
+        grid-row: span 2;
+        min-height: 25rem;
+        background: #e9e5dc;
+        color: #121212;
+      }
+
+      a.card-current:hover {
+        border-color: #f5f2ea;
+        background: #f0ece3;
+      }
+
+      .card-next {
+        grid-column: span 5;
+        grid-row: span 2;
+        min-height: 25rem;
+        background:
+          linear-gradient(135deg, transparent 55%, #f7931a15), var(--surface);
+      }
+
+      .card-experiment {
+        grid-column: span 5;
+        min-height: 18rem;
+        border-color: var(--orange);
+        background: var(--orange);
+        color: #17100a;
+      }
+
+      a.card-experiment:hover {
+        border-color: #ffae4d;
+        background: #ffa12e;
+      }
+
+      .card-api {
+        grid-column: span 4;
+      }
+
+      .card-small {
+        grid-column: span 3;
+      }
+
+      .eyebrow,
+      .state {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.68rem;
+        font-weight: 620;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .card-current .eyebrow {
+        color: #666158;
+      }
+
+      .state {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        align-self: flex-start;
+        padding: 0.42rem 0.55rem;
+        border: 1px solid #ffffff1c;
+        border-radius: 999px;
+        color: var(--muted);
+      }
+
+      .state::before {
+        width: 0.38rem;
+        height: 0.38rem;
+        border-radius: 50%;
+        background: var(--orange);
+        content: "";
+      }
+
+      .card-copy {
+        position: relative;
+        z-index: 1;
+      }
+
+      .card h2 {
+        max-width: 12ch;
+        margin-top: 0.65rem;
+        font-size: clamp(1.7rem, 3.4vw, 3.5rem);
+        font-weight: 560;
+        line-height: 0.98;
+        letter-spacing: -0.055em;
+      }
+
+      .card:not(.card-current, .card-next, .card-experiment) h2 {
+        font-size: clamp(1.4rem, 2.3vw, 2.25rem);
+      }
+
+      .card p {
+        max-width: 29rem;
+        margin-top: 0.8rem;
+        color: var(--muted);
+        font-size: 0.86rem;
+        line-height: 1.5;
+      }
+
+      .card-current p {
+        color: #625d55;
+      }
+
+      .card-experiment p {
+        color: #553418;
+      }
+
+      .arrow {
+        position: absolute;
+        top: 1.4rem;
+        right: 1.5rem;
+        font-size: 1.25rem;
+        transition: transform 180ms ease;
+      }
+
+      a.card:hover .arrow {
+        transform: translate(0.18rem, -0.18rem);
+      }
+
+      .current-art {
+        position: absolute;
+        top: 12%;
+        right: -10%;
+        width: min(25rem, 58%);
+        aspect-ratio: 1;
+        border: 1px solid #17171720;
+        border-radius: 50%;
+      }
+
+      .current-art::before,
+      .current-art::after {
+        position: absolute;
+        border: 1px solid #17171720;
+        border-radius: inherit;
+        content: "";
+      }
+
+      .current-art::before {
+        inset: 18%;
+      }
+
+      .current-art::after {
+        inset: 38%;
+        border: 0;
+        background: var(--orange);
+        box-shadow: 0 0 3rem #f7931a70;
+      }
+
+      .next-grid {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        opacity: 0.28;
+        background-image:
+          linear-gradient(#ffffff0d 1px, transparent 1px),
+          linear-gradient(90deg, #ffffff0d 1px, transparent 1px);
+        background-size: 2.5rem 2.5rem;
+        mask-image: linear-gradient(to bottom left, #000, transparent 65%);
+      }
+
+      .height-preview {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+      }
+
+      .height-preview strong {
+        font-size: clamp(2.8rem, 7vw, 5.5rem);
+        font-weight: 520;
+        line-height: 0.85;
+        letter-spacing: -0.085em;
+      }
+
+      .height-preview span {
+        font-size: 0.68rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .footer {
+        padding: 2rem 0.3rem 0;
+        color: #706d67;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 0.68rem;
+      }
+
+      @media (max-width: 800px) {
+        .intro {
+          align-items: start;
+          flex-direction: column;
         }
-      } catch (_) {}
-    </script>
-    <script type="module" src="/scripts/entry.js" fetchpriority="high"></script>
 
-    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="96x96"
-      href="/assets/favicon/favicon-96x96.png"
-    />
-    <link rel="shortcut icon" href="/assets/favicon/favicon.ico" />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/assets/favicon/apple-touch-icon.png"
-    />
-    <meta name="apple-mobile-web-app-title" content="bitview" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
+        .intro p {
+          padding-top: 0.5rem;
+        }
+
+        .card-current,
+        .card-next,
+        .card-experiment,
+        .card-api,
+        .card-small {
+          grid-column: span 6;
+        }
+
+        .card-current,
+        .card-next {
+          min-height: 22rem;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .shell {
+          width: min(100% - 1rem, 78rem);
+          padding-top: 0.75rem;
+        }
+
+        .topbar nav .quiet-link:first-child {
+          display: none;
+        }
+
+        .intro {
+          padding-block: 4.5rem 2rem;
+        }
+
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .card-current,
+        .card-next,
+        .card-experiment,
+        .card-api,
+        .card-small {
+          grid-column: auto;
+          grid-row: auto;
+          min-height: 16rem;
+        }
+
+        .card-current {
+          min-height: 21rem;
+        }
+
+        .footer {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        a.card,
+        .arrow,
+        .quiet-link {
+          transition: none;
+        }
+      }
+    </style>
   </head>
   <body>
-    <main id="main">
-      <nav id="nav" hidden></nav>
-
-      <search id="search" hidden>
-        <header>
-          <div>
-            <h3
-              style="
-                display: flex;
-                flex-direction: column;
-                text-transform: uppercase;
-              "
-            >
-              <input placeholder="Search..." id="search-input" />
-            </h3>
-          </div>
-        </header>
-        <ul id="search-results"></ul>
-      </search>
-    </main>
-    <div id="resize-bar"></div>
-    <aside id="aside">
-      <div id="explorer" hidden></div>
-      <div id="chart" hidden></div>
-      <div id="heatmap" hidden></div>
-    </aside>
-    <footer>
-      <fieldset id="frame-selectors">
-        <label
-          id="aside-selector-label"
-          for="aside-selector"
-          title="View sidebar"
-          class="full-only"
+    <div class="shell">
+      <header class="topbar">
+        <a class="wordmark" href="./index.html" aria-label="Bitview home"
+          >bitview</a
         >
-          <input type="radio" name="frame" id="aside-selector" value="aside" />
-          View
-        </label>
+        <nav aria-label="Secondary navigation">
+          <a class="quiet-link" href="https://github.com/bitcoinresearchkit/brk"
+            >Source</a
+          >
+          <a class="quiet-link" href="https://bitview.space/api">API</a>
+        </nav>
+      </header>
 
-        <label id="nav-selector-label" for="nav-selector" title="Nav">
-          <input type="radio" name="frame" id="nav-selector" value="nav" />
-          Browse
-        </label>
+      <main>
+        <section class="intro" aria-labelledby="page-title">
+          <h1 id="page-title">See Bitcoin differently.</h1>
+          <p>
+            Bitview is becoming a collection of focused interfaces—each one a
+            different way into the same open dataset.
+          </p>
+        </section>
 
-        <label id="search-selector-label" for="search-selector" title="Search">
-          <input
-            type="radio"
-            name="frame"
-            id="search-selector"
-            value="search"
-          />
-          Search
-        </label>
+        <section class="grid" aria-label="Bitview experiences">
+          <a
+            class="card card-current"
+            href="https://bitview.space/"
+            aria-label="Open the current Bitview application"
+          >
+            <span class="eyebrow">Current</span>
+            <span class="arrow" aria-hidden="true">↗</span>
+            <span class="current-art" aria-hidden="true"></span>
+            <div class="card-copy">
+              <h2>The complete data explorer.</h2>
+              <p>Charts, blocks, transactions, addresses and on-chain metrics.</p>
+            </div>
+          </a>
 
-        <button id="share-button" title="Share">Share</button>
-        <button id="theme-button" title="Invert theme">Theme</button>
-        <button id="layout-button"></button>
-      </fieldset>
-    </footer>
-    <div id="share-div" hidden>
-      <div id="share-content-div">
-        <img id="share-img" src="" />
-        <a id="share-anchor" href="/"></a>
-      </div>
+          <article class="card card-next">
+            <span class="state">In progress</span>
+            <span class="next-grid" aria-hidden="true"></span>
+            <div class="card-copy">
+              <span class="eyebrow">Next</span>
+              <h2>A more human way to explore.</h2>
+              <p>Guided discovery, clearer stories and a new visual language.</p>
+            </div>
+          </article>
+
+          <a
+            class="card card-experiment"
+            href="./experiments/height.html"
+            aria-label="Open the block height experiment"
+          >
+            <span class="eyebrow">Experiment 001</span>
+            <span class="arrow" aria-hidden="true">↗</span>
+            <div class="height-preview" aria-hidden="true">
+              <strong>one</strong><span>number</span>
+            </div>
+            <div class="card-copy">
+              <h2>How simple can Bitview be?</h2>
+              <p>The entire interface is the latest indexed block.</p>
+            </div>
+          </a>
+
+          <a class="card card-api" href="https://bitview.space/api">
+            <span class="eyebrow">API</span>
+            <span class="arrow" aria-hidden="true">↗</span>
+            <div class="card-copy">
+              <h2>Build your own view.</h2>
+              <p>Explore the public endpoints behind every Bitview interface.</p>
+            </div>
+          </a>
+
+          <a class="card card-small" href="https://bitview.space/llms.txt">
+            <span class="eyebrow">Plain text</span>
+            <span class="arrow" aria-hidden="true">↗</span>
+            <div class="card-copy">
+              <h2>For machines.</h2>
+              <p>A compact map of the Bitview API.</p>
+            </div>
+          </a>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>Bitcoin transparency, amplified.</span>
+        <span>Open source · No account required</span>
+      </footer>
     </div>
   </body>
 </html>

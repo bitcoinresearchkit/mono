@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{Amount, AmountRange, AmountRangeId, CohortContext, Filter};
 use bitview_traversable::Traversable;
-use brk_cohort::{Amount, AmountRange, AmountRangeId, CohortContext, Filter};
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};

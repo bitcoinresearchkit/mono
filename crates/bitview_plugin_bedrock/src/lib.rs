@@ -79,6 +79,10 @@ use weighted::{WeightedModeId, WeightedModes};
 use weighted_pair::WeightedPair;
 use weighted_urpd_names::WeightedUrpdNames;
 
+use bitview_plugin::{PluginId, PluginStorage};
+use brk_types::Version;
+
 pub use vecs::Vecs;
 
-pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("bedrock");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(14));
+pub const ID: PluginId = STORAGE.id();

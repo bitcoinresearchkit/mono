@@ -1,5 +1,5 @@
+use bitview_cohort::{TermId, UTXOAggregateId};
 use bitview_traversable::Traversable;
-use brk_cohort::{TermId, UTXOAggregateId};
 use brk_types::{Cents, Height, Sats, StoredF64};
 use vecdb::{ColumnarVec, EagerVec, PcoVec, Rw, StorageMode};
 

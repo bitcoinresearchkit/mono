@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Outputs\_UnspentCount\_AddrBalance
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11246](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11246)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11208](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11208)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11246](https://github
 
 > **matrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11250](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11250)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11212](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11212)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11250](https://github
 
 > **over**: [`SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over`](SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11249](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11249)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11211](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11211)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11249](https://github
 
 > **range**: [`SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range`](SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11247](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11247)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11209](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11209)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11247](https://github
 
 > **under**: [`SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under`](SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11248](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11248)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11210](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11210)

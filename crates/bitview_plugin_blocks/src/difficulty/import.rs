@@ -27,11 +27,11 @@ fn difficulty_adjustment(
 }
 
 pub trait Import {
-    fn new(version: Version, indexer: &Indexer, indexes: &bitview_plugin_indexes::Vecs) -> Self;
+    fn new(version: Version, indexer: &Indexer, mappings: &bitview_plugin_mappings::Vecs) -> Self;
 }
 
 impl Import for Vecs {
-    fn new(version: Version, indexer: &Indexer, indexes: &bitview_plugin_indexes::Vecs) -> Self {
+    fn new(version: Version, indexer: &Indexer, mappings: &bitview_plugin_mappings::Vecs) -> Self {
         let v2 = Version::TWO;
 
         let difficulty_source =
@@ -40,20 +40,20 @@ impl Import for Vecs {
             "difficulty_hashrate",
             version,
             difficulty_source.clone(),
-            indexes,
+            mappings,
         );
 
-        let epoch_source = CACHE_BUDGET.wrap(indexes.height.epoch.read_only_clone());
+        let epoch_source = CACHE_BUDGET.wrap(mappings.height.epoch.read_only_clone());
         let epoch = LazyPerBlock::from_height_source::<Identity<Epoch>>(
             "difficulty_epoch",
             version,
             epoch_source,
-            indexes,
+            mappings,
         );
         let blocks_to_retarget_source = LazyVec::init(
             "blocks_to_retarget_source",
             version + v2,
-            indexes.height.epoch.read_only_boxed_clone(),
+            mappings.height.epoch.read_only_boxed_clone(),
             blocks_left_to_retarget,
         );
         let blocks_to_retarget_source = CACHE_BUDGET.wrap(blocks_to_retarget_source);
@@ -61,7 +61,7 @@ impl Import for Vecs {
             "blocks_to_retarget",
             version + v2,
             blocks_to_retarget_source,
-            indexes,
+            mappings,
         );
 
         let days_to_retarget = LazyPerBlock::from_lazy::<BlocksToDaysF32, StoredU32>(
@@ -75,7 +75,7 @@ impl Import for Vecs {
                 "difficulty",
                 difficulty_source,
                 version,
-                indexes,
+                mappings,
             ),
             hashrate,
             adjustment: LazyPercentPerBlock::from_lookback_source(
@@ -84,7 +84,7 @@ impl Import for Vecs {
                 &indexer.vecs().blocks.difficulty,
                 DIFFICULTY_ADJUSTMENT_LOOKBACK,
                 difficulty_adjustment,
-                indexes,
+                mappings,
             ),
             epoch,
             blocks_to_retarget,

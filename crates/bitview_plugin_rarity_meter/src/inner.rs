@@ -41,9 +41,9 @@ pub fn forced_import(
     db: &Database,
     prefix: &str,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<RarityMeterInner> {
-    RarityMeterInner::forced_import(db, prefix, version, indexes)
+    RarityMeterInner::forced_import(db, prefix, version, mappings)
 }
 
 pub fn compute(
@@ -61,7 +61,7 @@ impl RarityMeterInner {
         db: &Database,
         prefix: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let version = version + VERSION;
         let prices = ColumnarPerBlock::<Cents, RarityPercentileId, _>::forced_import(
@@ -75,7 +75,7 @@ impl RarityMeterInner {
                         version,
                         source,
                         id,
-                        indexes,
+                        mappings,
                     )
                 })
             },
@@ -83,8 +83,8 @@ impl RarityMeterInner {
 
         Ok(Self {
             prices,
-            index: PerBlock::forced_import(db, &format!("{prefix}_index"), version, indexes)?,
-            score: PerBlock::forced_import(db, &format!("{prefix}_score"), version, indexes)?,
+            index: PerBlock::forced_import(db, &format!("{prefix}_index"), version, mappings)?,
+            score: PerBlock::forced_import(db, &format!("{prefix}_score"), version, mappings)?,
         })
     }
 

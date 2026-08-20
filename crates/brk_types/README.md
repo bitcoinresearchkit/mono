@@ -1,45 +1,41 @@
 # brk_types
 
-Domain types for Bitcoin data analysis with serialization and indexing support.
+Bitcoin domain and storage-index types shared across BRK and Bitview.
 
-## What It Enables
+## What it provides
 
-Work with Bitcoin primitives (heights, satoshis, addresses, transactions) through purpose-built types that handle encoding, arithmetic, time conversions, and database storage automatically.
+Purpose-built types for heights, amounts, hashes, addresses, transactions,
+calendar indexes, protocol epochs, and API values that are intrinsically tied
+to Bitcoin. Query-protocol types such as `SeriesSelection`, `SeriesData`,
+`Pagination`, and `TreeNode` live in `bitview_types`.
 
-## Key Features
-
-- **Bitcoin primitives**: `Height`, `Sats`, `Txid`, `BlockHash`, `Outpoint` with full arithmetic and conversion support
-- **Address types**: All output types (P2PK33, P2PK65, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, OP_RETURN) with address index variants
-- **Time indexes**: `DateIndex`, `WeekIndex`, `MonthIndex`, `QuarterIndex`, `SemesterIndex`, `YearIndex`, `DecadeIndex` with cross-index conversion
-- **Protocol types**: `Epoch`, `Halving`, `TxVersion`, `RawLocktime`
-- **Financial types**: `Dollars`, `Cents`, `OHLC` (Open/High/Low/Close)
-- **Serialization**: Serde + JSON Schema generation via schemars
-- **Compression**: PCO (Pco) derive for columnar compression in vecdb
-
-## Type Categories
+## Type categories
 
 | Category | Examples |
 |----------|----------|
 | Block metadata | `Height`, `BlockHash`, `BlockTimestamp`, `BlkPosition` |
-| Transaction | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `Vsize`, `Weight` |
-| Address | `P2PKHAddressIndex`, `P2TRBytes`, `AnyAddressIndex`, `AddressStats` |
-| Value | `Sats`, `Dollars`, `Cents`, `Bitcoin` |
-| Time | `Date`, `DateIndex`, `WeekIndex`, `MonthIndex`, ... |
-| Metric | `Metric`, `MetricData`, `MetricSelection` |
-| API | `Pagination`, `Health`, `RecommendedFees`, `MempoolInfo` |
+| Transactions | `Txid`, `TxIndex`, `TxIn`, `TxOut`, `VSize`, `Weight` |
+| Addresses | `Addr`, `OutputType`, `P2PKHAddrIndex`, `AnyAddrIndex`, `AddrStats` |
+| Values | `Sats`, `Bitcoin`, `Dollars`, `Cents`, `OHLCCents` |
+| Time indexes | `Day1`, `Day3`, `Week1`, `Month1`, `Month3`, `Month6`, `Year1`, `Year10` |
+| Protocol | `Epoch`, `Halving`, `TxVersion`, `RawLockTime` |
 
-## Core API
+The types implement the serialization, JSON Schema, arithmetic, formatting,
+and vecdb traits needed by their domains rather than exposing a parallel set of
+API wrapper types.
 
-All types implement standard traits: `Debug`, `Clone`, `Serialize`, `Deserialize`, plus domain-specific operations like `CheckedSub`, `Formattable`, and `PrintableIndex`.
+## Example
 
 ```rust,ignore
-use brk_types::{Height, Sats, DateIndex, Date};
+use brk_types::{Date, Day1, Height, Sats};
 
 let height = Height::new(840_000);
-let reward = Sats::FIFTY_BTC / 16;  // Post-4th-halving reward
-let date_idx = DateIndex::try_from(Date::new(2024, 4, 20))?;
+let reward = Sats::FIFTY_BTC / 16;
+let day = Day1::try_from(Date::new(2024, 4, 20))?;
 ```
 
-## Built On
+## Built on
 
-- `brk_error` for error handling
+- `bitcoin` for consensus primitives and address parsing
+- `brk_error` for shared errors
+- `vecdb` for persistent-vector traits

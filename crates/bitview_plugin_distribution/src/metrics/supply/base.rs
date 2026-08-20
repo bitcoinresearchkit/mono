@@ -21,7 +21,7 @@ impl SupplyBase {
         version: Version,
         total: LazySpotValuePerBlock,
         all_supply: &CachedBoxedVec<Height, Sats>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let dominance_name = Self::metric_name(cohort_name, "supply_dominance");
@@ -34,14 +34,14 @@ impl SupplyBase {
         );
         let source = CACHE_BUDGET.wrap(source);
         let dominance =
-            LazyPercentPerBlock::from_height_source(&dominance_name, version, source, indexes);
+            LazyPercentPerBlock::from_height_source(&dominance_name, version, source, mappings);
 
         Self::new(
             cohort_name,
             version,
             total,
             dominance,
-            indexes,
+            mappings,
             cached_starts,
         )
     }
@@ -50,7 +50,7 @@ impl SupplyBase {
         cohort_name: &str,
         version: Version,
         total: LazySpotValuePerBlock,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let dominance_name = Self::metric_name(cohort_name, "supply_dominance");
@@ -62,14 +62,14 @@ impl SupplyBase {
         );
         let source = CACHE_BUDGET.wrap(source);
         let dominance =
-            LazyPercentPerBlock::from_height_source(&dominance_name, version, source, indexes);
+            LazyPercentPerBlock::from_height_source(&dominance_name, version, source, mappings);
 
         Self::new(
             cohort_name,
             version,
             total,
             dominance,
-            indexes,
+            mappings,
             cached_starts,
         )
     }
@@ -79,7 +79,7 @@ impl SupplyBase {
         version: Version,
         total: LazySpotValuePerBlock,
         dominance: LazyPercentPerBlock<PartsPerMillion32>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let delta = LazyRollingDeltasAmountFromHeight::new(
@@ -87,7 +87,7 @@ impl SupplyBase {
             version + Version::TWO,
             &total.sats.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Self {

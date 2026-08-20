@@ -6,4 +6,9 @@ pub use dependencies::Dependencies;
 pub use has::HasCapitalSentiment;
 pub use vecs::Vecs;
 
-pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("capital_sentiment");
+use bitview_plugin::{PluginId, PluginStorage};
+use brk_types::Version;
+
+const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("capital_sentiment"), Version::new(14));
+pub const ID: PluginId = STORAGE.id();

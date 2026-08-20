@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use std::ops::AddAssign;
 
+use bitview_cohort::{ByTerm, TermId, UTXOAggregate};
 use bitview_traversable::Traversable;
-use brk_cohort::{ByTerm, TermId, UTXOAggregate};
 use brk_types::{Height, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecValue, ColumnarVec, Database, ImportableVec, Rw,

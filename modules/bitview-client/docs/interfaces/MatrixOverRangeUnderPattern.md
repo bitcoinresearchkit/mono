@@ -6,7 +6,7 @@
 
 # Interface: MatrixOverRangeUnderPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5939](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5939)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5939](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5939)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5939](https://github.
 
 > **matrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5940](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5940)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5940](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5940)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5940](https://github.
 
 > **over**: [`_100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern`](100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5941](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5941)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5941](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5941)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5941](https://github.
 
 > **range**: [`_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern`](0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5942](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5942)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5942](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5942)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5942](https://github.
 
 > **under**: [`_100btc100k100sats10btc10k10m10sats1btc1k1mPattern`](100btc100k100sats10btc10k10m10sats1btc1k1mPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5943](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5943)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5943](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5943)

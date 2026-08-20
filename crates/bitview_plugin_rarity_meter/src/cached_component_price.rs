@@ -33,7 +33,7 @@ impl CachedComponentPrice {
         name: &str,
         version: Version,
         ratio: &(impl ReadableCloneableVec<Height, PartsPerMillion32> + 'static),
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Price<LazyPerBlock<Cents>> {
         let source = LazyIndexedVec::new(
             &format!("{name}_cents_source"),
@@ -45,7 +45,7 @@ impl CachedComponentPrice {
             },
         );
 
-        Price::from_height_source(name, version, source, indexes)
+        Price::from_height_source(name, version, source, mappings)
     }
 
     pub fn clear_if_recomputed_from(&self, height: Height) {

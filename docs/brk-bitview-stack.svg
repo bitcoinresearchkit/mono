@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="svg-title svg-desc">
+  <title id="svg-title">From toolkit to public instance</title>
+  <desc id="svg-desc">Three vertical cards explain BRK, Bitview, and bitview.space.</desc>
+  <rect width="1600" height="900" fill="#fff8f0"/>
+  <g font-family="ui-rounded, 'SF Pro Rounded', 'Arial Rounded MT Bold', system-ui, sans-serif">
+    <text x="800" y="100" fill="#1f2023" font-size="56" font-weight="750" text-anchor="middle" letter-spacing="-.8">FROM TOOLKIT TO PUBLIC INSTANCE</text>
+    <text x="800" y="158" fill="#c2410c" font-size="30" font-weight="650" text-anchor="middle">brk   ←   bitview   ←   bitview.space</text>
+
+    <g>
+      <rect x="70" y="210" width="390" height="620" rx="26" fill="#1f2023" stroke="#1f2023" stroke-width="3"/>
+      <text x="102" y="270" fill="#ff922b" font-size="18" font-weight="800" letter-spacing="1.3">TOOLKIT</text>
+      <text x="102" y="345" fill="#ffffff" font-size="52" font-weight="750">brk</text>
+      <text x="102" y="407" fill="#d9d9d9" font-size="23" font-weight="500">Reusable Bitcoin primitives</text>
+      <line x1="102" y1="445" x2="428" y2="445" stroke="#555860" stroke-width="2"/>
+      <g>
+        <text x="102" y="493" fill="#ff922b" font-size="17" font-weight="750">01</text>
+        <text x="148" y="493" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">CHAIN</text>
+        <text x="148" y="532" fill="#d9d9d9" font-size="18" font-weight="500">Reader + domain types</text>
+        <line x1="102" y1="566" x2="428" y2="566" stroke="#555860"/>
+        <text x="102" y="608" fill="#ff922b" font-size="17" font-weight="750">02</text>
+        <text x="148" y="608" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">LIVE NODE</text>
+        <text x="148" y="647" fill="#d9d9d9" font-size="18" font-weight="500">RPC + mempool</text>
+        <line x1="102" y1="681" x2="428" y2="681" stroke="#555860"/>
+        <text x="102" y="723" fill="#ff922b" font-size="17" font-weight="750">03</text>
+        <text x="148" y="723" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">LOCAL DATA</text>
+        <text x="148" y="762" fill="#d9d9d9" font-size="18" font-weight="500">Oracle + storage</text>
+      </g>
+    </g>
+
+    <g>
+      <rect x="605" y="210" width="390" height="620" rx="26" fill="#fff1dc" stroke="#f97316" stroke-width="3"/>
+      <text x="637" y="270" fill="#9a3412" font-size="18" font-weight="800" letter-spacing="1.3">SELF-HOSTABLE PLATFORM</text>
+      <text x="637" y="345" fill="#1f2023" font-size="52" font-weight="750">bitview</text>
+      <text x="637" y="398" fill="#6b4f3a" font-size="23" font-weight="500">A composed Bitcoin</text>
+      <text x="637" y="425" fill="#6b4f3a" font-size="23" font-weight="500">data platform</text>
+      <line x1="637" y1="445" x2="963" y2="445" stroke="#fdba74" stroke-width="2"/>
+      <g>
+        <text x="637" y="493" fill="#9a3412" font-size="17" font-weight="750">01</text>
+        <text x="683" y="493" fill="#1f2023" font-size="22" font-weight="750" letter-spacing=".7">COMPOSE</text>
+        <text x="683" y="532" fill="#6b4f3a" font-size="18" font-weight="500">Plugin runtime + custom plugins</text>
+        <line x1="637" y1="566" x2="963" y2="566" stroke="#fdba74"/>
+        <text x="637" y="608" fill="#9a3412" font-size="17" font-weight="750">02</text>
+        <text x="683" y="608" fill="#1f2023" font-size="22" font-weight="750" letter-spacing=".7">COMPUTE</text>
+        <text x="683" y="643" fill="#6b4f3a" font-size="18" font-weight="500">Indexer + mappings +</text>
+        <text x="683" y="666" fill="#6b4f3a" font-size="18" font-weight="500">8,000+ metrics</text>
+        <line x1="637" y1="681" x2="963" y2="681" stroke="#fdba74"/>
+        <text x="637" y="723" fill="#9a3412" font-size="17" font-weight="750">03</text>
+        <text x="683" y="723" fill="#1f2023" font-size="22" font-weight="750" letter-spacing=".7">DELIVER</text>
+        <text x="683" y="762" fill="#6b4f3a" font-size="18" font-weight="500">Query + server + website</text>
+      </g>
+    </g>
+
+    <g>
+      <rect x="1140" y="210" width="390" height="620" rx="26" fill="#f97316" stroke="#c2410c" stroke-width="3"/>
+      <text x="1172" y="270" fill="#fff4e6" font-size="18" font-weight="800" letter-spacing="1.3">OFFICIAL DEPLOYMENT</text>
+      <text x="1172" y="340" fill="#ffffff" font-size="39" font-weight="750">bitview.space</text>
+      <text x="1172" y="407" fill="#fff4e6" font-size="23" font-weight="500">Free public access</text>
+      <line x1="1172" y1="445" x2="1498" y2="445" stroke="#fed7aa" stroke-width="2"/>
+      <g>
+        <text x="1172" y="493" fill="#fff4e6" font-size="17" font-weight="750">01</text>
+        <text x="1218" y="493" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">EXPLORE</text>
+        <text x="1218" y="532" fill="#fff4e6" font-size="18" font-weight="500">Website + charts</text>
+        <line x1="1172" y1="566" x2="1498" y2="566" stroke="#fed7aa"/>
+        <text x="1172" y="608" fill="#fff4e6" font-size="17" font-weight="750">02</text>
+        <text x="1218" y="608" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">INTEGRATE</text>
+        <text x="1218" y="647" fill="#fff4e6" font-size="18" font-weight="500">REST API + typed clients</text>
+        <line x1="1172" y1="681" x2="1498" y2="681" stroke="#fed7aa"/>
+        <text x="1172" y="723" fill="#fff4e6" font-size="17" font-weight="750">03</text>
+        <text x="1218" y="723" fill="#ffffff" font-size="22" font-weight="750" letter-spacing=".7">ASK</text>
+        <text x="1218" y="762" fill="#fff4e6" font-size="18" font-weight="500">Stateless MCP, no auth</text>
+      </g>
+    </g>
+
+    <g fill="#c2410c" font-size="15" font-weight="800" text-anchor="middle" letter-spacing=".8">
+      <text x="532.5" y="403">BUILT ON</text>
+      <text x="1067.5" y="403">DEPLOYMENT OF</text>
+    </g>
+    <path d="M585 425 H490 M502 415 L490 425 L502 435" fill="none" stroke="#ea580c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1120 425 H1025 M1037 415 L1025 425 L1037 435" fill="none" stroke="#ea580c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

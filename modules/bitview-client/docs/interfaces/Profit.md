@@ -6,7 +6,7 @@
 
 # Interface: Profit
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1024](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1024)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1024](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1024)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1024](https://github.
 
 > **\_100pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1035)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1035)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.
 
 > **\_10pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1026)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1026)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.
 
 > **\_200pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1036)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1036)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.
 
 > **\_20pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1027)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1027)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.
 
 > **\_300pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1037](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1037)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1037](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1037)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1037](https://github.
 
 > **\_30pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1028)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1028)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.
 
 > **\_40pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1029](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1029)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1029](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1029)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1029](https://github.
 
 > **\_500pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1038)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1038)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.
 
 > **\_50pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1030](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1030)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1030](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1030)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1030](https://github.
 
 > **\_60pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1031](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1031)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1031](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1031)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1031](https://github.
 
 > **\_70pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1032](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1032)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1032](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1032)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1032](https://github.
 
 > **\_80pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1033](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1033)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1033](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1033)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1033](https://github.
 
 > **\_90pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1034](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1034)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1034](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1034)
 
 ***
 
@@ -118,4 +118,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1034](https://github.
 
 > **all**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1025](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1025)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1025](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1025)

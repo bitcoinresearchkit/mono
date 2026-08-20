@@ -1,10 +1,12 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
+use crate::{Dependencies, burned};
+
 impl Vecs {
     fn compute_inner(
         &mut self,
@@ -17,7 +19,7 @@ impl Vecs {
         self.db.sync_bg_tasks()?;
 
         // 1. Compute burned/unspendable supply
-        crate::burned::compute(&mut self.burned, indexer, outputs, mining, prices, exit)?;
+        burned::compute(&mut self.burned, indexer, outputs, mining, prices, exit)?;
 
         let exit = exit.clone();
         self.db.run_bg(move |db| {
@@ -30,20 +32,20 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
             dependencies.outputs,
             dependencies.mining,
             dependencies.price,
-            exit,
+            context.exit(),
         )
     }
 }

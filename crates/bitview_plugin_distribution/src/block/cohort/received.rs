@@ -1,4 +1,4 @@
-use brk_cohort::AmountBucket;
+use bitview_cohort::AmountBucket;
 use brk_types::{Cents, Sats, TypeIndex};
 use rustc_hash::FxHashMap;
 

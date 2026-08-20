@@ -1,5 +1,3 @@
-use rawdb::unlikely;
-
 use crate::{AnyStoredVec, HEADER_OFFSET, RawIoSource, ReadableVec, VecIndex, VecValue};
 
 use super::{super::RawStrategy, ReadWriteRawVec};
@@ -17,19 +15,9 @@ where
             return None;
         }
 
-        if unlikely(!self.holes().is_empty()) && self.holes().contains(&index) {
-            return None;
-        }
-
         let stored_len = self.stored_len();
         if index >= stored_len {
             return self.base.pushed().get(index - stored_len).cloned();
-        }
-
-        if unlikely(!self.updated().is_empty())
-            && let Some(value) = self.updated().get(&index)
-        {
-            return Some(value.clone());
         }
 
         Some(self.base.region().with_read_bytes(|bytes| unsafe {
@@ -47,11 +35,6 @@ where
         }
 
         buf.reserve(to - from);
-
-        if self.has_dirty_stored() {
-            self.fold_dirty(from, to, (), |(), v| buf.push(v));
-            return;
-        }
 
         let stored_len = self.stored_len();
 
@@ -107,10 +90,6 @@ where
             return init;
         }
 
-        if self.has_dirty_stored() {
-            return self.fold_dirty(from, to, init, f);
-        }
-
         let stored_len = self.stored_len();
 
         if to <= stored_len {
@@ -140,10 +119,6 @@ where
         let to = to.min(len);
         if from >= to {
             return Ok(init);
-        }
-
-        if self.has_dirty_stored() {
-            return self.try_fold_dirty(from, to, init, f);
         }
 
         let stored_len = self.stored_len();

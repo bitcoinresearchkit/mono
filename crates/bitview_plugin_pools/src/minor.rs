@@ -28,7 +28,7 @@ impl Vecs {
         slug: PoolSlug,
         pool_heights: PoolHeights,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let suffix = |s: &str| format!("{}_{s}", slug);
@@ -38,7 +38,7 @@ impl Vecs {
             slug,
             pool_heights,
             version + Version::ONE,
-            indexes,
+            mappings,
             cached_starts,
         );
 
@@ -53,7 +53,7 @@ impl Vecs {
             &dominance_name,
             version,
             dominance_source,
-            indexes,
+            mappings,
         );
 
         Self {

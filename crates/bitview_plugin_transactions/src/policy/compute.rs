@@ -13,18 +13,18 @@ const WRITE_INTERVAL: usize = 10_000;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     fees: &fees::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, indexes, fees, exit)
+    vecs.compute(indexer, mappings, fees, exit)
 }
 
 impl Vecs {
     fn compute(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         fees: &fees::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -33,7 +33,7 @@ impl Vecs {
             + features.has_dust_output.version()
             + fees.fee.tx_index.version()
             + indexer.vecs().transactions.first_tx_index.version()
-            + indexes.height.tx_index_count.version();
+            + mappings.height.tx_index_count.version();
         self.is_nonstandard
             .validate_computed_version_or_reset(version)?;
         self.count
@@ -42,7 +42,7 @@ impl Vecs {
 
         let starting_lengths = indexer.safe_lengths();
         let target_tx = fees.fee.tx_index.len();
-        let target_height = indexes.height.tx_index_count.len();
+        let target_height = mappings.height.tx_index_count.len();
         let tx_len = self
             .is_nonstandard
             .len()
@@ -57,7 +57,7 @@ impl Vecs {
         let next_height = if tx_len >= target_tx {
             target_height
         } else {
-            indexes
+            mappings
                 .tx_heights
                 .get_shared(TxIndex::from(tx_len))
                 .unwrap()
@@ -76,7 +76,7 @@ impl Vecs {
         let mut unconditional = features.is_unconditionally_nonstandard.cursor();
         let mut has_dust = features.has_dust_output.cursor();
         let mut fee = fees.fee.tx_index.cursor();
-        let mut tx_count = indexes.height.tx_index_count.cursor();
+        let mut tx_count = mappings.height.tx_index_count.cursor();
         unconditional.advance(start_tx);
         has_dust.advance(start_tx);
         fee.advance(start_tx);

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_AvgAmount
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8239](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L8239)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8242](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8242)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8239](https://github.
 
 > **addr**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8241](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L8241)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8244](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8244)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8241](https://github.
 
 > **utxo**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8240](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L8240)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8243](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8243)

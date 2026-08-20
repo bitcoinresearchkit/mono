@@ -26,7 +26,7 @@ pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
 
     writeln!(
         output,
-        "    def __init__(self, base_url: str = 'http://localhost:3000', timeout: float = 30.0):"
+        "    def __init__(self, base_url: str = 'http://localhost:3110', timeout: float = 30.0):"
     )
     .unwrap();
     writeln!(output, "        super().__init__(base_url, timeout)").unwrap();

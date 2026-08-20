@@ -9,10 +9,12 @@ repository.workspace = true
 
 [dependencies]
 derive_more = { workspace = true }
-brk_cohort = { workspace = true }
-bitview_query = { workspace = true }
+bitview_cohort = { workspace = true }
+bitview_query = { workspace = true, default-features = false }
+bitview_types = { workspace = true }
 brk_types = { workspace = true }
 indexmap = { workspace = true }
 oas3 = "0.22"
 serde = { workspace = true }
 serde_json = { workspace = true }
+tempfile = { workspace = true }

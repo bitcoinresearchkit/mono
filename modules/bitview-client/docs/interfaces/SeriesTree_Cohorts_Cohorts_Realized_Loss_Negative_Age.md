@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Realized\_Loss\_Negative\_Age
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12716](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L12716)
+Defined in: [Developer/brk/modules/bitview-client/index.js:12678](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L12678)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12716](https://github
 
 > **over**: [`SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over`](SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12719](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L12719)
+Defined in: [Developer/brk/modules/bitview-client/index.js:12681](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L12681)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12719](https://github
 
 > **range**: [`SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range`](SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12717](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L12717)
+Defined in: [Developer/brk/modules/bitview-client/index.js:12679](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L12679)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12717](https://github
 
 > **under**: [`SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under`](SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12718](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L12718)
+Defined in: [Developer/brk/modules/bitview-client/index.js:12680](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L12680)

@@ -11,7 +11,9 @@ use by_class::ByDcaClass;
 pub use has::HasInvesting;
 pub use vecs::Vecs;
 
-use brk_types::Dollars;
+use bitview_plugin::{PluginId, PluginStorage};
+use brk_types::{Dollars, Version};
 
-pub const ID: bitview_plugin::PluginId = bitview_plugin::PluginId::new("investing");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("investing"), Version::new(9));
+pub const ID: PluginId = STORAGE.id();
 const DCA_AMOUNT: Dollars = Dollars::mint(100.0);

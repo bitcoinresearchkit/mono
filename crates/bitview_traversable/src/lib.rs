@@ -1,6 +1,7 @@
 use std::{collections::BTreeMap, fmt::Display};
 
-pub use brk_types::{Index, SeriesLeaf, SeriesLeafWithSchema, TreeNode};
+pub use bitview_types::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
+pub use brk_types::Index;
 pub use indexmap::IndexMap;
 
 #[cfg(feature = "derive")]
@@ -10,9 +11,10 @@ use serde::Serialize;
 use vecdb::{
     AggFold, AnyExportableVec, AnyVec, BytesVec, BytesVecValue, CachedVec, ColumnId, ColumnarVec,
     CompressionStrategy, DeltaOp, EagerVec, Formattable, LazyAggVec, LazyColumnSumVec,
-    LazyColumnVec, LazyColumnarVec, LazyDeltaVec, LazyVec, OverflowVec, OverflowVecValue,
-    RawStrategy, ReadOnlyColumnarVec, ReadOnlyCompressedVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
-    ReadableColumnarVec, StoredVec, TypedVec, VecIndex, VecValue,
+    LazyColumnVec, LazyColumnarVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec,
+    OverflowVecValue, RawStrategy, ReadOnlyColumnarVec, ReadOnlyCompressedVec, ReadOnlyMutableVec,
+    ReadOnlyOverflowVec, ReadOnlyRawVec, ReadableColumnarVec, ReadableVec, StoredVec, TypedVec,
+    VecIndex, VecValue,
 };
 
 pub trait Traversable {
@@ -153,6 +155,35 @@ where
 impl<V> Traversable for EagerVec<V>
 where
     V: StoredVec,
+    V::T: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<V::I, V::T, _>(self)
+    }
+}
+
+impl<V> Traversable for MutableVec<V>
+where
+    V: TypedVec,
+    MutableVec<V>: ReadableVec<V::I, V::T>,
+    V::T: Formattable + Serialize + JsonSchema,
+{
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        std::iter::once(self as &dyn AnyExportableVec)
+    }
+
+    fn to_tree_node(&self) -> TreeNode {
+        make_leaf::<V::I, V::T, _>(self)
+    }
+}
+
+impl<V> Traversable for ReadOnlyMutableVec<V>
+where
+    V: TypedVec + ReadableVec<V::I, V::T> + Clone,
     V::T: Formattable + Serialize + JsonSchema,
 {
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {

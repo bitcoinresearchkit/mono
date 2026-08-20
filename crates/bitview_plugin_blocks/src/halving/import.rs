@@ -9,24 +9,24 @@ fn blocks_left_to_halving(height: Height, _: Halving) -> StoredU32 {
 }
 
 pub trait Import {
-    fn new(version: Version, indexes: &bitview_plugin_indexes::Vecs) -> Self;
+    fn new(version: Version, mappings: &bitview_plugin_mappings::Vecs) -> Self;
 }
 
 impl Import for Vecs {
-    fn new(version: Version, indexes: &bitview_plugin_indexes::Vecs) -> Self {
+    fn new(version: Version, mappings: &bitview_plugin_mappings::Vecs) -> Self {
         let v2 = Version::TWO;
 
-        let epoch_source = CACHE_BUDGET.wrap(indexes.height.halving.read_only_clone());
+        let epoch_source = CACHE_BUDGET.wrap(mappings.height.halving.read_only_clone());
         let epoch = LazyPerBlock::from_height_source::<Identity<Halving>>(
             "halving_epoch",
             version,
             epoch_source,
-            indexes,
+            mappings,
         );
         let blocks_to_halving_source = LazyVec::init(
             "blocks_to_halving_source",
             version + v2,
-            indexes.height.halving.read_only_boxed_clone(),
+            mappings.height.halving.read_only_boxed_clone(),
             blocks_left_to_halving,
         );
         let blocks_to_halving_source = CACHE_BUDGET.wrap(blocks_to_halving_source);
@@ -34,7 +34,7 @@ impl Import for Vecs {
             "blocks_to_halving",
             version + v2,
             blocks_to_halving_source,
-            indexes,
+            mappings,
         );
 
         let days_to_halving = LazyPerBlock::from_lazy::<BlocksToDaysF32, StoredU32>(

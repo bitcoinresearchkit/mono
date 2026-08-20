@@ -1,7 +1,9 @@
 use brk_error::Result;
 
+use std::time::{Duration, Instant};
+
+use bitview_cohort::{ByAddrType, EntryPrice, Filter, Term};
 use bitview_plugin_indexer::Indexer;
-use brk_cohort::{ByAddrType, EntryPrice, Filter, Term};
 use brk_types::{
     Cents, Date, Height, ONE_DAY_IN_SEC, OutputType, RangeMap, Sats, StoredF64, Timestamp, TxIndex,
     TypeIndex,
@@ -27,9 +29,19 @@ use super::{
         vecs::Vecs,
     },
     AddrReaders, BIP30_DUPLICATE_HEIGHT_1, BIP30_DUPLICATE_HEIGHT_2, BIP30_ORIGINAL_HEIGHT_1,
-    BIP30_ORIGINAL_HEIGHT_2, ComputeContext, FLUSH_INTERVAL, IndexToTxIndexBuf, PriceRangeMax,
-    TxInReaders, TxOutReaders,
+    BIP30_ORIGINAL_HEIGHT_2, ComputeContext, IndexToTxIndexBuf, PriceRangeMax, TxInReaders,
+    TxOutReaders,
 };
+
+const FLUSH_BLOCK_INTERVAL: usize = 10_000;
+const FLUSH_TIME_INTERVAL: Duration = Duration::from_secs(60);
+
+fn is_periodic_flush_due(height: Height, last_height: Height, elapsed: Duration) -> bool {
+    height != last_height
+        && height != Height::ZERO
+        && height.to_usize().is_multiple_of(FLUSH_BLOCK_INTERVAL)
+        && elapsed >= FLUSH_TIME_INTERVAL
+}
 
 /// Process all blocks from starting_height to last_height.
 #[allow(clippy::too_many_arguments)]
@@ -38,7 +50,7 @@ pub fn process_blocks(
     utxo_states: &mut UTXOStates,
     addr_states: &mut AddrStates,
     indexer: &Indexer,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     inputs: &bitview_plugin_inputs::Vecs,
     outputs: &bitview_plugin_outputs::Vecs,
     transactions: &bitview_plugin_transactions::Vecs,
@@ -70,8 +82,8 @@ pub fn process_blocks(
     let height_to_tx_count = &transactions.count.total.block;
     let height_to_output_count = &outputs.count.total.sum;
     let height_to_input_count = &inputs.count.sum;
-    let tx_index_to_output_count = &indexes.tx_index.output_count;
-    let tx_index_to_input_count = &indexes.tx_index.input_count;
+    let tx_index_to_output_count = &mappings.tx_index.output_count;
+    let tx_index_to_input_count = &mappings.tx_index.input_count;
 
     let height_to_price_vec = cached_prices;
 
@@ -140,7 +152,7 @@ pub fn process_blocks(
     let mut txout_to_tx_index_buf = IndexToTxIndexBuf::new();
     let mut txin_to_tx_index_buf = IndexToTxIndexBuf::new();
 
-    // Pre-collect first address indexes per type for the block range
+    // Pre-collect first address mappings per type for the block range
     let first_p2a_vec = indexer
         .vecs()
         .addrs
@@ -225,6 +237,7 @@ pub fn process_blocks(
 
     // Track earliest chain_state modification from sends (for incremental supply_state writes)
     let mut min_supply_modified: Option<Height> = None;
+    let mut last_flush = Instant::now();
 
     // Main block iteration
     for height in starting_height.to_usize()..=last_height.to_usize() {
@@ -251,7 +264,7 @@ pub fn process_blocks(
         debug_assert_eq!(ctx.timestamp_at(height), timestamp);
         debug_assert_eq!(ctx.price_at(height), block_price);
 
-        // Get first address indexes for this height from pre-collected vecs
+        // Get first address mappings for this height from pre-collected vecs
         let first_addr_indexes = ByAddrType {
             p2a: TypeIndex::from(first_p2a_vec[offset].to_usize()),
             p2pk33: TypeIndex::from(first_p2pk33_vec[offset].to_usize()),
@@ -461,10 +474,7 @@ pub fn process_blocks(
         )?;
 
         // Periodic checkpoint flush
-        if height != last_height
-            && height != Height::ZERO
-            && height.to_usize() % FLUSH_INTERVAL == 0
-        {
+        if is_periodic_flush_due(height, last_height, last_flush.elapsed()) {
             // Drop readers to release mmap handles
             drop(vr);
 
@@ -492,6 +502,7 @@ pub fn process_blocks(
             )?;
             min_supply_modified = None;
             crate::vecs::flush(vecs)?;
+            last_flush = Instant::now();
 
             // Recreate readers
             vr = AddrReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
@@ -553,4 +564,40 @@ fn push_cohort_states(
     addr_states.reset_block();
 
     all_capitalized_price
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn periodic_flush_requires_an_intermediate_checkpoint_and_elapsed_interval() {
+        let checkpoint_height = Height::from(FLUSH_BLOCK_INTERVAL);
+
+        assert!(!is_periodic_flush_due(
+            Height::ZERO,
+            checkpoint_height,
+            FLUSH_TIME_INTERVAL
+        ));
+        assert!(!is_periodic_flush_due(
+            checkpoint_height.incremented(),
+            checkpoint_height.incremented().incremented(),
+            FLUSH_TIME_INTERVAL
+        ));
+        assert!(!is_periodic_flush_due(
+            checkpoint_height,
+            checkpoint_height,
+            FLUSH_TIME_INTERVAL
+        ));
+        assert!(!is_periodic_flush_due(
+            checkpoint_height,
+            checkpoint_height.incremented(),
+            FLUSH_TIME_INTERVAL - Duration::from_nanos(1)
+        ));
+        assert!(is_periodic_flush_due(
+            checkpoint_height,
+            checkpoint_height.incremented(),
+            FLUSH_TIME_INTERVAL
+        ));
+    }
 }

@@ -13,7 +13,7 @@ use bitview_query::Vecs;
 /// # Example
 /// ```ignore
 /// let paths = ClientOutputPaths::new()
-///     .rust("crates/bitview_client/src/lib.rs")
+///     .rust("crates/bitview_client/src/generated.rs")
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
@@ -22,7 +22,7 @@ use bitview_query::Vecs;
 /// ```
 #[derive(Debug, Clone, Default)]
 pub struct ClientOutputPaths {
-    /// Full path to Rust client file (e.g., "crates/bitview_client/src/lib.rs")
+    /// Full path to Rust client file (e.g., "crates/bitview_client/src/generated.rs")
     pub rust: Option<PathBuf>,
     /// Full path to JavaScript client file (e.g., "modules/bitview-client/index.js")
     pub javascript: Option<PathBuf>,
@@ -91,7 +91,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// # Example
 /// ```ignore
 /// let paths = ClientOutputPaths::new()
-///     .rust("crates/bitview_client/src/lib.rs")
+///     .rust("crates/bitview_client/src/generated.rs")
 ///     .javascript("modules/bitview-client/index.js")
 ///     .python("packages/bitview_client/__init__.py")
 ///     .llm_manifest("crates/bitview_mcp/generated/manifest.json")
@@ -158,7 +158,7 @@ pub fn generate_clients(
     Ok(())
 }
 
-use brk_types::TreeNode;
+use bitview_types::TreeNode;
 use serde_json::Value;
 
 /// Recursively collect leaf type schemas from the tree and add to schemas map.

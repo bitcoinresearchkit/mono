@@ -1,4 +1,4 @@
-use brk_cohort::{ADDR_TYPE_IDS, AddrTypeId};
+use bitview_cohort::{ADDR_TYPE_IDS, AddrTypeId};
 use brk_types::{Cents, Height, Sats, Version};
 use schemars::JsonSchema;
 use vecdb::{

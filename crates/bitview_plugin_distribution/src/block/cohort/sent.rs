@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_cohort::AmountBucket;
+use bitview_cohort::AmountBucket;
 use brk_types::{Cents, Sats, TypeIndex};
 use vecdb::VecIndex;
 

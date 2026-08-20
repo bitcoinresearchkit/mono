@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::path::Path;
 
-use brk_cohort::{
+use bitview_cohort::{
     AgeRange, AgeRangeId, AmountRange, ByEntry, ByEpoch, Class, CohortContext, Filter,
     SpendableType,
 };

@@ -11,8 +11,9 @@ use super::super::{RawStrategy, ReadWriteRawVec};
 /// Created via `raw_vec.reader()` (available on BytesVec/ZeroCopyVec via Deref).
 /// Provides O(1) point reads directly from the memory-mapped file.
 ///
-/// Only sees **stored** (persisted) values — does not check holes, updates,
-/// or pushed values. For full dirty-state reads, use `get_with_reader`.
+/// Only sees **stored** (persisted) values, not pushed values. A
+/// [`MutableVec`](crate::MutableVec) applies its update and hole overlays around
+/// this reader.
 ///
 /// The reader holds the current mmap generation alive. Drop long-lived readers
 /// before writes that may grow the database and remap the file.

@@ -1,27 +1,7 @@
 use brk_error::Result;
 
-use std::path::Path;
-
-use bitview_traversable::Traversable;
 use brk_types::Version;
-use vecdb::{AnyStoredVec, Database, PAGE_SIZE};
-
-pub fn open_db(parent_path: &Path, db_name: &str, page_multiplier: usize) -> Result<Database> {
-    let db = Database::open(&parent_path.join(db_name))?;
-    db.set_min_len(PAGE_SIZE * page_multiplier)?;
-    Ok(db)
-}
-
-pub fn finalize_db(db: &Database, traversable: &impl Traversable) -> Result<()> {
-    db.retain_regions(
-        traversable
-            .iter_any_exportable()
-            .flat_map(|v| v.region_names())
-            .collect(),
-    )?;
-    db.compact()?;
-    Ok(())
-}
+use vecdb::AnyStoredVec;
 
 pub fn validate_any_computed_version_or_reset(
     vec: &mut dyn AnyStoredVec,

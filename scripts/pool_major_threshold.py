@@ -20,21 +20,26 @@ import concurrent.futures
 from pathlib import Path
 
 API_BASE = "https://bitview.space/api/series"
-POOLSLUG_PATH = Path(__file__).resolve().parent.parent / "crates/brk_types/src/poolslug.rs"
+POOLSLUG_PATH = Path(__file__).resolve().parent.parent / "crates/brk_types/src/pool_slug.rs"
 HEADERS = {"User-Agent": "pool-threshold-script"}
 WINDOWS = {"1w": 7, "1m": 30, "1y": 365}
 
 
 def parse_pool_variants():
-    """Return [(VariantName, lowercase_slug), ...] from the PoolSlug enum."""
+    """Return [(VariantName, serialized_slug), ...] from the PoolSlug enum."""
     src = POOLSLUG_PATH.read_text()
     m = re.search(r"pub enum PoolSlug\s*\{(.*?)^\}", src, re.DOTALL | re.MULTILINE)
     if not m:
         raise RuntimeError("Could not find PoolSlug enum")
     body = m.group(1)
     variants = []
+    renamed_slug = None
     for line in body.splitlines():
         line = line.strip().rstrip(",")
+        rename = re.fullmatch(r'#\[serde\(rename = "([^"]+)"\)\]', line)
+        if rename:
+            renamed_slug = rename.group(1)
+            continue
         if not line or line.startswith("#[") or line.startswith("//"):
             continue
         name = line.split("(")[0].split("{")[0].strip()
@@ -42,7 +47,8 @@ def parse_pool_variants():
             continue
         if name.startswith("Dummy"):
             continue
-        variants.append((name, name.lower()))
+        variants.append((name, renamed_slug or name.lower()))
+        renamed_slug = None
     return variants
 
 
@@ -56,12 +62,12 @@ def fetch_json(url):
 
 
 def fetch_cumulative(slug, days):
-    url = f"{API_BASE}/{slug}_blocks_mined_cumulative/dateindex?from=-{days}"
+    url = f"{API_BASE}/{slug}_blocks_mined_cumulative/day1?start=-{days}"
     return fetch_json(url)
 
 
 def fetch_total_cumulative(days):
-    url = f"{API_BASE}/block_count_cumulative/dateindex?from=-{days}"
+    url = f"{API_BASE}/block_count_cumulative/day1?start=-{days}"
     return fetch_json(url)
 
 

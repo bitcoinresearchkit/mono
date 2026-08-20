@@ -11,22 +11,22 @@ const EMA_VERSION: Version = Version::ONE;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     blocks: &bitview_plugin_blocks::Vecs,
     spot_price: &CachedBoxedVec<Height, Cents>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, blocks, spot_price)
+    Vecs::forced_import(db, version, mappings, blocks, spot_price)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         blocks: &bitview_plugin_blocks::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let sma = SmaVecs::new(version, indexes, &blocks.lookback, spot_price.clone());
+        let sma = SmaVecs::new(version, mappings, &blocks.lookback, spot_price.clone());
         let ema_version = version + EMA_VERSION;
         let ema = ColumnarPerBlock::forced_import(db, "price_ema_cents", ema_version, |source| {
             EmaPeriodId::series(|period| {
@@ -35,7 +35,7 @@ impl Vecs {
                     ema_version,
                     source,
                     period,
-                    indexes,
+                    mappings,
                     spot_price,
                 )
             })

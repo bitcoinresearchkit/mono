@@ -2,17 +2,22 @@ use std::sync::LazyLock;
 
 use bitview_plugin::PluginReadGuard;
 use bitview_traversable::TreeNode;
+use bitview_types::{
+    DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, SearchQuery,
+    SeriesInfo, SeriesName, SeriesSelection,
+};
 use brk_error::{Error, Result};
 use brk_types::{
-    BlockHashPrefix, CacheClass, Date, DetailedSeriesCount, Epoch, Format, Halving, Height, Index,
-    IndexInfo, LegacyValue, Limit, Output, OutputLegacy, PaginatedSeries, Pagination, RangeIndex,
-    RangeMap, SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesOutput, SeriesOutputLegacy,
-    SeriesSelection, Timestamp, Version,
+    BlockHashPrefix, CacheClass, Date, Epoch, Halving, Height, Index, RangeIndex, RangeMap,
+    Timestamp, Version,
 };
+use itoa::Buffer;
 use parking_lot::RwLock;
-use vecdb::{AnyExportableVec, ReadBounds, ReadableVec};
+use vecdb::{AnyExportableVec, AnySerializableVec, ReadBounds, ReadableVec};
 
-use crate::{Query, vecs::SeriesEntry};
+use crate::{
+    LegacyValue, Output, OutputLegacy, Query, SeriesOutput, SeriesOutputLegacy, vecs::SeriesEntry,
+};
 
 /// Monotonic block timestamps → height. Lazily extended as new blocks are indexed.
 static HEIGHT_BY_MONOTONIC_TIMESTAMP: LazyLock<RwLock<RangeMap<Timestamp, Height>>> =
@@ -26,6 +31,38 @@ const CSV_CELL_BYTES: usize = 15;
 const JSON_CELL_BYTES: usize = 12;
 
 impl Query {
+    /// Write one series response without materializing an intermediate value tree.
+    /// `total` is omitted so historical-range bodies remain cacheable across appends.
+    fn write_series_data(
+        vec: &dyn AnySerializableVec,
+        index: Index,
+        start: usize,
+        end: usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<()> {
+        let end = end.min(vec.len());
+        let start = start.min(end);
+        let mut integer = Buffer::new();
+
+        buf.extend_from_slice(b"{\"version\":");
+        buf.extend_from_slice(integer.format(u32::from(vec.version())).as_bytes());
+        buf.extend_from_slice(b",\"index\":\"");
+        buf.extend_from_slice(index.name().as_bytes());
+        buf.extend_from_slice(b"\",\"type\":\"");
+        buf.extend_from_slice(vec.value_type_to_string().as_bytes());
+        buf.extend_from_slice(b"\",\"start\":");
+        buf.extend_from_slice(integer.format(start).as_bytes());
+        buf.extend_from_slice(b",\"end\":");
+        buf.extend_from_slice(integer.format(end).as_bytes());
+        buf.extend_from_slice(b",\"stamp\":\"");
+        buf.extend_from_slice(Timestamp::now().to_iso8601().as_bytes());
+        buf.extend_from_slice(b"\",\"data\":");
+        vec.write_json(Some(start), Some(end), buf)?;
+        buf.push(b'}');
+
+        Ok(())
+    }
+
     pub fn search_series(&self, query: &SearchQuery) -> Vec<&'static str> {
         self.vecs().matches(&query.q, query.limit)
     }
@@ -340,11 +377,11 @@ impl Query {
                 let count = end.saturating_sub(start);
                 let buf = if ALWAYS_JSON_ARRAY {
                     Self::write_json_array_bulk(&vecs, count, 256, |v, buf| {
-                        Ok(SeriesData::serialize(*v, index, start, end, buf)?)
+                        Self::write_series_data(*v, index, start, end, buf)
                     })?
                 } else {
                     Self::write_json_array(&vecs, count, 256, |v, buf| {
-                        Ok(SeriesData::serialize(*v, index, start, end, buf)?)
+                        Self::write_series_data(*v, index, start, end, buf)
                     })?
                 };
                 Output::Json(buf)
@@ -513,7 +550,7 @@ impl Query {
 
         let mut map = HEIGHT_BY_MONOTONIC_TIMESTAMP.write();
         if map.len() <= current_height {
-            *map = RangeMap::from(self.plugins().indexes.timestamp.monotonic.collect());
+            *map = RangeMap::from(self.plugins().mappings.timestamp.monotonic.collect());
         }
         lookup(&map)
     }

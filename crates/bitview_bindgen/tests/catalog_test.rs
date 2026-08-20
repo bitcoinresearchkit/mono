@@ -4,7 +4,7 @@
 // use std::fmt::Write;
 
 // use bitview_bindgen::ClientMetadata;
-// use brk_types::TreeNode;
+// use bitview_types::TreeNode;
 
 // /// Load the catalog from the JSON file.
 // fn load_catalog() -> TreeNode {

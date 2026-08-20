@@ -4,13 +4,14 @@ mod addr;
 mod block;
 #[cfg(feature = "chain")]
 mod cpfp;
+mod indexer;
 #[cfg(feature = "chain")]
 mod mempool;
 #[cfg(feature = "chain")]
 mod mining;
-#[cfg(feature = "chain")]
+#[cfg(feature = "price")]
 mod oracle;
-#[cfg(feature = "chain")]
+#[cfg(feature = "price")]
 mod price;
 #[cfg(feature = "series")]
 mod series;

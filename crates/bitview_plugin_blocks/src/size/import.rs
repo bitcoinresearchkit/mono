@@ -16,7 +16,7 @@ pub trait Import: Sized {
         db: &Database,
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self>;
 }
@@ -26,7 +26,7 @@ impl Import for Vecs {
         db: &Database,
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
@@ -36,14 +36,14 @@ impl Import for Vecs {
                 version,
                 &indexer.vecs().blocks.weight,
                 block_vbytes,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             size: CachedPerBlockRolling::forced_import(
                 db,
                 "block_size",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
         })

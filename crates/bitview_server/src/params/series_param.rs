@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use brk_types::SeriesName;
+use bitview_types::SeriesName;
 
 #[derive(Deserialize, JsonSchema)]
 pub struct SeriesParam {

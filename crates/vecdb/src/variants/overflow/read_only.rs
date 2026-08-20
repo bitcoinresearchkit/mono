@@ -3,8 +3,8 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 use crate::{
-    AnyVec, BytesStrategy, BytesVecReader, OverflowVecReader, OverflowVecValue, ReadOnlyRawVec,
-    ReadableVec, SharedLen, TypedVec, VecIndex, Version, short_type_name, unlikely,
+    AnyVec, BytesStrategy, BytesVecReader, OverflowVecReader, OverflowVecValue, ReadOnlyMutableVec,
+    ReadOnlyRawVec, ReadableVec, SharedLen, TypedVec, VecIndex, Version, short_type_name, unlikely,
 };
 
 use super::DECODE_CHUNK_SIZE;
@@ -15,8 +15,8 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    compact: ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>,
-    overflow: ReadOnlyRawVec<usize, T, BytesStrategy<T>>,
+    compact: ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
+    overflow: ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
     visible_len: SharedLen,
     gate: Arc<RwLock<()>>,
 }
@@ -28,8 +28,8 @@ where
 {
     #[doc(hidden)]
     pub fn new(
-        compact: ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>,
-        overflow: ReadOnlyRawVec<usize, T, BytesStrategy<T>>,
+        compact: ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
+        overflow: ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
         visible_len: SharedLen,
         gate: Arc<RwLock<()>>,
     ) -> Self {
@@ -101,6 +101,10 @@ where
 
     fn len(&self) -> usize {
         self.visible_len.get()
+    }
+
+    fn is_mutable(&self) -> bool {
+        true
     }
 
     fn index_type_to_string(&self) -> &'static str {

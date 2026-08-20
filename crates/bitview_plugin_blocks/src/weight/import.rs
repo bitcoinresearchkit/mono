@@ -15,7 +15,7 @@ pub trait Import {
     fn new(
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         size: &SizeVecs,
     ) -> Self;
@@ -25,7 +25,7 @@ impl Import for Vecs {
     fn new(
         version: Version,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         size: &SizeVecs,
     ) -> Self {
@@ -35,7 +35,7 @@ impl Import for Vecs {
             &size.vbytes.cumulative,
             &size.vbytes.rolling,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         let fullness = LazyPercentVec::from_indexed_source(

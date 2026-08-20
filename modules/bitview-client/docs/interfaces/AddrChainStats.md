@@ -6,7 +6,7 @@
 
 # Interface: AddrChainStats
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:23](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L23)
+Defined in: [Developer/brk/modules/bitview-client/index.js:23](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L23)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:23](https://github.co
 
 > **balance**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:24](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L24)
+Defined in: [Developer/brk/modules/bitview-client/index.js:24](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L24)
 
 Current confirmed balance in satoshis
 
@@ -24,7 +24,7 @@ Current confirmed balance in satoshis
 
 > **fundedTxoCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:25](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L25)
+Defined in: [Developer/brk/modules/bitview-client/index.js:25](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L25)
 
 Total number of transaction outputs that funded this address
 
@@ -34,7 +34,7 @@ Total number of transaction outputs that funded this address
 
 > **fundedTxoSum**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:26](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L26)
+Defined in: [Developer/brk/modules/bitview-client/index.js:26](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L26)
 
 Total amount in satoshis received by this address across all funded outputs
 
@@ -44,7 +44,7 @@ Total amount in satoshis received by this address across all funded outputs
 
 > **realizedPrice**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:31](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L31)
+Defined in: [Developer/brk/modules/bitview-client/index.js:31](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L31)
 
 Realized price (average cost basis) in USD
 
@@ -54,7 +54,7 @@ Realized price (average cost basis) in USD
 
 > **spentTxoCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:27](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L27)
+Defined in: [Developer/brk/modules/bitview-client/index.js:27](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L27)
 
 Total number of transaction outputs spent from this address
 
@@ -64,7 +64,7 @@ Total number of transaction outputs spent from this address
 
 > **spentTxoSum**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:28](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L28)
+Defined in: [Developer/brk/modules/bitview-client/index.js:28](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L28)
 
 Total amount in satoshis spent from this address
 
@@ -74,7 +74,7 @@ Total amount in satoshis spent from this address
 
 > **txCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:29](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L29)
+Defined in: [Developer/brk/modules/bitview-client/index.js:29](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L29)
 
 Total number of confirmed transactions involving this address
 
@@ -84,6 +84,6 @@ Total number of confirmed transactions involving this address
 
 > **typeIndex**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:30](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L30)
+Defined in: [Developer/brk/modules/bitview-client/index.js:30](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L30)
 
 Index of this address within its type on the blockchain

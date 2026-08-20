@@ -1,10 +1,10 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AmountRange, CohortContext, Filter, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES,
     UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode, UnaryTransform,
@@ -60,7 +60,7 @@ impl ActivityVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let aggregate_version = version;
@@ -69,23 +69,23 @@ impl ActivityVecs {
             db,
             "transfer_volume",
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?);
         let coindays_destroyed =
-            CoindaysDestroyedByCohort::forced_import(db, version, indexes, cached_starts)?;
+            CoindaysDestroyedByCohort::forced_import(db, version, mappings, cached_starts)?;
         let transfer_volume_in_profit = Box::new(CoreCumulativeValueByCohort::forced_import(
             db,
             "transfer_volume_in_profit",
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?);
         let transfer_volume_in_loss = Box::new(CoreCumulativeValueByCohort::forced_import(
             db,
             "transfer_volume_in_loss",
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?);
         let coinyears_destroyed = UTXOAggregate::from_fn(|id| {
@@ -104,7 +104,7 @@ impl ActivityVecs {
                 &name,
                 Self::aggregate_version(aggregate_version, id) + COINYEARS_DESTROYED_VERSION,
                 source,
-                indexes,
+                mappings,
             )
         });
         let dormancy = UTXOAggregate::try_from_fn(|id| {
@@ -112,7 +112,7 @@ impl ActivityVecs {
                 db,
                 &Self::aggregate_metric_name(id, "dormancy"),
                 Self::aggregate_version(aggregate_version, id),
-                indexes,
+                mappings,
             )
         })?;
         Ok(Self {

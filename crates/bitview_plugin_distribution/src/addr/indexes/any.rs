@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use std::thread;
 
+use bitview_cohort::ByAddrType;
 use bitview_traversable::Traversable;
-use brk_cohort::ByAddrType;
 use brk_error::Error;
 use brk_types::{
     AnyAddrIndex, Height, OutputType, P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex,
@@ -13,8 +13,8 @@ use brk_types::{
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp,
-    StorageMode, VecIndex, WritableVec,
+    AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
+    ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
 };
 
 use super::super::AddrTypeToTypeIndexMap;
@@ -29,7 +29,7 @@ macro_rules! define_any_addr_indexes_vecs {
             $(
                 /// Maps an address-type-specific index to the corresponding
                 /// unified address index.
-                pub $field: M::Stored<BytesVec<$index, AnyAddrIndex>>,
+                pub $field: M::Stored<MutableVec<BytesVec<$index, AnyAddrIndex>>>,
             )*
         }
 
@@ -37,7 +37,7 @@ macro_rules! define_any_addr_indexes_vecs {
             /// Import from database.
             pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
                 Ok(Self {
-                    $($field: BytesVec::forced_import_with(
+                    $($field: MutableVec::<BytesVec<_, _>>::forced_import_with(
                         ImportOptions::new(db, "any_addr_index", version)
                             .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),
                     )?,)*
@@ -164,9 +164,9 @@ impl AnyAddrIndexesVecs {
     }
 }
 
-/// Process updates for a single address type's BytesVec, merging two maps.
+/// Process updates for one mutable address-index vector, merging two maps.
 fn process_single_type_merged<I: VecIndex>(
-    vec: &mut BytesVec<I, AnyAddrIndex>,
+    vec: &mut MutableVec<BytesVec<I, AnyAddrIndex>>,
     map1: FxHashMap<TypeIndex, AnyAddrIndex>,
     map2: FxHashMap<TypeIndex, AnyAddrIndex>,
 ) -> Result<(usize, usize)> {

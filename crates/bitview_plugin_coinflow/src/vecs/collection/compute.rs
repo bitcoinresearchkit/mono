@@ -1,18 +1,17 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
-use bitview_plugin_indexer::{Indexer, Lengths};
-use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
-use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
-
-use brk_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
-
-use super::Vecs;
-use crate::{AGE_COHORT_COUNT, AggregateSources, HorizonId, Horizons};
+use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 use bitview_compute::{
     AgeBand, MINIMUM_DURATION_DAYS, WeightedCohortContribution, WeightedCohortState, WeightedRatio,
     db_utils::validate_any_computed_version_or_reset,
 };
+use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin_indexer::{Indexer, Lengths};
+use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
+use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
+
+use super::Vecs;
+use crate::{AGE_COHORT_COUNT, AggregateSources, Dependencies, HorizonId, Horizons};
 
 const WRITE_INTERVAL: usize = 10_000;
 
@@ -25,19 +24,19 @@ struct DecayFit {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.distribution,
-            exit,
+            context.exit(),
         )
     }
 }
@@ -95,7 +94,7 @@ impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -135,7 +134,7 @@ impl Vecs {
 
         self.compute_primary(
             &starting_lengths,
-            &indexes.timestamp.monotonic,
+            &mappings.timestamp.monotonic,
             &transfer_volumes,
             coindays_created,
             &supplies,

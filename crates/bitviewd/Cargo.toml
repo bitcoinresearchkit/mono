@@ -1,0 +1,108 @@
+[package]
+name = "bitviewd"
+description = "The self-hostable Bitview Bitcoin data daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true
+readme = "README.md"
+keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
+
+[features]
+default = ["dep:bitview_default", "full"]
+full = ["bitview/full"]
+bedrock = ["bitview/bedrock"]
+blocks = ["bitview/blocks"]
+coinflow = ["bitview/coinflow"]
+cointime = ["bitview/cointime"]
+distribution = ["bitview/distribution"]
+mappings = ["bitview/mappings"]
+inputs = ["bitview/inputs"]
+mining = ["bitview/mining"]
+outputs = ["bitview/outputs"]
+pools = ["bitview/pools"]
+price = ["bitview/price"]
+transactions = ["bitview/transactions"]
+chain = ["bitview/chain"]
+series = ["bitview/series"]
+urpd = ["bitview/urpd"]
+bindgen = ["dep:bitview_bindgen", "bitview/bindgen"]
+
+[dependencies]
+bitview = { workspace = true }
+bitview_bindgen = { workspace = true, optional = true }
+bitview_default = { workspace = true, optional = true }
+bitview_server = { workspace = true }
+brk_error = { workspace = true }
+brk_logger = { workspace = true }
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+brk_types = { workspace = true }
+lexopt = "0.3"
+owo-colors = { workspace = true }
+serde = { workspace = true }
+toml = "1.1.4"
+vecdb = { workspace = true }
+
+[dev-dependencies]
+aide = { workspace = true }
+bitview_bencher = { workspace = true }
+bitview_compute = { workspace = true }
+bitview_plugin = { workspace = true }
+bitview_plugin_distribution = { workspace = true }
+bitview_query = { workspace = true }
+bitview_traversable = { workspace = true }
+bitview_types = { workspace = true }
+brk_mempool = { workspace = true }
+color-eyre = { workspace = true }
+quickmatch = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+
+[[example]]
+name = "bindgen"
+required-features = ["bindgen", "default"]
+
+[[example]]
+name = "full_bench"
+required-features = ["default"]
+
+[[example]]
+name = "list"
+required-features = ["default"]
+
+[[example]]
+name = "plugin_set"
+required-features = ["default"]
+
+[[example]]
+name = "plugin_set_bench"
+required-features = ["default"]
+
+[[example]]
+name = "plugin_set_read"
+required-features = ["default"]
+
+[[example]]
+name = "plugin_set_tree"
+required-features = ["default"]
+
+[[example]]
+name = "query"
+required-features = ["default"]
+
+[[example]]
+name = "server"
+required-features = ["default"]
+
+[[test]]
+name = "series"
+required-features = ["default"]
+
+[[bin]]
+name = "bitviewd"
+path = "src/main.rs"
+required-features = ["default"]

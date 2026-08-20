@@ -15,8 +15,9 @@ mod volume;
 mod compute;
 mod import;
 
-use bitview_plugin::{Plugin, PluginGate, PluginId};
+use bitview_plugin::{Plugin, PluginGate, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 use count::Vecs as CountVecs;
@@ -31,7 +32,8 @@ use size::Vecs as SizeVecs;
 use versions::Vecs as VersionsVecs;
 use volume::Vecs as VolumeVecs;
 
-pub const ID: PluginId = PluginId::new("transactions");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("transactions"), Version::new(9));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -65,8 +67,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {

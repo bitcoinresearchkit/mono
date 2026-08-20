@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Cohorts\_Activity\_TransferVolume\_InLoss
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11627](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11627)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11589](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11589)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11627](https://github
 
 > **age**: [`OverRangeUnderPattern2`](OverRangeUnderPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11629](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11629)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11591](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11591)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11629](https://github
 
 > **all**: [`AverageBlockCumulativeSumPattern2`](AverageBlockCumulativeSumPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11628](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11628)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11590](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11590)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11628](https://github
 
 > **class**: [`_200920102011201220132014201520162017201820192020202120222023202420252026Pattern2`](200920102011201220132014201520162017201820192020202120222023202420252026Pattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11631](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11631)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11593](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11593)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11631](https://github
 
 > **cumulative**: [`SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative`](SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11634](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11634)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11596](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11596)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11634](https://github
 
 > **entry**: [`DiscountPremiumPattern2`](DiscountPremiumPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11632](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11632)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11594](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11594)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11632](https://github
 
 > **epoch**: [`_01234Pattern2`](01234Pattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11630](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11630)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11592](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11592)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11630](https://github
 
 > **term**: [`LongShortPattern2`](LongShortPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11633](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L11633)
+Defined in: [Developer/brk/modules/bitview-client/index.js:11595](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L11595)

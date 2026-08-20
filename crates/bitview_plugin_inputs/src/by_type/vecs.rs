@@ -1,5 +1,5 @@
+use bitview_cohort::{SpendableType, SpendableTypeId};
 use bitview_traversable::Traversable;
-use brk_cohort::{SpendableType, SpendableTypeId};
 use brk_types::{PartsPerMillion32, StoredU16, StoredU64};
 use vecdb::{Rw, StorageMode};
 

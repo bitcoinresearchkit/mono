@@ -5,11 +5,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_traversable::TreeNode;
-use brk_types::{
-    DataRangeFormat, DetailedSeriesCount, Index, IndexInfo, PaginatedSeries, Pagination,
-    SearchQuery, SeriesData, SeriesInfo, SeriesList, SeriesName, SeriesSelection,
-    SeriesSelectionLegacy,
+use bitview_types::{
+    DataRangeFormat, DetailedSeriesCount, IndexInfo, PaginatedSeries, Pagination, SearchQuery,
+    SeriesData, SeriesInfo, SeriesList, SeriesName, SeriesSelection, SeriesSelectionLegacy,
 };
+use brk_types::Index;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

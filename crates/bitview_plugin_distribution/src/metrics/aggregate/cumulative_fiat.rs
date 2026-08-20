@@ -1,10 +1,10 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     ByTerm, CohortContext, TermId, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate,
     UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 use vecdb::{
@@ -35,7 +35,7 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let values = ColumnarPerBlockCumulativeRolling::forced_import(
@@ -69,7 +69,7 @@ impl<C: FiatType> AdditiveAggregateFiatPerBlockCumulativeWithSums<C> {
                         &name,
                         version,
                         cumulative,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })

@@ -1,10 +1,10 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AmountRange, CohortContext, Filter, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES,
     UTXOAggregate, UTXOAggregateId, UTXOAllAndSth, UTXOGroups, UTXOGroupsWithoutAmountOrType,
 };
+use bitview_traversable::Traversable;
 use brk_types::{
     Cents, CentsSats, CentsSigned, CentsSquaredSats, Height, PartsPerMillion32, PartsPerMillion64,
     PartsPerMillionSigned64, StoredF32, Version,
@@ -135,7 +135,7 @@ impl RealizedVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_chain: &AllChainSources,
@@ -145,14 +145,14 @@ impl RealizedVecs {
             db,
             "realized_gross_pnl",
             aggregate_version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let capitalized_price = AggregatePriceWithRatioPerBlock::forced_import(
             db,
             "capitalized_price",
             aggregate_version,
-            indexes,
+            mappings,
             spot_price,
         )?;
         let cap_raw = AdditiveUTXORawVec::forced_import(db, "cap_raw", version)?;
@@ -162,21 +162,21 @@ impl RealizedVecs {
             db,
             "realized_peak_regret",
             aggregate_version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let net_pnl_change_1m_to_rcap = AggregatePercentPerBlock::forced_import(
             db,
             "net_pnl_change_1m_to_rcap",
             aggregate_version,
-            indexes,
+            mappings,
         )?;
         let sell_side_risk_ratio = UTXOAggregate::try_from_fn(|id| {
             ColumnarPercentRollingWindows::forced_import(
                 db,
                 &Self::aggregate_metric_name(id, "sell_side_risk_ratio"),
                 Self::aggregate_metric_version(version, id, Version::TWO),
-                indexes,
+                mappings,
             )
         })?;
         let sopr_ratio_extended = UTXOAggregate::try_from_fn(|id| {
@@ -184,7 +184,7 @@ impl RealizedVecs {
                 db,
                 &Self::aggregate_metric_name(id, "sopr"),
                 Self::aggregate_metric_version(version, id, Version::TWO),
-                indexes,
+                mappings,
             )
         })?;
         let profit_to_loss_ratio = UTXOAggregate::try_from_fn(|id| {
@@ -192,35 +192,35 @@ impl RealizedVecs {
                 db,
                 &Self::aggregate_metric_name(id, "realized_profit_to_loss_ratio"),
                 Self::aggregate_metric_version(version, id, Version::TWO),
-                indexes,
+                mappings,
             )
         })?;
-        let cap = RealizedCapByCohort::forced_import(db, version, indexes, cached_starts)?;
-        let price = RealizedPriceByCohort::forced_import(db, version, indexes, spot_price)?;
+        let cap = RealizedCapByCohort::forced_import(db, version, mappings, cached_starts)?;
+        let price = RealizedPriceByCohort::forced_import(db, version, mappings, spot_price)?;
         let profit = CumulativeRealizedByCohort::forced_import(
             db,
             "realized_profit",
             version + Version::ONE,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let loss = CumulativeRealizedByCohort::forced_import(
             db,
             "realized_loss",
             version + Version::ONE,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let net_pnl =
-            CumulativeNetRealizedByCohort::forced_import(db, version, indexes, cached_starts)?;
+            CumulativeNetRealizedByCohort::forced_import(db, version, mappings, cached_starts)?;
         let value_destroyed = CumulativeValueDestroyedByCohort::forced_import(
             db,
             version + Version::ONE,
-            indexes,
+            mappings,
             cached_starts,
         )?;
-        let sopr = Sopr24hVecs::forced_import(db, version, indexes)?;
-        let adjusted_sopr = AdjustedSoprVecs::forced_import(db, version, indexes, cached_starts)?;
+        let sopr = Sopr24hVecs::forced_import(db, version, mappings)?;
+        let adjusted_sopr = AdjustedSoprVecs::forced_import(db, version, mappings, cached_starts)?;
         let addr_version = version + Version::ONE;
         let addr_balance_cap = ColumnarAmount::forced_import(
             db,
@@ -234,7 +234,7 @@ impl RealizedVecs {
                     addr_version,
                     source,
                     Version::TWO,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },
@@ -250,7 +250,7 @@ impl RealizedVecs {
                     name,
                     addr_version + Version::ONE,
                     source,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },
@@ -266,7 +266,7 @@ impl RealizedVecs {
                     name,
                     addr_version + Version::ONE,
                     source,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },
@@ -294,7 +294,7 @@ impl RealizedVecs {
                     &format!("{name}_sum_{suffix}"),
                     version,
                     source,
-                    indexes,
+                    mappings,
                 )
             });
             NegRealizedLoss { base, sum }
@@ -323,7 +323,7 @@ impl RealizedVecs {
                 &name,
                 Self::cohort_version(version, filter) + Version::TWO,
                 source,
-                indexes,
+                mappings,
             )
         });
         let net_pnl_change_1m_to_mcap = UTXOAggregate::from_fn(|id| {
@@ -347,7 +347,7 @@ impl RealizedVecs {
                     .height,
                 |_, net_pnl, market_cap| Self::net_pnl_to_market_cap(net_pnl, market_cap),
             );
-            LazyPercentPerBlock::from_height_source(&name, Version::new(5), source, indexes)
+            LazyPercentPerBlock::from_height_source(&name, Version::new(5), source, mappings)
         });
 
         Ok(Self {

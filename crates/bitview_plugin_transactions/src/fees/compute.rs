@@ -18,11 +18,11 @@ pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
     input_values: &PcoVec<TxInIndex, Sats>,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     size_vecs: &size::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, input_values, indexes, size_vecs, exit)
+    vecs.compute(indexer, input_values, mappings, size_vecs, exit)
 }
 
 impl Vecs {
@@ -31,7 +31,7 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         input_values: &PcoVec<TxInIndex, Sats>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         size_vecs: &size::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -40,25 +40,25 @@ impl Vecs {
         self.input_value.compute_sum_from_indexes(
             starting_lengths.tx_index,
             &indexer.vecs().transactions.first_txin_index,
-            &indexes.tx_index.input_count,
+            &mappings.tx_index.input_count,
             input_values,
             exit,
         )?;
         self.output_value.compute_sum_from_indexes(
             starting_lengths.tx_index,
             &indexer.vecs().transactions.first_txout_index,
-            &indexes.tx_index.output_count,
+            &mappings.tx_index.output_count,
             &indexer.vecs().outputs.value,
             exit,
         )?;
 
-        self.compute_fees(indexer, indexes, size_vecs, exit)?;
+        self.compute_fees(indexer, mappings, size_vecs, exit)?;
 
         let vsize_source = &size_vecs.vsize.tx_index;
         let (r1, r2) = rayon::join(
             || {
                 self.fee.derive_from_with_skip(
-                    indexes,
+                    mappings,
                     &starting_lengths,
                     &indexer.vecs().transactions.first_tx_index,
                     exit,
@@ -67,7 +67,7 @@ impl Vecs {
             },
             || {
                 self.effective_fee_rate.derive_from_with_skip_weighted(
-                    indexes,
+                    mappings,
                     &starting_lengths,
                     &indexer.vecs().transactions.first_tx_index,
                     vsize_source,
@@ -85,7 +85,7 @@ impl Vecs {
     fn compute_fees(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         size_vecs: &size::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -97,7 +97,7 @@ impl Vecs {
             + indexer.vecs().inputs.outpoint.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + indexer.vecs().transactions.first_txin_index.version()
-            + indexes.height.tx_index_count.version();
+            + mappings.height.tx_index_count.version();
 
         self.fee
             .tx_index
@@ -131,11 +131,11 @@ impl Vecs {
             .transactions
             .first_tx_index
             .len()
-            .min(indexes.height.tx_index_count.len());
+            .min(mappings.height.tx_index_count.len());
         let next_height = if tx_len >= target {
             max_height
         } else {
-            indexes
+            mappings
                 .tx_heights
                 .get_shared(TxIndex::from(tx_len))
                 .unwrap()
@@ -165,7 +165,7 @@ impl Vecs {
             .truncate_if_needed(TxIndex::from(start_tx))?;
         self.count.truncate_if_needed_at(start_height)?;
 
-        let mut tx_count = indexes.height.tx_index_count.cursor();
+        let mut tx_count = mappings.height.tx_index_count.cursor();
         let mut next_block_input = indexer.vecs().inputs.first_txin_index.cursor();
         tx_count.advance(start_height);
         next_block_input.advance(start_height + 1);

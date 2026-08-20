@@ -10,15 +10,15 @@ impl Vecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self(PerBlockAggregated::forced_import(
             db,
             "input_count",
             version,
-            indexes.input_count_source(),
-            indexes,
+            mappings.input_count_source(),
+            mappings,
             cached_starts,
         )?))
     }

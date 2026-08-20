@@ -1,8 +1,13 @@
+use std::ops::AddAssign;
+
+use bitview_cohort::{AgeRangeId, CohortContext, TermId, UTXOAggregateId};
+use bitview_compute::{
+    AgeBand, CACHE_BUDGET, ColumnarPerBlock, Identity, LazyColumnPerBlock,
+    LazyColumnSpotValuePerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
+    LazySpotValuePerBlock,
+};
+use bitview_plugin::ImportContext;
 use brk_error::Result;
-
-use std::{ops::AddAssign, path::Path};
-
-use brk_cohort::{AgeRangeId, CohortContext, TermId, UTXOAggregateId};
 use brk_types::{Cents, Height, StoredF64, Version};
 use vecdb::{
     CachedBoxedVec, ColumnId, Database, ImportableVec, PcoVec, PcoVecValue, ReadOnlyClone,
@@ -13,16 +18,8 @@ use vecdb::{
 use super::Vecs;
 use crate::{
     AgeRangeVecs, AggregateSources, AggregateVecs, HorizonId, HorizonVecs, Mobility, MobilityId,
-    SpendingExposureSeries,
+    STORAGE, SpendingExposureSeries,
 };
-use bitview_compute::{
-    AgeBand, CACHE_BUDGET, ColumnarPerBlock, Identity, LazyColumnPerBlock,
-    LazyColumnSpotValuePerBlock, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
-    LazySpotValuePerBlock,
-    db_utils::{finalize_db, open_db},
-};
-
-const VERSION: Version = Version::new(5);
 
 struct ExposureToMobility;
 
@@ -37,7 +34,7 @@ impl SpendingExposureSeries {
     fn new(
         version: Version,
         source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, AgeRangeId>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Self {
         let age_range = AgeRangeId::series(CohortContext::Utxo, |column, name| {
             LazyColumnPerBlock::new(
@@ -45,7 +42,7 @@ impl SpendingExposureSeries {
                 version,
                 source,
                 column,
-                indexes,
+                mappings,
             )
         });
         let mobility = AgeRangeId::series(CohortContext::Utxo, |column, name| {
@@ -132,7 +129,7 @@ impl AggregateVecs {
         aggregate: UTXOAggregateId,
         version: Version,
         sources: &AggregateSources,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
         let name = aggregate.cohort_name().id;
@@ -151,7 +148,7 @@ impl AggregateVecs {
                     version,
                     aggregate,
                 ),
-                indexes,
+                mappings,
                 spot_price,
             ),
             immobile: LazySpotValuePerBlock::from_boxed_sats_source(
@@ -163,7 +160,7 @@ impl AggregateVecs {
                     version,
                     aggregate,
                 ),
-                indexes,
+                mappings,
                 spot_price,
             ),
         };
@@ -176,7 +173,7 @@ impl AggregateVecs {
                 version,
                 aggregate,
             ),
-            indexes,
+            mappings,
         );
         let horizon = HorizonId::from_fn(|horizon| {
             let name = format!("{prefix}coinflow_{}_supply_in_loss_share", horizon.name());
@@ -190,7 +187,7 @@ impl AggregateVecs {
                         version,
                         aggregate,
                     ),
-                    indexes,
+                    mappings,
                 ),
             }
         });
@@ -203,7 +200,7 @@ impl AggregateVecs {
                 version,
                 aggregate,
             ),
-            indexes,
+            mappings,
         );
         let price = LazyPriceWithRatioPerBlock::from_boxed_height_source(
             &format!("{prefix}coinflow_price"),
@@ -214,7 +211,7 @@ impl AggregateVecs {
                 version,
                 aggregate,
             ),
-            indexes,
+            mappings,
             spot_price,
         );
 
@@ -229,15 +226,14 @@ impl AggregateVecs {
 }
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
-        let database = open_db(parent_path, crate::ID.as_str(), 250_000)?;
+        let database = STORAGE.open_database(context, 250_000)?;
         let db = &database;
-        let version = parent_version + VERSION;
+        let version = STORAGE.schema_version();
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();
         let spending_rate = ColumnarPerBlock::forced_import(
             db,
@@ -250,7 +246,7 @@ impl Vecs {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                     )
                 })
             },
@@ -259,7 +255,7 @@ impl Vecs {
             db,
             &CohortContext::Utxo.prefixed("age_range_spending_exposure"),
             version,
-            |source| SpendingExposureSeries::new(version, source, indexes),
+            |source| SpendingExposureSeries::new(version, source, mappings),
         )?;
         let supply = MobilityId::try_from_fn(|side| {
             let side = side.name();
@@ -274,7 +270,7 @@ impl Vecs {
                             version,
                             source,
                             column,
-                            indexes,
+                            mappings,
                             &spot_price,
                         )
                     })
@@ -287,21 +283,21 @@ impl Vecs {
             UTXOAggregateId::All,
             version,
             &aggregate_sources,
-            indexes,
+            mappings,
             &spot_price,
         );
         let sth = AggregateVecs::new(
             UTXOAggregateId::Sth,
             version,
             &aggregate_sources,
-            indexes,
+            mappings,
             &spot_price,
         );
         let lth = AggregateVecs::new(
             UTXOAggregateId::Lth,
             version,
             &aggregate_sources,
-            indexes,
+            mappings,
             &spot_price,
         );
 
@@ -318,7 +314,7 @@ impl Vecs {
             lth,
             aggregate_sources,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 }

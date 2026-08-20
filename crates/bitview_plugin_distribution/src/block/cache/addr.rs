@@ -1,4 +1,4 @@
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_types::{
     AnyAddrDataIndexEnum, EmptyAddrData, FundedAddrData, OutputType, TxIndex, TypeIndex,
 };

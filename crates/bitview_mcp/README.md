@@ -49,7 +49,7 @@ bitview_mcp \
 
 All three options are required:
 
-- `--api` is the upstream BRK REST origin. A bare host tries HTTPS first and
+- `--api` is the upstream Bitview REST origin. A bare host tries HTTPS first and
   retries over HTTP only if HTTPS fails at the transport layer.
 - `--url` is this server's public MCP URL. It must be an absolute HTTP(S)
   origin.
@@ -62,7 +62,7 @@ For local development:
 bitview_mcp \
   --api http://127.0.0.1:3110 \
   --url http://127.0.0.1:3111/ \
-  --name "Local BRK"
+  --name "Local Bitview"
 ```
 
 The Streamable HTTP endpoint is `http://127.0.0.1:3111/` by default. If that
@@ -76,5 +76,9 @@ is normalized with a trailing slash.
 
 The tool catalog is generated from the canonical OpenAPI document by
 `bitview_bindgen` and embedded in the binary at compile time from
-`generated/manifest.json`. Do not edit the generated manifest by hand; rerun
-the BRK bindgen target after changing the API.
+`generated/manifest.json`. Do not edit the generated manifest by hand; after
+changing the API, run:
+
+```sh
+cargo run -p bitviewd --example bindgen --features bindgen
+```

@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use brk_types::{CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
 
@@ -20,7 +20,7 @@ impl NetUnrealizedByCohort {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let metric = "net_unrealized_pnl";
         let matrices = UTXOColumnarMetricWithoutAmountOrType::forced_import(
@@ -33,7 +33,7 @@ impl NetUnrealizedByCohort {
             let source = matrices
                 .additive_source(&filter, &format!("{name}_cents"), version)
                 .expect("supported net unrealized cohort");
-            LazyFiatPerBlock::from_boxed_cents_source(&name, version, source, indexes)
+            LazyFiatPerBlock::from_boxed_cents_source(&name, version, source, mappings)
         });
         Ok(Self { cohorts, matrices })
     }

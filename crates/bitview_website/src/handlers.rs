@@ -163,7 +163,7 @@ mod tests {
 
     #[test]
     fn serves_static_assets_with_expected_headers() {
-        let response = serve(&Website::Default, "styles/reset.css", &HeaderMap::new()).unwrap();
+        let response = serve(&Website::Default, "llms.txt", &HeaderMap::new()).unwrap();
 
         assert_eq!(response.status(), StatusCode::OK);
         assert_eq!(
@@ -173,7 +173,7 @@ mod tests {
                 .unwrap()
                 .to_str()
                 .unwrap(),
-            "text/css",
+            "text/plain",
         );
 
         let expected_cache_control = if cfg!(debug_assertions) {
@@ -196,12 +196,37 @@ mod tests {
 
     #[test]
     fn traversal_like_paths_resolve_to_sanitized_assets() {
-        let direct =
-            body_bytes(serve(&Website::Default, "styles/reset.css", &HeaderMap::new()).unwrap());
+        let direct = body_bytes(serve(&Website::Default, "llms.txt", &HeaderMap::new()).unwrap());
         let sanitized =
-            body_bytes(serve(&Website::Default, "../styles/reset.css", &HeaderMap::new()).unwrap());
+            body_bytes(serve(&Website::Default, "../llms.txt", &HeaderMap::new()).unwrap());
 
         assert_eq!(sanitized, direct);
+    }
+
+    #[test]
+    fn serves_standalone_html_experiment() {
+        let response = serve(
+            &Website::Default,
+            "experiments/height.html",
+            &HeaderMap::new(),
+        )
+        .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response
+                .headers()
+                .get(header::CONTENT_TYPE)
+                .unwrap()
+                .to_str()
+                .unwrap(),
+            "text/html",
+        );
+        assert!(
+            String::from_utf8(body_bytes(response))
+                .unwrap()
+                .contains("Experiment 001"),
+        );
     }
 
     #[test]

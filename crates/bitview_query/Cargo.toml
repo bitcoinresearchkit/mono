@@ -1,6 +1,6 @@
 [package]
 name = "bitview_query"
-description = "An interface to find and format data from BRK"
+description = "Query interface for indexed and computed Bitview data"
 license.workspace = true
 edition.workspace = true
 version.workspace = true
@@ -11,36 +11,49 @@ exclude = ["examples/"]
 [features]
 default = ["full"]
 full = ["chain", "series", "urpd"]
+indexer = ["dep:bitview_plugin_indexer"]
+bedrock = ["indexer", "dep:bitview_plugin_bedrock"]
+blocks = ["indexer", "dep:bitview_plugin_blocks"]
+coinflow = ["indexer", "dep:bitview_plugin_coinflow"]
+cointime = ["indexer", "dep:bitview_plugin_cointime"]
+distribution = ["indexer", "dep:bitview_plugin_distribution"]
+mappings = ["indexer", "dep:bitview_plugin_mappings"]
+inputs = ["indexer", "dep:bitview_plugin_inputs"]
+mining = ["indexer", "dep:bitview_plugin_mining"]
+outputs = ["indexer", "dep:bitview_plugin_outputs"]
+pools = ["indexer", "dep:bitview_plugin_pools"]
+price = ["mappings", "dep:bitview_plugin_price"]
+transactions = ["indexer", "dep:bitview_plugin_transactions"]
 chain = [
-    "dep:bitview_plugin_blocks",
-    "dep:bitview_plugin_distribution",
-    "dep:bitview_plugin_indexes",
-    "dep:bitview_plugin_inputs",
-    "dep:bitview_plugin_mining",
-    "dep:bitview_plugin_outputs",
-    "dep:bitview_plugin_pools",
-    "dep:bitview_plugin_price",
-    "dep:bitview_plugin_transactions",
+    "blocks",
+    "distribution",
+    "mappings",
+    "inputs",
+    "mining",
+    "outputs",
+    "pools",
+    "price",
+    "transactions",
 ]
-series = ["dep:bitview_plugin_indexes"]
+series = ["mappings"]
 urpd = [
-    "dep:bitview_plugin_bedrock",
-    "dep:bitview_plugin_coinflow",
-    "dep:bitview_plugin_cointime",
-    "dep:bitview_plugin_distribution",
-    "dep:bitview_plugin_price",
+    "bedrock",
+    "coinflow",
+    "cointime",
+    "distribution",
+    "price",
 ]
-tokio = ["dep:tokio", "brk_error/tokio"]
+tokio = ["indexer", "dep:tokio", "brk_error/tokio"]
 
 [dependencies]
 bitcoin = { workspace = true }
-brk_cohort = { workspace = true }
+bitview_cohort = { workspace = true }
 bitview_plugin_bedrock = { workspace = true, optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
 bitview_plugin_distribution = { workspace = true, optional = true }
-bitview_plugin_indexes = { workspace = true, optional = true }
+bitview_plugin_mappings = { workspace = true, optional = true }
 bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }
 bitview_plugin_outputs = { workspace = true, optional = true }
@@ -48,8 +61,9 @@ bitview_plugin_pools = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_runtime = { workspace = true }
+bitview_types = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "vecdb"] }
-bitview_plugin_indexer = { workspace = true }
+bitview_plugin_indexer = { workspace = true, optional = true }
 brk_mempool = { workspace = true }
 brk_oracle = { workspace = true }
 bitview_plugin = { workspace = true }
@@ -58,6 +72,7 @@ brk_rpc = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true }
 derive_more = { workspace = true }
+itoa = "1.0.18"
 jiff = { workspace = true }
 parking_lot = { workspace = true }
 quickmatch = { workspace = true }
@@ -66,7 +81,3 @@ smallvec = { workspace = true }
 tokio = { workspace = true, optional = true }
 serde_json = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-bitview_composition = { workspace = true }
-tempfile = { workspace = true }

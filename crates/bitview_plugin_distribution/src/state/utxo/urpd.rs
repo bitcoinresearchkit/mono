@@ -6,7 +6,7 @@ use std::{
     path::Path,
 };
 
-use brk_cohort::{AgeRangeId, CohortContext, Filter, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate};
+use bitview_cohort::{AgeRangeId, CohortContext, Filter, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate};
 use brk_types::{CentsCompact, Date, Sats, UrpdRaw};
 use rayon::prelude::*;
 use vecdb::ColumnId;

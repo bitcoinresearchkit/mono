@@ -9,17 +9,17 @@ use bitview_compute::{CACHE_BUDGET, Identity, LazyIndexedVec, LazyPerBlock};
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     spot_price: &CachedBoxedVec<Height, Cents>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, spot_price)
+    Vecs::forced_import(db, version, mappings, spot_price)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let v1 = version + Version::ONE;
@@ -38,7 +38,7 @@ impl Vecs {
                 "reserve_risk",
                 v1,
                 CACHE_BUDGET.wrap(value_source),
-                indexes,
+                mappings,
             ),
         })
     }

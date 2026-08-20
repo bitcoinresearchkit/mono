@@ -11,7 +11,7 @@
 /// ```
 ///
 /// This generates implementations for:
-/// - `Deref` / `DerefMut`
+/// - `Deref`, plus `DerefMut` unless `no_deref_mut` is requested
 /// - `ImportableVec`
 /// - `AnyVec`
 /// - `TypedVec`
@@ -20,6 +20,28 @@
 /// - `ReadableVec` (delegates `for_each_range_dyn` / `fold_range` to inner)
 macro_rules! impl_vec_wrapper {
     ($wrapper:ident, $inner:ty, $value_trait:ident, $format:expr, $read_only:ty) => {
+        impl_vec_wrapper!(
+            @with_deref_mut
+            $wrapper,
+            $inner,
+            $value_trait,
+            $format,
+            $read_only,
+            yes
+        );
+    };
+    ($wrapper:ident, $inner:ty, $value_trait:ident, $format:expr, $read_only:ty, no_deref_mut) => {
+        impl_vec_wrapper!(
+            @with_deref_mut
+            $wrapper,
+            $inner,
+            $value_trait,
+            $format,
+            $read_only,
+            no
+        );
+    };
+    (@with_deref_mut $wrapper:ident, $inner:ty, $value_trait:ident, $format:expr, $read_only:ty, $deref_mut:ident) => {
         impl<I, T> ::std::ops::Deref for $wrapper<I, T> {
             type Target = $inner;
 
@@ -29,12 +51,7 @@ macro_rules! impl_vec_wrapper {
             }
         }
 
-        impl<I, T> ::std::ops::DerefMut for $wrapper<I, T> {
-            #[inline]
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.0
-            }
-        }
+        impl_vec_wrapper!(@deref_mut $deref_mut, $wrapper, $inner);
 
         impl<I, T> $crate::ImportableVec for $wrapper<I, T>
         where
@@ -333,6 +350,15 @@ macro_rules! impl_vec_wrapper {
             }
         }
     };
+    (@deref_mut yes, $wrapper:ident, $inner:ty) => {
+        impl<I, T> ::std::ops::DerefMut for $wrapper<I, T> {
+            #[inline]
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+    };
+    (@deref_mut no, $wrapper:ident, $inner:ty) => {};
 }
 
 pub(crate) use impl_vec_wrapper;

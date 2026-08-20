@@ -35,9 +35,9 @@
 
 use brk_error::Result;
 
+use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
-use brk_cohort::ByAddrType;
 use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Exit, ReadableVec, Rw, StorageMode};
@@ -69,14 +69,14 @@ impl ExposedAddrVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_supply: &CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let count = AddrCountFundedTotalVecs::forced_import(db, "exposed", version, indexes)?;
-        let supply = AddrSupplyVecs::forced_import(db, "exposed", version, indexes, spot_price)?;
+        let count = AddrCountFundedTotalVecs::forced_import(db, "exposed", version, mappings)?;
+        let supply = AddrSupplyVecs::forced_import(db, "exposed", version, mappings, spot_price)?;
         let supply_share = AddrSupplyShareVecs::forced_import(
-            db, "exposed", version, indexes, &supply, all_supply,
+            db, "exposed", version, mappings, &supply, all_supply,
         )?;
 
         Ok(Self {

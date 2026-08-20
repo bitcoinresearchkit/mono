@@ -1,4 +1,4 @@
-use brk_cohort::{AGE_BOUNDARIES, AGE_RANGE_IDS, AgeRange, AgeRangeId};
+use bitview_cohort::{AGE_BOUNDARIES, AGE_RANGE_IDS, AgeRange, AgeRangeId};
 use brk_types::{
     CostBasisSnapshot, ONE_DAY_IN_SEC_F64, ONE_HOUR_IN_SEC, Sats, StoredF64, Timestamp,
 };

@@ -6,7 +6,7 @@
 
 # Interface: SeriesLeafWithSchema
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1191](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1191)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1191](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1191)
 
 ## Properties
 
@@ -14,9 +14,9 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1191](https://github.
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1194](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1194)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1194](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1194)
 
-Available indexes for this series
+Available indexes for this series.
 
 ***
 
@@ -24,9 +24,9 @@ Available indexes for this series
 
 > **kind**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1193](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1193)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1193](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1193)
 
-The Rust type (e.g., "Sats", "StoredF64")
+The Rust type (e.g., "Sats", "StoredF64").
 
 ***
 
@@ -34,9 +34,9 @@ The Rust type (e.g., "Sats", "StoredF64")
 
 > **name**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1192](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1192)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1192](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1192)
 
-The series name/identifier
+The series name/identifier.
 
 ***
 
@@ -44,6 +44,6 @@ The series name/identifier
 
 > **type**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1195](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L1195)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1195](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1195)
 
-JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object")
+JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").

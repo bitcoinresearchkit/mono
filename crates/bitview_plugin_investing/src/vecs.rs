@@ -1,13 +1,12 @@
 mod import;
 
-use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginStorage, UpdateContext};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, Sats};
-use vecdb::Exit;
 
 use super::cached_dca_sats::CachedDcaSats;
-use super::{class_vecs::ClassVecs, period_vecs::PeriodVecs};
+use super::{STORAGE, class_vecs::ClassVecs, period_vecs::PeriodVecs};
 use bitview_compute::LazyPreviousDeltaVec;
 
 #[derive(Clone, Traversable)]
@@ -26,8 +25,8 @@ pub struct Vecs {
 }
 
 impl Plugin for Vecs {
-    fn id(&self) -> PluginId {
-        super::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
@@ -45,7 +44,11 @@ impl ComputePlugin for Vecs {
     type Dependencies<'a> = ();
     type Output = ();
 
-    fn compute(&mut self, (): Self::Dependencies<'_>, _exit: &Exit) -> Result<Self::Output> {
+    fn compute(
+        &mut self,
+        (): Self::Dependencies<'_>,
+        _context: UpdateContext<'_>,
+    ) -> Result<Self::Output> {
         self.invalidate_cache();
         Ok(())
     }

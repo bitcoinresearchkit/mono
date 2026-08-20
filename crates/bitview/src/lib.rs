@@ -3,26 +3,23 @@
 use brk_error::Result;
 
 use std::{
-    path::Path,
+    path::PathBuf,
     thread::{self, sleep},
     time::{Duration, Instant},
 };
 
-pub use bitview_composition::DefaultPlugins;
-use bitview_plugin_indexer::Indexer;
 use bitview_query::AsyncQuery;
 pub use bitview_query::QueryPluginSet;
-pub use bitview_runtime::{BootstrapAction, ComputePluginSet, PluginSet, bootstrap, update};
+pub use bitview_runtime::{
+    BootstrapAction, ComputePluginSet, ImportContext, PluginSet, UpdateContext, bootstrap, update,
+};
 use bitview_server::{Server, ServerConfig};
 use brk_mempool::Mempool;
 use brk_reader::Reader;
+use brk_rpc::Client;
+use brk_types::Port;
 use tracing::info;
 use vecdb::{Exit, ReadOnlyClone};
-
-mod config;
-mod paths;
-
-use crate::{config::Config, paths::default_logs_dir};
 
 /// The Bitview project website.
 pub const HOMEPAGE: &str = "https://bitview.dev";
@@ -33,35 +30,46 @@ pub const INSTANCE: &str = "https://bitview.space";
 /// The toolkit Bitview is built on.
 pub const TOOLKIT: &str = "https://bitcoinresearchkit.org";
 
-/// Runs the default Bitview composition.
-pub fn run() -> Result<()> {
-    run_with(|outputs_path, reader| {
-        let indexer = Indexer::import(outputs_path, reader)?;
-        DefaultPlugins::forced_import(outputs_path, indexer)
-    })
+/// Fully resolved settings for one Bitview runner.
+pub struct Config {
+    /// Bitcoin Core RPC client.
+    pub client: Client,
+    /// Directory containing Bitcoin Core's block files.
+    pub blocks_path: PathBuf,
+    /// HTTP listener port, or the server default when omitted.
+    pub port: Option<Port>,
+    /// HTTP server and data-directory settings.
+    pub server: ServerConfig,
 }
 
-/// Runs Bitview with a statically composed built-in extension.
-pub fn run_with<P>(mut import: impl FnMut(&Path, &Reader) -> Result<P>) -> Result<()>
+/// Runs a plugin composition with resolved settings and a shutdown coordinator.
+pub fn run<P>(
+    config: Config,
+    exit: Exit,
+    mut import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>,
+) -> Result<()>
 where
     P: ComputePluginSet + ReadOnlyClone,
     P::ReadOnly: QueryPluginSet + 'static,
 {
-    let config = Config::import()?;
-
-    brk_logger::init(Some(&default_logs_dir()))?;
-
-    let client = config.rpc()?;
-
-    let exit = Exit::new();
-    exit.set_ctrlc_handler();
-
-    let reader = Reader::new(config.blocksdir(), &client);
-    let outputs_path = config.bitviewdir();
+    let Config {
+        client,
+        blocks_path,
+        port,
+        server,
+    } = config;
+    let reader = Reader::new(blocks_path, &client);
+    let outputs_path = server.data_path.clone();
+    let import_context = ImportContext::new(&outputs_path);
+    let update_context = UpdateContext::new(&exit);
 
     client.wait_for_synced_node()?;
 
-    let mut plugins = bootstrap(&outputs_path, || import(&outputs_path, &reader), &exit)?;
+    let mut plugins = bootstrap(
+        import_context,
+        |context| import(context, &reader),
+        update_context,
+    )?;
 
     let mempool = Mempool::new(&client);
 
@@ -73,19 +81,10 @@ where
         mempool_clone.start_with(resolver);
     });
 
-    let server_config = ServerConfig {
-        data_path: outputs_path,
-        website: config.website(),
-        cdn_cache_mode: config.cdn_cache_mode(),
-        max_weight: config.max_weight(),
-        max_utxos: config.max_utxos(),
-    };
-
-    let port = config.bitviewport();
     let server_query = query.clone();
 
     let future = async move {
-        let server = Server::new(&server_query, server_config);
+        let server = Server::new(&server_query, server);
 
         tokio::spawn(async move {
             server.serve(port).await.unwrap();
@@ -116,7 +115,7 @@ where
 
         let total_start = Instant::now();
 
-        update(&mut plugins, &exit)?;
+        update(&mut plugins, update_context)?;
 
         info!("Total time: {:?}", total_start.elapsed());
         info!("Waiting for new blocks...");

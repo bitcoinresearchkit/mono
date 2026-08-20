@@ -1,7 +1,11 @@
 # Table of Contents
 
-* [brk\_client](#bitview_client)
+* [bitview\_client](#bitview_client)
   * [BitviewError](#bitview_client.BitviewError)
+  * [SeriesData](#bitview_client.SeriesData)
+  * [DateSeriesData](#bitview_client.DateSeriesData)
+  * [SeriesEndpoint](#bitview_client.SeriesEndpoint)
+  * [DateSeriesEndpoint](#bitview_client.DateSeriesEndpoint)
   * [BitviewClient](#bitview_client.BitviewClient)
     * [VERSION](#bitview_client.BitviewClient.VERSION)
     * [INDEXES](#bitview_client.BitviewClient.INDEXES)
@@ -103,11 +107,6 @@
     * [get\_block\_template](#bitview_client.BitviewClient.get_block_template)
     * [get\_block\_template\_diff](#bitview_client.BitviewClient.get_block_template_diff)
     * [get\_live\_price](#bitview_client.BitviewClient.get_live_price)
-    * [get\_oracle\_price](#bitview_client.BitviewClient.get_oracle_price)
-    * [get\_oracle\_histogram\_payments\_live](#bitview_client.BitviewClient.get_oracle_histogram_payments_live)
-    * [get\_oracle\_histogram\_payments](#bitview_client.BitviewClient.get_oracle_histogram_payments)
-    * [get\_oracle\_histogram\_outputs\_live](#bitview_client.BitviewClient.get_oracle_histogram_outputs_live)
-    * [get\_oracle\_histogram\_outputs](#bitview_client.BitviewClient.get_oracle_histogram_outputs)
     * [get\_tx\_by\_index](#bitview_client.BitviewClient.get_tx_by_index)
     * [get\_cpfp](#bitview_client.BitviewClient.get_cpfp)
     * [get\_tx\_rbf](#bitview_client.BitviewClient.get_tx_rbf)
@@ -121,12 +120,17 @@
     * [get\_tx\_status](#bitview_client.BitviewClient.get_tx_status)
     * [get\_transaction\_times](#bitview_client.BitviewClient.get_transaction_times)
     * [post\_tx](#bitview_client.BitviewClient.post_tx)
+    * [get\_oracle\_price](#bitview_client.BitviewClient.get_oracle_price)
+    * [get\_oracle\_histogram\_payments\_live](#bitview_client.BitviewClient.get_oracle_histogram_payments_live)
+    * [get\_oracle\_histogram\_payments](#bitview_client.BitviewClient.get_oracle_histogram_payments)
+    * [get\_oracle\_histogram\_outputs\_live](#bitview_client.BitviewClient.get_oracle_histogram_outputs_live)
+    * [get\_oracle\_histogram\_outputs](#bitview_client.BitviewClient.get_oracle_histogram_outputs)
     * [get\_openapi](#bitview_client.BitviewClient.get_openapi)
     * [get\_api](#bitview_client.BitviewClient.get_api)
 
 <a id="bitview_client"></a>
 
-# brk\_client
+# bitview\_client
 
 <a id="bitview_client.BitviewError"></a>
 
@@ -137,6 +141,63 @@ class BitviewError(Exception)
 ```
 
 Custom error class for Bitview client errors.
+
+<a id="bitview_client.SeriesData"></a>
+
+## SeriesData Objects
+
+```python
+@dataclass
+class SeriesData(Generic[T])
+```
+
+Series data with range information. Always int-indexed.
+
+<a id="bitview_client.DateSeriesData"></a>
+
+## DateSeriesData Objects
+
+```python
+@dataclass
+class DateSeriesData(SeriesData[T])
+```
+
+Series data with date-based index. Extends SeriesData with date methods.
+
+<a id="bitview_client.SeriesEndpoint"></a>
+
+## SeriesEndpoint Objects
+
+```python
+class SeriesEndpoint(Generic[T])
+```
+
+Builder for series endpoint queries with int-based indexing.
+
+Examples:
+    data = endpoint.fetch()
+    data = endpoint[5].fetch()
+    data = endpoint[:10].fetch()
+    data = endpoint.head(20).fetch()
+    data = endpoint.skip(100).take(10).fetch()
+
+<a id="bitview_client.DateSeriesEndpoint"></a>
+
+## DateSeriesEndpoint Objects
+
+```python
+class DateSeriesEndpoint(Generic[T])
+```
+
+Builder for series endpoint queries with date-based indexing.
+
+Accepts dates in __getitem__ and returns DateSeriesData from fetch().
+
+Examples:
+    data = endpoint.fetch()
+    data = endpoint[date(2020, 1, 1)].fetch()
+    data = endpoint[date(2020, 1, 1):date(2023, 1, 1)].fetch()
+    data = endpoint[:10].fetch()
 
 <a id="bitview_client.BitviewClient"></a>
 
@@ -221,7 +282,7 @@ Main Bitview client with series tree and API methods.
 #### \_\_init\_\_
 
 ```python
-def __init__(base_url: str = 'http://localhost:3000', timeout: float = 30.0)
+def __init__(base_url: str = 'http://localhost:3110', timeout: float = 30.0)
 ```
 
 <a id="bitview_client.BitviewClient.series_endpoint"></a>
@@ -1492,76 +1553,6 @@ Returns the current BTC/USD price in dollars, derived from on-chain round-dollar
 
 Endpoint: `GET /api/mempool/price`
 
-<a id="bitview_client.BitviewClient.get_oracle_price"></a>
-
-#### get\_oracle\_price
-
-```python
-def get_oracle_price() -> Dollars
-```
-
-Live BTC/USD price.
-
-Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
-
-Endpoint: `GET /api/oracle/price`
-
-<a id="bitview_client.BitviewClient.get_oracle_histogram_payments_live"></a>
-
-#### get\_oracle\_histogram\_payments\_live
-
-```python
-def get_oracle_histogram_payments_live() -> List[int]
-```
-
-Live payment output histogram.
-
-Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the forming mempool block. A flat array of log-scale bins.
-
-Endpoint: `GET /api/oracle/histogram/payments/live`
-
-<a id="bitview_client.BitviewClient.get_oracle_histogram_payments"></a>
-
-#### get\_oracle\_histogram\_payments
-
-```python
-def get_oracle_histogram_payments(point: str) -> List[int]
-```
-
-Payment output histogram at height or day.
-
-Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
-
-Endpoint: `GET /api/oracle/histogram/payments/{point}`
-
-<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs_live"></a>
-
-#### get\_oracle\_histogram\_outputs\_live
-
-```python
-def get_oracle_histogram_outputs_live() -> List[int]
-```
-
-Live output value histogram.
-
-Live unfiltered output value histogram for the forming mempool block. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
-
-Endpoint: `GET /api/oracle/histogram/outputs/live`
-
-<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs"></a>
-
-#### get\_oracle\_histogram\_outputs
-
-```python
-def get_oracle_histogram_outputs(point: str) -> List[int]
-```
-
-Output value histogram at height or day.
-
-Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
-
-Endpoint: `GET /api/oracle/histogram/outputs/{point}`
-
 <a id="bitview_client.BitviewClient.get_tx_by_index"></a>
 
 #### get\_tx\_by\_index
@@ -1767,6 +1758,76 @@ Broadcast a raw transaction to the network. The transaction should be provided a
 *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 
 Endpoint: `POST /api/tx`
+
+<a id="bitview_client.BitviewClient.get_oracle_price"></a>
+
+#### get\_oracle\_price
+
+```python
+def get_oracle_price() -> Dollars
+```
+
+Live BTC/USD price.
+
+Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+
+Endpoint: `GET /api/oracle/price`
+
+<a id="bitview_client.BitviewClient.get_oracle_histogram_payments_live"></a>
+
+#### get\_oracle\_histogram\_payments\_live
+
+```python
+def get_oracle_histogram_payments_live() -> List[int]
+```
+
+Live payment output histogram.
+
+Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the forming mempool block. A flat array of log-scale bins.
+
+Endpoint: `GET /api/oracle/histogram/payments/live`
+
+<a id="bitview_client.BitviewClient.get_oracle_histogram_payments"></a>
+
+#### get\_oracle\_histogram\_payments
+
+```python
+def get_oracle_histogram_payments(point: str) -> List[int]
+```
+
+Payment output histogram at height or day.
+
+Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
+
+Endpoint: `GET /api/oracle/histogram/payments/{point}`
+
+<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs_live"></a>
+
+#### get\_oracle\_histogram\_outputs\_live
+
+```python
+def get_oracle_histogram_outputs_live() -> List[int]
+```
+
+Live output value histogram.
+
+Live unfiltered output value histogram for the forming mempool block. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+
+Endpoint: `GET /api/oracle/histogram/outputs/live`
+
+<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs"></a>
+
+#### get\_oracle\_histogram\_outputs
+
+```python
+def get_oracle_histogram_outputs(point: str) -> List[int]
+```
+
+Output value histogram at height or day.
+
+Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+
+Endpoint: `GET /api/oracle/histogram/outputs/{point}`
 
 <a id="bitview_client.BitviewClient.get_openapi"></a>
 

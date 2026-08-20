@@ -26,7 +26,7 @@ impl<C: ColumnId> FeesSeries<C> {
         fees: LazyColumnPerBlockCumulativeRolling<Sats, C>,
         chain_fees: CachedBoxedVec<Height, Sats>,
         cached_starts: &Windows<&CachedWindowStartVec>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Self {
         let fee_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
             Sats,
@@ -38,7 +38,7 @@ impl<C: ColumnId> FeesSeries<C> {
             &fees.cumulative.height,
             chain_fees,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Self { fees, fee_share }

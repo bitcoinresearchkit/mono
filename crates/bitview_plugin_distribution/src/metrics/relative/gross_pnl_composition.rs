@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Dollars, Height, PartsPerMillion32, PartsPerMillionSigned32, Version};
 use vecdb::{
     AnyStoredVec, Database, Exit, LazyVec, PcoVec, ReadOnlyClone, ReadOnlyColumnarVec,
@@ -39,7 +39,7 @@ impl GrossPnlComposition {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let version = version + VERSION;
         let profit_share_source = ColumnarPerBlock::forced_import(
@@ -54,21 +54,21 @@ impl GrossPnlComposition {
             "unrealized_profit_to_own_gross_pnl",
             version,
             Self::public_profit_share,
-            indexes,
+            mappings,
         );
         let unrealized_loss_to_own_gross_pnl = Self::views(
             &source,
             "unrealized_loss_to_own_gross_pnl",
             version,
             Self::public_loss_share,
-            indexes,
+            mappings,
         );
         let net_unrealized_pnl_to_own_gross_pnl = Self::views(
             &source,
             "net_unrealized_pnl_to_own_gross_pnl",
             version,
             Self::public_net_share,
-            indexes,
+            mappings,
         );
 
         Ok(Self {
@@ -84,7 +84,7 @@ impl GrossPnlComposition {
         metric: &str,
         version: Version,
         compute: fn(Height, PartsPerMillion32) -> B,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> UTXOAggregate<LazyPercentPerBlock<B>> {
         UTXOAggregate::from_fn(|id| {
             let name = CohortContext::Utxo.metric_name(
@@ -99,7 +99,7 @@ impl GrossPnlComposition {
                 source.read_only_boxed_clone(),
                 compute,
             );
-            LazyPercentPerBlock::from_height_source(&name, version, source, indexes)
+            LazyPercentPerBlock::from_height_source(&name, version, source, mappings)
         })
     }
 

@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::AddrTypeId;
 use bitview_traversable::Traversable;
-use brk_cohort::AddrTypeId;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::*;
@@ -33,7 +33,7 @@ impl AddrSupplyVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let name = format!("{name}_addr_supply");
@@ -43,7 +43,7 @@ impl AddrSupplyVecs {
             version,
             |source| {
                 WithAddrTypes::from_columnar_spot_value_source(
-                    &name, version, source, indexes, spot_price,
+                    &name, version, source, mappings, spot_price,
                 )
             },
         )?))

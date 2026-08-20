@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign};
 
-use brk_cohort::{AmountRange, ByType};
+use bitview_cohort::{AmountRange, ByType};
 use brk_types::{OutputType, Sats, SupplyState};
 use vecdb::unlikely;
 

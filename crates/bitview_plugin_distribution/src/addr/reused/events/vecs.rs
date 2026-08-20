@@ -1,8 +1,8 @@
 use brk_error::Result;
 
+use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
-use brk_cohort::{AddrTypeId, ByAddrType};
 use brk_types::{PartsPerMillion32, StoredF32, StoredU32, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, Database, Exit, Rw, StorageMode, WritableVec};
@@ -112,7 +112,7 @@ impl AddrEventsVecs {
     fn event_shares(
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         all: LazyPercentCumulativeRolling<PartsPerMillion32>,
         numerators: &ByAddrType<LazyColumnPerBlockCumulativeRolling<StoredU64, AddrTypeId>>,
@@ -125,7 +125,7 @@ impl AddrEventsVecs {
                 &column.select(numerators).cumulative.height,
                 column.select(denominators).clone(),
                 cached_starts,
-                indexes,
+                mappings,
             )
         });
         WithAddrTypes { all, by_addr_type }
@@ -134,7 +134,7 @@ impl AddrEventsVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         outputs_by_type: &bitview_plugin_outputs::ByTypeVecs,
         inputs_by_type: &bitview_plugin_inputs::ByTypeVecs,
@@ -149,7 +149,7 @@ impl AddrEventsVecs {
                         name,
                         version,
                         source,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 },
@@ -162,14 +162,14 @@ impl AddrEventsVecs {
         let output_to_reused_addr_share = Self::event_shares(
             &output_share_name,
             version,
-            indexes,
+            mappings,
             cached_starts,
             outputs_by_type.output_count.lazy_share(
                 &output_share_name,
                 version,
                 &output_to_reused_addr_count.all.cumulative.height,
                 cached_starts,
-                indexes,
+                mappings,
             ),
             &output_to_reused_addr_count.by_addr_type,
             &output_denominators,
@@ -186,7 +186,7 @@ impl AddrEventsVecs {
                 &output_to_reused_addr_count.all.cumulative.height,
                 outputs_by_type.spendable_output_count.cached_cumulative(),
                 cached_starts,
-                indexes,
+                mappings,
             );
         let input_from_reused_addr_count = import_count(&format!("input_from_{name}_addr_count"))?;
         let input_share_name = format!("input_from_{name}_addr_share");
@@ -194,14 +194,14 @@ impl AddrEventsVecs {
         let input_from_reused_addr_share = Self::event_shares(
             &input_share_name,
             version,
-            indexes,
+            mappings,
             cached_starts,
             inputs_by_type.input_count.lazy_share(
                 &input_share_name,
                 version,
                 &input_from_reused_addr_count.all.cumulative.height,
                 cached_starts,
-                indexes,
+                mappings,
             ),
             &input_from_reused_addr_count.by_addr_type,
             &input_denominators,
@@ -211,14 +211,14 @@ impl AddrEventsVecs {
             db,
             &format!("active_{name}_addr_count"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let active_reused_addr_share = PerBlockRollingAverage::forced_import(
             db,
             &format!("active_{name}_addr_share"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
 

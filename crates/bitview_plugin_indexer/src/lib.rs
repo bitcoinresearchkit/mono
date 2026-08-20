@@ -6,12 +6,14 @@ use std::{
     collections::BTreeMap,
     fs::{self, File},
     io::ErrorKind,
-    path::{Path, PathBuf},
+    path::Path,
     thread,
     time::{Duration, Instant},
 };
 
-use bitview_plugin::{ComputePlugin, PLUGIN_DATA_DIR, Plugin, PluginGate, PluginId};
+use bitview_plugin::{
+    ComputePlugin, ImportContext, Plugin, PluginGate, PluginId, PluginStorage, UpdateContext,
+};
 use bitview_traversable::{Traversable, TreeNode};
 use brk_error::Error;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
@@ -47,7 +49,9 @@ use vecs::{
 
 use state::State;
 
-pub const ID: PluginId = PluginId::new("indexer");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
+const EXPORT_INTERVAL: Duration = Duration::from_secs(60);
+pub const ID: PluginId = STORAGE.id();
 
 pub struct Indexer<M: StorageMode = Rw> {
     inner: IndexerInner<M>,
@@ -77,8 +81,8 @@ fn is_export_height(height: Height) -> bool {
     height != 0 && height % SNAPSHOT_BLOCK_RANGE == 0
 }
 
-fn final_export_height(completed_height: Option<Height>) -> Option<Height> {
-    completed_height.filter(|height| !is_export_height(*height))
+fn is_periodic_export_due(height: Height, elapsed: Duration) -> bool {
+    is_export_height(height) && elapsed >= EXPORT_INTERVAL
 }
 
 fn read_xor_marker(path: &Path) -> Result<XorMarker> {
@@ -126,32 +130,6 @@ fn read_block_hash_at(reader: &Reader, position: BlkPosition) -> Result<BlockHas
     let bytes = reader.read_raw_bytes(position, bitcoin::block::Header::SIZE)?;
     let header: bitcoin::block::Header = bitcoin::consensus::deserialize(&bytes)?;
     Ok(BlockHash::from(header.block_hash()))
-}
-
-// Startup-only compatibility shim. It runs before the indexer opens any data.
-// TODO: Remove once automatic migration from the pre-plugin layout is no longer supported.
-fn migrate_legacy_dir(outputs_dir: &Path) -> Result<PathBuf> {
-    let path = plugin_data_path(outputs_dir);
-    let legacy = outputs_dir.join("indexed");
-
-    fs::create_dir_all(outputs_dir.join(PLUGIN_DATA_DIR))?;
-
-    if !legacy.exists() {
-        return Ok(path);
-    }
-    if path.exists() {
-        return Err(Error::Internal(
-            "Both legacy indexed and indexer plugin directories exist",
-        ));
-    }
-
-    fs::rename(&legacy, &path)?;
-    info!("Moved legacy indexer data from {legacy:?} to {path:?}");
-    Ok(path)
-}
-
-fn plugin_data_path(outputs_dir: &Path) -> PathBuf {
-    outputs_dir.join(PLUGIN_DATA_DIR).join(ID.as_str())
 }
 
 fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<()> {
@@ -246,9 +224,9 @@ impl Indexer {
     ///
     /// Any reset happens before this function returns, after all handles from
     /// the failed import attempt have been dropped.
-    pub fn import(outputs_dir: &Path, reader: &Reader) -> Result<Self> {
+    pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         Ok(Self {
-            inner: IndexerInner::import(outputs_dir, reader)?,
+            inner: IndexerInner::import(context, reader)?,
         })
     }
 
@@ -269,35 +247,35 @@ impl Indexer {
     /// Publish disk state as the new safe-lengths snapshot. Drains pending
     /// bg ingest first so stores are queryable at the new bound.
     pub fn finish_update(&mut self) -> Result<()> {
-        self.prepare_publish()?;
+        self.commit()?;
         self.inner.plugin_gate.finish_update();
         Ok(())
     }
 
-    /// Completes fallible writes before the runtime publishes the plugin set.
-    pub fn prepare_publish(&mut self) -> Result<()> {
-        self.inner.prepare_publish()
+    /// Commits indexed disk state as the pipeline-wide safe-lengths snapshot.
+    pub fn commit(&mut self) -> Result<()> {
+        self.inner.commit()
     }
 }
 
 impl IndexerInner<Rw> {
-    fn import(outputs_dir: &Path, reader: &Reader) -> Result<Self> {
+    fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         validate_reader_source(reader)?;
-        Self::import_inner(outputs_dir, reader, true)
+        Self::import_inner(context, reader, true)
     }
 
-    fn import_inner(outputs_dir: &Path, reader: &Reader, can_retry: bool) -> Result<Self> {
+    fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {
         info!("Importing indexer...");
 
-        let plugin_path = migrate_legacy_dir(outputs_dir)?;
+        let plugin_path = STORAGE.path(context);
 
         let try_import = || -> Result<Self> {
             let i = Instant::now();
-            let vecs = Vecs::forced_import(&plugin_path, VERSION)?;
+            let vecs = Vecs::forced_import(&plugin_path, STORAGE.schema_version())?;
             info!("Imported vecs in {:?}", i.elapsed());
 
             let i = Instant::now();
-            let stores = Stores::forced_import(&plugin_path, VERSION)?;
+            let stores = Stores::forced_import(&plugin_path, STORAGE.schema_version())?;
             info!("Imported stores in {:?}", i.elapsed());
 
             Ok(Self {
@@ -322,7 +300,7 @@ impl IndexerInner<Rw> {
                 // handles have been dropped before the directory is removed.
                 info!("{err:?}, deleting {plugin_path:?} and retrying");
                 recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                return Self::import_inner(outputs_dir, reader, false);
+                return Self::import_inner(context, reader, false);
             }
             Err(err) => return Err(err),
         };
@@ -337,7 +315,7 @@ impl IndexerInner<Rw> {
                 info!("{reason}, deleting {plugin_path:?} and retrying");
                 drop(indexer);
                 recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
-                Self::import_inner(outputs_dir, reader, false)
+                Self::import_inner(context, reader, false)
             }
             ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
         }
@@ -464,7 +442,8 @@ impl IndexerInner<Rw> {
         self.buffers.continue_from(prev_hash);
 
         let mut lengths = starting_lengths;
-        let mut completed_height = None;
+        let mut pending_export_height = None;
+        let mut last_export = Instant::now();
 
         let export =
             move |stores: &mut Stores, vecs: &mut Vecs, completed_height: Height| -> Result<()> {
@@ -561,18 +540,22 @@ impl IndexerInner<Rw> {
                 .lengths
                 .add_block(tx_count, input_count, output_count);
             buffers.finish_block(*block.hash());
-            completed_height = Some(height);
+            pending_export_height = Some(height);
 
-            if is_export_height(height) {
+            if is_periodic_export_due(height, last_export.elapsed()) {
                 drop(readers);
                 export(stores, vecs, height)?;
                 readers = Readers::new(vecs);
+                // Clear this only after a successful export. If the timer
+                // suppresses this checkpoint, the final export still sees it.
+                pending_export_height = None;
+                last_export = Instant::now();
             }
         }
 
         drop(readers);
 
-        let Some(completed_height) = final_export_height(completed_height) else {
+        let Some(completed_height) = pending_export_height else {
             return Ok(());
         };
 
@@ -603,7 +586,7 @@ impl IndexerInner<Rw> {
         Ok(())
     }
 
-    fn prepare_publish(&mut self) -> Result<()> {
+    fn commit(&mut self) -> Result<()> {
         self.vecs.sync_bg_tasks()?;
         let lengths = match Lengths::from_local(&self.vecs, &self.stores)? {
             Some(lengths) => lengths,
@@ -644,8 +627,8 @@ impl<M: StorageMode> Plugin for Indexer<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
@@ -657,16 +640,27 @@ impl ComputePlugin for Indexer {
     type Dependencies<'a> = ();
     type Output = ();
 
-    fn compute(&mut self, (): Self::Dependencies<'_>, exit: &Exit) -> Result<Self::Output> {
-        self.inner.index(exit, cfg!(debug_assertions))
+    fn compute(
+        &mut self,
+        (): Self::Dependencies<'_>,
+        context: UpdateContext<'_>,
+    ) -> Result<Self::Output> {
+        self.inner.index(context.exit(), cfg!(debug_assertions))
     }
 }
 
 #[cfg(test)]
 mod import_tests {
-    use super::*;
+    use std::path::PathBuf;
+
     use brk_rpc::{Auth, Client};
     use brk_types::BlockHashPrefix;
+
+    use super::*;
+
+    fn plugin_data_path(outputs_dir: &Path) -> PathBuf {
+        STORAGE.path(ImportContext::new(outputs_dir))
+    }
 
     fn empty_reader(path: &Path) -> Reader {
         let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
@@ -674,16 +668,19 @@ mod import_tests {
     }
 
     #[test]
-    fn final_export_requires_an_unsnapshotted_completed_block() {
+    fn periodic_export_requires_a_snapshot_height_and_elapsed_interval() {
         let snapshot_height = Height::from(SNAPSHOT_BLOCK_RANGE);
 
-        assert_eq!(final_export_height(None), None);
-        assert_eq!(final_export_height(Some(Height::ZERO)), Some(Height::ZERO));
-        assert_eq!(final_export_height(Some(snapshot_height)), None);
-        assert_eq!(
-            final_export_height(Some(snapshot_height.incremented())),
-            Some(snapshot_height.incremented())
-        );
+        assert!(!is_periodic_export_due(Height::ZERO, EXPORT_INTERVAL));
+        assert!(!is_periodic_export_due(
+            snapshot_height.incremented(),
+            EXPORT_INTERVAL
+        ));
+        assert!(!is_periodic_export_due(
+            snapshot_height,
+            EXPORT_INTERVAL - Duration::from_nanos(1)
+        ));
+        assert!(is_periodic_export_due(snapshot_height, EXPORT_INTERVAL));
     }
 
     #[test]
@@ -704,42 +701,11 @@ mod import_tests {
     }
 
     #[test]
-    fn legacy_directory_is_moved_to_the_plugin_id() -> Result<()> {
-        let dir = tempfile::tempdir()?;
-        let legacy = dir.path().join("indexed");
-        fs::create_dir(&legacy)?;
-        fs::write(legacy.join("marker"), b"data")?;
-
-        let plugin = migrate_legacy_dir(dir.path())?;
-
-        assert_eq!(plugin, plugin_data_path(dir.path()));
-        assert!(!legacy.exists());
-        assert_eq!(fs::read(plugin.join("marker"))?, b"data");
-        Ok(())
-    }
-
-    #[test]
-    fn legacy_migration_never_overwrites_plugin_data() -> Result<()> {
-        let dir = tempfile::tempdir()?;
-        let legacy = dir.path().join("indexed");
-        let plugin = plugin_data_path(dir.path());
-        fs::create_dir(&legacy)?;
-        fs::create_dir_all(&plugin)?;
-        fs::write(legacy.join("marker"), b"legacy")?;
-        fs::write(plugin.join("marker"), b"current")?;
-
-        assert!(migrate_legacy_dir(dir.path()).is_err());
-        assert_eq!(fs::read(legacy.join("marker"))?, b"legacy");
-        assert_eq!(fs::read(plugin.join("marker"))?, b"current");
-        Ok(())
-    }
-
-    #[test]
     fn empty_import_writes_identity_marker() -> Result<()> {
         let dir = tempfile::tempdir()?;
         let reader = empty_reader(dir.path());
 
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
 
         assert!(matches!(
             read_xor_marker(&plugin_data_path(dir.path()))?,
@@ -753,11 +719,11 @@ mod import_tests {
         let dir = tempfile::tempdir()?;
         let plugin = plugin_data_path(dir.path());
         let reader = empty_reader(dir.path());
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
         fs::write(plugin.join("xor.dat"), [0_u8; 3])?;
         fs::write(plugin.join("stale"), b"stale")?;
 
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
 
         assert!(!plugin.join("stale").exists());
         assert!(matches!(
@@ -772,13 +738,13 @@ mod import_tests {
         let dir = tempfile::tempdir()?;
         let plugin = plugin_data_path(dir.path());
         let reader = empty_reader(dir.path());
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
         fs::write(plugin.join("stale"), b"stale")?;
         fs::create_dir_all(dir.path().join("blocks"))?;
         fs::write(dir.path().join("blocks/xor.dat"), [0_u8; 3])?;
         let reader = empty_reader(dir.path());
 
-        assert!(Indexer::import(dir.path(), &reader).is_err());
+        assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
         assert!(plugin.join("stale").exists());
         Ok(())
     }
@@ -789,12 +755,12 @@ mod import_tests {
         let plugin = plugin_data_path(dir.path());
         let marker = plugin.join("xor.dat");
         let reader = empty_reader(dir.path());
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
         fs::remove_file(&marker)?;
         fs::create_dir(&marker)?;
         fs::write(plugin.join("stale"), b"stale")?;
 
-        assert!(Indexer::import(dir.path(), &reader).is_err());
+        assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
         assert!(plugin.join("stale").exists());
         Ok(())
     }
@@ -805,12 +771,12 @@ mod import_tests {
         let plugin = plugin_data_path(dir.path());
         let checkpoint = plugin.join("stores/height");
         let reader = empty_reader(dir.path());
-        drop(Indexer::import(dir.path(), &reader)?);
+        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
         fs::remove_file(&checkpoint)?;
         fs::create_dir(&checkpoint)?;
         fs::write(plugin.join("stale"), b"stale")?;
 
-        assert!(Indexer::import(dir.path(), &reader).is_err());
+        assert!(Indexer::import(ImportContext::new(dir.path()), &reader).is_err());
         assert!(plugin.join("stale").exists());
         Ok(())
     }
@@ -849,7 +815,7 @@ mod import_tests {
         let reader = empty_reader(dir.path());
 
         {
-            let mut indexer = Indexer::import(dir.path(), &reader)?;
+            let mut indexer = Indexer::import(ImportContext::new(dir.path()), &reader)?;
             indexer
                 .inner
                 .stores
@@ -860,7 +826,7 @@ mod import_tests {
         }
         fs::write(plugin.join("stale"), b"stale")?;
 
-        let indexer = Indexer::import(dir.path(), &reader)?;
+        let indexer = Indexer::import(ImportContext::new(dir.path()), &reader)?;
 
         assert!(!plugin.join("stale").exists());
         assert_eq!(indexer.vecs().next_height(), Height::ZERO);

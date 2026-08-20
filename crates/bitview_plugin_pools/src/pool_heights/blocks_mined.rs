@@ -26,7 +26,7 @@ impl BlocksMined {
         slug: PoolSlug,
         pool_heights: PoolHeights,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let cumulative_name = format!("{name}_cumulative");
@@ -35,7 +35,7 @@ impl BlocksMined {
             &cumulative_name,
             version,
             cumulative_source,
-            indexes,
+            mappings,
         );
         let block =
             LazyPreviousDeltaVec::new(name, version, cumulative.height.read_only_boxed_clone());
@@ -44,7 +44,7 @@ impl BlocksMined {
             version,
             &cumulative.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Self {

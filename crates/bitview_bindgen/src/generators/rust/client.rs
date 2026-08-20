@@ -11,12 +11,14 @@ use crate::{
 pub fn generate_imports(output: &mut String) {
     writeln!(
         output,
-        r#"use std::str::FromStr;
-use std::sync::Arc;
-use std::ops::{{Bound, RangeBounds}};
-use serde::de::DeserializeOwned;
-pub use brk_cohort::*;
+        r#"pub use bitview_cohort::*;
+pub use bitview_types::*;
 pub use brk_types::*;
+use crate::{{DateSeriesData, FormatResponse}};
+use serde::de::DeserializeOwned;
+use std::ops::{{Bound, RangeBounds}};
+use std::str::FromStr;
+use std::sync::Arc;
 
 "#
     )
@@ -142,7 +144,7 @@ pub struct BitviewClientOptions {{
 impl Default for BitviewClientOptions {{
     fn default() -> Self {{
         Self {{
-            base_url: "http://localhost:3000".to_string(),
+            base_url: "http://localhost:3110".to_string(),
             timeout_secs: 30,
         }}
     }}

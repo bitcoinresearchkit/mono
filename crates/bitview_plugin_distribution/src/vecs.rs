@@ -1,14 +1,14 @@
 use brk_error::Result;
 
-use std::{
-    mem,
-    path::{Path, PathBuf},
-};
+use std::{mem, path::PathBuf};
 
-use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
+use bitview_plugin::{
+    ComputePlugin, ImportContext, Plugin, PluginGate, PluginStorage, UpdateContext,
+};
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_cohort::{AddrTypeId, AgeRange, AgeRangeId, CohortContext, EntryPrice};
+use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
 use vecdb::{
@@ -17,13 +17,13 @@ use vecdb::{
 };
 
 use crate::{
+    Dependencies, STORAGE,
     compute::{StartMode, determine_start_mode, process_blocks},
     state::{AddrStates, BlockState},
 };
 use bitview_compute::{
     CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, LazyColumnPerBlockCumulativeRolling,
     PerBlockCumulativeRolling, Windows,
-    db_utils::{finalize_db, open_db},
 };
 
 use super::inner::Inner;
@@ -35,7 +35,7 @@ use super::{
     },
 };
 
-const VERSION: Version = Version::new(30 + brk_oracle::VERSION);
+const COMPUTE_VERSION: Version = Version::new(30 + ORACLE_VERSION);
 const COINDAYS_CREATED_VERSION: Version = Version::ONE;
 
 #[derive(Traversable)]
@@ -80,29 +80,12 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        crate::ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
         &self.plugin_gate
-    }
-
-    fn mutates_existing(&self, vec: &dyn AnyVec) -> bool {
-        [
-            &self.any_addr_indexes.p2a as &dyn AnyVec,
-            &self.any_addr_indexes.p2pk33,
-            &self.any_addr_indexes.p2pk65,
-            &self.any_addr_indexes.p2pkh,
-            &self.any_addr_indexes.p2sh,
-            &self.any_addr_indexes.p2tr,
-            &self.any_addr_indexes.p2wpkh,
-            &self.any_addr_indexes.p2wsh,
-            &self.addrs_data.funded,
-            &self.addrs_data.empty,
-        ]
-        .into_iter()
-        .any(|mutable| std::ptr::addr_eq(vec, mutable))
     }
 }
 
@@ -115,26 +98,25 @@ impl Vecs {
         AllChainSources::new(self.cohorts.all_supply(), self.cohorts.all_market_cap())
     }
 
-    pub fn forced_import(
-        parent: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         prices: &bitview_plugin_price::Vecs,
         inputs_by_type: &bitview_plugin_inputs::ByTypeVecs,
         outputs_by_type: &bitview_plugin_outputs::ByTypeVecs,
     ) -> Result<Self> {
-        let db_path = parent.join(crate::ID.as_str());
+        let db_path = STORAGE.path(context);
         let states_path = db_path.join("states");
 
-        let db = open_db(parent, crate::ID.as_str(), 20_000_000)?;
+        let db = STORAGE.open_database(context, 20_000_000)?;
         db.set_min_regions(50_000)?;
 
-        let version = parent_version + VERSION;
+        let version = STORAGE.schema_version();
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();
 
         let cohorts =
-            CohortMetrics::forced_import(&db, version, indexes, cached_starts, &spot_price)?;
+            CohortMetrics::forced_import(&db, version, mappings, cached_starts, &spot_price)?;
 
         // Create address data vecs first so we can also use them for identity mappings.
         let funded_addr_data_version = version + FUNDED_ADDR_DATA_VERSION;
@@ -162,17 +144,17 @@ impl Vecs {
         );
 
         let funded_addr_count =
-            FundedAddrCountsVecs::forced_import(&db, version, indexes, cached_starts)?;
+            FundedAddrCountsVecs::forced_import(&db, version, mappings, cached_starts)?;
         let empty_addr_count =
-            AddrCountsVecs::forced_import(&db, "empty_addr_count", version, indexes)?;
-        let addr_activity = AddrActivityVecs::forced_import(&db, version, indexes, cached_starts)?;
+            AddrCountsVecs::forced_import(&db, "empty_addr_count", version, mappings)?;
+        let addr_activity = AddrActivityVecs::forced_import(&db, version, mappings, cached_starts)?;
 
-        // Stored total = addr_count + empty_addr_count (global + per-type, with all derived indexes)
-        let total_addr_count = TotalAddrCountVecs::forced_import(&db, version, indexes)?;
+        // Stored total = addr_count + empty_addr_count (global + per-type, with all derived mappings)
+        let total_addr_count = TotalAddrCountVecs::forced_import(&db, version, mappings)?;
 
         // Per-block delta of total (global + per-type)
         let new_addr_count =
-            NewAddrCountVecs::new(version, &total_addr_count, indexes, cached_starts);
+            NewAddrCountVecs::new(version, &total_addr_count, mappings, cached_starts);
 
         // Reused address tracking (counts + per-block uses + percent).
         // `reused_*` uses the receive-side predicate (funded_txo_count > 1,
@@ -182,7 +164,7 @@ impl Vecs {
             &db,
             "reused",
             version,
-            indexes,
+            mappings,
             cached_starts,
             &spot_price,
             outputs_by_type,
@@ -193,7 +175,7 @@ impl Vecs {
             &db,
             "respent",
             version,
-            indexes,
+            mappings,
             cached_starts,
             &spot_price,
             outputs_by_type,
@@ -205,20 +187,20 @@ impl Vecs {
         let exposed_addr_vecs = ExposedAddrVecs::forced_import(
             &db,
             version,
-            indexes,
+            mappings,
             &spot_price,
             cohorts.all_supply(),
         )?;
 
         // Growth rate: delta change + rate (global + per-type)
-        let delta = DeltaVecs::new(version, &funded_addr_count.counts, cached_starts, indexes);
+        let delta = DeltaVecs::new(version, &funded_addr_count.counts, cached_starts, mappings);
 
         // Average amount (supply / utxo_count, supply / funded_addr_count) for `all` and per addr type.
         let all_chain = AllChainSources::new(cohorts.all_supply(), cohorts.all_market_cap());
         let avg_amount = AvgAmountVecs::forced_import(
             &db,
             version,
-            indexes,
+            mappings,
             &spot_price,
             &all_chain,
             &cohorts.outputs.unspent_count.cohorts.all.height,
@@ -260,7 +242,7 @@ impl Vecs {
                             version,
                             source,
                             column,
-                            indexes,
+                            mappings,
                             cached_starts,
                         )
                     })
@@ -271,7 +253,7 @@ impl Vecs {
                 &db,
                 "coinblocks_destroyed",
                 version + Version::TWO,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
 
@@ -284,7 +266,7 @@ impl Vecs {
             states_path,
         };
 
-        finalize_db(&this.inner.db, &this)?;
+        STORAGE.finalize_database(&this.inner.db, &this)?;
         Ok(this)
     }
 
@@ -320,7 +302,7 @@ impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         inputs: &bitview_plugin_inputs::Vecs,
         outputs: &bitview_plugin_outputs::Vecs,
         transactions: &bitview_plugin_transactions::Vecs,
@@ -331,18 +313,18 @@ impl Vecs {
         let mut utxo_states = UTXOStates::new(&self.states_path);
         let mut addr_states = AddrStates::new(&self.states_path);
 
-        let base_version = VERSION
+        let base_version = COMPUTE_VERSION
             + [
                 prices.spot.cents.height.version(),
-                indexes.timestamp.monotonic.version(),
+                mappings.timestamp.monotonic.version(),
                 indexer.vecs().transactions.first_tx_index.version(),
                 indexer.vecs().outputs.first_txout_index.version(),
                 indexer.vecs().inputs.first_txin_index.version(),
                 transactions.count.total.block.version(),
                 outputs.count.total.sum.version(),
                 inputs.count.sum.version(),
-                indexes.tx_index.output_count.version(),
-                indexes.tx_index.input_count.version(),
+                mappings.tx_index.output_count.version(),
+                mappings.tx_index.input_count.version(),
                 indexer.vecs().outputs.value.version(),
                 indexer.vecs().outputs.output_type.version(),
                 indexer.vecs().outputs.type_index.version(),
@@ -436,7 +418,7 @@ impl Vecs {
             .cents
             .height
             .len()
-            .min(indexes.timestamp.monotonic.len());
+            .min(mappings.timestamp.monotonic.len());
         let cache_current_len = self.inner.prices.len();
         if cache_target_len < cache_current_len {
             self.inner.prices.truncate(cache_target_len);
@@ -448,7 +430,7 @@ impl Vecs {
                 .cents
                 .height
                 .collect_range_at(cache_current_len, cache_target_len);
-            let new_timestamps = indexes
+            let new_timestamps = mappings
                 .timestamp
                 .monotonic
                 .collect_range_at(cache_current_len, cache_target_len);
@@ -547,7 +529,7 @@ impl Vecs {
                 &mut utxo_states,
                 &mut addr_states,
                 indexer,
-                indexes,
+                mappings,
                 inputs,
                 outputs,
                 transactions,
@@ -645,22 +627,22 @@ pub fn flush(vecs: &Vecs) -> Result<()> {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = UTXOStates;
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.inputs,
             dependencies.outputs,
             dependencies.transactions,
             dependencies.price,
-            exit,
+            context.exit(),
         )
     }
 }

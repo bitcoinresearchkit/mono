@@ -12,24 +12,24 @@ use super::{
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes)
+    Vecs::forced_import(db, version, mappings)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let v4 = Version::new(4);
         let v5 = Version::new(5);
         let v6 = Version::new(6);
 
-        let price_ths = PerBlock::forced_import(db, "hash_price_ths", version + v4, indexes)?;
+        let price_ths = PerBlock::forced_import(db, "hash_price_ths", version + v4, mappings)?;
         let price_ths_min =
-            PerBlock::forced_import(db, "hash_price_ths_min", version + v6, indexes)?;
+            PerBlock::forced_import(db, "hash_price_ths_min", version + v6, mappings)?;
         let price_phs = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_price_phs",
             version + v4,
@@ -43,9 +43,9 @@ impl Vecs {
             &price_ths_min,
         );
 
-        let value_ths = PerBlock::forced_import(db, "hash_value_ths", version + v4, indexes)?;
+        let value_ths = PerBlock::forced_import(db, "hash_value_ths", version + v4, mappings)?;
         let value_ths_min =
-            PerBlock::forced_import(db, "hash_value_ths_min", version + v6, indexes)?;
+            PerBlock::forced_import(db, "hash_value_ths_min", version + v6, mappings)?;
         let value_phs = LazyPerBlock::from_computed::<ThsToPhsF32>(
             "hash_value_phs",
             version + v4,
@@ -61,19 +61,19 @@ impl Vecs {
 
         Ok(Self {
             rate: RateVecs {
-                base: PerBlock::forced_import(db, "hash_rate", version + v5, indexes)?,
+                base: PerBlock::forced_import(db, "hash_rate", version + v5, mappings)?,
                 sma: HashRateSmaVecs {
-                    _1w: PerBlock::forced_import(db, "hash_rate_sma_1w", version, indexes)?,
-                    _1m: PerBlock::forced_import(db, "hash_rate_sma_1m", version, indexes)?,
-                    _2m: PerBlock::forced_import(db, "hash_rate_sma_2m", version, indexes)?,
-                    _1y: PerBlock::forced_import(db, "hash_rate_sma_1y", version, indexes)?,
+                    _1w: PerBlock::forced_import(db, "hash_rate_sma_1w", version, mappings)?,
+                    _1m: PerBlock::forced_import(db, "hash_rate_sma_1m", version, mappings)?,
+                    _2m: PerBlock::forced_import(db, "hash_rate_sma_2m", version, mappings)?,
+                    _1y: PerBlock::forced_import(db, "hash_rate_sma_1y", version, mappings)?,
                 },
-                ath: PerBlock::forced_import(db, "hash_rate_ath", version, indexes)?,
+                ath: PerBlock::forced_import(db, "hash_rate_ath", version, mappings)?,
                 drawdown: PercentPerBlock::forced_import(
                     db,
                     "hash_rate_drawdown",
                     version,
-                    indexes,
+                    mappings,
                 )?,
             },
             price: HashPriceValueVecs {
@@ -85,7 +85,7 @@ impl Vecs {
                     db,
                     "hash_price_rebound",
                     version + v6,
-                    indexes,
+                    mappings,
                 )?,
             },
             value: HashPriceValueVecs {
@@ -97,7 +97,7 @@ impl Vecs {
                     db,
                     "hash_value_rebound",
                     version + v6,
-                    indexes,
+                    mappings,
                 )?,
             },
         })

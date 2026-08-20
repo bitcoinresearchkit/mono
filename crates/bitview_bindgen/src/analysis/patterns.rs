@@ -8,7 +8,7 @@ use std::{
     collections::{BTreeMap, BTreeSet},
 };
 
-use brk_types::{TreeNode, extract_json_type};
+use bitview_types::{TreeNode, extract_json_type};
 
 use super::analyze_pattern_modes;
 use crate::{PatternBaseResult, PatternField, StructuralPattern, to_pascal_case};

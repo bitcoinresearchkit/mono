@@ -9,7 +9,7 @@ pub use processed::ProcessedOutputData;
 use brk_error::Result;
 
 use bitcoin::{Script, Transaction, constants::WITNESS_SCALE_FACTOR};
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_store::Store;
 use brk_types::{
     AddrBytes, AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, OutputType, Sats, SigOps,

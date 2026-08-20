@@ -1,18 +1,11 @@
+use bitview_compute::{ColumnarDailyMetric, DailyMappings, LazyColumnDailyMetric};
+use bitview_plugin::ImportContext;
 use brk_error::Result;
-
-use std::path::Path;
-
 use brk_types::Version;
 use vecdb::Database;
 
 use super::Vecs;
-use crate::{LossPercentileId, ModeVecs, Modes, PriceBandId, price::LazyColumnPrice};
-use bitview_compute::{
-    ColumnarDailyMetric, DailyMappings, LazyColumnDailyMetric,
-    db_utils::{finalize_db, open_db},
-};
-
-const VERSION: Version = Version::new(5);
+use crate::{LossPercentileId, ModeVecs, Modes, PriceBandId, STORAGE, price::LazyColumnPrice};
 
 impl ModeVecs {
     pub fn forced_import(
@@ -63,15 +56,14 @@ impl ModeVecs {
 }
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, crate::ID.as_str(), 100_000)?;
-        let states_path = parent_path.join(crate::ID.as_str()).join("states");
-        let version = parent_version + VERSION;
-        let mappings = DailyMappings::new(indexes);
+        let db = STORAGE.open_database(context, 100_000)?;
+        let states_path = STORAGE.path(context).join("states");
+        let version = STORAGE.schema_version();
+        let mappings = DailyMappings::new(mappings);
 
         let modes = Modes::try_from_fn(|mode| {
             let name = mode.name();
@@ -83,7 +75,7 @@ impl Vecs {
             states_path,
             modes,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 }

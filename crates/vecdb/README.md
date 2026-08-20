@@ -4,7 +4,7 @@ High-performance mutable persistent vectors built on [`rawdb`](../rawdb/README.m
 
 ## Features
 
-- **Vec-like API**: `push`, `update`, `truncate`, delete by index with sparse holes
+- **Vec-like API**: `push` and `truncate`, plus `update` and sparse deletion through `MutableVec`
 - **Multiple storage formats**:
   - **Raw**: `BytesVec`, `ZeroCopyVec` (uncompressed)
   - **Compressed**: `PcoVec`, `LZ4Vec`, `ZstdVec`
@@ -12,7 +12,7 @@ High-performance mutable persistent vectors built on [`rawdb`](../rawdb/README.m
 - **Rollback support**: Time-travel via stamped change deltas without full snapshots
 - **Sparse deletions**: Delete elements leaving holes, no reindexing required
 - **Thread-safe**: Concurrent reads with exclusive writes
-- **Blazing fast**: See [benchmarks](../vecdb_bench/README.md)
+- **Blazing fast**: See the local [benchmark suite](examples/bench.rs)
 - **Lazy persistence**: Changes buffered in memory, persisted only on explicit `flush()`
 
 ## Not Suited For
@@ -82,7 +82,7 @@ Use `#[derive(Bytes)]` or `#[derive(Pco)]` from `vecdb_derive` to enable custom 
 
 ### Raw (Uncompressed)
 
-**`BytesVec<I, T>`** - Custom serialization via `Bytes` trait
+**`BytesVec<I, T>`** - Append-only custom serialization via `Bytes` trait
 ```rust,ignore
 use vecdb::{BytesVec, Bytes};
 
@@ -93,12 +93,22 @@ let mut vec: BytesVec<usize, UserId> =
     BytesVec::import(&db, "users", Version::TWO)?;
 ```
 
-**`ZeroCopyVec<I, T>`** - Zero-copy mmap access (fastest random reads)
+**`ZeroCopyVec<I, T>`** - Append-only zero-copy mmap access (fastest random reads)
 ```rust,ignore
 use vecdb::ZeroCopyVec;
 
 let mut vec: ZeroCopyVec<usize, u32> =
     ZeroCopyVec::import(&db, "raw", Version::TWO)?;
+```
+
+Wrap either raw vector in **`MutableVec<V>`** when existing values must be
+updated or deleted:
+
+```rust,ignore
+use vecdb::{BytesVec, MutableVec};
+
+let mut vec: MutableVec<BytesVec<usize, u64>> =
+    MutableVec::import(&db, "mutable", Version::TWO)?;
 ```
 
 ### Compressed
@@ -184,6 +194,11 @@ db.flush()?;   // Also flush database metadata
 ### Updates and Deletions
 
 ```rust,ignore
+use vecdb::{BytesVec, MutableVec};
+
+let mut vec: MutableVec<BytesVec<usize, u64>> =
+    MutableVec::import(&db, "mutable", Version::TWO)?;
+
 // Update element at index (works on stored data)
 vec.update(5, 999)?;
 
@@ -286,7 +301,7 @@ cargo add vecdb --features pco,zerocopy,lz4,zstd,derive
 ## Examples
 
 Comprehensive examples in [`examples/`](examples/):
-- [`zerocopy.rs`](examples/zerocopy.rs) - ZeroCopyVec with holes, updates, and rollback
+- [`zerocopy.rs`](examples/zerocopy.rs) - MutableVec over ZeroCopyVec with holes, updates, and rollback
 - [`pcodec.rs`](examples/pcodec.rs) - PcoVec with compression
 
 Run examples:

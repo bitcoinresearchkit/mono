@@ -4,14 +4,15 @@ Query interface for Bitcoin indexed and computed data.
 
 ## What It Enables
 
-Query blocks, transactions, addresses, and 1000+ on-chain metrics through a unified API. Supports pagination, range queries, and multiple output formats.
+Query blocks, transactions, addresses, and on-chain series through a unified
+API. Supports pagination, range queries, and multiple output formats.
 
 ## Key Features
 
 - **Unified access**: Single entry point to plugin and mempool data
-- **Metric discovery**: List metrics, filter by index type, fuzzy search
+- **Series discovery**: Browse the catalog, inspect supported indexes, and fuzzy search
 - **Range queries**: By height, date, or relative offsets (`from=-100`)
-- **Multi-metric bulk queries**: Fetch multiple metrics in one call
+- **Bulk queries**: Fetch multiple series in one call
 - **Async support**: Tokio-compatible with `AsyncQuery` wrapper
 - **Format flexibility**: JSON, CSV, or raw values
 
@@ -23,12 +24,13 @@ let query = Query::build(&plugins, Some(mempool));
 // Current height
 let height = query.height();
 
-// Metric queries (two-phase: resolve then format)
-let resolved = query.resolve(MetricSelection {
-    metrics: vec!["supply".into()],
-    index: Index::Height,
-    range: DataRangeFormat::default(),
-}, usize::MAX)?;
+// Series queries use a cheap resolve phase before formatting.
+let selection = SeriesSelection::from((
+    Index::Height,
+    SeriesName::from("supply"),
+    DataRangeFormat::default(),
+));
+let resolved = query.resolve(selection, usize::MAX)?;
 let data = query.format(resolved)?;
 
 // Block queries
@@ -38,17 +40,17 @@ let info = query.block_by_height(Height::new(840_000))?;
 let tx = query.transaction(txid.into())?;
 
 // Address queries
-let stats = query.address(address)?;
+let stats = query.addr(address)?;
 ```
 
 ## Query Types
 
 | Domain | Methods |
 |--------|---------|
-| Metrics | `metrics`, `resolve`, `format`, `metric_to_indexes` |
+| Series | `search_series`, `resolve`, `format`, `series_count`, `series_list`, `series_catalog`, `series_info` |
 | Blocks | `block`, `block_by_height`, `blocks`, `block_txs`, `block_status`, `block_by_timestamp` |
 | Transactions | `transaction`, `transaction_status`, `transaction_hex`, `outspend`, `outspends` |
-| Addresses | `address`, `address_txids`, `address_utxos` |
+| Addresses | `addr`, `addr_txids`, `addr_utxos` |
 | Mining | `difficulty_adjustments`, `hashrate`, `mining_pools`, `reward_stats` |
 | Mempool | `mempool_info`, `recommended_fees`, `mempool_blocks` |
 
@@ -76,7 +78,13 @@ Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator. Qu
 
 ## Features
 
-The default `full` feature preserves the complete query API. Smaller consumers
-can select `chain`, `series`, or `urpd`. Construction validates the plugins
-required by the enabled features once and then keeps direct typed references;
-queries do not perform dynamic plugin lookup on the hot path.
+Plugin features (`indexer`, `blocks`, `distribution`, `mappings`, `price`, and
+the other built-in plugin IDs) are the source of truth. Enabling one adds its
+typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
+
+`chain`, `series`, `urpd`, and `full` are convenience aggregators. `full` is the
+default for standalone users; composition and adapter crates should disable
+default features and select only what they expose. Generic `Vecs` discovery
+works with any `Traversable` plugin without a feature or dependency on that
+plugin crate. Query construction validates the enabled capabilities once and
+then keeps direct typed references, so hot paths perform no dynamic lookup.

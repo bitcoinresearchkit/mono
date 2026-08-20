@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
 use brk_types::{CentsSigned, PartsPerMillionSigned64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
@@ -26,7 +26,7 @@ impl CumulativeNetRealizedByCohort {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
@@ -46,7 +46,7 @@ impl CumulativeNetRealizedByCohort {
                 version,
                 source,
                 Version::new(5),
-                indexes,
+                mappings,
                 cached_starts,
             )
         });

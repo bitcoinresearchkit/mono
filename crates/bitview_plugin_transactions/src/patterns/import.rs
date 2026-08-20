@@ -14,17 +14,17 @@ use super::{CountVecs, Flags, PatternId, Vecs};
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let count_source = ColumnarPerBlockCumulativeRolling::forced_import(
@@ -40,7 +40,7 @@ impl Vecs {
                 version,
                 &counts,
                 PatternId::Coinjoin,
-                indexes,
+                mappings,
                 cached_starts,
             ),
             consolidation: LazyColumnPerBlockCumulativeRolling::new(
@@ -48,7 +48,7 @@ impl Vecs {
                 version,
                 &counts,
                 PatternId::Consolidation,
-                indexes,
+                mappings,
                 cached_starts,
             ),
             batch_payout: LazyColumnPerBlockCumulativeRolling::new(
@@ -56,7 +56,7 @@ impl Vecs {
                 version,
                 &counts,
                 PatternId::BatchPayout,
-                indexes,
+                mappings,
                 cached_starts,
             ),
             source: count_source,

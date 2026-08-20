@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use brk_cohort::{
+use bitview_cohort::{
     AGE_RANGE_COUNT, AgeRangeId, Filter, PROFITABILITY_RANGE_COUNT, ProfitabilityRange,
     ProfitabilityRangeId, compute_profitability_boundaries,
 };

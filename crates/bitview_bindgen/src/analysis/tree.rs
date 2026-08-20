@@ -5,7 +5,8 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use brk_types::{Index, TreeNode, extract_json_type};
+use bitview_types::{TreeNode, extract_json_type};
+use brk_types::Index;
 use indexmap::IndexMap;
 
 use crate::{IndexSetPattern, PatternField, child_type_name};
@@ -346,7 +347,7 @@ pub fn get_fields_with_child_info(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use brk_types::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
+    use bitview_types::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
 
     fn make_leaf(name: &str) -> TreeNode {
         let leaf = SeriesLeaf {

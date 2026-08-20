@@ -1,4 +1,4 @@
-use brk_cohort::{OverAge, OverAmount, UTXOAggregate, UnderAge, UnderAmount};
+use bitview_cohort::{OverAge, OverAmount, UTXOAggregate, UnderAge, UnderAmount};
 
 #[derive(Clone, Default)]
 pub struct UTXOAggregateRows<T> {

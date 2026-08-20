@@ -2,11 +2,11 @@ use brk_error::Result;
 
 use std::ops::{Add, AddAssign};
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     ByTerm, ProfitabilityId, ProfitabilityRange, ProfitabilityRangeId, ProfitabilityRow,
     UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, CentsSats, Height, PartsPerMillionSigned32, Sats, Version};
 use vecdb::{
     AnyStoredVec, AnyVec, CachedBoxedVec, ColumnId, Database, PcoVec, PcoVecValue,
@@ -75,7 +75,7 @@ impl ProfitabilityVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
@@ -90,7 +90,7 @@ impl ProfitabilityVecs {
                         name,
                         version,
                         source,
-                        indexes,
+                        mappings,
                         cached_starts,
                         spot_price,
                     )
@@ -103,7 +103,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "realized_cap", version, |name, source| {
-                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, indexes)
+                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, mappings)
                 })
             },
         )?;
@@ -113,7 +113,7 @@ impl ProfitabilityVecs {
             version,
             |source| {
                 Self::series(source, "unrealized_pnl", version, |name, source| {
-                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, indexes)
+                    LazyFiatPerBlock::from_boxed_cents_source(name, version, source, mappings)
                 })
             },
         )?;
@@ -125,7 +125,7 @@ impl ProfitabilityVecs {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                     )
                 })
             })?;
@@ -255,7 +255,7 @@ impl ProfitabilityVecs {
 
 #[cfg(test)]
 mod tests {
-    use brk_cohort::{
+    use bitview_cohort::{
         ByTerm, PROFIT_COUNT, ProfitabilityId, ProfitabilityRangeId, ProfitabilityRow,
     };
     use brk_types::{Cents, PartsPerMillionSigned32, Sats};

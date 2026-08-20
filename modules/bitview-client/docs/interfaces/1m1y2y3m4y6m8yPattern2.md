@@ -6,7 +6,7 @@
 
 # Interface: \_1m1y2y3m4y6m8yPattern2
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5048](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5048)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5048](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5048)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5048](https://github.
 
 > **\_1m**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5049](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5049)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5049](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5049)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5049](https://github.
 
 > **\_1y**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5050](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5050)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5050](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5050)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5050](https://github.
 
 > **\_2y**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5051](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5051)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5051](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5051)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5051](https://github.
 
 > **\_3m**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5052](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5052)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5052](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5052)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5052](https://github.
 
 > **\_4y**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5053](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5053)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5053](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5053)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5053](https://github.
 
 > **\_6m**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5054](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5054)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5054](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5054)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5054](https://github.
 
 > **\_8y**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5055](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L5055)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5055](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5055)

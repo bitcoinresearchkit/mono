@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::ops::Range;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::{Indexer, Lengths};
 use brk_oracle::{
     Config, Oracle, PaymentFilter, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
@@ -12,6 +12,7 @@ use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, StorageMode, VecIndex, WritableVec};
 
 use super::Vecs;
+use crate::Dependencies;
 
 impl Vecs {
     fn compute_inner(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
@@ -262,14 +263,14 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
-        self.compute_inner(dependencies.indexer, exit)
+        self.compute_inner(dependencies.indexer, context.exit())
     }
 }

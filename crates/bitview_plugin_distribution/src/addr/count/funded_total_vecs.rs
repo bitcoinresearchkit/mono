@@ -25,20 +25,20 @@ impl AddrCountFundedTotalVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         Ok(Self {
             funded: AddrCountsVecs::forced_import(
                 db,
                 &format!("{name}_addr_count"),
                 version,
-                indexes,
+                mappings,
             )?,
             total: AddrCountsVecs::forced_import(
                 db,
                 &format!("total_{name}_addr_count"),
                 version,
-                indexes,
+                mappings,
             )?,
         })
     }

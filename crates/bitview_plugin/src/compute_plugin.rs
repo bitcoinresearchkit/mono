@@ -1,7 +1,6 @@
 use brk_error::Result;
-use vecdb::Exit;
 
-use crate::Plugin;
+use crate::{Plugin, UpdateContext};
 
 /// Typed computation contract for plugins that participate in the update loop.
 pub trait ComputePlugin: Plugin {
@@ -17,6 +16,6 @@ pub trait ComputePlugin: Plugin {
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output>;
 }

@@ -12,10 +12,10 @@ pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
     input_values: &PcoVec<TxInIndex, Sats>,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, input_values, indexes, exit)
+    vecs.compute(indexer, input_values, mappings, exit)
 }
 
 impl Vecs {
@@ -23,12 +23,12 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         input_values: &PcoVec<TxInIndex, Sats>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let features = &indexer.vecs().transaction_features;
-        let version = indexes.tx_index.input_count.version()
-            + indexes.tx_index.output_count.version()
+        let version = mappings.tx_index.input_count.version()
+            + mappings.tx_index.output_count.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + indexer.vecs().transactions.first_txin_index.version()
             + indexer.vecs().transactions.first_txout_index.version()
@@ -40,7 +40,7 @@ impl Vecs {
             + indexer.vecs().outputs.type_index.version()
             + features.has_op_return.version()
             + features.has_inscription.version()
-            + indexes.height.tx_index_count.version();
+            + mappings.height.tx_index_count.version();
 
         self.flags_source
             .validate_computed_version_or_reset(version)?;
@@ -49,8 +49,8 @@ impl Vecs {
             .validate_computed_version_or_reset(version)?;
 
         let starting_lengths = indexer.safe_lengths();
-        let target_tx = indexes.tx_index.input_count.len();
-        let target_height = indexes.height.tx_index_count.len();
+        let target_tx = mappings.tx_index.input_count.len();
+        let target_height = mappings.height.tx_index_count.len();
         let tx_len = self
             .flags_source
             .len()
@@ -60,7 +60,7 @@ impl Vecs {
             .cumulative
             .len()
             .min(starting_lengths.height.to_usize());
-        let start_height = count_len.min(next_height(indexes, tx_len, target_tx, target_height));
+        let start_height = count_len.min(next_height(mappings, tx_len, target_tx, target_height));
         if start_height >= target_height {
             return Ok(());
         }
@@ -85,8 +85,8 @@ impl Vecs {
             .unwrap()
             .to_usize();
 
-        let mut input_count = indexes.tx_index.input_count.cursor();
-        let mut output_count = indexes.tx_index.output_count.cursor();
+        let mut input_count = mappings.tx_index.input_count.cursor();
+        let mut output_count = mappings.tx_index.output_count.cursor();
         let mut input_value = input_values.cursor();
         let mut input_type = indexer.vecs().inputs.output_type.cursor();
         let mut input_type_index = indexer.vecs().inputs.type_index.cursor();
@@ -95,7 +95,7 @@ impl Vecs {
         let mut output_type_index = indexer.vecs().outputs.type_index.reader().cursor();
         let mut has_op_return = features.has_op_return.cursor();
         let mut has_inscription = features.has_inscription.cursor();
-        let mut tx_count = indexes.height.tx_index_count.cursor();
+        let mut tx_count = mappings.height.tx_index_count.cursor();
 
         input_count.advance(start_tx);
         output_count.advance(start_tx);
@@ -192,7 +192,7 @@ impl Vecs {
 }
 
 fn next_height(
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     tx_len: usize,
     target_tx: usize,
     target_height: usize,
@@ -200,7 +200,7 @@ fn next_height(
     if tx_len >= target_tx {
         target_height
     } else {
-        indexes
+        mappings
             .tx_heights
             .get_shared(TxIndex::from(tx_len))
             .unwrap()

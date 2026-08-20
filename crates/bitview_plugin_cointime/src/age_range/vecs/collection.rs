@@ -1,5 +1,5 @@
+use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_traversable::Traversable;
-use brk_cohort::{AgeRange, AgeRangeId};
 use brk_types::{Sats, StoredF64};
 use vecdb::{Rw, StorageMode};
 

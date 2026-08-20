@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use brk_cohort::{AgeRangeId, CohortContext};
+use bitview_cohort::{AgeRangeId, CohortContext};
 use brk_types::{Cents, Height, StoredF64, Version};
 use vecdb::{CachedBoxedVec, Database, PcoVec, ReadOnlyColumnarVec, ReadableCloneableVec};
 
@@ -16,18 +16,18 @@ const VERSION: Version = Version::new(3);
 pub fn forced_import(
     db: &Database,
     parent_version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
     spot_price: &CachedBoxedVec<Height, Cents>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, parent_version, indexes, cached_starts, spot_price)
+    Vecs::forced_import(db, parent_version, mappings, cached_starts, spot_price)
 }
 
 impl ActivitySeries {
     fn new(
         version: Version,
         source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF64>, AgeRangeId>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Self {
         let wakefulness = AgeRangeId::series(CohortContext::Utxo, |column, name| {
             LazyColumnPerBlock::new(
@@ -35,7 +35,7 @@ impl ActivitySeries {
                 version,
                 source,
                 column,
-                indexes,
+                mappings,
             )
         });
         let dormancy = AgeRangeId::series(CohortContext::Utxo, |column, name| {
@@ -69,7 +69,7 @@ impl Vecs {
     fn forced_import(
         db: &Database,
         parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
@@ -85,7 +85,7 @@ impl Vecs {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })
@@ -102,7 +102,7 @@ impl Vecs {
                         version,
                         source,
                         column,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 })
@@ -112,7 +112,7 @@ impl Vecs {
             db,
             &CohortContext::Utxo.prefixed("age_range_wakefulness"),
             version,
-            |source| ActivitySeries::new(version, source, indexes),
+            |source| ActivitySeries::new(version, source, mappings),
         )?;
         let import_supply = |side: &str| {
             ColumnarPerBlock::forced_import(
@@ -126,7 +126,7 @@ impl Vecs {
                             version,
                             source,
                             column,
-                            indexes,
+                            mappings,
                             spot_price,
                         )
                     })

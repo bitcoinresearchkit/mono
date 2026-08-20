@@ -1,6 +1,6 @@
 use std::ops::{Add, AddAssign, SubAssign};
 
-use brk_cohort::EntryPrice;
+use bitview_cohort::EntryPrice;
 use brk_types::{Cents, SupplyState, Timestamp};
 use serde::Serialize;
 

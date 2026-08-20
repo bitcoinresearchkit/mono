@@ -3,7 +3,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use bitview_query::Vecs;
-use brk_types::{Index, SeriesLeafWithSchema};
+use bitview_types::{SeriesLeafWithSchema, TreeNode};
+use brk_types::Index;
 
 use super::{GenericSyntax, IndexSetPattern, PatternField, StructuralPattern, extract_inner_type};
 use crate::{PatternBaseResult, analysis};
@@ -12,7 +13,7 @@ use crate::{PatternBaseResult, analysis};
 #[derive(Debug)]
 pub struct ClientMetadata {
     /// The catalog tree structure (with schemas in leaves)
-    pub catalog: brk_types::TreeNode,
+    pub catalog: TreeNode,
     /// Structural patterns - tree node shapes that repeat
     pub structural_patterns: Vec<StructuralPattern>,
     /// Index set patterns - sets of indexes that appear together on series
@@ -32,7 +33,7 @@ impl ClientMetadata {
     }
 
     /// Extract metadata from a catalog TreeNode directly.
-    pub fn from_catalog(catalog: brk_types::TreeNode) -> Self {
+    pub fn from_catalog(catalog: TreeNode) -> Self {
         let (structural_patterns, concrete_to_pattern, concrete_to_type_param, node_bases) =
             analysis::detect_structural_patterns(&catalog);
         let index_set_patterns = analysis::detect_index_patterns(&catalog);

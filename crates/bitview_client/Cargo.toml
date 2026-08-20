@@ -1,6 +1,6 @@
 [package]
 name = "bitview_client"
-description = "Rust client for the Bitcoin Research Kit API"
+description = "Synchronous Rust client for the Bitview API"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -11,7 +11,8 @@ categories = ["api-bindings", "cryptography::cryptocurrencies"]
 exclude = ["examples/"]
 
 [dependencies]
-brk_cohort = { workspace = true }
+bitview_cohort = { workspace = true }
+bitview_types = { workspace = true }
 brk_types = { workspace = true }
 rapidhash = { workspace = true }
 ureq = { workspace = true }

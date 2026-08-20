@@ -10,13 +10,16 @@ pub trait HeaderMapExtended {
     fn insert_cache_control(&mut self, value: &str);
     fn insert_cdn_cache_control(&mut self, value: &str);
 
+    #[cfg(feature = "series")]
     fn insert_content_disposition_attachment(&mut self, filename: &str);
 
     fn insert_content_type_application_json(&mut self);
+    #[cfg(feature = "series")]
     fn insert_content_type_text_csv(&mut self);
 
     fn insert_vary_accept_encoding(&mut self);
 
+    #[cfg(all(feature = "series", feature = "urpd"))]
     fn insert_deprecation(&mut self, sunset: &'static str);
 }
 
@@ -47,6 +50,7 @@ impl HeaderMapExtended for HeaderMap {
         );
     }
 
+    #[cfg(feature = "series")]
     fn insert_content_disposition_attachment(&mut self, filename: &str) {
         self.insert(
             header::CONTENT_DISPOSITION,
@@ -60,6 +64,7 @@ impl HeaderMapExtended for HeaderMap {
         self.insert(header::CONTENT_TYPE, "application/json".parse().unwrap());
     }
 
+    #[cfg(feature = "series")]
     fn insert_content_type_text_csv(&mut self) {
         self.insert(header::CONTENT_TYPE, "text/csv".parse().unwrap());
     }
@@ -68,6 +73,7 @@ impl HeaderMapExtended for HeaderMap {
         self.insert(header::VARY, "Accept-Encoding".parse().unwrap());
     }
 
+    #[cfg(all(feature = "series", feature = "urpd"))]
     fn insert_deprecation(&mut self, sunset: &'static str) {
         self.insert("Deprecation", "true".parse().unwrap());
         self.insert("Sunset", sunset.parse().unwrap());

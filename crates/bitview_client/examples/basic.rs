@@ -1,7 +1,8 @@
 //! Basic example of using the Bitview client.
 
+use bitview_client::FormatResponse;
 use bitview_client::{BitviewClient, BitviewClientOptions};
-use brk_types::{FormatResponse, Index, RangeIndex};
+use brk_types::{Index, RangeIndex};
 
 fn main() -> bitview_client::Result<()> {
     // Create client with default options
@@ -13,8 +14,8 @@ fn main() -> bitview_client::Result<()> {
         timeout_secs: 60,
     });
 
-    // Fetch price data using the typed metrics API
-    // day1() returns DateMetricEndpointBuilder, so fetch() returns DateMetricData
+    // Fetch price data using the typed series API.
+    // day1() returns DateSeriesEndpoint, so fetch() returns DateSeriesData.
     let price_close = client
         .series()
         .price
@@ -35,7 +36,7 @@ fn main() -> bitview_client::Result<()> {
         println!("  {}: {}", ts, value);
     }
 
-    // Fetch block data with height index (non-date, returns MetricData)
+    // Fetch block data through another date-based series.
     let block_count = client
         .series()
         .blocks
@@ -65,18 +66,18 @@ fn main() -> bitview_client::Result<()> {
         .fetch_csv()?;
     println!("Last 3 circulating supply (CSV): {:?}", circulating);
 
-    // Using dynamic metric fetching with date_metric() for date-based indexes
-    let date_metric = client
+    // Use a dynamic date-series endpoint when the name is known only at runtime.
+    let date_series = client
         .date_series_endpoint("price_close", Index::Day1)?
         .last(3)
         .fetch()?;
-    println!("Dynamic date metric fetch:");
-    for (date, value) in date_metric.iter_dates().unwrap() {
+    println!("Dynamic date series fetch:");
+    for (date, value) in date_series.iter_dates().unwrap() {
         println!("  {}: {}", date, value);
     }
 
-    // Using generic metric fetching (returns FormatResponse)
-    let metricdata = client.get_series(
+    // Use the generated REST method when the response format is selected dynamically.
+    let series_data = client.get_series(
         "price_close".into(),
         Index::Day1,
         Some(RangeIndex::Int(-3)),
@@ -84,7 +85,7 @@ fn main() -> bitview_client::Result<()> {
         None,
         None,
     )?;
-    match metricdata {
+    match series_data {
         FormatResponse::Json(m) => {
             println!("Generic fetch result count: {}", m.data.len());
         }

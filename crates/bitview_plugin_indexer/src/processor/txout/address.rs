@@ -4,7 +4,7 @@ use brk_error::Result;
 
 use std::collections::hash_map::Entry;
 
-use brk_cohort::ByAddrType;
+use bitview_cohort::ByAddrType;
 use brk_error::Error;
 use brk_types::{AddrBytes, AddrHash, OutputType, TxIndex, TypeIndex, Vout};
 use rayon::prelude::*;

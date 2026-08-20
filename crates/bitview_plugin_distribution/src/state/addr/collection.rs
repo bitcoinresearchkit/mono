@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::path::Path;
 
-use brk_cohort::{AmountRange, AmountRangeId, CohortContext, Filter};
+use bitview_cohort::{AmountRange, AmountRangeId, CohortContext, Filter};
 use brk_types::{Cents, Height, StoredU64};
 use rayon::prelude::*;
 use vecdb::{ColumnId, ReadableVec};

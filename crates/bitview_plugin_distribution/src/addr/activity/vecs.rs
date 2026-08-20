@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::AddrTypeId;
 use bitview_traversable::Traversable;
-use brk_cohort::AddrTypeId;
 use brk_types::{StoredU32, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, Database, ReadOnlyClone, Rw, StorageMode};
@@ -50,7 +50,7 @@ impl AddrActivityVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let cumulative_version = version + Version::TWO;
@@ -89,35 +89,35 @@ impl AddrActivityVecs {
             "reactivated_addrs",
             version,
             &cumulative_reactivated.cumulative.read_only_clone(),
-            indexes,
+            mappings,
             cached_starts,
         );
         let sending = WithAddrTypes::from_columnar_cumulative_average_source(
             "sending_addrs",
             version,
             &cumulative_sending.cumulative.read_only_clone(),
-            indexes,
+            mappings,
             cached_starts,
         );
         let receiving = WithAddrTypes::from_columnar_cumulative_average_source(
             "receiving_addrs",
             version,
             &cumulative_receiving.cumulative.read_only_clone(),
-            indexes,
+            mappings,
             cached_starts,
         );
         let bidirectional = WithAddrTypes::from_columnar_cumulative_average_source(
             "bidirectional_addrs",
             version,
             &cumulative_bidirectional.cumulative.read_only_clone(),
-            indexes,
+            mappings,
             cached_starts,
         );
         let active = WithAddrTypes::from_columnar_cumulative_average_source(
             "active_addrs",
             version,
             &cumulative_active.cumulative.read_only_clone(),
-            indexes,
+            mappings,
             cached_starts,
         );
 

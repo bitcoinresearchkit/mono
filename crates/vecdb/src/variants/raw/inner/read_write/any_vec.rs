@@ -40,10 +40,6 @@ where
 
     #[inline]
     fn region_names(&self) -> Vec<String> {
-        let mut names = vec![self.index_to_name()];
-        if self.has_stored_holes {
-            names.push(self.holes_region_name());
-        }
-        names
+        vec![self.index_to_name()]
     }
 }

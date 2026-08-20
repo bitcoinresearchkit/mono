@@ -6,7 +6,7 @@
 
 # Interface: HeightOrDateParam
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:650](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L650)
+Defined in: [Developer/brk/modules/bitview-client/index.js:650](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L650)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:650](https://github.c
 
 > **point**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:651](https://github.com/bitcoinresearchkit/brk/blob/70a3e90b82b397fa1d5ca46c4ed613066ed3d195/modules/bitview-client/index.js#L651)
+Defined in: [Developer/brk/modules/bitview-client/index.js:651](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L651)
 
 Confirmed block height as decimal digits (`840000`) or calendar date in
 `YYYY-MM-DD` format.

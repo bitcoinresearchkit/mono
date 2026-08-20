@@ -29,15 +29,23 @@ Builds lookup tables from parsed blocks:
 - UTXO set tracking
 - Output type classification (P2PKH, P2WPKH, P2TR, etc.)
 
+### Mappings plugin (`bitview_plugin_mappings`)
+
+Derives the relationships used to navigate indexed data:
+- Block height to time resolutions
+- Transaction, input, and output index boundaries
+- Address and script identity mappings
+- Monotonic and per-resolution timestamps
+
 ### Plugin runtime (`bitview_runtime`)
 
 Defines the generic plugin-set, bootstrap, update, and publication lifecycle.
 It has no dependency on the official plugins.
 
-### Official composition (`bitview_composition`)
+### Default composition (`bitview_default`)
 
-Owns the official indexer and analytics plugins as one typed plugin set. The
-indexer is the root of the dependency graph; downstream plugins derive:
+Owns the official indexer, mappings, and analytics plugins as one typed plugin
+set. The indexer is the root of the dependency graph; downstream plugins derive:
 - Market metrics: realized cap, MVRV, SOPR, NVT
 - Supply metrics: circulating, liquid, illiquid
 - UTXO cohorts: by age, size, type
@@ -45,6 +53,21 @@ indexer is the root of the dependency graph; downstream plugins derive:
 - Pricing models: thermocap, realized price bands
 
 Metrics are computed across multiple time resolutions (daily, weekly, monthly, by block height).
+
+### Runner (`bitview`)
+
+Owns bootstrap, the update loop, mempool monitoring, queries, and server
+startup. It accepts resolved runtime settings, an exit state, and a plugin-set
+import function. It has no dependency on the official composition and does not
+parse arguments, read configuration files, initialize logging, or install
+process signal handlers.
+
+### Daemon (`bitviewd`)
+
+Owns the process boundary: command-line arguments, `config.toml`, logging,
+signal handling, and the official executable. Its default feature selects
+`bitview_default`; custom executables can disable that feature and pass
+their own composition to the same daemon shell.
 
 ### Mempool (`brk_mempool`)
 
@@ -55,7 +78,9 @@ Monitors unconfirmed transactions:
 
 ### Query (`bitview_query`)
 
-Feature-gated interface to any compatible plugin set:
+Composition-independent interface to any compatible plugin set. Plugin-named
+features add typed capability requirements, while generic series discovery
+automatically includes every active traversable plugin:
 - Block and transaction lookups
 - Address balances and history
 - Computed metrics with range queries
@@ -63,7 +88,9 @@ Feature-gated interface to any compatible plugin set:
 
 ### Server (`bitview_server`)
 
-REST API exposing Query functionality:
+Composition-independent REST API exposing the enabled Query functionality.
+Its plugin features forward directly to `bitview_query` and unavailable route
+families are not compiled or registered:
 - OpenAPI documentation (Scalar UI)
 - JSON and CSV output formats
 - ETag caching
@@ -98,10 +125,11 @@ Data is stored in `~/.bitview/` (configurable):
 
 ```
 ~/.bitview/
-├── config.toml  # Runner configuration
+├── config.toml  # Daemon configuration
 ├── logs/        # Runtime logs
 └── plugins/     # Plugin directories
     ├── indexer/
+    ├── mappings/
     ├── blocks/
     ├── price/
     └── .../     # One directory per active plugin ID

@@ -1,17 +1,18 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
+use crate::Dependencies;
 
 impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
         prices: &bitview_plugin_price::Vecs,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         blocks: &bitview_plugin_blocks::Vecs,
         exit: &Exit,
     ) -> Result<()> {
@@ -19,7 +20,7 @@ impl Vecs {
 
         // Phase 1: Independent sub-modules in parallel
         let (r1, r2) = rayon::join(
-            || super::ath::compute(&mut self.ath, indexer, prices, indexes, exit),
+            || super::ath::compute(&mut self.ath, indexer, prices, mappings, exit),
             || {
                 rayon::join(
                     || super::range::compute(&mut self.range, indexer, prices, blocks, exit),
@@ -62,20 +63,20 @@ impl Vecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
             dependencies.price,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.blocks,
-            exit,
+            context.exit(),
         )
     }
 }

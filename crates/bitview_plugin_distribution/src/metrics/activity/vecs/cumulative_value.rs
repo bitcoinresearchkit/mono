@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AmountRange, CohortContext, UTXOGroups};
 use bitview_traversable::Traversable;
-use brk_cohort::{AmountRange, CohortContext, UTXOGroups};
 use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
@@ -21,7 +21,7 @@ impl CumulativeValueByCohort {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let cumulative = CumulativeUTXOValueColumnarMetric::forced_import(
@@ -39,7 +39,7 @@ impl CumulativeValueByCohort {
                 version,
                 sats,
                 cents,
-                indexes,
+                mappings,
                 cached_starts,
             )
         });
@@ -56,7 +56,7 @@ impl CumulativeValueByCohort {
                     addr_version,
                     sats,
                     cents,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },

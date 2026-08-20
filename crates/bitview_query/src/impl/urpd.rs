@@ -3,8 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use bitview_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
 use bitview_plugin::{Plugin, PluginReadGuard};
-use brk_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
 use brk_error::Error;
 use brk_types::{Cohort, Date, Day1, Urpd, UrpdAggregation, UrpdRaw, UrpdWeight};
 use vecdb::ReadableOptionVec;

@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, Filter, UTXOGroupsWithoutAmount};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, Filter, UTXOGroupsWithoutAmount};
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Rw, StorageMode};
 
@@ -21,7 +21,7 @@ impl SupplyByCohort {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let matrices =
@@ -32,7 +32,7 @@ impl SupplyByCohort {
                 .additive_source(&filter, &format!("{name}_sats"), version)
                 .expect("supported supply cohort");
             LazySpotValuePerBlock::from_boxed_sats_source(
-                &name, version, source, indexes, spot_price,
+                &name, version, source, mappings, spot_price,
             )
         });
 

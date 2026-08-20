@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, Database, Exit, ReadableVec, Rw, StorageMode, VecValue};
@@ -28,7 +28,7 @@ impl<B: FixedRatio> AggregatePercentPerBlock<B> {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let values = ColumnarPerBlock::forced_import(
             db,
@@ -41,7 +41,7 @@ impl<B: FixedRatio> AggregatePercentPerBlock<B> {
                         id.select(&UTXO_AGGREGATE_NAMES).id,
                         metric,
                     );
-                    LazyColumnPercentPerBlock::new(&name, version, source, id, indexes)
+                    LazyColumnPercentPerBlock::new(&name, version, source, id, mappings)
                 })
             },
         )?;

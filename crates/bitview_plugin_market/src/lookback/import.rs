@@ -10,17 +10,17 @@ use bitview_compute::{ByLookbackPeriod, CACHE_BUDGET, LazyWindowVec, Price};
 
 pub fn forced_import(
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &ByLookbackPeriod<CachedBoxedVec<Height, Height>>,
     prices: &bitview_plugin_price::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(version, indexes, cached_starts, prices)
+    Vecs::forced_import(version, mappings, cached_starts, prices)
 }
 
 impl Vecs {
     fn forced_import(
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &ByLookbackPeriod<CachedBoxedVec<Height, Height>>,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
@@ -40,7 +40,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 

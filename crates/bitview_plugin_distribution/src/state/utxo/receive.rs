@@ -1,4 +1,4 @@
-use brk_cohort::EntryPrice;
+use bitview_cohort::EntryPrice;
 use brk_types::{Cents, CostBasisSnapshot, Height, Timestamp};
 
 use crate::state::Transacted;

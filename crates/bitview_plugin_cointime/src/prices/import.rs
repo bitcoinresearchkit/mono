@@ -10,26 +10,26 @@ use bitview_plugin_distribution::AllChainSources;
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     spot_price: &CachedBoxedVec<Height, Cents>,
     all_chain: &AllChainSources,
     cointime_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, spot_price, all_chain, cointime_cap)
+    Vecs::forced_import(db, version, mappings, spot_price, all_chain, cointime_cap)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_chain: &AllChainSources,
         cointime_cap: &(impl ReadableCloneableVec<Height, Cents> + 'static),
     ) -> Result<Self> {
         macro_rules! import {
             ($name:expr) => {
-                PriceWithRatioPerBlock::forced_import(db, $name, version, indexes, spot_price)?
+                PriceWithRatioPerBlock::forced_import(db, $name, version, mappings, spot_price)?
             };
         }
 
@@ -48,7 +48,7 @@ impl Vecs {
                 "cointime_price",
                 version,
                 cointime_source,
-                indexes,
+                mappings,
                 spot_price,
             ),
         })

@@ -9,17 +9,17 @@ use bitview_compute::{CachedWindowStartVec, PerBlockCumulativeRolling, Windows};
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &Windows<&CachedWindowStartVec>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts)
+    Vecs::forced_import(db, version, mappings, cached_starts)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
@@ -27,28 +27,28 @@ impl Vecs {
                 db,
                 "cointime_value_destroyed",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             created: PerBlockCumulativeRolling::forced_import(
                 db,
                 "cointime_value_created",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             stored: PerBlockCumulativeRolling::forced_import(
                 db,
                 "cointime_value_stored",
                 version,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
             vocdd: PerBlockCumulativeRolling::forced_import(
                 db,
                 "vocdd",
                 version + Version::ONE,
-                indexes,
+                mappings,
                 cached_starts,
             )?,
         })

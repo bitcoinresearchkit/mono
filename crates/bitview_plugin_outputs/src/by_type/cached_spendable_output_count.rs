@@ -20,14 +20,14 @@ impl CachedSpendableOutputCount {
     pub fn new(
         version: Version,
         op_return_count: &(impl ReadableCloneableVec<Height, StoredU64> + 'static),
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         let cumulative = CachedVec::wrap(LazyIndexedVec::new(
             "spendable_output_count_cumulative",
             version,
             op_return_count.read_only_boxed_clone(),
-            indexes.output_count(),
+            mappings.output_count(),
             |_, op_return, total| total - op_return,
         ));
         let views = LazyPerBlockCumulativeRolling::from_cumulative_source(
@@ -35,7 +35,7 @@ impl CachedSpendableOutputCount {
             version,
             cumulative.clone(),
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Self { views, cumulative }

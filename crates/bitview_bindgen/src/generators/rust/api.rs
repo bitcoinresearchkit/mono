@@ -46,9 +46,9 @@ impl BitviewClient {{
     ///
     /// # Example
     /// ```ignore
-    /// let data = client.series("realized_price", Index::Height)
+    /// let data = client.series_endpoint("realized_price", Index::Height)
     ///     .last(10)
-    ///     .json::<f64>()?;
+    ///     .fetch()?;
     /// ```
     pub fn series_endpoint(&self, series: impl Into<SeriesName>, index: Index) -> SeriesEndpoint<serde_json::Value> {{
         SeriesEndpoint::new(

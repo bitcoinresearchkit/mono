@@ -1,9 +1,9 @@
 use brk_error::Result;
 
+use bitview_cohort::SpendableTypeId;
 use bitview_compute::{
     CachedWindowStartVec, ColumnarPerBlock, ColumnarPerBlockCumulativeRolling, Windows,
 };
-use brk_cohort::SpendableTypeId;
 use brk_types::{Height, StoredU16, StoredU64, Version};
 use vecdb::Database;
 
@@ -21,11 +21,11 @@ impl Vecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let columnar_version = version + Version::ONE;
-        let all_input_count = indexes.input_count_source();
+        let all_input_count = mappings.input_count_source();
         let input_count = ColumnarPerBlock::<StoredU16, SpendableTypeId, _>::forced_import(
             db,
             "prevout_count_by_type",
@@ -37,7 +37,7 @@ impl Vecs {
                     columnar_version,
                     (all_input_count, identity),
                     source,
-                    indexes,
+                    mappings,
                     cached_starts,
                 )
             },
@@ -46,9 +46,9 @@ impl Vecs {
             columnar_version,
             |name| format!("{name}_prevout_share"),
             cached_starts,
-            indexes,
+            mappings,
         );
-        let transaction_count_source = indexes.transaction_count_source();
+        let transaction_count_source = mappings.transaction_count_source();
         let tx_count =
             ColumnarPerBlockCumulativeRolling::<StoredU64, SpendableTypeId, _>::forced_import(
                 db,
@@ -61,7 +61,7 @@ impl Vecs {
                         columnar_version,
                         (transaction_count_source, without_coinbase),
                         source,
-                        indexes,
+                        mappings,
                         cached_starts,
                     )
                 },
@@ -70,7 +70,7 @@ impl Vecs {
             columnar_version,
             |name| format!("tx_share_with_{name}_prevout"),
             cached_starts,
-            indexes,
+            mappings,
         );
         Ok(Self {
             input_count,

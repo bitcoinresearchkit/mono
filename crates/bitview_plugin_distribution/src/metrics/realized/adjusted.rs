@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, Filter, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAllAndSth, UTXOAllAndSthId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, StoredF32, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode,
@@ -47,7 +47,7 @@ impl AdjustedSoprVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let source_version = version + SOURCE_VERSION;
@@ -57,7 +57,7 @@ impl AdjustedSoprVecs {
             "adjusted_sopr_transfer_volume_cumulative_by_cohort",
             "adj_value_created",
             source_version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let value_destroyed = Self::import_cumulative(
@@ -65,7 +65,7 @@ impl AdjustedSoprVecs {
             "adjusted_sopr_value_destroyed_cumulative_by_cohort",
             "adj_value_destroyed",
             source_version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
         let ratio = UTXOAllAndSth {
@@ -73,13 +73,13 @@ impl AdjustedSoprVecs {
                 db,
                 "asopr",
                 Self::cohort_version(ratio_version, UTXOAllAndSthId::All),
-                indexes,
+                mappings,
             )?,
             sth: ColumnarRollingWindows::forced_import(
                 db,
                 &Self::cohort_metric_name(UTXOAllAndSthId::Sth, "asopr"),
                 Self::cohort_version(ratio_version, UTXOAllAndSthId::Sth),
-                indexes,
+                mappings,
             )?,
         };
 
@@ -95,7 +95,7 @@ impl AdjustedSoprVecs {
         matrix_name: &str,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<
         ColumnarPerBlockCumulativeRolling<
@@ -114,7 +114,7 @@ impl AdjustedSoprVecs {
                     Self::cohort_version(version, UTXOAllAndSthId::All),
                     source,
                     UTXOAllAndSthId::All,
-                    indexes,
+                    mappings,
                     cached_starts,
                 ),
                 sth: LazyColumnPerBlockCumulativeRolling::new(
@@ -122,7 +122,7 @@ impl AdjustedSoprVecs {
                     Self::cohort_version(version, UTXOAllAndSthId::Sth),
                     source,
                     UTXOAllAndSthId::Sth,
-                    indexes,
+                    mappings,
                     cached_starts,
                 ),
             },

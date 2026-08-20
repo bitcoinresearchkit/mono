@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::path::Path;
 
-use brk_cohort::{ByTerm, Filter, ProfitabilityRangeId, Term, UTXOAggregate};
+use bitview_cohort::{ByTerm, Filter, ProfitabilityRangeId, Term, UTXOAggregate};
 use brk_types::{Cents, Date};
 use vecdb::ColumnId;
 

@@ -41,9 +41,9 @@ pub struct Extremes<M: StorageMode = Rw> {
 pub fn forced_import(
     db: &Database,
     parent_version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
 ) -> Result<Extremes> {
-    Extremes::forced_import(db, parent_version, indexes)
+    Extremes::forced_import(db, parent_version, mappings)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -72,7 +72,7 @@ impl Extremes {
     fn forced_import(
         db: &Database,
         parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let version = parent_version + VERSION;
         Ok(Self {
@@ -80,26 +80,26 @@ impl Extremes {
                 db,
                 "rarity_meter_coins_in_loss",
                 version,
-                indexes,
+                mappings,
             )?,
             profit_taking: Extreme::forced_import(
                 db,
                 "rarity_meter_profit_taking",
                 version,
-                indexes,
+                mappings,
             )?,
             capitulation: Extreme::forced_import(
                 db,
                 "rarity_meter_capitulation",
                 version,
-                indexes,
+                mappings,
             )?,
-            peak_regret: Extreme::forced_import(db, "rarity_meter_peak_regret", version, indexes)?,
+            peak_regret: Extreme::forced_import(db, "rarity_meter_peak_regret", version, mappings)?,
             seller_exhaustion: Extreme::forced_import(
                 db,
                 "rarity_meter_seller_exhaustion",
                 version,
-                indexes,
+                mappings,
             )?,
         })
     }

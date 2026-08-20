@@ -1,6 +1,6 @@
 [package]
 name = "bitview_traversable_derive"
-description = "Derive for brk_vec's used in BRK"
+description = "Derive macro for bitview_traversable"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

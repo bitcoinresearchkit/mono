@@ -8,17 +8,17 @@ use bitview_plugin_distribution::AllChainSources;
 
 pub fn forced_import(
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     all_chain: &AllChainSources,
     transactions: &bitview_plugin_transactions::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(version, indexes, all_chain, transactions)
+    Vecs::forced_import(version, mappings, all_chain, transactions)
 }
 
 impl Vecs {
     fn forced_import(
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         all_chain: &AllChainSources,
         transactions: &bitview_plugin_transactions::Vecs,
     ) -> Result<Self> {
@@ -41,13 +41,13 @@ impl Vecs {
                 "velocity_btc",
                 version,
                 native_source,
-                indexes,
+                mappings,
             ),
             fiat: LazyPerBlock::from_height_source::<Identity<StoredF64>>(
                 "velocity_usd",
                 version,
                 fiat_source,
-                indexes,
+                mappings,
             ),
         })
     }

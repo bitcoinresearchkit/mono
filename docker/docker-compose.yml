@@ -32,7 +32,7 @@ services:
       # - --rpccookiefile
       # - /bitcoin/.cookie
     healthcheck:
-      test: ["CMD", "pgrep", "-x", "bitview"]
+      test: ["CMD", "pgrep", "-x", "bitviewd"]
       interval: 30s
       retries: 3
       start_period: 10s

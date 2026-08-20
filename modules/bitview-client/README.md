@@ -1,10 +1,8 @@
 # bitview-client
 
-JavaScript/TypeScript client for the [Bitcoin Research Kit](https://github.com/bitcoinresearchkit/brk) API.
+Zero-dependency JavaScript/TypeScript client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
-Zero dependencies.
-
-[npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/brk/blob/main/modules/bitview-client/docs/globals.md)
+[npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/brk/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/brk/tree/main/modules/bitview-client)
 
 AI clients can use the same API through the official stateless, read-only MCP
 endpoint at [mcp.bitview.space](https://mcp.bitview.space/). No authentication
@@ -16,27 +14,46 @@ is required.
 npm install bitview-client
 ```
 
-Or just copy [`index.js`](./index.js) into your project - it's a single file with no dependencies.
+You can also copy the `index.js` file into a project. The published client is a
+single ES module with no runtime dependencies.
 
-## Quick Start
+## Quick start
 
 ```javascript
 import { BitviewClient } from 'bitview-client';
 
-// Use the free public API or your own instance
+// Use the public API or point the client at a self-hosted Bitview server.
 const client = new BitviewClient('https://bitview.space');
-// or: `const client = new BitviewClient({ baseUrl: 'https://bitview.space', timeout: 10000 });`
 
-// Blockchain data (mempool.space compatible)
-const block = await client.getBlockByHeight(800000);
-const tx = await client.getTx('abc123...');
-const address = await client.getAddress('bc1q...');
+// Mempool.space-compatible blockchain endpoints.
+const blockHash = await client.getBlockByHeight(800000);
+const tx = await client.getTx(
+  'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d',
+);
 
-// Metrics API - typed, chainable
-const prices = await client.metrics.price.usd.split.close
-  .by.dateindex
-  .last(30); // Last 30 items
+// Typed, chainable series access.
+const prices = await client.series.price.split.close.usd.by.day1
+  .last(30)
+  .fetch();
 
-// Generic metric fetching
-const data = await client.getMetric('price_close', 'dateindex', -30);
+// Programmatic access when the series name is only known at runtime.
+const samePrices = await client
+  .seriesEndpoint('price_close', 'day1')
+  .last(30)
+  .fetch();
+```
+
+Series endpoints support `first(n)`, `last(n)`, `slice(start, end)`, `get(i)`,
+`skip(n).take(m)`, `fetchCsv()`, `len()`, and `version()`. They are also
+thenable, so `await endpoint.last(30)` is equivalent to calling `.fetch()`.
+
+Pass an options object to configure request behavior:
+
+```javascript
+const client = new BitviewClient({
+  baseUrl: 'https://bitview.space',
+  timeout: 10_000,
+  browserCache: true,
+  memCache: 100,
+});
 ```

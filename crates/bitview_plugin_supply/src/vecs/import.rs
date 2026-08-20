@@ -1,44 +1,36 @@
-use brk_error::Result;
-
-use std::path::Path;
-
-use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, Version};
-use vecdb::{CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec};
-
-use crate::burned;
 use bitview_compute::{
     CACHE_BUDGET, CachedWindowStartVec, Identity, LazyFiatPerBlock, LazyPerBlock,
     LazyPercentPerBlock, LazyRollingDeltasFiatFromHeight, LazySpotValuePerBlock, LazyValuePerBlock,
     LazyWindowVec, Windows,
-    db_utils::{finalize_db, open_db},
 };
+use bitview_plugin::ImportContext;
 use bitview_plugin_distribution::AllChainSources;
+use brk_error::Result;
+use brk_types::{Cents, Height, PartsPerMillionSigned64, Sats, Version};
+use vecdb::{CachedBoxedVec, ReadableCloneableVec, ReadableVec, TypedVec};
 
 use super::Vecs;
-
-const VERSION: Version = Version::ONE;
+use crate::{STORAGE, burned, velocity};
 
 impl Vecs {
     #[allow(clippy::too_many_arguments)]
-    pub fn forced_import(
-        parent: &Path,
-        parent_version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         distribution: &bitview_plugin_distribution::Vecs,
         cointime: &bitview_plugin_cointime::Vecs,
         all_chain: &AllChainSources,
         transactions: &bitview_plugin_transactions::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent, crate::ID.as_str(), 1_000_000)?;
-
-        let version = parent_version + VERSION;
+        let db = STORAGE.open_database(context, 1_000_000)?;
+        let version = STORAGE.schema_version();
         let supply_metrics = &distribution.cohorts.supply.total.cohorts.all;
 
         let circulating =
             LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
 
-        let burned = burned::forced_import(&db, version, indexes)?;
+        let burned = burned::forced_import(&db, version, mappings)?;
 
         let inflation_version = version + Version::TWO;
         let inflation_source = LazyWindowVec::<Height, Sats, PartsPerMillionSigned64>::new(
@@ -60,11 +52,11 @@ impl Vecs {
             "inflation_rate",
             inflation_version,
             inflation_source,
-            indexes,
+            mappings,
         );
 
         // Velocity
-        let velocity = crate::velocity::forced_import(version, indexes, all_chain, transactions)?;
+        let velocity = velocity::forced_import(version, mappings, all_chain, transactions)?;
 
         // Market cap - lazy fiat (cents + usd) from distribution supply
         let market_cap = LazyFiatPerBlock::from_lazy("market_cap", version, &supply_metrics.cents);
@@ -75,7 +67,7 @@ impl Vecs {
             version + Version::new(4),
             &market_cap.cents.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         let growth_version = version + Version::new(3);
@@ -94,7 +86,7 @@ impl Vecs {
                     &name,
                     growth_version,
                     source,
-                    indexes,
+                    mappings,
                 )
             });
 
@@ -116,7 +108,7 @@ impl Vecs {
             market_minus_realized_cap_growth_rate,
             hodled_or_lost,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 

@@ -10,10 +10,10 @@ pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
     prices: &bitview_plugin_price::Vecs,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     exit: &Exit,
 ) -> Result<()> {
-    vecs.compute(indexer, prices, indexes, exit)
+    vecs.compute(indexer, prices, mappings, exit)
 }
 
 impl Vecs {
@@ -21,7 +21,7 @@ impl Vecs {
         &mut self,
         indexer: &Indexer,
         prices: &bitview_plugin_price::Vecs,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
@@ -37,7 +37,7 @@ impl Vecs {
             starting_height,
             &self.high.cents.height,
             &prices.spot.cents.height,
-            &indexes.timestamp.monotonic,
+            &mappings.timestamp.monotonic,
             |(i, ath, price, ts, slf)| {
                 if ath_ts.is_none() {
                     let idx = i.to_usize();

@@ -14,12 +14,10 @@ use axum::{
     http::{HeaderMap, StatusCode, Uri},
     response::Response,
 };
-use bitview_query::Query as BrkQuery;
+use bitview_query::{OutputLegacy, Query as BrkQuery};
+use bitview_types::SeriesSelection;
 use brk_error::Error;
-use brk_types::{
-    Bitcoin, Cents, Cohort, Date, Day1, Dollars, OutputLegacy, Sats, SeriesSelection,
-    UrpdAggregation, Version,
-};
+use brk_types::{Bitcoin, Cents, Cohort, Date, Day1, Dollars, Sats, UrpdAggregation, Version};
 use rustc_hash::FxHashMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};

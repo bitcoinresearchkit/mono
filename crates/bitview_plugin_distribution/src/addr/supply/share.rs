@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_traversable::Traversable;
-use brk_cohort::{AddrTypeId, ByAddrType};
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, CachedBoxedVec, Database, Exit, ReadOnlyClone, ReadableVec, Rw,
@@ -32,7 +32,7 @@ impl AddrSupplyShareVecs {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         supply: &AddrSupplyVecs,
         all_supply: &CachedBoxedVec<Height, Sats>,
     ) -> Result<Self> {
@@ -42,7 +42,7 @@ impl AddrSupplyShareVecs {
             version,
             &supply.all.sats.height,
             all_supply.clone(),
-            indexes,
+            mappings,
         );
         let ppm =
             ColumnarPerBlock::forced_import(db, &format!("{name}_ppm_by_type"), version, |_| ())?;
@@ -53,7 +53,7 @@ impl AddrSupplyShareVecs {
                 version,
                 &source,
                 column,
-                indexes,
+                mappings,
             )
         });
 

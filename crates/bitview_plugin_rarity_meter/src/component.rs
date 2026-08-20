@@ -54,10 +54,10 @@ pub fn forced_import(
     db: &Database,
     name: &str,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     price_source: &(impl ReadableCloneableVec<Height, Cents> + 'static),
 ) -> Result<Component> {
-    Component::forced_import(db, name, version, indexes, price_source)
+    Component::forced_import(db, name, version, mappings, price_source)
 }
 
 pub fn compute(
@@ -90,7 +90,7 @@ impl Component {
         db: &Database,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         price_source: &(impl ReadableCloneableVec<Height, Cents> + 'static),
     ) -> Result<Self> {
         let version = version + VERSION;
@@ -106,13 +106,13 @@ impl Component {
                 version,
                 &source,
                 id,
-                indexes,
+                mappings,
             );
             let price = cached_price.price_for_ratio(
                 &format!("{name}_{suffix}"),
                 version,
                 &ratio.ppm.height,
-                indexes,
+                mappings,
             );
             Band { ratio, price }
         });

@@ -13,18 +13,18 @@ use bitview_compute::{
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     cached_starts: &ByLookbackPeriod<CachedBoxedVec<Height, Height>>,
     prices: &bitview_plugin_price::Vecs,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, cached_starts, prices)
+    Vecs::forced_import(db, version, mappings, cached_starts, prices)
 }
 
 impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &ByLookbackPeriod<CachedBoxedVec<Height, Height>>,
         prices: &bitview_plugin_price::Vecs,
     ) -> Result<Self> {
@@ -46,7 +46,7 @@ impl Vecs {
                     &metric_name,
                     version,
                     source,
-                    indexes,
+                    mappings,
                 ))
             })?;
 
@@ -69,7 +69,7 @@ impl Vecs {
                 suffix,
                 days,
                 version + Version::ONE,
-                indexes,
+                mappings,
             )
         })?;
 

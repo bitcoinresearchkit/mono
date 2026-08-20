@@ -1,7 +1,7 @@
 use brk_error::Result;
 
+use bitview_cohort::{CohortContext, UTXOGroups};
 use bitview_traversable::Traversable;
-use brk_cohort::{CohortContext, UTXOGroups};
 use brk_types::{Cents, Height, Version};
 use vecdb::{CachedBoxedVec, Database, Rw, StorageMode};
 
@@ -21,7 +21,7 @@ impl RealizedPriceByCohort {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
@@ -34,7 +34,7 @@ impl RealizedPriceByCohort {
                 matrices
                     .source(&filter, &format!("{name}_cents"), version)
                     .expect("realized-price cohort source"),
-                indexes,
+                mappings,
                 spot_price,
             )
         });

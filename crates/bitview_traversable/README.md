@@ -4,12 +4,13 @@ Trait for navigating and exporting hierarchical data structures.
 
 ## What It Enables
 
-Traverse nested data collections (datasets, grouped metrics) as trees for inspection, and iterate all exportable vectors for bulk data export.
+Traverse nested data collections as public series trees, and iterate their
+exportable vectors for persistence and bulk export.
 
 ## Key Features
 
 - **Tree navigation**: Convert nested structs into `TreeNode` hierarchies for exploration
-- **Export iteration**: Walk all `AnyExportableVec` instances in a data structure
+- **Export iteration**: Walk all `AnyExportableVec` instances, including a public-only view
 - **Derive macro**: `#[derive(Traversable)]` with `derive` feature
 - **Compression backends**: Support for PCO, LZ4, ZeroCopy, Zstd via feature flags
 - **Blanket implementations**: Works with `Box<T>`, `Option<T>`, `BTreeMap<K, V>`
@@ -41,5 +42,6 @@ All vecdb vector types implement `Traversable`:
 
 ## Built On
 
-- `brk_types` for `TreeNode` type
+- `bitview_types` for series-tree schemas
+- `brk_types` for index types
 - `bitview_traversable_derive` for the derive macro (optional)

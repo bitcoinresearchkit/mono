@@ -15,15 +15,13 @@ mod threshold_vecs;
 
 use brk_error::Result;
 
-use std::path::Path;
-
-use bitview_plugin::{ComputePlugin, Plugin, PluginGate, PluginId};
+use bitview_plugin::{
+    ComputePlugin, ImportContext, Plugin, PluginGate, PluginId, PluginStorage, UpdateContext,
+};
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Exit, Rw, StorageMode};
-
-use bitview_compute::db_utils::{finalize_db, open_db};
 
 use band::Band;
 use component::Component;
@@ -35,7 +33,8 @@ use inner::RarityMeterInner;
 
 use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
 
-pub const ID: PluginId = PluginId::new("rarity_meter");
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("rarity_meter"), Version::new(16));
+pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -59,37 +58,35 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub cycle: RarityMeterInner<M>,
 }
 
-const VERSION: Version = Version::new(7);
 const COMPUTE_BATCH_SIZE: usize = 100_000;
 
 impl Vecs {
-    pub fn forced_import(
-        parent_path: &Path,
-        version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+    pub fn import(
+        context: ImportContext<'_>,
+        mappings: &bitview_plugin_mappings::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         cointime: &bitview_plugin_cointime::Vecs,
         coinflow: &bitview_plugin_coinflow::Vecs,
     ) -> Result<Self> {
-        let db = open_db(parent_path, ID.as_str(), 100_000)?;
-        let v = version + VERSION;
+        let db = STORAGE.open_database(context, 100_000)?;
+        let version = STORAGE.schema_version();
         let this = Self {
             plugin_gate: Default::default(),
             components: components::forced_import(
                 &db,
-                v,
-                indexes,
+                version,
+                mappings,
                 distribution,
                 cointime,
                 coinflow,
             )?,
-            extremes: extremes::forced_import(&db, v, indexes)?,
-            full: inner::forced_import(&db, "rarity_meter", v, indexes)?,
-            local: inner::forced_import(&db, "local_rarity_meter", v, indexes)?,
-            cycle: inner::forced_import(&db, "cycle_rarity_meter", v, indexes)?,
+            extremes: extremes::forced_import(&db, version, mappings)?,
+            full: inner::forced_import(&db, "rarity_meter", version, mappings)?,
+            local: inner::forced_import(&db, "local_rarity_meter", version, mappings)?,
+            cycle: inner::forced_import(&db, "cycle_rarity_meter", version, mappings)?,
             db,
         };
-        finalize_db(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db, &this)?;
         Ok(this)
     }
 
@@ -191,8 +188,8 @@ impl<M: StorageMode> Plugin for Vecs<M>
 where
     Self: Traversable + Send + Sync,
 {
-    fn id(&self) -> PluginId {
-        ID
+    fn storage(&self) -> PluginStorage {
+        STORAGE
     }
 
     fn gate(&self) -> &PluginGate {
@@ -201,13 +198,13 @@ where
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
@@ -215,7 +212,7 @@ impl ComputePlugin for Vecs {
             dependencies.cointime,
             dependencies.coinflow,
             dependencies.price,
-            exit,
+            context.exit(),
         )
     }
 }

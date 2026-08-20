@@ -1,9 +1,9 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{AnyStoredVec, AnyVec, CachedBoxedVec, Database, Rw, StorageMode};
@@ -28,7 +28,7 @@ impl AggregatePriceWithRatioPerBlock {
         db: &Database,
         metric: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let values = ColumnarPerBlock::forced_import(
@@ -43,7 +43,7 @@ impl AggregatePriceWithRatioPerBlock {
                         metric,
                     );
                     LazyColumnPriceWithRatioPerBlock::new(
-                        &name, version, source, id, indexes, spot_price,
+                        &name, version, source, id, mappings, spot_price,
                     )
                 })
             },

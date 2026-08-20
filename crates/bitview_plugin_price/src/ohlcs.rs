@@ -41,14 +41,19 @@ impl LazyOhlcCentsVecs {
     pub fn new(
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         prices: CachedBoxedVec<Height, Cents>,
     ) -> Self {
         let v = version + COMPUTE_VERSION;
 
         macro_rules! per_period {
             ($field:ident) => {
-                LazyOhlcVec::new(name, v, prices.clone(), indexes.$field.first_height.clone())
+                LazyOhlcVec::new(
+                    name,
+                    v,
+                    prices.clone(),
+                    mappings.$field.first_height.clone(),
+                )
             };
         }
 

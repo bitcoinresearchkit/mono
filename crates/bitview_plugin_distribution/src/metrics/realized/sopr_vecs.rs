@@ -1,12 +1,12 @@
 use brk_error::Result;
 
-use bitview_traversable::Traversable;
-use brk_cohort::{
+use bitview_cohort::{
     AGE_RANGE_FILTERS, AgeRange, AgeRangeId, ByEntry, ByEpoch, CLASS_FILTERS, Class, ClassId,
     CohortContext, ENTRY_FILTERS, EPOCH_FILTERS, EntryId, EpochId, Filter, OVER_AGE_FILTERS,
     OverAge, OverAgeId, Term, UNDER_AGE_FILTERS, UTXOAggregate, UTXOAggregateId,
     UTXOGroupsWithoutAmountOrType, UnderAge, UnderAgeId,
 };
+use bitview_traversable::Traversable;
 use brk_types::{Height, StoredF32, Version};
 use vecdb::{
     AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, PcoVec, ReadOnlyColumnarVec,
@@ -59,7 +59,7 @@ impl Sopr24hVecs {
     pub fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> Result<Self> {
         let version = version + VERSION;
         let matrix_version = version + Version::ONE;
@@ -68,9 +68,9 @@ impl Sopr24hVecs {
             "sopr_24h_by_aggregate",
             matrix_version,
             |name, source| UTXOAggregate {
-                all: Self::column(name, matrix_version, source, UTXOAggregateId::All, indexes),
-                sth: Self::column(name, matrix_version, source, UTXOAggregateId::Sth, indexes),
-                lth: Self::column(name, matrix_version, source, UTXOAggregateId::Lth, indexes),
+                all: Self::column(name, matrix_version, source, UTXOAggregateId::All, mappings),
+                sth: Self::column(name, matrix_version, source, UTXOAggregateId::Sth, mappings),
+                lth: Self::column(name, matrix_version, source, UTXOAggregateId::Lth, mappings),
             },
         )?;
         let age_range_matrix = Self::import_matrix(
@@ -79,7 +79,7 @@ impl Sopr24hVecs {
             matrix_version,
             |name, source| {
                 AgeRange::from_fn(|column| {
-                    Self::column(name, matrix_version, source, column, indexes)
+                    Self::column(name, matrix_version, source, column, mappings)
                 })
             },
         )?;
@@ -89,7 +89,7 @@ impl Sopr24hVecs {
             matrix_version,
             |name, source| {
                 UnderAge::from_fn(|column| {
-                    Self::column(name, matrix_version, source, column, indexes)
+                    Self::column(name, matrix_version, source, column, mappings)
                 })
             },
         )?;
@@ -99,24 +99,26 @@ impl Sopr24hVecs {
             matrix_version,
             |name, source| {
                 OverAge::from_fn(|column| {
-                    Self::column(name, matrix_version, source, column, indexes)
+                    Self::column(name, matrix_version, source, column, mappings)
                 })
             },
         )?;
         let epoch_matrix =
             Self::import_matrix(db, "sopr_24h_by_epoch", matrix_version, |name, source| {
                 ByEpoch::from_fn(|column| {
-                    Self::column(name, matrix_version, source, column, indexes)
+                    Self::column(name, matrix_version, source, column, mappings)
                 })
             })?;
         let class_matrix =
             Self::import_matrix(db, "sopr_24h_by_class", matrix_version, |name, source| {
-                Class::from_fn(|column| Self::column(name, matrix_version, source, column, indexes))
+                Class::from_fn(|column| {
+                    Self::column(name, matrix_version, source, column, mappings)
+                })
             })?;
         let entry_matrix =
             Self::import_matrix(db, "sopr_24h_by_entry", matrix_version, |name, source| {
                 ByEntry::from_fn(|column| {
-                    Self::column(name, matrix_version, source, column, indexes)
+                    Self::column(name, matrix_version, source, column, mappings)
                 })
             })?;
 
@@ -125,13 +127,13 @@ impl Sopr24hVecs {
             let version = Self::cohort_version(version, &filter);
             match &filter {
                 Filter::All => {
-                    Self::logical_source(&aggregate_matrix.series.all, &name, version, indexes)
+                    Self::logical_source(&aggregate_matrix.series.all, &name, version, mappings)
                 }
                 Filter::Term(Term::Sth) => {
-                    Self::logical_source(&aggregate_matrix.series.sth, &name, version, indexes)
+                    Self::logical_source(&aggregate_matrix.series.sth, &name, version, mappings)
                 }
                 Filter::Term(Term::Lth) => {
-                    Self::logical_source(&aggregate_matrix.series.lth, &name, version, indexes)
+                    Self::logical_source(&aggregate_matrix.series.lth, &name, version, mappings)
                 }
                 Filter::Time(_) => AgeRangeId::ALL
                     .iter()
@@ -142,7 +144,7 @@ impl Sopr24hVecs {
                             id.select(&age_range_matrix.series),
                             &name,
                             version,
-                            indexes,
+                            mappings,
                         )
                     })
                     .or_else(|| {
@@ -155,7 +157,7 @@ impl Sopr24hVecs {
                                     id.select(&under_age_matrix.series),
                                     &name,
                                     version,
-                                    indexes,
+                                    mappings,
                                 )
                             })
                     })
@@ -169,7 +171,7 @@ impl Sopr24hVecs {
                                     id.select(&over_age_matrix.series),
                                     &name,
                                     version,
-                                    indexes,
+                                    mappings,
                                 )
                             })
                     })
@@ -183,7 +185,7 @@ impl Sopr24hVecs {
                             id.select(&epoch_matrix.series),
                             &name,
                             version,
-                            indexes,
+                            mappings,
                         )
                     })
                     .expect("supported SOPR epoch cohort"),
@@ -196,7 +198,7 @@ impl Sopr24hVecs {
                             id.select(&class_matrix.series),
                             &name,
                             version,
-                            indexes,
+                            mappings,
                         )
                     })
                     .expect("supported SOPR class cohort"),
@@ -209,7 +211,7 @@ impl Sopr24hVecs {
                             id.select(&entry_matrix.series),
                             &name,
                             version,
-                            indexes,
+                            mappings,
                         )
                     })
                     .expect("supported SOPR entry cohort"),
@@ -243,14 +245,14 @@ impl Sopr24hVecs {
         version: Version,
         source: &ReadOnlyColumnarVec<PcoVec<Height, StoredF32>, C>,
         column: C,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> LazyColumnPerBlock<StoredF32, C> {
         LazyColumnPerBlock::new(
             &format!("{name}_column_{}", column.index()),
             version,
             source,
             column,
-            indexes,
+            mappings,
         )
     }
 
@@ -258,13 +260,13 @@ impl Sopr24hVecs {
         source: &LazyColumnPerBlock<StoredF32, C>,
         name: &str,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
     ) -> LazyPerBlock<StoredF32> {
         LazyPerBlock::from_boxed_height_source::<Identity<StoredF32>>(
             name,
             version,
             source.height.read_only_boxed_clone(),
-            indexes,
+            mappings,
         )
     }
 

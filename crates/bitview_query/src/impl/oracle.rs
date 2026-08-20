@@ -211,7 +211,7 @@ impl Query {
     /// the same histogram-available bound as `check_histogram_height`. 404 when
     /// the day has no committed blocks in range.
     fn day_block_range(&self, day: Day1, safe: &Lengths) -> brk_error::Result<Range<usize>> {
-        let first_height = &self.plugins().indexes.day1.first_height;
+        let first_height = &self.plugins().mappings.day1.first_height;
         let bound = self.histogram_bound(safe);
         let start = first_height
             .collect_one(day)

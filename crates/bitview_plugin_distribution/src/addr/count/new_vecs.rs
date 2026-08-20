@@ -18,7 +18,7 @@ impl NewAddrCountVecs {
     pub fn new(
         version: Version,
         total: &TotalAddrCountVecs,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Self {
         Self(WithAddrTypes {
@@ -27,7 +27,7 @@ impl NewAddrCountVecs {
                 version,
                 &total.all,
                 cached_starts,
-                indexes,
+                mappings,
             ),
             by_addr_type: total.by_addr_type.map_with_name(|name, total| {
                 LazyPerBlockCumulativeRolling::from_column_source(
@@ -35,7 +35,7 @@ impl NewAddrCountVecs {
                     version,
                     total,
                     cached_starts,
-                    indexes,
+                    mappings,
                 )
             }),
         })

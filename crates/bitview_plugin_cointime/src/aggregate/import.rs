@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::ops::AddAssign;
 
-use brk_cohort::{TermId, UTXOAggregateId};
+use bitview_cohort::{TermId, UTXOAggregateId};
 use brk_types::{Cents, Height, StoredF64, Version};
 use vecdb::{
     CachedBoxedVec, ColumnId, Database, ImportableVec, PcoVec, PcoVecValue, ReadOnlyClone,
@@ -18,11 +18,11 @@ use bitview_compute::{
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexes: &bitview_plugin_indexes::Vecs,
+    mappings: &bitview_plugin_mappings::Vecs,
     spot_price: &CachedBoxedVec<Height, Cents>,
     all_supply_in_loss_share: &PerBlock<StoredF64>,
 ) -> Result<Vecs> {
-    Vecs::forced_import(db, version, indexes, spot_price, all_supply_in_loss_share)
+    Vecs::forced_import(db, version, mappings, spot_price, all_supply_in_loss_share)
 }
 
 impl Sources {
@@ -80,7 +80,7 @@ impl CohortVecs {
         version: Version,
         sources: &Sources,
         supply_in_loss_share: ReadableBoxedVec<Height, StoredF64>,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
         let name = aggregate.cohort_name().id;
@@ -119,26 +119,26 @@ impl CohortVecs {
                     &format!("{prefix}awake_supply"),
                     version,
                     awake_supply,
-                    indexes,
+                    mappings,
                     spot_price,
                 ),
                 supply_in_loss_share: LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
                     &format!("{prefix}awake_supply_in_loss_share"),
                     version,
                     supply_in_loss_share,
-                    indexes,
+                    mappings,
                 ),
                 cap: LazyFiatPerBlock::from_boxed_cents_source(
                     &format!("{prefix}awake_cap"),
                     version,
                     awake_cap,
-                    indexes,
+                    mappings,
                 ),
                 price: LazyPriceWithRatioPerBlock::from_boxed_height_source(
                     &format!("{prefix}awake_price"),
                     version,
                     awake_price,
-                    indexes,
+                    mappings,
                     spot_price,
                 ),
             },
@@ -147,7 +147,7 @@ impl CohortVecs {
                     &format!("{prefix}dormant_supply"),
                     version,
                     dormant_supply,
-                    indexes,
+                    mappings,
                     spot_price,
                 ),
             },
@@ -159,7 +159,7 @@ impl Vecs {
     fn forced_import(
         db: &Database,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
         all_supply_in_loss_share: &PerBlock<StoredF64>,
     ) -> Result<Self> {
@@ -181,7 +181,7 @@ impl Vecs {
             version,
             &sources,
             all_loss_share,
-            indexes,
+            mappings,
             spot_price,
         );
         let sth = CohortVecs::new(
@@ -189,7 +189,7 @@ impl Vecs {
             version,
             &sources,
             term_loss_share(UTXOAggregateId::Sth),
-            indexes,
+            mappings,
             spot_price,
         );
         let lth = CohortVecs::new(
@@ -197,7 +197,7 @@ impl Vecs {
             version,
             &sources,
             term_loss_share(UTXOAggregateId::Lth),
-            indexes,
+            mappings,
             spot_price,
         );
 

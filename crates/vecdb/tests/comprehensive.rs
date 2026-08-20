@@ -1,12 +1,17 @@
-//! Comprehensive tests for RawVec functionality (take, holes, update, collect_holed).
+//! Comprehensive tests for mutable raw-vector functionality (take, holes, update, collect_holed).
 //!
-//! These tests are specific to BytesVec and ZeroCopyVec which implement ReadWriteRawVec.
+//! These tests exercise `MutableVec` over `BytesVec` and `ZeroCopyVec`.
 
 use rawdb::Database;
 use std::collections::BTreeSet;
-use std::ops::DerefMut;
 use tempfile::TempDir;
-use vecdb::{ReadWriteRawVec, Stamp, StoredVec, VecReader, Version};
+use vecdb::{
+    AnyStoredVec, BytesVec, BytesVecReader, ImportableVec, MutableVec, ReadableVec, Stamp,
+    StoredVec, Version, WritableVec,
+};
+
+#[cfg(feature = "zerocopy")]
+use vecdb::{VecReader, ZeroCopyStrategy, ZeroCopyVec};
 
 // ============================================================================
 // Test Setup
@@ -19,10 +24,10 @@ fn setup_db() -> vecdb::Result<(Database, TempDir)> {
 }
 
 // ============================================================================
-// Trait for Raw Vec Operations
+// Trait for Mutable Raw Vec Operations
 // ============================================================================
 
-pub trait RawVecOps {
+pub trait RawVecOps: StoredVec<I = usize, T = u32> {
     type Reader;
 
     fn take(&mut self, index: usize, reader: &Self::Reader) -> Option<u32>;
@@ -33,34 +38,60 @@ pub trait RawVecOps {
     fn reader(&self) -> Self::Reader;
 }
 
-impl<S> RawVecOps for ReadWriteRawVec<usize, u32, S>
-where
-    S: vecdb::RawStrategy<u32>,
-{
-    type Reader = VecReader<usize, u32, S>;
+impl RawVecOps for MutableVec<BytesVec<usize, u32>> {
+    type Reader = BytesVecReader<usize, u32>;
 
     fn take(&mut self, index: usize, reader: &Self::Reader) -> Option<u32> {
-        ReadWriteRawVec::take(self, index, reader)
+        MutableVec::<BytesVec<usize, u32>>::take(self, index, reader)
     }
 
     fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
-        ReadWriteRawVec::update(self, index, value)
+        MutableVec::<BytesVec<usize, u32>>::update(self, index, value)
     }
 
     fn holes(&self) -> &BTreeSet<usize> {
-        ReadWriteRawVec::holes(self)
+        MutableVec::<BytesVec<usize, u32>>::holes(self)
     }
 
     fn collect_holed(&self) -> Vec<Option<u32>> {
-        ReadWriteRawVec::collect_holed(self)
+        MutableVec::<BytesVec<usize, u32>>::collect_holed(self)
     }
 
     fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32> {
-        ReadWriteRawVec::get_with_reader(self, index, reader)
+        MutableVec::<BytesVec<usize, u32>>::get_with_reader(self, index, reader)
     }
 
     fn reader(&self) -> Self::Reader {
-        ReadWriteRawVec::reader(self)
+        MutableVec::<BytesVec<usize, u32>>::reader(self)
+    }
+}
+
+#[cfg(feature = "zerocopy")]
+impl RawVecOps for MutableVec<ZeroCopyVec<usize, u32>> {
+    type Reader = VecReader<usize, u32, ZeroCopyStrategy<u32>>;
+
+    fn take(&mut self, index: usize, reader: &Self::Reader) -> Option<u32> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::take(self, index, reader)
+    }
+
+    fn update(&mut self, index: usize, value: u32) -> vecdb::Result<()> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::update(self, index, value)
+    }
+
+    fn holes(&self) -> &BTreeSet<usize> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::holes(self)
+    }
+
+    fn collect_holed(&self) -> Vec<Option<u32>> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::collect_holed(self)
+    }
+
+    fn get_with_reader(&self, index: usize, reader: &Self::Reader) -> Option<u32> {
+        MutableVec::<ZeroCopyVec<usize, u32>>::get_with_reader(self, index, reader)
+    }
+
+    fn reader(&self) -> Self::Reader {
+        MutableVec::<ZeroCopyVec<usize, u32>>::reader(self)
     }
 }
 
@@ -70,8 +101,7 @@ where
 
 fn run_comprehensive_test<V>() -> vecdb::Result<()>
 where
-    V: StoredVec<I = usize, T = u32> + DerefMut,
-    V::Target: RawVecOps,
+    V: RawVecOps,
 {
     let version = Version::TWO;
     let (database, _temp) = setup_db()?;
@@ -194,33 +224,33 @@ where
         assert_eq!(vec.collect_range(20, 21), vec![20]);
         assert!(vec.collect_range(21, 22).is_empty());
 
-        let reader = vec.deref_mut().reader();
-        assert_eq!(vec.deref_mut().take(10, &reader), Some(10));
-        assert_eq!(vec.deref_mut().holes(), &BTreeSet::from([10]));
-        assert_eq!(vec.deref_mut().get_with_reader(10, &reader), None);
+        let reader = vec.reader();
+        assert_eq!(vec.take(10, &reader), Some(10));
+        assert_eq!(vec.holes(), &BTreeSet::from([10]));
+        assert_eq!(vec.get_with_reader(10, &reader), None);
         drop(reader);
 
         vec.write()?;
 
-        assert!(vec.deref_mut().holes() == &BTreeSet::from([10]));
+        assert!(vec.holes() == &BTreeSet::from([10]));
     }
 
     {
         let mut vec = V::forced_import_with(options)?;
 
-        assert!(vec.deref_mut().holes() == &BTreeSet::from([10]));
+        assert!(vec.holes() == &BTreeSet::from([10]));
 
-        let reader = vec.deref_mut().reader();
-        assert!(vec.deref_mut().get_with_reader(10, &reader).is_none());
+        let reader = vec.reader();
+        assert!(vec.get_with_reader(10, &reader).is_none());
         drop(reader);
 
-        vec.deref_mut().update(10, 10)?;
-        vec.deref_mut().update(0, 10)?;
+        vec.update(10, 10)?;
+        vec.update(0, 10)?;
 
-        let reader = vec.deref_mut().reader();
-        assert_eq!(vec.deref_mut().holes(), &BTreeSet::new());
-        assert_eq!(vec.deref_mut().get_with_reader(0, &reader), Some(10));
-        assert_eq!(vec.deref_mut().get_with_reader(10, &reader), Some(10));
+        let reader = vec.reader();
+        assert_eq!(vec.holes(), &BTreeSet::new());
+        assert_eq!(vec.get_with_reader(0, &reader), Some(10));
+        assert_eq!(vec.get_with_reader(10, &reader), Some(10));
         drop(reader);
 
         vec.write()?;
@@ -240,14 +270,14 @@ where
 
         vec.truncate_if_needed(10)?;
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(5, &reader);
-        vec.deref_mut().update(3, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(5, &reader);
+        vec.update(3, 5)?;
         vec.push(21);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 Some(10),
                 Some(1),
@@ -271,16 +301,16 @@ where
 
         assert_eq!(vec.collect(), vec![10, 1, 2, 5, 4, 6, 7, 8, 9, 21]);
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(0, &reader);
-        vec.deref_mut().update(1, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(0, &reader);
+        vec.update(1, 5)?;
         vec.push(5);
         vec.push(6);
         vec.push(7);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -306,7 +336,7 @@ where
         let mut vec = V::forced_import_with(options)?;
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -330,7 +360,7 @@ where
         assert_eq!(vec.stamp(), Stamp::new(1));
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 Some(10),
                 Some(1),
@@ -370,14 +400,14 @@ where
 
         vec.truncate_if_needed(10)?;
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(5, &reader);
-        vec.deref_mut().update(3, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(5, &reader);
+        vec.update(3, 5)?;
         vec.push(21);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 Some(10),
                 Some(1),
@@ -401,16 +431,16 @@ where
 
         assert_eq!(vec.collect(), vec![10, 1, 2, 5, 4, 6, 7, 8, 9, 21]);
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(0, &reader);
-        vec.deref_mut().update(1, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(0, &reader);
+        vec.update(1, 5)?;
         vec.push(5);
         vec.push(6);
         vec.push(7);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -436,7 +466,7 @@ where
         let mut vec = V::forced_import_with(options)?;
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -467,22 +497,22 @@ where
         vec.stamped_write(Stamp::new(0))?;
 
         vec.truncate_if_needed(10)?;
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(5, &reader);
-        vec.deref_mut().update(3, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(5, &reader);
+        vec.update(3, 5)?;
         vec.push(21);
         drop(reader);
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(0, &reader);
-        vec.deref_mut().update(1, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(0, &reader);
+        vec.update(1, 5)?;
         vec.push(5);
         vec.push(6);
         vec.push(7);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -513,18 +543,18 @@ where
         );
 
         vec.truncate_if_needed(10)?;
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(5, &reader);
-        vec.deref_mut().update(3, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(5, &reader);
+        vec.update(3, 5)?;
         vec.push(21);
         drop(reader);
 
         vec.stamped_write_with_changes(Stamp::new(1))?;
         assert_eq!(vec.stamp(), Stamp::new(1));
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(0, &reader);
-        vec.deref_mut().update(1, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(0, &reader);
+        vec.update(1, 5)?;
         vec.push(5);
         vec.push(6);
         vec.push(7);
@@ -533,7 +563,7 @@ where
         vec.stamped_write_with_changes(Stamp::new(2))?;
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -564,22 +594,22 @@ where
         );
 
         vec.truncate_if_needed(10)?;
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(5, &reader);
-        vec.deref_mut().update(3, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(5, &reader);
+        vec.update(3, 5)?;
         vec.push(21);
         drop(reader);
 
-        let reader = vec.deref_mut().reader();
-        let _ = vec.deref_mut().take(0, &reader);
-        vec.deref_mut().update(1, 5)?;
+        let reader = vec.reader();
+        let _ = vec.take(0, &reader);
+        vec.update(1, 5)?;
         vec.push(5);
         vec.push(6);
         vec.push(7);
         drop(reader);
 
         assert_eq!(
-            vec.deref_mut().collect_holed(),
+            vec.collect_holed(),
             vec![
                 None,
                 Some(5),
@@ -634,23 +664,46 @@ where
 
 mod bytes {
     use super::*;
-    use vecdb::BytesVec;
-    type V = BytesVec<usize, u32>;
 
     #[test]
     fn test_raw_vec_comprehensive() -> vecdb::Result<()> {
-        run_comprehensive_test::<V>()
+        run_comprehensive_test::<MutableVec<BytesVec<usize, u32>>>()
     }
 }
 
 #[cfg(feature = "zerocopy")]
 mod zerocopy {
     use super::*;
-    use vecdb::ZeroCopyVec;
-    type V = ZeroCopyVec<usize, u32>;
 
     #[test]
     fn test_raw_vec_comprehensive() -> vecdb::Result<()> {
-        run_comprehensive_test::<V>()
+        run_comprehensive_test::<MutableVec<ZeroCopyVec<usize, u32>>>()
     }
+}
+
+#[test]
+fn read_only_clone_tracks_published_holes() -> vecdb::Result<()> {
+    let (database, _temp) = setup_db()?;
+    let mut vec = MutableVec::<BytesVec<usize, u32>>::forced_import(
+        &database,
+        "read_only_holes",
+        Version::ONE,
+    )?;
+    vec.push(1);
+    vec.push(2);
+    vec.push(3);
+    vec.write()?;
+
+    let read_only = vec.read_only_clone();
+    vec.delete_at(1);
+    vec.write()?;
+
+    assert_eq!(read_only.collect(), vec![1, 3]);
+    assert_eq!(read_only.collect_one_at(1), None);
+
+    vec.update_at(1, 4)?;
+    vec.write()?;
+    assert_eq!(read_only.collect(), vec![1, 4, 3]);
+
+    Ok(())
 }

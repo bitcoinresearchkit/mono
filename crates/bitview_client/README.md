@@ -1,6 +1,6 @@
 # bitview_client
 
-Rust client for the [Bitcoin Research Kit](https://github.com/bitcoinresearchkit/brk) API.
+Synchronous Rust client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
 [crates.io](https://crates.io/crates/bitview_client) | [docs.rs](https://docs.rs/bitview_client)
 
@@ -12,34 +12,37 @@ is required.
 
 ```toml
 [dependencies]
-bitview_client = "0.1"
+bitview_client = "0.11"
 ```
 
-## Quick Start
+## Quick start
 
-```rust
-use bitview_client::{BitviewClient, Index};
+```rust,ignore
+use bitview_client::{BitviewClient, Height, Index};
 
 fn main() -> bitview_client::Result<()> {
-    let client = BitviewClient::new("http://localhost:3110");
+    // Use the public API or point the client at a self-hosted Bitview server.
+    let client = BitviewClient::new("https://bitview.space");
 
-    // Blockchain data (mempool.space compatible)
-    let block = client.get_block_by_height(800000)?;
-    let tx = client.get_tx("a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d")?;
-    let address = client.get_address("bc1q...")?;
+    let block_hash = client.get_block_by_height(Height::new(800_000))?;
 
-    // Metrics API - typed, chainable
-    let prices = client.metrics()
-        .price.usd.split.close
-        .by.dateindex()
-        .range(Some(-30), None)?; // Last 30 days
+    // Typed, chainable series access.
+    let prices = client
+        .series()
+        .price
+        .split
+        .close
+        .usd
+        .by
+        .day1()
+        .last(30)
+        .fetch()?;
 
-    // Generic metric fetching
-    let data = client.get_metric(
-        "price_close".into(),
-        Index::DateIndex,
-        Some(-30), None, None, None,
-    )?;
+    // Programmatic access when the series name is only known at runtime.
+    let same_prices = client
+        .series_endpoint("price_close", Index::Day1)
+        .last(30)
+        .fetch()?;
 
     Ok(())
 }
@@ -47,11 +50,11 @@ fn main() -> bitview_client::Result<()> {
 
 ## Configuration
 
-```rust
+```rust,ignore
 use bitview_client::{BitviewClient, BitviewClientOptions};
 
 let client = BitviewClient::with_options(BitviewClientOptions {
-    base_url: "http://localhost:3110".to_string(),
+    base_url: "https://bitview.space".to_string(),
     timeout_secs: 60,
 });
 ```

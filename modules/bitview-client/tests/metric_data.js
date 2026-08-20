@@ -1,5 +1,5 @@
 /**
- * Tests for MetricData helper methods and date conversion functions.
+ * Tests for SeriesData helper methods and date conversion functions.
  * Run: node tests/metric_data.js
  */
 
@@ -7,7 +7,7 @@ import { BitviewClient } from "../index.js";
 
 const client = new BitviewClient("http://localhost:3110");
 
-console.log("Testing MetricData helpers...\n");
+console.log("Testing SeriesData helpers...\n");
 
 // Fetch a date-based metric
 console.log("1. Fetching price data (day1):");
@@ -27,14 +27,14 @@ if (indexes.length !== 5) throw new Error("Expected 5 indexes");
 if (indexes[0] !== price.start)
   throw new Error("First index should equal start");
 
-// Test dates() - DateMetricData method
+// Test dates() - DateSeriesData method
 console.log("\n4. dates():");
 const dates = price.dates();
 console.log(
   `   First: ${dates[0].toISOString()}, Last: ${dates[dates.length - 1].toISOString()}`,
 );
 if (dates.length !== 5) throw new Error("Expected 5 dates");
-// DateIndex 0 = Jan 3, 2009 (genesis)
+// Day1 index 0 = Jan 3, 2009 (genesis)
 if (
   dates[0].getFullYear() !== 2009 ||
   dates[0].getMonth() !== 0 ||
@@ -61,7 +61,7 @@ console.log(`   First: [${entries[0][0]}, ${entries[0][1]}]`);
 if (entries[0][1] !== price.data[0])
   throw new Error("First entry value mismatch");
 
-// Test dateEntries() - DateMetricData method, returns [Date, value] pairs
+// Test dateEntries() - DateSeriesData method, returns [Date, value] pairs
 console.log("\n7. dateEntries():");
 const dateEntries = price.dateEntries();
 if (!(dateEntries[0][0] instanceof Date))
@@ -76,7 +76,7 @@ const map = price.toMap();
 console.log(`   Size: ${map.size}`);
 if (map.size !== 5) throw new Error("Expected map size 5");
 
-// Test toDateMap() - DateMetricData method
+// Test toDateMap() - DateSeriesData method
 console.log("\n9. toDateMap():");
 const dateMap = price.toDateMap();
 console.log(`   Size: ${dateMap.size}`);
@@ -245,4 +245,4 @@ console.log(
 if (dateSlice.data.length !== dateSlice.end - dateSlice.start)
   throw new Error("Slice data length mismatch");
 
-console.log("\nAll MetricData tests passed!");
+console.log("\nAll SeriesData tests passed!");

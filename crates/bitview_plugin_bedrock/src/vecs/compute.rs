@@ -1,19 +1,19 @@
 use brk_error::Result;
 
-use bitview_plugin::ComputePlugin;
+use bitview_cohort::{AgeRange, AgeRangeId, UTXO_ALL_NAME};
+use bitview_compute::{AgeBand, db_utils::validate_any_computed_version_or_reset};
+use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin_coinflow::HorizonId;
+use bitview_plugin_distribution::UTXOStates;
 use bitview_plugin_indexer::Indexer;
-use brk_cohort::{AgeRange, AgeRangeId, UTXO_ALL_NAME};
 use brk_types::{Day1, Sats, StoredF64, UrpdRaw, Version};
 use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
 
 use super::Vecs;
 use crate::{
-    Calibration, DayResult, DayUrpds, LossPercentileId, ModeId, ModeResult, ModeVecs, ModeWeights,
-    PriceBandId, WeightedModeId, WeightedModes,
+    Calibration, DayResult, DayUrpds, Dependencies, LossPercentileId, ModeId, ModeResult, ModeVecs,
+    ModeWeights, PriceBandId, WeightedModeId, WeightedModes,
 };
-use bitview_compute::{AgeBand, db_utils::validate_any_computed_version_or_reset};
-use bitview_plugin_coinflow::HorizonId;
-use bitview_plugin_distribution::UTXOStates;
 
 const WRITE_INTERVAL_DAYS: usize = 100;
 const WEIGHTED_URPD_VERSION: Version = Version::TWO;
@@ -33,22 +33,22 @@ impl ModeVecs {
 }
 
 impl ComputePlugin for Vecs {
-    type Dependencies<'a> = crate::Dependencies<'a>;
+    type Dependencies<'a> = Dependencies<'a>;
     type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
-        exit: &Exit,
+        context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.indexes,
+            dependencies.mappings,
             dependencies.distribution,
             dependencies.utxo_states,
             dependencies.cointime,
             dependencies.coinflow,
-            exit,
+            context.exit(),
         )
     }
 }
@@ -58,7 +58,7 @@ impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         distribution: &bitview_plugin_distribution::Vecs,
         utxo_states: &UTXOStates,
         cointime: &bitview_plugin_cointime::Vecs,
@@ -122,7 +122,7 @@ impl Vecs {
         let weighted_urpd_names = DayUrpds::names();
 
         let weighted_urpd_source_version: Version = std::iter::once(WEIGHTED_URPD_VERSION)
-            .chain(std::iter::once(indexes.day1.date.version()))
+            .chain(std::iter::once(mappings.day1.date.version()))
             .chain(std::iter::once(distribution.supply_state.version()))
             .chain(age_supplies.iter().map(|vec| vec.version()))
             .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
@@ -139,7 +139,7 @@ impl Vecs {
             validate_any_computed_version_or_reset(vec, source_version)?;
         }
 
-        let source_end = std::iter::once(indexes.day1.date.len())
+        let source_end = std::iter::once(mappings.day1.date.len())
             .chain(std::iter::once(raw_loss_share.len()))
             .chain(weighted_loss_shares.iter().map(|vec| vec.len()))
             .chain(age_supplies.iter().map(|vec| vec.len()))
@@ -148,7 +148,7 @@ impl Vecs {
             .chain(coinflow_spending_rate.iter().map(|vec| vec.len()))
             .min()
             .unwrap_or_default();
-        let recompute_from = Self::recompute_day(indexer, indexes)
+        let recompute_from = Self::recompute_day(indexer, mappings)
             .map(usize::from)
             .unwrap_or_default();
         let weighted_urpd_is_current =
@@ -183,7 +183,7 @@ impl Vecs {
 
             let needs_evaluation = thresholds.iter().any(Option::is_some);
             let needs_rebuild = !weighted_urpd_is_current || day_index >= recompute_from;
-            if let Some(date) = indexes.day1.date.collect_one(day)
+            if let Some(date) = mappings.day1.date.collect_one(day)
                 && (needs_rebuild || needs_evaluation)
             {
                 let weights = Self::mode_weights(
@@ -254,16 +254,16 @@ impl Vecs {
             .unwrap_or_default()
     }
 
-    fn recompute_day(indexer: &Indexer, indexes: &bitview_plugin_indexes::Vecs) -> Option<Day1> {
+    fn recompute_day(indexer: &Indexer, mappings: &bitview_plugin_mappings::Vecs) -> Option<Day1> {
         let starting_height = indexer.safe_lengths().height;
-        indexes
+        mappings
             .height
             .day1
             .collect_one(starting_height)
             .or_else(|| {
                 starting_height
                     .decremented()
-                    .and_then(|height| indexes.height.day1.collect_one(height))
+                    .and_then(|height| mappings.height.day1.collect_one(height))
             })
     }
 

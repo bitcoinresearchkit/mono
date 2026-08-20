@@ -9,7 +9,7 @@ use rawdb::{Database, Region};
 
 use crate::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
-    OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
+    MutableVec, OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
     ReadableCloneableVec, ReadableVec, SharedLen, Stamp, StoredVec, TypedVec, VecIndex, Version,
     WritableVec, short_type_name, unlikely,
 };
@@ -27,8 +27,8 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    compact: BytesVec<I, T::Compact>,
-    overflow: BytesVec<usize, T>,
+    compact: MutableVec<BytesVec<I, T::Compact>>,
+    overflow: MutableVec<BytesVec<usize, T>>,
     pushed: Vec<T>,
     visible_len: SharedLen,
     gate: Arc<RwLock<()>>,
@@ -53,14 +53,14 @@ where
         };
 
         let mut compact = if forced {
-            BytesVec::forced_import_with(options)?
+            MutableVec::<BytesVec<_, _>>::forced_import_with(options)?
         } else {
-            BytesVec::import_with(options)?
+            MutableVec::<BytesVec<_, _>>::import_with(options)?
         };
         let mut overflow = if forced {
-            BytesVec::forced_import_with(overflow_options)?
+            MutableVec::<BytesVec<_, _>>::forced_import_with(overflow_options)?
         } else {
-            BytesVec::import_with(overflow_options)?
+            MutableVec::<BytesVec<_, _>>::import_with(overflow_options)?
         };
 
         if compact.stamp() != overflow.stamp() {
@@ -113,7 +113,7 @@ where
     #[inline(always)]
     fn decode_with_overflow_reader(
         compact: T::Compact,
-        overflow_vec: &BytesVec<usize, T>,
+        overflow_vec: &MutableVec<BytesVec<usize, T>>,
         overflow: &BytesVecReader<usize, T>,
     ) -> T {
         let overflow_index = T::overflow_index(compact);
@@ -316,6 +316,10 @@ where
 
     fn len(&self) -> usize {
         self.compact.len()
+    }
+
+    fn is_mutable(&self) -> bool {
+        true
     }
 
     fn index_type_to_string(&self) -> &'static str {

@@ -150,12 +150,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.104"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
-
-[[package]]
 name = "arc-swap"
 version = "1.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -410,32 +404,38 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 name = "bitview"
 version = "0.11.2"
 dependencies = [
- "anyhow",
- "bitview_bencher",
- "bitview_composition",
- "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_distribution",
  "bitview_plugin_indexer",
  "bitview_query",
  "bitview_runtime",
  "bitview_server",
  "bitview_traversable",
- "brk_alloc",
  "brk_error",
- "brk_logger",
  "brk_mempool",
  "brk_reader",
  "brk_rpc",
  "brk_types",
- "color-eyre",
- "lexopt",
- "owo-colors",
- "serde",
- "serde_json",
  "tokio",
- "toml",
  "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview-custom-plugin-example"
+version = "0.0.0"
+dependencies = [
+ "bitview",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_indexer",
+ "bitview_query",
+ "bitview_runtime",
+ "bitview_traversable",
+ "bitviewd",
+ "brk_error",
+ "brk_reader",
+ "brk_types",
+ "tempfile",
  "vecdb",
 ]
 
@@ -461,21 +461,24 @@ dependencies = [
 name = "bitview_bindgen"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_query",
- "brk_cohort",
+ "bitview_types",
  "brk_types",
  "derive_more",
  "indexmap",
  "oas3",
  "serde",
  "serde_json",
+ "tempfile",
 ]
 
 [[package]]
 name = "bitview_client"
 version = "0.11.2"
 dependencies = [
- "brk_cohort",
+ "bitview_cohort",
+ "bitview_types",
  "brk_types",
  "rapidhash",
  "serde",
@@ -484,7 +487,37 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_composition"
+name = "bitview_cohort"
+version = "0.11.2"
+dependencies = [
+ "bitview_traversable",
+ "brk_error",
+ "brk_types",
+ "rayon",
+ "schemars",
+ "serde",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_compute"
+version = "0.11.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_traversable",
+ "brk_error",
+ "brk_types",
+ "derive_more",
+ "parking_lot",
+ "schemars",
+ "serde",
+ "serde_json",
+ "smallvec",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_default"
 version = "0.11.2"
 dependencies = [
  "bitview_compute",
@@ -497,10 +530,10 @@ dependencies = [
  "bitview_plugin_constants",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
  "bitview_plugin_indicators",
  "bitview_plugin_inputs",
  "bitview_plugin_investing",
+ "bitview_plugin_mappings",
  "bitview_plugin_market",
  "bitview_plugin_mining",
  "bitview_plugin_op_return",
@@ -514,27 +547,9 @@ dependencies = [
  "bitview_traversable",
  "brk_alloc",
  "brk_error",
- "brk_types",
+ "brk_reader",
  "rayon",
- "tempfile",
  "tracing",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_compute"
-version = "0.11.2"
-dependencies = [
- "bitview_traversable",
- "brk_cohort",
- "brk_error",
- "brk_types",
- "derive_more",
- "parking_lot",
- "schemars",
- "serde",
- "serde_json",
- "smallvec",
  "vecdb",
 ]
 
@@ -560,6 +575,7 @@ version = "0.11.2"
 dependencies = [
  "bitview_traversable",
  "brk_error",
+ "brk_types",
  "parking_lot",
  "vecdb",
 ]
@@ -568,15 +584,15 @@ dependencies = [
 name = "bitview_plugin_bedrock"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_traversable",
- "brk_cohort",
  "brk_error",
  "brk_types",
  "derive_more",
@@ -592,7 +608,7 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_traversable",
  "brk_error",
  "brk_types",
@@ -608,7 +624,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_market",
  "bitview_plugin_price",
  "bitview_traversable",
@@ -621,14 +637,14 @@ dependencies = [
 name = "bitview_plugin_coinflow"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
- "brk_cohort",
  "brk_error",
  "brk_types",
  "derive_more",
@@ -639,15 +655,15 @@ dependencies = [
 name = "bitview_plugin_cointime"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
- "brk_cohort",
  "brk_error",
  "brk_types",
  "derive_more",
@@ -670,16 +686,16 @@ dependencies = [
 name = "bitview_plugin_distribution"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
  "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_traversable",
- "brk_cohort",
  "brk_error",
  "brk_oracle",
  "brk_types",
@@ -698,10 +714,10 @@ version = "0.11.2"
 dependencies = [
  "bitcoin",
  "bitview_bencher",
+ "bitview_cohort",
  "bitview_plugin",
  "bitview_traversable",
  "brk_alloc",
- "brk_cohort",
  "brk_error",
  "brk_fjall",
  "brk_logger",
@@ -721,7 +737,60 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_indexes"
+name = "bitview_plugin_indicators"
+version = "0.11.2"
+dependencies = [
+ "bitview_compute",
+ "bitview_plugin",
+ "bitview_plugin_distribution",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_plugin_market",
+ "bitview_plugin_mining",
+ "bitview_plugin_transactions",
+ "bitview_traversable",
+ "brk_error",
+ "brk_types",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_inputs"
+version = "0.11.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_compute",
+ "bitview_plugin",
+ "bitview_plugin_blocks",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_traversable",
+ "brk_error",
+ "brk_types",
+ "derive_more",
+ "rayon",
+ "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_investing"
+version = "0.11.2"
+dependencies = [
+ "bitview_compute",
+ "bitview_plugin",
+ "bitview_plugin_blocks",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_traversable",
+ "brk_error",
+ "brk_types",
+ "parking_lot",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_mappings"
 version = "0.11.2"
 dependencies = [
  "bitview_compute",
@@ -738,59 +807,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_indicators"
-version = "0.11.2"
-dependencies = [
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_distribution",
- "bitview_plugin_indexer",
- "bitview_plugin_indexes",
- "bitview_plugin_market",
- "bitview_plugin_mining",
- "bitview_plugin_transactions",
- "bitview_traversable",
- "brk_error",
- "brk_types",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_inputs"
-version = "0.11.2"
-dependencies = [
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_indexer",
- "bitview_plugin_indexes",
- "bitview_traversable",
- "brk_cohort",
- "brk_error",
- "brk_types",
- "derive_more",
- "rayon",
- "tracing",
- "vecdb",
-]
-
-[[package]]
-name = "bitview_plugin_investing"
-version = "0.11.2"
-dependencies = [
- "bitview_compute",
- "bitview_plugin",
- "bitview_plugin_blocks",
- "bitview_plugin_indexes",
- "bitview_plugin_price",
- "bitview_traversable",
- "brk_error",
- "brk_types",
- "parking_lot",
- "vecdb",
-]
-
-[[package]]
 name = "bitview_plugin_market"
 version = "0.11.2"
 dependencies = [
@@ -798,7 +814,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
  "brk_error",
@@ -816,7 +832,7 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
  "bitview_traversable",
@@ -833,7 +849,7 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_transactions",
  "bitview_traversable",
  "brk_error",
@@ -846,15 +862,15 @@ dependencies = [
 name = "bitview_plugin_outputs"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
  "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
- "brk_cohort",
  "brk_error",
  "brk_types",
  "derive_more",
@@ -869,7 +885,7 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_mining",
  "bitview_plugin_price",
  "bitview_traversable",
@@ -890,14 +906,17 @@ dependencies = [
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_traversable",
  "brk_error",
  "brk_oracle",
+ "brk_reader",
+ "brk_rpc",
  "brk_types",
  "derive_more",
  "schemars",
  "serde",
+ "serde_json",
  "tracing",
  "vecdb",
 ]
@@ -912,7 +931,7 @@ dependencies = [
  "bitview_plugin_cointime",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
  "brk_error",
@@ -931,7 +950,7 @@ dependencies = [
  "bitview_plugin_cointime",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
+ "bitview_plugin_mappings",
  "bitview_plugin_mining",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
@@ -950,8 +969,8 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
  "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
  "bitview_plugin_price",
  "bitview_traversable",
  "brk_error",
@@ -968,7 +987,7 @@ name = "bitview_query"
 version = "0.11.2"
 dependencies = [
  "bitcoin",
- "bitview_composition",
+ "bitview_cohort",
  "bitview_plugin",
  "bitview_plugin_bedrock",
  "bitview_plugin_blocks",
@@ -976,8 +995,8 @@ dependencies = [
  "bitview_plugin_cointime",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
- "bitview_plugin_indexes",
  "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
  "bitview_plugin_mining",
  "bitview_plugin_outputs",
  "bitview_plugin_pools",
@@ -985,7 +1004,7 @@ dependencies = [
  "bitview_plugin_transactions",
  "bitview_runtime",
  "bitview_traversable",
- "brk_cohort",
+ "bitview_types",
  "brk_error",
  "brk_mempool",
  "brk_oracle",
@@ -993,13 +1012,13 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
+ "itoa",
  "jiff",
  "parking_lot",
  "quickmatch",
  "rustc-hash",
  "serde_json",
  "smallvec",
- "tempfile",
  "tokio",
  "vecdb",
 ]
@@ -1009,12 +1028,23 @@ name = "bitview_runtime"
 version = "0.11.2"
 dependencies = [
  "bitview_plugin",
+ "bitview_runtime_derive",
  "bitview_traversable",
  "brk_alloc",
  "brk_error",
+ "brk_types",
  "tempfile",
  "tracing",
  "vecdb",
+]
+
+[[package]]
+name = "bitview_runtime_derive"
+version = "0.11.2"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 3.0.3",
 ]
 
 [[package]]
@@ -1024,19 +1054,13 @@ dependencies = [
  "aide",
  "axum",
  "bitview_bindgen",
- "bitview_composition",
- "bitview_plugin_indexer",
  "bitview_query",
  "bitview_traversable",
+ "bitview_types",
  "bitview_website",
  "brk_error",
- "brk_logger",
- "brk_mempool",
  "brk_oracle",
- "brk_reader",
- "brk_rpc",
  "brk_types",
- "color-eyre",
  "derive_more",
  "jiff",
  "rustc-hash",
@@ -1055,6 +1079,7 @@ name = "bitview_traversable"
 version = "0.11.2"
 dependencies = [
  "bitview_traversable_derive",
+ "bitview_types",
  "brk_types",
  "indexmap",
  "schemars",
@@ -1073,6 +1098,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_types"
+version = "0.11.2"
+dependencies = [
+ "brk_types",
+ "derive_more",
+ "indexmap",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "bitview_website"
 version = "0.11.2"
 dependencies = [
@@ -1085,6 +1122,41 @@ dependencies = [
  "tower-http",
  "tower-layer",
  "tracing",
+]
+
+[[package]]
+name = "bitviewd"
+version = "0.11.2"
+dependencies = [
+ "aide",
+ "bitview",
+ "bitview_bencher",
+ "bitview_bindgen",
+ "bitview_compute",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_distribution",
+ "bitview_query",
+ "bitview_server",
+ "bitview_traversable",
+ "bitview_types",
+ "brk_error",
+ "brk_logger",
+ "brk_mempool",
+ "brk_reader",
+ "brk_rpc",
+ "brk_types",
+ "color-eyre",
+ "lexopt",
+ "owo-colors",
+ "quickmatch",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "vecdb",
 ]
 
 [[package]]
@@ -1113,7 +1185,6 @@ dependencies = [
 name = "brk"
 version = "0.11.2"
 dependencies = [
- "brk_cohort",
  "brk_error",
  "brk_fetcher",
  "brk_iterator",
@@ -1137,19 +1208,6 @@ dependencies = [
 [[package]]
 name = "brk_byteview"
 version = "0.11.2"
-
-[[package]]
-name = "brk_cohort"
-version = "0.11.2"
-dependencies = [
- "bitview_traversable",
- "brk_error",
- "brk_types",
- "rayon",
- "schemars",
- "serde",
- "vecdb",
-]
 
 [[package]]
 name = "brk_error"
@@ -1255,15 +1313,10 @@ dependencies = [
 name = "brk_oracle"
 version = "0.11.2"
 dependencies = [
- "bitview_plugin_indexer",
- "brk_reader",
- "brk_rpc",
  "brk_types",
  "derive_more",
  "schemars",
  "serde",
- "serde_json",
- "vecdb",
 ]
 
 [[package]]
@@ -1319,7 +1372,6 @@ dependencies = [
  "brk_byteview",
  "brk_error",
  "derive_more",
- "indexmap",
  "itoa",
  "jiff",
  "pco",
@@ -3429,18 +3481,18 @@ dependencies = [
 
 [[package]]
 name = "ref-cast"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "216e8f773d7923bcba9ceb86a86c93cabb3903a11872fc3f138c49630e50b96d"
+checksum = "7e440fb4e4b4147295338efb76001ab9e4efc0e5839df2c47fc5ac2381d365c3"
 dependencies = [
  "ref-cast-impl",
 ]
 
 [[package]]
 name = "ref-cast-impl"
-version = "1.0.26"
+version = "1.0.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c9283685feec7d69af75fb0e858d5e7378f33fe4fc699383b2916ab9273e03c"
+checksum = "92ecd8964f8453721699a1ed72037b0db49ce2f5a5138486ee89bed6f67cdf3a"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3536,9 +3588,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "3.1.3"
+version = "3.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5f17072af977b0f86f714dbd64b3d37d0715bb63064f9d13483f0a1775813374"
+checksum = "1a15bc53261a9dc37e105df006e4656c598379a8f9581f8950debb130f27a7cf"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -4964,9 +5016,9 @@ dependencies = [
 
 [[package]]
 name = "zerovec"
-version = "0.11.7"
+version = "0.11.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94b5c6b5976d66c1d703c4fd17d3f5e43c8cedaacf604961b171adc7130896d8"
+checksum = "bb0464e17806c1d976d5cba29399c7f08e516e279e2ba493f63123b5fca67dd8"
 dependencies = [
  "yoke",
  "zerofrom",

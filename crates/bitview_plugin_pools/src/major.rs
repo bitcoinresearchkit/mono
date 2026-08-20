@@ -37,18 +37,18 @@ impl Vecs {
         slug: PoolSlug,
         pool_heights: super::PoolHeights,
         version: Version,
-        indexes: &bitview_plugin_indexes::Vecs,
+        mappings: &bitview_plugin_mappings::Vecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
     ) -> Result<Self> {
         let suffix = |s: &str| format!("{}_{s}", slug);
 
-        let base = minor::Vecs::forced_import(slug, pool_heights, version, indexes, cached_starts);
+        let base = minor::Vecs::forced_import(slug, pool_heights, version, mappings, cached_starts);
 
         let rewards = ValuePerBlockCumulativeRolling::forced_import(
             db,
             &suffix("rewards"),
             version,
-            indexes,
+            mappings,
             cached_starts,
         )?;
 
@@ -57,7 +57,7 @@ impl Vecs {
             version,
             &base.blocks_mined.cumulative.height,
             cached_starts,
-            indexes,
+            mappings,
         );
 
         Ok(Self {
