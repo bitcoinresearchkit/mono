@@ -1,4 +1,3 @@
-use bitview_plugin::Plugin;
 use brk_error::Error;
 use brk_types::{Addr, Height, TxIndex, TxStatus, Utxo, Vout};
 
@@ -6,7 +5,7 @@ use crate::Query;
 
 impl Query {
     pub fn addr_utxos(&self, addr: Addr, max_utxos: usize) -> brk_error::Result<Vec<Utxo>> {
-        let _guard = self.indexer().gate().read();
+        let _guard = self.read_plugin(self.indexer())?;
         let indexer = self.indexer();
         let stores = indexer.stores();
         let vecs = indexer.vecs();

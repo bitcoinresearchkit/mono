@@ -6,10 +6,11 @@
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Brk Landing Story</title>
-<style>:root{color-scheme:dark;background:#030303}html,body{margin:0;padding:0;background:#030303}body{box-sizing:border-box;background:#030303}iframe{display:block;width:100%;height:100vh;margin:0;border:0}</style>
+<style>:root{color-scheme:dark;background:#030303}html,body{width:100%;height:100%;margin:0;padding:0;background:#030303}body{box-sizing:border-box;background:#030303}.tiny-brk{display:none}iframe{display:block;width:100%;height:100vh;margin:0;border:0}@media(max-width:320px),(max-height:260px){iframe{display:none}.tiny-brk{display:grid;width:100vw;height:100dvh;place-content:center;gap:10px;color:#f2efe8;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;text-align:center}.tiny-brk ol{display:flex;align-items:center;gap:7px;margin:0;padding:0;list-style:none}.tiny-brk li{display:grid;width:42px;height:42px;border:1px solid #47443e;border-radius:11px;place-items:center;color:#d8d3c9;font-size:8px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}.tiny-brk i{width:12px;height:1px;background:#5e5a52}.tiny-brk strong{font-size:clamp(1.5rem,13vw,2.7rem);font-weight:520;letter-spacing:-.08em;line-height:.9}.tiny-brk small{color:#7f7b74;font-size:8px;letter-spacing:.08em;text-transform:uppercase}}</style>
 </head>
 <body>
-<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Brk Landing Story" srcdoc="&lt;!doctype html&gt;
+<section class="tiny-brk" aria-label="Bitcoin Research Kit summary"><ol><li>Read</li><i></i><li>Compute</li><i></i><li>Serve</li></ol><strong>BRK</strong><small>One Bitcoin toolkit</small></section>
+<iframe sandbox="allow-scripts" referrerpolicy="no-referrer" title="Brk Landing Story" data-srcdoc="&lt;!doctype html&gt;
 &lt;html lang=&quot;en&quot;&gt;
 &lt;head&gt;
 &lt;meta charset=&quot;utf-8&quot;&gt;
@@ -1735,6 +1736,26 @@ html&gt;body{padding:0}&lt;/style&gt;
     #brk-story-landing .brk-footer-links { grid-column: 1; text-align: left; }
   }
 
+  @media (max-width: 280px), (max-height: 240px) {
+    #brk-story-landing {
+      --brk-gutter: 8px;
+      --brk-section-y: 20px;
+    }
+    #brk-story-landing .brk-nav,
+    #brk-story-landing .brk-meta,
+    #brk-story-landing .brk-actions,
+    #brk-story-landing .brk-hero-copy,
+    #brk-story-landing .brk-hero-foot,
+    #brk-story-landing .brk-kicker,
+    #brk-story-landing .brk-footer { display: none; }
+    #brk-story-landing .brk-hero { min-height: 100dvh; }
+    #brk-story-landing .brk-hero-center { padding: 8px; }
+    #brk-story-landing .brk-hero h1 { font-size: clamp(20px, 12vw, 32px); }
+    #brk-story-landing .brk-display { font-size: clamp(20px, 12vw, 32px); }
+    #brk-story-landing .brk-process-copy { padding: 16px 0; }
+    #brk-story-landing .brk-process-visual { min-height: 120px; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     #brk-story-landing .brk-reveal { opacity: 1; transform: none; transition: none; }
     #brk-story-landing .brk-cursor { animation: none; }
@@ -2217,7 +2238,9 @@ $ bitview &lt;span class=&quot;brk-cursor&quot; aria-hidden=&quot;true&quot;&gt;
     const root = document.getElementById(&quot;brk-story-landing&quot;);
     if (!root) return;
 
-    const reducedMotion = window.matchMedia(&quot;(prefers-reduced-motion: reduce)&quot;).matches;
+    const reducedMotion =
+      window.matchMedia(&quot;(prefers-reduced-motion: reduce)&quot;).matches ||
+      window.matchMedia(&quot;(max-width: 280px), (max-height: 240px)&quot;).matches;
     const revealItems = root.querySelectorAll(&quot;.brk-reveal&quot;);
     const processArt = root.querySelectorAll(&quot;.brk-process-art&quot;);
 
@@ -2664,5 +2687,6 @@ $ bitview &lt;span class=&quot;brk-cursor&quot; aria-hidden=&quot;true&quot;&gt;
 &lt;/body&gt;
 &lt;/html&gt;
 "></iframe>
+<script>(()=>{const tiny=matchMedia("(max-width:320px),(max-height:260px)"),frame=document.querySelector("iframe");if(!tiny.matches)frame.srcdoc=frame.dataset.srcdoc;tiny.addEventListener("change",()=>location.reload())})()</script>
 </body>
 </html>

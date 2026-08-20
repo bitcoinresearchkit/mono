@@ -70,7 +70,7 @@
       }
 
       body {
-        min-width: 320px;
+        min-width: 0;
         overflow: hidden;
         background: var(--background);
         color: var(--foreground);
@@ -115,6 +115,14 @@
         border: max(0.75px, calc(var(--event-marker-size) * 0.16)) solid
           var(--event-color);
         background: transparent;
+      }
+
+      #today-events {
+        display: none;
+      }
+
+      #today-event-dots {
+        display: none;
       }
 
       #identity {
@@ -335,6 +343,108 @@
           left: max(12px, env(safe-area-inset-left));
         }
       }
+
+      @media (max-width: 320px), (max-height: 260px) {
+        :root {
+          --chart-bottom-padding: 0px;
+        }
+
+        #event-markers {
+          --event-marker-size: 8px;
+        }
+
+        main {
+          background:
+            radial-gradient(circle at 50% 46%, rgb(246 51 154 / 9%), transparent 45%),
+            var(--background);
+        }
+
+        #chart,
+        #event-markers {
+          display: none;
+        }
+
+        #identity,
+        #source-credit {
+          display: none;
+        }
+
+        #today-events {
+          position: absolute;
+          z-index: 2;
+          top: 50%;
+          left: 50%;
+          display: grid;
+          width: calc(100% - 1.5rem);
+          justify-items: center;
+          gap: 1px;
+          max-width: 18rem;
+          pointer-events: none;
+          text-align: center;
+          transform: translate(-50%, -50%);
+          text-shadow:
+            0 1px 2px var(--background),
+            0 0 10px var(--background);
+        }
+
+        #today-events > span,
+        #today-events > small {
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 550;
+          letter-spacing: 0.07em;
+          line-height: 10px;
+          text-transform: uppercase;
+        }
+
+        #today-events-value {
+          max-width: 100%;
+          overflow: hidden;
+          color: var(--today-event-color, var(--foreground));
+          font-family: var(--font-serif);
+          font-size: clamp(20px, 12vw, 34px);
+          font-weight: 400;
+          letter-spacing: -0.025em;
+          line-height: 0.92;
+          text-align: center;
+          text-overflow: ellipsis;
+        }
+
+        #today-event-dots {
+          display: flex;
+          gap: 5px;
+          margin-top: 5px;
+        }
+
+        #today-event-dots i {
+          width: 7px;
+          height: 7px;
+          border: 1px solid var(--dot-color);
+          border-radius: 50%;
+          background: transparent;
+          opacity: 0.35;
+        }
+
+        #today-event-dots i[data-active="true"] {
+          background: var(--dot-color);
+          box-shadow: 0 0 9px color-mix(in srgb, var(--dot-color) 74%, transparent);
+          opacity: 1;
+        }
+
+        #status {
+          max-width: calc(100% - 20px);
+          padding: 5px 7px;
+          font-size: 8px;
+          line-height: 13px;
+        }
+      }
+
+      @media (max-height: 145px) {
+        #today-events > span,
+        #today-events > small {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -346,6 +456,13 @@
         aria-label="Bitcoin price with precomputed extreme event markers"
       ></div>
       <div id="event-markers" aria-hidden="true"></div>
+
+      <aside id="today-events" aria-live="polite">
+        <span>Today's extremes</span>
+        <strong id="today-events-value">Loading…</strong>
+        <small id="today-events-meta"></small>
+        <span id="today-event-dots" aria-hidden="true"></span>
+      </aside>
 
       <header id="identity">
         <h1>Bitcoin Extreme Events</h1>
@@ -471,13 +588,21 @@
     </main>
 
     <script type="module">
-      import {
+      const reducedWorkViewport = window.matchMedia(
+        "(max-width: 320px), (max-height: 260px)",
+      );
+      const chartLibrary = reducedWorkViewport.matches
+        ? {}
+        : await import(
+            "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+          );
+      const {
         CandlestickSeries,
         CrosshairMode,
         LineSeries,
         PriceScaleMode,
         createChart,
-      } from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      } = chartLibrary;
 
       const API_ROOT = "https://bitview.space/api";
       const API = `${API_ROOT}/series`;
@@ -515,6 +640,7 @@
       const EVENTS = Object.freeze([
         {
           key: "profitTaking",
+          label: "Profit taking",
           series: "profitTakingTail",
           endpoint: "rarity_meter_profit_taking_tail",
           color: COLORS.green,
@@ -523,6 +649,7 @@
         },
         {
           key: "capitulation",
+          label: "Capitulation",
           series: "capitulationTail",
           endpoint: "rarity_meter_capitulation_tail",
           color: COLORS.red,
@@ -531,6 +658,7 @@
         },
         {
           key: "peakRegret",
+          label: "Peak regret",
           series: "peakRegretTail",
           endpoint: "rarity_meter_peak_regret_tail",
           color: COLORS.pink,
@@ -539,6 +667,7 @@
         },
         {
           key: "sellerExhaustion",
+          label: "Seller exhaustion",
           series: "sellerExhaustionTail",
           endpoint: "rarity_meter_seller_exhaustion_tail",
           color: COLORS.yellow,
@@ -547,6 +676,7 @@
         },
         {
           key: "coinsInLoss",
+          label: "Coins in loss",
           series: "coinsInLossTail",
           endpoint: "rarity_meter_coins_in_loss_tail",
           shape: "ring",
@@ -571,6 +701,9 @@
       const markerLayerElement = document.getElementById("event-markers");
       const statusElement = document.getElementById("status");
       const levelElement = document.getElementById("level");
+      const todayEventsValue = document.getElementById("today-events-value");
+      const todayEventsMeta = document.getElementById("today-events-meta");
+      const todayEventDots = document.getElementById("today-event-dots");
       const eventKeyElements = [
         ...document.querySelectorAll("[data-event]"),
       ];
@@ -590,6 +723,8 @@
       let lastLivePrice = null;
       let livePriceInFlight = false;
       let seriesRefreshInFlight = false;
+      let livePriceTimer = 0;
+      let seriesTimer = 0;
 
       function dayToTimestamp(day) {
         return Math.floor(DAY_ZERO / 1000) + day * DAY_SECONDS;
@@ -718,6 +853,58 @@
         return LEVEL_TAIL[levelElement.value] ?? 0.1;
       }
 
+      function updateTodayEvents(row = rows.at(-1)) {
+        const maxTail = maximumTail();
+        const events = row
+          ? EVENTS.filter(
+              (event) =>
+                activeEvents.has(event.key) &&
+                Number.isFinite(row.tails[event.key]) &&
+                row.tails[event.key] <= maxTail,
+            )
+          : [];
+
+        todayEventsValue.textContent = events.length
+          ? events.map((event) => event.label).join(" · ")
+          : "None";
+        todayEventsValue.style.setProperty(
+          "--today-event-color",
+          events.length === 1 ? events[0].color : COLORS.foreground,
+        );
+        todayEventsMeta.textContent = `≤ ${formatTail(maxTail)} historical tail`;
+        todayEventDots.replaceChildren(
+          ...EVENTS.map((event) => {
+            const dot = document.createElement("i");
+            dot.style.setProperty("--dot-color", event.color);
+            dot.dataset.active = String(events.includes(event));
+            return dot;
+          }),
+        );
+      }
+
+      async function loadTiny() {
+        try {
+          const values = await Promise.all(
+            EVENTS.map(async (event) => {
+              const response = await fetch(
+                `${API}/${event.endpoint}/day/latest`,
+                { cache: "no-cache", signal: AbortSignal.timeout(8_000) },
+              );
+              if (!response.ok) throw new Error(`${event.key}: ${response.status}`);
+              return [event.key, Number(await response.json())];
+            }),
+          );
+          rows = [{ tails: Object.fromEntries(values) }];
+          updateTodayEvents();
+          statusElement.textContent = "";
+        } catch (error) {
+          todayEventsValue.textContent = "Unavailable";
+          todayEventsMeta.textContent = "Could not load current events";
+          statusElement.textContent = "";
+          console.error(error);
+        }
+      }
+
       function storedLevel() {
         const urlLevel = new URL(window.location.href).searchParams.get("level");
         if (Object.hasOwn(LEVEL_TAIL, urlLevel)) return urlLevel;
@@ -773,9 +960,14 @@
           }
         }
 
-        return markers.sort(
+        const sorted = markers.sort(
           (left, right) =>
             left.time - right.time || right.priority - left.priority,
+        );
+        if (!reducedWorkViewport.matches || sorted.length <= 140) return sorted;
+        const stride = Math.ceil(sorted.length / 140);
+        return sorted.filter(
+          (_, index) => index % stride === 0 || index === sorted.length - 1,
         );
       }
 
@@ -915,6 +1107,7 @@
         rows = nextRows;
         rowsByTime = new Map(rows.map((row) => [row.time, row]));
         updateTailMetadata();
+        updateTodayEvents();
         if (!chartState) return;
 
         chartState.price.setData(rows.map(pricePoint));
@@ -988,10 +1181,23 @@
       }
 
       function startPolling() {
+        window.clearInterval(livePriceTimer);
+        window.clearInterval(seriesTimer);
+        livePriceTimer = 0;
+        seriesTimer = 0;
+        if (reducedWorkViewport.matches || document.hidden) return;
         void refreshLivePrice();
-        window.setInterval(refreshLivePrice, LIVE_PRICE_POLL_MS);
-        window.setInterval(refreshSeries, SERIES_POLL_MS);
+        livePriceTimer = window.setInterval(
+          refreshLivePrice,
+          LIVE_PRICE_POLL_MS,
+        );
+        seriesTimer = window.setInterval(refreshSeries, SERIES_POLL_MS);
       }
+
+      reducedWorkViewport.addEventListener("change", () => {
+        window.location.reload();
+      });
+      document.addEventListener("visibilitychange", startPolling);
 
       function createEventsChart() {
         const chart = createChart(chartElement, {
@@ -1176,12 +1382,14 @@
             String(activeEvents.has(key)),
           );
           chartState?.setMarkers(buildMarkers());
+          updateTodayEvents();
         });
       }
 
       levelElement.addEventListener("change", () => {
         saveLevel(levelElement.value);
         chartState?.setMarkers(buildMarkers());
+        updateTodayEvents();
       });
 
       async function load() {
@@ -1193,6 +1401,7 @@
         if (!rows.length) throw new Error("No aligned event data");
         rowsByTime = new Map(rows.map((row) => [row.time, row]));
         updateTailMetadata();
+        updateTodayEvents();
 
         chartState = createEventsChart();
         startPolling();
@@ -1200,12 +1409,16 @@
         statusElement.textContent = "";
       }
 
-      load().catch((error) => {
-        statusElement.dataset.error = "true";
-        statusElement.textContent = "Unable to load extreme events";
-        chartElement.setAttribute("aria-busy", "false");
-        console.error(error);
-      });
+      if (reducedWorkViewport.matches) {
+        loadTiny();
+      } else {
+        load().catch((error) => {
+          statusElement.dataset.error = "true";
+          statusElement.textContent = "Unable to load extreme events";
+          chartElement.setAttribute("aria-busy", "false");
+          console.error(error);
+        });
+      }
     </script>
   </body>
 </html>

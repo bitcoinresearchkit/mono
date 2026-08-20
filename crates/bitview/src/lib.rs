@@ -1,7 +1,5 @@
 #![doc = include_str!("../README.md")]
 
-use brk_error::{Error, Result};
-
 use std::{
     path::PathBuf,
     thread::{self, sleep},
@@ -14,10 +12,10 @@ pub use bitview_runtime::{
     BootstrapAction, ComputePluginSet, ImportContext, PluginSet, UpdateContext, bootstrap, update,
 };
 use bitview_server::{Server, ServerConfig};
+use brk_error::{Error, Result};
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::Port;
 use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
@@ -40,8 +38,6 @@ pub struct Config {
     pub client: Client,
     /// Directory containing Bitcoin Core's block files.
     pub blocks_path: PathBuf,
-    /// HTTP listener port, or the server default when omitted.
-    pub port: Option<Port>,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,
 }
@@ -60,7 +56,6 @@ where
     let Config {
         client,
         blocks_path,
-        port,
         server,
     } = config;
     let reader = Reader::new(blocks_path, &client);
@@ -81,7 +76,7 @@ where
     let query = AsyncQuery::build(&plugins, Some(mempool.clone()));
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
-    let server = runtime.block_on(Server::bind(&query, server, port))?;
+    let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
 
     let mempool_clone = mempool.clone();

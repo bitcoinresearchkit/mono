@@ -1,10 +1,13 @@
 use std::{
     fs, io,
+    net::IpAddr,
     path::{Path, PathBuf},
 };
 
 use bitview::Config as RunnerConfig;
-use bitview_server::{CdnCacheMode, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig, Website};
+use bitview_server::{
+    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig, Website,
+};
 use brk_error::{Error, Result};
 use brk_rpc::{Auth, Client};
 use brk_types::Port;
@@ -24,7 +27,10 @@ pub struct Config {
     bitviewdir: Option<String>,
 
     #[serde(default)]
-    bitviewport: Option<Port>,
+    serverbind: Option<IpAddr>,
+
+    #[serde(default)]
+    serverport: Option<Port>,
 
     #[serde(default)]
     website: Option<Website>,
@@ -61,22 +67,25 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn import() -> Result<Self> {
+    pub fn import() -> Result<RunnerConfig> {
         let config_args = Self::parse_args();
 
-        let path = default_bitview_dir();
+        let config_dir = default_bitview_dir();
 
-        let _ = fs::create_dir_all(&path);
+        fs::create_dir_all(&config_dir)?;
 
-        let path = path.join("config.toml");
+        let path = config_dir.join("config.toml");
 
         let mut config = Self::read(&path);
 
         if let Some(v) = config_args.bitviewdir {
             config.bitviewdir = Some(v);
         }
-        if let Some(v) = config_args.bitviewport {
-            config.bitviewport = Some(v);
+        if let Some(v) = config_args.serverbind {
+            config.serverbind = Some(v);
+        }
+        if let Some(v) = config_args.serverport {
+            config.serverport = Some(v);
         }
         if let Some(v) = config_args.website {
             config.website = Some(v);
@@ -112,9 +121,12 @@ impl Config {
             config.rpcpassword = Some(v);
         }
 
-        config.check();
+        let data_path = config.bitviewdir();
 
-        Ok(config)
+        config.check();
+        fs::create_dir_all(&data_path)?;
+
+        config.runner(data_path)
     }
 
     fn parse_args() -> Self {
@@ -134,8 +146,11 @@ impl Config {
                 Long("bitviewdir") => {
                     config.bitviewdir = Some(parser.value().unwrap().parse().unwrap())
                 }
-                Long("bitviewport") => {
-                    config.bitviewport = Some(parser.value().unwrap().parse().unwrap())
+                Long("serverbind") => {
+                    config.serverbind = Some(parser.value().unwrap().parse().unwrap())
+                }
+                Long("serverport") => {
+                    config.serverport = Some(parser.value().unwrap().parse().unwrap())
                 }
                 Long("website") => config.website = Some(parser.value().unwrap().parse().unwrap()),
                 Long("cdn") => config.cdn = Some(parser.value().unwrap().parse().unwrap()),
@@ -195,9 +210,14 @@ impl Config {
             "[~/.bitview]".bright_black()
         );
         println!(
-            "    --bitviewport {}      Server port {}",
+            "    --serverbind {}       Server bind address {}",
+            "<IP>".bright_black(),
+            format!("[{DEFAULT_BIND}]").bright_black()
+        );
+        println!(
+            "    --serverport {}       Server port {}",
             "<PORT>".bright_black(),
-            "[3110]".bright_black()
+            format!("[{}]", Port::DEFAULT).bright_black()
         );
         println!(
             "    --website {}     Website {}",
@@ -289,13 +309,6 @@ impl Config {
         if !self.blocksdir().is_dir() {
             println!("{:?} isn't a valid directory", self.blocksdir());
             println!("Please use the --blocksdir parameter to set a valid path.");
-            println!("Run the program with '-h' for help.");
-            std::process::exit(1);
-        }
-
-        if !self.bitviewdir().is_dir() {
-            println!("{:?} isn't a valid directory", self.bitviewdir());
-            println!("Please use the --bitviewdir parameter to set a valid path.");
             println!("Run the program with '-h' for help.");
             std::process::exit(1);
         }
@@ -405,22 +418,51 @@ Finally, you can run the program with '-h' for help."
         self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS)
     }
 
-    fn bitviewport(&self) -> Option<Port> {
-        self.bitviewport
+    fn serverbind(&self) -> IpAddr {
+        self.serverbind.unwrap_or(DEFAULT_BIND)
     }
 
-    pub fn runner(&self) -> Result<RunnerConfig> {
+    fn serverport(&self) -> Port {
+        self.serverport.unwrap_or_default()
+    }
+
+    fn runner(&self, data_path: PathBuf) -> Result<RunnerConfig> {
         Ok(RunnerConfig {
             client: self.rpc()?,
             blocks_path: self.blocksdir(),
-            port: self.bitviewport(),
             server: ServerConfig {
-                data_path: self.bitviewdir(),
+                bind: self.serverbind(),
+                port: self.serverport(),
+                data_path,
                 website: self.website(),
                 cdn_cache_mode: self.cdn_cache_mode(),
                 max_weight: self.max_weight(),
                 max_utxos: self.max_utxos(),
             },
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::net::Ipv4Addr;
+
+    use super::*;
+
+    #[test]
+    fn server_listener_is_typed_and_defaults_are_centralized() {
+        let defaults = Config::default();
+        assert_eq!(defaults.serverbind(), DEFAULT_BIND);
+        assert_eq!(defaults.serverport(), Port::DEFAULT);
+
+        let config: Config = toml::from_str(
+            r#"
+                serverbind = "127.0.0.1"
+                serverport = 3111
+            "#,
+        )
+        .unwrap();
+        assert_eq!(config.serverbind(), IpAddr::V4(Ipv4Addr::LOCALHOST));
+        assert_eq!(config.serverport(), Port::new(3111));
     }
 }

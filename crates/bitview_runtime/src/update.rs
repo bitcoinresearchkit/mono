@@ -44,9 +44,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::sync::atomic::{AtomicBool, Ordering};
+    use std::{
+        sync::atomic::{AtomicBool, Ordering},
+        time::Duration,
+    };
 
-    use bitview_plugin::{Plugin, PluginGate, PluginId, PluginStorage};
+    use bitview_plugin::{Plugin, PluginGate, PluginId, PluginReadGuard, PluginStorage};
     use bitview_traversable::Traversable;
     use brk_error::Error;
     use brk_types::Version;
@@ -135,5 +138,12 @@ mod tests {
         assert!(plugins.computed_while_closed.load(Ordering::Relaxed));
         assert!(plugins.committed_while_closed.load(Ordering::Relaxed));
         assert!(plugins.plugin.gate().try_read().is_none());
+        assert!(
+            PluginReadGuard::acquire_for(
+                &[&plugins.plugin as &dyn Plugin],
+                Duration::from_millis(10),
+            )
+            .is_none()
+        );
     }
 }

@@ -256,7 +256,7 @@
     #chart {
       width: 100%;
       height: 100%;
-      min-height: 400px;
+      min-height: 0;
     }
 
     #cursor-readout {
@@ -269,6 +269,10 @@
       font-variant-numeric: tabular-nums;
       line-height: 20px;
       pointer-events: none;
+    }
+
+    #current-bedrock {
+      display: none;
     }
 
     #status {
@@ -316,6 +320,73 @@
         bottom: 8px;
         left: 8px;
         right: 8px;
+      }
+    }
+
+    @media (max-width: 320px), (max-height: 260px) {
+      main {
+        background:
+          linear-gradient(
+            to top,
+            #102d36 0 18%,
+            #17414a 18% 31%,
+            #286f73 31% 45%,
+            #3c9699 45% 62%,
+            #58bbc4 62% 100%
+          );
+      }
+
+      #chart {
+        display: none;
+      }
+
+      header {
+        display: none;
+      }
+
+      .controls,
+      #cursor-readout,
+      #footer-ui,
+      #scale-toggle,
+      #status {
+        display: none;
+      }
+
+      #current-bedrock {
+        position: absolute;
+        z-index: 20;
+        top: 50%;
+        left: 50%;
+        display: grid;
+        width: calc(100% - 1.5rem);
+        justify-items: center;
+        gap: 1px;
+        color: #071014;
+        pointer-events: none;
+        text-align: center;
+        transform: translate(-50%, -50%);
+      }
+
+      #current-bedrock > span {
+        font-size: 8px;
+        font-weight: 650;
+        letter-spacing: 0.07em;
+        line-height: 10px;
+        text-transform: uppercase;
+      }
+
+      #current-bedrock-value {
+        font-family: "Instrument", serif;
+        font-size: clamp(20px, 12vw, 34px);
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 0.92;
+      }
+    }
+
+    @media (max-height: 150px) {
+      #current-bedrock > span {
+        display: none;
       }
     }
   </style>
@@ -386,12 +457,15 @@
       aria-busy="true"
       aria-label="Loading the Bitcoin Bedrock Model"
     ></div>
+    <output id="current-bedrock" aria-live="polite">
+      <span id="current-bedrock-label">Current Coinflow P99 floor</span>
+      <strong id="current-bedrock-value">—</strong>
+    </output>
     <output id="status" aria-live="polite">Loading Bedrock series…</output>
   </main>
 
-  <script src="https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.js"></script>
   <script>
-    (() => {
+    (async () => {
       "use strict";
 
       const API = "https://bitview.space/api";
@@ -422,6 +496,8 @@
       const chartElement = document.getElementById("chart");
       const cursorReadout = document.getElementById("cursor-readout");
       const statusElement = document.getElementById("status");
+      const currentBedrockLabel = document.getElementById("current-bedrock-label");
+      const currentBedrockValue = document.getElementById("current-bedrock-value");
       const modeSelect = document.getElementById("mode");
       const interfaceToggle = document.getElementById("interface-toggle");
       const scaleToggle = document.getElementById("scale-toggle");
@@ -503,6 +579,34 @@
 
       modeSelect.value = savedMode();
       persistMode(modeSelect.value);
+      const tinyViewport = window.matchMedia(
+        "(max-width: 320px), (max-height: 260px)",
+      );
+      tinyViewport.addEventListener("change", () => window.location.reload());
+      if (tinyViewport.matches) {
+        currentBedrockLabel.textContent = `Current ${modeSelect.selectedOptions[0].text} P99 floor`;
+        try {
+          const series = `bedrock_${modeSelect.value}_floor_pct99`;
+          const response = await fetch(
+            `${API}/series/${encodeURIComponent(series)}/day1/latest`,
+            { cache: "no-cache", signal: AbortSignal.timeout(8_000) },
+          );
+          if (!response.ok) throw new Error(`${series}: ${response.status}`);
+          currentBedrockValue.textContent = formatPrice(
+            Number(await response.json()),
+          );
+          statusElement.textContent = "";
+        } catch (error) {
+          currentBedrockValue.textContent = "Unavailable";
+          statusElement.textContent = "";
+          console.error(error);
+        }
+        return;
+      }
+
+      const LightweightCharts = await import(
+        "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+      );
       let interfaceShown = savedView() === "technical";
       persistView(interfaceShown ? "technical" : "art");
       mainElement.dataset.interfaceVisible = String(interfaceShown);
@@ -650,6 +754,27 @@
       let modeChangedByPointer = false;
       let cursorActive = false;
       let pricePoints = [];
+      let pointLimit = renderPointLimit();
+
+      function renderPointLimit() {
+        const shortest = Math.min(
+          chartElement.clientWidth || innerWidth,
+          chartElement.clientHeight || innerHeight,
+        );
+        if (shortest <= 240) return 180;
+        if (shortest <= 480) return 720;
+        return Infinity;
+      }
+
+      function renderPoints(points) {
+        if (!Number.isFinite(pointLimit) || points.length <= pointLimit) {
+          return points;
+        }
+        const stride = Math.ceil(points.length / pointLimit);
+        return points.filter(
+          (_, index) => index % stride === 0 || index === points.length - 1,
+        );
+      }
 
       function modelSeriesNames(mode) {
         const prefix = `bedrock_${mode}`;
@@ -764,7 +889,7 @@
       }
 
       function setBand(key, name) {
-        bands[key].setData(pointsFor(name, "day1"));
+        bands[key].setData(renderPoints(pointsFor(name, "day1")));
       }
 
       function applyMode() {
@@ -789,6 +914,10 @@
         setBand("bed3", floor("pct99"));
         setBand("bed4", floor("pct99_5"));
         setBand("bed5", floor("pct99_9"));
+
+        const currentFloor = pointsFor(floor("pct99"), "day1").at(-1);
+        currentBedrockLabel.textContent = `Current ${modeSelect.selectedOptions[0].text} P99 floor`;
+        currentBedrockValue.textContent = formatPrice(currentFloor?.value);
 
         chartElement.setAttribute(
           "aria-label",
@@ -957,8 +1086,8 @@
           loaded = true;
           modeSelect.disabled = false;
           pricePoints = pointsFor("price_close", "day1");
-          priceSeries.setData(pricePoints);
-          priceCandles.setData(candlesFor());
+          priceSeries.setData(renderPoints(pricePoints));
+          priceCandles.setData(renderPoints(candlesFor()));
           applyMode();
           const lastPricePoint = pricePoints.at(-1);
           if (lastPricePoint) {
@@ -1019,6 +1148,16 @@
         const date = formatChartDate(param.time);
         showReadout(date, price);
       });
+
+      new ResizeObserver(() => {
+        const nextLimit = renderPointLimit();
+        if (nextLimit === pointLimit) return;
+        pointLimit = nextLimit;
+        if (!loaded) return;
+        priceSeries.setData(renderPoints(pricePoints));
+        priceCandles.setData(renderPoints(candlesFor()));
+        applyMode();
+      }).observe(chartElement);
 
       load();
     })();

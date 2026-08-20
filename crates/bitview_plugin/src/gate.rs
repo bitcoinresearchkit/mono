@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use parking_lot::{ArcRwLockWriteGuard, Mutex, RawRwLock, RwLock};
 
@@ -57,12 +57,12 @@ impl PluginGate {
         self.0.gate.try_read_arc().map(read_guard::single)
     }
 
-    /// Stabilizes this plugin for one logical synchronous read.
-    ///
-    /// Async callers should use [`try_read`](Self::try_read) and yield between
-    /// attempts instead of blocking an executor thread.
-    pub fn read(&self) -> PluginReadGuard {
-        read_guard::single(self.0.gate.read_arc())
+    /// Waits up to `timeout` to stabilize this plugin for one logical read.
+    pub fn read_for(&self, timeout: Duration) -> Option<PluginReadGuard> {
+        self.0
+            .gate
+            .try_read_arc_for(timeout)
+            .map(read_guard::single)
     }
 }
 
@@ -108,5 +108,35 @@ mod tests {
 
         gate.finish_update();
         assert!(gate.try_read().is_some());
+    }
+
+    #[test]
+    fn timed_read_stops_waiting_at_its_deadline() {
+        let gate = PluginGate::new();
+        gate.begin_update();
+
+        assert!(gate.read_for(Duration::from_millis(10)).is_none());
+
+        gate.finish_update();
+        assert!(gate.read_for(Duration::ZERO).is_some());
+    }
+
+    #[test]
+    fn timed_read_wakes_when_update_finishes() {
+        let gate = PluginGate::new();
+        gate.begin_update();
+        let reader_gate = gate.clone();
+        let (started_tx, started_rx) = mpsc::channel();
+
+        let reader = thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            reader_gate.read_for(Duration::from_secs(1))
+        });
+
+        started_rx.recv().unwrap();
+        thread::sleep(Duration::from_millis(10));
+        gate.finish_update();
+
+        assert!(reader.join().unwrap().is_some());
     }
 }

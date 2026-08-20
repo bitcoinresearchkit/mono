@@ -45,7 +45,7 @@
       html,
       body {
         width: 100%;
-        min-width: 320px;
+        min-width: 0;
         height: 100%;
         margin: 0;
         overflow: hidden;
@@ -473,6 +473,62 @@
         }
       }
 
+      @media (max-width: 320px), (max-height: 260px) {
+        .topbar {
+          --topbar-y: 7px;
+          top: var(--topbar-y);
+          right: 7px;
+          left: 7px;
+        }
+
+        .identity,
+        .selection,
+        .selectors,
+        #source-credit,
+        .status {
+          display: none;
+        }
+
+        .readout {
+          top: 40%;
+          left: 50%;
+          width: calc(100% - 1.5rem);
+          align-items: center;
+          flex-direction: column;
+          gap: 1px;
+          text-align: center;
+          transform: translate(-50%, -50%);
+        }
+
+        .date {
+          color: var(--muted);
+          font-size: 8px;
+          line-height: 10px;
+        }
+
+        .price {
+          font-family:
+            "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
+            serif;
+          font-size: clamp(20px, 12vw, 34px);
+          font-weight: 400;
+          letter-spacing: -0.025em;
+          line-height: 0.92;
+        }
+
+        .message {
+          max-width: calc(100% - 20px);
+          font-size: 9px;
+          line-height: 1.35;
+        }
+      }
+
+      @media (max-height: 145px) {
+        .date {
+          display: none;
+        }
+      }
+
       @media (prefers-reduced-transparency: reduce) {
         select {
           background: #0b1715;
@@ -648,6 +704,106 @@
         const priceOutput = document.getElementById("price");
         const statusOutput = document.getElementById("status");
         const message = document.getElementById("message");
+        const tinyViewport = window.matchMedia(
+          "(max-width: 320px), (max-height: 260px)",
+        );
+        tinyViewport.addEventListener("change", () => window.location.reload());
+
+        if (tinyViewport.matches) {
+          let tinyProfile = null;
+          const formatTinyPrice = (value) =>
+            Number.isFinite(value)
+              ? `$${Math.round(value).toLocaleString("en-US")}`
+              : "—";
+          const drawTinyProfile = () => {
+            const width = Math.max(1, canvas.clientWidth);
+            const height = Math.max(1, canvas.clientHeight);
+            const dpr = Math.min(devicePixelRatio || 1, 1.25);
+            canvas.width = Math.max(1, Math.round(width * dpr));
+            canvas.height = Math.max(1, Math.round(height * dpr));
+            context.setTransform(dpr, 0, 0, dpr, 0, 0);
+            context.fillStyle = "#07100f";
+            context.fillRect(0, 0, width, height);
+            if (!tinyProfile?.buckets?.length) return;
+
+            const buckets = tinyProfile.buckets;
+            const weights = buckets.map((bucket) =>
+              Math.sqrt(Math.max(0, Number(bucket.supply) || 0)),
+            );
+            const peak = Math.max(...weights, 1);
+            const left = 10;
+            const right = width - 10;
+            const baseline = height * 0.82;
+            const amplitude = Math.min(height * 0.28, 52);
+            const xAt = (index) =>
+              left + (index / Math.max(1, buckets.length - 1)) * (right - left);
+
+            context.beginPath();
+            context.moveTo(left, baseline);
+            weights.forEach((weight, index) => {
+              context.lineTo(xAt(index), baseline - (weight / peak) * amplitude);
+            });
+            context.lineTo(right, baseline);
+            context.closePath();
+            const fill = context.createLinearGradient(0, baseline - amplitude, 0, baseline);
+            fill.addColorStop(0, "rgba(255, 81, 71, 0.72)");
+            fill.addColorStop(1, "rgba(21, 83, 70, 0.16)");
+            context.fillStyle = fill;
+            context.fill();
+            context.strokeStyle = "rgba(255, 117, 99, 0.8)";
+            context.lineWidth = 1;
+            context.stroke();
+
+            const close = Number(tinyProfile.close);
+            let closest = 0;
+            let distance = Infinity;
+            buckets.forEach((bucket, index) => {
+              const next = Math.abs(Number(bucket.price_floor) - close);
+              if (next < distance) {
+                closest = index;
+                distance = next;
+              }
+            });
+            const markerX = xAt(closest);
+            context.strokeStyle = "rgba(255, 255, 255, 0.58)";
+            context.setLineDash([2, 3]);
+            context.beginPath();
+            context.moveTo(markerX, baseline - amplitude - 5);
+            context.lineTo(markerX, baseline + 3);
+            context.stroke();
+            context.setLineDash([]);
+          };
+
+          const loadTinyProfile = async () => {
+            try {
+              const response = await fetch(`${API}/urpd/all?agg=log50&weight=raw`, {
+                cache: "no-cache",
+                signal: AbortSignal.timeout(8_000),
+              });
+              if (!response.ok) throw new Error(`URPD: ${response.status}`);
+              tinyProfile = await response.json();
+              priceOutput.textContent = formatTinyPrice(Number(tinyProfile.close));
+              priceOutput.value = priceOutput.textContent;
+              dateOutput.textContent = tinyProfile.date || "Latest profile";
+              dateOutput.value = dateOutput.textContent;
+              message.hidden = true;
+              canvas.setAttribute(
+                "aria-label",
+                `Current Bitcoin realized-price distribution for ${tinyProfile.date}`,
+              );
+              drawTinyProfile();
+            } catch (error) {
+              priceOutput.textContent = "Unavailable";
+              dateOutput.textContent = "Current trail";
+              message.hidden = true;
+              console.error(error);
+            }
+          };
+
+          new ResizeObserver(drawTinyProfile).observe(canvas);
+          loadTinyProfile();
+          return;
+        }
         const hoverQuery = window.matchMedia(
           "(hover: hover) and (pointer: fine)",
         );
@@ -911,7 +1067,8 @@
           const limit = Math.min(
             CACHE_LIMIT,
             Math.max(
-              80 * WEIGHT_VARIANT_COUNT,
+              (Math.min(state.width, state.height) <= 260 ? 24 : 80) *
+                WEIGHT_VARIANT_COUNT,
               (state.visibleCount + 24) * WEIGHT_VARIANT_COUNT,
             ),
           );
@@ -931,8 +1088,14 @@
         }
 
         function computeVisibleWindow() {
+          const shortest = Math.min(state.width, state.height);
+          const tiny = shortest <= 260;
+          const compact = !tiny && (state.width <= 560 || state.height <= 360);
+          const density = tiny ? 0.12 : compact ? 0.75 : 4;
+          const minimum = tiny ? 17 : compact ? 91 : 721;
+          const maximum = tiny ? 65 : compact ? 361 : 5_761;
           const count = toOdd(
-            clamp(Math.floor(state.width * 4), 721, 5_761),
+            clamp(Math.floor(state.width * density), minimum, maximum),
           );
           state.visibleCount = count;
           state.halfWindow = (count - 1) / 2;
@@ -1000,7 +1163,8 @@
           ) {
             return 2;
           }
-          if (state.width <= 560) return 5;
+          if (Math.min(state.width, state.height) <= 260) return 2;
+          if (state.width <= 560 || state.height <= 360) return 3;
           if (!state.aggregation.startsWith("log")) return CONCURRENCY;
           const buckets = Number(state.aggregation.slice(3)) || 50;
           if (buckets >= 1_000) return 3;
@@ -1107,7 +1271,8 @@
           const pixelLimitedDpr = Math.sqrt(
             MAX_CANVAS_PIXELS / Math.max(1, width * height),
           );
-          const dprCap = width <= 560 ? 1.75 : 1.5;
+          const shortest = Math.min(width, height);
+          const dprCap = shortest <= 260 ? 1 : shortest <= 480 ? 1.25 : 1.5;
           const dpr = Math.max(
             1,
             Math.floor(
@@ -1310,12 +1475,16 @@
 
         function geometry() {
           const mobile = state.width <= 560;
+          const tiny = Math.min(state.width, state.height) <= 260;
           const compactLandscape =
             state.width <= 960 && state.height <= 560;
           const signed = state.mode !== "value";
-          const top = mobile ? 80 : compactLandscape ? 160 : 94;
-          const bottom = mobile ? 178 : 30;
-          const available = Math.max(240, state.height - top - bottom);
+          const top = tiny ? 38 : mobile ? 80 : compactLandscape ? 160 : 94;
+          const bottom = tiny ? 10 : mobile ? 178 : 30;
+          const available = Math.max(
+            tiny ? 40 : mobile || compactLandscape ? 120 : 240,
+            state.height - top - bottom,
+          );
           const angleRadians = (state.angle * Math.PI) / 180;
           const isoSlope = Math.tan(angleRadians);
           let timeSpan = Math.max(1, state.halfWindow);
@@ -1332,7 +1501,7 @@
             futureExtent = (end - state.viewIndex) / timeSpan;
           }
 
-          const margin = mobile ? 40 : 44;
+          const margin = tiny ? 12 : mobile ? 40 : 44;
           const heightScale =
             available *
             (signed
@@ -1343,7 +1512,7 @@
                 ? 0.2
                 : 0.23) *
             (Math.cos(angleRadians) / Math.cos(Math.PI / 6));
-          const footprint = Math.max(120, state.width - margin * 2);
+          const footprint = Math.max(tiny ? 48 : 120, state.width - margin * 2);
           const totalTimeExtent = Math.max(
             0.001,
             pastExtent + futureExtent,

@@ -152,10 +152,7 @@ async fn get_logo_serves_the_embedded_production_asset() {
     let body = to_bytes(response.into_body(), usize::MAX)
         .await
         .expect("logo body should be readable");
-    assert_eq!(
-        body.as_ref(),
-        include_bytes!("../../../website/assets/favicon/web-app-manifest-512x512.png")
-    );
+    assert_eq!(body.as_ref(), include_bytes!("../assets/logo.png"));
 }
 
 #[tokio::test]

@@ -65,7 +65,7 @@
       }
 
       body {
-        min-width: 320px;
+        min-width: 0;
         overflow: hidden;
         color: var(--foreground);
         background: var(--background);
@@ -182,6 +182,14 @@
         letter-spacing: 0.07em;
         line-height: 14px;
         text-transform: uppercase;
+      }
+
+      #dominant-wave {
+        display: none;
+      }
+
+      #tiny-wave-bands {
+        display: none;
       }
 
       #legend {
@@ -537,6 +545,111 @@
           grid-template-columns: 6px minmax(38px, 1fr) 34px;
         }
       }
+
+      @media (max-width: 320px), (max-height: 260px) {
+        :root {
+          --legend-height: 0px;
+          --controls-height: 0px;
+        }
+
+        #chart {
+          display: none;
+        }
+
+        main {
+          background:
+            radial-gradient(circle at 50% 48%, rgb(88 77 252 / 15%), transparent 54%),
+            var(--background);
+        }
+
+        #legend,
+        #footer,
+        #mode-copy,
+        #identity,
+        #date,
+        #total,
+        #total-label,
+        #axis-unit {
+          display: none;
+        }
+
+        #overview {
+          top: 50%;
+          right: auto;
+          left: 50%;
+          width: calc(100% - 1.5rem);
+          gap: 3px;
+          max-width: none;
+          justify-items: center;
+          text-align: center;
+          transform: translate(-50%, -50%);
+        }
+
+        #overview::before {
+          display: none;
+        }
+
+        #readout {
+          gap: 0;
+        }
+
+        #dominant-wave {
+          display: grid;
+          justify-items: center;
+          gap: 1px;
+        }
+
+        #dominant-wave > span {
+          color: var(--muted);
+          font-size: 8px;
+          font-weight: 550;
+          letter-spacing: 0.07em;
+          line-height: 10px;
+          text-transform: uppercase;
+        }
+
+        #dominant-wave-value {
+          max-width: 100%;
+          overflow: hidden;
+          color: var(--dominant-wave-color, var(--foreground));
+          font-family: var(--font-serif);
+          font-size: clamp(20px, 12vw, 34px);
+          font-weight: 400;
+          letter-spacing: -0.025em;
+          line-height: 0.92;
+          text-align: center;
+          text-overflow: ellipsis;
+        }
+
+        #tiny-wave-bands {
+          display: flex;
+          width: min(88%, 16rem);
+          height: 8px;
+          margin-top: 7px;
+          overflow: hidden;
+          border-radius: 999px;
+          background: #171717;
+        }
+
+        #tiny-wave-bands i {
+          min-width: 1px;
+          height: 100%;
+          background: var(--band-color);
+        }
+
+        #status {
+          max-width: calc(100% - 20px);
+          padding: 5px 7px;
+          font-size: 8px;
+          line-height: 13px;
+        }
+      }
+
+      @media (max-height: 145px) {
+        #dominant-wave > span {
+          display: none;
+        }
+      }
     </style>
   </head>
   <body>
@@ -561,6 +674,11 @@
           <time id="date">—</time>
           <strong id="total">—</strong>
           <span id="total-label">Live supply represented</span>
+          <span id="dominant-wave">
+            <span>Largest age band</span>
+            <strong id="dominant-wave-value">—</strong>
+            <span id="tiny-wave-bands" aria-hidden="true"></span>
+          </span>
         </div>
       </section>
 
@@ -629,7 +747,15 @@
     </main>
 
     <script type="module">
-      import * as LightweightCharts from "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      const tinyViewport = window.matchMedia(
+        "(max-width: 320px), (max-height: 260px)",
+      );
+      const LightweightCharts = tinyViewport.matches
+        ? {}
+        : await import(
+            "https://unpkg.com/lightweight-charts@5.2.1/dist/lightweight-charts.standalone.production.mjs"
+          );
+      tinyViewport.addEventListener("change", () => window.location.reload());
 
       function start() {
         "use strict";
@@ -750,6 +876,10 @@
         const dateElement = document.getElementById("date");
         const totalElement = document.getElementById("total");
         const totalLabelElement = document.getElementById("total-label");
+        const dominantWaveValueElement = document.getElementById(
+          "dominant-wave-value",
+        );
+        const tinyWaveBandsElement = document.getElementById("tiny-wave-bands");
         const modeNameElement = document.getElementById("mode-name");
         const modeDescriptionElement = document.getElementById("mode-description");
         const legendElement = document.getElementById("legend");
@@ -941,6 +1071,28 @@
             new Date(`${row.time}T00:00:00Z`),
           );
           totalElement.textContent = formatTotal(row.total, modes[activeMode].unit);
+          const candidates = row.shares.map((share, index) => ({
+            share,
+            label: ranges[index].label,
+            color: colors[index],
+          }));
+          if (row.complementLabel && Number.isFinite(row.complementShare)) {
+            candidates.push({
+              share: row.complementShare,
+              label: row.complementLabel,
+              color: COMPLEMENT_COLOR,
+            });
+          }
+          const dominant = candidates
+            .filter(({ share }) => Number.isFinite(share))
+            .sort((left, right) => right.share - left.share)[0];
+          dominantWaveValueElement.textContent = dominant
+            ? `${dominant.label} · ${dominant.share.toFixed(1)}%`
+            : "—";
+          dominantWaveValueElement.style.setProperty(
+            "--dominant-wave-color",
+            dominant?.color ?? "#f5f5f5",
+          );
           updateLegend(row);
         }
 
@@ -1060,6 +1212,86 @@
           if (!rows.length) throw new Error("No HODL Wave data is available");
           cache.set(modeKey, rows);
           return rows;
+        }
+
+        async function loadTiny() {
+          const queryMode = new URLSearchParams(location.search).get("mode");
+          let savedMode = queryMode;
+          if (!Object.hasOwn(modes, savedMode)) {
+            try {
+              savedMode = localStorage.getItem(PREFERENCE_KEY);
+            } catch (_) {}
+          }
+          const modeKey = Object.hasOwn(modes, savedMode) ? savedMode : "supply";
+          const definition = modes[modeKey];
+          const latest = async (name) => {
+            const response = await fetch(
+              `${API}/series/${encodeURIComponent(name)}/day1/latest`,
+              { cache: "no-cache", signal: AbortSignal.timeout(8_000) },
+            );
+            if (!response.ok) throw new Error(`${name}: ${response.status}`);
+            const value = Number(await response.json());
+            return Number.isFinite(value) && value > 0 ? value : 0;
+          };
+
+          try {
+            const weights = await Promise.all(
+              ranges.map(({ id }) => latest(`utxos_${id}_${definition.suffix}`)),
+            );
+            const complementWeights = definition.complement
+              ? await Promise.all(
+                  ranges.map(({ id }) =>
+                    latest(`utxos_${id}_${definition.complement.suffix}`),
+                  ),
+                )
+              : [];
+            const complementValue = complementWeights.reduce(
+              (sum, value) => sum + value,
+              0,
+            );
+            const total = weights.reduce((sum, value) => sum + value, 0);
+            const chartTotal = total + complementValue;
+            const candidates = weights.map((value, index) => ({
+              share: chartTotal > 0 ? (value / chartTotal) * 100 : 0,
+              label: ranges[index].label,
+              color: colors[index],
+            }));
+            if (definition.complement && complementValue > 0) {
+              candidates.push({
+                share: (complementValue / chartTotal) * 100,
+                label: definition.complement.label,
+                color: COMPLEMENT_COLOR,
+              });
+            }
+            const dominant = [...candidates].sort(
+              (left, right) => right.share - left.share,
+            )[0];
+            dominantWaveValueElement.textContent = dominant
+              ? `${dominant.label} · ${dominant.share.toFixed(1)}%`
+              : "—";
+            dominantWaveValueElement.style.setProperty(
+              "--dominant-wave-color",
+              dominant?.color ?? "#f5f5f5",
+            );
+            tinyWaveBandsElement.replaceChildren(
+              ...candidates.map(({ share, color }) => {
+                const band = document.createElement("i");
+                band.style.flexGrow = String(share);
+                band.style.setProperty("--band-color", color);
+                return band;
+              }),
+            );
+            statusElement.textContent = "";
+          } catch (error) {
+            dominantWaveValueElement.textContent = "Unavailable";
+            statusElement.textContent = "";
+            console.error(error);
+          }
+        }
+
+        if (tinyViewport.matches) {
+          loadTiny();
+          return;
         }
 
         function chartSize() {

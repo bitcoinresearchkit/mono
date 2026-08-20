@@ -2,6 +2,7 @@
 
 use std::{
     any::Any,
+    net::SocketAddr,
     time::{Duration, Instant},
 };
 
@@ -52,7 +53,7 @@ pub use bitview_website::Website;
 pub use brk_types::Port;
 pub use cache::CdnCacheMode;
 use cache::{CacheParams, CacheStrategy};
-pub use config::{DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
+pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
 pub use error::Error;
 use state::*;
 
@@ -75,35 +76,14 @@ fn is_json_content_type(s: &str) -> bool {
 pub struct Server {
     state: AppState,
     listener: TcpListener,
-    port: Port,
 }
 
 impl Server {
     /// Binds the HTTP listener so startup failures are reported before the
     /// caller launches the long-running server task.
-    pub async fn bind(
-        query: &AsyncQuery,
-        config: ServerConfig,
-        port: Option<Port>,
-    ) -> Result<Self> {
-        let (listener, port) = match port {
-            Some(port) => {
-                let listener = TcpListener::bind(format!("0.0.0.0:{port}")).await?;
-                (listener, port)
-            }
-            None => {
-                let max_port = *Port::DEFAULT + 100;
-                let mut port = *Port::DEFAULT;
-                let listener = loop {
-                    match TcpListener::bind(format!("0.0.0.0:{port}")).await {
-                        Ok(listener) => break listener,
-                        Err(_) if port < max_port => port += 1,
-                        Err(error) => return Err(error.into()),
-                    }
-                };
-                (listener, Port::from(port))
-            }
-        };
+    pub async fn bind(query: &AsyncQuery, config: ServerConfig) -> Result<Self> {
+        let address = SocketAddr::new(config.bind, config.port.into());
+        let listener = TcpListener::bind(address).await?;
 
         config.website.log();
         cache::init(config.cdn_cache_mode);
@@ -119,16 +99,12 @@ impl Server {
                 max_utxos: config.max_utxos,
             },
             listener,
-            port,
         })
     }
 
     pub async fn serve(self) -> Result<()> {
-        let Self {
-            state,
-            listener,
-            port,
-        } = self;
+        let Self { state, listener } = self;
+        let address = listener.local_addr()?;
 
         #[cfg(feature = "bindgen")]
         let vecs = state.query.inner().vecs();
@@ -292,7 +268,7 @@ impl Server {
             .layer(response_time_layer)
             .layer(trace_layer);
 
-        info!("Starting server on port {port}...");
+        info!("Starting server on http://{address}...");
 
         let (router, openapi) = finish_openapi(router);
 

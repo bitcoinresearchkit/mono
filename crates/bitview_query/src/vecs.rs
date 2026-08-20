@@ -1,13 +1,14 @@
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, btree_map::Entry},
+    collections::{BTreeMap, BTreeSet, btree_map::Entry},
 };
 
 use bitview_plugin::Plugin;
 use bitview_runtime::PluginSet;
 use bitview_traversable::{Traversable, TreeNode};
 use bitview_types::{
-    IndexInfo, Limit, PaginatedSeries, Pagination, SeriesCount, SeriesInfo, SeriesName,
+    DetailedSeriesCount, IndexInfo, Limit, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,
+    SeriesName,
 };
 use brk_types::{CacheClass, Index};
 use quickmatch::{QuickMatch, QuickMatchConfig};
@@ -17,25 +18,20 @@ use vecdb::AnyExportableVec;
 mod cohort_query;
 mod index_to_vec;
 mod series_entry;
-mod series_to_vec;
 
-use index_to_vec::IndexToVecInternal as _;
+use index_to_vec::{IndexToVec, IndexToVecInternal as _};
 
-pub use index_to_vec::IndexToVec;
 pub use series_entry::SeriesEntry;
-pub use series_to_vec::SeriesToVec;
 
 pub struct Vecs<'a> {
-    pub series_to_index_to_vec: BTreeMap<&'a str, IndexToVec<'a>>,
-    pub index_to_series_to_vec: BTreeMap<Index, SeriesToVec<'a>>,
-    pub series: Vec<&'a str>,
-    pub indexes: Vec<IndexInfo>,
-    pub counts: SeriesCount,
-    pub counts_by_db: BTreeMap<String, SeriesCount>,
+    by_series: BTreeMap<&'a str, IndexToVec<'a>>,
+    series_names: Vec<&'a str>,
+    indexes: Vec<IndexInfo>,
+    counts: SeriesCount,
+    counts_by_db: BTreeMap<String, SeriesCount>,
     catalog: TreeNode,
     matcher: QuickMatch<'a>,
     description_search: DescriptionSearch,
-    series_to_indexes: BTreeMap<&'a str, Vec<Index>>,
 }
 
 struct DescriptionSearch {
@@ -114,15 +110,14 @@ impl<'a> Vecs<'a> {
                 Entry::Occupied(entry) => *entry.get(),
             };
             builder
-                .series_to_index_to_vec
+                .by_series
                 .get_mut(series)
                 .unwrap_or_else(|| panic!("Description references unknown series: {series}"))
                 .set_description(description);
         }
-        builder.counts.distinct = builder.series_to_index_to_vec.len();
+        builder.counts.distinct = builder.by_series.len();
         let Builder {
-            series_to_index_to_vec,
-            index_to_series_to_vec,
+            by_series,
             counts,
             counts_by_db,
             ..
@@ -132,15 +127,18 @@ impl<'a> Vecs<'a> {
             ids.sort_unstable_by(|a, b| a.len().cmp(&b.len()).then_with(|| a.cmp(b)))
         };
 
-        let mut series = series_to_index_to_vec.keys().copied().collect::<Vec<_>>();
-        sort_ids(&mut series);
-        let description_search = DescriptionSearch::new(&series, &series_to_index_to_vec);
+        let mut series_names = by_series.keys().copied().collect::<Vec<_>>();
+        sort_ids(&mut series_names);
+        let description_search = DescriptionSearch::new(&series_names, &by_series);
 
-        let indexes = index_to_series_to_vec
-            .keys()
-            .map(|i| IndexInfo {
-                index: *i,
-                aliases: i
+        let indexes = by_series
+            .values()
+            .flat_map(|index_to_vec| index_to_vec.keys().copied())
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .map(|index| IndexInfo {
+                index,
+                aliases: index
                     .possible_values()
                     .iter()
                     .map(|v| Cow::Borrowed(*v))
@@ -148,29 +146,26 @@ impl<'a> Vecs<'a> {
             })
             .collect();
 
-        let series_to_indexes = series_to_index_to_vec
-            .iter()
-            .map(|(id, index_to_vec)| (*id, index_to_vec.keys().copied().collect::<Vec<_>>()))
-            .collect();
-
-        let matcher = QuickMatch::new(&series);
+        let matcher = QuickMatch::new(&series_names);
 
         Self {
-            series_to_index_to_vec,
-            index_to_series_to_vec,
-            series,
+            by_series,
+            series_names,
             indexes,
             counts,
             counts_by_db,
             catalog,
             matcher,
             description_search,
-            series_to_indexes,
         }
     }
 
-    pub fn series(&'static self, pagination: Pagination) -> PaginatedSeries {
-        let len = self.series.len();
+    pub fn series_names(&self) -> &[&'a str] {
+        &self.series_names
+    }
+
+    pub fn series_page(&'static self, pagination: Pagination) -> PaginatedSeries {
+        let len = self.series_names.len();
         let per_page = pagination.per_page();
         let start = pagination.start(len);
         let end = pagination.end(len);
@@ -182,21 +177,32 @@ impl<'a> Vecs<'a> {
             total_count: len,
             per_page,
             has_more: pagination.page() < max_page,
-            series: self.series[start..end]
+            series: self.series_names[start..end]
                 .iter()
                 .map(|&s| Cow::Borrowed(s))
                 .collect(),
         }
     }
 
-    pub fn series_to_indexes(&self, series: &SeriesName) -> Option<&Vec<Index>> {
-        self.series_to_indexes.get(series.normalize().as_ref())
+    pub fn series_count(&self) -> DetailedSeriesCount {
+        DetailedSeriesCount {
+            total: self.counts.clone(),
+            by_db: self.counts_by_db.clone(),
+        }
+    }
+
+    pub fn indexes(&self) -> &[IndexInfo] {
+        &self.indexes
+    }
+
+    pub fn series_indexes(&self, series: &SeriesName) -> Option<Vec<Index>> {
+        self.by_series
+            .get(series.normalize().as_ref())
+            .map(|index_to_vec| index_to_vec.keys().copied().collect())
     }
 
     pub fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
-        let index_to_vec = self
-            .series_to_index_to_vec
-            .get(series.normalize().as_ref())?;
+        let index_to_vec = self.by_series.get(series.normalize().as_ref())?;
         let value_type = index_to_vec.values().next()?.vec().value_type_to_string();
         let indexes = index_to_vec.keys().copied().collect();
         let description = index_to_vec.description().map(Cow::Borrowed);
@@ -215,10 +221,7 @@ impl<'a> Vecs<'a> {
         if limit.is_zero() {
             return Vec::new();
         }
-        if self
-            .series_to_index_to_vec
-            .contains_key(series.normalize().as_ref())
-        {
+        if self.by_series.contains_key(series.normalize().as_ref()) {
             return self
                 .matcher
                 .matches_with_ids_and_matched_words(
@@ -226,16 +229,13 @@ impl<'a> Vecs<'a> {
                     &QuickMatchConfig::new().with_limit(*limit),
                 )
                 .into_iter()
-                .map(|(id, _)| self.series[id as usize])
+                .map(|(id, _)| self.series_names[id as usize])
                 .collect();
         }
 
         let query = cohort_query::expand(series);
         let normalized_name = query.normalized.replace(' ', "_");
-        if self
-            .series_to_index_to_vec
-            .contains_key(normalized_name.as_str())
-        {
+        if self.by_series.contains_key(normalized_name.as_str()) {
             return self
                 .matcher
                 .matches_with_ids_and_matched_words(
@@ -243,13 +243,13 @@ impl<'a> Vecs<'a> {
                     &QuickMatchConfig::new().with_limit(*limit),
                 )
                 .into_iter()
-                .map(|(id, _)| self.series[id as usize])
+                .map(|(id, _)| self.series_names[id as usize])
                 .collect();
         }
 
         let is_expanded = query.expanded != query.normalized;
         let mut normalized_config = QuickMatchConfig::new()
-            .with_limit(self.series.len())
+            .with_limit(self.series_names.len())
             .with_union_fallback(false);
         if is_expanded {
             normalized_config = normalized_config.with_trigram_budget(0);
@@ -261,7 +261,7 @@ impl<'a> Vecs<'a> {
             self.matcher.matches_with_ids_and_matched_words(
                 &query.expanded,
                 &QuickMatchConfig::new()
-                    .with_limit(self.series.len())
+                    .with_limit(self.series_names.len())
                     .with_union_fallback(false),
             )
         } else {
@@ -281,7 +281,7 @@ impl<'a> Vecs<'a> {
         }
         if query.semantic.is_empty() {
             return rank_candidates(
-                &self.series,
+                &self.series_names,
                 candidates,
                 std::iter::empty(),
                 0,
@@ -300,7 +300,7 @@ impl<'a> Vecs<'a> {
             );
         if descriptions.is_empty() {
             return rank_candidates(
-                &self.series,
+                &self.series_names,
                 candidates,
                 std::iter::empty(),
                 0,
@@ -328,7 +328,7 @@ impl<'a> Vecs<'a> {
             },
         );
         rank_candidates(
-            &self.series,
+            &self.series_names,
             candidates,
             description_candidates,
             described_series,
@@ -337,23 +337,20 @@ impl<'a> Vecs<'a> {
         )
     }
 
-    pub fn get_entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
-        self.series_to_index_to_vec
+    pub fn entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
+        self.by_series
             .get(series.normalize().as_ref())
             .and_then(|index_to_vec| index_to_vec.get(&index).copied())
     }
 }
 
 impl DescriptionSearch {
-    fn new<'a>(
-        series: &[&'a str],
-        series_to_index_to_vec: &BTreeMap<&'a str, IndexToVec<'a>>,
-    ) -> Self {
+    fn new<'a>(series: &[&'a str], by_series: &BTreeMap<&'a str, IndexToVec<'a>>) -> Self {
         assert!(u32::try_from(series.len()).is_ok(), "Too many series");
         let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
 
         for (id, name) in series.iter().copied().enumerate() {
-            let Some(description) = series_to_index_to_vec[name].description() else {
+            let Some(description) = by_series[name].description() else {
                 continue;
             };
             let description = cohort_query::normalize(description);
@@ -477,8 +474,7 @@ impl RankedCandidate<'_> {
 
 #[derive(Default)]
 struct Builder<'a> {
-    series_to_index_to_vec: BTreeMap<&'a str, IndexToVec<'a>>,
-    index_to_series_to_vec: BTreeMap<Index, SeriesToVec<'a>>,
+    by_series: BTreeMap<&'a str, IndexToVec<'a>>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
     seen_by_db: FxHashMap<&'a str, FxHashSet<&'a str>>,
@@ -493,20 +489,11 @@ impl<'a> Builder<'a> {
         let requires_gate = matches!(index.cache_class(), CacheClass::Mutable) || vec.is_mutable();
         let entry = SeriesEntry::new(vec, plugin, requires_gate);
 
-        let prev = self
-            .series_to_index_to_vec
-            .entry(name)
-            .or_default()
-            .insert(index, entry);
+        let prev = self.by_series.entry(name).or_default().insert(index, entry);
         assert!(
             prev.is_none(),
             "Duplicate series: {name} for index {index:?}"
         );
-        self.index_to_series_to_vec
-            .entry(index)
-            .or_default()
-            .insert(name, entry);
-
         let is_lazy = vec.region_names().is_empty();
         let by_db = self.counts_by_db.entry(db.to_string()).or_default();
         self.counts.total += 1;

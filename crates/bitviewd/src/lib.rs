@@ -9,7 +9,7 @@ use vecdb::{Exit, ReadOnlyClone};
 mod config;
 mod paths;
 
-use crate::{config::Config, paths::default_logs_dir};
+use crate::config::Config;
 
 /// Runs the Bitview daemon process with the supplied composition.
 pub fn run<P>(import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>) -> Result<()>
@@ -19,10 +19,10 @@ where
 {
     let config = Config::import()?;
 
-    brk_logger::init(Some(&default_logs_dir()))?;
+    brk_logger::init(Some(&config.server.data_path.join("logs")))?;
 
     let exit = Exit::new();
     exit.set_ctrlc_handler();
 
-    bitview::run(config.runner()?, exit, import)
+    bitview::run(config, exit, import)
 }

@@ -2,7 +2,6 @@
 
 mod confirmed;
 
-use bitview_plugin::Plugin;
 use brk_error::Error;
 use brk_types::{FeeRate, Txid, TxidPrefix};
 use vecdb::ReadableVec;
@@ -17,7 +16,7 @@ impl Query {
         if let Some(info) = self.mempool().and_then(|m| m.cpfp_info(&prefix)) {
             return Ok(info);
         }
-        let _guard = self.plugins().outputs.gate().read();
+        let _guard = self.read_plugin(self.plugins().outputs)?;
         confirmed::confirmed_cpfp(self, txid)
     }
 

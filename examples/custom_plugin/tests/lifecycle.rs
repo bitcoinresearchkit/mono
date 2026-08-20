@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{path::Path, time::Duration};
 
 use bitview::update;
 use bitview_custom_plugin_example::near_full_blocks::{Dependencies, ID, Vecs as NearFullBlocks};
@@ -6,7 +6,7 @@ use bitview_plugin::{ComputePlugin, ImportContext, Plugin, UpdateContext};
 use bitview_query::Vecs as QueryVecs;
 use bitview_runtime::{ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{Height, Index, Version, Weight};
 use vecdb::{AnyStoredVec, Database, Exit, ImportableVec, PAGE_SIZE, PcoVec, WritableVec};
 
@@ -55,13 +55,15 @@ impl TestPlugins {
     fn queried_streak(&self) -> Result<Vec<u8>> {
         let query = QueryVecs::build(self);
         let entry = query
-            .series_to_index_to_vec
-            .get("near_full_block_streak")
-            .and_then(|indexes| indexes.get(&Index::Height))
+            .entry(&"near_full_block_streak".into(), Index::Height)
             .expect("custom series should be queryable at height");
 
         assert_eq!(entry.plugin().id(), ID);
-        let _read = entry.plugin().gate().read();
+        let _read = entry
+            .plugin()
+            .gate()
+            .read_for(Duration::from_secs(1))
+            .ok_or(Error::StateUpdating)?;
         let mut json = Vec::new();
         entry.vec().write_json(None, None, &mut json)?;
         Ok(json)

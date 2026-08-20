@@ -24,7 +24,7 @@
       }
 
       body {
-        min-width: 20rem;
+        min-width: 0;
         min-height: 100vh;
         margin: 0;
       }
@@ -126,6 +126,27 @@
         footer {
           align-items: start;
           flex-direction: column;
+        }
+      }
+
+      @media (max-width: 320px), (max-height: 260px) {
+        main {
+          min-height: 100dvh;
+          padding: 0.55rem;
+          grid-template-rows: 1fr;
+        }
+
+        header,
+        footer,
+        .height > span {
+          display: none;
+        }
+
+        output {
+          max-width: 100%;
+          margin: 0;
+          font-size: clamp(2rem, 22vw, 5rem);
+          letter-spacing: -0.12em;
         }
       }
 

@@ -21,11 +21,11 @@ pub fn main() -> brk_error::Result<()> {
     let vecs = Vecs::build(&plugins_ro);
 
     let out_path = Path::new(env!("CARGO_MANIFEST_DIR")).join("series.txt");
-    let content = vecs.series.join("\n");
+    let content = vecs.series_names().join("\n");
     fs::write(&out_path, &content)?;
     eprintln!(
         "Wrote {} series to {}",
-        vecs.series.len(),
+        vecs.series_names().len(),
         out_path.display()
     );
 

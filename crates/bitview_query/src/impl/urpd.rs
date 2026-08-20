@@ -5,15 +5,15 @@ use std::{
 
 use bitview_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
 use bitview_plugin::{Plugin, PluginReadGuard};
-use brk_error::Error;
+use brk_error::{Error, Result};
 use brk_types::{Cohort, Date, Day1, Urpd, UrpdAggregation, UrpdRaw, UrpdWeight};
 use vecdb::ReadableOptionVec;
 
 use crate::Query;
 
 impl Query {
-    fn urpd_read_guard(&self) -> PluginReadGuard {
-        PluginReadGuard::acquire(&[
+    fn urpd_read_guard(&self) -> Result<PluginReadGuard> {
+        self.read_plugins(&[
             self.plugins().distribution as &dyn Plugin,
             self.plugins().bedrock as &dyn Plugin,
         ])
@@ -21,7 +21,7 @@ impl Query {
 
     /// Available cohorts for URPD.
     pub fn urpd_cohorts(&self) -> brk_error::Result<Vec<Cohort>> {
-        let _guard = self.urpd_read_guard();
+        let _guard = self.urpd_read_guard()?;
         self.urpd_cohorts_inner()
     }
 
@@ -73,7 +73,7 @@ impl Query {
         cohort: &Cohort,
         weight: UrpdWeight,
     ) -> brk_error::Result<Vec<Date>> {
-        let _guard = self.urpd_read_guard();
+        let _guard = self.urpd_read_guard()?;
         self.urpd_dates_with_weight_inner(cohort, weight)
     }
 
@@ -113,7 +113,7 @@ impl Query {
         date: Date,
         weight: UrpdWeight,
     ) -> brk_error::Result<UrpdRaw> {
-        let _guard = self.urpd_read_guard();
+        let _guard = self.urpd_read_guard()?;
         self.urpd_raw_with_weight_inner(cohort, date, weight)
     }
 
@@ -188,7 +188,7 @@ impl Query {
         agg: UrpdAggregation,
         weight: UrpdWeight,
     ) -> brk_error::Result<Urpd> {
-        let _guard = self.urpd_read_guard();
+        let _guard = self.urpd_read_guard()?;
         self.urpd_at_with_weight_inner(cohort, date, agg, weight)
     }
 
@@ -225,7 +225,7 @@ impl Query {
         agg: UrpdAggregation,
         weight: UrpdWeight,
     ) -> brk_error::Result<Urpd> {
-        let _guard = self.urpd_read_guard();
+        let _guard = self.urpd_read_guard()?;
         let dates = self.urpd_dates_with_weight_inner(cohort, weight)?;
         let date = *dates.last().ok_or_else(|| {
             Error::NotFound(format!(

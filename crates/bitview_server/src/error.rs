@@ -1,7 +1,7 @@
 use crate::{cache::CacheParams, error_body::ErrorBody, etag::Etag};
 use aide::OperationOutput;
 use axum::{
-    http::{StatusCode, header},
+    http::{HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use brk_error::Error as BrkError;
@@ -39,7 +39,7 @@ fn error_status(e: &BrkError) -> StatusCode {
         | BrkError::SeriesNotFound(_) => StatusCode::NOT_FOUND,
 
         BrkError::AuthFailed => StatusCode::FORBIDDEN,
-        BrkError::MempoolNotAvailable => StatusCode::SERVICE_UNAVAILABLE,
+        BrkError::MempoolNotAvailable | BrkError::StateUpdating => StatusCode::SERVICE_UNAVAILABLE,
 
         _ => StatusCode::INTERNAL_SERVER_ERROR,
     }
@@ -64,6 +64,7 @@ fn error_code(e: &BrkError) -> &'static str {
         BrkError::NoData => "no_data",
         BrkError::SeriesNotFound(_) => "series_not_found",
         BrkError::MempoolNotAvailable => "mempool_not_available",
+        BrkError::StateUpdating => "state_updating",
         BrkError::AuthFailed => "auth_failed",
         _ => "internal_error",
     }
@@ -71,6 +72,14 @@ fn error_code(e: &BrkError) -> &'static str {
 
 fn build_error_body(status: StatusCode, code: &'static str, message: String) -> Vec<u8> {
     serde_json::to_vec(&ErrorBody::new(error_type(status), code, message, DOC_URL)).unwrap()
+}
+
+fn apply_retry_after(code: &str, response: &mut Response) {
+    if code == "state_updating" {
+        response
+            .headers_mut()
+            .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
+    }
 }
 
 /// Server error type that maps to HTTP status codes and structured JSON.
@@ -119,6 +128,7 @@ impl Error {
         )
             .into_response();
         params.apply_to(response.headers_mut());
+        apply_retry_after(self.code, &mut response);
         response
     }
 }
@@ -155,6 +165,26 @@ impl IntoResponse for Error {
         )
             .into_response();
         CacheParams::apply_error_cache_control(response.headers_mut());
+        apply_retry_after(self.code, &mut response);
         response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn state_updating_is_a_retryable_service_unavailable_response() {
+        let error = Error::from(BrkError::StateUpdating);
+        assert_eq!(error.status, StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(error.code, "state_updating");
+
+        let response = error.into_response();
+        assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(
+            response.headers().get(header::RETRY_AFTER),
+            Some(&HeaderValue::from_static("1"))
+        );
     }
 }

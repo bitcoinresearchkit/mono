@@ -33,30 +33,130 @@
     />
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html,
+      body,
+      #app {
+        width: 100%;
+        min-width: 0;
+        min-height: 100%;
+        margin: 0;
+      }
+
+      body {
+        color: #edf8f1;
+        background: #0b1713;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+      }
+
+      #tiny-api {
+        display: none;
+      }
+
+      @media (max-width: 320px), (max-height: 260px) {
+        #app {
+          display: none;
+        }
+
+        #tiny-api {
+          position: relative;
+          display: grid;
+          width: 100vw;
+          height: 100dvh;
+          overflow: hidden;
+          place-content: center;
+          text-align: center;
+          isolation: isolate;
+        }
+
+        #tiny-api::before,
+        #tiny-api::after {
+          position: absolute;
+          z-index: -1;
+          top: 50%;
+          color: #244c3b;
+          font-size: clamp(6rem, 62vw, 13rem);
+          font-weight: 300;
+          line-height: 1;
+          transform: translateY(-54%);
+        }
+
+        #tiny-api::before {
+          right: 56%;
+          content: "{";
+        }
+
+        #tiny-api::after {
+          left: 56%;
+          content: "}";
+        }
+
+        #tiny-api span,
+        #tiny-api small {
+          color: #8bb39a;
+          font-size: 8px;
+          font-weight: 650;
+          letter-spacing: 0.09em;
+          line-height: 12px;
+          text-transform: uppercase;
+        }
+
+        #tiny-api strong {
+          margin: 2px 0;
+          color: #edf8f1;
+          font-size: clamp(1.7rem, 15vw, 3rem);
+          font-weight: 520;
+          letter-spacing: -0.08em;
+          line-height: 0.9;
+        }
+      }
+    </style>
   </head>
 
   <body>
     <div id="app"></div>
-
-    <script src="https://bitview.space/scalar.js"></script>
+    <section id="tiny-api" aria-label="Bitview API summary">
+      <span>Bitview API</span>
+      <strong>REST</strong>
+      <small>No auth · JSON</small>
+    </section>
 
     <script>
-      Scalar.createApiReference("#app", {
-        url: "https://bitview.space/openapi.json",
-        hideClientButton: true,
-        telemetry: false,
-        withDefaultFonts: false,
-        // showToolbar: "never",
-        mcp: {
-          name: "mcp",
-          url: "https://mcp.example.com",
-          disabled: true,
-        },
-        // showDeveloperTools: "never",
-        agent: {
-          disabled: true,
-        },
-      });
+      const tinyApi = window.matchMedia(
+        "(max-width: 320px), (max-height: 260px)",
+      );
+      const compactApi = window.matchMedia(
+        "(max-width: 480px), (max-height: 360px)",
+      );
+      if (!tinyApi.matches) {
+        const scalarScript = document.createElement("script");
+        scalarScript.src = "https://bitview.space/scalar.js";
+        scalarScript.addEventListener("load", () => {
+          Scalar.createApiReference("#app", {
+            url: "https://bitview.space/openapi.json",
+            hideClientButton: true,
+            hideDarkModeToggle: compactApi.matches,
+            hideModels: compactApi.matches,
+            hideSearch: compactApi.matches,
+            hideTestRequestButton: compactApi.matches,
+            showSidebar: !compactApi.matches,
+            documentDownloadType: compactApi.matches ? "none" : "both",
+            telemetry: false,
+            withDefaultFonts: false,
+            showDeveloperTools: "never",
+            mcp: {
+              name: "mcp",
+              url: "https://mcp.example.com",
+              disabled: true,
+            },
+            agent: { disabled: true },
+          });
+        });
+        document.head.append(scalarScript);
+      }
+      tinyApi.addEventListener("change", () => window.location.reload());
+      compactApi.addEventListener("change", () => window.location.reload());
     </script>
   </body>
 </html>

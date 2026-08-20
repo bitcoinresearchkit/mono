@@ -70,7 +70,7 @@ impl Query {
     /// Returns the error for a missing series: `SeriesUnsupportedIndex` if the name
     /// exists at other indexes, else `SeriesNotFound` with fuzzy-match suggestions.
     pub fn series_not_found_error(&self, series: &SeriesName) -> Error {
-        if let Some(indexes) = self.vecs().series_to_indexes(series) {
+        if let Some(indexes) = self.vecs().series_indexes(series) {
             let supported = indexes
                 .iter()
                 .map(|i| format!("/api/series/{series}/{}", i.name()))
@@ -142,7 +142,7 @@ impl Query {
 
     fn get_entry(&self, series: &SeriesName, index: Index) -> Result<SeriesEntry<'static>> {
         self.vecs()
-            .get_entry(series, index)
+            .entry(series, index)
             .ok_or_else(|| self.series_not_found_error(series))
     }
 
@@ -150,7 +150,7 @@ impl Query {
     pub fn latest(&self, series: &SeriesName, index: Index) -> Result<serde_json::Value> {
         let entry = self.get_entry(series, index)?;
         let vec = entry.vec();
-        let _guard = self.mutable_series_guard(&[entry]);
+        let _guard = self.mutable_series_guard(&[entry])?;
         let bounds = self.read_bounds(self.safe_lengths());
         bounds.scope(|| {
             let len = vec.visible_len();
@@ -167,7 +167,7 @@ impl Query {
     pub fn len(&self, series: &SeriesName, index: Index) -> Result<usize> {
         let entry = self.get_entry(series, index)?;
         let vec = entry.vec();
-        let _guard = self.mutable_series_guard(&[entry]);
+        let _guard = self.mutable_series_guard(&[entry])?;
         let bounds = self.read_bounds(self.safe_lengths());
         bounds.scope(|| Ok(vec.visible_len()))
     }
@@ -204,7 +204,7 @@ impl Query {
     /// Use with `format` for lazy formatting after ETag check.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
         let entries = self.search_entries(&params)?;
-        let plugin_guard = self.mutable_series_guard(&entries);
+        let plugin_guard = self.mutable_series_guard(&entries)?;
         let is_mutable = plugin_guard.is_some();
         let vecs = entries
             .into_iter()
@@ -272,14 +272,18 @@ impl Query {
         })
     }
 
-    fn mutable_series_guard(&self, entries: &[SeriesEntry<'_>]) -> Option<PluginReadGuard> {
+    fn mutable_series_guard(&self, entries: &[SeriesEntry<'_>]) -> Result<Option<PluginReadGuard>> {
         let plugins = entries
             .iter()
             .filter(|entry| entry.requires_gate())
             .map(|entry| entry.plugin())
             .collect::<Vec<_>>();
 
-        (!plugins.is_empty()).then(|| PluginReadGuard::acquire(&plugins))
+        if plugins.is_empty() {
+            Ok(None)
+        } else {
+            self.read_plugins(&plugins).map(Some)
+        }
     }
 
     /// Count of leading entries provably immutable across a 6-block reorg, used
@@ -480,18 +484,15 @@ impl Query {
     }
 
     pub fn series_count(&self) -> DetailedSeriesCount {
-        DetailedSeriesCount {
-            total: self.vecs().counts.clone(),
-            by_db: self.vecs().counts_by_db.clone(),
-        }
+        self.vecs().series_count()
     }
 
     pub fn indexes(&self) -> &'static [IndexInfo] {
-        &self.vecs().indexes
+        self.vecs().indexes()
     }
 
     pub fn series_list(&self, pagination: Pagination) -> PaginatedSeries {
-        self.vecs().series(pagination)
+        self.vecs().series_page(pagination)
     }
 
     pub fn series_catalog(&self) -> &'static TreeNode {

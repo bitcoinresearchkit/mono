@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-const PNG: &[u8] = include_bytes!("../../../website/assets/favicon/web-app-manifest-512x512.png");
+const PNG: &[u8] = include_bytes!("../assets/logo.png");
 
 pub async fn get() -> Response {
     let mut response = Body::from(PNG).into_response();

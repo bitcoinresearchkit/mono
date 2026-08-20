@@ -113,6 +113,9 @@ pub enum Error {
     #[error("Mempool data is not available")]
     MempoolNotAvailable,
 
+    #[error("State is updating")]
+    StateUpdating,
+
     #[error("Address not found in the blockchain (no transaction history)")]
     UnknownAddr,
 

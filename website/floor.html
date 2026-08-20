@@ -32,10 +32,18 @@
     @media(min-width:1021px){#realized-capitalized{padding-top:53px;padding-bottom:53px}#realized-capitalized .chart,#realized-capitalized .chart canvas{min-height:430px;height:430px}}
     @media(max-width:1020px){.slide{grid-template-columns:1fr;grid-template-rows:auto auto auto;min-height:auto;padding-left:clamp(22px,5vw,76px)}.copy{max-width:800px}.foot{grid-column:1}.chapter-rail{display:none}.chart,.urpd,.chart canvas,.urpd canvas{min-height:440px;height:440px}}
     @media(max-width:700px){html{scroll-snap-type:none}.slide{padding:66px 18px 92px;gap:34px}.chapter-rail{display:none}h1{font-size:clamp(56px,17.6vw,88px)}h2{font-size:clamp(40.8px,12vw,62.4px)}.overview,.cards-2,.cards-3,.flow,.thresholds{grid-template-columns:1fr}.overview a{min-height:92px}.opening-map{min-height:320px;grid-template-columns:minmax(0,1fr) 22px minmax(0,1fr) 22px minmax(0,1fr)}.opening-map article{padding:13px 9px}.opening-map article strong{font-size:clamp(46px,15vw,68px)}.opening-map article h3{margin:18px 0 0;font-size:clamp(18px,5.5vw,25px)}.opening-map article p{display:none}.opening-map>i{font-size:18px}.opening-map footer{display:block;padding:13px}.opening-map footer b{display:block;margin-top:7px;text-align:left}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.floor-stats.metrics.three,.staircase-stats.metrics.three{grid-template-columns:repeat(3,minmax(0,1fr))}.floor-stats.metrics.three>span,.staircase-stats.metrics.three>span{min-width:0;padding:9px 7px}.floor-stats.metrics.three b,.staircase-stats.metrics.three b{font-size:18px}.metrics>span{min-height:64px;padding:10px}.flow>strong{display:block;padding:8px 0;text-align:center}.flow>span{min-height:130px}.cards-2 article,.cards-3 article,.thresholds article{min-height:210px}.thresholds .selected{border:0;border-top:2px solid #000;border-bottom:2px solid #000}.chart,.urpd,.chart canvas,.urpd canvas{min-height:360px;height:360px}#bedrock-loss-history .chart,#bedrock-loss-history .chart canvas,#bedrock-urpd-levels .urpd,#bedrock-urpd-levels .urpd canvas,#coinflow .urpd,#coinflow .urpd canvas,#cointime-weight .urpd,#cointime-weight .urpd canvas,#ultimate .chart,#ultimate .chart canvas{min-height:460px;height:460px}.story-controls{right:8px;bottom:8px;left:8px;grid-template-columns:42px 1fr 42px}.story-controls span{font-size:10px}.foot{flex-direction:column}.source-roles{grid-template-columns:1fr}.source-roles>i{display:block;text-align:center;font:650 var(--meta) var(--mono)}}
+    .tiny-current-floor{display:none}
+    @media(max-width:320px),(max-height:260px){html{scroll-snap-type:none}.slide{min-height:100dvh;padding:10px;gap:9px;grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);overflow:hidden}.copy>p:not(.eyebrow),.hero-actions,.foot,.chapter-rail,.story-controls{display:none}.eyebrow{margin:0 0 5px;font-size:7px}h1,h2{font-size:clamp(22px,12vw,34px);line-height:.88}.visual,.panel{min-height:0;gap:5px}.opening-map,.chart,.urpd,.chart canvas,.urpd canvas,.bedrock-explorer .chart,.bedrock-explorer .chart canvas{min-height:80px;height:100%;max-height:none}.opening-map{grid-template-columns:minmax(0,1fr) 10px minmax(0,1fr) 10px minmax(0,1fr)}.opening-map article{padding:5px 3px}.opening-map article strong{font-size:clamp(20px,12vw,32px)}.opening-map article h3{margin:4px 0 0;font-size:10px}.opening-map article p,.opening-map footer,.chart-legend span b,.urpd-legend span:nth-child(n+3),.metrics,.switchbar>span{display:none}.opening-map>i{font-size:9px}.chart-legend,.urpd-legend{top:4px;right:4px;left:4px;gap:2px}.chart-legend span,.urpd-legend span{padding:2px 3px;font-size:6px}.chart-loading{font-size:7px}.cards-2,.cards-3,.flow,.thresholds{grid-template-columns:1fr}.cards-2 article,.cards-3 article,.thresholds article,.flow>span{min-height:90px;padding:7px}.progress-line{width:2px}.copy,.visual,.panel{animation:none!important}.tiny-current-floor{position:fixed;z-index:40;top:50%;left:50%;display:grid;width:calc(100% - 1.5rem);justify-items:center;gap:1px;color:#000;pointer-events:none;text-align:center;transform:translate(-50%,-50%)}.tiny-current-floor>span,.tiny-current-floor>small{font:650 8px/10px var(--mono);letter-spacing:.07em;text-transform:uppercase}.tiny-current-floor>small{max-width:100%;overflow:hidden;color:rgba(0,0,0,.55);text-overflow:ellipsis;white-space:nowrap}.tiny-current-floor>strong{font:400 clamp(20px,12vw,34px)/.92 var(--serif);letter-spacing:-.025em}}@media(max-height:145px){.tiny-current-floor>span,.tiny-current-floor>small{display:none}}
+    @media(max-width:320px),(max-height:260px){body{min-height:100dvh;overflow:hidden;background:var(--yellow)}body::before{position:fixed;inset:18% 12% 21%;border:1px solid rgba(0,0,0,.16);border-top:0;background:repeating-linear-gradient(to bottom,transparent 0 24%,rgba(0,0,0,.13) 24% calc(24% + 1px),transparent calc(24% + 1px) 25%);content:"";transform:skewY(-5deg)}#story,.chapter-rail,.story-controls,.progress-line{display:none!important}}
   </style>
 </head>
 <body>
   <div class="progress-line" aria-hidden="true"></div>
+  <output class="tiny-current-floor" aria-live="polite">
+    <span>Current extreme floor</span>
+    <strong data-tiny-floor>—</strong>
+    <small data-tiny-floor-source>Loading live data</small>
+  </output>
   <nav class="chapter-rail" aria-label="Story chapters"></nav>
   <main id="story"></main>
   <div class="story-controls" aria-label="Slide navigation">
@@ -62,6 +70,14 @@
     const DAY_MS=86400000,BASE_DAY_TIME=Date.parse("2009-01-01T00:00:00Z"),CHART_START_INDEX=Math.round((Date.parse("2017-12-16T00:00:00Z")-BASE_DAY_TIME)/DAY_MS),CHART_LINE_WIDTH=1.6;
     const BEDROCK_PERCENTILES=[{key:"pct95",label:"P95",threshold:"bedrock_raw_loss_threshold_pct95",thresholdPct:"bedrock_raw_loss_threshold_pct95_percent",opacity:.28,dash:[2,6]},{key:"pct98",label:"P98",threshold:"bedrock_raw_loss_threshold_pct98",thresholdPct:"bedrock_raw_loss_threshold_pct98_percent",opacity:.42,dash:[6,5]},{key:"pct99",label:"P99",threshold:"bedrock_raw_loss_threshold_pct99",thresholdPct:"bedrock_raw_loss_threshold_pct99_percent",opacity:.58,dash:[3,4]},{key:"pct99_5",label:"P99.5",threshold:"bedrock_raw_loss_threshold_pct99_5",thresholdPct:"bedrock_raw_loss_threshold_pct99_5_percent",opacity:.75,dash:[12,5]},{key:"pct99_9",label:"P99.9",threshold:"bedrock_raw_loss_threshold_pct99_9",thresholdPct:"bedrock_raw_loss_threshold_pct99_9_percent",opacity:.92,dash:[]}];
     const EXTREME_FLOOR_SOURCES=[{key:"rarity_meter_pct01",label:"Full Rarity P1",opacity:.5,dash:[3,5]},{key:"bedrock_raw_floor_pct99",label:"Raw Bedrock P99",opacity:.28,dash:[2,6]},{key:"bedrock_coinflow_floor_pct99",label:"Coinflow Bedrock P99",opacity:.42,dash:[10,6]},{key:"bedrock_cointime_floor_pct99",label:"Cointime Bedrock P99",opacity:.34,dash:[14,6]}];
+    const tinyViewport=matchMedia("(max-width:320px),(max-height:260px)");
+    tinyViewport.addEventListener("change",()=>location.reload());
+    if(tinyViewport.matches){
+      const value=document.querySelector("[data-tiny-floor]"),source=document.querySelector("[data-tiny-floor-source]");
+      const format=v=>Number.isFinite(v)?`$${Math.round(v).toLocaleString("en-US")}`:"—";
+      Promise.all(EXTREME_FLOOR_SOURCES.map(async item=>{const response=await fetch(`https://bitview.space/api/series/${encodeURIComponent(item.key)}/day1/latest`,{cache:"no-cache",signal:AbortSignal.timeout(8000)});if(!response.ok)throw Error(`${item.key}: ${response.status}`);return{...item,value:Number(await response.json())}})).then(items=>{const current=items.filter(item=>Number.isFinite(item.value)).sort((a,b)=>b.value-a.value)[0];value.textContent=format(current?.value);source.textContent=current?.label??"Unavailable"}).catch(error=>{value.textContent="Unavailable";source.textContent="Could not load current floor";console.error(error)});
+      return;
+    }
     const bedrockFloorKey=(mode,level)=>`bedrock_${mode}_floor_${level.key}`;
     const money=(key,compact=false)=>`<span data-value="${key}" data-format="${compact?"usd-compact":"usd"}">—</span>`;
     const floorStats=key=>`<div class="metrics three floor-stats" data-floor-stats="${key}"><span>Deepest close vs floor<b data-floor-stat="lowest">—</b></span><span>Closes at or above floor<b data-floor-stat="held">—</b></span><span>Within 5% above floor<b data-floor-stat="near">—</b></span></div>`;
@@ -184,10 +200,11 @@
     }
     function hydrateFirstExtremeSource(){
       const el=document.querySelector("[data-first-extreme-source]");
-      if(!el)return;
       const current=EXTREME_FLOOR_SOURCES.map(source=>({...source,value:latest(state.series[source.key])})).filter(source=>Number.isFinite(source.value)).sort((a,b)=>b.value-a.value)[0];
-      el.textContent=current?.label??"—";
-      if(current)el.parentElement.title=`${current.label} · ${usd(current.value)} · highest current extreme line`;
+      if(el){el.textContent=current?.label??"—";if(current)el.parentElement.title=`${current.label} · ${usd(current.value)} · highest current extreme line`}
+      const tinyValue=document.querySelector("[data-tiny-floor]"),tinySource=document.querySelector("[data-tiny-floor-source]");
+      tinyValue.textContent=usd(current?.value,true);
+      tinySource.textContent=current?.label??"Unavailable";
     }
     function urpdLoss(u,price=u?.close){if(!u||!u.total_supply)return null;const loss=u.buckets.filter(b=>b.price_floor>price).reduce((a,b)=>a+b.supply,0);return loss/u.total_supply*100}
     const urpdKey=(cohort,weight)=>`${cohort}:${weight}`;
@@ -222,7 +239,9 @@
       document.querySelectorAll("[data-urpd-comparison]").forEach(el=>{const weight=el.dataset.urpdComparison,raw=state.urpd[urpdKey("all","raw")],weighted=state.urpd[urpdKey("all",weight)];el.textContent=raw&&weighted?`${(raw.total_supply/1e6).toFixed(2)}m → ${(weighted.total_supply/1e6).toFixed(2)}m BTC`:"—"});
       document.querySelectorAll("[data-urpd-loss]").forEach(el=>{const v=urpdLoss(state.urpd[urpdKey("all",el.dataset.urpdLoss)]);el.textContent=Number.isFinite(v)?`${v.toFixed(1)}%`:"—"});
       document.querySelectorAll("[data-urpd-date]").forEach(el=>el.textContent=state.urpd[urpdKey("all",el.dataset.urpdDate)]?.date??"—");
-      document.querySelectorAll(".chart").forEach(makeLineChart);document.querySelectorAll(".urpd").forEach(makeUrpdChart);setupBedrockExplorer();
+      const visualizations=[...document.querySelectorAll(".chart,.urpd,[data-bedrock-explorer]")];
+      const hydrateVisualization=element=>{if(element.matches(".chart"))makeLineChart(element);else if(element.matches(".urpd"))makeUrpdChart(element);else setupBedrockExplorer()};
+      if("IntersectionObserver" in window){const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(!entry.isIntersecting)return;observer.unobserve(entry.target);hydrateVisualization(entry.target)}),{rootMargin:"120% 0px"});visualizations.forEach(element=>observer.observe(element))}else visualizations.forEach(hydrateVisualization);
     }
     const dateFromIndex=i=>new Date(BASE_DAY_TIME+i*DAY_MS);
     const indexAtYear=year=>Math.round((Date.UTC(year,0,1)-BASE_DAY_TIME)/DAY_MS);
@@ -240,7 +259,7 @@
       const length=end-start,valueAt=(line,offset)=>at(line.series,start+offset),niceStep=raw=>{const power=10**Math.floor(Math.log10(Math.max(raw,Number.EPSILON))),fraction=raw/power;return(fraction<=1?1:fraction<=2?2:fraction<=5?5:10)*power};
       let hover=null;
       const draw=()=>{
-        const b=canvas.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,2),ctx=canvas.getContext("2d");
+        const b=canvas.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,Math.min(b.width,b.height)<=280?1:2),ctx=canvas.getContext("2d");
         canvas.width=Math.max(1,b.width*ratio);canvas.height=Math.max(1,b.height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,b.width,b.height);
         const p={...plot,t:Math.max(64,legend.getBoundingClientRect().height+22)},w=b.width-p.l-p.r,h=b.height-p.t-p.b;
         const vals=lines.flatMap(l=>l.series.data.slice(Math.max(0,start-l.series.start),Math.min(l.series.data.length,end-l.series.start)).filter(valid));
@@ -259,7 +278,7 @@
         ctx.strokeStyle="rgba(0,0,0,.065)";ctx.textAlign="center";ctx.textBaseline="alphabetic";const firstYear=Math.ceil(dateFromIndex(start).getUTCFullYear()/2)*2,lastYear=dateFromIndex(end-1).getUTCFullYear(),yearTicks=[];for(let year=firstYear;year<=lastYear;year+=2){const index=indexAtYear(year);if(index>=start&&index<end)yearTicks.push({index,year})}yearTicks.forEach(({index,year})=>{const px=x(index-start),txt=String(year),half=ctx.measureText(txt).width/2,labelX=Math.max(half+5,Math.min(b.width-half-5,px));ctx.beginPath();ctx.moveTo(px,p.t);ctx.lineTo(px,p.t+h);ctx.stroke();ctx.fillText(txt,labelX,b.height-8)});
         ctx.textAlign="right";ctx.fillStyle="rgba(0,0,0,.48)";ctx.fillText(scaleLabel,b.width-p.r,p.t-9);
         const ordered=[...lines].sort((a,b)=>Number(a.role==="price")-Number(b.role==="price"));
-        ordered.forEach(line=>{ctx.beginPath();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=CHART_LINE_WIDTH;ctx.strokeStyle="#000";ctx.globalAlpha=line.opacity??1;ctx.setLineDash(line.dash||[]);let started=false,lastPoint=null;for(let i=0;i<length;i++){const value=valueAt(line,i);if(!valid(value)){started=false;continue}const px=x(i),py=y(value);if(!started){ctx.moveTo(px,py);started=true}else ctx.lineTo(px,py);lastPoint=[px,py]}ctx.stroke();if(line.role==="price"&&lastPoint){ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle="#000";ctx.beginPath();ctx.arc(lastPoint[0],lastPoint[1],4.5,0,Math.PI*2);ctx.fill()}});
+        const stride=Math.max(1,Math.ceil(length/Math.max(120,Math.floor(w*2))));ordered.forEach(line=>{ctx.beginPath();ctx.lineCap="round";ctx.lineJoin="round";ctx.lineWidth=CHART_LINE_WIDTH;ctx.strokeStyle="#000";ctx.globalAlpha=line.opacity??1;ctx.setLineDash(line.dash||[]);let started=false,lastPoint=null;for(let i=0;i<length;i+=stride){const value=valueAt(line,i);if(!valid(value)){started=false;continue}const px=x(i),py=y(value);if(!started){ctx.moveTo(px,py);started=true}else ctx.lineTo(px,py);lastPoint=[px,py]}ctx.stroke();if(line.role==="price"&&lastPoint){ctx.setLineDash([]);ctx.globalAlpha=1;ctx.fillStyle="#000";ctx.beginPath();ctx.arc(lastPoint[0],lastPoint[1],4.5,0,Math.PI*2);ctx.fill()}});
         ctx.globalAlpha=1;ctx.setLineDash([]);ctx.fillStyle="#000";
         if(hover!==null){const px=x(hover);ctx.strokeStyle="#000";ctx.lineWidth=1;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(px,p.t);ctx.lineTo(px,p.t+h);ctx.stroke();ctx.setLineDash([]);lines.forEach(line=>{const value=valueAt(line,hover);if(!valid(value))return;ctx.beginPath();ctx.arc(px,y(value),line.role==="price"?4.5:3.5,0,Math.PI*2);ctx.fill()})}
       };
@@ -278,7 +297,7 @@
       const updateStats=()=>{const slide=fig.closest(".slide"),supply=slide.querySelector(`[data-urpd-supply="${weight}"]`),comparison=slide.querySelector(`[data-urpd-comparison="${weight}"]`),loss=slide.querySelector(`[data-urpd-loss="${weight}"]`),date=slide.querySelector(`[data-urpd-date="${weight}"]`),lossValue=urpdLoss(weighted);if(supply)supply.textContent=`${(weighted.total_supply/1e6).toFixed(2)}m BTC`;if(comparison)comparison.textContent=`${(normal.total_supply/1e6).toFixed(2)}m → ${(weighted.total_supply/1e6).toFixed(2)}m BTC`;if(loss)loss.textContent=Number.isFinite(lossValue)?`${lossValue.toFixed(1)}%`:"—";if(date)date.textContent=weighted.date};
       const draw=()=>{
         const data=bars();if(!data.length)return;
-        const b=canvas.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,2),ctx=canvas.getContext("2d");canvas.width=Math.max(1,b.width*ratio);canvas.height=Math.max(1,b.height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,b.width,b.height);
+        const b=canvas.getBoundingClientRect(),ratio=Math.min(devicePixelRatio||1,Math.min(b.width,b.height)<=280?1:2),ctx=canvas.getContext("2d");canvas.width=Math.max(1,b.width*ratio);canvas.height=Math.max(1,b.height*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,b.width,b.height);
         const p={t:Math.max(52,legend.getBoundingClientRect().height+22),r:16,b:30,l:16},w=b.width-p.l-p.r,h=b.height-p.t-p.b,min=data[0].price_floor,max=data.at(-1).price_floor+1000,peak=Math.max(...data.flatMap(d=>[Math.sqrt(d.normal),Math.sqrt(d.weighted)])),x=v=>p.l+(v-min)/Math.max(1,max-min)*w;
         ctx.strokeStyle="rgba(0,0,0,.08)";ctx.fillStyle="rgba(0,0,0,.6)";ctx.font="600 10px Lilex,monospace";ctx.lineWidth=1;ctx.textAlign="center";
         const candidates=[1000,2000,5000,10000,20000,25000,50000,100000],step=candidates.find(v=>v>=(max-min)/5)||100000;for(let t=Math.ceil(min/step)*step;t<=max;t+=step){const px=x(t),txt=axisUsd(t),half=ctx.measureText(txt).width/2,labelX=Math.max(half+5,Math.min(b.width-half-5,px));ctx.beginPath();ctx.moveTo(px,p.t);ctx.lineTo(px,p.t+h);ctx.stroke();ctx.fillText(txt,labelX,b.height-8)}

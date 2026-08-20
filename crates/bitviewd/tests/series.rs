@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use bitview::ImportContext;
 use bitview_default::DefaultPlugins;
 use bitview_plugin::PluginId;
@@ -1003,20 +1005,20 @@ fn assert_mutable_series_gates_from_vec_type() {
     let vecs = Vecs::build(&plugins);
 
     let txin_index = SeriesName::from("txin_index");
-    let spent = vecs.get_entry(&txin_index, Index::TxOutIndex).unwrap();
+    let spent = vecs.entry(&txin_index, Index::TxOutIndex).unwrap();
     let outputs = spent.plugin();
     assert_eq!(outputs.id(), PluginId::new("outputs"));
     assert!(spent.vec().is_mutable());
     assert!(spent.requires_gate());
 
-    let identity = vecs.get_entry(&txin_index, Index::TxInIndex).unwrap();
+    let identity = vecs.entry(&txin_index, Index::TxInIndex).unwrap();
     let mappings = identity.plugin();
     assert_eq!(mappings.id(), PluginId::new("mappings"));
     assert!(!identity.vec().is_mutable());
     assert!(!identity.requires_gate());
 
     let reported_metric = vecs
-        .get_entry(
+        .entry(
             &SeriesName::from("utxos_over_5m_old_transfer_volume_average_1y_cents"),
             Index::Day1,
         )
@@ -1025,9 +1027,7 @@ fn assert_mutable_series_gates_from_vec_type() {
     assert!(!reported_metric.requires_gate());
 
     let any_addr_index = SeriesName::from("any_addr_index");
-    let address = vecs
-        .get_entry(&any_addr_index, Index::P2AAddrIndex)
-        .unwrap();
+    let address = vecs.entry(&any_addr_index, Index::P2AAddrIndex).unwrap();
     let distribution = address.plugin();
     assert_eq!(distribution.id(), PluginId::new("distribution"));
     assert!(address.vec().is_mutable());
@@ -2216,15 +2216,12 @@ fn assert_audited_descriptions() {
     }
 
     let undocumented_mappings = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("mappings"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none() && series_has_plugin(&vecs, name, "mappings")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_mappings.is_empty(),
@@ -2267,15 +2264,12 @@ fn assert_audited_descriptions() {
     }
 
     let undocumented_indexer = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("indexer"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none() && series_has_plugin(&vecs, name, "indexer")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_indexer.is_empty(),
@@ -2331,16 +2325,13 @@ fn assert_audited_descriptions() {
         "transactions",
     ];
     let mut undocumented_small_plugins = Vec::new();
-    for (name, index_to_vec) in &vecs.series_to_index_to_vec {
-        if index_to_vec.description().is_some() {
+    for &name in vecs.series_names() {
+        if series_description(&vecs, name).is_some() {
             continue;
         }
         for plugin in small_plugins {
-            if index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id().as_str() == plugin)
-            {
-                undocumented_small_plugins.push((plugin, *name));
+            if series_has_plugin(&vecs, name, plugin) {
+                undocumented_small_plugins.push((plugin, name));
             }
         }
     }
@@ -2469,15 +2460,12 @@ fn assert_audited_descriptions() {
     assert_eq!(audited_model_roots, 101);
 
     let undocumented_models = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("models"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none() && series_has_plugin(&vecs, name, "models")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_models.is_empty(),
@@ -2485,15 +2473,13 @@ fn assert_audited_descriptions() {
     );
 
     let undocumented_frameworks = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("frameworks"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none()
+                && series_has_plugin(&vecs, name, "frameworks")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_frameworks.is_empty(),
@@ -2501,19 +2487,20 @@ fn assert_audited_descriptions() {
     );
 
     let generic_only_frameworks = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id() == PluginId::new("frameworks"))
-                && index_to_vec.description().is_some_and(|description| {
+        .copied()
+        .filter_map(|name| {
+            series_has_plugin(&vecs, name, "frameworks")
+                .then(|| series_description(&vecs, name))
+                .flatten()
+                .filter(|description| {
                     !FRAMEWORK_SEMANTIC_DESCRIPTIONS
                         .iter()
                         .any(|semantic| description.contains(semantic))
                 })
+                .map(|description| (name, description))
         })
-        .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
         .collect::<Vec<_>>();
     assert!(
         generic_only_frameworks.is_empty(),
@@ -2720,15 +2707,12 @@ fn assert_audited_descriptions() {
     assert_eq!(audited_framework_roots, 204);
 
     let undocumented_pools = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("pools"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none() && series_has_plugin(&vecs, name, "pools")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_pools.is_empty(),
@@ -2736,19 +2720,20 @@ fn assert_audited_descriptions() {
     );
 
     let generic_only_pools = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id() == PluginId::new("pools"))
-                && index_to_vec.description().is_some_and(|description| {
+        .copied()
+        .filter_map(|name| {
+            series_has_plugin(&vecs, name, "pools")
+                .then(|| series_description(&vecs, name))
+                .flatten()
+                .filter(|description| {
                     !POOL_SEMANTIC_DESCRIPTIONS
                         .iter()
                         .any(|semantic| description.contains(semantic))
                 })
+                .map(|description| (name, description))
         })
-        .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
         .collect::<Vec<_>>();
     assert!(
         generic_only_pools.is_empty(),
@@ -2853,26 +2838,20 @@ fn assert_audited_descriptions() {
     assert_eq!(formerly_undocumented_pool_roots, 333);
     assert_eq!(audited_pool_series, 2_639);
     let actual_pool_series = vecs
-        .series_to_index_to_vec
-        .values()
-        .filter(|index_to_vec| {
-            index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id() == PluginId::new("pools"))
-        })
+        .series_names()
+        .iter()
+        .filter(|name| series_has_plugin(&vecs, name, "pools"))
         .count();
     assert_eq!(audited_pool_series, actual_pool_series);
 
     let undocumented_distribution = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec.description().is_none()
-                && index_to_vec
-                    .values()
-                    .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
+        .copied()
+        .filter(|name| {
+            series_description(&vecs, name).is_none()
+                && series_has_plugin(&vecs, name, "distribution")
         })
-        .map(|(name, _)| *name)
         .collect::<Vec<_>>();
     assert!(
         undocumented_distribution.is_empty(),
@@ -2880,21 +2859,22 @@ fn assert_audited_descriptions() {
     );
 
     let generic_only_distribution = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter(|(_, index_to_vec)| {
-            index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
-                && index_to_vec.description().is_some_and(|description| {
+        .copied()
+        .filter_map(|name| {
+            series_has_plugin(&vecs, name, "distribution")
+                .then(|| series_description(&vecs, name))
+                .flatten()
+                .filter(|description| {
                     !DISTRIBUTION_SEMANTIC_DESCRIPTIONS
                         .iter()
                         .copied()
                         .chain([REALIZED_PRICE_DESCRIPTION, COINDAYS_CREATED_DESCRIPTION])
                         .any(|semantic| description.contains(semantic))
                 })
+                .map(|description| (name, description))
         })
-        .map(|(name, index_to_vec)| (*name, index_to_vec.description().unwrap()))
         .collect::<Vec<_>>();
     assert!(
         generic_only_distribution.is_empty(),
@@ -3039,19 +3019,15 @@ fn assert_audited_descriptions() {
     }
 
     let actual_distribution_series = vecs
-        .series_to_index_to_vec
-        .values()
-        .filter(|index_to_vec| {
-            index_to_vec
-                .values()
-                .any(|entry| entry.plugin().id() == PluginId::new("distribution"))
-        })
+        .series_names()
+        .iter()
+        .filter(|name| series_has_plugin(&vecs, name, "distribution"))
         .count();
     assert_eq!(actual_distribution_series, 49_940);
     let documented = vecs
-        .series_to_index_to_vec
+        .series_names()
         .iter()
-        .filter_map(|(name, vecs)| vecs.description().map(|description| (*name, description)))
+        .filter_map(|name| series_description(&vecs, name).map(|description| (*name, description)))
         .collect::<Vec<_>>();
     assert!(!documented.is_empty());
     let unexpected = documented
@@ -3114,7 +3090,7 @@ fn assert_audited_descriptions() {
         );
     }
 
-    let matcher = quickmatch::QuickMatch::new(&vecs.series);
+    let matcher = quickmatch::QuickMatch::new(vecs.series_names());
     for query in ["price", "realized price", "realized_price"] {
         let limit = 100;
         assert_eq!(
@@ -3182,6 +3158,20 @@ fn assert_audited_descriptions() {
             }
         }
     }
+}
+
+fn series_description(vecs: &Vecs<'_>, name: &str) -> Option<Cow<'static, str>> {
+    vecs.series_info(&SeriesName::from(name))?.description
+}
+
+fn series_has_plugin(vecs: &Vecs<'_>, name: &str, plugin: &str) -> bool {
+    let series = SeriesName::from(name);
+    vecs.series_indexes(&series).is_some_and(|indexes| {
+        indexes.into_iter().any(|index| {
+            vecs.entry(&series, index)
+                .is_some_and(|entry| entry.plugin().id().as_str() == plugin)
+        })
+    })
 }
 
 fn is_audited_description(description: &str) -> bool {

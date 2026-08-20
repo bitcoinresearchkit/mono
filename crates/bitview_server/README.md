@@ -28,7 +28,6 @@ let server = Server::bind(
         website: Website::Filesystem(files_path),
         ..Default::default()
     },
-    None,
 )
 .await?;
 server.serve().await?;
@@ -68,7 +67,8 @@ purge on deploy).
 
 ## Configuration
 
-Binds to port 3110, auto-incrementing up to 3210 if busy.
+Binds exactly to `0.0.0.0:3110` by default. Set `ServerConfig::bind` and
+`ServerConfig::port` to use another listener.
 
 ## Dependencies
 
