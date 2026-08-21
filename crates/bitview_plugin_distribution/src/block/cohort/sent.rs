@@ -24,7 +24,7 @@ pub fn process_sent(
     for (receive_height, by_type) in sent_data.into_iter() {
         let prev_price = height_to_price[receive_height.to_usize()];
 
-        for (output_type, vec) in by_type.unwrap().into_iter() {
+        for (output_type, vec) in by_type.into_inner().into_iter() {
             let (type_received, type_seen) = addresses.sets_for(output_type);
 
             for (type_index, value) in vec {

@@ -1,6 +1,6 @@
 # bitview_website
 
-Website serving for BRK with minimal dependencies.
+Embedded and filesystem-backed website serving for Bitview.
 
 ## Features
 

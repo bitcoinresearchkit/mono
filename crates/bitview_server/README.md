@@ -57,7 +57,11 @@ ETag-based revalidation. Five strategies pick the etag scheme:
 - **Immutable**: deeply-confirmed data, etag = format version
 - **BlockBound**: data tied to a specific block hash (reorg-safe)
 - **Deploy**: catalog/static data, etag = build version
-- **MempoolHash**: mempool data, etag = projected next-block hash
+- **MempoolHash**: mempool data, etag = the relevant mempool-state hash
+
+Series responses use a separate range-aware scheme: immutable historical
+ranges are keyed by schema version and bounds, while mutable tails are keyed by
+the current tip hash.
 
 Browser sees `Cache-Control: public, no-cache, stale-if-error=86400` (always
 revalidate, ETag makes it cheap). CDN sees a separate `CDN-Cache-Control`

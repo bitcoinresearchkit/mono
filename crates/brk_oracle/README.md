@@ -1,6 +1,6 @@
 # brk_oracle
 
-**Version 3**
+**Version 4**
 
 Pure on-chain BTC/USD price oracle. No exchange feeds, no external APIs. Derives the bitcoin price from transaction data alone. Tracks block by block from height 340,000 (January 2015) onward.
 

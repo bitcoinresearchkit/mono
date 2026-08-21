@@ -24,8 +24,9 @@ pub enum Filter {
     Term(Term),           // STH/LTH
     Time(TimeFilter),     // Age-based
     Amount(AmountFilter), // Value-based
-    Epoch(Halving),  // Halving epoch
-    Year(Year),           // Calendar year
+    Epoch(Halving),       // Halving epoch
+    Class(Year),          // Creation-year class
+    Entry(EntryPrice),    // Entry-price valuation band
     Type(OutputType),     // P2PKH, P2TR, etc.
 }
 ```

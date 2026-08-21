@@ -1,57 +1,70 @@
 # brk_mempool
 
-Real-time Bitcoin mempool monitoring with fee estimation.
+Live Bitcoin mempool state, projected blocks, and fee recommendations.
 
-## What It Enables
+`Mempool` polls Bitcoin Core, applies transaction additions and removals to
+shared state, resolves confirmed prevouts, and publishes an immutable snapshot
+for readers. Clones share the same state through `Arc`.
 
-Track mempool state, estimate transaction fees via projected block building, and query address mempool activity. Updates automatically with 1-second sync cycles.
-
-## Key Features
-
-- **Projected blocks**: Simulates Bitcoin Core's block template algorithm with CPFP awareness
-- **Fee estimation**: Multi-tier fee recommendations (fastest, half-hour, hour, economy, minimum)
-- **Address tracking**: Maps addresses to their pending transactions
-- **Dependency handling**: Respects transaction ancestry for accurate fee calculations
-- **Rate-limited rebuilds**: Throttles expensive projections to 1/second
-
-## Core API
+## Run the driver
 
 ```rust,ignore
 let mempool = Mempool::new(&rpc_client);
+let driver = mempool.clone();
 
-// Start background sync loop
-std::thread::spawn(move || mempool.start());
+std::thread::spawn(move || driver.start());
 
-// Query current state
-let fees = mempool.get_fees();
-let info = mempool.get_info();
-let blocks = mempool.get_block_stats();
-let snapshot = mempool.get_snapshot();
-
-// Address lookups
-let tracker = mempool.get_addresses();
+let fees = mempool.fees();
+let info = mempool.info();
+let projected_blocks = mempool.block_stats();
 ```
 
-## Fee Estimation
+`start` runs one update cycle per second and does not return. Its default
+confirmed-prevout resolver calls `getrawtransaction`, so Bitcoin Core must have
+`txindex=1`. Bitview instead uses `start_with` to supply prevouts from its own
+indexer. Only one driver may run for a `Mempool` instance.
 
-Returns `RecommendedFees` with sat/vB rates for different confirmation targets:
+Use `tick` or `tick_with` to drive one cycle manually. They return a `Cycle`
+describing the observed additions, removals, and other state changes.
 
-- `fastest_fee` - Next block (index 0)
-- `half_hour_fee` - ~3 blocks (index 2)
-- `hour_fee` - ~6 blocks (index 5)
-- `economy_fee` - ~8 blocks (index 7, last projected block)
-- `minimum_fee` - Relay minimum
+## Read API
 
-## Block Projection
+Readers access the latest published state without driving a rebuild:
 
-Builds projected blocks by:
-1. Constructing transaction dependency graph
-2. Calculating effective fee rates (including ancestors)
-3. Selecting transactions greedily by ancestor-aware fee rate
-4. Partitioning into 1MB vsize blocks
+- `snapshot`, `stats`, and `info` expose aggregate state.
+- `fees` and `block_stats` expose recommendations and projected-block
+  statistics.
+- `block_template` returns the projected next block in Bitcoin Core
+  `getblocktemplate` order.
+- `block_template_diff` returns retained, new, and removed transactions since a
+  recent template hash.
+- `contains_txid`, `with_tx`, `lookup_spender`, and `recent_txs` query live
+  transactions.
+- `addr_stats`, `addr_txs`, and `addr_state_hash` query address activity.
+- `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships.
 
-## Built On
+The full next-block template follows the transaction order returned by Bitcoin
+Core's `getblocktemplate`. Later projected blocks are coarse fee-ordered
+partitions used for estimates and charts.
 
-- `brk_error` for error handling
-- `brk_rpc` for mempool RPC calls
-- `brk_types` for `MempoolInfo`, `MempoolEntryInfo`, `RecommendedFees`
+## Fee tiers
+
+`RecommendedFees` is derived from the first three projected-block fee
+distributions and Bitcoin Core's live `mempoolminfee`:
+
+- `fastest_fee` uses the first projected block plus the priority adjustment.
+- `half_hour_fee` uses the second projected block plus half that adjustment.
+- `hour_fee` uses the third projected block.
+- `economy_fee` is a bounded value derived from the third block.
+- `minimum_fee` is the live mempool minimum, rounded to the response precision.
+
+Partial final blocks are tapered toward the minimum fee. Every tier is kept at
+or above `minimum_fee`.
+
+## Consistency
+
+The writer builds a complete replacement `Snapshot` and publishes it in one
+swap. Read methods that draw from the snapshot therefore agree on projected
+blocks, fees, chunk rates, and the next-block hash. Live transaction/address
+lookups may include changes received after that snapshot; methods document
+their fallback behavior for that short interval.

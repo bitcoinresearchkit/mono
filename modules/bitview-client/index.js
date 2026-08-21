@@ -63,6 +63,15 @@ address payload bytes.
  * @property {Addr} address
  */
 /**
+ * Four-byte primary state stored for every address.
+ *
+ * Empty addresses with small lifetime totals are stored inline. The remaining
+ * values use the upper two bits as a tag and the lower 30 bits as a sidecar
+ * index.
+ *
+ * @typedef {number} AddrState
+ */
+/**
  * Address information compatible with mempool.space API format.
  *
  * @typedef {Object} AddrStats
@@ -85,11 +94,6 @@ address payload bytes.
  * @property {?string=} witnessProgram - Witness program in hex
  * @property {?number[]=} errorLocations - Error locations (empty array for most errors)
  * @property {?string=} error - Error message for invalid addresses
- */
-/**
- * Unified index for any address type (funded or empty)
- *
- * @typedef {TypeIndex} AnyAddrIndex
  */
 /**
  * Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
@@ -560,7 +564,6 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} fundedTxoCount - Total funded/spent transaction output count (equal since address is empty)
  * @property {Sats} transfered - Total satoshis transferred
  */
-/** @typedef {TypeIndex} EmptyAddrIndex */
 /** @typedef {TypeIndex} EmptyOutputIndex */
 /** @typedef {number} Epoch */
 /**
@@ -602,7 +605,6 @@ ancestors and no descendants (matches mempool.space).
  * @property {number} fundedTxoCount - Number of transaction outputs funded to this address
  * @property {number} spentTxoCount - Number of transaction outputs spent by this address
  */
-/** @typedef {TypeIndex} FundedAddrIndex */
 /** @typedef {number} Halving */
 /**
  * A single hashrate data point.
@@ -690,7 +692,7 @@ ancestors and no descendants (matches mempool.space).
  * Aggregation dimension for querying series. Includes time-based (date, week, month, year),
  * block-based (height, tx_index), and address/output type indexes.
  *
- * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_addr_index"|"p2ms_output_index"|"p2pk33_addr_index"|"p2pk65_addr_index"|"p2pkh_addr_index"|"p2sh_addr_index"|"p2tr_addr_index"|"p2wpkh_addr_index"|"p2wsh_addr_index"|"unknown_output_index"|"funded_addr_index"|"empty_addr_index")} Index
+ * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_output_index"|"op_return_index"|"p2a_addr_index"|"p2ms_output_index"|"p2pk33_addr_index"|"p2pk65_addr_index"|"p2pkh_addr_index"|"p2sh_addr_index"|"p2tr_addr_index"|"p2wpkh_addr_index"|"p2wsh_addr_index"|"unknown_output_index"|"funded_addr_index"|"empty_addr_index"|"extended_empty_addr_index")} Index
  */
 /**
  * Information about an available index and its query aliases
@@ -2455,7 +2457,7 @@ const _i31 = /** @type {const} */ (["p2wpkh_addr_index"]);
 const _i32 = /** @type {const} */ (["p2wsh_addr_index"]);
 const _i33 = /** @type {const} */ (["unknown_output_index"]);
 const _i34 = /** @type {const} */ (["funded_addr_index"]);
-const _i35 = /** @type {const} */ (["empty_addr_index"]);
+const _i35 = /** @type {const} */ (["extended_empty_addr_index"]);
 
 /**
  * Generic series pattern factory.
@@ -2585,7 +2587,7 @@ function createSeriesPattern33(client, name) { return /** @type {SeriesPattern33
 /** @template T @typedef {{ name: string, by: { readonly funded_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern34 */
 /** @template T @param {BitviewClient} client @param {string} name @returns {SeriesPattern34<T>} */
 function createSeriesPattern34(client, name) { return /** @type {SeriesPattern34<T>} */ (_mp(client, name, _i34)); }
-/** @template T @typedef {{ name: string, by: { readonly empty_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
+/** @template T @typedef {{ name: string, by: { readonly extended_empty_addr_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern35 */
 /** @template T @param {BitviewClient} client @param {string} name @returns {SeriesPattern35<T>} */
 function createSeriesPattern35(client, name) { return /** @type {SeriesPattern35<T>} */ (_mp(client, name, _i35)); }
 
@@ -7760,8 +7762,7 @@ function createMatrixPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Addrs
  * @property {SeriesTree_Addrs_Raw} raw
- * @property {SeriesTree_Addrs_Indexes} indexes
- * @property {SeriesTree_Addrs_Data} data
+ * @property {SeriesTree_Addrs_State} state
  * @property {SeriesTree_Addrs_Funded} funded
  * @property {SeriesTree_Addrs_Empty} empty
  * @property {SeriesTree_Addrs_Activity} activity
@@ -7835,23 +7836,17 @@ function createMatrixPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Addrs_Indexes
- * @property {SeriesPattern24<AnyAddrIndex>} p2a
- * @property {SeriesPattern26<AnyAddrIndex>} p2pk33
- * @property {SeriesPattern27<AnyAddrIndex>} p2pk65
- * @property {SeriesPattern28<AnyAddrIndex>} p2pkh
- * @property {SeriesPattern29<AnyAddrIndex>} p2sh
- * @property {SeriesPattern30<AnyAddrIndex>} p2tr
- * @property {SeriesPattern31<AnyAddrIndex>} p2wpkh
- * @property {SeriesPattern32<AnyAddrIndex>} p2wsh
- * @property {SeriesPattern34<FundedAddrIndex>} funded
- * @property {SeriesPattern35<EmptyAddrIndex>} empty
- */
-
-/**
- * @typedef {Object} SeriesTree_Addrs_Data
+ * @typedef {Object} SeriesTree_Addrs_State
+ * @property {SeriesPattern24<AddrState>} p2a
+ * @property {SeriesPattern26<AddrState>} p2pk33
+ * @property {SeriesPattern27<AddrState>} p2pk65
+ * @property {SeriesPattern28<AddrState>} p2pkh
+ * @property {SeriesPattern29<AddrState>} p2sh
+ * @property {SeriesPattern30<AddrState>} p2tr
+ * @property {SeriesPattern31<AddrState>} p2wpkh
+ * @property {SeriesPattern32<AddrState>} p2wsh
  * @property {SeriesPattern34<FundedAddrData>} funded
- * @property {SeriesPattern35<EmptyAddrData>} empty
+ * @property {SeriesPattern35<EmptyAddrData>} extendedEmpty
  */
 
 /**
@@ -15532,7 +15527,8 @@ class BitviewClient extends BitviewClientBase {
     "p2wsh_addr_index",
     "unknown_output_index",
     "funded_addr_index",
-    "empty_addr_index"
+    "empty_addr_index",
+    "extended_empty_addr_index"
   ]);
 
   POOL_ID_TO_POOL_NAME = /** @type {const} */ ({
@@ -17156,21 +17152,17 @@ class BitviewClient extends BitviewClientBase {
             bytes: createSeriesPattern24(this, 'p2a_bytes'),
           },
         },
-        indexes: {
-          p2a: createSeriesPattern24(this, 'any_addr_index'),
-          p2pk33: createSeriesPattern26(this, 'any_addr_index'),
-          p2pk65: createSeriesPattern27(this, 'any_addr_index'),
-          p2pkh: createSeriesPattern28(this, 'any_addr_index'),
-          p2sh: createSeriesPattern29(this, 'any_addr_index'),
-          p2tr: createSeriesPattern30(this, 'any_addr_index'),
-          p2wpkh: createSeriesPattern31(this, 'any_addr_index'),
-          p2wsh: createSeriesPattern32(this, 'any_addr_index'),
-          funded: createSeriesPattern34(this, 'funded_addr_index'),
-          empty: createSeriesPattern35(this, 'empty_addr_index'),
-        },
-        data: {
+        state: {
+          p2a: createSeriesPattern24(this, 'addr_state'),
+          p2pk33: createSeriesPattern26(this, 'addr_state'),
+          p2pk65: createSeriesPattern27(this, 'addr_state'),
+          p2pkh: createSeriesPattern28(this, 'addr_state'),
+          p2sh: createSeriesPattern29(this, 'addr_state'),
+          p2tr: createSeriesPattern30(this, 'addr_state'),
+          p2wpkh: createSeriesPattern31(this, 'addr_state'),
+          p2wsh: createSeriesPattern32(this, 'addr_state'),
           funded: createSeriesPattern34(this, 'funded_addr_data'),
-          empty: createSeriesPattern35(this, 'empty_addr_data'),
+          extendedEmpty: createSeriesPattern35(this, 'extended_empty_addr_data'),
         },
         funded: {
           all: createSeriesPattern1(this, 'addr_count'),

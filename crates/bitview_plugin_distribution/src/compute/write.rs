@@ -2,44 +2,15 @@ use brk_error::Result;
 
 use std::time::Instant;
 
-use brk_types::{EmptyAddrData, FundedAddrData, Height};
+use brk_types::Height;
 use rayon::prelude::*;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, Stamp, VecIndex, WritableVec};
 
 use crate::{
     Vecs,
-    block::{WithAddrDataSource, process_empty_addrs, process_funded_addrs},
     state::{AddrStates, BlockState, UTXOStates},
 };
-
-use super::super::addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVecs};
-
-/// Process address updates from caches.
-///
-/// Applies all accumulated address changes to storage structures:
-/// - Processes empty address transitions
-/// - Processes funded address transitions
-/// - Updates address indexes
-///
-/// Call this before `flush()` to prepare data for writing.
-pub fn process_addr_updates(
-    addrs_data: &mut AddrsDataVecs,
-    addr_indexes: &mut AnyAddrIndexesVecs,
-    empty_updates: AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
-    funded_updates: AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
-) -> Result<()> {
-    info!("Processing addr updates...");
-
-    let i = Instant::now();
-    let empty_result = process_empty_addrs(addrs_data, empty_updates)?;
-    let funded_result = process_funded_addrs(addrs_data, funded_updates)?;
-    addr_indexes.par_batch_update(empty_result, funded_result)?;
-
-    info!("Processed addr updates in {:?}", i.elapsed());
-
-    Ok(())
-}
 
 /// Flush checkpoint to disk (pure I/O, no processing).
 ///
@@ -76,9 +47,8 @@ pub fn write(
         vecs.supply_state.push(block_state.supply);
     }
 
-    vecs.any_addr_indexes
+    vecs.addr_state
         .par_iter_mut()
-        .chain(vecs.addrs_data.par_iter_mut())
         .chain(vecs.addrs.par_iter_stateful_height_mut())
         .chain(
             [

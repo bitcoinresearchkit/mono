@@ -31,7 +31,7 @@ pub fn process_received(
     let mut aggregated: FxHashMap<TypeIndex, AggregatedReceive> =
         FxHashMap::with_capacity_and_hasher(max_type_len, Default::default());
 
-    for (output_type, vec) in received_data.unwrap().into_iter() {
+    for (output_type, vec) in received_data.into_inner().into_iter() {
         if vec.is_empty() {
             continue;
         }

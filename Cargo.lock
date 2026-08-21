@@ -712,6 +712,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "smallvec",
+ "tempfile",
  "tracing",
  "vecdb",
 ]

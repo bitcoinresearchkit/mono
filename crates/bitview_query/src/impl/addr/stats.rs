@@ -2,8 +2,8 @@ use std::str::FromStr;
 
 use brk_error::Error;
 use brk_types::{
-    Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, AnyAddrDataIndexEnum, Dollars,
-    OutputType, TypeIndex,
+    Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, DecodedAddrState, Dollars, OutputType,
+    TypeIndex,
 };
 use vecdb::ReadableVec;
 
@@ -31,32 +31,33 @@ impl Query {
         }
 
         let plugins = self.plugins();
-        let any_addr_index = plugins
+        let state = plugins
             .distribution
-            .any_addr_indexes
+            .addr_state
             .get_once(output_type, type_index)?;
 
-        let (addr_data, realized_price) = match any_addr_index.to_enum() {
-            AnyAddrDataIndexEnum::Funded(index) => {
+        let (addr_data, realized_price) = match state.decode() {
+            DecodedAddrState::Funded(index) => {
                 let data = plugins
                     .distribution
-                    .addrs_data
+                    .addr_state
                     .funded
                     .collect_one(index)
                     .expect("funded address data index should be in bounds");
                 let price = data.realized_price().to_dollars();
                 (data, price)
             }
-            AnyAddrDataIndexEnum::Empty(index) => {
+            DecodedAddrState::ExtendedEmpty(index) => {
                 let data = plugins
                     .distribution
-                    .addrs_data
-                    .empty
+                    .addr_state
+                    .extended_empty
                     .collect_one(index)
-                    .expect("empty address data index should be in bounds")
+                    .expect("extended empty address data index should be in bounds")
                     .into();
                 (data, Dollars::default())
             }
+            DecodedAddrState::Empty(data) => (data.into(), Dollars::default()),
         };
 
         let mempool_stats = self

@@ -32,8 +32,12 @@ OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p
 # Signed satoshis (i64) - for values that can be negative.
 # Used for changes, deltas, profit/loss calculations, etc.
 SatsSigned = int
-# Unified index for any address type (funded or empty)
-AnyAddrIndex = TypeIndex
+# Four-byte primary state stored for every address.
+# 
+# Empty addresses with small lifetime totals are stored inline. The remaining
+# values use the upper two bits as a tag and the lower 30 bits as a sidecar
+# index.
+AddrState = int
 # Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
 Bitcoin = float
 # URL-friendly mining pool identifier
@@ -160,12 +164,10 @@ Day3 = int
 # A single difficulty adjustment entry.
 # Serializes as array: [timestamp, height, difficulty, change_percent]
 DifficultyAdjustmentEntry = List[float]
-EmptyAddrIndex = TypeIndex
 EmptyOutputIndex = TypeIndex
 Epoch = int
 # Exchange rates (USD base, on-chain only — no fiat pairs available)
 ExchangeRates = dict
-FundedAddrIndex = TypeIndex
 Halving = int
 # Hex-encoded string. Transparent wrapper over `String`: serializes
 # as a plain JSON string and derefs to `str`, so anywhere `&str` or
@@ -178,7 +180,7 @@ Hour12 = int
 Hour4 = int
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_addr_index", "p2ms_output_index", "p2pk33_addr_index", "p2pk65_addr_index", "p2pkh_addr_index", "p2sh_addr_index", "p2tr_addr_index", "p2wpkh_addr_index", "p2wsh_addr_index", "unknown_output_index", "funded_addr_index", "empty_addr_index"]
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_addr_index", "p2ms_output_index", "p2pk33_addr_index", "p2pk65_addr_index", "p2pkh_addr_index", "p2sh_addr_index", "p2tr_addr_index", "p2wpkh_addr_index", "p2wsh_addr_index", "unknown_output_index", "funded_addr_index", "empty_addr_index", "extended_empty_addr_index"]
 # Series name
 SeriesName = str
 # Signed parts per million stored as i32.
@@ -2647,7 +2649,7 @@ _i31 = ('p2wpkh_addr_index',)
 _i32 = ('p2wsh_addr_index',)
 _i33 = ('unknown_output_index',)
 _i34 = ('funded_addr_index',)
-_i35 = ('empty_addr_index',)
+_i35 = ('extended_empty_addr_index',)
 
 def _ep(c: BitviewClient, n: str, i: Index) -> SeriesEndpoint[Any]:
     return SeriesEndpoint(c, n, i)
@@ -3096,7 +3098,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'empty_addr_index')
+    def extended_empty_addr_index(self) -> SeriesEndpoint[T]: return _ep(self._c, self._n, 'extended_empty_addr_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -5568,27 +5570,20 @@ class SeriesTree_Addrs_Raw:
         self.p2tr: SeriesTree_Addrs_Raw_P2tr = SeriesTree_Addrs_Raw_P2tr(client)
         self.p2a: SeriesTree_Addrs_Raw_P2a = SeriesTree_Addrs_Raw_P2a(client)
 
-class SeriesTree_Addrs_Indexes:
+class SeriesTree_Addrs_State:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.p2a: SeriesPattern24[AnyAddrIndex] = SeriesPattern24(client, 'any_addr_index')
-        self.p2pk33: SeriesPattern26[AnyAddrIndex] = SeriesPattern26(client, 'any_addr_index')
-        self.p2pk65: SeriesPattern27[AnyAddrIndex] = SeriesPattern27(client, 'any_addr_index')
-        self.p2pkh: SeriesPattern28[AnyAddrIndex] = SeriesPattern28(client, 'any_addr_index')
-        self.p2sh: SeriesPattern29[AnyAddrIndex] = SeriesPattern29(client, 'any_addr_index')
-        self.p2tr: SeriesPattern30[AnyAddrIndex] = SeriesPattern30(client, 'any_addr_index')
-        self.p2wpkh: SeriesPattern31[AnyAddrIndex] = SeriesPattern31(client, 'any_addr_index')
-        self.p2wsh: SeriesPattern32[AnyAddrIndex] = SeriesPattern32(client, 'any_addr_index')
-        self.funded: SeriesPattern34[FundedAddrIndex] = SeriesPattern34(client, 'funded_addr_index')
-        self.empty: SeriesPattern35[EmptyAddrIndex] = SeriesPattern35(client, 'empty_addr_index')
-
-class SeriesTree_Addrs_Data:
-    """Series tree node."""
-
-    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.p2a: SeriesPattern24[AddrState] = SeriesPattern24(client, 'addr_state')
+        self.p2pk33: SeriesPattern26[AddrState] = SeriesPattern26(client, 'addr_state')
+        self.p2pk65: SeriesPattern27[AddrState] = SeriesPattern27(client, 'addr_state')
+        self.p2pkh: SeriesPattern28[AddrState] = SeriesPattern28(client, 'addr_state')
+        self.p2sh: SeriesPattern29[AddrState] = SeriesPattern29(client, 'addr_state')
+        self.p2tr: SeriesPattern30[AddrState] = SeriesPattern30(client, 'addr_state')
+        self.p2wpkh: SeriesPattern31[AddrState] = SeriesPattern31(client, 'addr_state')
+        self.p2wsh: SeriesPattern32[AddrState] = SeriesPattern32(client, 'addr_state')
         self.funded: SeriesPattern34[FundedAddrData] = SeriesPattern34(client, 'funded_addr_data')
-        self.empty: SeriesPattern35[EmptyAddrData] = SeriesPattern35(client, 'empty_addr_data')
+        self.extended_empty: SeriesPattern35[EmptyAddrData] = SeriesPattern35(client, 'extended_empty_addr_data')
 
 class SeriesTree_Addrs_Funded_Balance_Range:
     """Series tree node."""
@@ -6017,8 +6012,7 @@ class SeriesTree_Addrs:
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.raw: SeriesTree_Addrs_Raw = SeriesTree_Addrs_Raw(client)
-        self.indexes: SeriesTree_Addrs_Indexes = SeriesTree_Addrs_Indexes(client)
-        self.data: SeriesTree_Addrs_Data = SeriesTree_Addrs_Data(client)
+        self.state: SeriesTree_Addrs_State = SeriesTree_Addrs_State(client)
         self.funded: SeriesTree_Addrs_Funded = SeriesTree_Addrs_Funded(client)
         self.empty: SeriesTree_Addrs_Empty = SeriesTree_Addrs_Empty(client)
         self.activity: SeriesTree_Addrs_Activity = SeriesTree_Addrs_Activity(client)
@@ -13909,7 +13903,8 @@ class BitviewClient(BitviewClientBase):
       "p2wsh_addr_index",
       "unknown_output_index",
       "funded_addr_index",
-      "empty_addr_index"
+      "empty_addr_index",
+      "extended_empty_addr_index"
     ]
 
     POOL_ID_TO_POOL_NAME = {

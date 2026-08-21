@@ -4,7 +4,9 @@ Bitcoin price data fetcher with multi-source fallback.
 
 ## What It Enables
 
-Fetch OHLC (Open/High/Low/Close) price data from Binance, Kraken, or BRK's own API. Automatically falls back between sources on failure, with 12-hour retry persistence for transient network issues.
+Fetch OHLC (Open/High/Low/Close) price data from Binance, Kraken, or the public
+Bitview API. Automatically falls back between sources on failure, with up to
+12 hours of retries when every source is unavailable.
 
 ## Key Features
 

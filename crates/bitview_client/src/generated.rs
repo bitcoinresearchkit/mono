@@ -711,7 +711,7 @@ const _I31: &[Index] = &[Index::P2WPKHAddrIndex];
 const _I32: &[Index] = &[Index::P2WSHAddrIndex];
 const _I33: &[Index] = &[Index::UnknownOutputIndex];
 const _I34: &[Index] = &[Index::FundedAddrIndex];
-const _I35: &[Index] = &[Index::EmptyAddrIndex];
+const _I35: &[Index] = &[Index::ExtendedEmptyAddrIndex];
 
 #[inline]
 fn _ep<T: DeserializeOwned>(
@@ -2424,8 +2424,8 @@ pub struct SeriesPattern35By<T> {
     _marker: std::marker::PhantomData<T>,
 }
 impl<T: DeserializeOwned> SeriesPattern35By<T> {
-    pub fn empty_addr_index(&self) -> SeriesEndpoint<T> {
-        _ep(&self.client, &self.name, Index::EmptyAddrIndex)
+    pub fn extended_empty_addr_index(&self) -> SeriesEndpoint<T> {
+        _ep(&self.client, &self.name, Index::ExtendedEmptyAddrIndex)
     }
 }
 
@@ -9082,8 +9082,7 @@ impl SeriesTree_Outputs_Value {
 /// Series tree node.
 pub struct SeriesTree_Addrs {
     pub raw: SeriesTree_Addrs_Raw,
-    pub indexes: SeriesTree_Addrs_Indexes,
-    pub data: SeriesTree_Addrs_Data,
+    pub state: SeriesTree_Addrs_State,
     pub funded: SeriesTree_Addrs_Funded,
     pub empty: SeriesTree_Addrs_Empty,
     pub activity: SeriesTree_Addrs_Activity,
@@ -9100,8 +9099,7 @@ impl SeriesTree_Addrs {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             raw: SeriesTree_Addrs_Raw::new(client.clone(), format!("{base_path}_raw")),
-            indexes: SeriesTree_Addrs_Indexes::new(client.clone(), format!("{base_path}_indexes")),
-            data: SeriesTree_Addrs_Data::new(client.clone(), format!("{base_path}_data")),
+            state: SeriesTree_Addrs_State::new(client.clone(), format!("{base_path}_state")),
             funded: SeriesTree_Addrs_Funded::new(client.clone(), format!("{base_path}_funded")),
             empty: SeriesTree_Addrs_Empty::new(client.clone(), format!("{base_path}_empty")),
             activity: SeriesTree_Addrs_Activity::new(
@@ -9279,47 +9277,35 @@ impl SeriesTree_Addrs_Raw_P2a {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Addrs_Indexes {
-    pub p2a: SeriesPattern24<AnyAddrIndex>,
-    pub p2pk33: SeriesPattern26<AnyAddrIndex>,
-    pub p2pk65: SeriesPattern27<AnyAddrIndex>,
-    pub p2pkh: SeriesPattern28<AnyAddrIndex>,
-    pub p2sh: SeriesPattern29<AnyAddrIndex>,
-    pub p2tr: SeriesPattern30<AnyAddrIndex>,
-    pub p2wpkh: SeriesPattern31<AnyAddrIndex>,
-    pub p2wsh: SeriesPattern32<AnyAddrIndex>,
-    pub funded: SeriesPattern34<FundedAddrIndex>,
-    pub empty: SeriesPattern35<EmptyAddrIndex>,
-}
-
-impl SeriesTree_Addrs_Indexes {
-    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
-        Self {
-            p2a: SeriesPattern24::new(client.clone(), "any_addr_index".to_string()),
-            p2pk33: SeriesPattern26::new(client.clone(), "any_addr_index".to_string()),
-            p2pk65: SeriesPattern27::new(client.clone(), "any_addr_index".to_string()),
-            p2pkh: SeriesPattern28::new(client.clone(), "any_addr_index".to_string()),
-            p2sh: SeriesPattern29::new(client.clone(), "any_addr_index".to_string()),
-            p2tr: SeriesPattern30::new(client.clone(), "any_addr_index".to_string()),
-            p2wpkh: SeriesPattern31::new(client.clone(), "any_addr_index".to_string()),
-            p2wsh: SeriesPattern32::new(client.clone(), "any_addr_index".to_string()),
-            funded: SeriesPattern34::new(client.clone(), "funded_addr_index".to_string()),
-            empty: SeriesPattern35::new(client.clone(), "empty_addr_index".to_string()),
-        }
-    }
-}
-
-/// Series tree node.
-pub struct SeriesTree_Addrs_Data {
+pub struct SeriesTree_Addrs_State {
+    pub p2a: SeriesPattern24<AddrState>,
+    pub p2pk33: SeriesPattern26<AddrState>,
+    pub p2pk65: SeriesPattern27<AddrState>,
+    pub p2pkh: SeriesPattern28<AddrState>,
+    pub p2sh: SeriesPattern29<AddrState>,
+    pub p2tr: SeriesPattern30<AddrState>,
+    pub p2wpkh: SeriesPattern31<AddrState>,
+    pub p2wsh: SeriesPattern32<AddrState>,
     pub funded: SeriesPattern34<FundedAddrData>,
-    pub empty: SeriesPattern35<EmptyAddrData>,
+    pub extended_empty: SeriesPattern35<EmptyAddrData>,
 }
 
-impl SeriesTree_Addrs_Data {
+impl SeriesTree_Addrs_State {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
+            p2a: SeriesPattern24::new(client.clone(), "addr_state".to_string()),
+            p2pk33: SeriesPattern26::new(client.clone(), "addr_state".to_string()),
+            p2pk65: SeriesPattern27::new(client.clone(), "addr_state".to_string()),
+            p2pkh: SeriesPattern28::new(client.clone(), "addr_state".to_string()),
+            p2sh: SeriesPattern29::new(client.clone(), "addr_state".to_string()),
+            p2tr: SeriesPattern30::new(client.clone(), "addr_state".to_string()),
+            p2wpkh: SeriesPattern31::new(client.clone(), "addr_state".to_string()),
+            p2wsh: SeriesPattern32::new(client.clone(), "addr_state".to_string()),
             funded: SeriesPattern34::new(client.clone(), "funded_addr_data".to_string()),
-            empty: SeriesPattern35::new(client.clone(), "empty_addr_data".to_string()),
+            extended_empty: SeriesPattern35::new(
+                client.clone(),
+                "extended_empty_addr_data".to_string(),
+            ),
         }
     }
 }

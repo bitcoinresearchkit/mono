@@ -25,9 +25,12 @@ pub fn main() -> Result<()> {
     let plugins = DefaultPlugins::import(context, &reader)?;
     let distribution = plugins.distribution();
 
-    // Test empty_addr_data (underlying BytesVec) - direct access
-    let empty_data = &distribution.addrs_data.empty;
-    println!("empty_addr_data (BytesVec) len: {}", empty_data.len());
+    // Test extended_empty_addr_data (underlying OverflowVec) - direct access
+    let empty_data = &distribution.addr_state.extended_empty;
+    println!(
+        "extended_empty_addr_data (OverflowVec) len: {}",
+        empty_data.len()
+    );
 
     let start = Instant::now();
     let mut buf = Vec::new();
@@ -36,28 +39,14 @@ pub fn main() -> Result<()> {
         "empty_addr_data last item JSON: {}",
         String::from_utf8_lossy(&buf)
     );
-    println!("Time for BytesVec write_json: {:?}", start.elapsed());
-
-    // Test empty_addr_index (LazyVec wrapper) - computed access
-    let empty_index = &distribution.addrs.empty_index;
-    println!("\nempty_addr_index (LazyVec) len: {}", empty_index.len());
-
-    let start = Instant::now();
-    let mut buf = Vec::new();
-    empty_index.write_json(
-        Some(empty_index.len() - 1),
-        Some(empty_index.len()),
-        &mut buf,
-    )?;
-    println!(
-        "empty_addr_index last item JSON: {}",
-        String::from_utf8_lossy(&buf)
-    );
-    println!("Time for LazyVec write_json: {:?}", start.elapsed());
+    println!("Time for OverflowVec write_json: {:?}", start.elapsed());
 
     // Compare with funded versions
-    let funded_data = &distribution.addrs_data.funded;
-    println!("\nfunded_addr_data (BytesVec) len: {}", funded_data.len());
+    let funded_data = &distribution.addr_state.funded;
+    println!(
+        "\nfunded_addr_data (OverflowVec) len: {}",
+        funded_data.len()
+    );
 
     let start = Instant::now();
     let mut buf = Vec::new();
@@ -70,7 +59,7 @@ pub fn main() -> Result<()> {
         "funded_addr_data last item JSON: {}",
         String::from_utf8_lossy(&buf)
     );
-    println!("Time for BytesVec write_json: {:?}", start.elapsed());
+    println!("Time for OverflowVec write_json: {:?}", start.elapsed());
 
     Ok(())
 }

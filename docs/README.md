@@ -1,111 +1,139 @@
-# Bitcoin Research Kit
+# Bitview and the Bitcoin Research Kit
 
 [![MIT Licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/bitcoinresearchkit/brk/blob/main/LICENSE)
-[![Crates.io](https://img.shields.io/crates/v/brk.svg)](https://crates.io/crates/brk)
-[![docs.rs](https://img.shields.io/docsrs/brk)](https://docs.rs/brk)
+[![Bitview](https://img.shields.io/crates/v/bitviewd.svg?label=bitviewd)](https://crates.io/crates/bitviewd)
+[![BRK](https://img.shields.io/crates/v/brk.svg?label=brk)](https://crates.io/crates/brk)
 [![Supported by OpenSats](https://img.shields.io/badge/supported%20by-opensats-ff7b00)](https://opensats.org/)
 [![Discord](https://img.shields.io/discord/1350431684562124850?label=Discord&logo=discord&color=5865F2)](https://discord.gg/WACpShCB7M)
-[![X](https://img.shields.io/badge/@_nym21_-000000?logo=x)](https://x.com/_nym21_)
 
-> "Shout out to Bitcoin Research Kit. [...] Couldn't recommend them highly enough."
-> — James Check (CheckOnChain), [What Bitcoin Did #1000](https://www.whatbitcoindid.com/episodes/wbd1000-checkmate)
+This monorepo contains two layers:
 
-Open-source Bitcoin data toolkit that can parse blocks, index the chain, compute metrics, serve data and render it, all from a Bitcoin Core node. It combines what [Glassnode](https://glassnode.com) and [mempool.space](https://mempool.space) do separately into a single self-hostable package, with a built-in price oracle inspired by [UTXO Oracle](https://utxo.live/oracle/).
+- **Bitcoin Research Kit (BRK):** reusable Rust primitives for reading Bitcoin
+  Core data, RPC, mempool tracking, storage, domain types, and the on-chain
+  price oracle.
+- **Bitview:** the self-hostable application that composes BRK with a typed
+  indexer and analytics plugin graph, query layer, REST server, website, and
+  generated clients.
 
-[Bitview](https://bitview.space) is the official free hosted instance of BRK.
-Stateless, read-only MCP access is available at
-[mcp.bitview.space](https://mcp.bitview.space/), with no authentication required.
+Together they turn a Bitcoin Core node into a local Bitcoin data platform for
+chain exploration, mempool data, and on-chain research. The official free
+hosted instance is [bitview.space](https://bitview.space).
 
-## Data
+```text
+Bitcoin Core ──> BRK reader, RPC, and mempool ──> Bitview plugins
+                                                      │
+                                                      v
+                                            Query + REST server
+                                              │      │      │
+                                              v      v      v
+                                           Website Clients  MCP
+```
 
-**Zero external dependencies.** BRK needs only a Bitcoin Core node. 8,000+ metrics across 15 time resolutions, all computed locally from your own copy of the blockchain. Historical prices are built in, live price from your mempool. Your node, your data.
+See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 
-**Blockchain:** Blocks, transactions, addresses, UTXOs.
+## Repository map
 
-**Metrics:** Supply distributions, holder cohorts, network activity, fee markets, mining, and market indicators.
+| Path | Purpose |
+|---|---|
+| [`crates/brk`](../crates/brk) and `crates/brk_*` | BRK umbrella crate and reusable Bitcoin primitives |
+| `crates/bitview_plugin_*` | Official indexing and analytics plugins |
+| `crates/bitview*` | Plugin contract, runtime, composition, query/server stack, daemon, code generation, and Rust clients |
+| `crates/{vecdb,rawdb,byteview,fjall,lsm-tree}` | Storage and data infrastructure |
+| [`examples/custom_plugin`](../examples/custom_plugin) | Runnable external-plugin and custom-composition example |
+| [`modules/bitview-client`](../modules/bitview-client) | JavaScript/TypeScript client |
+| [`packages/bitview_client`](../packages/bitview_client) | Python client |
+| `website*` and `experiments` | Browser applications and research visualizations |
+| `docs`, `benches`, `docker`, and `scripts` | Project documentation, measurements, packaging, and maintenance tooling |
 
-**Indexes:** Date, height, halving epoch, address type, UTXO age.
+Each publishable crate or client owns its detailed usage documentation. The
+main README is only the map and common entrypoint.
 
-**Mempool:** Fee estimation, projected blocks, unconfirmed transactions.
+## Use Bitview
 
-## Usage
+The hosted website, API, and MCP endpoint require no account or authentication:
 
-### Website
-
-Browse metrics and charts at [bitview.space](https://bitview.space), no signup required.
-
-### API
+- [Website](https://bitview.space)
+- [Interactive API](https://bitview.space/api)
+- [OpenAPI](https://bitview.space/openapi.json)
+- [MCP](https://mcp.bitview.space/)
+- [CLI](https://crates.io/crates/bitview_cli)
+- [JavaScript](https://www.npmjs.com/package/bitview-client)
+- [Python](https://pypi.org/project/bitview-client)
+- [Rust](https://crates.io/crates/bitview_client)
 
 ```bash
 curl https://bitview.space/api/mempool/price
+curl https://bitview.space/api/series/count
 ```
 
-Query metrics and blockchain data in JSON or CSV. No rate limit.
+The series catalog is discovered at runtime rather than documented as a
+hard-coded count. Use `/api/series/search?q=<concept>` to find identifiers.
 
-[Documentation](https://bitview.space/api) · [CLI](https://crates.io/crates/bitview_cli) · [JavaScript](https://www.npmjs.com/package/bitview-client) · [Python](https://pypi.org/project/bitview-client) · [Rust](https://crates.io/crates/bitview_client) · [llms.txt](https://bitview.space/llms.txt) · [LLM-friendly schema](https://bitview.space/api.json)
-
-### MCP
-
-Connect any Streamable HTTP MCP client to:
-
-```text
-https://mcp.bitview.space/
-```
-
-The server is stateless, read-only, and requires no authentication. Its tools
-are generated from the same OpenAPI operations as the typed clients.
-
-### Self-host
+## Self-host Bitview
 
 ```bash
-cargo install --locked bitviewd && bitviewd
+cargo install --locked bitviewd
+bitviewd
 ```
 
-Run your own website and API. All you need is Bitcoin Core.
+The default composition requires Linux or macOS, a Bitcoin Core node with RPC
+and readable `blk*.dat` files, about 300 GiB for Bitview plus Bitcoin Core
+storage and growth headroom, and 12+ GB of RAM. The website and API listen on
+[localhost:3110](http://localhost:3110).
 
-> **Note:** BRK uses [sparse files](https://en.wikipedia.org/wiki/Sparse_file). Tools like `ls -l` or Finder report the logical file size (>1 TB), not actual disk usage (~350 GB). Use `du -sh` to see real usage.
+Bitview uses sparse files, so logical size is much larger than allocated disk
+space. Use `du -sh ~/.bitview` to measure actual usage.
 
-[Guide](https://github.com/bitcoinresearchkit/brk/blob/main/crates/bitviewd/README.md) · [Professional hosting](./PROFESSIONAL_HOSTING.md)
+See the [`bitviewd` guide](../crates/bitviewd) for installation, configuration,
+initial sync, storage, and custom compositions.
 
-### Library
+## Build with BRK
+
+Use the umbrella crate for BRK primitives without the full Bitview application:
+
+```toml
+[dependencies]
+brk = { version = "0.11", features = ["reader", "rpc", "types"] }
+```
+
+See the [`brk` crate guide](../crates/brk) for its feature map. For a new
+Bitview metric or composition, start with the
+[custom plugin example](../examples/custom_plugin) and the
+[`bitview_plugin` contract](../crates/bitview_plugin).
+
+## Develop
+
+The repository pins its Rust toolchain in `rust-toolchain.toml`.
 
 ```bash
-cargo add brk
+cargo check --workspace
+cargo test --workspace
 ```
 
-Build custom Bitcoin tooling from BRK primitives such as the block reader,
-domain types, RPC client, oracle, and storage components. Use Bitview for the
-composed indexer, compute plugins, query layer, and server.
+## Documentation
 
-[Reference](https://docs.rs/brk) · [Architecture](./ARCHITECTURE.md)
-
-## Supporters
-
-- [OpenSats](https://opensats.org/) (December 2024 - June 2027)
-
-[Become a supporter](mailto:support@bitcoinresearchkit.org)
-
-## Donations
-
-<a href="https://x.com/_Checkmatey_"><img src="https://pbs.twimg.com/profile_images/1657255419172253698/ncG0Gt8e_400x400.jpg" width="40" alt="_Checkmatey_" title="_Checkmatey_" style="border-radius:50%" /></a>
-<a href="https://x.com/JohanMBergman"><img src="https://pbs.twimg.com/profile_images/1958587470120988673/7rlY5csu_400x400.jpg" width="40" alt="Johan Bergman" title="Johan Bergman" style="border-radius:50%" /></a>
-<a href="https://x.com/alonshvartsman"><img src="https://pbs.twimg.com/profile_images/2005689891028406272/8Qgmnurs_400x400.jpg" width="40" alt="Alon Shvartsman" title="Alon Shvartsman" style="border-radius:50%" /></a>
-<a href="https://x.com/clearmined1"><img src="https://pbs.twimg.com/profile_images/1657777901830541313/6OAaR8XF_400x400.png" width="40" alt="ClearMined" title="ClearMined" style="border-radius:50%" /></a>
-
-<img src="./qr.png" alt="Bitcoin donate QR code" width="120" />
-
-[`bc1q09 8zsm89 m7kgyz e338vf ejhpdt 92ua9p 3peuve`](bitcoin:bc1q098zsm89m7kgyze338vfejhpdt92ua9p3peuve)
-
-## Links
-
+- [Architecture](./ARCHITECTURE.md)
 - [Changelog](./CHANGELOG.md)
-- [Contributing](https://github.com/bitcoinresearchkit/brk/issues)
+- [Self-hosting](../crates/bitviewd)
+- [BRK crates](../crates/brk)
+- [Plugin contract](../crates/bitview_plugin)
+- [Custom plugin example](../examples/custom_plugin)
+- [Professional hosting](./PROFESSIONAL_HOSTING.md)
 
-## Community
+## Support and community
 
-- [Discord](https://discord.gg/WACpShCB7M)
-- [X](https://x.com/_nym21_)
-- [Nostr](https://primal.net/p/nprofile1qqsfw5dacngjlahye34krvgz7u0yghhjgk7gxzl5ptm9v6n2y3sn03sqxu2e6)
+BRK is supported by [OpenSats](https://opensats.org/) from December 2024 through
+June 2027.
+
+[Discord](https://discord.gg/WACpShCB7M) ·
+[X](https://x.com/_nym21_) ·
+[Nostr](https://primal.net/p/nprofile1qqsfw5dacngjlahye34krvgz7u0yghhjgk7gxzl5ptm9v6n2y3sn03sqxu2e6) ·
+[Issues](https://github.com/bitcoinresearchkit/brk/issues) ·
+[Support](mailto:support@bitcoinresearchkit.org)
+
+<img src="./qr.png" alt="Bitcoin donation QR code" width="120" />
+
+[`bc1pkqvzn3pepug695xtvwmpm0sjd6n9j55v792cwfruzkqzrf2jn47s3hq0ts`](bitcoin:bc1pkqvzn3pepug695xtvwmpm0sjd6n9j55v792cwfruzkqzrf2jn47s3hq0ts)
 
 ## License
 

@@ -18,14 +18,15 @@ For AI clients, the official stateless, read-only MCP endpoint is
 - Linux or macOS
 - Bitcoin Core with `server=1` in `bitcoin.conf`
 - Access to `blk*.dat` files
-- [~400 GB disk space](https://bitview.space/api/server/disk) (see [Disk usage](#disk-usage))
+- About 300 GiB of disk space for the current default composition, plus Bitcoin
+  Core storage and growth headroom (see [Disk usage](#disk-usage))
 - [12+ GB RAM](https://github.com/bitcoinresearchkit/benches#benchmarks)
 
 ## Disk usage
 
-BRK storage uses [sparse files](https://en.wikipedia.org/wiki/Sparse_file).
+Bitview storage uses [sparse files](https://en.wikipedia.org/wiki/Sparse_file).
 Tools like `ls -l` or Finder report the logical file size (>1 TB), not actual
-disk usage (~350 GB). Use `du -sh` to see real usage.
+disk usage. Use `du -sh ~/.bitview` to see allocated space.
 
 ## Install
 

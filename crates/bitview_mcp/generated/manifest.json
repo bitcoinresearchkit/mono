@@ -6711,7 +6711,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "type": "string"
             },
@@ -10760,7 +10761,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "examples": [
                 "day1"
@@ -10862,7 +10864,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "type": "string"
             },
@@ -11042,7 +11045,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "examples": [
                 "day1"
@@ -11148,7 +11152,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "type": "string"
             },
@@ -11410,7 +11415,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "type": "string"
             },
@@ -11518,7 +11524,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "examples": [
                 "day1"
@@ -11620,7 +11627,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "examples": [
                 "day1"
@@ -11725,7 +11733,8 @@
                 "p2wsh_addr_index",
                 "unknown_output_index",
                 "funded_addr_index",
-                "empty_addr_index"
+                "empty_addr_index",
+                "extended_empty_addr_index"
               ],
               "examples": [
                 "day1"

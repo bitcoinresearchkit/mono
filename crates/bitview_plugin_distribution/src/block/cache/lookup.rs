@@ -1,8 +1,8 @@
+use std::collections::hash_map::Entry;
+
 use brk_types::{EmptyAddrData, FundedAddrData, OutputType, TypeIndex};
 
-use crate::addr::AddrTypeToTypeIndexMap;
-
-use super::super::cohort::WithAddrDataSource;
+use crate::addr::{AddrTypeToTypeIndexMap, SourcedAddrData};
 
 /// Tracking status of an address - determines cohort update strategy.
 #[derive(Clone, Copy)]
@@ -17,8 +17,8 @@ pub enum TrackingStatus {
 
 /// Context for looking up and storing address data during block processing.
 pub struct AddrLookup<'a> {
-    pub funded: &'a mut AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
-    pub empty: &'a mut AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
+    pub funded: &'a mut AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
+    pub empty: &'a mut AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
 }
 
 impl<'a> AddrLookup<'a> {
@@ -26,9 +26,7 @@ impl<'a> AddrLookup<'a> {
         &mut self,
         output_type: OutputType,
         type_index: TypeIndex,
-    ) -> (&mut WithAddrDataSource<FundedAddrData>, TrackingStatus) {
-        use std::collections::hash_map::Entry;
-
+    ) -> (&mut SourcedAddrData<FundedAddrData>, TrackingStatus) {
         let map = self.funded.get_mut(output_type).unwrap();
 
         match map.entry(type_index) {
@@ -41,18 +39,20 @@ impl<'a> AddrLookup<'a> {
                 // - If wrapper is New AND funded_txo_count > 0: received in previous
                 //   block but still in cache (no flush) → Tracked
                 // - If wrapper is FromFunded: funded from storage → Tracked
-                // - If wrapper is FromEmpty AND utxo_count == 0: still empty → WasEmpty
-                // - If wrapper is FromEmpty AND utxo_count > 0: already received → Tracked
+                // - If wrapper came from either empty representation and
+                //   utxo_count == 0: still empty → WasEmpty
+                // - Otherwise it was already received during this interval → Tracked
                 let status = match entry.get() {
-                    WithAddrDataSource::New(data) => {
+                    SourcedAddrData::New(data) => {
                         if data.funded_txo_count == 0 {
                             TrackingStatus::New
                         } else {
                             TrackingStatus::Tracked
                         }
                     }
-                    WithAddrDataSource::FromFunded(..) => TrackingStatus::Tracked,
-                    WithAddrDataSource::FromEmpty(_, data) => {
+                    SourcedAddrData::FromFunded(..) => TrackingStatus::Tracked,
+                    SourcedAddrData::FromInlineEmpty(data)
+                    | SourcedAddrData::FromExtendedEmpty(_, data) => {
                         if data.utxo_count() == 0 {
                             TrackingStatus::WasEmpty
                         } else {
@@ -69,7 +69,7 @@ impl<'a> AddrLookup<'a> {
                     return (entry.insert(empty_data.into()), TrackingStatus::WasEmpty);
                 }
                 (
-                    entry.insert(WithAddrDataSource::New(FundedAddrData::default())),
+                    entry.insert(SourcedAddrData::New(FundedAddrData::default())),
                     TrackingStatus::New,
                 )
             }
@@ -81,7 +81,7 @@ impl<'a> AddrLookup<'a> {
         &mut self,
         output_type: OutputType,
         type_index: TypeIndex,
-    ) -> &mut WithAddrDataSource<FundedAddrData> {
+    ) -> &mut SourcedAddrData<FundedAddrData> {
         self.funded
             .get_mut(output_type)
             .unwrap()

@@ -1,16 +1,14 @@
 use bitview_cohort::ByAddrType;
-use brk_types::{
-    AnyAddrDataIndexEnum, EmptyAddrData, FundedAddrData, OutputType, TxIndex, TypeIndex,
-};
+use brk_types::{DecodedAddrState, EmptyAddrData, FundedAddrData, OutputType, TxIndex, TypeIndex};
 use rayon::prelude::*;
 use smallvec::SmallVec;
 
 use crate::{
-    addr::{AddrTypeToTypeIndexMap, AddrsDataVecs, AnyAddrIndexesVecs},
+    addr::{AddrStateVecs, AddrTypeToTypeIndexMap, SourcedAddrData},
     compute::AddrReaders,
 };
 
-use super::super::cohort::{WithAddrDataSource, update_tx_counts};
+use super::super::cohort::update_tx_counts;
 use super::lookup::AddrLookup;
 
 const MIN_PARALLEL_LOADS: usize = 128;
@@ -53,27 +51,27 @@ impl BlockAddress {
         self,
         first_addr_indexes: &ByAddrType<TypeIndex>,
         vr: &AddrReaders,
-        any_addr_indexes: &AnyAddrIndexesVecs,
-        addrs_data: &AddrsDataVecs,
-    ) -> WithAddrDataSource<FundedAddrData> {
+        state: &AddrStateVecs,
+    ) -> SourcedAddrData<FundedAddrData> {
         let addr_type = self.addr_type();
         let type_index = self.type_index();
         let first = *first_addr_indexes.get(addr_type).unwrap();
 
         if first <= type_index {
-            return WithAddrDataSource::New(FundedAddrData::default());
+            return SourcedAddrData::New(FundedAddrData::default());
         }
 
-        let any_addr_index = vr.any_addr_index(any_addr_indexes, addr_type, type_index);
-
-        match any_addr_index.to_enum() {
-            AnyAddrDataIndexEnum::Funded(funded_index) => {
-                let funded_data = vr.funded_data(addrs_data, funded_index);
-                WithAddrDataSource::FromFunded(funded_index, funded_data)
+        match vr.state(state, addr_type, type_index).decode() {
+            DecodedAddrState::Funded(funded_index) => {
+                let funded_data = vr.funded_data(state, funded_index);
+                SourcedAddrData::FromFunded(funded_index, funded_data)
             }
-            AnyAddrDataIndexEnum::Empty(empty_index) => {
-                let empty_data = vr.empty_data(addrs_data, empty_index);
-                WithAddrDataSource::FromEmpty(empty_index, empty_data.into())
+            DecodedAddrState::ExtendedEmpty(empty_index) => {
+                let empty_data = vr.extended_empty_data(state, empty_index);
+                SourcedAddrData::FromExtendedEmpty(empty_index, empty_data.into())
+            }
+            DecodedAddrState::Empty(empty_data) => {
+                SourcedAddrData::FromInlineEmpty(empty_data.into())
             }
         }
     }
@@ -82,13 +80,13 @@ impl BlockAddress {
 /// Cache for address data within a flush interval.
 pub struct AddrCache {
     /// Addrs with non-zero balance
-    funded: AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
+    funded: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     /// Addrs that became empty (zero balance)
-    empty: AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
+    empty: AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
     /// Reusable scratch space for the unique addresses touched by one block.
     block_addresses: Vec<BlockAddress>,
     /// Reusable scratch space for their loaded sources.
-    block_sources: Vec<WithAddrDataSource<FundedAddrData>>,
+    block_sources: Vec<SourcedAddrData<FundedAddrData>>,
 }
 
 impl Default for AddrCache {
@@ -125,8 +123,7 @@ impl AddrCache {
         addresses: impl Iterator<Item = (OutputType, TypeIndex)>,
         first_addr_indexes: &ByAddrType<TypeIndex>,
         vr: &AddrReaders,
-        any_addr_indexes: &AnyAddrIndexesVecs,
-        addrs_data: &AddrsDataVecs,
+        state: &AddrStateVecs,
     ) {
         self.block_addresses.clear();
         for (addr_type, type_index) in addresses {
@@ -146,15 +143,16 @@ impl AddrCache {
         self.block_sources.clear();
         if self.block_addresses.len() < MIN_PARALLEL_LOADS {
             self.block_sources.extend(
-                self.block_addresses.iter().copied().map(|address| {
-                    address.load(first_addr_indexes, vr, any_addr_indexes, addrs_data)
-                }),
+                self.block_addresses
+                    .iter()
+                    .copied()
+                    .map(|address| address.load(first_addr_indexes, vr, state)),
             );
         } else {
             self.block_addresses
                 .par_iter()
                 .copied()
-                .map(|address| address.load(first_addr_indexes, vr, any_addr_indexes, addrs_data))
+                .map(|address| address.load(first_addr_indexes, vr, state))
                 .collect_into_vec(&mut self.block_sources);
         }
 
@@ -190,8 +188,8 @@ impl AddrCache {
     pub fn take(
         &mut self,
     ) -> (
-        AddrTypeToTypeIndexMap<WithAddrDataSource<EmptyAddrData>>,
-        AddrTypeToTypeIndexMap<WithAddrDataSource<FundedAddrData>>,
+        AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
+        AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     ) {
         (
             std::mem::take(&mut self.empty),

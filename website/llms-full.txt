@@ -5,7 +5,7 @@
 - Version: `v0.11.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 61038
+- Metrics: 61036
 - Operations: 97
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
@@ -1772,7 +1772,7 @@ curl -s "https://bitview.space/version"
 
 ### `Index`
 
-`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_addr_index | p2ms_output_index | p2pk33_addr_index | p2pk65_addr_index | p2pkh_addr_index | p2sh_addr_index | p2tr_addr_index | p2wpkh_addr_index | p2wsh_addr_index | unknown_output_index | funded_addr_index | empty_addr_index`
+`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_output_index | op_return_index | p2a_addr_index | p2ms_output_index | p2pk33_addr_index | p2pk65_addr_index | p2pkh_addr_index | p2sh_addr_index | p2tr_addr_index | p2wpkh_addr_index | p2wsh_addr_index | unknown_output_index | funded_addr_index | empty_addr_index | extended_empty_addr_index`
 
 ### `MempoolBlock`
 

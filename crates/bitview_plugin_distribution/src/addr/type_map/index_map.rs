@@ -28,15 +28,20 @@ impl<T> Default for AddrTypeToTypeIndexMap<T> {
 impl<T> AddrTypeToTypeIndexMap<T> {
     /// Create with pre-allocated capacity per address type.
     pub fn with_capacity(capacity: usize) -> Self {
+        Self::with_capacities(ByAddrType::from_fn(|_| capacity))
+    }
+
+    /// Create with an exact pre-allocated capacity for each address type.
+    pub fn with_capacities(capacities: ByAddrType<usize>) -> Self {
         Self(ByAddrType {
-            p2a: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2pk33: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2pk65: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2pkh: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2sh: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2tr: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2wpkh: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
-            p2wsh: FxHashMap::with_capacity_and_hasher(capacity, Default::default()),
+            p2a: FxHashMap::with_capacity_and_hasher(capacities.p2a, Default::default()),
+            p2pk33: FxHashMap::with_capacity_and_hasher(capacities.p2pk33, Default::default()),
+            p2pk65: FxHashMap::with_capacity_and_hasher(capacities.p2pk65, Default::default()),
+            p2pkh: FxHashMap::with_capacity_and_hasher(capacities.p2pkh, Default::default()),
+            p2sh: FxHashMap::with_capacity_and_hasher(capacities.p2sh, Default::default()),
+            p2tr: FxHashMap::with_capacity_and_hasher(capacities.p2tr, Default::default()),
+            p2wpkh: FxHashMap::with_capacity_and_hasher(capacities.p2wpkh, Default::default()),
+            p2wsh: FxHashMap::with_capacity_and_hasher(capacities.p2wsh, Default::default()),
         })
     }
 

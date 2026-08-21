@@ -66,10 +66,6 @@ let result = async_query.run(|q| q.block_by_height(height)).await;
 let height = async_query.inner().height();
 ```
 
-## Recommended: mimalloc v3
-
-Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator. Query operations involve many short-lived allocations; mimalloc handles this with less fragmentation and lower peak memory than the system allocator.
-
 ## Built On
 
 - `bitview_runtime::PluginSet` for generic plugin discovery
@@ -81,6 +77,7 @@ Use [mimalloc v3](https://crates.io/crates/mimalloc) as the global allocator. Qu
 Plugin features (`indexer`, `blocks`, `distribution`, `mappings`, `price`, and
 the other built-in plugin IDs) are the source of truth. Enabling one adds its
 typed `HasX` requirement to `QueryPluginSet` and exposes its typed accessor.
+The `tokio` feature adds `AsyncQuery` and also enables the indexer capability.
 
 `chain`, `series`, `urpd`, and `full-api` are convenience aggregators.
 `full-api` is the default for standalone users; composition and adapter crates

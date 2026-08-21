@@ -1,9 +1,8 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
-use brk_types::{EmptyAddrData, EmptyAddrIndex, FundedAddrData, FundedAddrIndex};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, LazyVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, Rw, StorageMode};
 
 use super::{
     AddrActivityVecs, AddrCountsVecs, AddrMetricsState, AvgAmountVecs, DeltaVecs, ExposedAddrVecs,
@@ -36,12 +35,6 @@ pub struct AddrVecs<M: StorageMode = Rw> {
     /// percentage change measured against the window's starting count.
     pub delta: DeltaVecs,
     pub avg_amount: AvgAmountVecs<M>,
-    #[traversable(wrap = "indexes", rename = "funded")]
-    /// Identity index for the persisted funded-address state table.
-    pub funded_index: LazyVec<FundedAddrIndex, FundedAddrIndex, FundedAddrIndex, FundedAddrData>,
-    #[traversable(wrap = "indexes", rename = "empty")]
-    /// Identity index for the persisted empty-address state table.
-    pub empty_index: LazyVec<EmptyAddrIndex, EmptyAddrIndex, EmptyAddrIndex, EmptyAddrData>,
 }
 
 impl AddrVecs {

@@ -10,7 +10,7 @@ Query a Bitcoin Core node for blocks, transactions, mempool data, and chain stat
 
 - **Auto-retry**: Up to 1M retries with configurable delay on transient failures
 - **Thread-safe**: Clone freely, share across threads
-- **Full RPC coverage**: Blocks, headers, transactions, mempool, UTXO queries
+- **Focused RPC coverage**: Blocks, headers, transactions, mempool, and UTXO queries
 - **Mempool transactions**: Resolves prevouts for mempool tx fee calculation
 - **Reorg detection**: `get_closest_valid_height` finds main chain after reorg
 - **Sync waiting**: `wait_for_synced_node` blocks until node catches up

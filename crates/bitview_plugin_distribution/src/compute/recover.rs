@@ -38,15 +38,10 @@ impl Vecs {
                 let stamp = Stamp::from(height);
 
                 // Rollback address state vectors
-                let addr_indexes_rollback = self.any_addr_indexes.rollback_before(stamp);
-                let addr_data_rollback = self.addrs_data.rollback_before(stamp);
+                let addr_state_rollback = self.addr_state.rollback_before(stamp);
 
                 // Verify rollback consistency - all must agree on the same height
-                let consistent_height = rollback_states(
-                    chain_state_rollback,
-                    addr_indexes_rollback,
-                    addr_data_rollback,
-                );
+                let consistent_height = rollback_states(chain_state_rollback, addr_state_rollback);
 
                 // If rollbacks are inconsistent, start fresh
                 if consistent_height.is_zero() {
@@ -143,8 +138,7 @@ pub enum StartMode {
 /// otherwise returns Height::ZERO (need fresh start).
 fn rollback_states(
     chain_state_rollback: vecdb::Result<Stamp>,
-    addr_indexes_rollbacks: Result<Vec<Stamp>>,
-    addr_data_rollbacks: Result<[Stamp; 2]>,
+    addr_state_rollbacks: Result<Vec<Stamp>>,
 ) -> Height {
     let mut heights: BTreeSet<Height> = BTreeSet::new();
 
@@ -160,27 +154,14 @@ fn rollback_states(
     );
     heights.insert(chain_height);
 
-    let Ok(stamps) = addr_indexes_rollbacks else {
-        warn!("addr_indexes rollback failed: {:?}", addr_indexes_rollbacks);
+    let Ok(stamps) = addr_state_rollbacks else {
+        warn!("addr_state rollback failed: {:?}", addr_state_rollbacks);
         return Height::ZERO;
     };
     for (i, s) in stamps.iter().enumerate() {
         let h = Height::from(*s).incremented();
         debug!(
-            "addr_indexes[{}] rolled back to stamp {:?}, height {}",
-            i, s, h
-        );
-        heights.insert(h);
-    }
-
-    let Ok(stamps) = addr_data_rollbacks else {
-        warn!("addr_data rollback failed: {:?}", addr_data_rollbacks);
-        return Height::ZERO;
-    };
-    for (i, s) in stamps.iter().enumerate() {
-        let h = Height::from(*s).incremented();
-        debug!(
-            "addr_data[{}] rolled back to stamp {:?}, height {}",
+            "addr_state[{}] rolled back to stamp {:?}, height {}",
             i, s, h
         );
         heights.insert(h);

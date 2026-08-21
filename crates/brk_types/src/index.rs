@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 use vecdb::PrintableIndex;
 
 use super::{
-    Date, Day1, Day3, EmptyAddrIndex, EmptyOutputIndex, Epoch, FundedAddrIndex, Halving, Height,
-    Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6, OpReturnIndex, P2AAddrIndex,
-    P2MSOutputIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex,
-    P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, Timestamp, TxInIndex, TxIndex, TxOutIndex,
-    UnknownOutputIndex, Week1, Year1, Year10, hour1::HOUR1_INTERVAL, hour4::HOUR4_INTERVAL,
-    hour12::HOUR12_INTERVAL, minute10::MINUTE10_INTERVAL, minute30::MINUTE30_INTERVAL,
-    timestamp::INDEX_EPOCH,
+    Date, Day1, Day3, EmptyAddrIndex, EmptyOutputIndex, Epoch, ExtendedEmptyAddrIndex,
+    FundedAddrIndex, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
+    Month6, OpReturnIndex, P2AAddrIndex, P2MSOutputIndex, P2PK33AddrIndex, P2PK65AddrIndex,
+    P2PKHAddrIndex, P2SHAddrIndex, P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, Timestamp,
+    TxInIndex, TxIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10,
+    hour1::HOUR1_INTERVAL, hour4::HOUR4_INTERVAL, hour12::HOUR12_INTERVAL,
+    minute10::MINUTE10_INTERVAL, minute30::MINUTE30_INTERVAL, timestamp::INDEX_EPOCH,
 };
 
 /// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
@@ -71,6 +71,8 @@ pub enum Index {
     FundedAddrIndex,
     #[serde(rename = "empty_addr_index")]
     EmptyAddrIndex,
+    #[serde(rename = "extended_empty_addr_index")]
+    ExtendedEmptyAddrIndex,
 }
 
 /// How the trailing edge of an [`Index`] mutates over time. Drives the series
@@ -91,7 +93,7 @@ pub enum CacheClass {
 }
 
 impl Index {
-    pub const fn all() -> [Self; 33] {
+    pub const fn all() -> [Self; 34] {
         [
             Self::Minute10,
             Self::Minute30,
@@ -126,6 +128,7 @@ impl Index {
             Self::UnknownOutputIndex,
             Self::FundedAddrIndex,
             Self::EmptyAddrIndex,
+            Self::ExtendedEmptyAddrIndex,
         ]
     }
 
@@ -164,6 +167,7 @@ impl Index {
             Self::UnknownOutputIndex => UnknownOutputIndex::to_possible_strings(),
             Self::FundedAddrIndex => FundedAddrIndex::to_possible_strings(),
             Self::EmptyAddrIndex => EmptyAddrIndex::to_possible_strings(),
+            Self::ExtendedEmptyAddrIndex => ExtendedEmptyAddrIndex::to_possible_strings(),
         }
     }
 
@@ -209,6 +213,7 @@ impl Index {
             Self::UnknownOutputIndex => <UnknownOutputIndex as PrintableIndex>::to_string(),
             Self::FundedAddrIndex => <FundedAddrIndex as PrintableIndex>::to_string(),
             Self::EmptyAddrIndex => <EmptyAddrIndex as PrintableIndex>::to_string(),
+            Self::ExtendedEmptyAddrIndex => <ExtendedEmptyAddrIndex as PrintableIndex>::to_string(),
         }
     }
 
@@ -240,7 +245,9 @@ impl Index {
             | Self::P2WPKHAddrIndex
             | Self::P2WSHAddrIndex
             | Self::UnknownOutputIndex => CacheClass::Entity,
-            Self::FundedAddrIndex | Self::EmptyAddrIndex => CacheClass::Mutable,
+            Self::FundedAddrIndex | Self::EmptyAddrIndex | Self::ExtendedEmptyAddrIndex => {
+                CacheClass::Mutable
+            }
         }
     }
 

@@ -18,7 +18,7 @@ use crate::{
         AddrCache, TransferAddressCache, process_inputs, process_outputs, process_received,
         process_sent,
     },
-    compute::write::{process_addr_updates, write},
+    compute::write::write,
     state::{BlockState, Transacted},
 };
 
@@ -115,7 +115,7 @@ pub fn process_blocks(
         .collect();
 
     debug!("creating AddrReaders");
-    let mut vr = AddrReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
+    let mut vr = AddrReaders::new(&vecs.addr_state);
     debug!("AddrReaders created");
 
     // Extend tx_index_to_height RangeMap with new entries (incremental, O(new_blocks))
@@ -329,8 +329,7 @@ pub fn process_blocks(
                         ),
                     &first_addr_indexes,
                     &vr,
-                    &vecs.any_addr_indexes,
-                    &vecs.addrs_data,
+                    &vecs.addr_state,
                 );
 
                 rayon::join(
@@ -480,13 +479,8 @@ pub fn process_blocks(
 
             let (empty_updates, funded_updates) = cache.take();
 
-            // Process address updates (mutations)
-            process_addr_updates(
-                &mut vecs.addrs_data,
-                &mut vecs.any_addr_indexes,
-                empty_updates,
-                funded_updates,
-            )?;
+            vecs.addr_state
+                .apply_updates(empty_updates, funded_updates)?;
 
             let _lock = exit.lock();
 
@@ -505,7 +499,7 @@ pub fn process_blocks(
             last_flush = Instant::now();
 
             // Recreate readers
-            vr = AddrReaders::new(&vecs.any_addr_indexes, &vecs.addrs_data);
+            vr = AddrReaders::new(&vecs.addr_state);
         }
     }
 
@@ -516,13 +510,8 @@ pub fn process_blocks(
 
     let (empty_updates, funded_updates) = cache.take();
 
-    // Process address updates (mutations)
-    process_addr_updates(
-        &mut vecs.addrs_data,
-        &mut vecs.any_addr_indexes,
-        empty_updates,
-        funded_updates,
-    )?;
+    vecs.addr_state
+        .apply_updates(empty_updates, funded_updates)?;
 
     // Write to disk (pure I/O) - save changes for rollback
     write(

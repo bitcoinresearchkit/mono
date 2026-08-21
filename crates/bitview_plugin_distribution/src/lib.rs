@@ -11,7 +11,7 @@ mod metrics;
 mod state;
 mod vecs;
 
-use addr::{AddrsDataVecs, AnyAddrIndexesVecs};
+use addr::AddrStateVecs;
 pub use all_chain_sources::AllChainSources;
 pub use dependencies::Dependencies;
 pub use has::HasDistribution;
@@ -25,6 +25,6 @@ use brk_types::Version;
 
 const STORAGE: PluginStorage = PluginStorage::new(
     PluginId::new("distribution"),
-    Version::new(39 + ORACLE_VERSION),
+    Version::new(41 + ORACLE_VERSION),
 );
 pub const ID: PluginId = STORAGE.id();

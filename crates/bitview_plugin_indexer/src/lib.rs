@@ -51,6 +51,7 @@ use state::State;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
 const EXPORT_INTERVAL: Duration = Duration::from_secs(60);
+const MAX_PENDING_BLOCKS: usize = 10_000;
 pub const ID: PluginId = STORAGE.id();
 
 pub struct Indexer<M: StorageMode = Rw> {
@@ -81,8 +82,8 @@ fn is_export_height(height: Height) -> bool {
     height != 0 && height % SNAPSHOT_BLOCK_RANGE == 0
 }
 
-fn is_periodic_export_due(height: Height, elapsed: Duration) -> bool {
-    is_export_height(height) && elapsed >= EXPORT_INTERVAL
+fn is_export_due(height: Height, elapsed: Duration, pending_blocks: usize) -> bool {
+    pending_blocks >= MAX_PENDING_BLOCKS || (is_export_height(height) && elapsed >= EXPORT_INTERVAL)
 }
 
 fn read_xor_marker(path: &Path) -> Result<XorMarker> {
@@ -443,6 +444,7 @@ impl IndexerInner<Rw> {
 
         let mut lengths = starting_lengths;
         let mut pending_export_height = None;
+        let mut pending_blocks = 0;
         let mut last_export = Instant::now();
 
         let export =
@@ -541,14 +543,16 @@ impl IndexerInner<Rw> {
                 .add_block(tx_count, input_count, output_count);
             buffers.finish_block(*block.hash());
             pending_export_height = Some(height);
+            pending_blocks += 1;
 
-            if is_periodic_export_due(height, last_export.elapsed()) {
+            if is_export_due(height, last_export.elapsed(), pending_blocks) {
                 drop(readers);
                 export(stores, vecs, height)?;
                 readers = Readers::new(vecs);
-                // Clear this only after a successful export. If the timer
-                // suppresses this checkpoint, the final export still sees it.
+                // Clear only after a successful export so the final export
+                // still covers every pending block.
                 pending_export_height = None;
+                pending_blocks = 0;
                 last_export = Instant::now();
             }
         }
@@ -668,19 +672,30 @@ mod import_tests {
     }
 
     #[test]
-    fn periodic_export_requires_a_snapshot_height_and_elapsed_interval() {
+    fn export_is_due_at_the_time_or_block_limit() {
         let snapshot_height = Height::from(SNAPSHOT_BLOCK_RANGE);
 
-        assert!(!is_periodic_export_due(Height::ZERO, EXPORT_INTERVAL));
-        assert!(!is_periodic_export_due(
+        assert!(!is_export_due(
+            Height::ZERO,
+            EXPORT_INTERVAL,
+            MAX_PENDING_BLOCKS - 1
+        ));
+        assert!(!is_export_due(
             snapshot_height.incremented(),
-            EXPORT_INTERVAL
+            EXPORT_INTERVAL,
+            MAX_PENDING_BLOCKS - 1
         ));
-        assert!(!is_periodic_export_due(
+        assert!(!is_export_due(
             snapshot_height,
-            EXPORT_INTERVAL - Duration::from_nanos(1)
+            EXPORT_INTERVAL - Duration::from_nanos(1),
+            MAX_PENDING_BLOCKS - 1
         ));
-        assert!(is_periodic_export_due(snapshot_height, EXPORT_INTERVAL));
+        assert!(is_export_due(snapshot_height, EXPORT_INTERVAL, 0));
+        assert!(is_export_due(
+            snapshot_height.incremented(),
+            Duration::ZERO,
+            MAX_PENDING_BLOCKS
+        ));
     }
 
     #[test]

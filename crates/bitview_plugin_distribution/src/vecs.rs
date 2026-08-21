@@ -12,8 +12,8 @@ use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info};
 use vecdb::{
-    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, LazyVec, OverflowVec,
-    ReadableCloneableVec, ReadableVec, Rw, Stamp, StorageMode, WritableVec,
+    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp, StorageMode,
+    WritableVec,
 };
 
 use crate::{
@@ -28,7 +28,7 @@ use bitview_compute::{
 
 use super::inner::Inner;
 use super::{
-    AddrsDataVecs, AllChainSources, AnyAddrIndexesVecs, CohortMetrics, UTXOStates,
+    AddrStateVecs, AllChainSources, CohortMetrics, UTXOStates,
     addr::{
         AddrActivityVecs, AddrCountsVecs, AddrVecs, AvgAmountVecs, DeltaVecs, ExposedAddrVecs,
         FundedAddrCountsVecs, NewAddrCountVecs, ReusedAddrVecs, TotalAddrCountVecs,
@@ -51,10 +51,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Serialized distribution state used to resume cohort computation at each
     /// block height.
     pub supply_state: M::Stored<BytesVec<Height, SupplyState>>,
-    #[traversable(wrap = "addrs", rename = "indexes")]
-    pub any_addr_indexes: AnyAddrIndexesVecs<M>,
-    #[traversable(wrap = "addrs", rename = "data")]
-    pub addrs_data: AddrsDataVecs<M>,
+    #[traversable(wrap = "addrs", rename = "state")]
+    pub addr_state: AddrStateVecs<M>,
     #[traversable(wrap = "cohorts")]
     pub cohorts: CohortMetrics<M>,
     // Computed and stored with distribution, but presented beside the other
@@ -90,8 +88,6 @@ where
 }
 
 const SAVED_STAMPED_CHANGES: u16 = 10;
-/// Version of the persisted funded-address data layout.
-const FUNDED_ADDR_DATA_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub fn all_chain_sources(&self) -> AllChainSources {
@@ -118,30 +114,7 @@ impl Vecs {
         let cohorts =
             CohortMetrics::forced_import(&db, version, mappings, cached_starts, &spot_price)?;
 
-        // Create address data vecs first so we can also use them for identity mappings.
-        let funded_addr_data_version = version + FUNDED_ADDR_DATA_VERSION;
-        let funded_addr_index_to_funded_addr_data = OverflowVec::forced_import_with(
-            ImportOptions::new(&db, "funded_addr_data", funded_addr_data_version)
-                .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),
-        )?;
-        let empty_addr_index_to_empty_addr_data = OverflowVec::forced_import_with(
-            ImportOptions::new(&db, "empty_addr_data", version)
-                .with_saved_stamped_changes(SAVED_STAMPED_CHANGES),
-        )?;
-
-        // Identity mappings for traversable
-        let funded_addr_index = LazyVec::init(
-            "funded_addr_index",
-            funded_addr_data_version,
-            funded_addr_index_to_funded_addr_data.read_only_boxed_clone(),
-            |index, _| index,
-        );
-        let empty_addr_index = LazyVec::init(
-            "empty_addr_index",
-            version,
-            empty_addr_index_to_empty_addr_data.read_only_boxed_clone(),
-            |index, _| index,
-        );
+        let addr_state = AddrStateVecs::forced_import(&db, version)?;
 
         let funded_addr_count =
             FundedAddrCountsVecs::forced_import(&db, version, mappings, cached_starts)?;
@@ -225,8 +198,6 @@ impl Vecs {
                 exposed: exposed_addr_vecs,
                 delta,
                 avg_amount,
-                funded_index: funded_addr_index,
-                empty_index: empty_addr_index,
             },
 
             cohorts,
@@ -257,11 +228,7 @@ impl Vecs {
                 cached_starts,
             )?,
 
-            any_addr_indexes: AnyAddrIndexesVecs::forced_import(&db, version)?,
-            addrs_data: AddrsDataVecs {
-                funded: funded_addr_index_to_funded_addr_data,
-                empty: empty_addr_index_to_empty_addr_data,
-            },
+            addr_state,
             inner: Inner::new(db),
             states_path,
         };
@@ -283,8 +250,7 @@ impl Vecs {
     ) -> Result<()> {
         self.supply_state.reset()?;
         self.addrs.reset_height()?;
-        self.any_addr_indexes.reset()?;
-        self.addrs_data.reset()?;
+        self.addr_state.reset()?;
         utxo_states.reset()?;
         addr_states.reset()?;
         Ok(())
@@ -614,8 +580,7 @@ impl Vecs {
         self.cohorts
             .min_resume_len()
             .min(Height::from(self.supply_state.len()))
-            .min(self.any_addr_indexes.min_stamped_len())
-            .min(self.addrs_data.min_stamped_len())
+            .min(self.addr_state.min_stamped_len())
             .min(Height::from(self.addrs.min_resume_len()))
             .min(Height::from(self.coindays_created.cumulative.len()))
             .min(Height::from(self.coinblocks_destroyed.block.len()))

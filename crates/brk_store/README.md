@@ -23,7 +23,7 @@ let mut store: Store<Txid, Height> = Store::import(
 
 store.insert(txid, height);
 if let Some(ingest) = store.take_pending_ingest() {
-    ingest()?;
+    ingest.run()?;
 }
 
 let height = store.get(&txid)?;
