@@ -20,7 +20,7 @@ For AI clients, the official stateless, read-only MCP endpoint is
 - Access to `blk*.dat` files
 - About 300 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
-- [12+ GB RAM](https://github.com/bitcoinresearchkit/benches#benchmarks)
+- 16 GB of RAM recommended for a full sync.
 
 ## Disk usage
 

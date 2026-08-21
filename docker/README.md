@@ -10,6 +10,7 @@ an existing Bitcoin Core node.
 - A readable Bitcoin Core data directory containing `blocks/`
 - About 300 GiB for the current Bitview data, plus Bitcoin Core storage and
   growth headroom
+- 16 GB of RAM recommended for a full sync
 
 ## Start
 

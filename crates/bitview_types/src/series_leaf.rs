@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{borrow::Cow, collections::BTreeSet};
 
 use brk_types::Index;
 use schemars::JsonSchema;
@@ -13,6 +13,9 @@ pub struct SeriesLeaf {
     pub kind: String,
     /// Available indexes for this series.
     pub indexes: BTreeSet<Index>,
+    /// Human-readable metric definition, when documented.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<Cow<'static, str>>,
 }
 
 impl SeriesLeaf {
@@ -21,11 +24,18 @@ impl SeriesLeaf {
             name,
             kind,
             indexes,
+            description: None,
         }
     }
 
-    /// Merge another leaf's indexes into this one (union).
-    pub fn merge_indexes(&mut self, other: &Self) {
+    /// Merge compatible metadata for another occurrence of the same series.
+    pub fn merge(&mut self, other: &Self) -> Option<()> {
+        match (&self.description, &other.description) {
+            (Some(current), Some(incoming)) if current != incoming => return None,
+            (None, Some(description)) => self.description = Some(description.clone()),
+            _ => {}
+        }
         self.indexes.extend(other.indexes.iter().copied());
+        Some(())
     }
 }

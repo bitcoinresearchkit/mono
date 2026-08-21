@@ -55,7 +55,7 @@ The hosted website, API, and MCP endpoint require no account or authentication:
 - [Website](https://bitview.space)
 - [Interactive API](https://bitview.space/api)
 - [OpenAPI](https://bitview.space/openapi.json)
-- [MCP](https://mcp.bitview.space/)
+- MCP client endpoint: `https://mcp.bitview.space/`
 - [CLI](https://crates.io/crates/bitview_cli)
 - [JavaScript](https://www.npmjs.com/package/bitview-client)
 - [Python](https://pypi.org/project/bitview-client)
@@ -78,8 +78,8 @@ bitviewd
 
 The default composition requires Linux or macOS, a Bitcoin Core node with RPC
 and readable `blk*.dat` files, about 300 GiB for Bitview plus Bitcoin Core
-storage and growth headroom, and 12+ GB of RAM. The website and API listen on
-[localhost:3110](http://localhost:3110).
+storage and growth headroom, and 16 GB of RAM recommended for a full sync. The
+website and API listen on [localhost:3110](http://localhost:3110).
 
 Bitview uses sparse files, so logical size is much larger than allocated disk
 space. Use `du -sh ~/.bitview` to measure actual usage.

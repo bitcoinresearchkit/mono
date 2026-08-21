@@ -8,10 +8,11 @@ The official public endpoint is
 [mcp.bitview.space](https://mcp.bitview.space/). It is stateless, read-only, and
 requires no authentication.
 
-Each deployment also serves instance-specific pages at `/privacy`, `/terms`,
-and `/support`, plus its production icon at `/logo.png`. The landing page and
-all three pages are rendered from the same embedded HTML file. The icon is
-embedded in the server binary and advertised in MCP discovery metadata.
+A server built from the current source also serves an instance landing page,
+`/privacy`, `/terms`, `/support`, and `/logo.png`. The icon is embedded in the
+binary and advertised in MCP discovery metadata. These instance-local routes
+are separate from the MCP protocol and may not be available on older deployed
+versions.
 
 ## Caching model
 
@@ -32,7 +33,7 @@ metadata.
 From the workspace:
 
 ```sh
-cargo run --bin bitview_mcp -- \
+cargo run -p bitview_mcp -- \
   --api https://bitview.space \
   --url https://mcp.bitview.space/ \
   --name Bitview

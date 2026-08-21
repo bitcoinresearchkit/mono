@@ -1,55 +1,22 @@
 # bitview_traversable
 
-Trait for navigating and exporting hierarchical data structures.
+Traversal contract for Bitview's hierarchical data and public series catalog.
 
-## What It Enables
+`Traversable` provides three related views of a value:
 
-Traverse nested data collections as public series trees, and iterate their
-exportable vectors for persistence and bulk export.
+- `to_tree_node()` builds its query-visible `TreeNode` hierarchy.
+- `iter_any_exportable()` visits every exportable vec, including hidden data
+  needed for persistence and maintenance.
+- `iter_any_visible()` visits only vecs published through the series API.
 
-## Key Features
+The optional `derive` feature re-exports `#[derive(Traversable)]`. The derive
+also implements `vecdb::ReadOnlyClone`, so storage-mode structs can expose a
+read-only query projection from the same field definition.
 
-- **Tree navigation**: Convert nested structs into `TreeNode` hierarchies for exploration
-- **Export iteration**: Walk all `AnyExportableVec` instances, including a public-only view
-- **Derive macro**: `#[derive(Traversable)]` with `derive` feature
-- **Read-only projection**: the derive also generates `vecdb::ReadOnlyClone`
-  for storage-mode and generic container structs
-- **Compression backends**: Support for PCO, LZ4, ZeroCopy, Zstd via feature flags
-- **Blanket implementations**: Works with `Box<T>`, `Option<T>`, `BTreeMap<K, V>`
+The crate implements traversal for vecdb's stored, mutable, columnar,
+overflow, cached, and lazy vector families, plus common containers such as
+`Box`, `Option`, and `BTreeMap`. Backend-specific implementations
+are enabled with the matching `pco`, `zerocopy`, `lz4`, or `zstd` feature.
 
-## Core API
-
-```rust,ignore
-pub trait Traversable {
-    fn to_tree_node(&self) -> TreeNode;
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec>;
-}
-```
-
-For a struct generic over `M: StorageMode`, `#[derive(Traversable)]` maps its
-read-write form to the same struct with `M = Ro`. For generic container fields,
-it propagates `ReadOnlyClone` through those fields. Skipped fields are cloned
-unchanged. This gives plugin compositions a read-only query projection without
-maintaining a second field list.
-
-## Supported Vec Types
-
-All vecdb vector types implement `Traversable`:
-- `BytesVec`, `EagerVec`, `PcoVec` (with `pco` feature)
-- `ZeroCopyVec` (with `zerocopy` feature)
-- `LZ4Vec`, `ZstdVec` (with respective features)
-- `LazyVec` for single-source derived vectors
-
-## Feature Flags
-
-- `derive` - Enable `#[derive(Traversable)]` macro
-- `pco` - PCO compression support
-- `zerocopy` - Zero-copy vector support
-- `lz4` - LZ4 compression support
-- `zstd` - Zstd compression support
-
-## Built On
-
-- `bitview_types` for series-tree schemas
-- `brk_types` for index types
-- `bitview_traversable_derive` for the derive macro (optional)
+See [`bitview_traversable_derive`](../bitview_traversable_derive) for supported
+derive attributes.

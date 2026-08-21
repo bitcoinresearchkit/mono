@@ -1958,6 +1958,7 @@ curl -s "https://bitview.space/version"
 - `name`: `string` (required) — The series name/identifier.
 - `kind`: `string` (required) — The Rust type (e.g., "Sats", "StoredF64").
 - `indexes`: `Index[]` (required) — Available indexes for this series.
+- `description`: `object` — Human-readable metric definition, when documented.
 - `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
 
 ### `SigOps`

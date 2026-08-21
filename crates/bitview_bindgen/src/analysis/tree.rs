@@ -354,6 +354,7 @@ mod tests {
             name: name.to_string(),
             kind: "TestType".to_string(),
             indexes: BTreeSet::new(),
+            description: None,
         };
         TreeNode::Leaf(SeriesLeafWithSchema::new(leaf, serde_json::json!({})))
     }

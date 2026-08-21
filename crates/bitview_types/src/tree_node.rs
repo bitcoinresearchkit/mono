@@ -1,10 +1,10 @@
-use std::{collections::BTreeSet, mem};
+use std::{borrow::Cow, collections::BTreeMap, mem};
 
 use indexmap::IndexMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{SeriesLeaf, SeriesLeafWithSchema};
+use crate::SeriesLeafWithSchema;
 
 /// Hierarchical tree node for organizing series into categories
 #[derive(Debug, Clone, Serialize, PartialEq, Eq, Deserialize, JsonSchema)]
@@ -19,6 +19,62 @@ pub enum TreeNode {
 const BASE: &str = "raw";
 
 impl TreeNode {
+    /// Attach interned descriptions to every matching series leaf.
+    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, &'static str>) {
+        match self {
+            Self::Branch(children) => {
+                for child in children.values_mut() {
+                    child.set_descriptions(descriptions);
+                }
+            }
+            Self::Leaf(leaf) => {
+                let Some(description) = descriptions.get(leaf.name()).copied() else {
+                    return;
+                };
+                if let Some(existing) = &leaf.leaf.description {
+                    assert_eq!(
+                        existing.as_ref(),
+                        description,
+                        "Conflicting descriptions for series {}",
+                        leaf.name()
+                    );
+                } else {
+                    leaf.leaf.description = Some(Cow::Borrowed(description));
+                }
+            }
+        }
+    }
+
+    /// Collect one shared description per documented series.
+    pub fn descriptions(&self) -> BTreeMap<&str, Cow<'static, str>> {
+        let mut descriptions = BTreeMap::new();
+        self.collect_descriptions(&mut descriptions);
+        descriptions
+    }
+
+    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Cow<'static, str>>) {
+        match self {
+            Self::Branch(children) => {
+                for child in children.values() {
+                    child.collect_descriptions(descriptions);
+                }
+            }
+            Self::Leaf(leaf) => {
+                let Some(description) = &leaf.leaf.description else {
+                    return;
+                };
+                if let Some(existing) = descriptions.insert(leaf.name(), description.clone()) {
+                    assert_eq!(
+                        existing,
+                        *description,
+                        "Conflicting descriptions for series {}",
+                        leaf.name()
+                    );
+                }
+            }
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         if let Self::Branch(tree) = self {
             tree.is_empty()
@@ -80,22 +136,20 @@ impl TreeNode {
             return Self::Branch(map);
         }
 
-        // Check if all entries are leaves with the same name
-        let mut first_leaf: Option<&SeriesLeafWithSchema> = None;
-        let mut merged_indexes = BTreeSet::new();
+        // Check if all entries are compatible leaves for the same series.
+        let mut merged_leaf: Option<SeriesLeafWithSchema> = None;
 
         for node in map.values() {
             match node {
                 Self::Leaf(leaf) => {
-                    if let Some(first) = &first_leaf {
-                        if leaf.name() != first.name() {
-                            // Different names - can't collapse
+                    if let Some(merged) = &mut merged_leaf {
+                        if leaf.name() != merged.name() || merged.merge(leaf).is_none() {
+                            // Incompatible leaves cannot collapse.
                             return Self::Branch(map);
                         }
                     } else {
-                        first_leaf = Some(leaf);
+                        merged_leaf = Some(leaf.clone());
                     }
-                    merged_indexes.extend(leaf.indexes().iter().copied());
                 }
                 Self::Branch(_) => {
                     // Has non-leaf entries - can't collapse
@@ -105,15 +159,7 @@ impl TreeNode {
         }
 
         // All entries were leaves with the same name
-        let first = first_leaf.unwrap();
-        Self::Leaf(SeriesLeafWithSchema::new(
-            SeriesLeaf::new(
-                first.name().to_string(),
-                first.kind().to_string(),
-                merged_indexes,
-            ),
-            first.schema.clone(),
-        ))
+        Self::Leaf(merged_leaf.unwrap())
     }
 
     /// Merges a node into the target map at the given key (consuming version).
@@ -130,10 +176,7 @@ impl TreeNode {
             }
             Some(existing) => {
                 match (existing, node) {
-                    (Self::Leaf(a), Self::Leaf(b)) if a.is_same_series(&b) => {
-                        a.merge_indexes(&b);
-                        Some(())
-                    }
+                    (Self::Leaf(a), Self::Leaf(b)) if a.is_same_series(&b) => a.merge(&b),
                     (Self::Leaf(a), Self::Leaf(b)) => {
                         eprintln!("Conflict: Different leaf values for key '{key}'");
                         eprintln!("  Existing: {a:?}");
@@ -175,7 +218,10 @@ impl TreeNode {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
+    use crate::SeriesLeaf;
     use brk_types::Index;
     use serde_json::Value;
 
@@ -185,6 +231,7 @@ mod tests {
                 name: name.to_string(),
                 kind: "TestType".to_string(),
                 indexes: BTreeSet::from([index]),
+                description: None,
             },
             openapi_type: "object".to_string(),
             schema: Value::Null,
@@ -205,6 +252,42 @@ mod tests {
             TreeNode::Leaf(l) => Some(&l.leaf.indexes),
             _ => None,
         }
+    }
+
+    #[test]
+    fn descriptions_are_shared_by_every_matching_leaf() {
+        let mut tree = branch(vec![
+            ("height", leaf("shared", Index::Height)),
+            ("day", leaf("shared", Index::Day1)),
+            ("other", leaf("other", Index::Height)),
+        ]);
+        let descriptions = BTreeMap::from([("shared", "Shared metric description.")]);
+
+        tree.set_descriptions(&descriptions);
+
+        assert_eq!(
+            tree.descriptions(),
+            BTreeMap::from([("shared", Cow::Borrowed("Shared metric description."))])
+        );
+        let json = serde_json::to_string(&tree).unwrap();
+        assert_eq!(json.matches("Shared metric description.").count(), 2);
+        assert!(!json.contains("\"other\":{\"description\""));
+    }
+
+    #[test]
+    fn generated_descriptions_preserve_leaf_owned_descriptions() {
+        let mut tree = leaf("custom", Index::Height);
+        let TreeNode::Leaf(leaf) = &mut tree else {
+            unreachable!()
+        };
+        leaf.leaf.description = Some(Cow::Owned("Plugin description.".to_string()));
+
+        tree.set_descriptions(&BTreeMap::new());
+
+        assert_eq!(
+            tree.descriptions(),
+            BTreeMap::from([("custom", Cow::Owned("Plugin description.".to_string()))])
+        );
     }
 
     // ========== Leaf passthrough ==========

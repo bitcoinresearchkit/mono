@@ -12,7 +12,7 @@ Bitview API. Automatically falls back between sources on failure, with up to
 
 - **Multi-source fallback**: Binance → Kraken → Bitview API
 - **Health tracking**: Temporarily disables failing sources
-- **Two resolution modes**: Per-date (daily) or per-block (1-minute interpolated)
+- **Two resolution modes**: Per-date (daily) or per-block (OHLC aggregated from 1-minute candles)
 - **HAR file support**: Import Binance 1mn data from browser network captures for historical fills
 - **Permanent block detection**: Stops retrying on DNS/TLS failures
 
@@ -34,7 +34,7 @@ let ohlc = fetcher.get_height(height, block_timestamp, prev_timestamp)?;
 |--------|------------|----------|-------|
 | Binance | 1mn | ~16 hours | Best for recent blocks |
 | Kraken | 1mn | ~10 hours | Fallback for recent |
-| Bitview API | Daily | Full history | Fallback for older data |
+| Bitview API | Per-height and daily | Full history | Fallback for older data |
 
 ## HAR Import
 

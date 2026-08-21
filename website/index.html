@@ -280,12 +280,16 @@
       }
 
       .card.is-preview-ready .page-frame {
-        opacity: 0.82;
+        opacity: 1;
       }
 
       .card:hover .page-frame,
       .card.is-active .page-frame {
-        opacity: 0.94;
+        opacity: 1;
+      }
+
+      .card.is-preview-ready::before {
+        background: none;
       }
 
       .card-link {
@@ -891,10 +895,9 @@
           title: "Satoshi trail.",
           description: "Bitcoin through time and space",
           href: "./trail.html",
-          color: "#e6e0d4",
-          ink: "#171512",
-          muted: "#686158",
-          light: true,
+          color: "#07100f",
+          ink: "#f0eadb",
+          muted: "#9ba69f",
           sizes: { 8: [3, 2], 6: [2, 2], 4: [2, 2], 2: [2, 1] },
         },
         {

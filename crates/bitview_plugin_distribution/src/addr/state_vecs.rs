@@ -35,7 +35,11 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
     pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddrIndex, AddrState>>>,
     pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddrIndex, AddrState>>>,
     pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddrIndex, AddrState>>>,
+    /// Persisted state record for each address that currently holds at least
+    /// one unspent output.
     pub funded: M::Stored<OverflowVec<FundedAddrIndex, FundedAddrData>>,
+    /// Persisted state record for each previously seen address that currently
+    /// holds no unspent outputs.
     pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddrIndex, EmptyAddrData>>,
 }
 

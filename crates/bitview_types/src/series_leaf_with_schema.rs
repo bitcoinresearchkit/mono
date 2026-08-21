@@ -51,14 +51,19 @@ impl SeriesLeafWithSchema {
         &self.leaf.indexes
     }
 
+    /// Human-readable metric definition, when documented.
+    pub fn description(&self) -> Option<&str> {
+        self.leaf.description.as_deref()
+    }
+
     /// Check if this leaf refers to the same series as another.
     pub fn is_same_series(&self, other: &Self) -> bool {
         self.leaf.name == other.leaf.name
     }
 
-    /// Merge another leaf's indexes into this one (union).
-    pub fn merge_indexes(&mut self, other: &Self) {
-        self.leaf.merge_indexes(&other.leaf);
+    /// Merge compatible metadata for another occurrence of the same series.
+    pub fn merge(&mut self, other: &Self) -> Option<()> {
+        self.leaf.merge(&other.leaf)
     }
 }
 

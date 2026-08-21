@@ -473,6 +473,78 @@
         }
       }
 
+      html.is-compact .app {
+        min-height: 0;
+      }
+
+      html.is-compact .topbar {
+        --topbar-y: 7px;
+        top: var(--topbar-y);
+        right: 7px;
+        left: 7px;
+      }
+
+      html.is-compact .identity,
+      html.is-compact .selection,
+      html.is-compact .selectors,
+      html.is-compact #source-credit,
+      html.is-compact .status {
+        display: none;
+      }
+
+      html.is-compact .readout {
+        top: 8px;
+        left: 50%;
+        width: calc(100% - 7rem);
+        align-items: center;
+        flex-direction: column;
+        gap: 1px;
+        text-align: center;
+        transform: translateX(-50%);
+      }
+
+      html.is-compact .date {
+        color: var(--muted);
+        font-size: 8px;
+        line-height: 10px;
+      }
+
+      html.is-compact .tiny-selection {
+        display: block;
+        max-width: min(100%, 24rem);
+        margin-top: 3px;
+        overflow: hidden;
+        color: var(--muted);
+        font: 550 7px/9px "Lilex", ui-monospace, monospace;
+        letter-spacing: 0.055em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      html.is-compact .price {
+        font-family:
+          "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
+          serif;
+        font-size: clamp(14px, 5vw, 22px);
+        font-weight: 400;
+        letter-spacing: -0.025em;
+        line-height: 0.92;
+      }
+
+      html.is-compact .message {
+        max-width: calc(100% - 20px);
+        font-size: 9px;
+        line-height: 1.35;
+      }
+
+      @media (max-height: 145px) {
+        html.is-compact .date,
+        html.is-compact .tiny-selection {
+          display: none;
+        }
+      }
+
       @media (max-width: 320px), (max-height: 260px) {
         .topbar {
           --topbar-y: 7px;
@@ -489,43 +561,8 @@
           display: none;
         }
 
-        .readout {
-          top: 40%;
-          left: 50%;
-          width: calc(100% - 1.5rem);
-          align-items: center;
-          flex-direction: column;
-          gap: 1px;
-          text-align: center;
-          transform: translate(-50%, -50%);
-        }
-
-        .date {
-          color: var(--muted);
-          font-size: 8px;
-          line-height: 10px;
-        }
-
-        .price {
-          font-family:
-            "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
-            serif;
-          font-size: clamp(20px, 12vw, 34px);
-          font-weight: 400;
-          letter-spacing: -0.025em;
-          line-height: 0.92;
-        }
-
-        .message {
-          max-width: calc(100% - 20px);
-          font-size: 9px;
-          line-height: 1.35;
-        }
-      }
-
-      @media (max-height: 145px) {
-        .date {
-          display: none;
+        .app {
+          min-height: 0;
         }
       }
 
@@ -656,6 +693,7 @@
           <div class="readout">
             <output id="price" class="price">—</output>
             <output id="date" class="date">—</output>
+            <output id="tiny-selection" class="tiny-selection"></output>
           </div>
           <output id="status" class="status" aria-live="polite"></output>
         </div>
@@ -690,124 +728,6 @@
         const WATER_CAP_COLOR = "rgba(75, 172, 185, 0.9)";
         const MONO_FONT =
           '"Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
-        const canvas = document.getElementById("terrain");
-        const context = canvas.getContext("2d", { alpha: false });
-        const futureCanvas = document.createElement("canvas");
-        const futureContext = futureCanvas.getContext("2d");
-        const cohortSelect = document.getElementById("cohort");
-        const metricSelect = document.getElementById("metric");
-        const modeSelect = document.getElementById("mode");
-        const shapeSelect = document.getElementById("shape");
-        const weightSelect = document.getElementById("weight");
-        const angleSelect = document.getElementById("angle");
-        const dateOutput = document.getElementById("date");
-        const priceOutput = document.getElementById("price");
-        const statusOutput = document.getElementById("status");
-        const message = document.getElementById("message");
-        const tinyViewport = window.matchMedia(
-          "(max-width: 320px), (max-height: 260px)",
-        );
-        tinyViewport.addEventListener("change", () => window.location.reload());
-
-        if (tinyViewport.matches) {
-          let tinyProfile = null;
-          const formatTinyPrice = (value) =>
-            Number.isFinite(value)
-              ? `$${Math.round(value).toLocaleString("en-US")}`
-              : "—";
-          const drawTinyProfile = () => {
-            const width = Math.max(1, canvas.clientWidth);
-            const height = Math.max(1, canvas.clientHeight);
-            const dpr = Math.min(devicePixelRatio || 1, 1.25);
-            canvas.width = Math.max(1, Math.round(width * dpr));
-            canvas.height = Math.max(1, Math.round(height * dpr));
-            context.setTransform(dpr, 0, 0, dpr, 0, 0);
-            context.fillStyle = "#07100f";
-            context.fillRect(0, 0, width, height);
-            if (!tinyProfile?.buckets?.length) return;
-
-            const buckets = tinyProfile.buckets;
-            const weights = buckets.map((bucket) =>
-              Math.sqrt(Math.max(0, Number(bucket.supply) || 0)),
-            );
-            const peak = Math.max(...weights, 1);
-            const left = 10;
-            const right = width - 10;
-            const baseline = height * 0.82;
-            const amplitude = Math.min(height * 0.28, 52);
-            const xAt = (index) =>
-              left + (index / Math.max(1, buckets.length - 1)) * (right - left);
-
-            context.beginPath();
-            context.moveTo(left, baseline);
-            weights.forEach((weight, index) => {
-              context.lineTo(xAt(index), baseline - (weight / peak) * amplitude);
-            });
-            context.lineTo(right, baseline);
-            context.closePath();
-            const fill = context.createLinearGradient(0, baseline - amplitude, 0, baseline);
-            fill.addColorStop(0, "rgba(255, 81, 71, 0.72)");
-            fill.addColorStop(1, "rgba(21, 83, 70, 0.16)");
-            context.fillStyle = fill;
-            context.fill();
-            context.strokeStyle = "rgba(255, 117, 99, 0.8)";
-            context.lineWidth = 1;
-            context.stroke();
-
-            const close = Number(tinyProfile.close);
-            let closest = 0;
-            let distance = Infinity;
-            buckets.forEach((bucket, index) => {
-              const next = Math.abs(Number(bucket.price_floor) - close);
-              if (next < distance) {
-                closest = index;
-                distance = next;
-              }
-            });
-            const markerX = xAt(closest);
-            context.strokeStyle = "rgba(255, 255, 255, 0.58)";
-            context.setLineDash([2, 3]);
-            context.beginPath();
-            context.moveTo(markerX, baseline - amplitude - 5);
-            context.lineTo(markerX, baseline + 3);
-            context.stroke();
-            context.setLineDash([]);
-          };
-
-          const loadTinyProfile = async () => {
-            try {
-              const response = await fetch(`${API}/urpd/all?agg=log50&weight=raw`, {
-                cache: "no-cache",
-                signal: AbortSignal.timeout(8_000),
-              });
-              if (!response.ok) throw new Error(`URPD: ${response.status}`);
-              tinyProfile = await response.json();
-              priceOutput.textContent = formatTinyPrice(Number(tinyProfile.close));
-              priceOutput.value = priceOutput.textContent;
-              dateOutput.textContent = tinyProfile.date || "Latest profile";
-              dateOutput.value = dateOutput.textContent;
-              message.hidden = true;
-              canvas.setAttribute(
-                "aria-label",
-                `Current Bitcoin realized-price distribution for ${tinyProfile.date}`,
-              );
-              drawTinyProfile();
-            } catch (error) {
-              priceOutput.textContent = "Unavailable";
-              dateOutput.textContent = "Current trail";
-              message.hidden = true;
-              console.error(error);
-            }
-          };
-
-          new ResizeObserver(drawTinyProfile).observe(canvas);
-          loadTinyProfile();
-          return;
-        }
-        const hoverQuery = window.matchMedia(
-          "(hover: hover) and (pointer: fine)",
-        );
-
         const palette = [
           [0, 2, 34, 31],
           [0.04, 54, 49, 78],
@@ -827,7 +747,6 @@
           [0.97, 247, 248, 245],
           [1, 255, 255, 252],
         ];
-
         const waterPalette = [
           [0, 108, 185, 190],
           [0.1, 68, 168, 180],
@@ -839,6 +758,306 @@
           [0.92, 10, 55, 72],
           [1, 9, 47, 62],
         ];
+        const colorCache = [];
+        const canvas = document.getElementById("terrain");
+        const context = canvas.getContext("2d", { alpha: false });
+        const futureCanvas = document.createElement("canvas");
+        const futureContext = futureCanvas.getContext("2d");
+        const cohortSelect = document.getElementById("cohort");
+        const metricSelect = document.getElementById("metric");
+        const modeSelect = document.getElementById("mode");
+        const shapeSelect = document.getElementById("shape");
+        const weightSelect = document.getElementById("weight");
+        const angleSelect = document.getElementById("angle");
+        const dateOutput = document.getElementById("date");
+        const priceOutput = document.getElementById("price");
+        const statusOutput = document.getElementById("status");
+        const message = document.getElementById("message");
+        const tinySelectionOutput = document.getElementById("tiny-selection");
+        const compactViewport = window.matchMedia(
+          "(max-width: 320px), (max-height: 260px)",
+        );
+        const embeddedPreview = window.self !== window.top;
+        const compactMode = embeddedPreview || compactViewport.matches;
+        if (compactMode) document.documentElement.classList.add("is-compact");
+        compactViewport.addEventListener("change", () => {
+          if (!embeddedPreview) window.location.reload();
+        });
+
+        if (compactMode) {
+          const hasOption = (select, value) =>
+            Array.from(select.options).some(
+              (option) => option.value === String(value),
+            );
+          let stored = {};
+          try {
+            stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}") || {};
+          } catch (_) {}
+          const params = new URLSearchParams(location.search);
+          const choose = (key, select, fallback) => {
+            const fromUrl = params.get(key);
+            if (fromUrl !== null && hasOption(select, fromUrl)) return fromUrl;
+            return hasOption(select, stored[key])
+              ? String(stored[key])
+              : String(fallback);
+          };
+          const tinySettings = {
+            cohort: choose("cohort", cohortSelect, "all"),
+            metric: choose("data", metricSelect, "supply"),
+            mode: choose("mode", modeSelect, "value"),
+            weight: choose("weight", weightSelect, "raw"),
+          };
+          cohortSelect.value = tinySettings.cohort;
+          metricSelect.value = tinySettings.metric;
+          modeSelect.value = tinySettings.mode;
+          weightSelect.value = tinySettings.weight;
+
+          const selectedLabel = (select) =>
+            select.selectedOptions[0]?.textContent.trim() || select.value;
+          tinySelectionOutput.textContent = [
+            selectedLabel(cohortSelect),
+            selectedLabel(metricSelect),
+            selectedLabel(weightSelect),
+            selectedLabel(modeSelect),
+          ].join(" · ");
+
+          let tinyProfile = null;
+          let tinyComparison = null;
+          const sourceKey =
+            tinySettings.metric === "realized_cap"
+              ? "realized_cap"
+              : tinySettings.metric === "unrealized_pnl"
+                ? "unrealized_pnl"
+                : "supply";
+          const formatTinyPrice = (value) =>
+            Number.isFinite(value)
+              ? `$${Math.round(value).toLocaleString("en-US")}`
+              : "—";
+          const bucketValue = (bucket) => Number(bucket?.[sourceKey]) || 0;
+
+          const profileValues = (profile) =>
+            new Map(
+              (profile?.buckets || [])
+                .filter((bucket) => Number(bucket.price_floor) > 0)
+                .map((bucket) => [
+                  Number(bucket.price_floor),
+                  bucketValue(bucket),
+                ]),
+            );
+
+          const tinySeries = () => {
+            const current = profileValues(tinyProfile);
+            const comparison = profileValues(tinyComparison);
+            const prices = new Set(current.keys());
+            if (tinySettings.mode !== "value") {
+              comparison.forEach((_, price) => prices.add(price));
+            }
+            return Array.from(prices)
+              .sort((left, right) => left - right)
+              .map((price) => {
+                const currentValue = current.get(price) || 0;
+                return {
+                  price,
+                  value:
+                    tinySettings.mode !== "value"
+                      ? currentValue - (comparison.get(price) || 0)
+                      : tinySettings.metric === "unrealized_pnl"
+                        ? Math.abs(currentValue)
+                        : currentValue,
+                };
+              });
+          };
+
+          const drawTinyProfile = () => {
+            const width = Math.max(1, canvas.clientWidth);
+            const height = Math.max(1, canvas.clientHeight);
+            const dpr = Math.min(devicePixelRatio || 1, 1.25);
+            canvas.width = Math.max(1, Math.round(width * dpr));
+            canvas.height = Math.max(1, Math.round(height * dpr));
+            context.setTransform(dpr, 0, 0, dpr, 0, 0);
+            context.fillStyle = "#07100f";
+            context.fillRect(0, 0, width, height);
+            if (!tinyProfile?.buckets?.length) return;
+
+            const series = tinySeries();
+            if (!series.length) return;
+            const left = 0;
+            const right = width;
+            const plotTop = 0;
+            const plotBottom = height;
+            const plotWidth = Math.max(1, right - left);
+            const binsPerBar =
+              plotWidth >= series.length * 5 ? 1 : 2;
+            const bars = [];
+            for (let start = 0; start < series.length; start += binsPerBar) {
+              const end = Math.min(series.length, start + binsPerBar);
+              let value = 0;
+              for (let point = start; point < end; point++) {
+                value += series[point].value;
+              }
+              bars.push(value);
+            }
+            const barCount = bars.length;
+            const peak = Math.max(
+              ...bars.map((value) => Math.abs(value)),
+              1,
+            );
+            const normalized = bars.map(
+              (value) =>
+                Math.sign(value) *
+                (Math.asinh((Math.abs(value) / peak) * 24) / Math.asinh(24)),
+            );
+            const baseline =
+              tinySettings.mode === "value"
+                ? plotBottom
+                : (plotTop + plotBottom) * 0.5;
+            const positiveHeight = baseline - plotTop;
+            const negativeHeight = plotBottom - baseline;
+            const columnWidth = plotWidth / barCount;
+            const gap =
+              columnWidth >= 1.75
+                ? Math.min(1, columnWidth * 0.2)
+                : 0;
+
+            context.fillStyle = "rgba(255, 255, 255, 0.12)";
+            context.fillRect(
+              left,
+              Math.min(height - 1, Math.round(baseline)),
+              plotWidth,
+              1,
+            );
+            normalized.forEach((value, index) => {
+              if (value === 0) return;
+              const barHeight =
+                value >= 0
+                  ? value * positiveHeight
+                  : -value * negativeHeight;
+              const x =
+                left +
+                index * columnWidth +
+                (index === 0 ? 0 : gap * 0.5);
+              const barRight =
+                left +
+                (index + 1) * columnWidth -
+                (index === barCount - 1 ? 0 : gap * 0.5);
+              const y = value >= 0 ? baseline - barHeight : baseline;
+              context.fillStyle = elevationColor(
+                surfaceColorHeight(Math.abs(value), 1),
+                1,
+                value < 0 ? -1 : 1,
+              );
+              context.fillRect(
+                x,
+                y,
+                Math.max(1, barRight - x),
+                Math.max(1, barHeight),
+              );
+            });
+            const close = Number(tinyProfile.close);
+            let closest = 0;
+            let distance = Infinity;
+            series.forEach((point, index) => {
+              const next = Math.abs(point.price - close);
+              if (next < distance) {
+                closest = index;
+                distance = next;
+              }
+            });
+            const markerBar = Math.min(
+              barCount - 1,
+              Math.floor(closest / binsPerBar),
+            );
+            const markerX =
+              left + ((markerBar + 0.5) / barCount) * plotWidth;
+            context.save();
+            context.lineCap = "round";
+            context.beginPath();
+            context.moveTo(markerX, plotTop);
+            context.lineTo(markerX, plotBottom);
+            context.globalAlpha = 0.32;
+            context.strokeStyle = "#240b09";
+            context.lineWidth = width <= 560 ? 1.8 : 2.3;
+            context.stroke();
+            context.globalAlpha = 0.62;
+            context.strokeStyle = "#ff3b30";
+            context.lineWidth = width <= 560 ? 0.7 : 0.85;
+            context.stroke();
+            context.restore();
+          };
+
+          const loadTinyProfile = async () => {
+            try {
+              const query = new URLSearchParams({
+                agg: "lin1000",
+                weight: tinySettings.weight,
+              });
+              const datesResponse = await fetch(
+                `${API}/urpd/${encodeURIComponent(tinySettings.cohort)}/dates?${new URLSearchParams({ weight: tinySettings.weight })}`,
+                { cache: "no-cache", signal: AbortSignal.timeout(8_000) },
+              );
+              if (!datesResponse.ok) {
+                throw new Error(`URPD dates: ${datesResponse.status}`);
+              }
+              const availableDates = await datesResponse.json();
+              if (!Array.isArray(availableDates) || !availableDates.length) {
+                throw new Error("No URPD dates are available");
+              }
+              const rangeDates = availableDates.filter(
+                (date) => date >= "2018-01-01",
+              );
+              if (!rangeDates.length) {
+                throw new Error("No recent URPD dates are available");
+              }
+              const dates = rangeDates.filter((_, index) => index % 7 === 0);
+              const latestDate = rangeDates[rangeDates.length - 1];
+              if (dates[dates.length - 1] !== latestDate) dates.push(latestDate);
+
+              const fetchProfile = async (date, cache) => {
+                const response = await fetch(
+                  `${API}/urpd/${encodeURIComponent(tinySettings.cohort)}/${date}?${query}`,
+                  { cache, signal: AbortSignal.timeout(8_000) },
+                );
+                if (!response.ok) {
+                  throw new Error(`URPD profile: ${response.status}`);
+                }
+                return response.json();
+              };
+
+              tinyProfile = await fetchProfile(latestDate, "no-cache");
+              if (tinySettings.mode !== "value") {
+                const offset = COMPARISON_OFFSETS[tinySettings.mode] || 1;
+                const comparisonDate =
+                  dates[Math.max(0, dates.length - 1 - offset)];
+                tinyComparison = await fetchProfile(
+                  comparisonDate,
+                  "force-cache",
+                );
+              }
+              priceOutput.textContent = formatTinyPrice(Number(tinyProfile.close));
+              priceOutput.value = priceOutput.textContent;
+              dateOutput.textContent = tinyProfile.date || "Latest profile";
+              dateOutput.value = dateOutput.textContent;
+              message.hidden = true;
+              canvas.setAttribute(
+                "aria-label",
+                `${selectedLabel(modeSelect)} ${selectedLabel(metricSelect)} histogram for ${selectedLabel(cohortSelect)} on ${tinyProfile.date}, weighted by ${selectedLabel(weightSelect)}`,
+              );
+              drawTinyProfile();
+            } catch (error) {
+              priceOutput.textContent = "Unavailable";
+              dateOutput.textContent = "Current trail";
+              message.hidden = true;
+              console.error(error);
+            }
+          };
+
+          new ResizeObserver(drawTinyProfile).observe(canvas);
+          loadTinyProfile();
+          return;
+        }
+        const hoverQuery = window.matchMedia(
+          "(hover: hover) and (pointer: fine)",
+        );
 
         const state = {
           cohort: "all",
@@ -885,7 +1104,6 @@
           chunkGeneration: 0,
         };
 
-        const colorCache = [];
         const monthFormatter = new Intl.DateTimeFormat("en", {
           month: "short",
           timeZone: "UTC",

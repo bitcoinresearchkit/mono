@@ -65,9 +65,9 @@ address payload bytes.
 /**
  * Four-byte primary state stored for every address.
  *
- * Empty addresses with small lifetime totals are stored inline. The remaining
- * values use the upper two bits as a tag and the lower 30 bits as a sidecar
- * index.
+ * Empty addresses with small lifetime totals are stored inline. The upper two
+ * bits select an inline layout or a sidecar, whose index occupies the lower 30
+ * bits.
  *
  * @typedef {number} AddrState
  */
@@ -1194,6 +1194,7 @@ on serialization otherwise.
  * @property {string} name - The series name/identifier.
  * @property {string} kind - The Rust type (e.g., "Sats", "StoredF64").
  * @property {Index[]} indexes - Available indexes for this series.
+ * @property {?string=} description - Human-readable metric definition, when documented.
  * @property {string} type - JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
  */
 /**

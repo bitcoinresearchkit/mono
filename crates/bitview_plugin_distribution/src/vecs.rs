@@ -52,6 +52,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block height.
     pub supply_state: M::Stored<BytesVec<Height, SupplyState>>,
     #[traversable(wrap = "addrs", rename = "state")]
+    /// Persistent state for every indexed address. Each address type uses a
+    /// compact primary vector; funded addresses and empty addresses whose
+    /// lifetime totals do not fit inline reference shared sidecars.
     pub addr_state: AddrStateVecs<M>,
     #[traversable(wrap = "cohorts")]
     pub cohorts: CohortMetrics<M>,

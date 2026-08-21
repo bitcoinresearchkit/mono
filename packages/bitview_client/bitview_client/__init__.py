@@ -34,9 +34,9 @@ OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p
 SatsSigned = int
 # Four-byte primary state stored for every address.
 # 
-# Empty addresses with small lifetime totals are stored inline. The remaining
-# values use the upper two bits as a tag and the lower 30 bits as a sidecar
-# index.
+# Empty addresses with small lifetime totals are stored inline. The upper two
+# bits select an inline layout or a sidecar, whose index occupies the lower 30
+# bits.
 AddrState = int
 # Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
 Bitcoin = float
@@ -1689,11 +1689,13 @@ class SeriesLeafWithSchema(TypedDict):
         name: The series name/identifier.
         kind: The Rust type (e.g., "Sats", "StoredF64").
         indexes: Available indexes for this series.
+        description: Human-readable metric definition, when documented.
         type: JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
     """
     name: str
     kind: str
     indexes: List[Index]
+    description: Optional[str]
     type: str
 
 class SeriesNameWithIndex(TypedDict):

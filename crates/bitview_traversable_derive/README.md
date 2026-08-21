@@ -1,34 +1,35 @@
 # bitview_traversable_derive
 
-Proc-macro for deriving the `Traversable` trait on data structures.
+Derives `bitview_traversable::Traversable` and `vecdb::ReadOnlyClone` for
+structs. Generated traversal builds the public `TreeNode`, walks every
+exportable vec, and keeps a separate visible-only iterator.
 
-## What It Enables
+Field attributes:
 
-Automatically generate tree traversal and export iteration for structs, eliminating boilerplate when working with hierarchical data that needs serialization or inspection.
+- `skip` excludes a field from traversal and clones it unchanged in a
+  read-only projection.
+- `flatten` merges a nested tree into its parent.
+- `hidden` keeps a field exportable while omitting it from the public tree and
+  visible iterator.
+- `rename = "name"` changes its tree key.
+- `wrap = "path"` places it below an additional path.
 
-## Key Features
-
-- **Automatic tree building**: Converts struct fields into `TreeNode::Branch` hierarchies
-- **Export iteration**: Generates `iter_any_exportable()` to walk all exportable vectors
-- **Visibility-independent**: Traverses public and private fields by default
-- **Field attributes**: `#[traversable(skip)]` to exclude fields, `#[traversable(flatten)]` to merge nested structures
-- **Option support**: Gracefully handles `Option<T>` fields
-- **Generic-aware**: Properly bounds generic parameters with `Traversable + Send + Sync`
-
-## Core API
+Struct attributes support `merge`, `transparent`, `hidden`, and `wrap =
+"path"`. Single-field tuple structs delegate transparently. Named fields may
+be optional, and doc comments are collected as series-description fragments.
 
 ```rust,ignore
 #[derive(Traversable)]
-struct MyData {
-    pub metrics: MetricsCollection,
+struct Metrics {
     #[traversable(flatten)]
-    pub nested: NestedData,
+    public: PublicMetrics,
+    #[traversable(hidden)]
+    internal: InternalMetrics,
     #[traversable(skip)]
-    internal: Cache,
+    cache: Cache,
 }
 ```
 
-## Generated Methods
-
-- `to_tree_node(&self) -> TreeNode` - Build navigable tree structure
-- `iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec>` - Iterate all exportable vectors
+For structs generic over `M: StorageMode`, the generated read-only projection
+uses the same struct with `M = Ro`. Other generic fields propagate their own
+`ReadOnlyClone` implementation.

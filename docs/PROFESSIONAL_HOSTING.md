@@ -1,18 +1,16 @@
 # Professional Hosting
 
-Need a managed instance? We offer professional hosting services.
+Managed Bitview and BRK deployments are available for teams that do not want
+to operate the full stack themselves.
 
-**What's Included:**
-- Dual dedicated servers (1 GB/s) with redundant ISPs
-- Cloudflare integration for global performance
-- 99.99% uptime SLA
-- Automatic updates and maintenance
-- Direct support channel
-- Custom Bitcoin Core/Knots versions
-- Optional branded subdomains
+The deployment architecture, Bitcoin Core configuration, update and maintenance
+plan, monitoring, support terms, and optional custom domain are agreed for each
+instance.
 
-**Pricing:**
+## Pricing
+
 - Monthly: 0.01 BTC
 - Yearly: 0.1 BTC
 
-**Contact:** [hosting@bitcoinresearchkit.org](mailto:hosting@bitcoinresearchkit.org)
+Contact [hosting@bitcoinresearchkit.org](mailto:hosting@bitcoinresearchkit.org)
+for availability and any uptime commitment.

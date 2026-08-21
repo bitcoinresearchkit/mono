@@ -837,7 +837,7 @@ const FRAMEWORK_SEMANTIC_DESCRIPTIONS: &[&str] = &[
 ];
 const DISTRIBUTION_SEMANTIC_DESCRIPTIONS: &[&str] = &[
     "Serialized distribution state used to resume cohort computation at each block height.",
-    "Maps an address-type-specific index to the corresponding unified address index.",
+    "Persistent state for every indexed address. Each address type uses a compact primary vector; funded addresses and empty addresses whose lifetime totals do not fit inline reference shared sidecars.",
     "Coin blocks destroyed by spent outputs: each spent output's value in BTC multiplied by its age in blocks, summed over the represented block.",
     "Amount of bitcoin held in unspent transaction outputs in the selected cohort.",
     "Amount of unspent bitcoin that crosses out of the selected exact age range during the represented block interval.",
@@ -1026,8 +1026,8 @@ fn assert_mutable_series_gates_from_vec_type() {
     assert!(!reported_metric.vec().is_mutable());
     assert!(!reported_metric.requires_gate());
 
-    let any_addr_index = SeriesName::from("any_addr_index");
-    let address = vecs.entry(&any_addr_index, Index::P2AAddrIndex).unwrap();
+    let addr_state = SeriesName::from("addr_state");
+    let address = vecs.entry(&addr_state, Index::P2AAddrIndex).unwrap();
     let distribution = address.plugin();
     assert_eq!(distribution.id(), PluginId::new("distribution"));
     assert!(address.vec().is_mutable());
@@ -1051,6 +1051,15 @@ fn assert_audited_descriptions() {
     let context = ImportContext::new(directory.path());
     let plugins = DefaultPlugins::import(context, &reader).unwrap();
     let vecs = Vecs::build(&plugins);
+
+    let realized_price_description = format!("{REALIZED_PRICE_DESCRIPTION} {USD_DESCRIPTION}");
+    assert_eq!(
+        vecs.catalog()
+            .descriptions()
+            .get("realized_price")
+            .map(Cow::as_ref),
+        Some(realized_price_description.as_str())
+    );
 
     for (name, representation) in [
         ("realized_price", USD_DESCRIPTION),
@@ -2886,15 +2895,15 @@ fn assert_audited_descriptions() {
             "Serialized distribution state used to resume cohort computation at each block height.",
         ),
         (
-            "any_addr_index",
-            "Maps an address-type-specific index to the corresponding unified address index.",
+            "addr_state",
+            "Persistent state for every indexed address. Each address type uses a compact primary vector; funded addresses and empty addresses whose lifetime totals do not fit inline reference shared sidecars.",
         ),
         (
             "funded_addr_data",
             "Persisted state record for each address that currently holds at least one unspent output.",
         ),
         (
-            "empty_addr_data",
+            "extended_empty_addr_data",
             "Persisted state record for each previously seen address that currently holds no unspent outputs.",
         ),
         (
@@ -3023,7 +3032,7 @@ fn assert_audited_descriptions() {
         .iter()
         .filter(|name| series_has_plugin(&vecs, name, "distribution"))
         .count();
-    assert_eq!(actual_distribution_series, 49_940);
+    assert_eq!(actual_distribution_series, 49_938);
     let documented = vecs
         .series_names()
         .iter()

@@ -32,7 +32,7 @@ let entries = client.get_raw_mempool_verbose()?;
 ## Key Methods
 
 - `get_block`, `get_block_hash`, `get_block_header_info`
-- `get_transaction`, `get_mempool_transaction`, `get_tx_out`
+- `get_raw_transaction`, `get_mempool_raw_tx`, `get_tx_out`
 - `get_raw_mempool`, `get_raw_mempool_verbose`
 - `get_blockchain_info`, `get_last_height`
 - `is_in_main_chain`, `get_closest_valid_height`

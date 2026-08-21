@@ -19,7 +19,7 @@ mod cohort_query;
 mod index_to_vec;
 mod series_entry;
 
-use index_to_vec::{IndexToVec, IndexToVecInternal as _};
+use index_to_vec::IndexToVec;
 
 pub use series_entry::SeriesEntry;
 
@@ -37,6 +37,7 @@ pub struct Vecs<'a> {
 struct DescriptionSearch {
     matcher: QuickMatch<'static>,
     series_by_description: Vec<Box<[SeriesId]>>,
+    descriptions_by_series: Box<[Option<Cow<'static, str>>]>,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -95,11 +96,16 @@ impl<'a> Vecs<'a> {
 
     fn finish_build(
         mut builder: Builder<'a>,
-        catalog: TreeNode,
+        mut catalog: TreeNode,
         series_to_description: BTreeMap<&'a str, Vec<&'static str>>,
     ) -> Self {
         let mut interned_descriptions = BTreeMap::new();
+        let mut descriptions = BTreeMap::new();
         for (series, fragments) in series_to_description {
+            assert!(
+                builder.by_series.contains_key(series),
+                "Description references unknown series: {series}"
+            );
             let description = match interned_descriptions.entry(fragments) {
                 Entry::Vacant(entry) => {
                     let description: &'static str =
@@ -109,12 +115,9 @@ impl<'a> Vecs<'a> {
                 }
                 Entry::Occupied(entry) => *entry.get(),
             };
-            builder
-                .by_series
-                .get_mut(series)
-                .unwrap_or_else(|| panic!("Description references unknown series: {series}"))
-                .set_description(description);
+            descriptions.insert(series, description);
         }
+        catalog.set_descriptions(&descriptions);
         builder.counts.distinct = builder.by_series.len();
         let Builder {
             by_series,
@@ -129,7 +132,21 @@ impl<'a> Vecs<'a> {
 
         let mut series_names = by_series.keys().copied().collect::<Vec<_>>();
         sort_ids(&mut series_names);
-        let description_search = DescriptionSearch::new(&series_names, &by_series);
+        let catalog_descriptions = catalog.descriptions();
+        for (series, description) in descriptions {
+            assert_eq!(
+                catalog_descriptions.get(series).map(Cow::as_ref),
+                Some(description),
+                "Catalog description mismatch for series {series}"
+            );
+        }
+        for series in catalog_descriptions.keys() {
+            assert!(
+                by_series.contains_key(series),
+                "Catalog description references unknown series: {series}"
+            );
+        }
+        let description_search = DescriptionSearch::new(&series_names, &catalog_descriptions);
 
         let indexes = by_series
             .values()
@@ -202,10 +219,14 @@ impl<'a> Vecs<'a> {
     }
 
     pub fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
-        let index_to_vec = self.by_series.get(series.normalize().as_ref())?;
+        let normalized = series.normalize();
+        let name = normalized.as_ref();
+        let index_to_vec = self.by_series.get(name)?;
         let value_type = index_to_vec.values().next()?.vec().value_type_to_string();
         let indexes = index_to_vec.keys().copied().collect();
-        let description = index_to_vec.description().map(Cow::Borrowed);
+        let description = self
+            .series_position(name)
+            .and_then(|index| self.description_search.description(index));
         Some(SeriesInfo {
             description,
             indexes,
@@ -342,18 +363,32 @@ impl<'a> Vecs<'a> {
             .get(series.normalize().as_ref())
             .and_then(|index_to_vec| index_to_vec.get(&index).copied())
     }
+
+    fn series_position(&self, name: &str) -> Option<usize> {
+        self.series_names
+            .binary_search_by(|candidate| {
+                candidate
+                    .len()
+                    .cmp(&name.len())
+                    .then_with(|| (*candidate).cmp(name))
+            })
+            .ok()
+    }
 }
 
 impl DescriptionSearch {
-    fn new<'a>(series: &[&'a str], by_series: &BTreeMap<&'a str, IndexToVec<'a>>) -> Self {
+    fn new(series: &[&str], descriptions_by_name: &BTreeMap<&str, Cow<'static, str>>) -> Self {
         assert!(u32::try_from(series.len()).is_ok(), "Too many series");
         let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
+        let mut descriptions_by_series = Vec::with_capacity(series.len());
 
         for (id, name) in series.iter().copied().enumerate() {
-            let Some(description) = by_series[name].description() else {
+            let description = descriptions_by_name.get(name).cloned();
+            descriptions_by_series.push(description.clone());
+            let Some(description) = description else {
                 continue;
             };
-            let description = cohort_query::normalize(description);
+            let description = cohort_query::normalize(&description);
             if description.is_empty() {
                 continue;
             }
@@ -373,7 +408,12 @@ impl DescriptionSearch {
         Self {
             matcher: QuickMatch::new_owned(descriptions),
             series_by_description,
+            descriptions_by_series: descriptions_by_series.into_boxed_slice(),
         }
+    }
+
+    fn description(&self, series: usize) -> Option<Cow<'static, str>> {
+        self.descriptions_by_series.get(series)?.clone()
     }
 }
 

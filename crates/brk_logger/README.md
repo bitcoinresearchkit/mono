@@ -19,7 +19,7 @@ Drop-in logging initialization that silences noisy dependencies (bitcoin, fjall,
 
 ## Environment Variables
 
-- `LOG` - Set log level (default: `info` in release, `debug` in dev). Example: `LOG=debug your-binary`
+- `LOG` - Set log level (default: `info` in release, `debug` in dev). Example: `LOG=debug bitviewd`
 - `RUST_LOG` - Full control over filtering (overrides all defaults)
 
 ## Core API
