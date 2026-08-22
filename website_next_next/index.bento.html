@@ -1,0 +1,1999 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Different ways to explore and understand Bitcoin."
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>bitview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --black: #0a0a0a;
+        --white: #f1eee7;
+        --orange: #f7931a;
+        --header-space: 4.75rem;
+        --surface-inset: clamp(0.375rem, 1vw, 0.75rem);
+        --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        min-width: 0;
+        background: var(--black);
+        scrollbar-color: #3a3a3a var(--black);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding-top: var(--header-space);
+        overflow-x: hidden;
+        color: var(--white);
+        background: var(--black);
+      }
+
+      button,
+      a {
+        color: inherit;
+        font: inherit;
+      }
+
+      button {
+        border: 0;
+      }
+
+      a {
+        text-decoration: none;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .site-header {
+        position: fixed;
+        top: 1.5rem;
+        left: 2rem;
+        z-index: 100;
+        line-height: 1;
+        mix-blend-mode: difference;
+      }
+
+      .site-brand {
+        --brand-color: var(--white);
+
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--brand-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 1rem;
+        line-height: 1;
+        text-transform: lowercase;
+        opacity: 0.8;
+        transition: opacity 150ms ease;
+      }
+
+      .site-brand:hover,
+      .site-brand:focus-visible {
+        opacity: 1;
+      }
+
+      .site-brand:focus-visible {
+        outline: 2px solid var(--white);
+        outline-offset: 0.35rem;
+      }
+
+      .site-brand:active {
+        --brand-color: var(--orange);
+      }
+
+      .site-brand-mark {
+        display: inline-grid;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--brand-color);
+      }
+
+      .site-brand-cube {
+        display: block;
+        width: 1.299rem;
+        height: 1.5rem;
+        overflow: hidden;
+      }
+
+      .site-brand-cube .glass {
+        fill: currentColor;
+        fill-opacity: 0.4;
+      }
+
+      .site-brand-cube .liquid {
+        fill: currentColor;
+      }
+
+      .site-brand-cube .liquid-group {
+        transform-box: view-box;
+        animation: cube-fill 5s linear infinite alternate;
+      }
+
+      @keyframes cube-fill {
+        from {
+          transform: translateY(49.5%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      #surface {
+        --card-radius: clamp(10px, 0.9vw, 16px);
+
+        position: relative;
+        width: calc(100% - var(--surface-inset) - var(--surface-inset));
+        min-height: 100svh;
+        margin-inline: var(--surface-inset);
+        overflow: clip;
+        background: var(--black);
+        isolation: isolate;
+      }
+
+      .card {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 2;
+        container-type: size;
+        overflow: hidden;
+        border-radius: var(--card-radius);
+        color: var(--ink);
+        background: var(--hard-color);
+        box-shadow:
+          inset 0 0 0 0.5px rgb(255 255 255 / 0.14),
+          inset 0 0 0 1px rgb(0 0 0 / 0.12),
+          0 0.3rem 1rem rgb(0 0 0 / 0.2);
+        transform-origin: center;
+        transition:
+          width 280ms var(--ease),
+          height 280ms var(--ease),
+          transform 280ms var(--ease),
+          filter 180ms ease;
+        will-change: width, height, transform;
+      }
+
+      #surface:not([data-ready]) .card {
+        transition: none;
+      }
+
+      .card::before {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: linear-gradient(
+          180deg,
+          rgb(0 0 0 / 0.08),
+          transparent 36%,
+          rgb(0 0 0 / 0.28)
+        );
+        content: "";
+        pointer-events: none;
+      }
+
+      .card[data-light]::before {
+        background: linear-gradient(
+          180deg,
+          rgb(255 255 255 / 0.04),
+          transparent 40%,
+          rgb(255 255 255 / 0.2)
+        );
+      }
+
+      .card.add::before {
+        background: none;
+      }
+
+      .add-card-button {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        width: 100%;
+        padding: 0;
+        color: rgb(255 255 255 / 0.58);
+        background: transparent;
+        cursor: pointer;
+        touch-action: manipulation;
+        transition:
+          color 150ms ease,
+          background 150ms ease,
+          transform 180ms var(--ease);
+      }
+
+      .add-card-button::before,
+      .add-card-button::after {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: clamp(1.25rem, 18cqw, 2rem);
+        height: 1.5px;
+        border-radius: 1px;
+        background: currentColor;
+        content: "";
+        transform: translate(-50%, -50%);
+      }
+
+      .add-card-button::after {
+        transform: translate(-50%, -50%) rotate(90deg);
+      }
+
+      .add-card-button:hover,
+      .add-card-button:focus-visible {
+        color: var(--white);
+        background: rgb(255 255 255 / 0.06);
+        outline: none;
+      }
+
+      .add-card-button:active {
+        transform: scale(0.96);
+      }
+
+      .card.is-direct {
+        z-index: 80;
+        transition: filter 180ms ease;
+      }
+
+      .card.is-active {
+        filter: saturate(1.08) brightness(1.04);
+        box-shadow:
+          inset 0 0 0 1px rgb(255 255 255 / 0.55),
+          0 1rem 3rem rgb(0 0 0 / 0.35);
+      }
+
+      .page-frame {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        background: transparent;
+        opacity: 0;
+        transition: opacity 360ms ease;
+        pointer-events: none;
+      }
+
+      .card.is-preview-ready .page-frame {
+        opacity: 1;
+      }
+
+      .card:hover .page-frame,
+      .card.is-active .page-frame {
+        opacity: 1;
+      }
+
+      .card.is-preview-ready::before {
+        background: none;
+      }
+
+      .card-link {
+        position: absolute;
+        inset: 0;
+        z-index: 3;
+        touch-action: pan-y;
+      }
+
+      .card-header {
+        position: absolute;
+        top: 0;
+        right: 0;
+        left: 0;
+        z-index: 6;
+        display: flex;
+        min-height: 3.8rem;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 4rem 0.65rem;
+        pointer-events: none;
+      }
+
+      .drag-handle,
+      .configure-handle,
+      .resize-handle {
+        z-index: 7;
+        display: grid;
+        width: 3rem;
+        height: 3rem;
+        padding: 0;
+        border-radius: 0.85rem;
+        place-items: center;
+        color: var(--ink);
+        background: rgb(255 255 255 / 0.09);
+        opacity: 0.72;
+        transition:
+          opacity 150ms ease,
+          background 150ms ease,
+          transform 150ms ease;
+      }
+
+      [data-light] .drag-handle,
+      [data-light] .configure-handle,
+      [data-light] .resize-handle {
+        background: rgb(0 0 0 / 0.07);
+      }
+
+      .drag-handle {
+        position: absolute;
+        top: 0.4rem;
+        left: 0.4rem;
+        cursor: grab;
+        touch-action: none;
+      }
+
+      .drag-handle::before {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow:
+          6px 0 currentColor,
+          0 6px currentColor,
+          6px 6px currentColor,
+          0 12px currentColor,
+          6px 12px currentColor;
+        content: "";
+        transform: translate(-3px, -6px);
+      }
+
+      .drag-handle:hover,
+      .drag-handle:focus-visible,
+      .configure-handle:hover,
+      .configure-handle:focus-visible,
+      .resize-handle:hover,
+      .resize-handle:focus-visible,
+      .card.is-active .drag-handle {
+        background: rgb(255 255 255 / 0.18);
+        opacity: 1;
+        transform: scale(1.04);
+      }
+
+      [data-light] .drag-handle:hover,
+      [data-light] .drag-handle:focus-visible,
+      [data-light] .configure-handle:hover,
+      [data-light] .configure-handle:focus-visible,
+      [data-light] .resize-handle:hover,
+      [data-light] .resize-handle:focus-visible,
+      [data-light].card.is-active .drag-handle {
+        background: rgb(0 0 0 / 0.14);
+      }
+
+      .drag-handle:active,
+      .configure-handle:active,
+      .resize-handle:active {
+        transform: scale(0.96);
+      }
+
+      .drag-handle:active,
+      .card.is-active .drag-handle {
+        cursor: grabbing;
+      }
+
+      .drag-handle:focus-visible,
+      .configure-handle:focus-visible,
+      .resize-handle:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: -4px;
+      }
+
+      .label {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .label {
+        overflow: hidden;
+        max-width: calc(100% - 3rem);
+        color: var(--muted);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .configure-handle {
+        position: absolute;
+        top: 0.4rem;
+        right: 0.4rem;
+        cursor: pointer;
+        font-size: 1.2rem;
+        line-height: 1;
+        pointer-events: auto;
+        touch-action: manipulation;
+      }
+
+      .card-copy {
+        position: absolute;
+        right: clamp(1rem, 4cqw, 2rem);
+        bottom: clamp(1rem, 4cqw, 2rem);
+        left: clamp(1rem, 4cqw, 2rem);
+        z-index: 5;
+        pointer-events: none;
+      }
+
+      .card-title {
+        max-width: 11ch;
+        margin: 0;
+        font-size: clamp(1.7rem, 11cqw, 4.6rem);
+        font-weight: 570;
+        line-height: 0.88;
+        letter-spacing: -0.07em;
+        text-wrap: balance;
+      }
+
+      .card-description {
+        max-width: 32rem;
+        margin: 0.65rem 0 0;
+        color: var(--muted);
+        font-size: clamp(0.7rem, 2.4cqw, 0.86rem);
+        line-height: 1.4;
+      }
+
+      .resize-handle {
+        position: absolute;
+        right: 0.4rem;
+        bottom: 0.4rem;
+        cursor: nwse-resize;
+        touch-action: none;
+      }
+
+      .resize-handle::before,
+      .resize-handle::after {
+        position: absolute;
+        right: 0.72rem;
+        bottom: 0.72rem;
+        width: 0.85rem;
+        height: 0.85rem;
+        border-right: 1px solid currentColor;
+        border-bottom: 1px solid currentColor;
+        content: "";
+      }
+
+      .resize-handle::after {
+        right: 1.05rem;
+        bottom: 1.05rem;
+        width: 0.35rem;
+        height: 0.35rem;
+      }
+
+      .card:hover .resize-handle,
+      .card.is-active .resize-handle {
+        opacity: 1;
+      }
+
+      #grid-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      #ghost {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 55;
+        display: none;
+        border-radius: var(--card-radius);
+        background: rgb(255 255 255 / 0.08);
+        box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.7);
+        transition:
+          width 110ms ease,
+          height 110ms ease,
+          transform 110ms ease;
+        pointer-events: none;
+      }
+
+      #ghost[data-visible] {
+        display: block;
+      }
+
+      #surface[data-editing] .card:not(.is-active) {
+        filter: brightness(0.88);
+      }
+
+      .card[hidden] {
+        display: none;
+      }
+
+      #config-dialog {
+        width: min(34rem, calc(100% - 1.5rem));
+        max-height: min(46rem, calc(100dvh - 1.5rem));
+        margin: auto;
+        padding: 0;
+        overflow: hidden;
+        border: 1px solid rgb(255 255 255 / 0.13);
+        border-radius: 1.2rem;
+        color: var(--white);
+        background: #151515;
+        box-shadow: 0 2rem 6rem rgb(0 0 0 / 0.64);
+      }
+
+      #config-dialog::backdrop {
+        background: rgb(0 0 0 / 0.7);
+        backdrop-filter: blur(0.4rem);
+      }
+
+      .config-form {
+        display: grid;
+        max-height: inherit;
+        overflow: auto;
+      }
+
+      .config-heading,
+      .config-fields,
+      .config-actions {
+        padding: 1rem;
+      }
+
+      .config-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgb(255 255 255 / 0.1);
+      }
+
+      .config-heading h2 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 620;
+        letter-spacing: -0.025em;
+      }
+
+      .config-close {
+        width: 2.75rem;
+        height: 2.75rem;
+        padding: 0;
+        border-radius: 0.8rem;
+        color: var(--white);
+        background: rgb(255 255 255 / 0.08);
+        cursor: pointer;
+        font-size: 1.25rem;
+      }
+
+      .config-fields {
+        display: grid;
+        gap: 0.9rem;
+      }
+
+      .config-field {
+        display: grid;
+        gap: 0.42rem;
+        color: #aaa59c;
+        font-size: 0.74rem;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .config-field input,
+      .config-field select,
+      .config-field textarea {
+        width: 100%;
+        padding: 0.8rem 0.85rem;
+        border: 1px solid rgb(255 255 255 / 0.12);
+        border-radius: 0.75rem;
+        color: var(--white);
+        background: #202020;
+        font: 500 0.9rem/1.35 ui-sans-serif, system-ui, sans-serif;
+        outline: none;
+      }
+
+      .config-field input:focus,
+      .config-field select:focus,
+      .config-field textarea:focus {
+        border-color: rgb(247 147 26 / 0.8);
+        box-shadow: 0 0 0 3px rgb(247 147 26 / 0.12);
+      }
+
+      .config-field input[type="color"] {
+        height: 3rem;
+        padding: 0.3rem;
+      }
+
+      .config-field textarea {
+        min-height: 10rem;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+      }
+
+      .config-group[hidden] {
+        display: none;
+      }
+
+      .config-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        border-top: 1px solid rgb(255 255 255 / 0.1);
+      }
+
+      .config-actions button {
+        min-height: 2.8rem;
+        padding: 0.65rem 0.9rem;
+        border-radius: 0.75rem;
+        color: var(--white);
+        background: rgb(255 255 255 / 0.09);
+        cursor: pointer;
+        font-weight: 650;
+      }
+
+      .config-actions .config-save {
+        margin-left: auto;
+        color: #17100a;
+        background: var(--orange);
+      }
+
+      .config-actions .config-delete {
+        color: #ffb0a3;
+        background: rgb(151 42 30 / 0.24);
+      }
+
+      noscript {
+        display: block;
+        padding: 2rem;
+        color: var(--white);
+      }
+
+      noscript a {
+        text-decoration: underline;
+      }
+
+      @container (max-width: 250px) {
+        .card-title {
+          font-size: clamp(1.45rem, 13cqw, 2.35rem);
+        }
+
+        .card-description {
+          display: none;
+        }
+
+        .card-header {
+          justify-content: flex-end;
+          padding-left: 3.8rem;
+        }
+
+        .label {
+          display: none;
+        }
+      }
+
+      @container (max-height: 190px) {
+        .card-description {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .site-brand-cube .liquid-group {
+          animation: none;
+          transform: translateY(25%);
+        }
+
+        .card,
+        .page-frame,
+        .drag-handle,
+        .configure-handle,
+        .resize-handle,
+        .add-card-button,
+        #ghost {
+          transition-duration: 0ms;
+        }
+      }
+
+      @media (max-width: 599px) {
+        #config-dialog {
+          width: 100%;
+          max-width: none;
+          max-height: min(82dvh, 44rem);
+          margin: auto 0 0;
+          border-right: 0;
+          border-bottom: 0;
+          border-left: 0;
+          border-radius: 1.25rem 1.25rem 0 0;
+        }
+
+        .config-actions button {
+          flex: 1 1 auto;
+        }
+
+        .config-actions .config-save {
+          margin-left: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p id="interaction-help" class="visually-hidden">
+      Drag a card from its dotted upper-left control. Resize it from its
+      lower-right corner. Use arrow keys on either control for keyboard movement
+      and resizing.
+    </p>
+
+    <header class="site-header">
+      <a class="site-brand" href="./index.html" aria-label="bitview home">
+        <span class="site-brand-mark" aria-hidden="true">
+          <svg
+            class="site-brand-cube"
+            viewBox="0 0 173.2 200"
+            focusable="false"
+          >
+            <defs>
+              <clipPath id="site-brand-cube-clip">
+                <polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" />
+              </clipPath>
+            </defs>
+            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
+            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
+            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+            <g clip-path="url(#site-brand-cube-clip)">
+              <g class="liquid-group">
+                <polygon class="liquid" points="86.6,0 173.2,50 86.6,100 0,50" />
+                <polygon class="liquid" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                <polygon class="liquid" points="0,50 0,150 86.6,200 86.6,100" />
+              </g>
+            </g>
+            <polygon class="glass" points="0,50 86.6,0 173.2,50 86.6,100" />
+            <polygon class="glass" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+            <polygon class="glass" points="0,50 0,150 86.6,200 86.6,100" />
+          </svg>
+        </span>
+        <span>bitview</span>
+      </a>
+    </header>
+
+    <main id="surface" aria-label="Bitview pages">
+      <div id="ghost" aria-hidden="true"></div>
+      <canvas id="grid-overlay" aria-hidden="true"></canvas>
+    </main>
+
+    <dialog id="config-dialog" aria-labelledby="config-title">
+      <form id="config-form" class="config-form">
+        <div class="config-heading">
+          <h2 id="config-title">Configure card</h2>
+          <button
+            class="config-close"
+            type="button"
+            data-config-close
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div class="config-fields">
+          <label class="config-field">
+            Content
+            <select id="config-kind" name="kind"></select>
+          </label>
+
+          <div class="config-group" data-config-group="link" hidden>
+            <label class="config-field">
+              URL
+              <input
+                id="config-url"
+                name="url"
+                type="text"
+                inputmode="url"
+                placeholder="https://example.com"
+              />
+            </label>
+            <label class="config-field">
+              Title
+              <input id="config-custom-title" name="title" placeholder="My card" />
+            </label>
+            <label class="config-field">
+              Label
+              <input id="config-label" name="label" placeholder="Custom link" />
+            </label>
+          </div>
+
+          <div class="config-group" data-config-group="html" hidden>
+            <label class="config-field">
+              Raw HTML · sandboxed
+              <textarea
+                id="config-html"
+                name="html"
+                spellcheck="false"
+                placeholder="<style>body { ... }</style><main>...</main>"
+              ></textarea>
+            </label>
+          </div>
+
+          <div class="config-group" data-config-group="custom" hidden>
+            <label class="config-field">
+              Card color
+              <input id="config-color" name="color" type="color" value="#202020" />
+            </label>
+          </div>
+        </div>
+
+        <div class="config-actions">
+          <button type="button" data-reset-all>Restore defaults</button>
+          <button class="config-delete" type="button" data-delete-card>
+            Delete card
+          </button>
+          <button type="button" data-config-close>Cancel</button>
+          <button class="config-save" type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <noscript>
+      JavaScript is required for the movable grid. Pages remain directly
+      available: <a href="./floor.html">Floor</a>,
+      <a href="./trail.html">Trail</a>,
+      <a href="./events.html">Events</a>,
+      <a href="./wave.html">Wave</a>,
+      <a href="./bedrock.html">Bedrock</a>,
+      <a href="./sentiment.html">Sentiment</a>,
+      <a href="./rarity.html">Rarity</a>,
+      <a href="./brk.html">BRK</a>,
+      <a href="./height.html">Height</a>, and
+      <a href="./api.html">API</a>.
+    </noscript>
+
+    <script>
+      const cards = [
+        {
+          id: "current",
+          label: "Current",
+          title: "Explore.",
+          description: "Charts · blocks · transactions",
+          href: "https://bitview.space/",
+          color: "#171717",
+          ink: "#f1eee7",
+          muted: "#aaa59c",
+          sizes: { 8: [5, 2], 6: [3, 2], 4: [2, 2], 2: [2, 1] },
+        },
+        {
+          id: "floor",
+          label: "Research",
+          title: "Finding the floor.",
+          description: "A downside reference with economic meaning",
+          href: "./floor.html",
+          color: "#efd65b",
+          ink: "#15130c",
+          muted: "#5d501f",
+          light: true,
+          sizes: { 8: [5, 2], 6: [4, 2], 4: [2, 2], 2: [2, 1] },
+        },
+        {
+          id: "trail",
+          label: "Story",
+          title: "Satoshi trail.",
+          description: "Bitcoin through time and space",
+          href: "./trail.html",
+          color: "#07100f",
+          ink: "#f0eadb",
+          muted: "#9ba69f",
+          sizes: { 8: [3, 2], 6: [2, 2], 4: [2, 2], 2: [2, 1] },
+        },
+        {
+          id: "events",
+          label: "Signals",
+          title: "Extreme events.",
+          description: "On-chain markers across price history",
+          href: "./events.html",
+          color: "#28191b",
+          ink: "#f5e9e5",
+          muted: "#c59b94",
+          sizes: { 8: [3, 1], 6: [2, 1], 4: [1, 1], 2: [1, 1] },
+        },
+        {
+          id: "wave",
+          label: "Distribution",
+          title: "HODL wave.",
+          description: "Supply aging in motion",
+          href: "./wave.html",
+          color: "#10283a",
+          ink: "#eef5f8",
+          muted: "#9bb6c8",
+          sizes: { 8: [3, 1], 6: [2, 1], 4: [2, 1], 2: [1, 1] },
+        },
+        {
+          id: "bedrock",
+          label: "Model",
+          title: "Bedrock.",
+          description: "A learned lower bound",
+          href: "./bedrock.html",
+          color: "#08263a",
+          ink: "#edf7fb",
+          muted: "#8cb8cf",
+          sizes: { 8: [2, 1], 6: [2, 1], 4: [1, 1], 2: [1, 1] },
+        },
+        {
+          id: "sentiment",
+          label: "Phases",
+          title: "Sentiment.",
+          description: "Capital structure as market phase",
+          href: "./sentiment.html",
+          color: "#392027",
+          ink: "#faedf0",
+          muted: "#d2a0ad",
+          sizes: { 8: [2, 1], 6: [2, 1], 4: [1, 1], 2: [1, 1] },
+        },
+        {
+          id: "rarity",
+          label: "Context",
+          title: "Rarity.",
+          description: "How unusual is today?",
+          href: "./rarity.html",
+          color: "#29203c",
+          ink: "#f3eefc",
+          muted: "#b7a4dc",
+          sizes: { 8: [2, 1], 6: [2, 1], 4: [1, 1], 2: [1, 1] },
+        },
+        {
+          id: "brk",
+          label: "Toolkit",
+          title: "BRK.",
+          description: "Read · compute · serve",
+          href: "./brk.html",
+          color: "#131313",
+          ink: "#f2efe8",
+          muted: "#aaa59d",
+          sizes: { 8: [2, 1], 6: [2, 1], 4: [1, 1], 2: [1, 1] },
+        },
+        {
+          id: "height",
+          label: "One number",
+          title: "Height.",
+          href: "./height.html",
+          color: "#f7931a",
+          ink: "#17100a",
+          muted: "#603a14",
+          light: true,
+          sizes: { 8: [4, 1], 6: [2, 1], 4: [2, 1], 2: [1, 1] },
+        },
+        {
+          id: "api",
+          label: "Reference",
+          title: "API.",
+          href: "./api.html",
+          color: "#111d18",
+          ink: "#edf8f1",
+          muted: "#8bb39a",
+          sizes: { 8: [4, 1], 6: [2, 1], 4: [2, 1], 2: [1, 1] },
+        },
+      ];
+
+      const surface = document.querySelector("#surface");
+      const gridCanvas = document.querySelector("#grid-overlay");
+      const ghost = document.querySelector("#ghost");
+      const configDialog = document.querySelector("#config-dialog");
+      const configForm = document.querySelector("#config-form");
+      const configKind = document.querySelector("#config-kind");
+      const configUrl = document.querySelector("#config-url");
+      const configTitle = document.querySelector("#config-custom-title");
+      const configLabel = document.querySelector("#config-label");
+      const configHtml = document.querySelector("#config-html");
+      const configColor = document.querySelector("#config-color");
+      const cardElements = new Map();
+      const cardsById = new Map(cards.map((card) => [card.id, card]));
+      const LAYOUT_STORAGE_KEY = "bitview-bento-layout-v3";
+      const CARD_STORAGE_KEY = "bitview-bento-cards-v1";
+      const ADD_KIND = "add";
+      const CUSTOM_KINDS = new Set(["custom-link", "custom-html"]);
+      const GENERIC_CARD = {
+        sizes: { 8: [1, 1], 6: [1, 1], 4: [1, 1], 2: [1, 1] },
+      };
+      const MIN_SIZE = 1;
+      const frameObserver =
+        "IntersectionObserver" in window
+          ? new IntersectionObserver(
+              (entries) => {
+                for (const entry of entries) {
+                  if (!entry.isIntersecting) continue;
+                  const frame = entry.target;
+                  frame.src = frame.dataset.src;
+                  delete frame.dataset.src;
+                  frameObserver.unobserve(frame);
+                }
+              },
+              { rootMargin: "100% 0px" },
+            )
+          : undefined;
+      let cardConfigs = restoreCardConfigs();
+      let columns = columnCount();
+      let cell = 1;
+      let gutter = 6;
+      let layout = restoreLayout(columns) ?? defaultLayout(columns);
+      let interaction;
+      let configuringId;
+      let pointerFrame;
+      let resizeFrame;
+
+      function columnCount() {
+        const width = document.documentElement.clientWidth;
+        if (width >= 1440) return 8;
+        if (width >= 900) return 6;
+        if (width >= 600) return 4;
+        return 2;
+      }
+
+      function defaultCardConfigs() {
+        return [
+          ...cards.map((card) => ({ id: card.id, kind: card.id })),
+          newPlaceholderConfig("slot-new"),
+        ];
+      }
+
+      function newPlaceholderConfig(id) {
+        return { id, kind: ADD_KIND, placeholder: true };
+      }
+
+      function nextSlotId(configs) {
+        if (!configs.some((config) => config.id === "slot-new")) {
+          return "slot-new";
+        }
+        const base = `slot-${Date.now().toString(36)}`;
+        let id = base;
+        let suffix = 2;
+        while (configs.some((config) => config.id === id)) {
+          id = `${base}-${suffix}`;
+          suffix += 1;
+        }
+        return id;
+      }
+
+      function normalizedConfig(id, saved, fallbackKind) {
+        const isPlaceholder = Boolean(saved?.placeholder);
+        const savedKind = isPlaceholder ? ADD_KIND : saved?.kind;
+        const kind =
+          savedKind === ADD_KIND ||
+          cardsById.has(savedKind) ||
+          CUSTOM_KINDS.has(savedKind)
+            ? savedKind
+            : fallbackKind;
+        return {
+          id,
+          kind,
+          deleted: Boolean(saved?.deleted),
+          placeholder: isPlaceholder && kind === ADD_KIND,
+          url: typeof saved?.url === "string" ? saved.url : "",
+          title: typeof saved?.title === "string" ? saved.title : "",
+          label: typeof saved?.label === "string" ? saved.label : "",
+          html: typeof saved?.html === "string" ? saved.html : "",
+          color:
+            typeof saved?.color === "string" &&
+            /^#[0-9a-f]{6}$/i.test(saved.color)
+              ? saved.color
+              : "#202020",
+        };
+      }
+
+      function restoreCardConfigs() {
+        const defaults = cards.map((card) => ({ id: card.id, kind: card.id }));
+        try {
+          const stored = JSON.parse(
+            localStorage.getItem(CARD_STORAGE_KEY) ?? "[]",
+          );
+          if (!Array.isArray(stored) || stored.length === 0) {
+            return defaultCardConfigs();
+          }
+          const byId = new Map(stored.map((config) => [config.id, config]));
+          const restored = defaults.map((fallback) => {
+            const saved = byId.get(fallback.id);
+            if (!saved || typeof saved !== "object") return fallback;
+            return normalizedConfig(fallback.id, saved, fallback.kind);
+          });
+
+          const seen = new Set(cards.map((card) => card.id));
+          for (const saved of stored) {
+            if (
+              !saved ||
+              typeof saved !== "object" ||
+              typeof saved.id !== "string" ||
+              !saved.id.startsWith("slot-") ||
+              seen.has(saved.id) ||
+              (!saved.placeholder &&
+                !cardsById.has(saved.kind) &&
+                !CUSTOM_KINDS.has(saved.kind))
+            ) {
+              continue;
+            }
+            seen.add(saved.id);
+            restored.push(normalizedConfig(saved.id, saved, ADD_KIND));
+          }
+
+          let placeholder = [...restored]
+            .reverse()
+            .find((config) => config.placeholder && !config.deleted);
+          for (let index = restored.length - 1; index >= 0; index -= 1) {
+            if (
+              restored[index].kind === ADD_KIND &&
+              restored[index] !== placeholder
+            ) {
+              restored.splice(index, 1);
+            }
+          }
+          if (!placeholder) {
+            placeholder = newPlaceholderConfig(nextSlotId(restored));
+            restored.push(placeholder);
+          } else {
+            placeholder.placeholder = true;
+            restored.splice(restored.indexOf(placeholder), 1);
+            restored.push(placeholder);
+          }
+          return restored;
+        } catch {
+          return defaultCardConfigs();
+        }
+      }
+
+      function saveCardConfigs() {
+        try {
+          localStorage.setItem(CARD_STORAGE_KEY, JSON.stringify(cardConfigs));
+        } catch {}
+      }
+
+      function cardConfig(id) {
+        return cardConfigs.find((config) => config.id === id);
+      }
+
+      function activeCardConfigs() {
+        return cardConfigs.filter((config) => !config.deleted);
+      }
+
+      function preferredCard(id) {
+        const config = cardConfig(id);
+        return cardsById.get(config?.kind) ?? cardsById.get(id) ?? GENERIC_CARD;
+      }
+
+      function colorTheme(color) {
+        const value = Number.parseInt(color.slice(1), 16);
+        const red = (value >> 16) & 255;
+        const green = (value >> 8) & 255;
+        const blue = value & 255;
+        const luminance = (red * 299 + green * 587 + blue * 114) / 255000;
+        return luminance > 0.58
+          ? { ink: "#141414", muted: "#5f5b54", light: true }
+          : { ink: "#f2efe8", muted: "#aaa59d", light: false };
+      }
+
+      function normalizeLink(url) {
+        const value = url.trim();
+        if (!value || /^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith("./")) {
+          return value;
+        }
+        return `https://${value}`;
+      }
+
+      function resolvedCard(id) {
+        const config = cardConfig(id);
+        const builtin = cardsById.get(config?.kind);
+        if (builtin) return { ...builtin };
+
+        if (config?.kind === ADD_KIND) {
+          return {
+            id: ADD_KIND,
+            label: "",
+            title: "Add a card",
+            color: "#141414",
+            ink: "#f1eee7",
+            muted: "#aaa59c",
+          };
+        }
+
+        const color = config?.color || "#202020";
+        const theme = colorTheme(color);
+        if (config?.kind === "custom-link") {
+          const href = normalizeLink(config.url || "");
+          let fallbackTitle = "Custom link";
+          try {
+            fallbackTitle = new URL(href).hostname || fallbackTitle;
+          } catch {}
+          return {
+            id: "custom-link",
+            label: config.label.trim() || "Custom link",
+            title: config.title.trim() || fallbackTitle,
+            description: href,
+            href,
+            color,
+            ...theme,
+          };
+        }
+
+        return {
+          id: config?.kind || "custom-html",
+          label: "Custom HTML",
+          title: "",
+          color,
+          html: config?.html || "",
+          ...theme,
+        };
+      }
+
+      function overlaps(a, b) {
+        return (
+          a.x < b.x + b.w &&
+          a.x + a.w > b.x &&
+          a.y < b.y + b.h &&
+          a.y + a.h > b.y
+        );
+      }
+
+      function firstAvailable(items, w, h, columnTotal) {
+        for (let y = 0; ; y += 1) {
+          for (let x = 0; x <= columnTotal - w; x += 1) {
+            const candidate = { x, y, w, h };
+            if (!items.some((item) => overlaps(candidate, item))) {
+              return candidate;
+            }
+          }
+        }
+      }
+
+      function defaultLayout(columnTotal) {
+        const items = [];
+
+        for (const config of activeCardConfigs()) {
+          const card = preferredCard(config.id);
+          const [w, h] = card.sizes[columnTotal];
+          items.push({
+            id: config.id,
+            ...firstAvailable(items, w, h, columnTotal),
+          });
+        }
+
+        return items;
+      }
+
+      function cloneLayout(items) {
+        return items.map((item) => ({ ...item }));
+      }
+
+      function validLayout(items, columnTotal) {
+        const activeIds = activeCardConfigs().map((config) => config.id);
+        if (!Array.isArray(items) || items.length !== activeIds.length) {
+          return false;
+        }
+        const ids = new Set(items.map((item) => item.id));
+        if (ids.size !== activeIds.length || activeIds.some((id) => !ids.has(id))) {
+          return false;
+        }
+
+        return items.every(
+          (item, index) =>
+            Number.isInteger(item.x) &&
+            Number.isInteger(item.y) &&
+            Number.isInteger(item.w) &&
+            Number.isInteger(item.h) &&
+            item.x >= 0 &&
+            item.y >= 0 &&
+            item.w >= MIN_SIZE &&
+            item.h >= MIN_SIZE &&
+            item.x + item.w <= columnTotal &&
+            !items.slice(index + 1).some((other) => overlaps(item, other)),
+        );
+      }
+
+      function storedLayouts() {
+        try {
+          return (
+            JSON.parse(localStorage.getItem(LAYOUT_STORAGE_KEY) ?? "{}") ?? {}
+          );
+        } catch {
+          return {};
+        }
+      }
+
+      function restoreLayout(columnTotal) {
+        const candidate = storedLayouts()[columnTotal];
+        if (!Array.isArray(candidate)) return undefined;
+
+        const activeIds = new Set(
+          activeCardConfigs().map((config) => config.id),
+        );
+        const seen = new Set();
+        let restored = candidate.filter((item) => {
+          const valid =
+            item &&
+            activeIds.has(item.id) &&
+            !seen.has(item.id) &&
+            Number.isInteger(item.x) &&
+            Number.isInteger(item.y) &&
+            Number.isInteger(item.w) &&
+            Number.isInteger(item.h) &&
+            item.x >= 0 &&
+            item.y >= 0 &&
+            item.w >= MIN_SIZE &&
+            item.h >= MIN_SIZE &&
+            item.w <= columnTotal;
+          if (valid) seen.add(item.id);
+          return valid;
+        });
+        restored = compact(restored, undefined, columnTotal);
+
+        for (const config of activeCardConfigs()) {
+          if (seen.has(config.id)) continue;
+          seen.add(config.id);
+          const [w, h] = preferredCard(config.id).sizes[columnTotal];
+          restored.push({
+            id: config.id,
+            ...firstAvailable(restored, w, h, columnTotal),
+          });
+        }
+        restored = compact(restored, undefined, columnTotal);
+        return validLayout(restored, columnTotal) ? restored : undefined;
+      }
+
+      function saveLayout() {
+        try {
+          const stored = storedLayouts();
+          stored[columns] = layout;
+          localStorage.setItem(LAYOUT_STORAGE_KEY, JSON.stringify(stored));
+        } catch {}
+      }
+
+      function appendPageFrame(article, card) {
+        const frame = document.createElement("iframe");
+        frame.className = "page-frame";
+        frame.title = `${card.title || card.label || "Card"} preview`;
+        frame.tabIndex = -1;
+        frame.setAttribute("aria-hidden", "true");
+        frame.addEventListener(
+          "load",
+          () => {
+            if (!frame.isConnected || !article.contains(frame)) return;
+            requestAnimationFrame(() => article.classList.add("is-preview-ready"));
+          },
+          { once: true },
+        );
+        article.append(frame);
+
+        if (card.id === "custom-html") {
+          frame.setAttribute("sandbox", "allow-scripts");
+          frame.srcdoc = card.html;
+        } else {
+          frame.loading = "lazy";
+          frame.referrerPolicy = "no-referrer";
+          if (frameObserver) {
+            frame.dataset.src = card.href;
+            frameObserver.observe(frame);
+          } else {
+            frame.src = card.href;
+          }
+        }
+      }
+
+      function createCard(config) {
+        const article = document.createElement("article");
+        cardElements.set(config.id, article);
+        surface.append(article);
+        renderCard(config.id);
+      }
+
+      function renderCard(id) {
+        const config = cardConfig(id);
+        const card = resolvedCard(id);
+        const article = cardElements.get(id);
+        article
+          .querySelectorAll(".page-frame")
+          .forEach((frame) => frameObserver?.unobserve(frame));
+        article.replaceChildren();
+        article.className = `card ${card.id}`;
+        article.hidden = Boolean(config.deleted);
+        article.dataset.id = id;
+        article.style.setProperty("--hard-color", card.color);
+        article.style.setProperty("--ink", card.ink);
+        article.style.setProperty("--muted", card.muted);
+        article.setAttribute(
+          "aria-label",
+          config.placeholder
+            ? "Add a card"
+            : card.title || card.label || "Card",
+        );
+        if (card.light) article.dataset.light = "";
+        else delete article.dataset.light;
+
+        if (config.placeholder) {
+          const add = document.createElement("button");
+          add.className = "add-card-button";
+          add.type = "button";
+          add.setAttribute("aria-label", "Add a card");
+          add.addEventListener("click", () => openConfigurator(id));
+          article.append(add);
+          return;
+        }
+
+        const hasLocalPreview =
+          card.id === "custom-html" || card.href?.startsWith("./");
+        if (hasLocalPreview) {
+          appendPageFrame(article, card);
+        }
+
+        if (card.href) {
+          const cardLink = document.createElement("a");
+          cardLink.className = "card-link";
+          cardLink.href = card.href;
+          cardLink.setAttribute("aria-label", `Open ${card.title}`);
+          article.append(cardLink);
+        }
+
+        const header = document.createElement("div");
+        header.className = "card-header";
+
+        const label = document.createElement("span");
+        label.className = "label";
+        label.textContent = card.label;
+        header.append(label);
+
+        const configure = document.createElement("button");
+        configure.className = "configure-handle";
+        configure.type = "button";
+        configure.textContent = "⋯";
+        const cardName = card.title || card.label || "card";
+        const configureName = `Configure ${cardName}`;
+        configure.title = configureName;
+        configure.setAttribute(
+          "aria-label",
+          configureName,
+        );
+        configure.addEventListener("click", () => openConfigurator(id));
+        header.append(configure);
+
+        const handle = document.createElement("button");
+        handle.className = "drag-handle";
+        handle.type = "button";
+        handle.title = `Move ${cardName}`;
+        handle.setAttribute("aria-label", `Move ${cardName}`);
+        handle.setAttribute("aria-describedby", "interaction-help");
+
+        if (card.title) {
+          const copy = document.createElement("div");
+          copy.className = "card-copy";
+          const title = document.createElement("h2");
+          title.className = "card-title";
+          title.textContent = card.title;
+          copy.append(title);
+
+          if (card.description) {
+            const description = document.createElement("p");
+            description.className = "card-description";
+            description.textContent = card.description;
+            copy.append(description);
+          }
+
+          article.append(copy);
+        }
+
+        const resize = document.createElement("button");
+        resize.className = "resize-handle";
+        resize.type = "button";
+        resize.title = `Resize ${cardName}`;
+        resize.setAttribute("aria-label", `Resize ${cardName}`);
+        resize.setAttribute("aria-describedby", "interaction-help");
+
+        article.append(header, handle, resize);
+        handle.addEventListener("pointerdown", (event) =>
+          startInteraction(event, id, "move"),
+        );
+        resize.addEventListener("pointerdown", (event) =>
+          startInteraction(event, id, "resize"),
+        );
+        handle.addEventListener("keydown", (event) =>
+          handleKeyboard(event, id, "move"),
+        );
+        resize.addEventListener("keydown", (event) =>
+          handleKeyboard(event, id, "resize"),
+        );
+
+      }
+
+      for (const config of cardConfigs) createCard(config);
+      renderLayout(layout);
+      surface.getBoundingClientRect();
+      surface.dataset.ready = "";
+
+      function buildConfigOptions() {
+        const builtinGroup = document.createElement("optgroup");
+        builtinGroup.label = "Built-in";
+        for (const card of cards) {
+          const option = document.createElement("option");
+          option.value = card.id;
+          option.textContent = card.title;
+          builtinGroup.append(option);
+        }
+
+        const customGroup = document.createElement("optgroup");
+        customGroup.label = "Custom";
+        for (const [value, label] of [
+          ["custom-link", "Custom link"],
+          ["custom-html", "Raw HTML"],
+        ]) {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = label;
+          customGroup.append(option);
+        }
+
+        configKind.replaceChildren(builtinGroup, customGroup);
+      }
+
+      function updateConfigFields() {
+        const kind = configKind.value;
+        document.querySelector('[data-config-group="link"]').hidden =
+          kind !== "custom-link";
+        document.querySelector('[data-config-group="html"]').hidden =
+          kind !== "custom-html";
+        document.querySelector('[data-config-group="custom"]').hidden =
+          kind !== "custom-link" && kind !== "custom-html";
+      }
+
+      function openConfigurator(id) {
+        const config = cardConfig(id);
+        configuringId = id;
+        document.querySelector("#config-title").textContent = config.placeholder
+          ? "Add card"
+          : "Configure card";
+        document.querySelector("[data-delete-card]").hidden =
+          Boolean(config.placeholder);
+        document.querySelector(".config-save").textContent = config.placeholder
+          ? "Add card"
+          : "Save";
+        configKind.value = config.placeholder ? cards[0].id : config.kind;
+        configUrl.value = config.url || "";
+        configTitle.value = config.title || "";
+        configLabel.value = config.label || "";
+        configHtml.value = config.html || "";
+        configColor.value = config.color || "#202020";
+        updateConfigFields();
+        configDialog.showModal();
+      }
+
+      function deleteConfiguredCard() {
+        const config = cardConfig(configuringId);
+        if (!config || config.placeholder) return;
+        config.deleted = true;
+        cardElements.get(config.id).hidden = true;
+        layout = compact(layout.filter((item) => item.id !== config.id));
+        saveCardConfigs();
+        saveLayout();
+        renderLayout(layout);
+        configDialog.close();
+      }
+
+      function syncCardElements() {
+        const ids = new Set(cardConfigs.map((config) => config.id));
+        for (const [id, element] of cardElements) {
+          if (ids.has(id)) continue;
+          element
+            .querySelectorAll(".page-frame")
+            .forEach((frame) => frameObserver?.unobserve(frame));
+          element.remove();
+          cardElements.delete(id);
+        }
+        for (const config of cardConfigs) {
+          if (cardElements.has(config.id)) renderCard(config.id);
+          else createCard(config);
+        }
+      }
+
+      function restoreDefaults() {
+        cardConfigs = defaultCardConfigs();
+        try {
+          localStorage.removeItem(CARD_STORAGE_KEY);
+          localStorage.removeItem(LAYOUT_STORAGE_KEY);
+        } catch {}
+        syncCardElements();
+        layout = defaultLayout(columns);
+        renderLayout(layout);
+        configDialog.close();
+        flashGrid();
+      }
+
+      buildConfigOptions();
+      configForm.addEventListener("submit", (event) => {
+        event.preventDefault();
+        const config = cardConfig(configuringId);
+        if (!config) return;
+        const wasPlaceholder = Boolean(config.placeholder);
+        config.kind = configKind.value;
+        config.url = configUrl.value.trim();
+        config.title = configTitle.value.trim();
+        config.label = configLabel.value.trim();
+        config.html = configHtml.value;
+        config.color = configColor.value;
+        config.deleted = false;
+        config.placeholder = false;
+        renderCard(config.id);
+        if (wasPlaceholder) {
+          const placeholder = newPlaceholderConfig(nextSlotId(cardConfigs));
+          cardConfigs.push(placeholder);
+          createCard(placeholder);
+          const [w, h] = preferredCard(placeholder.id).sizes[columns];
+          layout.push({
+            id: placeholder.id,
+            ...firstAvailable(layout, w, h, columns),
+          });
+          layout = compact(layout);
+          renderLayout(layout);
+          saveLayout();
+        }
+        saveCardConfigs();
+        configDialog.close();
+      });
+      configKind.addEventListener("change", updateConfigFields);
+      document.querySelectorAll("[data-config-close]").forEach((button) => {
+        button.addEventListener("click", () => configDialog.close());
+      });
+      document
+        .querySelector("[data-delete-card]")
+        .addEventListener("click", deleteConfiguredCard);
+      document
+        .querySelector("[data-reset-all]")
+        .addEventListener("click", restoreDefaults);
+      configDialog.addEventListener("click", (event) => {
+        if (event.target === configDialog) configDialog.close();
+      });
+
+      function layoutRows(items) {
+        return items.reduce((max, item) => Math.max(max, item.y + item.h), 0);
+      }
+
+      function cardBox(item) {
+        const inset = gutter / 2;
+        return {
+          x: item.x * cell + inset,
+          y: item.y * cell + inset,
+          width: Math.max(1, item.w * cell - gutter),
+          height: Math.max(1, item.h * cell - gutter),
+        };
+      }
+
+      function renderLayout(items, skippedId) {
+        cell = surface.clientWidth / columns;
+        gutter = Math.min(12, Math.max(6, surface.clientWidth / 160));
+        const availableHeight = Math.max(
+          cell,
+          window.innerHeight - surface.offsetTop,
+        );
+        const rows = Math.max(
+          layoutRows(items),
+          Math.ceil(availableHeight / cell),
+        );
+        surface.style.height = `${rows * cell}px`;
+
+        for (const item of items) {
+          if (item.id === skippedId) continue;
+          const element = cardElements.get(item.id);
+          const box = cardBox(item);
+          element.style.width = `${box.width}px`;
+          element.style.height = `${box.height}px`;
+          element.style.transform = `translate3d(${box.x}px, ${box.y}px, 0)`;
+        }
+
+        drawGrid(
+          interaction
+            ? items.find((item) => item.id === interaction.id)
+            : undefined,
+        );
+      }
+
+      function compact(items, priorityId, columnTotal = columns) {
+        const source = cloneLayout(items).sort((a, b) => {
+          const aIsPlaceholder = Boolean(cardConfig(a.id)?.placeholder);
+          const bIsPlaceholder = Boolean(cardConfig(b.id)?.placeholder);
+          if (aIsPlaceholder !== bIsPlaceholder) {
+            return aIsPlaceholder ? 1 : -1;
+          }
+          if (a.y !== b.y) return a.y - b.y;
+          if (a.x !== b.x) return a.x - b.x;
+          if (a.id === priorityId) return -1;
+          if (b.id === priorityId) return 1;
+          return 0;
+        });
+        const placed = [];
+
+        for (const item of source) {
+          const position = firstAvailable(
+            placed,
+            item.w,
+            item.h,
+            columnTotal,
+          );
+          placed.push({ ...item, x: position.x, y: position.y });
+        }
+
+        return placed;
+      }
+
+      function targetLayout(base, activeId, target) {
+        const next = cloneLayout(base);
+        Object.assign(
+          next.find((item) => item.id === activeId),
+          target,
+        );
+        return compact(next, activeId);
+      }
+
+      function startInteraction(event, id, type) {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        const item = layout.find((entry) => entry.id === id);
+        const element = cardElements.get(id);
+        const capture = event.currentTarget;
+        capture.setPointerCapture(event.pointerId);
+        interaction = {
+          id,
+          type,
+          pointerId: event.pointerId,
+          capture,
+          startX: event.clientX,
+          startY: event.clientY,
+          startItem: { ...item },
+          base: cloneLayout(layout),
+          working: cloneLayout(layout),
+          target: { ...item },
+          latestX: event.clientX,
+          latestY: event.clientY,
+          snapKey: "",
+        };
+        element.classList.add("is-active", "is-direct");
+        surface.dataset.editing = "";
+        ghost.dataset.visible = "";
+        updatePointer();
+      }
+
+      surface.addEventListener("pointermove", (event) => {
+        if (!interaction || event.pointerId !== interaction.pointerId) return;
+        interaction.latestX = event.clientX;
+        interaction.latestY = event.clientY;
+        if (!pointerFrame) pointerFrame = requestAnimationFrame(updatePointer);
+      });
+
+      surface.addEventListener("pointerup", finishInteraction);
+      surface.addEventListener("pointercancel", cancelInteraction);
+
+      function updatePointer() {
+        pointerFrame = undefined;
+        if (!interaction) return;
+        const element = cardElements.get(interaction.id);
+        const { startItem } = interaction;
+        const dx = interaction.latestX - interaction.startX;
+        const dy = interaction.latestY - interaction.startY;
+        const inset = gutter / 2;
+
+        if (interaction.type === "move") {
+          const left = Math.max(
+            inset,
+            Math.min(
+              (columns - startItem.w) * cell + inset,
+              startItem.x * cell + inset + dx,
+            ),
+          );
+          const top = Math.max(inset, startItem.y * cell + inset + dy);
+          interaction.target = {
+            ...startItem,
+            x: Math.round((left - inset) / cell),
+            y: Math.round((top - inset) / cell),
+          };
+          element.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+        } else {
+          const width = Math.max(
+            MIN_SIZE * cell - gutter,
+            Math.min(
+              (columns - startItem.x) * cell - gutter,
+              startItem.w * cell - gutter + dx,
+            ),
+          );
+          const height = Math.max(
+            MIN_SIZE * cell - gutter,
+            startItem.h * cell - gutter + dy,
+          );
+          interaction.target = {
+            ...startItem,
+            w: Math.max(MIN_SIZE, Math.round((width + gutter) / cell)),
+            h: Math.max(MIN_SIZE, Math.round((height + gutter) / cell)),
+          };
+          element.style.width = `${width}px`;
+          element.style.height = `${height}px`;
+        }
+
+        const target = interaction.target;
+        const key = `${target.x}:${target.y}:${target.w}:${target.h}`;
+
+        if (key !== interaction.snapKey) {
+          interaction.snapKey = key;
+          interaction.working = targetLayout(
+            interaction.base,
+            interaction.id,
+            target,
+          );
+          positionGhost(
+            interaction.working.find((item) => item.id === interaction.id),
+          );
+          renderLayout(interaction.working, interaction.id);
+        }
+      }
+
+      function positionGhost(item) {
+        const box = cardBox(item);
+        ghost.style.width = `${box.width}px`;
+        ghost.style.height = `${box.height}px`;
+        ghost.style.transform = `translate3d(${box.x}px, ${box.y}px, 0)`;
+      }
+
+      function finishInteraction(event) {
+        if (!interaction || event.pointerId !== interaction.pointerId) return;
+        const finished = interaction;
+        finished.capture.releasePointerCapture(event.pointerId);
+        layout = compact(finished.working, finished.id);
+        interaction = undefined;
+        delete surface.dataset.editing;
+        delete ghost.dataset.visible;
+        const element = cardElements.get(finished.id);
+        element.classList.remove("is-active", "is-direct");
+        requestAnimationFrame(() => renderLayout(layout));
+        saveLayout();
+      }
+
+      function cancelInteraction(event) {
+        if (!interaction || event.pointerId !== interaction.pointerId) return;
+        const cancelled = interaction;
+        layout = cancelled.base;
+        interaction = undefined;
+        delete surface.dataset.editing;
+        delete ghost.dataset.visible;
+        cardElements
+          .get(cancelled.id)
+          .classList.remove("is-active", "is-direct");
+        renderLayout(layout);
+      }
+
+      function handleKeyboard(event, id, type) {
+        const delta = {
+          ArrowLeft: [-1, 0],
+          ArrowRight: [1, 0],
+          ArrowUp: [0, -1],
+          ArrowDown: [0, 1],
+        }[event.key];
+        if (!delta) return;
+        event.preventDefault();
+        const item = layout.find((entry) => entry.id === id);
+        const target = { ...item };
+
+        if (type === "move") {
+          target.x = Math.max(
+            0,
+            Math.min(columns - item.w, item.x + delta[0]),
+          );
+          target.y = Math.max(0, item.y + delta[1]);
+        } else {
+          target.w = Math.max(
+            MIN_SIZE,
+            Math.min(columns - item.x, item.w + delta[0]),
+          );
+          target.h = Math.max(MIN_SIZE, item.h + delta[1]);
+        }
+
+        layout = targetLayout(layout, id, target);
+        renderLayout(layout);
+        saveLayout();
+        flashGrid(layout.find((entry) => entry.id === id));
+      }
+
+      let flashTimer;
+      function flashGrid(target) {
+        surface.dataset.editing = "";
+        drawGrid(target);
+        clearTimeout(flashTimer);
+        flashTimer = setTimeout(() => {
+          delete surface.dataset.editing;
+          drawGrid();
+        }, 420);
+      }
+
+      function drawGrid(target) {
+        const width = surface.clientWidth;
+        const height = surface.offsetHeight;
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        gridCanvas.width = Math.round(width * dpr);
+        gridCanvas.height = Math.round(height * dpr);
+        gridCanvas.style.width = `${width}px`;
+        gridCanvas.style.height = `${height}px`;
+        const context = gridCanvas.getContext("2d");
+        if (!context) return;
+        context.setTransform(dpr, 0, 0, dpr, 0, 0);
+        context.clearRect(0, 0, width, height);
+        const editing = surface.hasAttribute("data-editing");
+        const rows = Math.ceil(height / cell);
+
+        context.fillStyle = editing
+          ? "rgba(255,255,255,0.82)"
+          : "rgba(255,255,255,0.46)";
+        const dotRadius = editing ? 1.75 : 1.25;
+
+        for (let y = 0; y <= rows; y += 1) {
+          for (let x = 0; x <= columns; x += 1) {
+            context.beginPath();
+            context.arc(
+              Math.min(width - dotRadius, Math.max(dotRadius, x * cell)),
+              Math.min(height - dotRadius, Math.max(dotRadius, y * cell)),
+              dotRadius,
+              0,
+              Math.PI * 2,
+            );
+            context.fill();
+          }
+        }
+
+        if (target) {
+          const x = target.x * cell;
+          const y = target.y * cell;
+          const w = target.w * cell;
+          const h = target.h * cell;
+          context.strokeStyle = "rgba(255,255,255,0.72)";
+          context.lineWidth = 1;
+          context.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+          context.fillStyle = "white";
+          for (const [cx, cy] of [
+            [x, y],
+            [x + w, y],
+            [x, y + h],
+            [x + w, y + h],
+          ]) {
+            context.beginPath();
+            context.arc(
+              Math.min(width - 3, Math.max(3, cx)),
+              Math.min(height - 3, Math.max(3, cy)),
+              3,
+              0,
+              Math.PI * 2,
+            );
+            context.fill();
+          }
+        }
+      }
+
+      function handleViewportResize() {
+        resizeFrame = undefined;
+        const nextColumns = columnCount();
+        if (nextColumns !== columns) {
+          saveLayout();
+          columns = nextColumns;
+          layout = restoreLayout(columns) ?? defaultLayout(columns);
+        }
+        renderLayout(layout);
+      }
+
+      window.addEventListener("resize", () => {
+        if (!resizeFrame) resizeFrame = requestAnimationFrame(handleViewportResize);
+      });
+
+    </script>
+  </body>
+</html>

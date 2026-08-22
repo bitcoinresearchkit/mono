@@ -56,7 +56,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// compact primary vector; funded addresses and empty addresses whose
     /// lifetime totals do not fit inline reference shared sidecars.
     pub addr_state: AddrStateVecs<M>,
-    #[traversable(wrap = "cohorts")]
     pub cohorts: CohortMetrics<M>,
     // Computed and stored with distribution, but presented beside the other
     // age-range cointime series to preserve the public series tree.

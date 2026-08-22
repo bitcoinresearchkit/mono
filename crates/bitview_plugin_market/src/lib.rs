@@ -37,8 +37,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub lookback: LookbackVecs,
     pub returns: ReturnsVecs<M>,
     /// Population standard deviation of per-block trailing-24-hour spot-price
-    /// returns over the named trailing monotonic-time window, multiplied by the
-    /// square root of that window's day count.
+    /// returns over a trailing monotonic-time window, multiplied by the
+    /// square root of that window's day count. Larger values mean Bitcoin's
+    /// daily returns varied more within the window; this measures dispersion,
+    /// not price direction.
     pub volatility: VolatilityVecs,
     pub range: RangeVecs<M>,
     pub moving_average: MovingAverageVecs<M>,

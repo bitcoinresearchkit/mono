@@ -384,28 +384,60 @@ pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct AgeRange<T> {
+    /// Uses UTXOs less than 1 hour old.
     pub under_1h: T,
+    /// Uses UTXOs at least 1 hour and less than 1 day old.
     pub _1h_to_1d: T,
+    /// Uses UTXOs at least 1 day and less than 7 days old.
     pub _1d_to_1w: T,
+    /// Uses UTXOs at least 7 days and less than 30 days old.
     pub _1w_to_1m: T,
+    /// Uses UTXOs at least 30 days and less than 60 days old.
     pub _1m_to_2m: T,
+    /// Uses UTXOs at least 60 days and less than 90 days old.
     pub _2m_to_3m: T,
+    /// Uses UTXOs at least 90 days and less than 120 days old.
     pub _3m_to_4m: T,
+    /// Uses UTXOs at least 120 days and less than 150 days old.
     pub _4m_to_5m: T,
+    /// Uses UTXOs at least 150 days and less than 180 days old.
     pub _5m_to_6m: T,
+    /// Uses UTXOs at least 180 days and less than 270 days old.
     pub _6m_to_9m: T,
+    /// Uses UTXOs at least 270 days and less than 365 days old.
     pub _9m_to_1y: T,
+    /// Uses UTXOs at least 365 days and less than 545 days old.
     pub _1y_to_18m: T,
+    /// Uses UTXOs at least 545 days and less than 730 days old.
     pub _18m_to_2y: T,
+    /// Uses UTXOs at least 2 years and less than 3 years old, using 365-day
+    /// years.
     pub _2y_to_3y: T,
+    /// Uses UTXOs at least 3 years and less than 4 years old, using 365-day
+    /// years.
     pub _3y_to_4y: T,
+    /// Uses UTXOs at least 4 years and less than 5 years old, using 365-day
+    /// years.
     pub _4y_to_5y: T,
+    /// Uses UTXOs at least 5 years and less than 6 years old, using 365-day
+    /// years.
     pub _5y_to_6y: T,
+    /// Uses UTXOs at least 6 years and less than 7 years old, using 365-day
+    /// years.
     pub _6y_to_7y: T,
+    /// Uses UTXOs at least 7 years and less than 8 years old, using 365-day
+    /// years.
     pub _7y_to_8y: T,
+    /// Uses UTXOs at least 8 years and less than 10 years old, using 365-day
+    /// years.
     pub _8y_to_10y: T,
+    /// Uses UTXOs at least 10 years and less than 12 years old, using 365-day
+    /// years.
     pub _10y_to_12y: T,
+    /// Uses UTXOs at least 12 years and less than 15 years old, using 365-day
+    /// years.
     pub _12y_to_15y: T,
+    /// Uses UTXOs at least 15 years old, using 365-day years.
     pub over_15y: T,
 }
 

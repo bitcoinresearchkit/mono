@@ -49,9 +49,11 @@ pub struct ProfitabilityVecs<M: StorageMode = Rw> {
         ProfitabilityRow<UTXOAggregate<LazyFiatPerBlock<Cents>>>,
         M,
     >,
-    /// Net unrealized profit/loss as a share of market cap for the selected
-    /// profitability range: spot price minus aggregate realized price, divided
-    /// by spot price.
+    /// Net unrealized profit and loss as a share of a profitability cohort's
+    /// own market cap: spot price minus aggregate realized price, divided by
+    /// spot price. Positive values place spot above that cohort's aggregate
+    /// cost basis; negative values place it below. Returns zero when spot price
+    /// or the cohort's unspent supply is zero.
     pub nupl: ColumnarPerBlock<
         PartsPerMillionSigned32,
         ProfitabilityId,

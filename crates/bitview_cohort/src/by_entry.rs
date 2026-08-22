@@ -39,7 +39,13 @@ pub const ENTRY_NAMES: ByEntry<CohortName> = ByEntry {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ByEntry<T> {
+    /// Uses UTXOs created when spot price was at or below the then-current
+    /// all-chain capitalized price, the mean creation price of all unspent
+    /// outputs weighted by each output's creation-date USD value.
     pub discount: T,
+    /// Uses UTXOs created when spot price was above the then-current all-chain
+    /// capitalized price, the mean creation price of all unspent outputs
+    /// weighted by each output's creation-date USD value.
     pub premium: T,
 }
 

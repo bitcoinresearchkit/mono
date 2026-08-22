@@ -15,8 +15,9 @@ use super::{AddrTypeToActivityCounts, BlockActivityCounts};
 
 #[derive(Traversable)]
 pub struct AddrActivityVecs<M: StorageMode = Rw> {
-    /// Distinct addresses that received after previously being empty in the
-    /// represented block.
+    /// Distinct previously seen addresses that received bitcoin in the
+    /// represented block while holding no unspent balance immediately before
+    /// that receive was applied.
     pub reactivated:
         WithAddrTypes<LazyPerBlockCumulativeAverage<StoredU32, StoredU64, StoredU64ToStoredU32>>,
     /// Distinct addresses that sent bitcoin in the represented block.

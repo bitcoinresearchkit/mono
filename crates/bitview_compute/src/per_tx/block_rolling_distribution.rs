@@ -11,6 +11,7 @@ pub struct BlockRollingDistribution<T, M: StorageMode = Rw>
 where
     T: ComputedVecValue + PartialOrd + JsonSchema,
 {
+    /// Uses the six-block window ending at the represented block.
     pub _6b: PerBlockDistribution<T, M>,
 }
 

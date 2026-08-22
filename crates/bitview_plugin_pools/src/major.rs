@@ -20,13 +20,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub base: minor::Vecs,
 
-    /// Coinbase transaction output value for blocks attributed to the selected
+    /// Coinbase transaction output value for blocks attributed to a mining
     /// pool, and zero for other blocks. USD and cents representations value
     /// each included reward at that block's spot price.
     pub rewards: ValuePerBlockCumulativeRolling<M>,
-    /// Share of blocks in the named trailing timestamp window attributed to the
-    /// selected pool: pool block count divided by total chain block count in
-    /// that window.
+    /// Share of blocks in a trailing timestamp window attributed to a mining
+    /// pool: pool block count divided by total chain block count in that
+    /// window.
     #[traversable(rename = "dominance")]
     pub dominance_rolling: LazyPercentRollingWindows<PartsPerMillion32>,
 }

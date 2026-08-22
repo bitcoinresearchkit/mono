@@ -20,23 +20,23 @@ use bitview_compute::LazyColumnRatioPerBlock;
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    /// Block-decay-weighted historical percentile bands of spot price divided
-    /// by the component price named by the series. Observations begin at height
-    /// 210,000, include the current block, and receive twice the weight every
-    /// 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios
-    /// are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded.
-    /// Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90,
-    /// 95, 98, 99, 99.5, and 99.9 percent. Each price band is the component price
-    /// multiplied by its percentile ratio.
+    /// Historical valuation bands for judging how unusually low or high spot
+    /// price is relative to this reference price. At each block, the
+    /// spot-to-reference ratio is ranked against observations since height
+    /// 210,000 with a 210,000-block backward half-life. Low percentiles represent
+    /// rare low valuations and high percentiles rare high valuations. Ratios
+    /// include the represented block, are rounded to 0.001, clamped from 0
+    /// through 43, and exclude NaNs. Each price band equals the reference price
+    /// multiplied by its historical ratio percentile.
     pub bands: RarityPercentiles<Band>,
 
-    /// Block-decay-weighted historical percentiles of spot price divided by the
-    /// component price named by the series, stored in parts per million.
-    /// Observations begin at height 210,000, include the current block, and
-    /// receive twice the weight every 210,000 blocks, equivalent to a
-    /// 210,000-block backward half-life. Ratios are rounded to 0.001, clamped
-    /// from 0 through 43, and NaNs are excluded. Column order is 0.1, 0.5, 1, 2,
-    /// 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9
+    /// Raw historical spot-to-reference ratio percentiles behind this Rarity
+    /// Meter component, stored in parts per million. Low percentiles represent
+    /// rare low valuations and high percentiles rare high valuations.
+    /// Observations begin at height 210,000, include the represented block, and
+    /// use a 210,000-block backward half-life. Ratios are rounded to 0.001,
+    /// clamped from 0 through 43, and exclude NaNs. Column order is 0.1, 0.5, 1,
+    /// 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9
     /// percent.
     pub ratios:
         M::Stored<EagerVec<ColumnarVec<PcoVec<Height, PartsPerMillion32>, RarityPercentileId>>>,

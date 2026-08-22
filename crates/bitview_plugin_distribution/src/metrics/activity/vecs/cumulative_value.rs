@@ -13,6 +13,8 @@ pub struct CumulativeValueByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub cohorts: UTXOGroups<LazyValuePerBlockCumulativeRolling>,
     pub cumulative: CumulativeUTXOValueColumnarMetric<M>,
+    /// Groups spent output value by the spending address's balance immediately
+    /// before the spend.
     pub addr_balance: ColumnarAmountValue<LazyValuePerBlockCumulativeRolling, M>,
 }
 

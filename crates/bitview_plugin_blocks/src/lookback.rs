@@ -6,49 +6,93 @@ use bitview_compute::{CachedWindowStartVec, LazyWindowStartVec, Lookback, Window
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
+    /// Uses a trailing 1-hour duration.
     pub _1h: LazyWindowStartVec,
+    /// Uses a trailing 24-hour duration.
     pub _24h: CachedWindowStartVec,
+    /// Uses a trailing 3-day duration.
     pub _3d: LazyWindowStartVec,
+    /// Uses a trailing 7-day duration.
     pub _1w: CachedWindowStartVec,
+    /// Uses a trailing 8-day duration.
     pub _8d: LazyWindowStartVec,
+    /// Uses a trailing 9-day duration.
     pub _9d: LazyWindowStartVec,
+    /// Uses a trailing 12-day duration.
     pub _12d: LazyWindowStartVec,
+    /// Uses a trailing 13-day duration.
     pub _13d: LazyWindowStartVec,
+    /// Uses a trailing 14-day duration.
     pub _2w: LazyWindowStartVec,
+    /// Uses a trailing 21-day duration.
     pub _21d: LazyWindowStartVec,
+    /// Uses a trailing 26-day duration.
     pub _26d: LazyWindowStartVec,
+    /// Uses a trailing 30-day duration.
     pub _1m: CachedWindowStartVec,
+    /// Uses a trailing 34-day duration.
     pub _34d: LazyWindowStartVec,
+    /// Uses a trailing 50-day duration.
     pub _50d: LazyWindowStartVec,
+    /// Uses a trailing 55-day duration.
     pub _55d: LazyWindowStartVec,
+    /// Uses a trailing 60-day duration.
     pub _2m: LazyWindowStartVec,
+    /// Uses a trailing 63-day duration.
     pub _9w: LazyWindowStartVec,
+    /// Uses a trailing 84-day duration.
     pub _12w: LazyWindowStartVec,
+    /// Uses a trailing 89-day duration.
     pub _89d: LazyWindowStartVec,
+    /// Uses a trailing 90-day duration.
     pub _3m: CachedWindowStartVec,
+    /// Uses a trailing 98-day duration.
     pub _14w: LazyWindowStartVec,
+    /// Uses a trailing 111-day duration.
     pub _111d: LazyWindowStartVec,
+    /// Uses a trailing 144-day duration.
     pub _144d: LazyWindowStartVec,
+    /// Uses a trailing 180-day duration.
     pub _6m: CachedWindowStartVec,
+    /// Uses a trailing 182-day duration.
     pub _26w: LazyWindowStartVec,
+    /// Uses a trailing 200-day duration.
     pub _200d: LazyWindowStartVec,
+    /// Uses a trailing 270-day duration.
     pub _9m: LazyWindowStartVec,
+    /// Uses a trailing 350-day duration.
     pub _350d: LazyWindowStartVec,
+    /// Uses a trailing 360-day duration.
     pub _12m: LazyWindowStartVec,
+    /// Uses a trailing 365-day duration.
     pub _1y: CachedWindowStartVec,
+    /// Uses a trailing 420-day duration.
     pub _14m: LazyWindowStartVec,
+    /// Uses a trailing 730-day duration.
     pub _2y: CachedWindowStartVec,
+    /// Uses a trailing 780-day duration.
     pub _26m: LazyWindowStartVec,
+    /// Uses a trailing 1,095-day duration.
     pub _3y: CachedWindowStartVec,
+    /// Uses a trailing 1,400-day duration.
     pub _200w: LazyWindowStartVec,
+    /// Uses a trailing 1,460-day duration.
     pub _4y: CachedWindowStartVec,
+    /// Uses a trailing 1,825-day duration.
     pub _5y: CachedWindowStartVec,
+    /// Uses a trailing 2,190-day duration.
     pub _6y: CachedWindowStartVec,
+    /// Uses a trailing 2,920-day duration.
     pub _8y: CachedWindowStartVec,
+    /// Uses a trailing 3,285-day duration.
     pub _9y: LazyWindowStartVec,
+    /// Uses a trailing 3,650-day duration.
     pub _10y: CachedWindowStartVec,
+    /// Uses a trailing 4,380-day duration.
     pub _12y: LazyWindowStartVec,
+    /// Uses a trailing 5,110-day duration.
     pub _14y: LazyWindowStartVec,
+    /// Uses a trailing 9,490-day duration.
     pub _26y: LazyWindowStartVec,
 }
 

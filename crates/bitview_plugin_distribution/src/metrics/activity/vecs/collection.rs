@@ -33,11 +33,11 @@ impl UnaryTransform<StoredF64, StoredF64> for CoinDaysToCoinYears {
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
-    /// Value of outputs from the selected cohort spent in each block. BTC
-    /// representations use the spent output value; USD representations value
-    /// it at the spending block's spot price.
+    /// Value of outputs spent in each block. BTC representations use the spent
+    /// output value; USD representations value it at the spending block's spot
+    /// price.
     pub transfer_volume: Box<CumulativeValueByCohort<M>>,
-    /// Coin days destroyed by outputs from the selected cohort: each spent
+    /// Coin days destroyed by outputs from a UTXO cohort: each spent
     /// output's BTC value multiplied by its age in days.
     pub coindays_destroyed: CoindaysDestroyedByCohort<M>,
     #[traversable(wrap = "transfer_volume", rename = "in_profit")]
@@ -51,8 +51,10 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     /// Coin years destroyed over the trailing 365-day window: the window's
     /// total coin days destroyed divided by 365.
     pub coinyears_destroyed: UTXOAggregate<LazyPerBlock<StoredF64, StoredF64>>,
-    /// Average age in days of transferred bitcoin over the named trailing
-    /// window: coin days destroyed divided by transfer volume in BTC.
+    /// For each supported trailing window, average age in days of transferred
+    /// bitcoin: coin days destroyed divided by transfer volume in BTC. Higher
+    /// values mean older coins moved on average. Returns zero when transfer
+    /// volume is zero.
     pub dormancy: UTXOAggregate<ColumnarRollingWindows<StoredF32, M>>,
 }
 

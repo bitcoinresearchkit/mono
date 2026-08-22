@@ -19,6 +19,7 @@ use bitview_compute::{
 /// types (spendable + op_return).
 #[derive(Clone, Traversable)]
 pub struct WithOutputTypes<V> {
+    /// Across all output types, including OP_RETURN outputs.
     pub all: LazyPerBlockCumulativeRolling<StoredU64>,
     #[traversable(skip)]
     cached_all: CachedBoxedVec<Height, StoredU64>,

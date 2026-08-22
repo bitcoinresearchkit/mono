@@ -14,6 +14,8 @@ pub struct ColumnarAmountValue<S: Clone, M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten)]
     pub series: Amount<S>,
+    /// Height-indexed matrix with one column per exact value range, ordered from
+    /// smallest to largest.
     pub values: ColumnarValuePerBlockCumulativeRolling<AmountRangeId, (), M>,
 }
 

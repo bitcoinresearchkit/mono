@@ -54,20 +54,29 @@ macro_rules! with_transaction_features {
             /// element ends in an annex whose first byte is `0x50`.
             has_annex: ANNEX = 14, count: annex, count_attr: traversable(hidden);
             /// Whether the transaction contains at least one detected ECDSA or
-            /// Schnorr signature encoding using `SIGHASH_ALL`.
+            /// Schnorr signature using the `SIGHASH_ALL` base type, which
+            /// commits to every output. `SIGHASH_ANYONECANPAY`, tracked
+            /// separately, can narrow the input commitment.
             has_sighash_all: SIGHASH_ALL = 15, count: sighash_all, count_attr: traversable(hidden);
             /// Whether the transaction contains at least one detected ECDSA or
-            /// Schnorr signature encoding using `SIGHASH_NONE`.
+            /// Schnorr signature using the `SIGHASH_NONE` base type, which
+            /// commits to no transaction outputs.
             has_sighash_none: SIGHASH_NONE = 16, count: sighash_none, count_attr: traversable(hidden);
             /// Whether the transaction contains at least one detected ECDSA or
-            /// Schnorr signature encoding using `SIGHASH_SINGLE`.
+            /// Schnorr signature using the `SIGHASH_SINGLE` base type, which
+            /// normally commits only to the output at the signing input's
+            /// position. Legacy signatures without a corresponding output
+            /// retain Bitcoin's historical `SIGHASH_SINGLE` bug.
             has_sighash_single: SIGHASH_SINGLE = 17, count: sighash_single, count_attr: traversable(hidden);
             /// Whether the transaction contains at least one detected Taproot
-            /// signature encoding using `SIGHASH_DEFAULT`.
+            /// `SIGHASH_DEFAULT` signature. Taproot's omitted hash-type byte has
+            /// the same commitments as `SIGHASH_ALL` without
+            /// `SIGHASH_ANYONECANPAY`.
             has_sighash_default: SIGHASH_DEFAULT = 18, count: sighash_default, count_attr: traversable(hidden);
             /// Whether the transaction contains at least one detected ECDSA or
-            /// Schnorr signature encoding with the `SIGHASH_ANYONECANPAY`
-            /// modifier. This is independent of ALL, NONE, and SINGLE.
+            /// Schnorr signature with the `SIGHASH_ANYONECANPAY` modifier,
+            /// which commits only to the signing input rather than every
+            /// input. This is independent of ALL, NONE, and SINGLE.
             has_sighash_anyone_can_pay: SIGHASH_ANYONE_CAN_PAY = 19, count: sighash_anyone_can_pay, count_attr: traversable(hidden);
             #[traversable(hidden)]
             is_unconditionally_nonstandard: UNCONDITIONALLY_NONSTANDARD = 20;

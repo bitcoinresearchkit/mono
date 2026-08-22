@@ -132,19 +132,14 @@ impl AggregateVecs {
         mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
-        let name = aggregate.cohort_name().id;
-        let prefix = if name.is_empty() {
-            String::new()
-        } else {
-            format!("{name}_")
-        };
+        let metric_name = |metric: &str| aggregate.metric_name(metric);
         let supply = Mobility {
             mobile: LazySpotValuePerBlock::from_boxed_sats_source(
-                &format!("{prefix}mobile_supply"),
+                &metric_name("mobile_supply"),
                 version,
                 AggregateSources::additive_source(
                     &sources.supply.mobile.read_only_clone(),
-                    &format!("{prefix}mobile_supply_sats"),
+                    &metric_name("mobile_supply_sats"),
                     version,
                     aggregate,
                 ),
@@ -152,11 +147,11 @@ impl AggregateVecs {
                 spot_price,
             ),
             immobile: LazySpotValuePerBlock::from_boxed_sats_source(
-                &format!("{prefix}immobile_supply"),
+                &metric_name("immobile_supply"),
                 version,
                 AggregateSources::additive_source(
                     &sources.supply.immobile.read_only_clone(),
-                    &format!("{prefix}immobile_supply_sats"),
+                    &metric_name("immobile_supply_sats"),
                     version,
                     aggregate,
                 ),
@@ -165,18 +160,18 @@ impl AggregateVecs {
             ),
         };
         let supply_in_loss_share = LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
-            &format!("{prefix}coinflow_supply_in_loss_share"),
+            &metric_name("coinflow_supply_in_loss_share"),
             version,
             AggregateSources::exact_source(
                 &sources.supply_in_loss_share.read_only_clone(),
-                &format!("{prefix}coinflow_supply_in_loss_share"),
+                &metric_name("coinflow_supply_in_loss_share"),
                 version,
                 aggregate,
             ),
             mappings,
         );
         let horizon = HorizonId::from_fn(|horizon| {
-            let name = format!("{prefix}coinflow_{}_supply_in_loss_share", horizon.name());
+            let name = metric_name(&format!("coinflow_{}_supply_in_loss_share", horizon.name()));
             HorizonVecs {
                 supply_in_loss_share: LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
                     &name,
@@ -192,22 +187,22 @@ impl AggregateVecs {
             }
         });
         let cap = LazyFiatPerBlock::from_boxed_cents_source(
-            &format!("{prefix}coinflow_cap"),
+            &metric_name("coinflow_cap"),
             version,
             AggregateSources::additive_source(
                 &sources.cap.read_only_clone(),
-                &format!("{prefix}coinflow_cap_cents"),
+                &metric_name("coinflow_cap_cents"),
                 version,
                 aggregate,
             ),
             mappings,
         );
         let price = LazyPriceWithRatioPerBlock::from_boxed_height_source(
-            &format!("{prefix}coinflow_price"),
+            &metric_name("coinflow_price"),
             version,
             AggregateSources::exact_source(
                 &sources.price.read_only_clone(),
-                &format!("{prefix}coinflow_price_cents"),
+                &metric_name("coinflow_price_cents"),
                 version,
                 aggregate,
             ),

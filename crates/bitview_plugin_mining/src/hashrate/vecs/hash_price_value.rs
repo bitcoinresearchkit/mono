@@ -19,7 +19,9 @@ pub struct HashPriceValueVecs<M: StorageMode = Rw> {
     /// hashes per second. It is exactly 1,000 times the corresponding per-TH/s
     /// minimum and returns zero until the first nonzero value exists.
     pub phs_min: LazyPerBlock<StoredF32>,
-    /// Current per-PH/s value divided by its running nonzero all-time minimum,
-    /// minus one. Returns zero before a nonzero minimum exists.
+    /// Per-PH/s value at the represented block divided by its running nonzero
+    /// all-time minimum, minus one. Zero marks the historical floor and positive
+    /// values measure the rebound above it. Returns zero before a nonzero
+    /// minimum exists.
     pub rebound: PercentPerBlock<PartsPerMillionSigned64, M>,
 }

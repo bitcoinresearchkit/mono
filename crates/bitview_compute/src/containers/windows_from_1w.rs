@@ -99,8 +99,11 @@ impl ColumnId for WindowFrom1wId {
 
 #[derive(Clone, Traversable)]
 pub struct WindowsFrom1w<A> {
+    /// Uses a trailing 7-day window.
     pub _1w: A,
+    /// Uses a trailing 30-day window.
     pub _1m: A,
+    /// Uses a trailing 365-day window.
     pub _1y: A,
 }
 

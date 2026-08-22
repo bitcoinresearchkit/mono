@@ -10,6 +10,7 @@ repository.workspace = true
 [dependencies]
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
+bitview_plugin_bedrock = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
 bitview_plugin_distribution = { workspace = true }

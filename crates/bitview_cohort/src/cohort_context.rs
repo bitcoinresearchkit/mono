@@ -39,11 +39,33 @@ impl CohortContext {
     }
 
     pub fn metric_name(&self, filter: &Filter, cohort: &str, metric: &str) -> String {
+        if matches!(filter, Filter::All) {
+            return metric.to_owned();
+        }
         let cohort = self.full_name(filter, cohort);
         if cohort.is_empty() {
             metric.to_owned()
         } else {
             format!("{cohort}_{metric}")
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn all_cohort_never_prefixes_metric_names() {
+        for context in [CohortContext::Utxo, CohortContext::Addr] {
+            assert_eq!(
+                context.metric_name(&Filter::All, "all", "capitalized_price"),
+                "capitalized_price"
+            );
+            assert_eq!(
+                context.metric_name(&Filter::All, "", "capitalized_price"),
+                "capitalized_price"
+            );
         }
     }
 }

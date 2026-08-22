@@ -5,9 +5,9 @@ use serde::Serialize;
 
 use super::CohortName;
 
-/// "At least X% loss" threshold names (9 thresholds).
+/// Names for the total loss side and eight minimum-loss thresholds.
 pub const LOSS_NAMES: Loss<CohortName> = Loss {
-    all: CohortName::new("utxos_in_loss", "All", "In Loss"),
+    total: CohortName::new("utxos_in_loss", "Total", "In Loss"),
     _10pct: CohortName::new("utxos_over_10pct_in_loss", ">=10%", "Over 10% in Loss"),
     _20pct: CohortName::new("utxos_over_20pct_in_loss", ">=20%", "Over 20% in Loss"),
     _30pct: CohortName::new("utxos_over_30pct_in_loss", ">=30%", "Over 30% in Loss"),
@@ -27,25 +27,43 @@ impl Loss<CohortName> {
     }
 }
 
-/// 9 "at least X% loss" aggregate thresholds.
+/// Total loss-side supply and eight "at least X% loss" aggregate thresholds.
 ///
 /// Each is a suffix sum over the profitability ranges, from most loss-making up.
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct Loss<T> {
-    pub all: T,
+    /// Uses UTXOs whose creation price is at or above the represented block's
+    /// spot price.
+    pub total: T,
+    /// Uses UTXOs whose represented-block spot price is at least 10% below
+    /// creation price.
     pub _10pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 20% below
+    /// creation price.
     pub _20pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 30% below
+    /// creation price.
     pub _30pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 40% below
+    /// creation price.
     pub _40pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 50% below
+    /// creation price.
     pub _50pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 60% below
+    /// creation price.
     pub _60pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 70% below
+    /// creation price.
     pub _70pct: T,
+    /// Uses UTXOs whose represented-block spot price is at least 80% below
+    /// creation price.
     pub _80pct: T,
 }
 
 define_column_id!(
     LossId for Loss, version = 1 {
-        All => all,
+        Total => total,
         Over10Pct => _10pct,
         Over20Pct => _20pct,
         Over30Pct => _30pct,
@@ -64,7 +82,7 @@ impl<T> Loss<T> {
     {
         let n = &LOSS_NAMES;
         Self {
-            all: create(n.all.id),
+            total: create(n.total.id),
             _10pct: create(n._10pct.id),
             _20pct: create(n._20pct.id),
             _30pct: create(n._30pct.id),
@@ -82,7 +100,7 @@ impl<T> Loss<T> {
     {
         let n = &LOSS_NAMES;
         Ok(Self {
-            all: create(n.all.id)?,
+            total: create(n.total.id)?,
             _10pct: create(n._10pct.id)?,
             _20pct: create(n._20pct.id)?,
             _30pct: create(n._30pct.id)?,
@@ -96,7 +114,7 @@ impl<T> Loss<T> {
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         [
-            &self.all,
+            &self.total,
             &self._10pct,
             &self._20pct,
             &self._30pct,
@@ -111,7 +129,7 @@ impl<T> Loss<T> {
 
     pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> + ExactSizeIterator {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -129,7 +147,7 @@ impl<T> Loss<T> {
         T: Send + Sync,
     {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -145,7 +163,7 @@ impl<T> Loss<T> {
     /// Access as array for indexed accumulation.
     pub fn as_array_mut(&mut self) -> [&mut T; LOSS_COUNT] {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -157,8 +175,8 @@ impl<T> Loss<T> {
         ]
     }
 
-    /// Iterate from narrowest (_80pct) to broadest (all), yielding each threshold
-    /// with a growing suffix slice of `ranges` (1 range, 2 ranges, ..., LOSS_COUNT).
+    /// Iterate from narrowest (_80pct) to broadest (total), yielding each threshold
+    /// with a growing suffix slice of `ranges` (2 ranges through all loss ranges).
     pub fn iter_mut_with_growing_suffix<'a, R>(
         &'a mut self,
         ranges: &'a [R],

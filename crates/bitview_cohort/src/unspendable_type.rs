@@ -4,6 +4,7 @@ use bitview_traversable::Traversable;
 
 #[derive(Default, Clone, Debug, Traversable)]
 pub struct UnspendableType<T> {
+    /// Uses outputs whose locking script begins with `OP_RETURN`.
     pub op_return: T,
 }
 

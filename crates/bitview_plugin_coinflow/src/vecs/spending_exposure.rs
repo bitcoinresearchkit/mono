@@ -11,8 +11,10 @@ pub struct SpendingExposureSeries {
     #[deref_mut]
     #[traversable(flatten)]
     pub age_range: AgeRange<LazyColumnPerBlock<StoredF64, AgeRangeId>>,
-    /// Estimated probability that supply in the selected age range will ever
-    /// be spent: one minus exp of negative spending exposure. Nonpositive or
-    /// NaN exposure returns zero; positive results are capped just below one.
+    /// Estimated probability that supply in a UTXO age range will ever be
+    /// spent: one minus exp of negative spending exposure. Nonpositive or NaN
+    /// exposure returns zero; positive results are capped just below one. A
+    /// value near zero identifies supply unlikely to move, while a value near
+    /// one identifies supply likely to move eventually.
     pub mobility: AgeRange<LazyPerBlock<StoredF64>>,
 }

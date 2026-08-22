@@ -1,7 +1,7 @@
 use brk_types::{Cents, Height};
 use vecdb::{DeltaSub, LazyDeltaVec};
 
-use bitview_compute::{LazyFiatPerBlockCumulativeWithSums, LazyValuePerBlockCumulativeRolling};
+use bitview_compute::{LazyFiatPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling};
 
 #[derive(Clone)]
 pub struct Sopr24hInput {
@@ -12,7 +12,7 @@ pub struct Sopr24hInput {
 impl Sopr24hInput {
     pub fn new(
         transfer_volume: &LazyValuePerBlockCumulativeRolling,
-        value_destroyed: &LazyFiatPerBlockCumulativeWithSums<Cents>,
+        value_destroyed: &LazyFiatPerBlockCumulativeRolling<Cents>,
     ) -> Self {
         Self {
             transfer_volume: transfer_volume.sum._24h.cents.height.clone(),

@@ -49,15 +49,13 @@ pub struct TransactionsVecs<M: StorageMode = Rw> {
     /// `height`, this is the entire block: its 80-byte header, transaction-count
     /// CompactSize, and every serialized transaction.
     pub total_size: M::Stored<PcoVec<TxIndex, StoredU32>>,
-    /// BIP-141 signature-operation cost. At `tx_index`, this is the cost of the
-    /// indexed transaction. At `height`, this is the sum across every
-    /// transaction in the block, including coinbase. Sigops in legacy
-    /// scriptPubKeys, scriptSigs, and P2SH redeemScripts cost four units;
-    /// P2WPKH and P2WSH sigops cost one. This statically counts
-    /// signature-checking operations rather than signatures actually executed.
-    /// Tapscript signature opcodes are excluded because BIP-342 uses a separate
-    /// per-input execution budget. The post-SegWit consensus block limit is
-    /// 80,000 cost units.
+    /// BIP-141 signature-operation cost. At `tx_index`, this is the indexed
+    /// transaction's cost; at `height`, it is the block total including
+    /// coinbase. Legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops
+    /// cost four units; P2WPKH and P2WSH sigops cost one. This is a static count,
+    /// not the number of signatures executed. Tapscript sigops are excluded
+    /// because BIP-342 uses a separate per-input budget. The post-SegWit block
+    /// limit is 80,000 cost units.
     pub total_sigop_cost: M::Stored<PcoVec<TxIndex, SigOps>>,
     /// Whether at least one input has a sequence number below `0xfffffffe`, the
     /// explicit opt-in RBF signal defined by BIP 125. This is a mechanical

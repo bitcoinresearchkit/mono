@@ -14,9 +14,17 @@ use super::super::UTXORows;
 
 #[derive(Traversable)]
 pub struct CumulativeUTXOValueColumnarMetricWithoutAmountOrType<M: StorageMode = Rw> {
+    /// Height-indexed matrices with one column per exact UTXO age range,
+    /// ordered from youngest to oldest.
     pub age_range: ColumnarValuePerBlockCumulativeRolling<AgeRangeId, (), M>,
+    /// Height-indexed matrices with one column per subsidy-halving epoch,
+    /// ordered from earliest to latest.
     pub epoch: ColumnarValuePerBlockCumulativeRolling<EpochId, (), M>,
+    /// Height-indexed matrices with one column per output-creation year, in
+    /// chronological order.
     pub class: ColumnarValuePerBlockCumulativeRolling<ClassId, (), M>,
+    /// Height-indexed matrices with discount-entry followed by premium-entry
+    /// UTXOs.
     pub entry: ColumnarValuePerBlockCumulativeRolling<EntryId, (), M>,
 }
 

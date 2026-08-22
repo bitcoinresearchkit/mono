@@ -25,7 +25,9 @@ pub const TERM_NAMES: ByTerm<CohortName> = ByTerm {
 
 #[derive(Debug, Default, Clone, Copy, Traversable, Serialize, JsonSchema)]
 pub struct ByTerm<T> {
+    /// Uses short-term-holder UTXOs younger than 150 days.
     pub short: T,
+    /// Uses long-term-holder UTXOs at least 150 days old.
     pub long: T,
 }
 

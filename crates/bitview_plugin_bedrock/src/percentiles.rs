@@ -9,10 +9,15 @@ use super::LossPercentileId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Traversable, Serialize, JsonSchema)]
 pub struct Percentiles<T> {
+    /// Uses the 95th percentile of the mode's supply-in-loss history.
     pub pct95: T,
+    /// Uses the 98th percentile of the mode's supply-in-loss history.
     pub pct98: T,
+    /// Uses the 99th percentile of the mode's supply-in-loss history.
     pub pct99: T,
+    /// Uses the 99.5th percentile of the mode's supply-in-loss history.
     pub pct99_5: T,
+    /// Uses the 99.9th percentile of the mode's supply-in-loss history.
     pub pct99_9: T,
 }
 

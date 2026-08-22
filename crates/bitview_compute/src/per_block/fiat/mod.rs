@@ -1,14 +1,18 @@
 mod base;
 mod lazy;
 mod lazy_block;
+mod lazy_cumulative_rolling;
 mod lazy_cumulative_sum;
 mod lazy_cumulative_sum_with_deltas;
+mod lazy_rolling_avg;
 mod lazy_rolling_sum;
 mod lazy_with_deltas;
 pub use base::*;
 pub use lazy::*;
 pub use lazy_block::*;
+pub use lazy_cumulative_rolling::*;
 pub use lazy_cumulative_sum::*;
 pub use lazy_cumulative_sum_with_deltas::*;
+pub use lazy_rolling_avg::*;
 pub use lazy_rolling_sum::*;
 pub use lazy_with_deltas::*;

@@ -213,16 +213,27 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
 
 #[derive(Default, Clone, Debug, Traversable, Serialize, JsonSchema)]
 pub struct SpendableType<T> {
+    /// Uses pay-to-public-key outputs with a 65-byte key field.
     pub p2pk65: T,
+    /// Uses pay-to-public-key outputs with a 33-byte key field.
     pub p2pk33: T,
+    /// Uses pay-to-public-key-hash outputs.
     pub p2pkh: T,
+    /// Uses bare pay-to-multisig outputs.
     pub p2ms: T,
+    /// Uses pay-to-script-hash outputs.
     pub p2sh: T,
+    /// Uses version-0 pay-to-witness-public-key-hash outputs.
     pub p2wpkh: T,
+    /// Uses version-0 pay-to-witness-script-hash outputs.
     pub p2wsh: T,
+    /// Uses pay-to-Taproot outputs.
     pub p2tr: T,
+    /// Uses pay-to-Anchor outputs.
     pub p2a: T,
+    /// Uses outputs that do not match another recognized locking-script type.
     pub unknown: T,
+    /// Uses outputs with an empty locking script.
     pub empty: T,
 }
 

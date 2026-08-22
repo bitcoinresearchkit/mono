@@ -2,7 +2,7 @@ use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::Serialize;
 
-use crate::{CohortName, Filter, TERM_FILTERS, TERM_NAMES, TermId};
+use crate::{CohortContext, CohortName, Filter, TERM_FILTERS, TERM_NAMES, TermId};
 
 /// Canonical name for the aggregate cohort containing every UTXO.
 pub const UTXO_ALL_NAME: CohortName = CohortName::new("all", "All", "All UTXOs");
@@ -22,8 +22,11 @@ pub const UTXO_AGGREGATE_NAMES: UTXOAggregate<CohortName> = UTXOAggregate {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct UTXOAggregate<T> {
+    /// Uses all UTXOs.
     pub all: T,
+    /// Uses short-term-holder UTXOs younger than 150 days.
     pub sth: T,
+    /// Uses long-term-holder UTXOs at least 150 days old.
     pub lth: T,
 }
 
@@ -50,6 +53,14 @@ impl UTXOAggregateId {
             Self::Sth => Some(TermId::Short),
             Self::Lth => Some(TermId::Long),
         }
+    }
+
+    pub fn metric_name(self, metric: &str) -> String {
+        CohortContext::Utxo.metric_name(
+            self.select(&UTXO_AGGREGATE_FILTERS),
+            self.cohort_name().id,
+            metric,
+        )
     }
 }
 
@@ -94,5 +105,26 @@ impl<T> UTXOAggregate<T> {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [&mut self.all, &mut self.sth, &mut self.lth].into_iter()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn aggregate_metric_names_omit_only_the_all_prefix() {
+        assert_eq!(
+            UTXOAggregateId::All.metric_name("capitalized_price"),
+            "capitalized_price"
+        );
+        assert_eq!(
+            UTXOAggregateId::Sth.metric_name("capitalized_price"),
+            "sth_capitalized_price"
+        );
+        assert_eq!(
+            UTXOAggregateId::Lth.metric_name("capitalized_price"),
+            "lth_capitalized_price"
+        );
     }
 }

@@ -17,6 +17,7 @@ pub struct SupplyTotal<M: StorageMode = Rw> {
     pub cohorts: UTXOGroups<LazySpotValuePerBlock>,
     #[traversable(flatten)]
     pub matrices: UTXOColumnarMetric<Sats, M>,
+    /// Groups funded addresses by their balance at the represented block.
     pub addr_balance: ColumnarAmount<Sats, LazySpotValuePerBlock, M>,
     #[traversable(skip)]
     all: PinnedSpotValuePerBlock,

@@ -17,6 +17,9 @@ use super::{CostBasis, CostBasisBlockData, CostBasisSide};
 #[derive(Traversable)]
 pub struct CostBasisVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
+    /// Cost-basis statistics for an aggregate UTXO cohort's unspent outputs at
+    /// the represented block. An output's creation price is Bitcoin's spot
+    /// price when that output was created.
     pub cohorts: UTXOAggregate<CostBasis>,
     #[traversable(hidden)]
     pub in_profit_per_coin_source: ColumnarPerBlock<

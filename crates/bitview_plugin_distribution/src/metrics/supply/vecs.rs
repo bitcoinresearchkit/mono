@@ -22,40 +22,37 @@ const MATURED_VERSION: Version = Version::new(5);
 
 #[derive(Traversable)]
 pub struct SupplyVecs<M: StorageMode = Rw> {
-    /// Amount of bitcoin held in unspent transaction outputs in the selected
-    /// cohort.
+    /// Amount of bitcoin held in unspent transaction outputs.
     pub total: SupplyTotal<M>,
-    /// Amount of unspent bitcoin that crosses out of the selected exact age
-    /// range during the represented block interval.
+    /// Amount of unspent bitcoin that ages out of an exact UTXO age range
+    /// during the represented block interval.
     pub matured: ColumnarValuePerBlockCumulativeRolling<
         AgeRangeId,
         AgeRange<LazyValuePerBlockCumulativeRolling>,
         M,
     >,
-    /// One half of the selected cohort's unspent supply.
+    /// One half of a UTXO cohort's unspent supply.
     pub half: UTXOGroupsWithoutAmount<LazyValuePerBlock>,
-    /// Unspent supply whose creation price is less than or equal to the current
-    /// spot price.
+    /// Unspent supply in a UTXO cohort whose creation price is less than or
+    /// equal to the represented block's spot price.
     pub in_profit: SupplyByCohort<M>,
-    /// Unspent supply whose creation price is greater than the current spot
-    /// price.
+    /// Unspent supply in a UTXO cohort whose creation price is greater than the
+    /// represented block's spot price.
     pub in_loss: SupplyByCohort<M>,
-    /// Change in the selected cohort's unspent supply over the named trailing
-    /// window, with the percentage change measured against the window's
-    /// starting value.
+    /// Change in a UTXO cohort's unspent supply over a trailing window, with
+    /// the relative change measured against the window's starting value.
     pub delta:
         UTXOGroups<LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>>,
     #[traversable(wrap = "delta", rename = "addr_balance")]
-    /// Change in unspent supply controlled by addresses in the selected balance
-    /// cohort over the named trailing window, with the percentage change
-    /// measured against the window's starting value.
+    /// Change in unspent supply controlled by an address-balance cohort over a
+    /// trailing window, with the relative change measured against the window's
+    /// starting value.
     pub addr_balance_delta:
         Amount<LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>>,
-    /// Share of all unspent supply held by the selected cohort.
+    /// Share of all unspent supply held by a UTXO cohort.
     pub dominance: UTXOGroups<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "dominance", rename = "addr_balance")]
-    /// Share of all unspent supply controlled by addresses in the selected
-    /// balance cohort.
+    /// Share of all unspent supply controlled by an address-balance cohort.
     pub addr_balance_dominance: Amount<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 

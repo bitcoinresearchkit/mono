@@ -83,25 +83,45 @@ pub const OVER_AGE_NAMES: OverAge<CohortName> = OverAge {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct OverAge<T> {
+    /// Uses UTXOs at least 1 day old.
     pub _1d: T,
+    /// Uses UTXOs at least 7 days old.
     pub _1w: T,
+    /// Uses UTXOs at least 30 days old.
     pub _1m: T,
+    /// Uses UTXOs at least 60 days old.
     pub _2m: T,
+    /// Uses UTXOs at least 90 days old.
     pub _3m: T,
+    /// Uses UTXOs at least 120 days old.
     pub _4m: T,
+    /// Uses UTXOs at least 150 days old.
     pub _5m: T,
+    /// Uses UTXOs at least 180 days old.
     pub _6m: T,
+    /// Uses UTXOs at least 270 days old.
     pub _9m: T,
+    /// Uses UTXOs at least 365 days old.
     pub _1y: T,
+    /// Uses UTXOs at least 545 days old.
     pub _18m: T,
+    /// Uses UTXOs at least 2 years old, using 365-day years.
     pub _2y: T,
+    /// Uses UTXOs at least 3 years old, using 365-day years.
     pub _3y: T,
+    /// Uses UTXOs at least 4 years old, using 365-day years.
     pub _4y: T,
+    /// Uses UTXOs at least 5 years old, using 365-day years.
     pub _5y: T,
+    /// Uses UTXOs at least 6 years old, using 365-day years.
     pub _6y: T,
+    /// Uses UTXOs at least 7 years old, using 365-day years.
     pub _7y: T,
+    /// Uses UTXOs at least 8 years old, using 365-day years.
     pub _8y: T,
+    /// Uses UTXOs at least 10 years old, using 365-day years.
     pub _10y: T,
+    /// Uses UTXOs at least 12 years old, using 365-day years.
     pub _12y: T,
 }
 

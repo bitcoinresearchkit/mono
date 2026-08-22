@@ -6,7 +6,9 @@ use crate::Filter;
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct UTXOAllAndSth<T> {
+    /// Uses all UTXOs.
     pub all: T,
+    /// Uses short-term-holder UTXOs younger than 150 days.
     pub sth: T,
 }
 

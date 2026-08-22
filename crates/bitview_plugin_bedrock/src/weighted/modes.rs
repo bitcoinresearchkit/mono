@@ -4,39 +4,48 @@ use super::WeightedModeId;
 
 #[derive(Traversable)]
 pub struct WeightedModes<T> {
-    /// Weights age cohorts by cointime wakefulness and calibrates against active
-    /// supply in loss share.
+    /// Bedrock's cointime mode weights each UTXO age range by wakefulness—the
+    /// share of its accumulated coin days that has been consumed—and
+    /// calibrates against the resulting weighted share of supply in loss.
     pub cointime: T,
-    /// Weights age cohorts by coinflow mobility and calibrates against
-    /// coinflow-weighted supply in loss share.
+    /// Bedrock's coinflow mode weights each UTXO age range by mobility—the
+    /// estimated probability that UTXOs of that age will ever be spent—and
+    /// calibrates against the resulting weighted share of supply in loss.
     pub coinflow: T,
-    /// Weights age cohorts by their probability of spending within eight years,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's eight-year coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within eight years, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_8y: T,
-    /// Weights age cohorts by their probability of spending within four years,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's four-year coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within four years, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_4y: T,
-    /// Weights age cohorts by their probability of spending within two years,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's two-year coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within two years, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_2y: T,
-    /// Weights age cohorts by their probability of spending within one year,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's one-year coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within one year, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_1y: T,
-    /// Weights age cohorts by their probability of spending within six months,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's six-month coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within six months, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_6m: T,
-    /// Weights age cohorts by their probability of spending within three months,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's three-month coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within three months, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_3m: T,
-    /// Weights age cohorts by their probability of spending within one month,
-    /// derived from coinflow spending rates, and calibrates against the
-    /// corresponding horizon supply-in-loss share.
+    /// Bedrock's one-month coinflow mode weights each UTXO age range by its
+    /// estimated probability of being spent within one month, derived from
+    /// observed spending rates, and calibrates against the resulting weighted
+    /// share of supply in loss.
     pub coinflow_1m: T,
 }
 

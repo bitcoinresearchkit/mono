@@ -37,18 +37,31 @@ pub const LOOKBACK_PERIOD_NAMES: ByLookbackPeriod<&'static str> = ByLookbackPeri
 /// Generic wrapper for lookback period-based data (includes 24h)
 #[derive(Clone, Default, Traversable)]
 pub struct ByLookbackPeriod<T> {
+    /// Uses a trailing 24-hour monotonic-time window.
     pub _24h: T,
+    /// Uses a trailing 7-day monotonic-time window.
     pub _1w: T,
+    /// Uses a trailing 30-day monotonic-time window.
     pub _1m: T,
+    /// Uses a trailing 90-day monotonic-time window.
     pub _3m: T,
+    /// Uses a trailing 180-day monotonic-time window.
     pub _6m: T,
+    /// Uses a trailing 365-day monotonic-time window.
     pub _1y: T,
+    /// Uses a trailing 730-day monotonic-time window.
     pub _2y: T,
+    /// Uses a trailing 1,095-day monotonic-time window.
     pub _3y: T,
+    /// Uses a trailing 1,460-day monotonic-time window.
     pub _4y: T,
+    /// Uses a trailing 1,825-day monotonic-time window.
     pub _5y: T,
+    /// Uses a trailing 2,190-day monotonic-time window.
     pub _6y: T,
+    /// Uses a trailing 2,920-day monotonic-time window.
     pub _8y: T,
+    /// Uses a trailing 3,650-day monotonic-time window.
     pub _10y: T,
 }
 

@@ -128,13 +128,23 @@ impl AddrTypeId {
 
 #[derive(Default, Clone, Debug, Traversable)]
 pub struct ByAddrType<T> {
+    /// Uses addresses derived from pay-to-public-key outputs with a 65-byte key
+    /// field.
     pub p2pk65: T,
+    /// Uses addresses derived from pay-to-public-key outputs with a 33-byte key
+    /// field.
     pub p2pk33: T,
+    /// Uses pay-to-public-key-hash addresses.
     pub p2pkh: T,
+    /// Uses pay-to-script-hash addresses.
     pub p2sh: T,
+    /// Uses version-0 pay-to-witness-public-key-hash addresses.
     pub p2wpkh: T,
+    /// Uses version-0 pay-to-witness-script-hash addresses.
     pub p2wsh: T,
+    /// Uses pay-to-Taproot addresses.
     pub p2tr: T,
+    /// Uses pay-to-Anchor outputs tracked as addresses.
     pub p2a: T,
 }
 

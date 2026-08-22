@@ -11,6 +11,7 @@ where
     T: ComputedVecValue + JsonSchema,
     S1T: ComputedVecValue,
 {
+    /// Uses the six-block window ending at the represented block.
     pub _6b: LazyDistribution<Height, T, S1T>,
 }
 

@@ -9,7 +9,15 @@ use super::{LevelId, Levels, Percentiles, PriceBandId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Traversable, Serialize, JsonSchema)]
 pub struct PriceBands<T> {
+    /// Lowest creation price at which the share of mode-weighted supply with a
+    /// higher creation price is no greater than the historical loss-share
+    /// threshold identified below. If spot equaled this floor, that higher-cost
+    /// supply would be in loss. Unavailable when the mode has no positive
+    /// weighted supply or no historical threshold.
     pub floor: Percentiles<T>,
+    /// Additional creation-price level within the mode-weighted supply at or
+    /// above the mode's 95th-percentile floor. Unavailable when that floor or
+    /// the conditional supply subset is unavailable.
     pub level: Levels<T>,
 }
 

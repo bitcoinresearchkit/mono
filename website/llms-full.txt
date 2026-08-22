@@ -5,7 +5,7 @@
 - Version: `v0.11.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 61036
+- Metrics: 61764
 - Operations: 97
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).

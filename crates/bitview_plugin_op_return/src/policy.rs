@@ -3,9 +3,16 @@ use brk_types::OpReturnPolicyId;
 
 #[derive(Clone, Copy, Default, Traversable)]
 pub struct Policy<T> {
+    /// Restricted to transactions with exactly one OP_RETURN output containing
+    /// at most 82 post-OP_RETURN bytes, the pre-v30 standard relay shape.
     pub pre_v30_standard: T,
+    /// Restricted to transactions with an oversized OP_RETURN output or more
+    /// than one OP_RETURN output, the pre-v30 nonstandard relay shape.
     pub pre_v30_nonstandard: T,
+    /// Restricted to transactions with at least one OP_RETURN output containing
+    /// more than 82 post-OP_RETURN bytes.
     pub oversized: T,
+    /// Restricted to transactions containing more than one OP_RETURN output.
     pub multiple: T,
 }
 

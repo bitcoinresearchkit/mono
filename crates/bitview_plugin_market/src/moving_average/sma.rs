@@ -8,22 +8,39 @@ use super::lazy_sma::{LazySmaVec, SmaPrefixSumVec};
 
 #[derive(Clone, Traversable)]
 pub struct SmaVecs {
+    /// Uses a trailing 7-day monotonic-time window.
     pub _1w: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 8-day monotonic-time window.
     pub _8d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 13-day monotonic-time window.
     pub _13d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 21-day monotonic-time window.
     pub _21d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 30-day monotonic-time window.
     pub _1m: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 34-day monotonic-time window.
     pub _34d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 50-day monotonic-time window.
     pub _50d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 55-day monotonic-time window.
     pub _55d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 89-day monotonic-time window.
     pub _89d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 111-day monotonic-time window.
     pub _111d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 144-day monotonic-time window.
     pub _144d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 200-day monotonic-time window.
     pub _200d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 350-day monotonic-time window.
     pub _350d: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 365-day monotonic-time window.
     pub _1y: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 730-day monotonic-time window.
     pub _2y: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 1,400-day monotonic-time window.
     pub _200w: LazyPriceWithRatioPerBlock,
+    /// Uses a trailing 1,460-day monotonic-time window.
     pub _4y: LazyPriceWithRatioPerBlock,
     /// The 200-day simple moving average multiplied by 2.4.
     #[traversable(wrap = "200d", rename = "x2_4")]

@@ -158,13 +158,12 @@ impl ColumnId for EmaPeriodId {
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Simple moving averages of block-level Bitcoin spot prices over trailing
-    /// monotonic-time windows, including the current block.
+    /// monotonic-time windows, including the represented block.
     pub sma: super::sma::SmaVecs,
-    /// Exponential moving averages of spot price in cents per BTC. Each period
-    /// recursively applies `alpha = 2 / (span + 1)`, where `span` is the number
-    /// of blocks from the trailing period's monotonic-time start through the
-    /// current block. Periods are 7, 8, 12, 13, 21, 26, 30, 34, 55, 89, 144,
-    /// 200, 365, 730, 1,400, and 1,460 days, in column order.
+    /// Exponential moving average of block-level Bitcoin spot price. At each
+    /// block it recursively applies `alpha = 2 / (span + 1)`, where `span` is
+    /// the number of blocks from the trailing period's monotonic-time start
+    /// through the represented block.
     pub ema: ColumnarPerBlock<
         Cents,
         EmaPeriodId,

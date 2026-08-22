@@ -83,25 +83,45 @@ pub const UNDER_AGE_NAMES: UnderAge<CohortName> = UnderAge {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct UnderAge<T> {
+    /// Uses UTXOs less than 7 days old.
     pub _1w: T,
+    /// Uses UTXOs less than 30 days old.
     pub _1m: T,
+    /// Uses UTXOs less than 60 days old.
     pub _2m: T,
+    /// Uses UTXOs less than 90 days old.
     pub _3m: T,
+    /// Uses UTXOs less than 120 days old.
     pub _4m: T,
+    /// Uses UTXOs less than 150 days old.
     pub _5m: T,
+    /// Uses UTXOs less than 180 days old.
     pub _6m: T,
+    /// Uses UTXOs less than 270 days old.
     pub _9m: T,
+    /// Uses UTXOs less than 365 days old.
     pub _1y: T,
+    /// Uses UTXOs less than 545 days old.
     pub _18m: T,
+    /// Uses UTXOs less than 2 years old, using 365-day years.
     pub _2y: T,
+    /// Uses UTXOs less than 3 years old, using 365-day years.
     pub _3y: T,
+    /// Uses UTXOs less than 4 years old, using 365-day years.
     pub _4y: T,
+    /// Uses UTXOs less than 5 years old, using 365-day years.
     pub _5y: T,
+    /// Uses UTXOs less than 6 years old, using 365-day years.
     pub _6y: T,
+    /// Uses UTXOs less than 7 years old, using 365-day years.
     pub _7y: T,
+    /// Uses UTXOs less than 8 years old, using 365-day years.
     pub _8y: T,
+    /// Uses UTXOs less than 10 years old, using 365-day years.
     pub _10y: T,
+    /// Uses UTXOs less than 12 years old, using 365-day years.
     pub _12y: T,
+    /// Uses UTXOs less than 15 years old, using 365-day years.
     pub _15y: T,
 }
 

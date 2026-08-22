@@ -32,7 +32,9 @@ pub struct Vecs<M: StorageMode = Rw> {
         M,
     >,
     /// Wakefulness for each UTXO age range: cumulative coin days consumed from
-    /// the range divided by cumulative coin days created in the range.
+    /// the range divided by cumulative coin days created in the range. Higher
+    /// values mean more of the holding time accumulated in that range has been
+    /// consumed by spending.
     pub activity: ColumnarPerBlock<StoredF64, AgeRangeId, ActivitySeries, M>,
     pub supply: SupplyVecs<
         ColumnarPerBlock<Sats, AgeRangeId, AgeRange<LazyColumnSpotValuePerBlock<AgeRangeId>>, M>,

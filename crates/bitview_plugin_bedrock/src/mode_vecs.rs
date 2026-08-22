@@ -8,11 +8,12 @@ use bitview_compute::{ColumnarDailyMetric, LazyColumnDailyMetric};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct ModeVecs<M: StorageMode = Rw> {
-    /// Linearly interpolated 95th, 98th, 99th, 99.5th, and 99.9th percentiles
-    /// of the mode's prior finite daily supply-in-loss shares, in that column
-    /// order. The current day is excluded from its calibration history and a
-    /// value is unavailable until the current loss share exists and at least
-    /// 365 prior observations are available. Stored as unitless decimal shares.
+    /// Historical supply-in-loss share that Bedrock treats as a stressed
+    /// condition for this mode. It is a linearly interpolated percentile of the
+    /// mode's prior finite daily loss shares. The represented day is excluded,
+    /// and the value is unavailable until its loss share exists and at least
+    /// 365 prior observations are available. Stored as a unitless decimal
+    /// share.
     pub loss_threshold: ColumnarDailyMetric<
         StoredF64,
         LossPercentileId,
@@ -22,12 +23,10 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    /// Daily price bands derived from the mode's URPD. The five floor bands are
-    /// the first ascending creation prices where the share of supply remaining
-    /// above the price is at or below the corresponding calibrated loss
-    /// threshold. The nine level bands are the 10th through 90th percentiles of
-    /// supply at or above the 95th-percentile floor. The stored matrix column
-    /// order is the five floors followed by the nine levels.
+    /// Bedrock maps historically stressed supply-in-loss shares onto the
+    /// represented day's mode-weighted distribution of UTXO creation prices to
+    /// estimate lower price bands. A UTXO's creation price is Bitcoin's spot
+    /// price when that output was created.
     pub prices:
         ColumnarDailyMetric<Cents, PriceBandId, PriceBands<LazyColumnPrice<PriceBandId>>, M>,
 }

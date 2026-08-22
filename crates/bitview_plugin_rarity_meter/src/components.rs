@@ -8,20 +8,59 @@ use vecdb::{Database, Exit, Rw, StorageMode};
 use super::{Component, component};
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
+    /// Rarity Meter component using the all-chain realized price—the
+    /// satoshi-weighted mean creation price of all unspent outputs—as its
+    /// reference.
     pub realized_price: Component<M>,
+    /// Rarity Meter component using the all-chain capitalized price—the mean
+    /// creation price weighted by value invested at creation—as its reference.
     pub capitalized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs younger than 150 days as its reference.
     pub sth_realized_price: Component<M>,
+    /// Rarity Meter component using the value-weighted mean creation price of
+    /// UTXOs younger than 150 days as its reference.
     pub sth_capitalized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs at least 150 days old as its reference.
     pub lth_realized_price: Component<M>,
+    /// Rarity Meter component using the value-weighted mean creation price of
+    /// UTXOs at least 150 days old as its reference.
     pub lth_capitalized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs at least 180 days old as its reference.
     pub over_6m_realized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs at least 120 days old as its reference.
     pub over_4m_realized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs less than 120 days old as its reference.
     pub under_4m_realized_price: Component<M>,
+    /// Rarity Meter component using the satoshi-weighted mean creation price of
+    /// UTXOs less than 180 days old as its reference.
     pub under_6m_realized_price: Component<M>,
+    /// Rarity Meter component using cointime vaulted price as its reference:
+    /// realized price divided by one minus liveliness, where liveliness is
+    /// cumulative coinblocks destroyed divided by cumulative coinblocks
+    /// created.
     pub vaulted_price: Component<M>,
+    /// Rarity Meter component using cointime active price as its reference:
+    /// realized price divided by liveliness, where liveliness is cumulative
+    /// coinblocks destroyed divided by cumulative coinblocks created.
     pub active_price: Component<M>,
+    /// Rarity Meter component using cointime true market mean price as its
+    /// reference: realized capitalization minus cumulative issuance-date
+    /// subsidy value, divided by active supply; active supply is circulating
+    /// supply multiplied by liveliness.
     pub true_market_mean_price: Component<M>,
+    /// Rarity Meter component using cointime price as its reference: the
+    /// cumulative sum of spot price multiplied by coinblocks destroyed, divided
+    /// by cumulative coinblocks stored.
     pub cointime_price: Component<M>,
+    /// Rarity Meter component using coinflow price as its reference: realized
+    /// capitalization weighted by each UTXO age range's estimated eventual
+    /// spending probability, divided by supply weighted by the same
+    /// probability.
     pub coinflow_price: Component<M>,
 }
 

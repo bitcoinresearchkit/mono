@@ -5,8 +5,8 @@ use bitview_compute::ByLookbackPeriod;
 use bitview_compute::{LazyPerBlock, Price};
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    /// Bitcoin spot price at the first block in the named trailing
-    /// monotonic-time window.
+    /// Bitcoin spot price at the first block in a trailing monotonic-time
+    /// window.
     #[traversable(flatten)]
     pub price_past: ByLookbackPeriod<Price<LazyPerBlock<Cents>>>,
 }

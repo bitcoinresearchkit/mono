@@ -21,15 +21,23 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub supply_profitability_shares: SupplyProfitabilityShares<M>,
     #[traversable(wrap = "unrealized/profit", rename = "to_mcap")]
-    /// Unrealized profit of the selected cohort divided by total Bitcoin market
-    /// cap.
+    /// Unrealized profit of an aggregate UTXO cohort divided by total Bitcoin
+    /// market cap at the represented block. Unrealized profit sums market value
+    /// minus creation-date value only for unspent outputs whose spot price is
+    /// above creation price. Returns zero when market cap is zero.
     pub unrealized_profit_to_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/loss", rename = "to_mcap")]
-    /// Unrealized loss of the selected cohort divided by total Bitcoin market
-    /// cap.
+    /// Unrealized loss of an aggregate UTXO cohort divided by total Bitcoin
+    /// market cap at the represented block. Unrealized loss sums creation-date
+    /// value minus market value only for unspent outputs whose spot price is
+    /// below creation price. Returns zero when market cap is zero.
     pub unrealized_loss_to_mcap: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/profit", rename = "to_own_mcap")]
-    /// Unrealized profit divided by the selected term cohort's own market cap.
+    /// Unrealized profit divided by the short- or long-term-holder cohort's own
+    /// market cap, its unspent BTC supply valued at the represented block's spot
+    /// price. Unrealized profit sums market value minus creation-date value only
+    /// for outputs above their creation price. Returns zero when cohort market
+    /// cap is zero.
     pub unrealized_profit_to_own_mcap: ColumnarPerBlock<
         PartsPerMillion32,
         TermId,
@@ -37,7 +45,11 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
         M,
     >,
     #[traversable(wrap = "unrealized/loss", rename = "to_own_mcap")]
-    /// Unrealized loss divided by the selected term cohort's own market cap.
+    /// Unrealized loss divided by the short- or long-term-holder cohort's own
+    /// market cap, its unspent BTC supply valued at the represented block's spot
+    /// price. Unrealized loss sums creation-date value minus market value only
+    /// for outputs below their creation price. Returns zero when cohort market
+    /// cap is zero.
     pub unrealized_loss_to_own_mcap: ColumnarPerBlock<
         PartsPerMillion32,
         TermId,
@@ -45,18 +57,26 @@ pub struct RelativeVecs<M: StorageMode = Rw> {
         M,
     >,
     #[traversable(wrap = "unrealized/net_pnl", rename = "to_own_mcap")]
-    /// Net unrealized profit and loss divided by the selected term cohort's own
-    /// market cap.
+    /// Net unrealized profit and loss divided by the short- or long-term-holder
+    /// cohort's own market cap. It equals `(spot price - realized price) / spot
+    /// price`; positive values place spot above the cohort's aggregate on-chain
+    /// cost basis and negative values place it below. A zero or unavailable
+    /// market-value-to-realized-value ratio produces NaN.
     pub net_unrealized_pnl_to_own_mcap: ByTerm<LazyPercentPerBlock<PartsPerMillionSigned32>>,
     #[traversable(flatten)]
     pub gross_pnl_composition: GrossPnlComposition<M>,
     #[traversable(wrap = "invested_capital/in_profit", rename = "share")]
-    /// Creation-date value of unspent supply currently in profit divided by the
-    /// selected cohort's realized cap.
+    /// Share of an aggregate UTXO cohort's realized cap held by unspent outputs
+    /// whose creation price is less than or equal to the represented block's
+    /// spot price. It divides those outputs' creation-date value by the
+    /// creation-date value of all outputs in the cohort. Returns zero when
+    /// realized cap is zero.
     pub invested_capital_in_profit_share: AggregatePercentPerBlock<PartsPerMillion32, M>,
     #[traversable(wrap = "invested_capital/in_loss", rename = "share")]
-    /// Creation-date value of unspent supply currently in loss divided by the
-    /// selected cohort's realized cap.
+    /// Share of an aggregate UTXO cohort's realized cap held by unspent outputs
+    /// whose creation price is greater than the represented block's spot price.
+    /// It divides those outputs' creation-date value by the creation-date value
+    /// of all outputs in the cohort. Returns zero when realized cap is zero.
     pub invested_capital_in_loss_share: AggregatePercentPerBlock<PartsPerMillion32, M>,
 }
 

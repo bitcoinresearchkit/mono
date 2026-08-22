@@ -11,7 +11,9 @@ use super::{Mobility, SpendingExposureSeries};
 pub struct AgeRangeVecs<M: StorageMode = Rw> {
     /// Empirical daily spending hazard for each UTXO age range: cumulative
     /// transfer volume in BTC divided by cumulative coin days created in that
-    /// range. Returns zero when cumulative coin days created is zero.
+    /// range. It estimates the fraction of the range's supply spent per day;
+    /// higher values indicate faster turnover. Returns zero when cumulative
+    /// coin days created is zero.
     pub spending_rate: ColumnarPerBlock<
         StoredF64,
         AgeRangeId,
@@ -22,7 +24,8 @@ pub struct AgeRangeVecs<M: StorageMode = Rw> {
     /// It integrates observed positive spending hazards from the range midpoint
     /// through subsequent complete ranges, then integrates an exponential tail
     /// fitted by duration-weighted regression of log hazard on age. Returns
-    /// zero when a decreasing finite tail cannot be fitted.
+    /// zero when a decreasing finite tail cannot be fitted. Larger exposure
+    /// implies a greater eventual probability of spending.
     pub spending_exposure: ColumnarPerBlock<StoredF64, AgeRangeId, SpendingExposureSeries, M>,
     pub supply: Mobility<
         ColumnarPerBlock<Sats, AgeRangeId, AgeRange<LazyColumnSpotValuePerBlock<AgeRangeId>>, M>,

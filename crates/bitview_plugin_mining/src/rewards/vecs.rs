@@ -29,16 +29,18 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub unclaimed: ValuePerBlockCumulative<M>,
     /// Transaction fees divided by coinbase output value. Cumulative variants
     /// use cumulative totals; rolling variants use totals within the trailing
-    /// window.
+    /// window. Larger values mean fees supplied more of the miner revenue.
     #[traversable(wrap = "fees", rename = "dominance")]
     pub fee_dominance: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// One minus fee dominance, equivalently the derived subsidy component
     /// divided by coinbase output value. Cumulative variants use cumulative
-    /// totals; rolling variants use totals within the trailing window.
+    /// totals; rolling variants use totals within the trailing window. Larger
+    /// values mean the derived subsidy supplied more of the miner revenue.
     #[traversable(wrap = "subsidy", rename = "dominance")]
     pub subsidy_dominance: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Total transaction fees in the trailing window divided by the total
-    /// derived subsidy component in the same window.
+    /// derived subsidy component in the same window. Values above one mean fees
+    /// exceeded the derived subsidy; values below one mean the reverse.
     #[traversable(wrap = "fees", rename = "to_subsidy")]
     pub fee_to_subsidy: LazyPercentRollingWindows<PartsPerMillion64>,
 }

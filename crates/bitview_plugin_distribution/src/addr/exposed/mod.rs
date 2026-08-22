@@ -56,8 +56,8 @@ pub use state::ExposedAddrState;
 #[derive(Traversable)]
 pub struct ExposedAddrVecs<M: StorageMode = Rw> {
     pub count: AddrCountFundedTotalVecs<M>,
-    /// Balance held by currently funded addresses that satisfy the exposure
-    /// predicate.
+    /// Balance held at the represented block by funded addresses that satisfy
+    /// the exposure predicate.
     pub supply: AddrSupplyVecs<M>,
     #[traversable(wrap = "supply", rename = "share")]
     /// Exposed-address balance as a share of total supply; per-type variants

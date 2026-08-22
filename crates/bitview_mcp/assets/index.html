@@ -585,7 +585,8 @@
         <h1 id="page-title">Bitcoin data for AI.</h1>
         <p class="hero-copy">
           One public endpoint for blockchain, mempool, market, mining, and
-          on-chain data—powered by the open-source Bitcoin Research Kit.
+          on-chain data—served by Bitview and built on the open-source Bitcoin
+          Research Kit.
         </p>
         <div class="endpoint">
           <span>Remote server</span>
@@ -649,8 +650,8 @@
         <div class="section-body">
           <h2 id="data-title">From blocks to market structure.</h2>
           <p class="section-intro">
-            Tools are generated from Bitcoin Research Kit's non-deprecated REST
-            GET operations, keeping the public API and MCP catalog aligned.
+            Tools are generated from Bitview's non-deprecated REST GET
+            operations, keeping the public API and MCP catalog aligned.
           </p>
           <ul class="capabilities">
             <li>
@@ -707,7 +708,7 @@
             <li>
               <h3>Confirmed data</h3>
               <p>
-                Blockchain data and derived series are published after BRK
+                Blockchain data and derived series are published after Bitview
                 finishes processing each new block.
               </p>
             </li>
@@ -758,9 +759,9 @@
         <div class="section-body">
           <h2 id="resources-title">Open infrastructure.</h2>
           <p class="section-intro">
-            This instance is powered by Bitcoin Research Kit, the open-source
-            project behind the data engine, API, MCP server, and generated
-            clients.
+            Bitview is the open-source, self-hostable product behind this MCP
+            server, REST API, and its generated clients. It is built from
+            Bitcoin Research Kit's lower-level Bitcoin data primitives.
           </p>
           <nav class="resources" aria-label="Developer resources">
             <a href="{{API_URL}}/api">API documentation</a>
@@ -769,6 +770,8 @@
             <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>
             <a href="https://pypi.org/project/bitview-client/">Python</a>
             <a href="https://crates.io/crates/bitview_client">Rust</a>
+            <a href="https://bitview.dev">Bitview project</a>
+            <a href="https://bitcoinresearchkit.org">Bitcoin Research Kit</a>
             <a href="https://github.com/bitcoinresearchkit/brk">Source</a>
             <a href="{{PUBLIC_URL}}support">Support</a>
             <a href="{{API_URL}}">REST API</a>
@@ -1004,14 +1007,14 @@
         <header class="policy-header">
           <p class="eyebrow">Help</p>
           <h1 id="support-title">Support.</h1>
-          <p class="policy-meta">Bitcoin Research Kit</p>
+          <p class="policy-meta">Bitview MCP</p>
         </header>
 
         <div class="policy-body">
           <section>
             <h2>Contact</h2>
             <p>
-              For help with the BRK MCP software or its generated tools, email
+              For help with the Bitview MCP software or its generated tools, email
               <a href="mailto:support@bitcoinresearchkit.org"
                 >support@bitcoinresearchkit.org</a
               >. There is no guaranteed response time.
@@ -1044,7 +1047,7 @@
           <section>
             <h2>Independent deployments</h2>
             <p>
-              Bitcoin Research Kit can help with the open-source MCP software.
+              The Bitview project can help with the open-source MCP software.
               Hosting, networking, availability, logging configuration, and custom
               changes made by an independent deployment remain the responsibility of
               that deployment's operator.
@@ -1074,7 +1077,7 @@
     </main>
 
     <footer class="shell">
-      <span>{{DISPLAY_NAME}} / powered by Bitcoin Research Kit</span>
+      <span>{{DISPLAY_NAME}} / Bitview MCP / built on Bitcoin Research Kit</span>
       <span>Public · free · open source</span>
     </footer>
   </body>

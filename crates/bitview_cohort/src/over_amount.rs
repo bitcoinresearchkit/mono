@@ -73,18 +73,31 @@ pub const OVER_AMOUNT_FILTERS: OverAmount<Filter> = OverAmount {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct OverAmount<T> {
+    /// Uses values of at least 1 satoshi.
     pub _1sat: T,
+    /// Uses values of at least 10 satoshis.
     pub _10sats: T,
+    /// Uses values of at least 100 satoshis.
     pub _100sats: T,
+    /// Uses values of at least 1,000 satoshis.
     pub _1k_sats: T,
+    /// Uses values of at least 10,000 satoshis.
     pub _10k_sats: T,
+    /// Uses values of at least 100,000 satoshis.
     pub _100k_sats: T,
+    /// Uses values of at least 1,000,000 satoshis.
     pub _1m_sats: T,
+    /// Uses values of at least 10,000,000 satoshis.
     pub _10m_sats: T,
+    /// Uses values of at least 1 BTC.
     pub _1btc: T,
+    /// Uses values of at least 10 BTC.
     pub _10btc: T,
+    /// Uses values of at least 100 BTC.
     pub _100btc: T,
+    /// Uses values of at least 1,000 BTC.
     pub _1k_btc: T,
+    /// Uses values of at least 10,000 BTC.
     pub _10k_btc: T,
 }
 

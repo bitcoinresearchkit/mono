@@ -126,7 +126,7 @@ pub async fn get(html: Arc<str>) -> Response {
     response.headers_mut().insert(
         "content-security-policy",
         HeaderValue::from_static(
-            "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
         ),
     );
     response.headers_mut().insert(

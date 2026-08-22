@@ -6,15 +6,18 @@ use bitview_compute::{ByDcaCagr, ByLookbackPeriod, LazyPercentPerBlock, StdDevPe
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Bitcoin spot-price return from the first block in the named trailing
-    /// monotonic-time window through the current block: current price divided
-    /// by past price, minus one.
+    /// Bitcoin spot-price return from the first block in a trailing
+    /// monotonic-time window through the represented block: represented-block
+    /// price divided by the window's starting price, minus one. Positive values
+    /// mean price increased and negative values mean it decreased.
     pub periods: ByLookbackPeriod<LazyPercentPerBlock<PartsPerMillionSigned64>>,
     /// Compound annual growth rate of the Bitcoin spot-price return over the
-    /// named whole-year trailing period: `(1 + return)^(1 / years) - 1`.
+    /// corresponding whole-year trailing period: `(1 + return)^(1 / years) -
+    /// 1`. Positive values are annualized gains and negative values are
+    /// annualized losses.
     pub cagr: ByDcaCagr<LazyPercentPerBlock<PartsPerMillionSigned64>>,
     /// Arithmetic mean and population standard deviation of per-block
-    /// trailing-24-hour spot-price returns over the named trailing
+    /// trailing-24-hour spot-price returns over a trailing
     /// monotonic-time window.
     pub sd_24h: Windows<StdDevPerBlock<M>>,
 }

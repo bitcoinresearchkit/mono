@@ -19,16 +19,20 @@ const VERSION: Version = Version::ONE;
 #[derive(Traversable)]
 pub struct GrossPnlComposition<M: StorageMode = Rw> {
     #[traversable(wrap = "unrealized/profit", rename = "to_own_gross_pnl")]
-    /// Unrealized profit divided by gross unrealized profit and loss for the
-    /// selected cohort.
+    /// Share of an aggregate UTXO cohort's gross unrealized profit and loss
+    /// attributable to profit: unrealized profit divided by unrealized profit
+    /// plus unrealized loss. Returns zero when both are zero.
     pub unrealized_profit_to_own_gross_pnl: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/loss", rename = "to_own_gross_pnl")]
-    /// Unrealized loss divided by gross unrealized profit and loss for the
-    /// selected cohort.
+    /// Share of an aggregate UTXO cohort's gross unrealized profit and loss
+    /// attributable to loss: unrealized loss divided by unrealized profit plus
+    /// unrealized loss. Returns zero when both are zero.
     pub unrealized_loss_to_own_gross_pnl: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "unrealized/net_pnl", rename = "to_own_gross_pnl")]
-    /// Net unrealized profit and loss divided by gross unrealized profit and
-    /// loss for the selected cohort.
+    /// Net composition of an aggregate UTXO cohort's gross unrealized profit
+    /// and loss: `(unrealized profit - unrealized loss) / (unrealized profit +
+    /// unrealized loss)`. It ranges from -1 for all loss to 1 for all profit;
+    /// zero means equal profit and loss or no gross unrealized amount.
     pub net_unrealized_pnl_to_own_gross_pnl:
         UTXOAggregate<LazyPercentPerBlock<PartsPerMillionSigned32>>,
     #[traversable(hidden)]

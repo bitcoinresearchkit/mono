@@ -5,36 +5,36 @@ use serde::Serialize;
 
 use super::CohortName;
 
-/// "At least X% profit" threshold names (14 thresholds).
+/// Names for total positive profit and 13 strict profit thresholds.
 pub const PROFIT_NAMES: Profit<CohortName> = Profit {
-    all: CohortName::new("utxos_in_profit", "All", "In Profit"),
-    _10pct: CohortName::new("utxos_over_10pct_in_profit", ">=10%", "Over 10% in Profit"),
-    _20pct: CohortName::new("utxos_over_20pct_in_profit", ">=20%", "Over 20% in Profit"),
-    _30pct: CohortName::new("utxos_over_30pct_in_profit", ">=30%", "Over 30% in Profit"),
-    _40pct: CohortName::new("utxos_over_40pct_in_profit", ">=40%", "Over 40% in Profit"),
-    _50pct: CohortName::new("utxos_over_50pct_in_profit", ">=50%", "Over 50% in Profit"),
-    _60pct: CohortName::new("utxos_over_60pct_in_profit", ">=60%", "Over 60% in Profit"),
-    _70pct: CohortName::new("utxos_over_70pct_in_profit", ">=70%", "Over 70% in Profit"),
-    _80pct: CohortName::new("utxos_over_80pct_in_profit", ">=80%", "Over 80% in Profit"),
-    _90pct: CohortName::new("utxos_over_90pct_in_profit", ">=90%", "Over 90% in Profit"),
+    total: CohortName::new("utxos_in_profit", "Total", "In Profit"),
+    _10pct: CohortName::new("utxos_over_10pct_in_profit", ">10%", "Over 10% in Profit"),
+    _20pct: CohortName::new("utxos_over_20pct_in_profit", ">20%", "Over 20% in Profit"),
+    _30pct: CohortName::new("utxos_over_30pct_in_profit", ">30%", "Over 30% in Profit"),
+    _40pct: CohortName::new("utxos_over_40pct_in_profit", ">40%", "Over 40% in Profit"),
+    _50pct: CohortName::new("utxos_over_50pct_in_profit", ">50%", "Over 50% in Profit"),
+    _60pct: CohortName::new("utxos_over_60pct_in_profit", ">60%", "Over 60% in Profit"),
+    _70pct: CohortName::new("utxos_over_70pct_in_profit", ">70%", "Over 70% in Profit"),
+    _80pct: CohortName::new("utxos_over_80pct_in_profit", ">80%", "Over 80% in Profit"),
+    _90pct: CohortName::new("utxos_over_90pct_in_profit", ">90%", "Over 90% in Profit"),
     _100pct: CohortName::new(
         "utxos_over_100pct_in_profit",
-        ">=100%",
+        ">100%",
         "Over 100% in Profit",
     ),
     _200pct: CohortName::new(
         "utxos_over_200pct_in_profit",
-        ">=200%",
+        ">200%",
         "Over 200% in Profit",
     ),
     _300pct: CohortName::new(
         "utxos_over_300pct_in_profit",
-        ">=300%",
+        ">300%",
         "Over 300% in Profit",
     ),
     _500pct: CohortName::new(
         "utxos_over_500pct_in_profit",
-        ">=500%",
+        ">500%",
         "Over 500% in Profit",
     ),
 };
@@ -48,30 +48,58 @@ impl Profit<CohortName> {
     }
 }
 
-/// 14 "at least X% profit" aggregate thresholds.
+/// Total positive profit and 13 "more than X% profit" aggregate thresholds.
 ///
 /// Each is a prefix sum over the profitability ranges, from most profitable down.
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct Profit<T> {
-    pub all: T,
+    /// Uses UTXOs whose creation price is below the represented block's spot
+    /// price.
+    pub total: T,
+    /// Uses UTXOs whose represented-block spot price is more than 10% above
+    /// creation price.
     pub _10pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 20% above
+    /// creation price.
     pub _20pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 30% above
+    /// creation price.
     pub _30pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 40% above
+    /// creation price.
     pub _40pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 50% above
+    /// creation price.
     pub _50pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 60% above
+    /// creation price.
     pub _60pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 70% above
+    /// creation price.
     pub _70pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 80% above
+    /// creation price.
     pub _80pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 90% above
+    /// creation price.
     pub _90pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 100% above
+    /// creation price.
     pub _100pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 200% above
+    /// creation price.
     pub _200pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 300% above
+    /// creation price.
     pub _300pct: T,
+    /// Uses UTXOs whose represented-block spot price is more than 500% above
+    /// creation price.
     pub _500pct: T,
 }
 
 define_column_id!(
     ProfitId for Profit, version = 1 {
-        All => all,
+        Total => total,
         Over10Pct => _10pct,
         Over20Pct => _20pct,
         Over30Pct => _30pct,
@@ -95,7 +123,7 @@ impl<T> Profit<T> {
     {
         let n = &PROFIT_NAMES;
         Self {
-            all: create(n.all.id),
+            total: create(n.total.id),
             _10pct: create(n._10pct.id),
             _20pct: create(n._20pct.id),
             _30pct: create(n._30pct.id),
@@ -118,7 +146,7 @@ impl<T> Profit<T> {
     {
         let n = &PROFIT_NAMES;
         Ok(Self {
-            all: create(n.all.id)?,
+            total: create(n.total.id)?,
             _10pct: create(n._10pct.id)?,
             _20pct: create(n._20pct.id)?,
             _30pct: create(n._30pct.id)?,
@@ -137,7 +165,7 @@ impl<T> Profit<T> {
 
     pub fn iter(&self) -> impl DoubleEndedIterator<Item = &T> + ExactSizeIterator {
         [
-            &self.all,
+            &self.total,
             &self._10pct,
             &self._20pct,
             &self._30pct,
@@ -157,7 +185,7 @@ impl<T> Profit<T> {
 
     pub fn iter_mut(&mut self) -> impl DoubleEndedIterator<Item = &mut T> + ExactSizeIterator {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -180,7 +208,7 @@ impl<T> Profit<T> {
         T: Send + Sync,
     {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -201,7 +229,7 @@ impl<T> Profit<T> {
     /// Access as array for indexed accumulation.
     pub fn as_array_mut(&mut self) -> [&mut T; PROFIT_COUNT] {
         [
-            &mut self.all,
+            &mut self.total,
             &mut self._10pct,
             &mut self._20pct,
             &mut self._30pct,
@@ -218,8 +246,8 @@ impl<T> Profit<T> {
         ]
     }
 
-    /// Iterate from narrowest (_500pct) to broadest (all), yielding each threshold
-    /// with a growing prefix slice of `ranges` (1 range, 2 ranges, ..., PROFIT_COUNT).
+    /// Iterate from narrowest (_500pct) to broadest (total), yielding each threshold
+    /// with a growing prefix slice of `ranges` (2 ranges through all profit ranges).
     pub fn iter_mut_with_growing_prefix<'a, R>(
         &'a mut self,
         ranges: &'a [R],

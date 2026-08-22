@@ -83,59 +83,54 @@ impl CohortVecs {
         mappings: &bitview_plugin_mappings::Vecs,
         spot_price: &CachedBoxedVec<Height, Cents>,
     ) -> Self {
-        let name = aggregate.cohort_name().id;
-        let prefix = if name.is_empty() {
-            String::new()
-        } else {
-            format!("{name}_")
-        };
+        let metric_name = |metric: &str| aggregate.metric_name(metric);
         let awake_supply = Sources::additive_source(
             &sources.awake_supply.read_only_clone(),
-            &format!("{prefix}awake_supply_sats"),
+            &metric_name("awake_supply_sats"),
             version,
             aggregate,
         );
         let dormant_supply = Sources::additive_source(
             &sources.dormant_supply.read_only_clone(),
-            &format!("{prefix}dormant_supply_sats"),
+            &metric_name("dormant_supply_sats"),
             version,
             aggregate,
         );
         let awake_cap = Sources::additive_source(
             &sources.awake_cap.read_only_clone(),
-            &format!("{prefix}awake_cap_cents"),
+            &metric_name("awake_cap_cents"),
             version,
             aggregate,
         );
         let awake_price = sources
             .awake_price
             .read_only_clone()
-            .column(&format!("{prefix}awake_price_cents"), version, aggregate)
+            .column(&metric_name("awake_price_cents"), version, aggregate)
             .read_only_boxed_clone();
 
         Self {
             awake: AwakeVecs {
                 supply: LazySpotValuePerBlock::from_boxed_sats_source(
-                    &format!("{prefix}awake_supply"),
+                    &metric_name("awake_supply"),
                     version,
                     awake_supply,
                     mappings,
                     spot_price,
                 ),
                 supply_in_loss_share: LazyPerBlock::from_boxed_height_source::<Identity<StoredF64>>(
-                    &format!("{prefix}awake_supply_in_loss_share"),
+                    &metric_name("awake_supply_in_loss_share"),
                     version,
                     supply_in_loss_share,
                     mappings,
                 ),
                 cap: LazyFiatPerBlock::from_boxed_cents_source(
-                    &format!("{prefix}awake_cap"),
+                    &metric_name("awake_cap"),
                     version,
                     awake_cap,
                     mappings,
                 ),
                 price: LazyPriceWithRatioPerBlock::from_boxed_height_source(
-                    &format!("{prefix}awake_price"),
+                    &metric_name("awake_price"),
                     version,
                     awake_price,
                     mappings,
@@ -144,7 +139,7 @@ impl CohortVecs {
             },
             dormant: DormantVecs {
                 supply: LazySpotValuePerBlock::from_boxed_sats_source(
-                    &format!("{prefix}dormant_supply"),
+                    &metric_name("dormant_supply"),
                     version,
                     dormant_supply,
                     mappings,

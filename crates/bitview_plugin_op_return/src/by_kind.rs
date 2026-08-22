@@ -2,10 +2,13 @@ use bitview_traversable::Traversable;
 use brk_types::OpReturnKind;
 
 macro_rules! define_by_kind {
-    ($($field:ident => $kind:ident),+ $(,)?) => {
+    ($($field:ident => $kind:ident, $description:literal),+ $(,)?) => {
         #[derive(Clone, Traversable)]
         pub struct ByKind<T> {
-            $(pub $field: T),+
+            $(
+                #[doc = $description]
+                pub $field: T
+            ),+
         }
 
         impl<T> ByKind<T> {
@@ -27,29 +30,29 @@ macro_rules! define_by_kind {
 }
 
 define_by_kind! {
-    runes => Runes,
-    veri_block => VeriBlock,
-    omni => Omni,
-    stacks => Stacks,
-    blockstack => Blockstack,
-    colu => Colu,
-    open_assets => OpenAssets,
-    komodo => Komodo,
-    coin_spark => CoinSpark,
-    poet => Poet,
-    docproof => Docproof,
-    open_timestamps => OpenTimestamps,
-    factom => Factom,
-    eternity_wall => EternityWall,
-    memo => Memo,
-    bitproof => Bitproof,
-    ascribe => Ascribe,
-    stampery => Stampery,
-    epobc => Epobc,
-    bare_hash => BareHash,
-    text => Text,
-    empty => Empty,
-    unknown => Unknown,
+    runes => Runes, "Restricted to OP_RETURN outputs classified as Runes by their payload opcode.",
+    veri_block => VeriBlock, "Restricted to OP_RETURN outputs classified as VeriBlock by their 82-byte post-OP_RETURN payload.",
+    omni => Omni, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Omni marker.",
+    stacks => Stacks, "Restricted to OP_RETURN outputs whose first pushed payload starts with a Stacks marker.",
+    blockstack => Blockstack, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Blockstack marker.",
+    colu => Colu, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Colu marker.",
+    open_assets => OpenAssets, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Open Assets marker.",
+    komodo => Komodo, "Restricted to OP_RETURN outputs classified as Komodo by their 36-to-38-byte post-OP_RETURN payload.",
+    coin_spark => CoinSpark, "Restricted to OP_RETURN outputs whose first pushed payload starts with the CoinSpark marker.",
+    poet => Poet, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Proof of Existence marker.",
+    docproof => Docproof, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Docproof marker.",
+    open_timestamps => OpenTimestamps, "Restricted to OP_RETURN outputs whose first pushed payload starts with the OpenTimestamps marker.",
+    factom => Factom, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Factom marker.",
+    eternity_wall => EternityWall, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Eternity Wall marker.",
+    memo => Memo, "Restricted to OP_RETURN outputs whose first pushed payload matches a recognized Memo action marker.",
+    bitproof => Bitproof, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Bitproof marker.",
+    ascribe => Ascribe, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Ascribe marker.",
+    stampery => Stampery, "Restricted to OP_RETURN outputs whose first pushed payload starts with the Stampery marker.",
+    epobc => Epobc, "Restricted to OP_RETURN outputs whose first pushed payload starts with the EPOBC marker.",
+    bare_hash => BareHash, "Restricted to OP_RETURN outputs classified as bare hashes because their first pushed payload is 20 or 32 bytes.",
+    text => Text, "Restricted to otherwise-unclassified OP_RETURN outputs whose first pushed payload is at least 90% printable ASCII.",
+    empty => Empty, "Restricted to OP_RETURN outputs with no non-empty pushed payload.",
+    unknown => Unknown, "Restricted to OP_RETURN outputs that do not match another recognized payload kind.",
 }
 
 #[cfg(test)]

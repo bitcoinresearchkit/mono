@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0c0c0b" />
+    <meta
+      name="description"
+      content="Bitview is an open-source Bitcoin data server that runs alongside Bitcoin Core."
+    />
+    <meta property="og:title" content="Bitview — self-hosted Bitcoin data server" />
+    <meta
+      property="og:description"
+      content="Run a Bitcoin Core-backed website and API, or use the public instance at bitview.space."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.dev/" />
+    <meta
+      property="og:image"
+      content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png"
+    />
+    <link rel="canonical" href="https://bitview.dev/" />
+    <link
+      rel="icon"
+      href="https://bitview.space/assets/favicon/web-app-manifest-512x512.png"
+      type="image/png"
+    />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <title>Bitview — self-hosted Bitcoin data server</title>
+    <style>
+      @font-face {
+        font-family: "Lilex";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+          format("woff2-variations");
+        font-style: normal;
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Instrument";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: dark;
+        --page: clamp(1rem, 4vw, 3.5rem);
+        --max: 78rem;
+        --black: #0c0c0b;
+        --raised: #131311;
+        --white: #f2efe7;
+        --muted: #a19c91;
+        --muted-low: #827d73;
+        --line: #34312b;
+        --control: #635e54;
+        --orange: #f7931a;
+        --orange-dark: #2a1808;
+        --serif: "Instrument", Charter, Cambria, serif;
+        --mono:
+          "Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-family: var(--mono);
+        font-synthesis: none;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        margin: 0;
+      }
+
+      html {
+        min-width: 20rem;
+        scroll-padding-top: 5rem;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 20rem;
+        color: var(--white);
+        background: var(--black);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 100;
+        top: 0.75rem;
+        left: 0.75rem;
+        padding: 0.65rem 0.8rem;
+        color: var(--black);
+        background: var(--orange);
+        font-size: 0.75rem;
+        text-decoration: none;
+        transform: translateY(-200%);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 0.22em;
+      }
+
+      a:hover {
+        color: var(--orange);
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--orange);
+        outline-offset: 4px;
+      }
+
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+
+      code {
+        color: #ddd8ce;
+        font-size: 0.94em;
+      }
+
+      h1:focus {
+        outline: 2px solid var(--orange);
+        outline-offset: 0.35rem;
+      }
+
+      ::selection {
+        color: var(--black);
+        background: var(--orange);
+      }
+
+      .shell {
+        width: min(calc(100% - 2 * var(--page)), var(--max));
+        margin-inline: auto;
+      }
+
+      .site-header {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        border-bottom: 1px solid var(--line);
+        background: var(--black);
+      }
+
+      .nav {
+        display: flex;
+        min-height: 3.75rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        flex: none;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.65rem;
+        font-size: 0.9rem;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 1.7rem;
+        height: 1.7rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--white);
+        border-radius: 0.22rem;
+      }
+
+      .brand-mark svg {
+        width: 0.72rem;
+        height: auto;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: clamp(0.9rem, 2.5vw, 2rem);
+        font-size: 0.75rem;
+      }
+
+      .nav-links a {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .nav-links a:hover {
+        color: var(--white);
+      }
+
+      .hero {
+        padding-block: clamp(4.5rem, 9vw, 7rem) clamp(3.5rem, 6vw, 5rem);
+      }
+
+      h1 {
+        max-width: 20ch;
+        font-family: var(--serif);
+        font-size: clamp(3.1rem, 6.5vw, 5.4rem);
+        font-weight: 400;
+        letter-spacing: -0.045em;
+        line-height: 0.94;
+        text-wrap: balance;
+      }
+
+      .lede {
+        max-width: 47rem;
+        margin-top: 2rem;
+        color: var(--muted);
+        font-size: clamp(0.98rem, 1.4vw, 1.12rem);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1.8rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 2.85rem;
+        padding: 0.78rem 1rem;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--control);
+        font-size: 0.75rem;
+        font-weight: 520;
+        text-decoration: none;
+      }
+
+      .button:hover {
+        color: var(--white);
+        border-color: var(--muted);
+        background: var(--raised);
+      }
+
+      .button-primary {
+        color: var(--black);
+        border-color: var(--orange);
+        background: var(--orange);
+      }
+
+      .button-primary:hover {
+        color: var(--black);
+        border-color: #ffad48;
+        background: #ffad48;
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem 2.4rem;
+        margin-top: clamp(3rem, 6vw, 5rem);
+        padding-inline: 0;
+        padding-block: 1rem;
+        color: var(--muted);
+        border-block: 1px solid var(--line);
+        font-size: 0.78rem;
+      }
+
+      .hero-facts li {
+        list-style: none;
+      }
+
+      .hero-facts li::before {
+        display: inline-block;
+        width: 0.34rem;
+        height: 0.34rem;
+        margin-right: 0.5rem;
+        background: var(--orange);
+        border-radius: 50%;
+        content: "";
+        vertical-align: 0.08em;
+      }
+
+      .section {
+        padding-block: clamp(4rem, 7vw, 6rem);
+        border-top: 1px solid var(--line);
+      }
+
+      .section-head {
+        display: grid;
+        grid-template-columns: minmax(12rem, 0.5fr) minmax(0, 1fr);
+        gap: clamp(2rem, 7vw, 6rem);
+        align-items: start;
+      }
+
+      h2 {
+        max-width: 16ch;
+        font-family: var(--serif);
+        font-size: clamp(2.3rem, 4vw, 3.5rem);
+        font-weight: 400;
+        letter-spacing: -0.045em;
+        line-height: 0.94;
+        text-wrap: balance;
+      }
+
+      .section-summary {
+        max-width: 44rem;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .run-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+        gap: clamp(2rem, 6vw, 5rem);
+        margin-top: 3rem;
+      }
+
+      .terminal {
+        align-self: start;
+        padding: 1.2rem;
+        overflow-x: auto;
+        color: #d9d4ca;
+        background: var(--raised);
+        border: 1px solid var(--line);
+        font-size: 0.76rem;
+        line-height: 1.8;
+        white-space: pre;
+      }
+
+      .prompt {
+        color: var(--orange);
+      }
+
+      .run-notes {
+        border-top: 1px solid var(--line);
+      }
+
+      .run-note {
+        display: grid;
+        grid-template-columns: minmax(7rem, 0.34fr) minmax(0, 1fr);
+        gap: 1.2rem;
+        padding-block: 1rem;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .run-note dt {
+        color: var(--white);
+        font-size: 0.78rem;
+      }
+
+      .run-note dd {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .warning {
+        margin-top: 1.4rem;
+        padding: 1rem 1.1rem;
+        color: #d8d2c7;
+        background: var(--orange-dark);
+        border-left: 3px solid var(--orange);
+        font-size: 0.8rem;
+      }
+
+      .interfaces {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 3rem;
+        border: 1px solid var(--line);
+      }
+
+      .interface {
+        position: relative;
+        display: grid;
+        min-height: 11rem;
+        padding: 1.3rem 4rem 1.3rem 1.3rem;
+        align-content: space-between;
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .interface:nth-child(odd) {
+        border-right: 1px solid var(--line);
+      }
+
+      .interface:nth-child(n + 3) {
+        border-top: 1px solid var(--line);
+      }
+
+      .interface:hover {
+        color: var(--white);
+        background: var(--raised);
+      }
+
+      .interface::after {
+        position: absolute;
+        top: 1.35rem;
+        right: 1.3rem;
+        color: var(--muted-low);
+        content: "open";
+        font-size: 0.72rem;
+      }
+
+      .interface:hover::after {
+        color: var(--orange);
+      }
+
+      .interface h3 {
+        font-size: 0.82rem;
+        font-weight: 570;
+      }
+
+      .interface p {
+        max-width: 31rem;
+        margin-top: 1.5rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .interface:hover p {
+        color: #c0baaf;
+      }
+
+      .path {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin-top: 3rem;
+        padding-left: 0;
+        border-block: 1px solid var(--line);
+      }
+
+      .path-step {
+        position: relative;
+        padding: 1.2rem 1rem;
+        list-style: none;
+      }
+
+      .path-step + .path-step {
+        border-left: 1px solid var(--line);
+      }
+
+      .path-step + .path-step::before {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 0.5rem;
+        height: 0.5rem;
+        color: var(--orange);
+        background: var(--black);
+        content: "›";
+        font-size: 0.8rem;
+        line-height: 0.5rem;
+        transform: translate(-0.25rem, -50%);
+      }
+
+      .path-step strong {
+        font-size: 0.75rem;
+        font-weight: 570;
+      }
+
+      .path-step span {
+        display: block;
+        margin-top: 0.35rem;
+        color: var(--muted-low);
+        font-size: 0.75rem;
+      }
+
+      .composition {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 2rem;
+        margin-top: 2.5rem;
+      }
+
+      .composition article {
+        padding-top: 1rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .composition h3 {
+        font-size: 0.78rem;
+        font-weight: 570;
+      }
+
+      .composition p {
+        margin-top: 0.55rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      .status {
+        display: grid;
+        grid-template-columns: minmax(12rem, 0.5fr) minmax(0, 1fr);
+        gap: clamp(2rem, 7vw, 6rem);
+        padding-block: clamp(3rem, 6vw, 4.5rem);
+        border-top: 1px solid var(--line);
+      }
+
+      .status h2 {
+        font-size: clamp(2.1rem, 3.5vw, 3rem);
+      }
+
+      .status-copy {
+        max-width: 44rem;
+      }
+
+      .status-copy > p {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .support {
+        display: inline-flex;
+        min-height: 2.75rem;
+        margin-top: 1.3rem;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+        text-decoration: none;
+      }
+
+      .support::before {
+        width: 0.45rem;
+        height: 0.45rem;
+        background: var(--orange);
+        content: "";
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        padding-block: 1.7rem;
+        color: var(--muted-low);
+        border-top: 1px solid var(--line);
+        font-size: 0.75rem;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+      }
+
+      .footer-links a {
+        display: inline-flex;
+        min-height: 2.25rem;
+        align-items: center;
+      }
+
+      @media (max-width: 50rem) {
+        .site-header {
+          position: static;
+        }
+
+        html {
+          scroll-padding-top: 1rem;
+        }
+
+        .nav-links a:nth-child(2),
+        .nav-links a:nth-child(3) {
+          display: none;
+        }
+
+        .section-head,
+        .run-panel,
+        .status {
+          grid-template-columns: 1fr;
+        }
+
+        .section-head,
+        .status {
+          gap: 1.5rem;
+        }
+
+        .path {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .path-step:nth-child(3) {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .path-step:nth-child(4) {
+          border-top: 1px solid var(--line);
+        }
+
+        .path-step:nth-child(3)::before {
+          display: none;
+        }
+
+        .composition {
+          grid-template-columns: 1fr;
+          gap: 1.3rem;
+        }
+      }
+
+      @media (max-width: 36rem) {
+        .interfaces,
+        .path {
+          grid-template-columns: 1fr;
+        }
+
+        .interface {
+          min-height: 9rem;
+        }
+
+        .interface:nth-child(odd) {
+          border-right: 0;
+        }
+
+        .interface + .interface,
+        .path-step + .path-step {
+          border-top: 1px solid var(--line);
+          border-left: 0;
+        }
+
+        .path-step + .path-step::before {
+          display: none;
+        }
+
+        .run-note {
+          grid-template-columns: 1fr;
+          gap: 0.25rem;
+        }
+
+        footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#hero-title">Skip to content</a>
+    <header class="site-header">
+      <nav class="nav shell" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="Bitview project home">
+          <span class="brand-mark">
+            <svg viewBox="0 0 173.2 200" aria-hidden="true" focusable="false">
+              <polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" />
+              <polygon fill="currentColor" opacity="0.72" points="0,50 86.6,100 86.6,200 0,150" />
+              <polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+            </svg>
+          </span>
+          <span>bitview</span>
+        </a>
+        <div class="nav-links">
+          <a href="#run">Run</a>
+          <a href="#interfaces">Interfaces</a>
+          <a href="#plugins">Plugins</a>
+          <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero shell" aria-labelledby="hero-title">
+        <h1 id="hero-title" tabindex="-1">A self-hosted Bitcoin data server.</h1>
+        <p class="lede">
+          Bitview builds indexes, time series, and on-chain datasets from a Bitcoin Core node, then
+          serves them through a web interface and HTTP API. It can run on your own machine;
+          <code>bitview.space</code> is the public instance maintained by the project.
+        </p>
+        <div class="actions">
+          <a class="button button-primary" href="#run">Run Bitview</a>
+          <a class="button" href="https://bitview.space">Open the public instance</a>
+        </div>
+        <ul class="hero-facts" role="list" aria-label="Bitview properties">
+          <li>Requires Bitcoin Core</li>
+          <li>Linux or macOS</li>
+          <li>About 300 GiB for the current default index</li>
+          <li>16 GiB RAM recommended</li>
+          <li>MIT licensed</li>
+        </ul>
+      </section>
+
+      <section class="section shell" id="run" aria-labelledby="run-title">
+        <div class="section-head">
+          <div>
+            <h2 id="run-title">Run Bitview</h2>
+          </div>
+          <p class="section-summary">
+            The <code>bitviewd</code> executable runs the official plugin composition, web
+            interface, and API. It reads local <code>blk*.dat</code> files and uses Bitcoin Core RPC
+            to identify and follow the active chain.
+          </p>
+        </div>
+
+        <div class="run-panel">
+          <pre class="terminal"><span class="prompt">$</span> cargo install --locked bitviewd
+<span class="prompt">$</span> bitviewd</pre>
+          <dl class="run-notes">
+            <div class="run-note">
+              <dt>Bitcoin Core</dt>
+              <dd>
+                <code>server=1</code>, local access to <code>blocks/</code>, and RPC credentials.
+              </dd>
+            </div>
+            <div class="run-note">
+              <dt>First index</dt>
+              <dd>
+                Can take several hours. When more than 10,000 blocks behind, Bitview catches up
+                before starting the web interface.
+              </dd>
+            </div>
+            <div class="run-note">
+              <dt>Configuration</dt>
+              <dd>Persistent settings live in <code>~/.bitview/config.toml</code>.</dd>
+            </div>
+          </dl>
+        </div>
+
+        <p class="warning">
+          HTTP listens on <code>0.0.0.0:3110</code> by default without authentication. Set
+          <code>serverbind = "127.0.0.1"</code> in the configuration file, or put Bitview behind
+          access control before exposing the port.
+        </p>
+        <div class="actions">
+          <a
+            class="button"
+            href="https://github.com/bitcoinresearchkit/mono/blob/next/crates/bitviewd/README.md"
+          >
+            Installation and configuration
+          </a>
+        </div>
+      </section>
+
+      <section class="section shell" id="interfaces" aria-labelledby="interfaces-title">
+        <div class="section-head">
+          <div>
+            <h2 id="interfaces-title">Website, API, clients, and MCP</h2>
+          </div>
+          <p class="section-summary">
+            The website and REST API are served by Bitview. Client libraries are generated from the
+            API description, while MCP runs as a separate read-only adapter.
+          </p>
+        </div>
+
+        <div class="interfaces">
+          <a class="interface" href="https://bitview.space">
+            <h3>Website</h3>
+            <p>
+              Blocks, transactions, addresses, mempool state, prices, and derived datasets in a
+              browser.
+            </p>
+          </a>
+          <a class="interface" href="https://bitview.space/api">
+            <h3>REST API</h3>
+            <p>
+              JSON and CSV endpoints, interactive OpenAPI documentation, and signed transaction
+              relay.
+            </p>
+          </a>
+          <a
+            class="interface"
+            href="https://github.com/bitcoinresearchkit/mono/tree/next/crates/bitview_bindgen"
+          >
+            <h3>Generated clients</h3>
+            <p>
+              Rust, JavaScript, Python, and command-line clients generated from the server catalog.
+            </p>
+          </a>
+          <a
+            class="interface"
+            href="https://github.com/bitcoinresearchkit/mono/blob/next/crates/bitview_mcp/README.md"
+          >
+            <h3>MCP adapter</h3>
+            <p>
+              A separate stateless service whose tools are generated from the read-only REST
+              operations. The official endpoint is <code>mcp.bitview.space</code> and requires no
+              authentication.
+            </p>
+          </a>
+        </div>
+      </section>
+
+      <section class="section shell" id="plugins" aria-labelledby="plugins-title">
+        <div class="section-head">
+          <div>
+            <h2 id="plugins-title">A static plugin composition</h2>
+          </div>
+          <p class="section-summary">
+            Plugins are ordinary Rust crates assembled into a typed graph at compile time. There is
+            no dynamic loader or stable plugin ABI.
+          </p>
+        </div>
+
+        <ol class="path" role="list" aria-label="Bitview data path">
+          <li class="path-step">
+            <strong>Bitcoin Core</strong>
+            <span>validates blocks and selects the active chain</span>
+          </li>
+          <li class="path-step">
+            <strong>BRK</strong>
+            <span>reads Bitcoin Core data</span>
+          </li>
+          <li class="path-step">
+            <strong>Bitview plugins</strong>
+            <span>store indexes and compute datasets</span>
+          </li>
+          <li class="path-step">
+            <strong>Website and API</strong>
+            <span>serve the resulting data over HTTP</span>
+          </li>
+        </ol>
+
+        <div class="composition">
+          <article>
+            <h3>bitview_plugin</h3>
+            <p>Shared plugin identity, storage ownership, compute context, and publication gates.</p>
+          </article>
+          <article>
+            <h3>bitview_runtime</h3>
+            <p>Bootstrap and the composition-wide update lifecycle, without an official plugin set.</p>
+          </article>
+          <article>
+            <h3>bitview / bitview_default / bitviewd</h3>
+            <p>The runner, official plugin graph, and executable are kept in separate crates.</p>
+          </article>
+        </div>
+
+        <div class="actions">
+          <a
+            class="button button-primary"
+            href="https://github.com/bitcoinresearchkit/mono/tree/next/examples/custom_plugin"
+          >
+            Custom plugin example
+          </a>
+          <a
+            class="button"
+            href="https://github.com/bitcoinresearchkit/mono/blob/next/crates/bitview_plugin/README.md"
+          >
+            Plugin contract
+          </a>
+        </div>
+      </section>
+
+      <section class="status shell" aria-labelledby="status-title">
+        <div>
+          <h2 id="status-title">Active development</h2>
+        </div>
+        <div class="status-copy">
+          <p>
+            Public APIs, stored datasets, and the plugin contract may change between releases. The
+            official public instance is provided without a service-level commitment.
+          </p>
+          <div class="actions">
+            <a class="button button-primary" href="https://github.com/bitcoinresearchkit/mono/releases">Releases</a>
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/issues">Issues</a>
+          </div>
+          <a class="support" href="https://opensats.org/projects/bitcoinresearchkit">Supported by OpenSats</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <span>Bitview / open source / MIT</span>
+      <nav class="footer-links" aria-label="Project links">
+        <a href="https://bitcoinresearchkit.org">Bitcoin Research Kit</a>
+        <a href="https://bitview.space/api">API</a>
+        <a href="https://github.com/bitcoinresearchkit/mono/blob/next/crates/bitview_mcp/README.md">MCP</a>
+      </nav>
+    </footer>
+  </body>
+</html>

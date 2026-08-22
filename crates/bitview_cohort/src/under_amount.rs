@@ -59,18 +59,31 @@ pub const UNDER_AMOUNT_FILTERS: UnderAmount<Filter> = UnderAmount {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct UnderAmount<T> {
+    /// Uses values less than 10 satoshis.
     pub _10sats: T,
+    /// Uses values less than 100 satoshis.
     pub _100sats: T,
+    /// Uses values less than 1,000 satoshis.
     pub _1k_sats: T,
+    /// Uses values less than 10,000 satoshis.
     pub _10k_sats: T,
+    /// Uses values less than 100,000 satoshis.
     pub _100k_sats: T,
+    /// Uses values less than 1,000,000 satoshis.
     pub _1m_sats: T,
+    /// Uses values less than 10,000,000 satoshis.
     pub _10m_sats: T,
+    /// Uses values less than 1 BTC.
     pub _1btc: T,
+    /// Uses values less than 10 BTC.
     pub _10btc: T,
+    /// Uses values less than 100 BTC.
     pub _100btc: T,
+    /// Uses values less than 1,000 BTC.
     pub _1k_btc: T,
+    /// Uses values less than 10,000 BTC.
     pub _10k_btc: T,
+    /// Uses values less than 100,000 BTC.
     pub _100k_btc: T,
 }
 

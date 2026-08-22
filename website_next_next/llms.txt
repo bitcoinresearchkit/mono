@@ -1,0 +1,45 @@
+# Bitcoin Research Kit (BRK)
+
+> Free, open-source Bitcoin analytics API and block explorer. 61036 on-chain time-series and 97 API operations. No authentication required.
+
+## API
+
+- Version: `v0.11.2`
+- Base URL: https://bitview.space
+- Authentication: None
+- Browser access: Permissive CORS
+- [Full plain-text reference](https://bitview.space/llms-full.txt)
+- [Compact OpenAPI](https://bitview.space/api.json)
+- [Full OpenAPI](https://bitview.space/openapi.json)
+- [Series catalog](https://bitview.space/api/series)
+- [Interactive documentation](https://bitview.space/api)
+
+Use the compact OpenAPI document for tool construction. Use `llms-full.txt` only when a complete readable reference is needed.
+
+## Series workflow
+
+Never invent a series identifier.
+
+1. Search by meaning: `GET /api/series/search?q=<plain-language concept>`.
+2. Inspect a returned identifier: `GET /api/series/<series>` returns its description, supported indexes, and value type.
+3. Fetch data: `GET /api/series/<series>/<index>?start=<inclusive>&end=<exclusive>`.
+4. Fetch one current value with `GET /api/series/<series>/<index>/latest`. For several series, use `GET /api/series/bulk?series=<comma-separated names>&index=<index>`.
+
+## MCP
+
+- Endpoint: https://mcp.bitview.space/
+- Transport: Streamable HTTP
+- Authentication: None
+
+The MCP server is stateless and read-only. Its tools are generated from these OpenAPI operations.
+
+## Clients
+
+- [JavaScript](https://www.npmjs.com/package/bitview-client)
+- [Python](https://pypi.org/project/bitview-client/)
+- [Rust](https://crates.io/crates/bitview_client)
+
+## Source
+
+- [GitHub](https://github.com/bitcoinresearchkit/brk)
+- MIT licensed

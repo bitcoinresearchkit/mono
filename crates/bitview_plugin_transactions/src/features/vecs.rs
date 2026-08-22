@@ -89,19 +89,26 @@ pub struct CountVecs<M: StorageMode = Rw> {
     /// byte `0x50`.
     pub annex: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected `SIGHASH_ALL`
-    /// signature.
+    /// signature. This base hash type commits the signature to every output;
+    /// the independently detected `SIGHASH_ANYONECANPAY` modifier can narrow its
+    /// input commitment to the signing input.
     pub sighash_all: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected `SIGHASH_NONE`
-    /// signature.
+    /// signature. This base hash type commits to no transaction outputs, so
+    /// outputs may be changed after signing.
     pub sighash_none: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected `SIGHASH_SINGLE`
-    /// signature.
+    /// signature. This base hash type normally commits only to the output at the
+    /// same position as the signing input; legacy signatures without a
+    /// corresponding output retain Bitcoin's historical `SIGHASH_SINGLE` bug.
     pub sighash_single: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected Taproot
-    /// `SIGHASH_DEFAULT` signature.
+    /// `SIGHASH_DEFAULT` signature. Taproot's omitted hash-type byte has the
+    /// same commitments as `SIGHASH_ALL` without `SIGHASH_ANYONECANPAY`.
     pub sighash_default: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts transactions containing at least one detected signature with the
-    /// `SIGHASH_ANYONECANPAY` modifier. This is counted independently from
+    /// `SIGHASH_ANYONECANPAY` modifier, which commits only to the signing input
+    /// rather than every input. This is counted independently from
     /// `SIGHASH_ALL`, `SIGHASH_NONE`, and `SIGHASH_SINGLE`.
     pub sighash_anyone_can_pay: LazyColumnPerBlockCumulativeRolling<StoredU64, FeatureId>,
     /// Counts non-coinbase transactions containing at least one output below

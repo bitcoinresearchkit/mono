@@ -2,8 +2,11 @@ use bitview_traversable::Traversable;
 
 #[derive(Clone, Traversable)]
 pub struct WindowsTo1m<A> {
+    /// Uses a 1-day base interval.
     pub _24h: A,
+    /// Uses a 7-day base interval.
     pub _1w: A,
+    /// Uses a 30-day base interval.
     pub _1m: A,
 }
 

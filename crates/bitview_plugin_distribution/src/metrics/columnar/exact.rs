@@ -23,10 +23,20 @@ where
 {
     #[traversable(flatten)]
     pub direct: UTXOColumnarMetric<T, M>,
+    /// Height-indexed matrix containing the all, short-term-holder, and
+    /// long-term-holder aggregates, in that order.
     pub aggregate_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, UTXOAggregateId>>>,
+    /// Height-indexed matrix of cumulative maximum-age cohorts, ordered by
+    /// increasing age threshold.
     pub under_age_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, UnderAgeId>>>,
+    /// Height-indexed matrix of cumulative minimum-age cohorts, ordered by
+    /// increasing age threshold.
     pub over_age_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, OverAgeId>>>,
+    /// Height-indexed matrix of cumulative maximum-value cohorts, ordered by
+    /// increasing value threshold.
     pub under_amount_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, UnderAmountId>>>,
+    /// Height-indexed matrix of cumulative minimum-value cohorts, ordered by
+    /// increasing value threshold.
     pub over_amount_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, OverAmountId>>>,
 }
 

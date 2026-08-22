@@ -12,22 +12,21 @@ use bitview_compute::{
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Counts of transaction inputs. The `all` aggregate includes one coinbase
-    /// input per block; per-type series exclude coinbase and classify inputs by
-    /// the BRK output type of the previous output they spend. Column order is
-    /// P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown,
-    /// and empty; `OP_RETURN` is excluded because it is unspendable.
+    /// input per block. Per-type series exclude coinbase and classify inputs by
+    /// the BRK output type of the previous output they spend; `OP_RETURN` is
+    /// excluded because it is unspendable.
     pub input_count: ColumnarPerBlock<
         StoredU16,
         SpendableTypeId,
         WithInputTypes<LazyColumnCountPerBlockCumulativeRolling>,
         M,
     >,
-    /// Inputs spending the selected previous-output type divided by all inputs
+    /// Inputs spending a previous-output type divided by all inputs
     /// over the same cumulative or trailing window. The denominator includes
     /// coinbase inputs.
     pub input_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     /// Number of non-coinbase transactions containing at least one input that
-    /// spends the selected previous-output type. Each transaction is counted
+    /// spends a previous-output type. Each transaction is counted
     /// once per type; the `all` aggregate counts every non-coinbase transaction.
     pub tx_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
@@ -35,7 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
         WithInputTypes<LazyColumnPerBlockCumulativeRolling<StoredU64, SpendableTypeId>>,
         M,
     >,
-    /// Non-coinbase transactions containing the selected previous-output type
+    /// Non-coinbase transactions containing a previous-output type
     /// divided by all non-coinbase transactions over the same cumulative or
     /// trailing window.
     pub tx_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,

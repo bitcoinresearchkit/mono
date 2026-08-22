@@ -336,7 +336,7 @@ impl ProfitabilityId {
     pub fn profit_series<T>(mut create: impl FnMut(Self, &'static str) -> T) -> Profit<T> {
         let names = Profit::names();
         Profit {
-            all: create(Self::Profit, names.all.id),
+            total: create(Self::Profit, names.total.id),
             _10pct: create(Self::ProfitOver10Pct, names._10pct.id),
             _20pct: create(Self::ProfitOver20Pct, names._20pct.id),
             _30pct: create(Self::ProfitOver30Pct, names._30pct.id),
@@ -356,7 +356,7 @@ impl ProfitabilityId {
     pub fn loss_series<T>(mut create: impl FnMut(Self, &'static str) -> T) -> Loss<T> {
         let names = Loss::names();
         Loss {
-            all: create(Self::Loss, names.all.id),
+            total: create(Self::Loss, names.total.id),
             _10pct: create(Self::LossOver10Pct, names._10pct.id),
             _20pct: create(Self::LossOver20Pct, names._20pct.id),
             _30pct: create(Self::LossOver30Pct, names._30pct.id),
@@ -421,7 +421,7 @@ impl ProfitabilityId {
             Self::Range70To80PctInLoss => Range(ProfitabilityRangeId::From70PctTo80PctInLoss),
             Self::Range80To90PctInLoss => Range(ProfitabilityRangeId::From80PctTo90PctInLoss),
             Self::Range90To100PctInLoss => Range(ProfitabilityRangeId::From90PctTo100PctInLoss),
-            Self::Profit => Profit(ProfitId::All),
+            Self::Profit => Profit(ProfitId::Total),
             Self::ProfitOver10Pct => Profit(ProfitId::Over10Pct),
             Self::ProfitOver20Pct => Profit(ProfitId::Over20Pct),
             Self::ProfitOver30Pct => Profit(ProfitId::Over30Pct),
@@ -435,7 +435,7 @@ impl ProfitabilityId {
             Self::ProfitOver200Pct => Profit(ProfitId::Over200Pct),
             Self::ProfitOver300Pct => Profit(ProfitId::Over300Pct),
             Self::ProfitOver500Pct => Profit(ProfitId::Over500Pct),
-            Self::Loss => Loss(LossId::All),
+            Self::Loss => Loss(LossId::Total),
             Self::LossOver10Pct => Loss(LossId::Over10Pct),
             Self::LossOver20Pct => Loss(LossId::Over20Pct),
             Self::LossOver30Pct => Loss(LossId::Over30Pct),
@@ -546,7 +546,7 @@ mod tests {
         let row = ProfitabilityRow::from_ranges(ranges.clone());
 
         assert_eq!(
-            row.profit.all,
+            row.profit.total,
             ranges.iter().take(PROFIT_COUNT + 1).copied().sum::<usize>()
         );
         assert_eq!(
@@ -554,7 +554,7 @@ mod tests {
             ranges.over_1000pct_in_profit + ranges._500pct_to_1000pct_in_profit
         );
         assert_eq!(
-            row.loss.all,
+            row.loss.total,
             ranges.iter().skip(PROFIT_COUNT + 1).copied().sum::<usize>()
         );
         assert_eq!(

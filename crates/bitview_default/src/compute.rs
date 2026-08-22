@@ -269,39 +269,32 @@ impl DefaultPlugins {
                 )
             })?;
 
-            let (bedrock, rarity_meter) = join(
-                || {
-                    timed("Computed bedrock", || {
-                        self.bedrock.compute(
-                            BedrockDependencies {
-                                indexer,
-                                mappings: self.mappings.as_ref(),
-                                distribution: self.distribution.as_ref(),
-                                utxo_states: &utxo_states,
-                                cointime: self.cointime.as_ref(),
-                                coinflow: self.coinflow.as_ref(),
-                            },
-                            context,
-                        )
-                    })
-                },
-                || {
-                    timed("Computed rarity meter", || {
-                        self.rarity_meter.compute(
-                            RarityMeterDependencies {
-                                indexer,
-                                distribution: self.distribution.as_ref(),
-                                cointime: self.cointime.as_ref(),
-                                coinflow: self.coinflow.as_ref(),
-                                price: self.price.as_ref(),
-                            },
-                            context,
-                        )
-                    })
-                },
-            );
-            bedrock?;
-            rarity_meter?;
+            timed("Computed bedrock", || {
+                self.bedrock.compute(
+                    BedrockDependencies {
+                        indexer,
+                        mappings: self.mappings.as_ref(),
+                        distribution: self.distribution.as_ref(),
+                        utxo_states: &utxo_states,
+                        cointime: self.cointime.as_ref(),
+                        coinflow: self.coinflow.as_ref(),
+                    },
+                    context,
+                )
+            })?;
+            timed("Computed rarity meter", || {
+                self.rarity_meter.compute(
+                    RarityMeterDependencies {
+                        indexer,
+                        bedrock: self.bedrock.as_ref(),
+                        distribution: self.distribution.as_ref(),
+                        cointime: self.cointime.as_ref(),
+                        coinflow: self.coinflow.as_ref(),
+                        price: self.price.as_ref(),
+                    },
+                    context,
+                )
+            })?;
             capital_sentiment.join().unwrap()?;
             indicators.join().unwrap()?;
             Ok(())

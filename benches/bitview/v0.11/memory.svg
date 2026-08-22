@@ -2761,13 +2761,13 @@ Memory (GiB)
 <polyline fill="none" opacity="0.5" stroke="#FF6384" stroke-width="2" points="1836,134 1837,134 "/>
 <polyline fill="none" opacity="0.5" stroke="#FF6384" stroke-width="2" points="1837,134 1837,134 "/>
 <polyline fill="none" opacity="0.5" stroke="#FF6384" stroke-width="2" points="1838,134 1838,134 "/>
-<rect x="55" y="59" width="243" height="61" opacity="0.98" fill="#121218" stroke="none"/>
-<rect x="55" y="59" width="243" height="61" opacity="1" fill="none" stroke="#121218"/>
+<rect x="55" y="59" width="195" height="61" opacity="0.98" fill="#121218" stroke="none"/>
+<rect x="55" y="59" width="195" height="61" opacity="1" fill="none" stroke="#121218"/>
 <text x="95" y="69" dy="0.76em" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.9" fill="#E6E6F0">
-v0.11_next (current)
+v0.11 (current)
 </text>
 <text x="95" y="94" dy="0.76em" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.9" fill="#E6E6F0">
-v0.11_next (peak)
+v0.11 (peak)
 </text>
 <polyline fill="none" opacity="1" stroke="#FF6384" stroke-width="1" points="65,77 85,77 "/>
 <polyline fill="none" opacity="0.5" stroke="#FF6384" stroke-width="2" points="65,102 75,102 85,102 "/>

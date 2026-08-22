@@ -1,8 +1,8 @@
 use brk_types::{Cents, CentsSigned, PartsPerMillionSigned64};
 
 use bitview_compute::{
-    LazyFiatPerBlockCumulativeWithSums, LazyFiatPerBlockCumulativeWithSumsAndDeltas,
-    LazyFiatPerBlockWithDeltas,
+    LazyFiatPerBlockCumulativeRolling, LazyFiatPerBlockCumulativeWithSums,
+    LazyFiatPerBlockCumulativeWithSumsAndDeltas, LazyFiatPerBlockWithDeltas,
 };
 
 #[derive(Clone)]
@@ -15,5 +15,5 @@ pub struct RealizedSources {
         CentsSigned,
         PartsPerMillionSigned64,
     >,
-    pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
 }

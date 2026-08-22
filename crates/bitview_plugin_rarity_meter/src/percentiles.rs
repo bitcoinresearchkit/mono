@@ -3,24 +3,43 @@ use brk_types::RarityPercentileId;
 
 #[derive(Clone, Traversable)]
 pub struct RarityPercentiles<T> {
+    /// Uses the 0.1% quantile.
     pub pct0_1: T,
+    /// Uses the 0.5% quantile.
     pub pct0_5: T,
+    /// Uses the 1% quantile.
     pub pct1: T,
+    /// Uses the 2% quantile.
     pub pct2: T,
+    /// Uses the 5% quantile.
     pub pct5: T,
+    /// Uses the 10% quantile.
     pub pct10: T,
+    /// Uses the 20% quantile.
     pub pct20: T,
+    /// Uses the 30% quantile.
     pub pct30: T,
+    /// Uses the 40% quantile.
     pub pct40: T,
+    /// Uses the 50% quantile.
     pub pct50: T,
+    /// Uses the 60% quantile.
     pub pct60: T,
+    /// Uses the 70% quantile.
     pub pct70: T,
+    /// Uses the 80% quantile.
     pub pct80: T,
+    /// Uses the 90% quantile.
     pub pct90: T,
+    /// Uses the 95% quantile.
     pub pct95: T,
+    /// Uses the 98% quantile.
     pub pct98: T,
+    /// Uses the 99% quantile.
     pub pct99: T,
+    /// Uses the 99.5% quantile.
     pub pct99_5: T,
+    /// Uses the 99.9% quantile.
     pub pct99_9: T,
 }
 

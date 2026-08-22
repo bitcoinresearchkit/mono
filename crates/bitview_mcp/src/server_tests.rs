@@ -111,6 +111,13 @@ async fn get_root_serves_the_documentation_page() {
             .and_then(|v| v.to_str().ok()),
         Some("text/html; charset=utf-8")
     );
+    assert!(
+        response
+            .headers()
+            .get("content-security-policy")
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.contains("img-src 'self'"))
+    );
 
     let body = to_bytes(response.into_body(), usize::MAX)
         .await

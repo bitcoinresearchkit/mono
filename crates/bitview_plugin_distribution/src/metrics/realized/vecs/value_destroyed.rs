@@ -6,12 +6,12 @@ use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode};
 
 use crate::metrics::CumulativeUTXOColumnarMetricWithoutAmountOrType;
-use bitview_compute::{CachedWindowStartVec, LazyFiatPerBlockCumulativeWithSums, Windows};
+use bitview_compute::{CachedWindowStartVec, LazyFiatPerBlockCumulativeRolling, Windows};
 
 #[derive(Traversable)]
 pub struct CumulativeValueDestroyedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyFiatPerBlockCumulativeWithSums<Cents>>,
+    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyFiatPerBlockCumulativeRolling<Cents>>,
     #[traversable(flatten)]
     pub cumulative: CumulativeUTXOColumnarMetricWithoutAmountOrType<Cents, M>,
 }
@@ -35,7 +35,7 @@ impl CumulativeValueDestroyedByCohort {
                 .matrices
                 .additive_source(&filter, &format!("{name}_cumulative_cents"), version)
                 .expect("supported value-destroyed cohort");
-            LazyFiatPerBlockCumulativeWithSums::from_boxed_cumulative_cents_source(
+            LazyFiatPerBlockCumulativeRolling::from_boxed_cumulative_cents_source(
                 &name,
                 version,
                 source,

@@ -35,10 +35,15 @@ pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
 
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ByEpoch<T> {
+    /// Uses UTXOs created during subsidy-halving epoch 0.
     pub _0: T,
+    /// Uses UTXOs created during subsidy-halving epoch 1.
     pub _1: T,
+    /// Uses UTXOs created during subsidy-halving epoch 2.
     pub _2: T,
+    /// Uses UTXOs created during subsidy-halving epoch 3.
     pub _3: T,
+    /// Uses UTXOs created during subsidy-halving epoch 4.
     pub _4: T,
 }
 

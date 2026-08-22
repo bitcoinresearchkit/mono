@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Different ways to explore and understand Bitcoin."
+    />
+    <meta name="theme-color" content="#0a0a0a" />
+    <title>bitview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --black: #0a0a0a;
+        --white: #f1eee7;
+        --orange: #f7931a;
+        --edge: clamp(6px, 0.8vw, 12px);
+        --radius: clamp(11px, 1.15vw, 18px);
+        --ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        height: 100%;
+        min-width: 0;
+        background: var(--black);
+        scrollbar-color: #393939 var(--black);
+      }
+
+      body {
+        height: 100%;
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        color: var(--white);
+        background: var(--black);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .site-header {
+        position: fixed;
+        top: 1.5rem;
+        left: 2rem;
+        z-index: 100;
+        line-height: 1;
+        mix-blend-mode: difference;
+        pointer-events: none;
+      }
+
+      .site-brand {
+        --brand-color: var(--white);
+
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--brand-color);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-size: 1rem;
+        line-height: 1;
+        text-transform: lowercase;
+        opacity: 0.82;
+        transition: opacity 150ms ease;
+        pointer-events: auto;
+      }
+
+      .site-brand:hover,
+      .site-brand:focus-visible {
+        opacity: 1;
+      }
+
+      .site-brand:focus-visible {
+        outline: 2px solid var(--white);
+        outline-offset: 0.35rem;
+      }
+
+      .site-brand:active {
+        --brand-color: var(--orange);
+      }
+
+      .site-brand-mark {
+        display: inline-grid;
+        padding: 0.2rem 0.3rem;
+        border-radius: 0.25rem;
+        place-items: center;
+        color: var(--black);
+        background: var(--brand-color);
+      }
+
+      .site-brand-cube {
+        display: block;
+        width: 1.299rem;
+        height: 1.5rem;
+        overflow: hidden;
+      }
+
+      .site-brand-cube .glass {
+        fill: currentColor;
+        fill-opacity: 0.4;
+      }
+
+      .site-brand-cube .liquid {
+        fill: currentColor;
+      }
+
+      .site-brand-cube .liquid-group {
+        transform-box: view-box;
+        animation: cube-fill 5s linear infinite alternate;
+      }
+
+      @keyframes cube-fill {
+        from {
+          transform: translateY(49.5%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      main {
+        display: flex;
+        width: 100%;
+        height: 100svh;
+        min-height: 0;
+        padding:
+          calc(4.5rem + env(safe-area-inset-top))
+          max(var(--edge), env(safe-area-inset-right))
+          max(var(--edge), env(safe-area-inset-bottom))
+          max(var(--edge), env(safe-area-inset-left));
+      }
+
+      .gallery {
+        --card-width: min(88vw, 430px, 44svh);
+
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        gap: clamp(12px, 1.5vw, 22px);
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0 clamp(12px, 1.5vw, 22px);
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        list-style: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .gallery::-webkit-scrollbar {
+        display: none;
+      }
+
+      .tile {
+        position: relative;
+        width: var(--card-width);
+        min-width: 0;
+        aspect-ratio: 9 / 16;
+        flex: 0 0 auto;
+      }
+
+      .card {
+        --hard: #171717;
+        --ink: #f1eee7;
+        --muted: #aaa59c;
+
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        container-type: size;
+        overflow: hidden;
+        border-radius: var(--radius);
+        color: var(--ink);
+        background: var(--hard);
+        box-shadow:
+          inset 0 0 0 0.5px rgb(255 255 255 / 0.15),
+          inset 0 0 0 1px rgb(0 0 0 / 0.12),
+          0 0.35rem 1rem rgb(0 0 0 / 0.22);
+        transition:
+          transform 220ms var(--ease),
+          box-shadow 220ms ease;
+      }
+
+      .card:hover {
+        z-index: 2;
+        box-shadow:
+          inset 0 0 0 0.5px rgb(255 255 255 / 0.24),
+          inset 0 0 0 1px rgb(0 0 0 / 0.12),
+          0 0.8rem 2rem rgb(0 0 0 / 0.3);
+        transform: translateY(-2px);
+      }
+
+      .card:focus-within {
+        z-index: 3;
+        outline: 2px solid var(--ink);
+        outline-offset: -4px;
+      }
+
+      .page-frame,
+      .card-link {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .page-frame {
+        z-index: 1;
+        border: 0;
+        background: var(--hard);
+        pointer-events: none;
+      }
+
+      .card-link {
+        z-index: 3;
+        border-radius: inherit;
+        touch-action: manipulation;
+      }
+
+      .card-copy {
+        position: absolute;
+        right: clamp(0.9rem, 5cqw, 1.65rem);
+        bottom: clamp(0.85rem, 5cqw, 1.65rem);
+        left: clamp(0.9rem, 5cqw, 1.65rem);
+        z-index: 2;
+        pointer-events: none;
+      }
+
+      .card-title {
+        max-width: 10ch;
+        margin: 0;
+        font-size: clamp(1.35rem, 11cqw, 3.4rem);
+        font-weight: 610;
+        line-height: 0.88;
+        letter-spacing: -0.065em;
+        text-wrap: balance;
+      }
+
+      .open-mark {
+        position: absolute;
+        top: clamp(0.7rem, 4cqw, 1rem);
+        right: clamp(0.7rem, 4cqw, 1rem);
+        z-index: 4;
+        display: grid;
+        width: clamp(2.45rem, 16cqw, 3.1rem);
+        height: clamp(2.45rem, 16cqw, 3.1rem);
+        border-radius: clamp(0.75rem, 5cqw, 0.95rem);
+        place-items: center;
+        color: var(--ink);
+        background: rgb(255 255 255 / 0.09);
+        font-size: clamp(1rem, 7cqw, 1.3rem);
+        line-height: 1;
+        opacity: 0.76;
+        transition:
+          opacity 150ms ease,
+          transform 180ms var(--ease),
+          background 150ms ease;
+        pointer-events: none;
+      }
+
+      .card[data-light] .open-mark {
+        background: rgb(0 0 0 / 0.08);
+      }
+
+      .card:hover .open-mark,
+      .card:focus-within .open-mark {
+        background: rgb(255 255 255 / 0.16);
+        opacity: 1;
+        transform: translate(1px, -1px);
+      }
+
+      .card[data-light]:hover .open-mark,
+      .card[data-light]:focus-within .open-mark {
+        background: rgb(0 0 0 / 0.14);
+      }
+
+      .current-visual {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 72% 30%, rgb(247 147 26 / 0.2), transparent 24%),
+          linear-gradient(145deg, #101010, #1a1a1a);
+      }
+
+      .current-visual::before,
+      .current-visual::after {
+        position: absolute;
+        content: "";
+      }
+
+      .current-visual::before {
+        top: 21%;
+        right: 13%;
+        width: 45%;
+        height: 38%;
+        border-top: 2px solid rgb(247 147 26 / 0.82);
+        border-right: 2px solid rgb(247 147 26 / 0.35);
+        transform: skewY(-12deg);
+      }
+
+      .current-visual::after {
+        top: 18%;
+        right: 14%;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--orange);
+        box-shadow: 0 0 1.25rem rgb(247 147 26 / 0.72);
+      }
+
+      .current-status {
+        position: absolute;
+        top: clamp(0.9rem, 5cqw, 1.4rem);
+        left: clamp(0.9rem, 5cqw, 1.4rem);
+        z-index: 2;
+        color: var(--muted);
+        font: 650 clamp(0.55rem, 3.2cqw, 0.72rem) / 1 ui-monospace,
+          SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      @media (max-width: 520px) {
+        .site-header {
+          top: 1.05rem;
+          left: 1rem;
+        }
+
+        main {
+          padding-top: calc(3.75rem + env(safe-area-inset-top));
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .site-brand-cube .liquid-group {
+          animation: none;
+          transform: translateY(25%);
+        }
+
+        .card,
+        .open-mark {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-brand" href="./index.html" aria-label="bitview home">
+        <span class="site-brand-mark" aria-hidden="true">
+          <svg
+            class="site-brand-cube"
+            viewBox="0 0 173.2 200"
+            focusable="false"
+          >
+            <defs>
+              <clipPath id="site-brand-cube-clip">
+                <polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" />
+              </clipPath>
+            </defs>
+            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
+            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
+            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+            <g clip-path="url(#site-brand-cube-clip)">
+              <g class="liquid-group">
+                <polygon class="liquid" points="86.6,0 173.2,50 86.6,100 0,50" />
+                <polygon class="liquid" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                <polygon class="liquid" points="0,50 0,150 86.6,200 86.6,100" />
+              </g>
+            </g>
+            <polygon class="glass" points="0,50 86.6,0 173.2,50 86.6,100" />
+            <polygon class="glass" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+            <polygon class="glass" points="0,50 0,150 86.6,200 86.6,100" />
+          </svg>
+        </span>
+        <span>bitview</span>
+      </a>
+    </header>
+
+    <main>
+      <h1 hidden>Bitview experiments</h1>
+      <ul class="gallery" aria-label="Bitview pages">
+        <li class="tile">
+          <article class="card" style="--hard: #0a0a0a; --ink: #f1eee7; --muted: #96928a">
+            <iframe class="page-frame" src="./bitview.html" loading="lazy" title="Bitview project preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Bitview.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./bitview.html" aria-label="Open the Bitview project page"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #171717; --ink: #f1eee7; --muted: #aaa59c">
+            <div class="current-visual" aria-hidden="true"></div>
+            <span class="current-status">Live explorer</span>
+            <div class="card-copy"><h2 class="card-title">Explore.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="https://bitview.space/" aria-label="Open the current Bitview explorer"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" data-light style="--hard: #efd65b; --ink: #15130c; --muted: #5d501f">
+            <iframe class="page-frame" src="./floor.html" loading="lazy" title="Finding the floor preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Finding the floor.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./floor.html" aria-label="Open Finding the floor"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #07100f; --ink: #f0eadb; --muted: #9ba69f">
+            <iframe class="page-frame" src="./trail.html" loading="lazy" title="Satoshi trail preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Satoshi trail.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./trail.html" aria-label="Open Satoshi trail"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #28191b; --ink: #f5e9e5; --muted: #c59b94">
+            <iframe class="page-frame" src="./events.html" loading="lazy" title="Extreme events preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Extreme events.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./events.html" aria-label="Open Extreme events"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #10283a; --ink: #eef5f8; --muted: #9bb6c8">
+            <iframe class="page-frame" src="./wave.html" loading="lazy" title="HODL wave preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">HODL wave.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./wave.html" aria-label="Open HODL wave"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #08263a; --ink: #edf7fb; --muted: #8cb8cf">
+            <iframe class="page-frame" src="./bedrock.html" loading="lazy" title="Bedrock preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Bedrock.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./bedrock.html" aria-label="Open Bedrock"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #392027; --ink: #faedf0; --muted: #d2a0ad">
+            <iframe class="page-frame" src="./sentiment.html" loading="lazy" title="Sentiment preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Sentiment.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./sentiment.html" aria-label="Open Sentiment"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #29203c; --ink: #f3eefc; --muted: #b7a4dc">
+            <iframe class="page-frame" src="./rarity.html" loading="lazy" title="Rarity preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Rarity.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./rarity.html" aria-label="Open Rarity"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" data-light style="--hard: #eeece5; --ink: #151515; --muted: #6e6b64">
+            <iframe class="page-frame" src="./brk.html" loading="lazy" title="BRK preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">BRK.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./brk.html" aria-label="Open BRK"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" data-light style="--hard: #f7931a; --ink: #17100a; --muted: #603a14">
+            <iframe class="page-frame" src="./height.html" loading="lazy" title="Height preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">Height.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./height.html" aria-label="Open Height"></a>
+          </article>
+        </li>
+
+        <li class="tile">
+          <article class="card" style="--hard: #111d18; --ink: #edf8f1; --muted: #8bb39a">
+            <iframe class="page-frame" src="./api.html" loading="lazy" title="API preview" tabindex="-1" aria-hidden="true"></iframe>
+            <div class="card-copy"><h2 class="card-title">API.</h2></div>
+            <span class="open-mark" aria-hidden="true">↗</span>
+            <a class="card-link" href="./api.html" aria-label="Open API reference"></a>
+          </article>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

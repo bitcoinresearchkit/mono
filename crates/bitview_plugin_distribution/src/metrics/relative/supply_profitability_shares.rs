@@ -19,12 +19,15 @@ const VERSION: Version = Version::ONE;
 #[derive(Traversable)]
 pub struct SupplyProfitabilityShares<M: StorageMode = Rw> {
     #[traversable(wrap = "supply/in_profit", rename = "share")]
-    /// Share of the selected cohort's unspent supply whose creation price is
-    /// less than or equal to spot price.
+    /// Share of an aggregate UTXO cohort's unspent satoshis whose creation price
+    /// is less than or equal to the represented block's spot price. Exact
+    /// break-even is assigned to profit. Returns zero when the cohort has no
+    /// unspent supply.
     pub supply_in_profit_share: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(wrap = "supply/in_loss", rename = "share")]
-    /// Share of the selected cohort's unspent supply whose creation price is
-    /// greater than spot price.
+    /// Share of an aggregate UTXO cohort's unspent satoshis whose creation price
+    /// is greater than the represented block's spot price. Returns zero when the
+    /// cohort has no unspent supply.
     pub supply_in_loss_share: UTXOAggregate<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(hidden)]
     pub profit_share_source: ColumnarPerBlock<PartsPerMillion32, UTXOAggregateId, (), M>,

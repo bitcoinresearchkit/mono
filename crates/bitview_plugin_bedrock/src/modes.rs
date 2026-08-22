@@ -5,7 +5,10 @@ use super::{ModeId, WeightedModes};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Modes<T> {
-    /// Uses the unweighted all-chain URPD and raw all-chain supply-in-loss share.
+    /// Bedrock's raw mode gives every unspent satoshi equal weight. It uses the
+    /// all-chain distribution of UTXO creation prices and the unweighted share
+    /// of supply whose creation price exceeds spot. A UTXO's creation price is
+    /// Bitcoin's spot price when that output was created.
     pub raw: T,
     #[deref]
     #[deref_mut]

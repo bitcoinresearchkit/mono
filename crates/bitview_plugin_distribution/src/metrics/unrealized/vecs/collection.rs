@@ -23,43 +23,61 @@ use super::{
 
 #[derive(Traversable)]
 pub struct UnrealizedVecs<M: StorageMode = Rw> {
-    /// Unrealized profit of unspent outputs in the selected cohort: current
-    /// market value minus creation-date value, summed only where spot price is
+    /// Unrealized profit of a UTXO cohort's unspent outputs: market value at
+    /// the represented block minus creation-date value, summed where spot is
     /// above creation price.
     pub profit: UnrealizedByCohort<Cents, M>,
-    /// Unrealized loss of unspent outputs in the selected cohort: creation-date
-    /// value minus current market value, summed only where spot price is below
+    /// Unrealized loss of a UTXO cohort's unspent outputs: creation-date value
+    /// minus market value at the represented block, summed where spot is below
     /// creation price.
     pub loss: UnrealizedByCohort<Cents, M>,
-    /// Net unrealized profit and loss of the selected cohort: unrealized profit
+    /// Net unrealized profit and loss of a UTXO cohort: unrealized profit
     /// minus unrealized loss.
     pub net_pnl: NetUnrealizedByCohort<M>,
-    /// Gross unrealized profit and loss of the selected aggregate cohort:
+    /// Gross unrealized profit and loss of an aggregate UTXO cohort:
     /// unrealized profit plus unrealized loss.
     pub gross_pnl: AdditiveAggregateFiatPerBlock<Cents, M>,
-    /// Creation-date value of unspent supply currently in profit.
+    /// Creation-date value of an aggregate UTXO cohort's unspent outputs whose
+    /// creation price is less than or equal to the represented block's spot
+    /// price.
     pub invested_capital_in_profit: AdditiveAggregateFiatPerBlock<Cents, M>,
-    /// Creation-date value of unspent supply currently in loss.
+    /// Creation-date value of an aggregate UTXO cohort's unspent outputs whose
+    /// creation price is greater than the represented block's spot price.
     pub invested_capital_in_loss: AdditiveAggregateFiatPerBlock<Cents, M>,
-    /// Sum of creation price squared times unspent sats for supply currently in
-    /// profit. This raw numerator underlies the profit-side capitalized price.
+    /// Sum of creation price squared times unspent sats for a UTXO cohort's
+    /// outputs whose creation price is less than or equal to the represented
+    /// block's spot price. This raw numerator underlies the profit-side
+    /// capitalized price.
     pub capitalized_cap_in_profit_raw: AdditiveUTXORawVec<CentsSquaredSats, M>,
-    /// Sum of creation price squared times unspent sats for supply currently in
-    /// loss. This raw numerator underlies the loss-side capitalized price.
+    /// Sum of creation price squared times unspent sats for a UTXO cohort's
+    /// outputs whose creation price is greater than the represented block's
+    /// spot price. This raw numerator underlies the loss-side capitalized price.
     pub capitalized_cap_in_loss_raw: AdditiveUTXORawVec<CentsSquaredSats, M>,
-    /// Spot price minus the capital-weighted creation price of unspent supply
-    /// currently in loss.
+    /// Pain index of an aggregate UTXO cohort: the capital-weighted creation
+    /// price of its unspent supply in loss minus the represented block's spot
+    /// price. Larger values mean the loss-side capital is further underwater;
+    /// returns zero when the cohort has no loss-side invested capital.
     pub pain_index: AggregateFiatPerBlock<Cents, M>,
-    /// Spot price minus the capital-weighted creation price of unspent supply
-    /// currently in profit.
+    /// Greed index of an aggregate UTXO cohort: the represented block's spot
+    /// price minus the capital-weighted creation price of its unspent supply in
+    /// profit. Larger values mean the profit-side capital is further above its
+    /// cost basis. When the cohort has no profit-side invested capital, its
+    /// capital-weighted creation price is zero and this index equals spot.
     pub greed_index: AggregateFiatPerBlock<Cents, M>,
-    /// Greed index minus pain index for the selected aggregate cohort.
+    /// Net sentiment of an aggregate UTXO cohort: greed index minus pain index.
+    /// Positive values mean the profit-side distance above cost basis exceeds
+    /// the loss-side distance below it; negative values mean the reverse.
     pub net_sentiment: AggregateFiatPerBlock<CentsSigned, M>,
-    /// Net unrealized profit/loss as a share of market cap. It is derived from
-    /// MVRV as `1 - 1 / MVRV`.
+    /// Net unrealized profit/loss (NUPL) of a UTXO cohort as a share of that
+    /// cohort's own market cap, derived from market-value-to-realized-value
+    /// ratio (MVRV) as `1 - 1 / MVRV`. Positive values mean aggregate
+    /// unrealized profit, negative values mean aggregate unrealized loss, and
+    /// zero means spot equals the cohort's realized price. A zero or unavailable
+    /// MVRV produces NaN.
     pub nupl: UTXOGroups<LazyRatioPerBlock<PartsPerMillionSigned32, PartsPerMillion64>>,
     #[traversable(wrap = "loss", rename = "negative")]
-    /// Unrealized loss expressed as a negative value.
+    /// Unrealized loss of a UTXO cohort's unspent outputs, expressed as a
+    /// negative value.
     pub negative_loss: UTXOGroupsWithoutAmount<LazyPerBlock<Dollars, Cents>>,
 }
 

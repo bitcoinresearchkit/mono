@@ -15,11 +15,24 @@ use super::CumulativeUTXOValueColumnarMetricWithoutAmountOrType;
 
 #[derive(Traversable)]
 pub struct CumulativeUTXOValueColumnarMetric<M: StorageMode = Rw> {
+    /// Height-indexed matrices with one column per exact UTXO age range,
+    /// ordered from youngest to oldest.
     pub age_range: ColumnarValuePerBlockCumulativeRolling<AgeRangeId, (), M>,
+    /// Height-indexed matrices with one column per subsidy-halving epoch,
+    /// ordered from earliest to latest.
     pub epoch: ColumnarValuePerBlockCumulativeRolling<EpochId, (), M>,
+    /// Height-indexed matrices with one column per output-creation year, in
+    /// chronological order.
     pub class: ColumnarValuePerBlockCumulativeRolling<ClassId, (), M>,
+    /// Height-indexed matrices with discount-entry followed by premium-entry
+    /// UTXOs.
     pub entry: ColumnarValuePerBlockCumulativeRolling<EntryId, (), M>,
+    /// Height-indexed matrices with one column per exact UTXO value range,
+    /// ordered from smallest to largest.
     pub amount_range: ColumnarValuePerBlockCumulativeRolling<AmountRangeId, (), M>,
+    #[traversable(rename = "type")]
+    /// Height-indexed matrices with one column per spendable BRK output type, in
+    /// canonical `SpendableTypeId` order.
     pub type_: ColumnarValuePerBlockCumulativeRolling<SpendableTypeId, (), M>,
 }
 

@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f3f0e8" />
+    <meta
+      name="description"
+      content="Bitcoin Research Kit is a workspace of Rust crates for reading and working with Bitcoin Core data."
+    />
+    <meta property="og:title" content="Bitcoin Research Kit — Rust crates for Bitcoin Core data" />
+    <meta
+      property="og:description"
+      content="Focused Rust libraries for Bitcoin Core RPC, block files, mempool state, prices, types, and storage."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitcoinresearchkit.org/" />
+    <link rel="canonical" href="https://bitcoinresearchkit.org/" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='6'%20fill='%23171b21'/%3E%3Ctext%20x='32'%20y='39'%20text-anchor='middle'%20font-family='monospace'%20font-size='18'%20font-weight='700'%20fill='%23f3f0e8'%3EBRK%3C/text%3E%3C/svg%3E"
+      type="image/svg+xml"
+    />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <title>Bitcoin Research Kit — Rust crates for Bitcoin Core data</title>
+    <style>
+      @font-face {
+        font-family: "Lilex";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/lilex:vf@5.3.0/latin-wght-normal.woff2")
+          format("woff2-variations");
+        font-style: normal;
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: "Instrument";
+        src: url("https://cdn.jsdelivr.net/fontsource/fonts/instrument-serif@5.3.0/latin-400-normal.woff2")
+          format("woff2");
+        font-style: normal;
+        font-weight: 400;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light;
+        --page: clamp(1rem, 4vw, 3.5rem);
+        --max: 80rem;
+        --paper: #f3f0e8;
+        --paper-up: #f8f6f0;
+        --ink: #171b21;
+        --muted: #626970;
+        --muted-low: #666d74;
+        --line: #d7d2c7;
+        --line-dark: #aaa59b;
+        --control: #8d887f;
+        --blue: #175e9e;
+        --night: #11161c;
+        --night-text: #ebeef1;
+        --night-muted: #a8b0b8;
+        --night-line: #343b43;
+        --serif: "Instrument", Charter, Cambria, serif;
+        --mono:
+          "Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          monospace;
+        font-family: var(--mono);
+        font-synthesis: none;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      * {
+        margin: 0;
+      }
+
+      html {
+        min-width: 20rem;
+        scroll-padding-top: 5rem;
+        scroll-behavior: smooth;
+      }
+
+      body {
+        min-width: 20rem;
+        color: var(--ink);
+        background: var(--paper);
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .skip-link {
+        position: fixed;
+        z-index: 100;
+        top: 0.75rem;
+        left: 0.75rem;
+        padding: 0.65rem 0.8rem;
+        color: white;
+        background: var(--blue);
+        font-size: 0.75rem;
+        text-decoration: none;
+        transform: translateY(-200%);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 0.22em;
+      }
+
+      a:hover {
+        color: var(--blue);
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--blue);
+        outline-offset: 4px;
+      }
+
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+
+      code {
+        font-size: 0.94em;
+      }
+
+      h1:focus {
+        outline: 2px solid var(--blue);
+        outline-offset: 0.35rem;
+      }
+
+      ::selection {
+        color: white;
+        background: var(--blue);
+      }
+
+      .shell {
+        width: min(calc(100% - 2 * var(--page)), var(--max));
+        margin-inline: auto;
+      }
+
+      .site-header {
+        position: sticky;
+        z-index: 20;
+        top: 0;
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .nav {
+        display: flex;
+        min-height: 3.75rem;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+      }
+
+      .brand {
+        display: inline-flex;
+        flex: none;
+        min-height: 2.75rem;
+        align-items: center;
+        gap: 0.7rem;
+        font-size: 0.86rem;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 2rem;
+        height: 1.65rem;
+        place-items: center;
+        color: var(--paper);
+        background: var(--ink);
+        border-radius: 0.16rem;
+        font-size: 0.62rem;
+        font-weight: 650;
+        letter-spacing: 0.04em;
+      }
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        gap: clamp(0.9rem, 2.5vw, 2rem);
+        font-size: 0.75rem;
+      }
+
+      .nav-links a {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        color: var(--muted);
+        text-decoration: none;
+      }
+
+      .nav-links a:hover {
+        color: var(--ink);
+      }
+
+      .hero {
+        padding-block: clamp(4.5rem, 9vw, 7rem) clamp(3.5rem, 6vw, 5rem);
+      }
+
+      .group-label {
+        color: var(--blue);
+        font-size: 0.75rem;
+        font-weight: 560;
+        letter-spacing: 0.1em;
+        line-height: 1.3;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 20ch;
+        font-family: var(--serif);
+        font-size: clamp(3.1rem, 6.5vw, 5.4rem);
+        font-weight: 400;
+        letter-spacing: -0.045em;
+        line-height: 0.94;
+        text-wrap: balance;
+      }
+
+      .lede {
+        max-width: 48rem;
+        margin-top: 2rem;
+        color: var(--muted);
+        font-size: clamp(0.98rem, 1.4vw, 1.12rem);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+        margin-top: 1.8rem;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 2.85rem;
+        padding: 0.78rem 1rem;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--control);
+        font-size: 0.75rem;
+        font-weight: 520;
+        text-decoration: none;
+      }
+
+      .button:hover {
+        color: var(--ink);
+        border-color: var(--ink);
+        background: var(--paper-up);
+      }
+
+      .button-primary {
+        color: white;
+        border-color: var(--blue);
+        background: var(--blue);
+      }
+
+      .button-primary:hover {
+        color: white;
+        border-color: #104775;
+        background: #104775;
+      }
+
+      .hero-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem 2.4rem;
+        margin-top: clamp(3rem, 6vw, 5rem);
+        padding-inline: 0;
+        padding-block: 1rem;
+        color: var(--muted);
+        border-block: 1px solid var(--line-dark);
+        font-size: 0.78rem;
+      }
+
+      .hero-facts li {
+        list-style: none;
+      }
+
+      .hero-facts li::before {
+        display: inline-block;
+        width: 0.34rem;
+        height: 0.34rem;
+        margin-right: 0.5rem;
+        background: var(--blue);
+        border-radius: 50%;
+        content: "";
+        vertical-align: 0.08em;
+      }
+
+      .section {
+        padding-block: clamp(4rem, 7vw, 6rem);
+        border-top: 1px solid var(--line);
+      }
+
+      .section-head {
+        max-width: 56rem;
+      }
+
+      h2 {
+        max-width: 22ch;
+        font-family: var(--mono);
+        font-size: clamp(2.1rem, 4vw, 3.4rem);
+        font-weight: 470;
+        letter-spacing: -0.035em;
+        line-height: 1;
+        text-wrap: balance;
+      }
+
+      .section-summary {
+        max-width: 46rem;
+        margin-top: 1.25rem;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .crate-groups {
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: clamp(2rem, 5vw, 4rem);
+        margin-top: 3rem;
+      }
+
+      .crate-side {
+        display: grid;
+        gap: 2rem;
+        align-content: start;
+      }
+
+      .crate-group {
+        min-width: 0;
+        padding-top: 1rem;
+        border-top: 1px solid var(--line-dark);
+      }
+
+      .crate-group h3 {
+        font: inherit;
+      }
+
+      .crate-list {
+        margin-top: 0.75rem;
+      }
+
+      .crate {
+        position: relative;
+        display: block;
+        padding: 0.9rem 3rem 0.9rem 0;
+        border-bottom: 1px solid var(--line);
+        text-decoration: none;
+      }
+
+      .crate strong {
+        font-size: 0.79rem;
+        font-weight: 590;
+      }
+
+      .crate p {
+        margin-top: 0.35rem;
+        color: var(--muted);
+        font-size: 0.78rem;
+      }
+
+      .crate:hover p {
+        color: var(--ink);
+      }
+
+      .crate::after {
+        position: absolute;
+        top: 0.95rem;
+        right: 0;
+        color: var(--muted-low);
+        content: "docs";
+        font-size: 0.75rem;
+      }
+
+      .crate:hover::after {
+        color: var(--blue);
+      }
+
+      .support-crates {
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+
+      .support-crates a {
+        color: var(--ink);
+      }
+
+      .example {
+        display: grid;
+        grid-template-columns: minmax(15rem, 0.45fr) minmax(0, 1fr);
+        gap: clamp(2rem, 7vw, 7rem);
+        margin-top: 3rem;
+      }
+
+      .example-copy h3 {
+        margin-top: 0.8rem;
+        font-family: var(--serif);
+        font-size: clamp(2rem, 3.8vw, 3.3rem);
+        font-weight: 400;
+        letter-spacing: -0.04em;
+        line-height: 0.98;
+      }
+
+      .example-copy p {
+        margin-top: 1rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .code-stack {
+        min-width: 0;
+      }
+
+      .command,
+      .code-block {
+        overflow-x: auto;
+        color: var(--night-text);
+        background: var(--night);
+        border: 1px solid var(--night-line);
+        font-size: 0.78rem;
+        line-height: 1.75;
+        white-space: pre;
+      }
+
+      .command {
+        padding: 0.8rem 1rem;
+        color: var(--night-muted);
+      }
+
+      .code-block {
+        margin-top: -1px;
+        padding: 1.2rem;
+      }
+
+      .syntax-key {
+        color: #7fb4f0;
+      }
+
+      .scope-note {
+        display: grid;
+        grid-template-columns: minmax(8rem, 0.28fr) minmax(0, 1fr);
+        gap: 1.5rem;
+        margin-top: 2rem;
+        padding: 1rem 1.1rem;
+        color: var(--muted);
+        background: var(--paper-up);
+        border-left: 3px solid var(--blue);
+        font-size: 0.8rem;
+      }
+
+      .scope-note strong {
+        color: var(--ink);
+        font-weight: 590;
+      }
+
+      .status {
+        display: grid;
+        grid-template-columns: minmax(12rem, 0.45fr) minmax(0, 1fr);
+        gap: clamp(2rem, 7vw, 7rem);
+        padding-block: clamp(3rem, 6vw, 4.5rem);
+        border-top: 1px solid var(--line);
+      }
+
+      .status h2 {
+        font-size: clamp(2.1rem, 3.8vw, 3.3rem);
+      }
+
+      .status-copy {
+        max-width: 44rem;
+      }
+
+      .status-copy > p {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .support {
+        display: inline-flex;
+        min-height: 2.75rem;
+        margin-top: 1.3rem;
+        align-items: center;
+        gap: 0.55rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+        text-decoration: none;
+      }
+
+      .support::before {
+        width: 0.45rem;
+        height: 0.45rem;
+        background: var(--blue);
+        content: "";
+      }
+
+      footer {
+        display: flex;
+        justify-content: space-between;
+        gap: 2rem;
+        padding-block: 1.7rem;
+        color: var(--muted-low);
+        border-top: 1px solid var(--line);
+        font-size: 0.75rem;
+      }
+
+      .footer-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.2rem;
+      }
+
+      .footer-links a {
+        display: inline-flex;
+        min-height: 2.25rem;
+        align-items: center;
+      }
+
+      @media (max-width: 54rem) {
+        .site-header {
+          position: static;
+        }
+
+        html {
+          scroll-padding-top: 1rem;
+        }
+
+        .nav-links a:nth-child(2) {
+          display: none;
+        }
+
+        .crate-groups {
+          grid-template-columns: 1fr;
+        }
+
+        .example,
+        .status {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+      }
+
+      @media (max-width: 38rem) {
+        .brand-name {
+          display: none;
+        }
+
+        .crate-groups {
+          grid-template-columns: 1fr;
+        }
+
+        .scope-note {
+          grid-template-columns: 1fr;
+          gap: 0.3rem;
+        }
+
+        footer {
+          flex-direction: column;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#hero-title">Skip to content</a>
+    <header class="site-header">
+      <nav class="nav shell" aria-label="Primary navigation">
+        <a class="brand" href="#top" aria-label="Bitcoin Research Kit home">
+          <span class="brand-mark">BRK</span>
+          <span class="brand-name">Bitcoin Research Kit</span>
+        </a>
+        <div class="nav-links">
+          <a href="#crates">Crates</a>
+          <a href="#example">Example</a>
+          <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero shell" aria-labelledby="hero-title">
+        <h1 id="hero-title" tabindex="-1">Rust crates for Bitcoin Core data.</h1>
+        <p class="lede">
+          The workspace is split into crates for Bitcoin Core RPC, canonical block-file reading,
+          block iteration, live mempool state, BTC prices, domain types, and indexed storage. A
+          program can use one crate or combine the parts it needs.
+        </p>
+        <div class="actions">
+          <a class="button button-primary" href="#crates">Browse the crates</a>
+        </div>
+        <ul class="hero-facts" role="list" aria-label="Bitcoin Research Kit properties">
+          <li>Rust 2024 edition</li>
+          <li>One version across the workspace</li>
+          <li>MIT licensed</li>
+        </ul>
+      </section>
+
+      <section class="section shell" id="crates" aria-labelledby="crates-title">
+        <div class="section-head">
+          <h2 id="crates-title">Crates</h2>
+          <p class="section-summary">
+            Add the crate closest to the operation your program needs. Each name links to its API
+            documentation; source, examples, and longer notes are in the repository.
+          </p>
+        </div>
+
+        <div class="crate-groups">
+          <section class="crate-group" aria-labelledby="core-crates">
+            <h3 class="group-label" id="core-crates">Bitcoin Core data</h3>
+            <div class="crate-list">
+              <a class="crate" href="https://docs.rs/brk_rpc">
+                <strong>brk_rpc</strong>
+                <p>Calls Bitcoin Core JSON-RPC with typed results and configurable retries.</p>
+              </a>
+              <a class="crate" href="https://docs.rs/brk_reader">
+                <strong>brk_reader</strong>
+                <p>Streams canonical blocks from local <code>blk*.dat</code> files and skips orphans.</p>
+              </a>
+              <a class="crate" href="https://docs.rs/brk_iterator">
+                <strong>brk_iterator</strong>
+                <p>Iterates block ranges through RPC or raw-file reading.</p>
+              </a>
+              <a class="crate" href="https://docs.rs/brk_mempool">
+                <strong>brk_mempool</strong>
+                <p>Maintains live mempool state, projected blocks, and fee recommendations.</p>
+              </a>
+            </div>
+          </section>
+
+          <div class="crate-side">
+            <section class="crate-group" aria-labelledby="price-crates">
+              <h3 class="group-label" id="price-crates">BTC prices</h3>
+              <div class="crate-list">
+                <a class="crate" href="https://docs.rs/brk_fetcher">
+                  <strong>brk_fetcher</strong>
+                  <p>Fetches daily and per-block OHLC with source fallback.</p>
+                </a>
+                <a class="crate" href="https://docs.rs/brk_oracle">
+                  <strong>brk_oracle</strong>
+                  <p>
+                    Estimates BTC/USD per block from transaction-output patterns, without exchange
+                    data.
+                  </p>
+                </a>
+              </div>
+            </section>
+
+            <section class="crate-group" aria-labelledby="foundation-crates">
+              <h3 class="group-label" id="foundation-crates">Foundation</h3>
+              <div class="crate-list">
+                <a class="crate" href="https://docs.rs/brk_types">
+                  <strong>brk_types</strong>
+                  <p>Bitcoin domain and storage-index types.</p>
+                </a>
+                <a class="crate" href="https://docs.rs/brk_store">
+                  <strong>brk_store</strong>
+                  <p>Typed key-value storage over fjall.</p>
+                </a>
+              </div>
+              <p class="support-crates">
+                Support crates:
+                <a href="https://docs.rs/brk_error">brk_error</a>,
+                <a href="https://docs.rs/brk_logger">brk_logger</a>, and
+                <a href="https://docs.rs/brk_alloc">brk_alloc</a>.
+              </p>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <section class="section shell" id="example" aria-labelledby="example-title">
+        <div class="section-head">
+          <h2 id="example-title">Connect to Bitcoin Core</h2>
+          <p class="section-summary">
+            This complete program uses <code>brk_rpc</code>'s default Bitcoin Core RPC address and
+            cookie-file path.
+          </p>
+        </div>
+
+        <div class="example">
+          <div class="example-copy">
+            <p class="group-label">brk_rpc</p>
+            <h3>Read the chain height</h3>
+            <p>Bitcoin Core must be running with RPC enabled.</p>
+          </div>
+          <div class="code-stack">
+            <pre class="command">cargo add brk_rpc</pre>
+            <pre class="code-block"><span class="syntax-key">use</span> brk_rpc::{Auth, Client};
+
+<span class="syntax-key">fn</span> main() {
+    <span class="syntax-key">let</span> datadir = Client::default_bitcoin_path();
+    <span class="syntax-key">let</span> rpc = Client::new(
+        Client::default_url(),
+        Auth::CookieFile(datadir.join(".cookie")),
+    )
+    .expect("connect to Bitcoin Core");
+
+    <span class="syntax-key">let</span> height = rpc.get_last_height().expect("read chain tip");
+    println!("{height}");
+}</pre>
+          </div>
+        </div>
+
+        <aside class="scope-note">
+          <strong>Project boundary</strong>
+          <span>
+            Bitcoin Core performs consensus validation and identifies the active chain. BRK reads
+            and organizes data from a configured node; it is not a consensus implementation.
+            <a href="https://bitview.dev">Bitview</a> is one application built with these libraries.
+          </span>
+        </aside>
+      </section>
+
+      <section class="status shell" aria-labelledby="status-title">
+        <div>
+          <h2 id="status-title">Active development</h2>
+        </div>
+        <div class="status-copy">
+          <p>
+            Public APIs and storage formats may change between releases. Workspace crates share one
+            release version so related dependencies can be updated together.
+          </p>
+          <div class="actions">
+            <a class="button button-primary" href="https://github.com/bitcoinresearchkit/mono/releases">Releases</a>
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/issues">Issues</a>
+          </div>
+          <a class="support" href="https://opensats.org/projects/bitcoinresearchkit">Supported by OpenSats</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <span>Bitcoin Research Kit / open source / MIT</span>
+      <nav class="footer-links" aria-label="Project links">
+        <a href="https://bitview.dev">Bitview</a>
+        <a href="https://discord.gg/WACpShCB7M">Discord</a>
+      </nav>
+    </footer>
+  </body>
+</html>

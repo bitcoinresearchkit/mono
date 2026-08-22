@@ -19,6 +19,8 @@ where
     #[deref_mut]
     #[traversable(flatten)]
     pub series: S,
+    /// Height-indexed matrix whose rows contain one value for every member of
+    /// the matrix's column type.
     pub height: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, C>>>,
 }
 

@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Default, Clone, Traversable)]
 pub struct UTXOGroupsWithoutAmount<T> {
+    /// Uses all UTXOs.
     pub all: T,
     pub age: ByAge<T>,
     pub epoch: ByEpoch<T>,

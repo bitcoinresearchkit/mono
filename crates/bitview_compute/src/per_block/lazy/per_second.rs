@@ -10,7 +10,7 @@ use crate::{
 #[derive(Clone, Deref, DerefMut, Traversable)]
 #[traversable(transparent)]
 pub struct LazyPerSecondWindows(
-    /// Per-second average over the named trailing window: the window's total
+    /// Per-second average over a trailing window: the window's total
     /// count divided by its fixed duration in seconds. The divisor remains the
     /// full duration before enough history exists. At time-period indexes, the
     /// value is taken from the period's final block.

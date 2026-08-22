@@ -77,8 +77,7 @@ pub struct ThresholdVecs<T> {
     pub threshold_pct0_1: T,
     /// Source-value boundary for a 0.05% historical tail share.
     pub threshold_pct0_05: T,
-    /// Source-value boundary for a 0.025% historical tail share. The public
-    /// scalar series uses the unsuffixed `threshold` name.
+    /// Source-value boundary for a 0.025% historical tail share.
     pub threshold_pct0_025: T,
 }
 

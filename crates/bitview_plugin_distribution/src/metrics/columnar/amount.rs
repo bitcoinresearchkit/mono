@@ -23,6 +23,8 @@ where
     #[deref_mut]
     #[traversable(flatten)]
     pub series: Amount<S>,
+    /// Height-indexed matrix with one column per exact value range, ordered from
+    /// smallest to largest.
     pub matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, AmountRangeId>>>,
     #[traversable(skip)]
     last: Option<(usize, AmountRange<T>)>,

@@ -12,7 +12,7 @@ use bitview_compute::{
 
 #[derive(Traversable)]
 pub struct BreakdownVecs<C: BreakdownAxis, M: StorageMode = Rw> {
-    /// Number of `OP_RETURN` outputs assigned to the selected breakdown bucket.
+    /// Number of `OP_RETURN` outputs assigned to a breakdown bucket.
     pub output_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
         C,
@@ -20,9 +20,9 @@ pub struct BreakdownVecs<C: BreakdownAxis, M: StorageMode = Rw> {
         M,
     >,
     /// Number of script bytes following the `OP_RETURN` opcode in outputs
-    /// assigned to the selected breakdown bucket.
+    /// assigned to a breakdown bucket.
     pub data_bytes: ColumnarPerBlockCumulativeRolling<Bytes, C, C::Series<DataBytesSeries<C>>, M>,
-    /// Number of transactions assigned to the selected breakdown bucket; each
+    /// Number of transactions assigned to a breakdown bucket; each
     /// transaction is counted at most once within a bucket.
     pub tx_count: ColumnarPerBlockCumulativeRolling<
         StoredU64,
@@ -30,16 +30,16 @@ pub struct BreakdownVecs<C: BreakdownAxis, M: StorageMode = Rw> {
         C::Series<LazyColumnPerBlockCumulativeRolling<StoredU64, C>>,
         M,
     >,
-    /// Sum of full virtual sizes of transactions assigned to the selected
-    /// breakdown bucket; each transaction is included once within a bucket.
+    /// Sum of full virtual sizes of transactions assigned to a breakdown
+    /// bucket; each transaction is included once within that bucket.
     pub tx_vsize: ColumnarPerBlockCumulativeRolling<
         VSize,
         C,
         C::Series<LazyColumnPerBlockCumulativeRolling<VSize, C>>,
         M,
     >,
-    /// Sum of full fees of transactions assigned to the selected breakdown
-    /// bucket; each transaction is included once within a bucket.
+    /// Sum of full fees of transactions assigned to a breakdown bucket; each
+    /// transaction is included once within that bucket.
     pub fees: ColumnarPerBlockCumulativeRolling<Sats, C, C::Series<FeesSeries<C>>, M>,
 }
 

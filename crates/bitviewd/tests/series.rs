@@ -3,14 +3,18 @@ use std::borrow::Cow;
 use bitview::ImportContext;
 use bitview_default::DefaultPlugins;
 use bitview_plugin::PluginId;
-use bitview_types::{Limit, SeriesName};
+use bitview_types::{Limit, SeriesName, TreeNode};
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use brk_types::{Index, pools};
 
 use bitview_query::Vecs;
 
-const REALIZED_PRICE_DESCRIPTION: &str = "The sats-weighted average USD creation price of the unspent outputs in the selected cohort: Σ(creation price × unspent sats) / Σ(unspent sats). Returns zero when the cohort has no unspent supply.";
+const REALIZED_PRICE_DESCRIPTION: &str = "The sats-weighted average USD creation price of the unspent outputs in a UTXO cohort: Σ(creation price × unspent sats) / Σ(unspent sats). Returns zero when the cohort has no unspent supply.";
+const ALL_UTXOS_DESCRIPTION: &str = "Uses all UTXOs.";
+const LTH_UTXOS_DESCRIPTION: &str =
+    "Uses long-term-holder UTXOs at least 150 days old.";
+const AGGREGATE_MATRIX_DESCRIPTION: &str = "Height-indexed matrix containing the all, short-term-holder, and long-term-holder aggregates, in that order.";
 const USD_DESCRIPTION: &str = "Reported in USD per BTC.";
 const CENTS_DESCRIPTION: &str = "Reported in cents per BTC.";
 const SATS_DESCRIPTION: &str =
@@ -20,8 +24,11 @@ const HIGH_PRICE_DESCRIPTION: &str = "Highest Bitcoin price for each supported t
 const LOW_PRICE_DESCRIPTION: &str = "Lowest Bitcoin price for each supported time period, including daily periods. A populated period uses its minimum block-level price; an empty period carries forward the previous close.";
 const CLOSE_PRICE_DESCRIPTION: &str = "Closing Bitcoin price for each supported time period, including daily periods. A populated period uses its final block-level price; an empty period is null.";
 const SPOT_PRICE_DESCRIPTION: &str = "Bitcoin spot price assigned to each block.";
-const DCA_CLASS_STACK_DESCRIPTION: &str = "Current value and accumulated bitcoin from investing $100 at every UTC daily close since the named starting year.";
-const LUMP_SUM_STACK_DESCRIPTION: &str = "Current value and bitcoin from investing $100 times the named period's day count at the period's first block-level spot price.";
+const DCA_CLASS_STACK_DESCRIPTION: &str = "Value at the represented block and accumulated bitcoin from investing $100 at every UTC daily close since a starting year.";
+const DCA_FROM_2020_DESCRIPTION: &str =
+    "Uses January 1, 2020 as the strategy start date.";
+const LUMP_SUM_STACK_DESCRIPTION: &str = "Value at the represented block and bitcoin from investing $100 times a trailing period's day count at that period's first block-level spot price.";
+const DCA_PERIOD_1Y_DESCRIPTION: &str = "Uses a trailing 365-day investment period.";
 const OP_RETURN_METRICS_DESCRIPTION: &str = "Metrics across every `OP_RETURN` output and every transaction carrying at least one such output.";
 const PPM_DESCRIPTION: &str =
     "Spot price divided by this price in parts per million; 1,000,000 represents a ratio of 1.0.";
@@ -45,12 +52,12 @@ const SEGWIT_TXS_DESCRIPTION: &str =
     "Number of non-coinbase transactions using SegWit serialization.";
 const SEGWIT_SIZE_DESCRIPTION: &str = "Combined total serialized size in bytes of the block's non-coinbase SegWit transactions; excludes block overhead and all other transactions.";
 const SEGWIT_WEIGHT_DESCRIPTION: &str = "Combined BIP-141 weight in weight units of the block's non-coinbase SegWit transactions; excludes block overhead and all other transactions.";
-const BLOCK_COUNT_TARGET_DESCRIPTION: &str = "Expected number of blocks in the selected window at Bitcoin's target interval of ten minutes per block.";
-const BLOCK_COUNT_DESCRIPTION: &str = "Number of indexed blocks. The per-block value is one, the cumulative count is height plus one because genesis is included, and rolling sums count the blocks in the selected window.";
+const BLOCK_COUNT_TARGET_DESCRIPTION: &str = "Expected number of blocks in a trailing window at Bitcoin's target interval of ten minutes per block.";
+const BLOCK_COUNT_DESCRIPTION: &str = "Number of indexed blocks. The per-block value is one, the cumulative count is height plus one because genesis is included, and rolling sums count the blocks in each supported trailing window.";
 const BLOCK_INTERVAL_DESCRIPTION: &str = "Nonnegative difference in seconds between this block's header timestamp and the previous block's. Genesis is zero, and a timestamp earlier than its predecessor is clamped to zero.";
 const DIFFICULTY_DESCRIPTION: &str = "Mining difficulty encoded by the block header, calculated as Bitcoin's maximum target divided by this block's proof-of-work target.";
 const DIFFICULTY_HASHRATE_DESCRIPTION: &str = "Theoretical hash rate implied by difficulty at the ten-minute target: difficulty multiplied by 2^32 and divided by 600, in hashes per second.";
-const DIFFICULTY_ADJUSTMENT_DESCRIPTION: &str = "Relative difficulty change versus 2,016 block heights earlier: current difficulty divided by lookback difficulty, minus one. Unavailable for the first 2,016 blocks.";
+const DIFFICULTY_ADJUSTMENT_DESCRIPTION: &str = "Relative difficulty change versus 2,016 block heights earlier: represented-block difficulty divided by lookback difficulty, minus one. Unavailable for the first 2,016 blocks.";
 const DIFFICULTY_EPOCH_DESCRIPTION: &str =
     "Zero-based difficulty epoch number, equal to block height divided by 2,016 and rounded down.";
 const BLOCKS_TO_RETARGET_DESCRIPTION: &str = "Number of blocks from the represented height to the first block of the next difficulty epoch: 2,016 minus height modulo 2,016.";
@@ -70,31 +77,31 @@ const UNCLAIMED_REWARDS_DESCRIPTION: &str = "Portion of the available block rewa
 const FEE_DOMINANCE_DESCRIPTION: &str = "Transaction fees divided by coinbase output value. Cumulative variants use cumulative totals; rolling variants use totals within the trailing window.";
 const SUBSIDY_DOMINANCE_DESCRIPTION: &str = "One minus fee dominance, equivalently the derived subsidy component divided by coinbase output value. Cumulative variants use cumulative totals; rolling variants use totals within the trailing window.";
 const FEE_TO_SUBSIDY_DESCRIPTION: &str = "Total transaction fees in the trailing window divided by the total derived subsidy component in the same window.";
-const HASH_RATE_DESCRIPTION: &str = "Estimated network hash rate in hashes per second: the current block's difficulty-implied target hash rate multiplied by the number of blocks in the trailing 24 hours and divided by 144. The current difficulty is used for the entire estimate.";
-const HASH_RATE_SMA_DESCRIPTION: &str = "Arithmetic mean of the per-block network hash-rate estimates over the trailing duration named by the series; every block has equal weight. Durations are fixed at 7, 30, 60, or 365 days.";
+const HASH_RATE_DESCRIPTION: &str = "Estimated network hash rate in hashes per second: the represented block's difficulty-implied target hash rate multiplied by the number of blocks in the trailing 24 hours and divided by 144. The represented block's difficulty is used for the entire estimate.";
+const HASH_RATE_SMA_DESCRIPTION: &str = "Arithmetic mean of the per-block network hash-rate estimates over a trailing duration; every block has equal weight.";
 const HASH_RATE_ATH_DESCRIPTION: &str =
     "Running all-time high of the estimated network hash rate, in hashes per second.";
 const HASH_RATE_DRAWDOWN_DESCRIPTION: &str =
     "Estimated network hash rate divided by its running all-time high, minus one.";
-const HASH_PRICE_DESCRIPTION: &str = "Estimated miner revenue over the trailing 24-hour window, with each coinbase output valued in USD at its block's spot price, divided by the current estimated network hash rate.";
-const HASH_VALUE_DESCRIPTION: &str = "Coinbase output value in satoshis over the trailing 24-hour window, divided by the current estimated network hash rate.";
+const HASH_PRICE_DESCRIPTION: &str = "Estimated miner revenue over the trailing 24-hour window, with each coinbase output valued in USD at its block's spot price, divided by the represented block's estimated network hash rate.";
+const HASH_VALUE_DESCRIPTION: &str = "Coinbase output value in satoshis over the trailing 24-hour window, divided by the represented block's estimated network hash rate.";
 const PER_THS_DESCRIPTION: &str = "Reported per TH/s, where one TH/s is 10^12 hashes per second.";
 const THS_MIN_DESCRIPTION: &str = "Running all-time minimum of the per-TH/s series, where one TH/s is 10^12 hashes per second. Zero values are excluded; returns zero until the first nonzero value exists.";
 const PER_PHS_DESCRIPTION: &str = "Reported per PH/s, where one PH/s is 10^15 hashes per second; exactly 1,000 times the corresponding per-TH/s series.";
 const PHS_MIN_DESCRIPTION: &str = "Running all-time minimum of the per-PH/s series, where one PH/s is 10^15 hashes per second. It is exactly 1,000 times the corresponding per-TH/s minimum and returns zero until the first nonzero value exists.";
-const HASH_REBOUND_DESCRIPTION: &str = "Current per-PH/s value divided by its running nonzero all-time minimum, minus one. Returns zero before a nonzero minimum exists.";
+const HASH_REBOUND_DESCRIPTION: &str = "Per-PH/s value at the represented block divided by its running nonzero all-time minimum, minus one. Returns zero before a nonzero minimum exists.";
 const TX_COUNT_DESCRIPTION: &str = "Number of transactions, including the coinbase transaction.";
 const TX_VSIZE_DESCRIPTION: &str = "Transaction virtual size in vbytes, calculated as BIP-141 weight divided by four and rounded up. The transaction-index series gives each transaction's value. Distribution series count every transaction equally and include coinbase, either in the represented block or the six-block window ending there; time-period indexes take the value from the period's final block.";
 const TX_WEIGHT_DESCRIPTION: &str = "BIP-141 transaction weight in weight units: non-witness bytes count as four weight units and witness bytes count as one. The transaction-index series gives each transaction's value. Distribution series count every transaction equally and include coinbase, either in the represented block or the six-block window ending there; time-period indexes take the value from the period's final block.";
 const TRANSFER_VOLUME_DESCRIPTION: &str = "Sum of the input values of non-coinbase transactions. This equals their total output value plus transaction fees and is not adjusted to estimate economic payment volume.";
-const TX_PER_SECOND_DESCRIPTION: &str = "Transaction rate, including coinbase transactions. Per-second average over the named trailing window: the window's total count divided by its fixed duration in seconds. The divisor remains the full duration before enough history exists. At time-period indexes, the value is taken from the period's final block.";
+const TX_PER_SECOND_DESCRIPTION: &str = "Transaction rate, including coinbase transactions. Per-second average over a trailing window: the window's total count divided by its fixed duration in seconds. The divisor remains the full duration before enough history exists. At time-period indexes, the value is taken from the period's final block.";
 const TX_INPUT_VALUE_DESCRIPTION: &str = "Sum of the transaction's referenced previous-output values, in satoshis. Coinbase uses `Sats::MAX` as a sentinel because it has no previous outputs to spend.";
 const TX_OUTPUT_VALUE_DESCRIPTION: &str = "Sum of the transaction's output values, in satoshis.";
 const TX_FEE_DESCRIPTION: &str = "Transaction fee in satoshis: input value minus output value; coinbase is zero. The transaction-index series includes zero-fee transactions. Distribution series count every included transaction equally and exclude coinbase and zero-fee transactions, either in the represented block or the six-block window ending there; time-period indexes take the value from the period's final block.";
 const TX_FEE_RATE_DESCRIPTION: &str = "Raw transaction fee rate in sat/vB: fee divided by virtual size and rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee transactions are zero.";
-const TX_EFFECTIVE_FEE_RATE_DESCRIPTION: &str = "Effective transaction fee rate in sat/vB after applying Bitcoin Core's Single Fee Linearization independently to each same-block dependency component. Every transaction in an ancestor-closed SFL chunk receives the chunk's combined fees divided by combined virtual size, rounded upward to the nearest 0.001 sat/vB. The transaction-index series includes zero effective rates. Distribution series exclude coinbase and zero effective rates and weight percentile ranks by transaction virtual size, either in the represented block or the six-block window ending there; time-period indexes take the value from the period's final block.";
-const CPFP_PARENT_DESCRIPTION: &str = "Whether the transaction's Single Fee Linearization effective fee rate is higher than its raw fee rate, indicating that same-block descendants raise the rate at which the transaction's SFL chunk is evaluated.";
-const CPFP_CHILD_DESCRIPTION: &str = "Whether the transaction's Single Fee Linearization effective fee rate is lower than its raw fee rate, indicating that its fee raises the rate at which a same-block ancestor-closed SFL chunk is evaluated.";
+const TX_EFFECTIVE_FEE_RATE_DESCRIPTION: &str = "Effective transaction fee rate in sat/vB after applying Bitcoin Core's Single Fee Linearization (SFL) independently to each same-block dependency component. Every transaction in an ancestor-closed SFL chunk receives the chunk's combined fees divided by combined virtual size, rounded upward to the nearest 0.001 sat/vB. The transaction-index series includes zero effective rates. Distribution series exclude coinbase and zero effective rates and weight percentile ranks by transaction virtual size, either in the represented block or the six-block window ending there; time-period indexes take the value from the period's final block.";
+const CPFP_PARENT_DESCRIPTION: &str = "Whether the transaction is a child-pays-for-parent (CPFP) parent: its Single Fee Linearization (SFL) effective fee rate is higher than its raw fee rate because same-block descendants raise the rate at which its SFL chunk is evaluated.";
+const CPFP_CHILD_DESCRIPTION: &str = "Whether the transaction is a child-pays-for-parent (CPFP) child: its Single Fee Linearization (SFL) effective fee rate is lower than its raw fee rate because its fee raises the rate at which a same-block ancestor-closed SFL chunk is evaluated.";
 const CPFP_PARENT_COUNT_DESCRIPTION: &str = "Number of confirmed transactions whose same-block descendants raise their fee rate under Single Fee Linearization.";
 const CPFP_CHILD_COUNT_DESCRIPTION: &str = "Number of confirmed transactions whose fee raises the effective rate of a same-block ancestor-closed chunk under Single Fee Linearization.";
 const TX_VERSION_CATEGORY_DESCRIPTION: &str = "Compact transaction-version category for the indexed transaction. Values 1, 2, and 3 preserve those exact signed 32-bit Bitcoin transaction versions; 255 represents every other version. The series includes coinbase transactions. Use individual raw transaction data to inspect the original version when this value is 255.";
@@ -109,14 +116,14 @@ const TX_VERSION_3_DESCRIPTION: &str = "Transactions whose version is exactly 3.
 const TX_OTHER_VERSION_DESCRIPTION: &str = "Transactions whose version is not 1, 2, or 3. This category combines every other value; use individual raw transaction data to inspect the original version.";
 const IS_EXPLICITLY_RBF_DESCRIPTION: &str = "Whether at least one input has a sequence number below `0xfffffffe`, the explicit opt-in RBF signal defined by BIP 125. This is a mechanical sequence signal: it does not prove the transaction was replaceable or replaced, does not include inherited signaling, and does not account for full-RBF policy. Coinbase transactions are evaluated by the same sequence rule.";
 const EXPLICITLY_RBF_COUNT_DESCRIPTION: &str = "Number of transactions in the block with at least one input sequence number below `0xfffffffe`, the explicit opt-in RBF signal defined by BIP 125. This counts the mechanical sequence signal, not whether a transaction was replaceable or replaced, inherited signaling, or full-RBF policy. Coinbase transactions are evaluated by the same sequence rule.";
-const TX_POLICY_DESCRIPTION: &str = "BRK's deterministic, transaction-local approximation of default Bitcoin Core relay standardness, selected by mainnet block height rather than actual node adoption. It checks transaction version, weight and stripped size, script and witness forms, signature-operation limits, dust, and `OP_RETURN` policy. The approximation changes after height 863,500 and at heights 905,000 and 921,000. It does not reconstruct fee-floor, mempool/package topology, conflict or replacement policy, or node-specific settings. Coinbase transactions are classified false.";
+const TX_POLICY_DESCRIPTION: &str = "BRK's transaction-local approximation of default Bitcoin Core relay standardness at the represented block height. It checks version, size and weight, scripts and witnesses, signature-operation limits, dust, and `OP_RETURN` policy. It does not model node adoption, fee floors, mempool or package topology, conflicts or replacement, or node-specific settings. Modeled rules change after height 863,500 and at heights 905,000 and 921,000; coinbase is classified nonstandard.";
 const IS_NONSTANDARD_DESCRIPTION: &str =
     "Whether the indexed transaction is classified as nonstandard under this approximation.";
 const NONSTANDARD_COUNT_DESCRIPTION: &str =
     "Number of transactions classified as nonstandard under this approximation.";
 const COINDAYS_CREATED_DESCRIPTION: &str = "Coin days accrued by unspent supply between block timestamps, allocated to the age range in which they accrue. One coin day is one BTC remaining unspent for one day.";
-const CAPITAL_SENTIMENT_LONG_DESCRIPTION: &str = "Whether the stateful capital-sentiment strategy is long for the indexed day. It enters when spot crosses from below to at or above the STH capitalized price and exits when the phase is classified as sell.";
-const CAPITAL_SENTIMENT_SHORT_DESCRIPTION: &str = "Whether the stateful capital-sentiment strategy is short for the indexed day; exactly the complement of `is_long`.";
+const CAPITAL_SENTIMENT_LONG_DESCRIPTION: &str = "Whether the stateful capital-sentiment strategy is long for the indexed day. It enters when spot crosses from below to at or above the short-term-holder (STH) capitalized price and exits when the phase is classified as sell.";
+const CAPITAL_SENTIMENT_SHORT_DESCRIPTION: &str = "Whether the stateful capital-sentiment strategy is short for the indexed day; exactly the complement of the long flag.";
 const UTXO_COUNT_DESCRIPTION: &str =
     "Number of transaction outputs tracked as unspent after each block.";
 const SIGHASH_ALL_DESCRIPTION: &str =
@@ -133,7 +140,7 @@ const CONSOLIDATION_DESCRIPTION: &str =
     "Counts transactions with at least five times as many inputs as outputs.";
 const BATCH_PAYOUT_DESCRIPTION: &str =
     "Counts non-coinbase transactions with at least five times as many outputs as inputs.";
-const SIGOP_COST_DESCRIPTION: &str = "BIP-141 signature-operation cost. At `tx_index`, this is the cost of the indexed transaction. At `height`, this is the sum across every transaction in the block, including coinbase. Sigops in legacy scriptPubKeys, scriptSigs, and P2SH redeemScripts cost four units; P2WPKH and P2WSH sigops cost one. This statically counts signature-checking operations rather than signatures actually executed. Tapscript signature opcodes are excluded because BIP-342 uses a separate per-input execution budget. The post-SegWit consensus block limit is 80,000 cost units.";
+const SIGOP_COST_DESCRIPTION: &str = "BIP-141 signature-operation cost. At `tx_index`, this is the indexed transaction's cost; at `height`, it is the block total including coinbase. Legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops cost four units; P2WPKH and P2WSH sigops cost one. This is a static count, not the number of signatures executed. Tapscript sigops are excluded because BIP-342 uses a separate per-input budget. The post-SegWit block limit is 80,000 cost units.";
 const DATE_DESCRIPTION: &str = "UTC calendar date in `YYYY-MM-DD` format associated with the time-period index. At `day1`, this is the represented calendar day. At coarser indexes, it is derived from the first monotonic block timestamp at or after the period.";
 const FIRST_HEIGHT_DESCRIPTION: &str = "Lowest block height whose resolution index is at least the requested index. Empty indexes therefore use the first height of the next populated index; indexes preceding the first populated one resolve to height 0.";
 const MINUTE10_INDEX_DESCRIPTION: &str = "Zero-based 10-minute UTC period containing the block's monotonic timestamp, counted from 2009-01-01 00:00:00 UTC.";
@@ -158,7 +165,7 @@ const INPUT_COUNT_DESCRIPTION: &str = "Number of inputs in the indexed transacti
 const OUTPUT_COUNT_DESCRIPTION: &str = "Number of outputs in the indexed transaction.";
 const TX_INDEX_COUNT_DESCRIPTION: &str =
     "Number of transactions in the indexed block, including coinbase.";
-const MONOTONIC_TIMESTAMP_DESCRIPTION: &str = "Nondecreasing Unix timestamp in seconds at each block height, computed as the maximum of the current raw block-header timestamp and the preceding monotonic timestamp.";
+const MONOTONIC_TIMESTAMP_DESCRIPTION: &str = "Nondecreasing Unix timestamp in seconds at each block height, computed as the maximum of the represented raw block-header timestamp and the preceding monotonic timestamp.";
 const P2PK33_DESCRIPTION: &str = "P2PK-shaped outputs containing a 33-byte key field; the field is not required to be a valid compressed public key.";
 const P2PK65_DESCRIPTION: &str = "P2PK-shaped outputs containing a 65-byte key field; the field is not required to be a valid uncompressed public key.";
 const P2PKH_DESCRIPTION: &str = "Pay-to-public-key-hash outputs.";
@@ -393,20 +400,20 @@ const INDEXER_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
         "Value in satoshis of the indexed transaction output. At `txout_index`, this is the output's value; at `txin_index`, it is the value of the previous output spent by the input. Coinbase inputs use `Sats::MAX` because they have no previous output.",
     ),
 ];
-const MACD_DESCRIPTION: &str = "MACD chains at base intervals of 1, 7, and 30 days. Each chain uses fast, slow, and signal durations of 12, 26, and 9 times its base interval, respectively.";
-const MACD_EMA_FAST_DESCRIPTION: &str = "EMA of spot price in USD per BTC using the chain's fast span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
-const MACD_EMA_SLOW_DESCRIPTION: &str = "EMA of spot price in USD per BTC using the chain's slow span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
-const MACD_LINE_DESCRIPTION: &str = "Fast EMA minus slow EMA, in USD per BTC.";
+const MACD_DESCRIPTION: &str = "Moving average convergence/divergence (MACD) chains at base intervals of 1, 7, and 30 days. Each chain uses fast, slow, and signal durations of 12, 26, and 9 times its base interval, respectively.";
+const MACD_EMA_FAST_DESCRIPTION: &str = "Exponential moving average (EMA) of spot price in USD per BTC using the chain's fast span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
+const MACD_EMA_SLOW_DESCRIPTION: &str = "Exponential moving average (EMA) of spot price in USD per BTC using the chain's slow span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
+const MACD_LINE_DESCRIPTION: &str = "Moving average convergence/divergence (MACD) line: fast EMA minus slow EMA, in USD per BTC.";
 const MACD_SIGNAL_DESCRIPTION: &str = "EMA of the MACD line using the chain's signal span, in USD per BTC. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
 const MACD_HISTOGRAM_DESCRIPTION: &str = "MACD line minus signal line, in USD per BTC.";
 const SMALL_PLUGIN_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
     (
         "coindays_destroyed_supply_adj",
-        "Trailing 24-hour coin days destroyed divided by the current all-chain supply in BTC. Returns zero when supply is zero.",
+        "Trailing 24-hour coin days destroyed divided by all-chain supply in BTC at the represented block. Returns zero when supply is zero.",
     ),
     (
         "coinyears_destroyed_supply_adj",
-        "Trailing 365-day coin years destroyed divided by the current all-chain supply in BTC. Returns zero when supply is zero.",
+        "Trailing 365-day coin years destroyed divided by all-chain supply in BTC at the represented block. Returns zero when supply is zero.",
     ),
     (
         "constant_0",
@@ -486,27 +493,27 @@ const SMALL_PLUGIN_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
     ),
     (
         "years_since_price_ath",
-        "`days_since_price_ath` divided by 365.",
+        "Fractional years since the latest Bitcoin spot-price all-time high, equal to fractional days since that high divided by 365.",
     ),
     (
         "max_days_between_price_ath",
-        "Running maximum of `days_since_price_ath`, including the current unfinished interval between all-time highs.",
+        "Longest fractional-day interval since a Bitcoin spot-price all-time high observed through the represented block, including the ongoing interval.",
     ),
     (
         "max_years_between_price_ath",
-        "`max_days_between_price_ath` divided by 365.",
+        "Longest fractional-year interval since a Bitcoin spot-price all-time high observed through the represented block, equal to the longest fractional-day interval divided by 365.",
     ),
     (
         "price_true_range",
-        "Absolute difference in cents per BTC between the current and previous block's spot prices. The first block is zero; this is not an OHLC range.",
+        "Absolute difference in cents per BTC between the represented and previous blocks' spot prices. The genesis block is zero; this is not an open-high-low-close price range.",
     ),
     (
         "price_true_range_sum_2w",
-        "Sum of `price_true_range` over the trailing 14-day monotonic-time window, in cents per BTC. This measures the spot-price path length over the window, not its high-low range.",
+        "Sum of per-block spot-price true range over the trailing 14-day monotonic-time window, in cents per BTC. This measures the spot-price path length over the window, not its high-low range.",
     ),
     (
         "price_ema_cents",
-        "Exponential moving averages of spot price in cents per BTC. Each period recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks from the trailing period's monotonic-time start through the current block. Periods are 7, 8, 12, 13, 21, 26, 30, 34, 55, 89, 144, 200, 365, 730, 1,400, and 1,460 days, in column order.",
+        "Exponential moving average of block-level Bitcoin spot price. At each block it recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks from the trailing period's monotonic-time start through the represented block.",
     ),
     (
         "dca_sats_per_day",
@@ -538,95 +545,95 @@ const SMALL_PLUGIN_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
     ),
     (
         "prevout_count_by_type",
-        "Counts of transaction inputs. The `all` aggregate includes one coinbase input per block; per-type series exclude coinbase and classify inputs by the BRK output type of the previous output they spend. Column order is P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown, and empty; `OP_RETURN` is excluded because it is unspendable.",
+        "Counts of transaction inputs. The `all` aggregate includes one coinbase input per block. Per-type series exclude coinbase and classify inputs by the BRK output type of the previous output they spend; `OP_RETURN` is excluded because it is unspendable.",
     ),
     (
         "output_count_by_type",
-        "Counts of transaction outputs, including coinbase. Per-type series classify outputs by BRK locking-script type. Column order is P2PK65, P2PK33, P2PKH, P2MS, P2SH, P2WPKH, P2WSH, P2TR, P2A, unknown, empty, and `OP_RETURN`.",
+        "Counts of transaction outputs, including coinbase. Per-type series classify outputs by BRK locking-script type.",
     ),
     (
         "velocity_btc",
-        "Trailing 365-day transfer volume in satoshis divided by current all-chain supply in satoshis. Returns zero when supply is zero.",
+        "Trailing 365-day transfer volume in satoshis divided by all-chain supply in satoshis at the represented block. Returns zero when supply is zero.",
     ),
     (
         "velocity_usd",
-        "Trailing 365-day transfer volume valued in cents divided by current all-chain market capitalization in cents. Returns zero when market capitalization is zero.",
+        "Trailing 365-day transfer volume valued in cents divided by all-chain market capitalization in cents at the represented block. Returns zero when market capitalization is zero.",
     ),
     (
         "dormancy_supply_adj",
-        "Trailing 24-hour dormancy divided by the current all-chain supply in BTC. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when supply is zero.",
+        "Trailing 24-hour dormancy divided by all-chain supply in BTC at the represented block. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when supply is zero.",
     ),
     (
         "dormancy_flow",
-        "Current all-chain supply in BTC divided by trailing 24-hour dormancy. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when dormancy is zero.",
+        "All-chain supply in BTC at the represented block divided by trailing 24-hour dormancy. Dormancy is trailing 24-hour coin days destroyed divided by trailing 24-hour transfer volume in BTC. Returns zero when dormancy is zero.",
     ),
     (
         "stock_to_flow",
-        "Current all-chain supply in satoshis divided by the current block's derived subsidy component annualized at 52,560 blocks. Returns zero when the annualized flow is zero.",
+        "All-chain supply in satoshis at the represented block divided by that block's derived subsidy component annualized at 52,560 blocks. Returns zero when the annualized flow is zero.",
     ),
     (
         "seller_exhaustion",
-        "Current all-chain supply-in-profit share multiplied by the population standard deviation of per-block trailing-24-hour spot-price returns over the trailing 30-day monotonic-time window, scaled by the square root of 30. Returns zero when total supply is zero.",
+        "All-chain supply-in-profit share at the represented block multiplied by the population standard deviation of per-block trailing-24-hour spot-price returns over the trailing 30-day monotonic-time window, scaled by the square root of 30. Returns zero when total supply is zero.",
     ),
 ];
 const ADDITIONAL_AUDITED_DESCRIPTION_ROOTS: &[&str] = &[
     "Metrics split by detected `OP_RETURN` payload kind. Output bytes belong to one kind, while transaction counts, full virtual sizes, and full fees are counted once for every kind present in a transaction, so those metrics can overlap across kinds.",
     "Metrics split by pre-v30 `OP_RETURN` relay-policy shape. `oversized` and `multiple` can overlap, and both are subsets of `pre_v30_nonstandard`; `pre_v30_standard` is the complementary category.",
-    "Outputs of the selected BRK locking-script type divided by all outputs over the same cumulative or trailing window, including coinbase outputs.",
-    "Transactions containing the selected output type divided by all transactions over the same cumulative or trailing window, including coinbase transactions.",
-    "Inputs spending the selected previous-output type divided by all inputs over the same cumulative or trailing window. The denominator includes coinbase inputs.",
-    "Non-coinbase transactions containing the selected previous-output type divided by all non-coinbase transactions over the same cumulative or trailing window.",
-    "Number of transactions containing at least one output of the selected BRK locking-script type. Each transaction is counted once per type; the `all` aggregate counts every transaction, including coinbase.",
-    "Number of non-coinbase transactions containing at least one input that spends the selected previous-output type. Each transaction is counted once per type; the `all` aggregate counts every non-coinbase transaction.",
-    "Simple moving averages of block-level Bitcoin spot prices over trailing monotonic-time windows, including the current block.",
-    "Current value and accumulated bitcoin from investing $100 at every UTC daily close during the named trailing period.",
-    "Bitcoin spot price at the first block in the named trailing monotonic-time window.",
-    "Bitcoin spot-price return from the first block in the named trailing monotonic-time window through the current block: current price divided by past price, minus one.",
+    "Outputs of a BRK locking-script type divided by all outputs over the same cumulative or trailing window, including coinbase outputs.",
+    "Transactions containing an output type divided by all transactions over the same cumulative or trailing window, including coinbase transactions.",
+    "Inputs spending a previous-output type divided by all inputs over the same cumulative or trailing window. The denominator includes coinbase inputs.",
+    "Non-coinbase transactions containing a previous-output type divided by all non-coinbase transactions over the same cumulative or trailing window.",
+    "Number of transactions containing at least one output of a BRK locking-script type. Each transaction is counted once per type; the `all` aggregate counts every transaction, including coinbase.",
+    "Number of non-coinbase transactions containing at least one input that spends a previous-output type. Each transaction is counted once per type; the `all` aggregate counts every non-coinbase transaction.",
+    "Simple moving averages of block-level Bitcoin spot prices over trailing monotonic-time windows, including the represented block.",
+    "Value at the represented block and accumulated bitcoin from investing $100 at every UTC daily close during a trailing period.",
+    "Bitcoin spot price at the first block in a trailing monotonic-time window.",
+    "Bitcoin spot-price return from the first block in a trailing monotonic-time window through the represented block: represented-block price divided by the window's starting price, minus one.",
     "Number of transaction inputs, including one coinbase input per block.",
     "Number of transaction outputs, including coinbase outputs.",
-    "Current Bitcoin spot price divided by its value at the first block in the named trailing period, minus one.",
-    "Current Bitcoin spot price divided by the DCA cost basis accumulated since the named starting year, minus one.",
-    "Current Bitcoin spot price divided by the trailing-period DCA cost basis, minus one.",
-    "Total dollars invested by the $100-per-day strategy since the named starting year, divided by the bitcoin it accumulated.",
+    "Bitcoin spot price at the represented block divided by its value at the first block in a trailing period, minus one.",
+    "Bitcoin spot price at the represented block divided by the dollar-cost-averaging cost basis accumulated since a starting year, minus one.",
+    "Bitcoin spot price at the represented block divided by the trailing dollar-cost-averaging (DCA) cost basis, minus one.",
+    "Total dollars invested by the $100-per-day strategy since a starting year, divided by the bitcoin it accumulated.",
     "Total dollars invested by the trailing-period $100-per-day strategy, divided by the bitcoin it accumulated.",
-    "Relative Strength Index chains at base intervals of 1, 7, and 30 days. Each RSI uses Wilder-smoothed gains and losses over 14 times its base interval; its stochastic K and D lines use successive simple averages over three times that interval.",
-    "Annualized trailing-period DCA return over the named whole-year period: `(1 + return)^(1 / years) - 1`; this is not a cash-flow IRR.",
-    "Compound annual growth rate of the Bitcoin spot-price return over the named whole-year trailing period: `(1 + return)^(1 / years) - 1`.",
-    "Absolute and relative change in market capitalization from the first block in each named trailing monotonic-time window.",
-    "Maximum block-level Bitcoin spot price in the named trailing monotonic-time window, including the current block.",
-    "Minimum block-level Bitcoin spot price in the named trailing monotonic-time window, including the current block.",
+    "Relative Strength Index (RSI) chains at base intervals of 1, 7, and 30 days. Each RSI uses Wilder-smoothed gains and losses over 14 times its base interval; its stochastic K and D lines use successive simple averages over three times that interval.",
+    "Annualized trailing-period DCA return over a whole-year period: `(1 + return)^(1 / years) - 1`; this is not a cash-flow internal rate of return.",
+    "Compound annual growth rate of the Bitcoin spot-price return over the corresponding whole-year trailing period: `(1 + return)^(1 / years) - 1`.",
+    "Absolute and relative change in market capitalization from the first block in each supported trailing monotonic-time window.",
+    "Maximum block-level Bitcoin spot price in a trailing monotonic-time window, including the represented block.",
+    "Minimum block-level Bitcoin spot price in a trailing monotonic-time window, including the represented block.",
     "Counts non-coinbase transactions containing at least one output below BRK's type-specific minimal non-dust value; `OP_RETURN` is excluded.",
     "Counts transactions containing at least one Taproot input with more than one witness element whose final element begins with annex prefix byte `0x50`.",
     "Counts transactions containing at least one Taproot script-path input whose tapscript contains the Ordinals envelope prefix `OP_0 OP_IF PUSH 'ord'`.",
     "Number of transaction outputs excluding `OP_RETURN` outputs, which are provably unspendable.",
-    "Arithmetic mean and population standard deviation of per-block trailing-24-hour spot-price returns over the named trailing monotonic-time window.",
+    "Arithmetic mean and population standard deviation of per-block trailing-24-hour spot-price returns over a trailing monotonic-time window.",
     "Cumulative provably unspendable supply from the genesis subsidy, `OP_RETURN` output values, and unclaimed block rewards.",
     "Total bitcoin value assigned to provably unspendable `OP_RETURN` outputs.",
-    "Circulating supply multiplied by cointime vaultedness, which is one minus liveliness, and valued at the current Bitcoin spot price.",
-    "Market-cap growth rate minus realized-cap growth rate over the named trailing monotonic-time window. A component with a zero starting value contributes zero growth.",
-    "Population standard deviation of per-block trailing-24-hour spot-price returns over the named trailing monotonic-time window, multiplied by the square root of that window's day count.",
+    "Circulating supply multiplied by cointime vaultedness, which is one minus liveliness, and valued at the represented block's Bitcoin spot price.",
+    "Market-cap growth rate minus realized-cap growth rate over a trailing monotonic-time window. A component with a zero starting value contributes zero growth.",
+    "Population standard deviation of per-block trailing-24-hour spot-price returns over a trailing monotonic-time window, multiplied by the square root of that window's day count.",
     "Total value of all unspent transaction outputs in the UTXO set.",
     "Transaction-input rate, including one coinbase input per block.",
     "Transaction-output rate, including coinbase outputs.",
     "Approximate Gini coefficient of UTXO-held supply, derived from the Lorenz curve across ordered UTXO-amount cohorts. Zero means equal distribution; larger values mean greater concentration.",
     "Bitcoin spot price divided by its running all-time high, minus one.",
-    "Change in circulating supply from the first block in the trailing 365-day monotonic-time window through the current block, divided by the starting supply. Returns NaN while the starting supply is at most 50 BTC.",
-    "OHLC candles formed from block-level Bitcoin spot prices within each supported time period. Empty periods carry the previous close as all four candle values.",
-    "Running all-time high of the Bitcoin spot price through the current block.",
+    "Change in circulating supply from the first block in the trailing 365-day monotonic-time window through the represented block, divided by the starting supply. Returns NaN while the starting supply is at most 50 BTC.",
+    "Open-high-low-close (OHLC) candles formed from block-level Bitcoin spot prices within each supported time period. Empty periods carry the previous close as all four candle values.",
+    "Running all-time high of the Bitcoin spot price through the represented block.",
     "Two-week Choppiness Index: base-10 logarithm of the trailing true-range sum divided by the two-week high-low range, divided by the base-10 logarithm of the number of blocks in the window. Returns zero when the high-low range is zero or the window contains fewer than two blocks.",
-    "Circulating supply valued at the current Bitcoin spot price.",
-    "Current block's derived subsidy value in USD divided by its trailing 365-day per-block arithmetic mean.",
+    "Circulating supply valued at the represented block's Bitcoin spot price.",
+    "Puell Multiple: the represented block's derived subsidy value in USD divided by its trailing 365-day per-block arithmetic mean.",
     "Market capitalization divided by thermo capitalization, the cumulative USD value of derived block subsidies. Returns zero when the ratio is not finite.",
     "Network Value to Transactions ratio: market capitalization divided by trailing-24-hour transfer volume, both valued in USD. Returns zero when the ratio is not finite.",
     "Pi Cycle ratio: the 111-day simple moving average of Bitcoin spot price divided by twice its 350-day simple moving average.",
     "Realized HODL ratio: realized capitalization of 1-day-to-1-week-old UTXOs divided by that of 1-to-2-year-old UTXOs. Returns zero when the ratio is not finite.",
 ];
-const CAPITAL_SENTIMENT_PHASE_DESCRIPTION: &str = "Daily investor phase classified from the final available block's spot price relative to the all, STH, and LTH capitalized prices, with the one-year spot-price SMA used only for confirmation and disambiguation. Values are `raging_bull`, `bull`, `cautious_bull`, `hopeful_bull`, `early_bull`, `weak_bull`, `limbo`, `deep_bear`, `bear`, or `early_bear`. Missing when spot or any capitalized-price input is absent, nonpositive, or non-finite; the SMA itself may be unavailable.";
-const CAPITAL_SENTIMENT_SCORE_DESCRIPTION: &str = "Coarse directional score derived from `capital_sentiment_phase`: `raging_bull`, `bull`, and `early_bull` map to 2; `cautious_bull`, `hopeful_bull`, and `weak_bull` map to 1; `limbo` maps to -1; and `deep_bear`, `bear`, and `early_bear` map to -2. Missing when the phase is missing.";
+const CAPITAL_SENTIMENT_PHASE_DESCRIPTION: &str = "Daily investor phase classified from the final available block's spot price relative to the all-chain, short-term-holder (STH), and long-term-holder (LTH) capitalized prices, with the one-year spot-price simple moving average used only for confirmation and disambiguation. Values are `raging_bull`, `bull`, `cautious_bull`, `hopeful_bull`, `early_bull`, `weak_bull`, `limbo`, `deep_bear`, `bear`, or `early_bear`. Missing when spot or any capitalized-price input is absent, nonpositive, or non-finite; the moving average itself may be unavailable.";
+const CAPITAL_SENTIMENT_SCORE_DESCRIPTION: &str = "Coarse directional score derived from the daily capital-sentiment phase: `raging_bull`, `bull`, and `early_bull` map to 2; `cautious_bull`, `hopeful_bull`, and `weak_bull` map to 1; `limbo` maps to -1; and `deep_bear`, `bear`, and `early_bear` map to -2. Missing when the phase is missing.";
 const BEDROCK_MODE_DESCRIPTIONS: &[(&str, &str)] = &[
     (
         "raw",
-        "Uses the unweighted all-chain URPD and raw all-chain supply-in-loss share.",
+        "Uses the unweighted all-chain unspent realized price distribution (URPD) and raw all-chain supply-in-loss share.",
     ),
     (
         "cointime",
@@ -665,14 +672,18 @@ const BEDROCK_MODE_DESCRIPTIONS: &[(&str, &str)] = &[
         "Weights age cohorts by their probability of spending within one month, derived from coinflow spending rates, and calibrates against the corresponding horizon supply-in-loss share.",
     ),
 ];
-const BEDROCK_LOSS_THRESHOLD_DESCRIPTION: &str = "Linearly interpolated 95th, 98th, 99th, 99.5th, and 99.9th percentiles of the mode's prior finite daily supply-in-loss shares, in that column order. The current day is excluded from its calibration history and a value is unavailable until the current loss share exists and at least 365 prior observations are available. Stored as unitless decimal shares.";
-const BEDROCK_PRICE_BANDS_DESCRIPTION: &str = "Daily price bands derived from the mode's URPD. The five floor bands are the first ascending creation prices where the share of supply remaining above the price is at or below the corresponding calibrated loss threshold. The nine level bands are the 10th through 90th percentiles of supply at or above the 95th-percentile floor. The stored matrix column order is the five floors followed by the nine levels.";
-const RARITY_COMPONENT_BANDS_DESCRIPTION: &str = "Block-decay-weighted historical percentile bands of spot price divided by the component price named by the series. Observations begin at height 210,000, include the current block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. Percentiles are 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent. Each price band is the component price multiplied by its percentile ratio.";
-const RARITY_COMPONENT_RATIOS_DESCRIPTION: &str = "Block-decay-weighted historical percentiles of spot price divided by the component price named by the series, stored in parts per million. Observations begin at height 210,000, include the current block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. Column order is 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent.";
+const BEDROCK_LOSS_THRESHOLD_DESCRIPTION: &str = "Linearly interpolated percentiles of the mode's prior finite daily supply-in-loss shares. The represented day is excluded from its calibration history, and a value is unavailable until that day's loss share exists and at least 365 prior observations are available. Stored as unitless decimal shares.";
+const BEDROCK_PRICE_BANDS_DESCRIPTION: &str =
+    "Daily price bands derived from the mode's unspent realized price distribution (URPD).";
+const BEDROCK_FLOOR_DESCRIPTION: &str = "Creation-price threshold found by scanning upward until the share of supply at that price or higher is no greater than a percentile of the mode's historical supply-in-loss share.";
+const BEDROCK_LEVEL_DESCRIPTION: &str =
+    "Creation-price percentile of supply at or above the mode's 95th-percentile floor.";
+const RARITY_COMPONENT_BANDS_DESCRIPTION: &str = "Block-decay-weighted historical percentile of spot price divided by the associated component price. Observations begin at height 210,000, include the represented block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. The price band is the component price multiplied by that percentile ratio.";
+const RARITY_COMPONENT_RATIOS_DESCRIPTION: &str = "Block-decay-weighted historical percentiles of spot price divided by an associated component price, stored in parts per million. Observations begin at height 210,000, include the represented block, and receive twice the weight every 210,000 blocks, equivalent to a 210,000-block backward half-life. Ratios are rounded to 0.001, clamped from 0 through 43, and NaNs are excluded. Column order is 0.1, 0.5, 1, 2, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 98, 99, 99.5, and 99.9 percent.";
 const RARITY_INNER_DESCRIPTIONS: &[(&str, &str)] = &[
     (
         "rarity_meter",
-        "Combined from ten component models: under-four-month, under-six-month, over-four-month, and over-six-month realized price; STH and LTH realized and capitalized price; and all-chain realized and capitalized price.",
+        "Combined from the local and cycle rarity meters.",
     ),
     (
         "local_rarity_meter",
@@ -680,69 +691,70 @@ const RARITY_INNER_DESCRIPTIONS: &[(&str, &str)] = &[
     ),
     (
         "cycle_rarity_meter",
-        "Combined from six old-coin and all-chain models: over-four-month and over-six-month realized price, all-chain realized and capitalized price, and LTH realized and capitalized price.",
+        "Combined from six old-coin and all-chain component models plus the lower price extremes of the raw, cointime, and coinflow Bedrock models.",
     ),
 ];
-const RARITY_PRICES_DESCRIPTION: &str = "Combined rarity price bands in cents per BTC. Each lower boundary from 0.1% through 5% is the maximum of that boundary across the selected components; each upper boundary from 95% through 99.9% is the minimum. The 10th through 90th percentiles are logarithmically interpolated between the combined 5th and 95th boundaries when both are positive, otherwise linearly interpolated. Column order follows the 19 rarity percentiles from 0.1% through 99.9%.";
+const RARITY_PRICES_DESCRIPTION: &str = "Combined rarity price band. Lower boundaries from 0.1% through 5% use the maximum corresponding boundary across the rarity meter's component set; upper boundaries from 95% through 99.9% use the minimum. The 10th through 90th percentiles are logarithmically interpolated between the combined 5th and 95th boundaries when both are positive, otherwise linearly interpolated.";
 const RARITY_INDEX_DESCRIPTION: &str = "Position of spot price against the ten combined boundary bands: number of upper boundaries exceeded minus number of lower boundaries not reached. Ranges from -5 through 5.";
-const RARITY_SCORE_DESCRIPTION: &str = "Sum of the per-component rarity indexes, each calculated against that component's own ten boundary bands. Each selected component contributes from -5 through 5.";
+const RARITY_SCORE_DESCRIPTION: &str = "Sum of the rarity indexes for the meter's component models. Each two-tailed ratio component contributes from -5 through 5, while each lower-only direct component contributes from -5 through 0.";
 const RARITY_EXTREME_DESCRIPTIONS: &[(&str, &str)] = &[
     (
         "rarity_meter_coins_in_loss",
-        "Upper-tail extremeness of total all-chain supply in loss, in BTC, using all prior finite positive observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        "Upper-tail extremeness of total all-chain supply in loss, in BTC, using all prior finite positive observations. Outputs require 210,000 accepted historical observations; thresholds exclude the represented block, while the reported tail share includes it as one observation.",
     ),
     (
         "rarity_meter_profit_taking",
-        "Upper-tail extremeness of trailing-24-hour all-chain realized profit, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        "Upper-tail extremeness of trailing-24-hour all-chain realized profit, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the represented block, while the reported tail share includes it as one observation.",
     ),
     (
         "rarity_meter_capitulation",
-        "Upper-tail extremeness of trailing-24-hour all-chain realized loss, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        "Upper-tail extremeness of trailing-24-hour all-chain realized loss, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the represented block, while the reported tail share includes it as one observation.",
     ),
     (
         "rarity_meter_peak_regret",
-        "Upper-tail extremeness of trailing-24-hour all-chain realized peak regret, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        "Upper-tail extremeness of trailing-24-hour all-chain realized peak regret, in USD, using all prior finite observations. Outputs require 210,000 accepted historical observations; thresholds exclude the represented block, while the reported tail share includes it as one observation.",
     ),
     (
         "rarity_meter_seller_exhaustion",
-        "Lower-tail extremeness of the trailing-24-hour all-chain sell-side risk ratio, expressed as a percentage, using the most recent 210,000 finite positive observations. Outputs require a full 210,000-observation history; thresholds exclude the current block, while the reported tail share includes it as one observation.",
+        "Lower-tail extremeness of the trailing-24-hour all-chain sell-side risk ratio, expressed as a percentage, using the most recent 210,000 finite positive observations. Outputs require a full 210,000-observation history; thresholds exclude the represented block, while the reported tail share includes it as one observation.",
     ),
 ];
-const RARITY_EXTREME_THRESHOLDS_DESCRIPTION: &str = "Historical source-value boundaries for 0.1%, 0.05%, and 0.025% tail shares, in that column order. Boundaries use the configured history before the current observation and the tail direction specified by the series' extreme model.";
+const RARITY_EXTREME_THRESHOLDS_DESCRIPTION: &str = "Historical source-value boundaries for extreme tail shares. Boundaries use the configured history before the represented observation and the tail direction specified by the series' extreme model.";
 const RARITY_THRESHOLD_PCT0_1_DESCRIPTION: &str =
     "Source-value boundary for a 0.1% historical tail share.";
 const RARITY_THRESHOLD_PCT0_05_DESCRIPTION: &str =
     "Source-value boundary for a 0.05% historical tail share.";
-const RARITY_THRESHOLD_PCT0_025_DESCRIPTION: &str = "Source-value boundary for a 0.025% historical tail share. The public scalar series uses the unsuffixed `threshold` name.";
+const RARITY_THRESHOLD_PCT0_025_DESCRIPTION: &str =
+    "Source-value boundary for a 0.025% historical tail share.";
 const RARITY_EXTREME_RANK_DESCRIPTION: &str = "Discrete extremeness rank: 3 at or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond 0.1%, and 0 otherwise or while the model is unavailable. Boundary direction is upper or lower as specified by the series' extreme model.";
 const COINBLOCKS_CREATED_DESCRIPTION: &str = "Coinblocks created by each block, equal to the circulating supply in BTC at that height. One coinblock is one BTC held for one block interval.";
 const COINBLOCKS_STORED_DESCRIPTION: &str = "Net coinblocks stored. Its cumulative value is cumulative coinblocks created minus cumulative coinblocks destroyed; its per-block value is the change in that cumulative stock.";
 const LIVELINESS_DESCRIPTION: &str =
     "Cumulative coinblocks destroyed divided by cumulative coinblocks created.";
-const VAULTEDNESS_DESCRIPTION: &str = "One minus liveliness.";
-const ACTIVITY_TO_VAULTEDNESS_DESCRIPTION: &str = "Liveliness divided by vaultedness.";
+const VAULTEDNESS_DESCRIPTION: &str = "One minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const ACTIVITY_TO_VAULTEDNESS_DESCRIPTION: &str =
+    "Liveliness divided by vaultedness: `liveliness / (1 - liveliness)`.";
 const COINTIME_ADJ_INFLATION_DESCRIPTION: &str =
-    "Supply inflation rate multiplied by the activity-to-vaultedness ratio.";
+    "Cointime-adjusted supply inflation rate: trailing 365-day circulating-supply growth divided by starting supply, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created. Returns NaN while starting supply is at most 50 BTC.";
 const COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION: &str =
-    "Native transaction velocity multiplied by the activity-to-vaultedness ratio.";
+    "Cointime-adjusted native transaction velocity: trailing 365-day transfer volume in satoshis divided by all-chain supply at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION: &str =
-    "Fiat transaction velocity multiplied by the activity-to-vaultedness ratio.";
+    "Cointime-adjusted fiat transaction velocity: trailing 365-day transfer volume in cents divided by all-chain market capitalization at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const THERMO_CAP_DESCRIPTION: &str = "Cumulative USD value, at each block's spot price, of the derived subsidy component equal to coinbase output value minus transaction fees.";
-const INVESTOR_CAP_DESCRIPTION: &str = "Realized capitalization minus thermo capitalization.";
-const VAULTED_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by vaultedness.";
-const ACTIVE_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by liveliness.";
-const COINTIME_CAP_DESCRIPTION: &str = "Cumulative cointime value destroyed multiplied by circulating supply, then divided by cumulative coinblocks stored.";
-const AVIV_DESCRIPTION: &str = "Active capitalization divided by investor capitalization.";
-const VAULTED_PRICE_DESCRIPTION: &str = "Realized price divided by vaultedness.";
-const ACTIVE_PRICE_DESCRIPTION: &str = "Realized price divided by liveliness.";
-const TRUE_MARKET_MEAN_DESCRIPTION: &str =
-    "Investor capitalization divided by active supply in BTC.";
+const INVESTOR_CAP_DESCRIPTION: &str = "Realized capitalization minus the cumulative issuance-date USD value of the derived block-subsidy component.";
+const VAULTED_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by one minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const ACTIVE_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const COINTIME_CAP_DESCRIPTION: &str = "Cumulative sum of spot price times coinblocks destroyed, multiplied by circulating supply and divided by cumulative coinblocks stored.";
+const AVIV_DESCRIPTION: &str = "Active-value-to-investor-value (AVIV) ratio: active capitalization divided by investor capitalization.";
+const VAULTED_PRICE_DESCRIPTION: &str = "Realized price divided by one minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const ACTIVE_PRICE_DESCRIPTION: &str = "Realized price divided by liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const TRUE_MARKET_MEAN_DESCRIPTION: &str = "Investor capitalization, equal to realized capitalization minus the cumulative issuance-date USD value of the derived block-subsidy component, divided by active supply in BTC. Active supply is circulating supply multiplied by liveliness.";
 const COINTIME_PRICE_DESCRIPTION: &str =
-    "Cointime capitalization divided by circulating supply in BTC.";
-const RESERVE_RISK_DESCRIPTION: &str = "Spot price in USD divided by the HODL bank.";
+    "Cumulative cointime value destroyed divided by cumulative coinblocks stored, expressed as a price per BTC.";
+const RESERVE_RISK_DESCRIPTION: &str = "Spot price in USD divided by the HODL bank, which is the cumulative sum of spot price minus the trailing-one-year median supply-adjusted value of coin days destroyed.";
 const VOCDD_MEDIAN_1Y_DESCRIPTION: &str =
     "Median per-block value of coin days destroyed over the trailing one-year timestamp window.";
-const HODL_BANK_DESCRIPTION: &str = "Cumulative sum of spot price in USD minus the trailing one-year median value of coin days destroyed.";
+const HODL_BANK_DESCRIPTION: &str = "Cumulative sum of spot price in USD minus the trailing-one-year median supply-adjusted value of coin days destroyed.";
 const COINTIME_VALUE_DESTROYED_DESCRIPTION: &str =
     "Spot price in USD multiplied by coinblocks destroyed by the block.";
 const COINTIME_VALUE_CREATED_DESCRIPTION: &str =
@@ -750,31 +762,31 @@ const COINTIME_VALUE_CREATED_DESCRIPTION: &str =
 const COINTIME_VALUE_STORED_DESCRIPTION: &str =
     "Spot price in USD multiplied by net coinblocks stored by the block.";
 const VOCDD_DESCRIPTION: &str = "Supply-adjusted value of coin days destroyed: spot price in USD multiplied by the block's coin days destroyed and divided by circulating supply in BTC. Returns zero when circulating supply is zero.";
-const VAULTED_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by vaultedness.";
-const ACTIVE_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by liveliness.";
+const VAULTED_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by one minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const ACTIVE_SUPPLY_DESCRIPTION: &str = "Circulating supply multiplied by cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const COINTIME_AWAKE_LOSS_DESCRIPTION: &str = "Share of awake supply that is in loss: the sum of supply in loss multiplied by wakefulness divided by the sum of total supply multiplied by wakefulness. Returns NaN when the weighted supply is zero.";
 const COINDAYS_CONSUMED_DESCRIPTION: &str = "Coin days destroyed by spent outputs, allocated across every age range the outputs traversed. The portion above a spent output's age-range lower bound remains in that range; each fully traversed younger range receives spent BTC multiplied by that range's duration. The allocation preserves total coin days destroyed.";
 const COINDAYS_STORED_DESCRIPTION: &str = "Cumulative coin days created in each age range minus cumulative coin days consumed from that range.";
 const WAKEFULNESS_DESCRIPTION: &str = "Wakefulness for each UTXO age range: cumulative coin days consumed from the range divided by cumulative coin days created in the range.";
-const DORMANCY_DESCRIPTION: &str = "One minus wakefulness for the selected age range.";
+const DORMANCY_DESCRIPTION: &str = "One minus wakefulness for an exact UTXO age range.";
 const WAKEFULNESS_TO_DORMANCY_DESCRIPTION: &str =
-    "Wakefulness divided by dormancy for the selected age range.";
+    "Wakefulness divided by one minus wakefulness for an exact UTXO age range.";
 const AGE_AWAKE_SUPPLY_DESCRIPTION: &str = "Supply in each UTXO age range multiplied by that range's wakefulness. Each result is rounded down to whole satoshis.";
 const AGE_DORMANT_SUPPLY_DESCRIPTION: &str = "Supply in each UTXO age range multiplied by one minus that range's wakefulness. Each result is rounded down to whole satoshis.";
-const AGGREGATE_AWAKE_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by wakefulness across the selected UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
-const AGGREGATE_DORMANT_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by one minus wakefulness across the selected UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
+const AGGREGATE_AWAKE_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by wakefulness across a set of UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
+const AGGREGATE_DORMANT_SUPPLY_DESCRIPTION: &str = "Sum of supply multiplied by one minus wakefulness across a set of UTXO age ranges. Each age-range contribution is rounded down to whole satoshis.";
 const AGGREGATE_AWAKE_CAP_DESCRIPTION: &str =
-    "Sum of realized capitalization multiplied by wakefulness across the selected UTXO age ranges.";
+    "Sum of realized capitalization multiplied by wakefulness across a set of UTXO age ranges.";
 const AGGREGATE_AWAKE_PRICE_DESCRIPTION: &str =
     "Awake capitalization divided by awake supply in BTC. Returns zero when awake supply is zero.";
 const SPENDING_RATE_DESCRIPTION: &str = "Empirical daily spending hazard for each UTXO age range: cumulative transfer volume in BTC divided by cumulative coin days created in that range. Returns zero when cumulative coin days created is zero.";
 const SPENDING_EXPOSURE_DESCRIPTION: &str = "Estimated remaining-lifetime spending exposure for each UTXO age range. It integrates observed positive spending hazards from the range midpoint through subsequent complete ranges, then integrates an exponential tail fitted by duration-weighted regression of log hazard on age. Returns zero when a decreasing finite tail cannot be fitted.";
-const MOBILITY_DESCRIPTION: &str = "Estimated probability that supply in the selected age range will ever be spent: one minus exp of negative spending exposure. Nonpositive or NaN exposure returns zero; positive results are capped just below one.";
+const MOBILITY_DESCRIPTION: &str = "Estimated probability that supply in a UTXO age range will ever be spent: one minus exp of negative spending exposure. Nonpositive or NaN exposure returns zero; positive results are capped just below one.";
 const MOBILE_SUPPLY_DESCRIPTION: &str = "Supply multiplied by the estimated remaining-lifetime probability of spending for its UTXO age range. Each age-range contribution is rounded down to whole satoshis before aggregation.";
 const IMMOBILE_SUPPLY_DESCRIPTION: &str = "Supply multiplied by one minus the estimated remaining-lifetime probability of spending for its UTXO age range. Each age-range contribution is rounded down to whole satoshis before aggregation.";
 const COINFLOW_LOSS_DESCRIPTION: &str = "Share of estimated mobile supply that is in loss: the sum of supply in loss multiplied by remaining-lifetime spending probability divided by the sum of total supply multiplied by that probability. Returns NaN when the weighted supply is zero.";
-const COINFLOW_HORIZON_LOSS_DESCRIPTION: &str = "Share of supply likely to move within the named forward horizon that is currently in loss. Each age range is weighted by one minus exp of the negative sum of its observed spending hazards times days across that horizon. Returns NaN when the weighted supply is zero.";
-const COINFLOW_CAP_DESCRIPTION: &str = "Sum of realized capitalization multiplied by remaining-lifetime spending probability across the selected UTXO age ranges.";
+const COINFLOW_HORIZON_LOSS_DESCRIPTION: &str = "For each supported forward horizon, the share of supply likely to move within that horizon that is in loss at the represented block. Each age range is weighted by one minus exp of the negative sum of its observed spending hazards times days across that horizon. Returns NaN when the weighted supply is zero.";
+const COINFLOW_CAP_DESCRIPTION: &str = "Sum of realized capitalization multiplied by remaining-lifetime spending probability across a set of UTXO age ranges.";
 const COINFLOW_PRICE_DESCRIPTION: &str = "Coinflow capitalization divided by estimated mobile supply in BTC. Returns zero when mobile supply is zero.";
 const HORIZON_DESCRIPTIONS: [&str; 7] = [
     "Uses an eight-year forward spending horizon.",
@@ -839,125 +851,128 @@ const DISTRIBUTION_SEMANTIC_DESCRIPTIONS: &[&str] = &[
     "Serialized distribution state used to resume cohort computation at each block height.",
     "Persistent state for every indexed address. Each address type uses a compact primary vector; funded addresses and empty addresses whose lifetime totals do not fit inline reference shared sidecars.",
     "Coin blocks destroyed by spent outputs: each spent output's value in BTC multiplied by its age in blocks, summed over the represented block.",
-    "Amount of bitcoin held in unspent transaction outputs in the selected cohort.",
-    "Amount of unspent bitcoin that crosses out of the selected exact age range during the represented block interval.",
-    "One half of the selected cohort's unspent supply.",
-    "Unspent supply whose creation price is less than or equal to the current spot price.",
-    "Unspent supply whose creation price is greater than the current spot price.",
-    "Change in the selected cohort's unspent supply over the named trailing window, with the percentage change measured against the window's starting value.",
-    "Change in unspent supply controlled by addresses in the selected balance cohort over the named trailing window, with the percentage change measured against the window's starting value.",
-    "Share of all unspent supply held by the selected cohort.",
-    "Share of all unspent supply controlled by addresses in the selected balance cohort.",
-    "Number of currently unspent transaction outputs in the selected cohort.",
-    "Number of transaction outputs from the selected cohort spent in each block.",
-    "Value of outputs from the selected cohort spent in each block. BTC representations use the spent output value; USD representations value it at the spending block's spot price.",
-    "Coin days destroyed by outputs from the selected cohort: each spent output's BTC value multiplied by its age in days.",
+    "Amount of bitcoin held in unspent transaction outputs.",
+    "Amount of unspent bitcoin that ages out of an exact UTXO age range during the represented block interval.",
+    "One half of a UTXO cohort's unspent supply.",
+    "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price.",
+    "Unspent supply in a UTXO cohort whose creation price is greater than the represented block's spot price.",
+    "Change in a UTXO cohort's unspent supply over a trailing window, with the relative change measured against the window's starting value.",
+    "Change in unspent supply controlled by an address-balance cohort over a trailing window, with the relative change measured against the window's starting value.",
+    "Share of all unspent supply held by a UTXO cohort.",
+    "Share of all unspent supply controlled by an address-balance cohort.",
+    "Number of transaction outputs that are unspent at the represented block.",
+    "Number of outputs from a UTXO cohort spent in each block.",
+    "Value of outputs spent in each block. BTC representations use the spent output value; USD representations value it at the spending block's spot price.",
+    "Coin days destroyed by outputs from a UTXO cohort: each spent output's BTC value multiplied by its age in days.",
     "Transfer volume whose spending price is greater than or equal to the spent outputs' creation price.",
     "Transfer volume whose spending price is below the spent outputs' creation price.",
     "Coin years destroyed over the trailing 365-day window: the window's total coin days destroyed divided by 365.",
-    "Average age in days of transferred bitcoin over the named trailing window: coin days destroyed divided by transfer volume in BTC.",
-    "Creation-date value of the unspent outputs in the selected cohort: the sum of each output's creation price multiplied by its BTC value.",
-    "Profit realized by outputs from the selected cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
-    "Profit realized by addresses in the selected pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
-    "Loss realized by outputs from the selected cohort when spent: creation-date value minus spending value, counted only for losing spends.",
-    "Loss realized by addresses in the selected pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
-    "Net realized profit and loss of outputs from the selected cohort when spent: realized profit minus realized loss.",
-    "Creation-date value destroyed by spent outputs from the selected cohort: the sum of each spent output's creation price multiplied by its BTC value.",
-    "24-hour spent output profit ratio for the selected cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
-    "Adjusted SOPR inputs and ratios for the all-chain and short-term-holder cohorts after excluding outputs younger than one hour.",
-    "Creation-date value of unspent outputs controlled by funded addresses in the selected current balance range.",
-    "Gross realized profit and loss of the selected aggregate cohort: realized profit plus realized loss.",
-    "Capital-weighted creation price of unspent outputs in the selected aggregate cohort: sum of creation price squared times sats divided by sum of creation price times sats.",
-    "Sum of creation price times unspent sats for the selected aggregate cohort. This raw numerator underlies realized cap and realized price.",
-    "Sum of creation price squared times unspent sats for the selected aggregate cohort. This raw numerator underlies capitalized price.",
+    "For each supported trailing window, average age in days of transferred bitcoin: coin days destroyed divided by transfer volume in BTC.",
+    "Creation-date value of a UTXO cohort's unspent outputs: the sum of each output's creation price multiplied by its BTC value.",
+    "Profit realized by outputs from a UTXO cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
+    "Profit realized by addresses in a pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
+    "Loss realized by outputs from a UTXO cohort when spent: creation-date value minus spending value, counted only for losing spends.",
+    "Loss realized by addresses in a pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
+    "Net realized profit and loss of outputs from a UTXO cohort when spent: realized profit minus realized loss.",
+    "Creation-date value destroyed by spent outputs from a UTXO cohort: the sum of each spent output's creation price multiplied by its BTC value.",
+    "24-hour spent output profit ratio for a UTXO cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
+    "Adjusted spent output profit ratio (SOPR) inputs and ratios for the all-chain and short-term-holder cohorts after excluding outputs younger than one hour.",
+    "Creation-date value of unspent outputs controlled by funded addresses in an address-balance range at the represented block.",
+    "Gross realized profit and loss of an aggregate UTXO cohort: realized profit plus realized loss.",
+    "Capital-weighted creation price of an aggregate UTXO cohort's unspent outputs: Σ(creation price² × unspent sats) / Σ(creation price × unspent sats). Returns zero when the cohort has no invested value.",
+    "Sum of creation price times unspent sats for an aggregate UTXO cohort. This raw numerator underlies realized cap and realized price.",
+    "Sum of creation price squared times unspent sats for an aggregate UTXO cohort. This raw numerator underlies capitalized price.",
     "Value forgone relative to the historical peak price of each spent output: peak price minus spending price, multiplied by spent BTC value.",
-    "One-month change in net realized profit and loss divided by the selected cohort's realized cap.",
-    "Gross realized profit and loss over the named trailing window divided by the selected cohort's current realized cap.",
-    "Spent output profit ratio over the named trailing window: spending value divided by creation-date value for outputs spent from the selected cohort. Returns one when creation-date value is zero.",
-    "Realized profit divided by realized loss over the named trailing window for the selected cohort.",
-    "Market-value-to-realized-value ratio for the selected cohort: spot price divided by its realized price.",
-    "Realized loss expressed as a negative value.",
-    "Realized cap divided by the selected cohort's own market cap; the reciprocal of its MVRV.",
-    "One-month change in the selected cohort's net realized profit and loss divided by total Bitcoin market cap.",
-    "Unrealized profit of unspent outputs in the selected cohort: current market value minus creation-date value, summed only where spot price is above creation price.",
-    "Unrealized loss of unspent outputs in the selected cohort: creation-date value minus current market value, summed only where spot price is below creation price.",
-    "Net unrealized profit and loss of the selected cohort: unrealized profit minus unrealized loss.",
-    "Gross unrealized profit and loss of the selected aggregate cohort: unrealized profit plus unrealized loss.",
-    "Creation-date value of unspent supply currently in profit.",
-    "Creation-date value of unspent supply currently in loss.",
-    "Sum of creation price squared times unspent sats for supply currently in profit. This raw numerator underlies the profit-side capitalized price.",
-    "Sum of creation price squared times unspent sats for supply currently in loss. This raw numerator underlies the loss-side capitalized price.",
-    "Spot price minus the capital-weighted creation price of unspent supply currently in loss.",
-    "Spot price minus the capital-weighted creation price of unspent supply currently in profit.",
-    "Greed index minus pain index for the selected aggregate cohort.",
-    "Net unrealized profit/loss as a share of market cap. It is derived from MVRV as `1 - 1 / MVRV`.",
-    "Unrealized loss expressed as a negative value.",
-    "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
-    "Share of the selected cohort's unspent supply whose creation price is greater than spot price.",
-    "Unrealized profit of the selected cohort divided by total Bitcoin market cap.",
-    "Unrealized loss of the selected cohort divided by total Bitcoin market cap.",
-    "Unrealized profit divided by the selected term cohort's own market cap.",
-    "Unrealized loss divided by the selected term cohort's own market cap.",
-    "Net unrealized profit and loss divided by the selected term cohort's own market cap.",
-    "Creation-date value of unspent supply currently in profit divided by the selected cohort's realized cap.",
-    "Creation-date value of unspent supply currently in loss divided by the selected cohort's realized cap.",
-    "Unrealized profit divided by gross unrealized profit and loss for the selected cohort.",
-    "Unrealized loss divided by gross unrealized profit and loss for the selected cohort.",
-    "Net unrealized profit and loss divided by gross unrealized profit and loss for the selected cohort.",
+    "One-month change in net realized profit and loss divided by an aggregate UTXO cohort's realized cap.",
+    "For each supported trailing window, gross realized profit and loss divided by an aggregate UTXO cohort's realized cap at the represented block.",
+    "For each supported trailing window, spent output profit ratio: spending value divided by creation-date value for outputs spent from an aggregate UTXO cohort. Returns one when creation-date value is zero.",
+    "For each supported trailing window, realized profit divided by realized loss for an aggregate UTXO cohort. Returns one when realized loss is zero.",
+    "Market-value-to-realized-value (MVRV) ratio for a UTXO cohort: spot price divided by its realized price.",
+    "Loss realized by outputs from a UTXO cohort when spent, expressed as a negative value.",
+    "Realized cap divided by an aggregate UTXO cohort's own market cap; the reciprocal of its MVRV.",
+    "One-month change in an aggregate UTXO cohort's net realized profit and loss divided by total Bitcoin market cap.",
+    "Unrealized profit of a UTXO cohort's unspent outputs: market value at the represented block minus creation-date value, summed where spot is above creation price.",
+    "Unrealized loss of a UTXO cohort's unspent outputs: creation-date value minus market value at the represented block, summed where spot is below creation price.",
+    "Net unrealized profit and loss of a UTXO cohort: unrealized profit minus unrealized loss.",
+    "Gross unrealized profit and loss of an aggregate UTXO cohort: unrealized profit plus unrealized loss.",
+    "Creation-date value of an aggregate UTXO cohort's unspent supply in profit at the represented block.",
+    "Creation-date value of an aggregate UTXO cohort's unspent supply in loss at the represented block.",
+    "Sum of creation price squared times unspent sats for a UTXO cohort's supply in profit at the represented block. This raw numerator underlies the profit-side capitalized price.",
+    "Sum of creation price squared times unspent sats for a UTXO cohort's supply in loss at the represented block. This raw numerator underlies the loss-side capitalized price.",
+    "Spot price minus the capital-weighted creation price of an aggregate UTXO cohort's unspent supply in loss at the represented block.",
+    "Spot price minus the capital-weighted creation price of an aggregate UTXO cohort's unspent supply in profit at the represented block.",
+    "Greed index minus pain index for an aggregate UTXO cohort.",
+    "Net unrealized profit/loss (NUPL) of a UTXO cohort as a share of market cap, derived from market-value-to-realized-value ratio (MVRV) as `1 - 1 / MVRV`.",
+    "Unrealized loss of a UTXO cohort's unspent outputs, expressed as a negative value.",
+    "Share of an aggregate UTXO cohort's unspent supply whose creation price is less than or equal to the represented block's spot price.",
+    "Share of an aggregate UTXO cohort's unspent supply whose creation price is greater than the represented block's spot price.",
+    "Unrealized profit of an aggregate UTXO cohort divided by total Bitcoin market cap.",
+    "Unrealized loss of an aggregate UTXO cohort divided by total Bitcoin market cap.",
+    "Unrealized profit divided by the short- or long-term-holder cohort's own market cap.",
+    "Unrealized loss divided by the short- or long-term-holder cohort's own market cap.",
+    "Net unrealized profit and loss divided by the short- or long-term-holder cohort's own market cap.",
+    "Creation-date value of an aggregate UTXO cohort's unspent supply in profit at the represented block, divided by that cohort's realized cap.",
+    "Creation-date value of an aggregate UTXO cohort's unspent supply in loss at the represented block, divided by that cohort's realized cap.",
+    "Unrealized profit divided by gross unrealized profit and loss for the aggregate UTXO cohort.",
+    "Unrealized loss divided by gross unrealized profit and loss for the aggregate UTXO cohort.",
+    "Net unrealized profit and loss divided by gross unrealized profit and loss for an aggregate UTXO cohort.",
     "Unspent supply grouped by short- or long-term ownership and by the output's percentage profit or loss relative to spot price.",
     "Creation-date value of unspent supply grouped by short- or long-term ownership and by percentage profit or loss relative to spot price.",
     "Absolute unrealized profit or loss of unspent supply grouped by short- or long-term ownership and by percentage profit or loss relative to spot price.",
-    "Net unrealized profit/loss as a share of market cap for the selected profitability range: spot price minus aggregate realized price, divided by spot price.",
-    "Lowest creation price represented by an unspent output in the selected cohort.",
-    "Highest creation price represented by an unspent output in the selected cohort.",
-    "Creation-price percentiles weighted by unspent satoshis in the selected cohort.",
-    "Creation-price percentiles weighted by creation-date USD value in the selected cohort.",
-    "Share of the selected cohort's unspent supply with a creation price within 5% above or below spot price.",
-    "Satoshi-weighted mean creation price of the selected profit or loss side of the cohort. Returns spot price when that side has no supply.",
-    "Creation-value-weighted mean creation price of the selected profit or loss side of the cohort. Returns spot price when that side has no invested value.",
-    "Addresses that currently hold at least one unspent output.",
-    "Previously seen addresses that currently hold no unspent outputs.",
+    "Net unrealized profit and loss as a share of market cap for a profitability cohort: spot price minus aggregate realized price, divided by spot price.",
+    "Creation-price statistics for an aggregate UTXO cohort's unspent outputs at the represented block.",
+    "Restricts that cohort to outputs whose creation price is less than or equal to the represented block's spot price.",
+    "Restricts that cohort to outputs whose creation price is greater than the represented block's spot price.",
+    "Lowest creation price among that cohort's unspent outputs.",
+    "Highest creation price among that cohort's unspent outputs.",
+    "Creation-price percentiles weighted by that cohort's unspent satoshis.",
+    "Creation-price percentiles weighted by each output's USD value at creation.",
+    "Share of that cohort's unspent supply with a creation price within 5% above or below the represented block's spot price.",
+    "Within that subset, the satoshi-weighted mean creation price. Returns the represented block's spot price when the subset has no supply.",
+    "Within that subset, the mean creation price weighted by each output's USD value at creation. Returns the represented block's spot price when the subset has no invested value.",
+    "Addresses that hold at least one unspent output at the represented block.",
+    "Previously seen addresses that hold no unspent outputs at the represented block.",
     "All previously seen addresses, equal to funded addresses plus empty addresses.",
     "Addresses first observed in each block, derived from the increase in total address count.",
     "Addresses that have received more than one output over their lifetime.",
     "Addresses from which more than one output has been spent over their lifetime.",
     "Addresses whose public key or spending script has appeared on-chain. P2PK and P2TR are exposed when funded; hashed script types become exposed when spent; P2A is excluded.",
-    "Change in funded address count over the named trailing window, with the percentage change measured against the window's starting count.",
+    "Change in funded address count over a trailing window, with the relative change measured against the window's starting count.",
     "Identity index for the persisted funded-address state table.",
     "Identity index for the persisted empty-address state table.",
-    "Number of funded addresses in the selected balance range.",
-    "Number of addresses that currently hold unspent outputs and satisfy the selected address predicate.",
-    "Number of addresses that have ever satisfied the selected address predicate, whether or not they currently hold unspent outputs.",
+    "Number of funded addresses grouped by balance at the represented block.",
+    "Number of addresses that hold unspent outputs at the represented block and satisfy an address predicate.",
+    "Number of addresses that have ever satisfied an address predicate, whether or not they hold unspent outputs at the represented block.",
     "Persisted state record for each address that currently holds at least one unspent output.",
     "Persisted state record for each previously seen address that currently holds no unspent outputs.",
-    "Balance held by currently funded addresses that satisfy the exposure predicate.",
+    "Balance held at the represented block by funded addresses that satisfy the exposure predicate.",
     "Exposed-address balance as a share of total supply; per-type variants divide by that address type's supply.",
-    "Balance held by currently funded addresses that satisfy the selected address predicate.",
-    "Balance held by addresses satisfying the selected predicate as a share of total supply; per-type variants divide by that address type's supply.",
+    "Balance held at the represented block by funded addresses that satisfy an address predicate.",
+    "Balance held by addresses satisfying an address predicate as a share of total supply; per-type variants divide by that address type's supply.",
     "Distinct addresses that received after previously being empty in the represented block.",
     "Distinct addresses that sent bitcoin in the represented block.",
     "Distinct addresses that received bitcoin in the represented block.",
     "Distinct addresses that both sent and received bitcoin in the represented block.",
     "Distinct addresses active in the represented block: sending plus receiving minus bidirectional addresses.",
-    "Mean value of a currently unspent output: unspent supply divided by unspent output count.",
+    "Mean value of an output unspent at the represented block: unspent supply divided by unspent output count.",
     "Mean balance of a funded address: unspent supply divided by funded address count.",
-    "Outputs classified by the selected address event rule. Reuse counts every output after an address's first lifetime receive; respending counts outputs to addresses with more than one prior lifetime spend. Multiple qualifying outputs to one address are counted separately.",
-    "Share of outputs classified by the selected address event rule, using the matching output type as denominator.",
-    "Share of spendable outputs classified by the selected address event rule; `OP_RETURN` outputs are excluded from the denominator.",
-    "Inputs spending from addresses that satisfied the selected predicate before that input: more than one prior lifetime receive for reuse, or more than one prior lifetime spend for respending. Multiple qualifying inputs from one address are counted separately.",
-    "Share of inputs spending from addresses that satisfy the selected predicate, using the matching input type as denominator.",
-    "Distinct active addresses in the represented block that satisfy the selected predicate after that block's events.",
-    "Share of distinct active addresses in the represented block that satisfy the selected predicate after that block's events.",
+    "Outputs classified by an address-event rule. Reuse counts every output after an address's first lifetime receive; respending counts outputs to addresses with more than one prior lifetime spend. Multiple qualifying outputs to one address are counted separately.",
+    "Share of outputs classified by an address-event rule, using the matching output type as denominator.",
+    "Share of spendable outputs classified by an address-event rule; `OP_RETURN` outputs are excluded from the denominator.",
+    "Inputs spending from addresses that satisfied an address predicate before that input: more than one prior lifetime receive for reuse, or more than one prior lifetime spend for respending. Multiple qualifying inputs from one address are counted separately.",
+    "Share of inputs spending from addresses that satisfy an address predicate, using the matching input type as denominator.",
+    "Distinct active addresses in the represented block that satisfy the address predicate after that block's events.",
+    "Share of distinct active addresses in the represented block that satisfy an address predicate after that block's events.",
 ];
 const POOL_ATTRIBUTION_DESCRIPTION: &str = "Mining pool attributed to each block. BRK first scans address-bearing outputs of the coinbase transaction for a known pool payout address; if none matches, it performs case-insensitive substring matching against known coinbase tags. Unmatched blocks are classified as `unknown`.";
 const POOL_BLOCKS_DESCRIPTION: &str =
-    "Block counts for the selected mining pool, using the per-height pool attribution series.";
+    "Block counts for a mining pool, using the per-height pool attribution series.";
 const POOL_BLOCK_DESCRIPTION: &str =
-    "One when the represented block is attributed to the selected pool; otherwise zero.";
-const POOL_BLOCKS_CUMULATIVE_DESCRIPTION: &str = "Number of blocks attributed to the selected pool from genesis through the represented height, inclusive.";
-const POOL_DOMINANCE_DESCRIPTION: &str = "Share of all blocks from genesis through the represented height attributed to the selected pool: cumulative pool block count divided by block height plus one.";
-const POOL_REWARDS_DESCRIPTION: &str = "Coinbase transaction output value for blocks attributed to the selected pool, and zero for other blocks. USD and cents representations value each included reward at that block's spot price.";
-const POOL_ROLLING_DOMINANCE_DESCRIPTION: &str = "Share of blocks in the named trailing timestamp window attributed to the selected pool: pool block count divided by total chain block count in that window.";
+    "One when the represented block is attributed to a mining pool; otherwise zero.";
+const POOL_BLOCKS_CUMULATIVE_DESCRIPTION: &str = "Number of blocks attributed to a mining pool from genesis through the represented height, inclusive.";
+const POOL_DOMINANCE_DESCRIPTION: &str = "Share of all blocks from genesis through the represented height attributed to a mining pool: cumulative pool block count divided by block height plus one.";
+const POOL_REWARDS_DESCRIPTION: &str = "Coinbase transaction output value for blocks attributed to a mining pool, and zero for other blocks. USD and cents representations value each included reward at that block's spot price.";
+const POOL_ROLLING_DOMINANCE_DESCRIPTION: &str = "Share of blocks in a trailing timestamp window attributed to a mining pool: pool block count divided by total chain block count in that window.";
 const POOL_SEMANTIC_DESCRIPTIONS: &[&str] = &[
     POOL_ATTRIBUTION_DESCRIPTION,
     POOL_BLOCKS_DESCRIPTION,
@@ -1052,7 +1067,97 @@ fn assert_audited_descriptions() {
     let plugins = DefaultPlugins::import(context, &reader).unwrap();
     let vecs = Vecs::build(&plugins);
 
-    let realized_price_description = format!("{REALIZED_PRICE_DESCRIPTION} {USD_DESCRIPTION}");
+    assert!(
+        catalog_node(vecs.catalog(), &["cohorts", "cohorts"]).is_none(),
+        "catalog contains a duplicated cohorts/cohorts branch"
+    );
+    for (side, expected_name) in [
+        ("profit", "utxos_in_profit_supply"),
+        ("loss", "utxos_in_loss_supply"),
+    ] {
+        let path = [
+            "cohorts",
+            "profitability",
+            "supply",
+            side,
+            "total",
+            "all",
+            "btc",
+        ];
+        let node = catalog_node(vecs.catalog(), &path)
+            .unwrap_or_else(|| panic!("missing {} catalog entry", path.join("/")));
+        let TreeNode::Leaf(info) = node else {
+            panic!("{} catalog entry is not a leaf", path.join("/"));
+        };
+        assert_eq!(info.name(), expected_name);
+
+        let duplicated_path = [
+            "cohorts",
+            "profitability",
+            "supply",
+            side,
+            "all",
+            "all",
+            "btc",
+        ];
+        assert!(
+            catalog_node(vecs.catalog(), &duplicated_path).is_none(),
+            "catalog retains duplicated {} path",
+            duplicated_path.join("/")
+        );
+    }
+    let transfer_type_path = [
+        "cohorts",
+        "activity",
+        "transfer_volume",
+        "cumulative",
+        "type",
+        "sats",
+        "cumulative",
+    ];
+    assert!(
+        catalog_node(vecs.catalog(), &transfer_type_path).is_some(),
+        "missing {} catalog entry",
+        transfer_type_path.join("/")
+    );
+    assert!(
+        catalog_node(
+            vecs.catalog(),
+            &[
+                "cohorts",
+                "activity",
+                "transfer_volume",
+                "cumulative",
+                "type_",
+            ],
+        )
+        .is_none(),
+        "catalog exposes the Rust-only type_ field spelling"
+    );
+    let capitalized_price = catalog_node(
+        vecs.catalog(),
+        &["cohorts", "realized", "capitalized_price", "all", "usd"],
+    )
+    .expect("missing cohorts/realized/capitalized_price/all/usd catalog entry");
+    let TreeNode::Leaf(capitalized_price) = capitalized_price else {
+        panic!("capitalized-price catalog entry is not a leaf");
+    };
+    assert_eq!(capitalized_price.name(), "capitalized_price");
+
+    let all_prefixed = vecs
+        .series_names()
+        .iter()
+        .filter(|name| name.starts_with("all_"))
+        .copied()
+        .collect::<Vec<_>>();
+    assert!(
+        all_prefixed.is_empty(),
+        "all-cohort series retain an all_ prefix: {all_prefixed:#?}"
+    );
+
+    let realized_price_description = format!(
+        "{REALIZED_PRICE_DESCRIPTION} {ALL_UTXOS_DESCRIPTION} {USD_DESCRIPTION}"
+    );
     assert_eq!(
         vecs.catalog()
             .descriptions()
@@ -1061,23 +1166,56 @@ fn assert_audited_descriptions() {
         Some(realized_price_description.as_str())
     );
 
-    for (name, representation) in [
-        ("realized_price", USD_DESCRIPTION),
-        ("realized_price_cents", CENTS_DESCRIPTION),
-        ("realized_price_sats", SATS_DESCRIPTION),
-        ("realized_price_ratio_ppm", PPM_DESCRIPTION),
-        ("realized_price_ratio", RATIO_DESCRIPTION),
-        ("lth_realized_price", USD_DESCRIPTION),
-        ("lth_realized_price_cents", CENTS_DESCRIPTION),
-        ("lth_realized_price_sats", SATS_DESCRIPTION),
-        ("lth_realized_price_ratio_ppm", PPM_DESCRIPTION),
-        ("lth_realized_price_ratio", RATIO_DESCRIPTION),
-        ("realized_price_cents_by_aggregate", CENTS_DESCRIPTION),
+    for (name, detail) in [
+        (
+            "realized_price",
+            format!("{ALL_UTXOS_DESCRIPTION} {USD_DESCRIPTION}"),
+        ),
+        (
+            "realized_price_cents",
+            format!("{ALL_UTXOS_DESCRIPTION} {CENTS_DESCRIPTION}"),
+        ),
+        (
+            "realized_price_sats",
+            format!("{ALL_UTXOS_DESCRIPTION} {SATS_DESCRIPTION}"),
+        ),
+        (
+            "realized_price_ratio_ppm",
+            format!("{ALL_UTXOS_DESCRIPTION} {PPM_DESCRIPTION}"),
+        ),
+        (
+            "realized_price_ratio",
+            format!("{ALL_UTXOS_DESCRIPTION} {RATIO_DESCRIPTION}"),
+        ),
+        (
+            "lth_realized_price",
+            format!("{LTH_UTXOS_DESCRIPTION} {USD_DESCRIPTION}"),
+        ),
+        (
+            "lth_realized_price_cents",
+            format!("{LTH_UTXOS_DESCRIPTION} {CENTS_DESCRIPTION}"),
+        ),
+        (
+            "lth_realized_price_sats",
+            format!("{LTH_UTXOS_DESCRIPTION} {SATS_DESCRIPTION}"),
+        ),
+        (
+            "lth_realized_price_ratio_ppm",
+            format!("{LTH_UTXOS_DESCRIPTION} {PPM_DESCRIPTION}"),
+        ),
+        (
+            "lth_realized_price_ratio",
+            format!("{LTH_UTXOS_DESCRIPTION} {RATIO_DESCRIPTION}"),
+        ),
+        (
+            "realized_price_cents_by_aggregate",
+            format!("{CENTS_DESCRIPTION} {AGGREGATE_MATRIX_DESCRIPTION}"),
+        ),
     ] {
         let info = vecs.series_info(&SeriesName::from(name)).unwrap();
         assert_eq!(
             info.description.as_deref(),
-            Some(format!("{REALIZED_PRICE_DESCRIPTION} {representation}").as_str()),
+            Some(format!("{REALIZED_PRICE_DESCRIPTION} {detail}").as_str()),
             "wrong description for {name}"
         );
     }
@@ -1115,9 +1253,17 @@ fn assert_audited_descriptions() {
         );
     }
 
-    for (base, semantic) in [
-        ("dca_stack_from_2020", DCA_CLASS_STACK_DESCRIPTION),
-        ("lump_sum_stack_1y", LUMP_SUM_STACK_DESCRIPTION),
+    for (base, semantic, period) in [
+        (
+            "dca_stack_from_2020",
+            DCA_CLASS_STACK_DESCRIPTION,
+            DCA_FROM_2020_DESCRIPTION,
+        ),
+        (
+            "lump_sum_stack_1y",
+            LUMP_SUM_STACK_DESCRIPTION,
+            DCA_PERIOD_1Y_DESCRIPTION,
+        ),
     ] {
         for (suffix, representation) in [
             ("", AMOUNT_BTC_DESCRIPTION),
@@ -1131,7 +1277,7 @@ fn assert_audited_descriptions() {
                 .unwrap_or_else(|| panic!("missing series {name}"));
             assert_eq!(
                 info.description.as_deref(),
-                Some(format!("{semantic} {representation}").as_str()),
+                Some(format!("{semantic} {period} {representation}").as_str()),
                 "wrong description for {name}"
             );
         }
@@ -1163,37 +1309,37 @@ fn assert_audited_descriptions() {
     for (name, semantic, representation) in [
         (
             "supply_in_profit",
-            "Unspent supply whose creation price is less than or equal to the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             AMOUNT_BTC_DESCRIPTION,
         ),
         (
             "supply_in_profit_sats",
-            "Unspent supply whose creation price is less than or equal to the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             AMOUNT_SATS_DESCRIPTION,
         ),
         (
             "supply_in_profit_usd",
-            "Unspent supply whose creation price is less than or equal to the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             AMOUNT_USD_DESCRIPTION,
         ),
         (
             "supply_in_profit_cents",
-            "Unspent supply whose creation price is less than or equal to the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             AMOUNT_CENTS_DESCRIPTION,
         ),
         (
-            "all_supply_in_profit_share_ppm",
-            "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+            "supply_in_profit_share_ppm",
+            "Share of an aggregate UTXO cohort's unspent supply whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             GENERIC_PPM_DESCRIPTION,
         ),
         (
-            "all_supply_in_profit_share_ratio",
-            "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+            "supply_in_profit_share_ratio",
+            "Share of an aggregate UTXO cohort's unspent supply whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             GENERIC_RATIO_DESCRIPTION,
         ),
         (
-            "all_supply_in_profit_share",
-            "Share of the selected cohort's unspent supply whose creation price is less than or equal to spot price.",
+            "supply_in_profit_share",
+            "Share of an aggregate UTXO cohort's unspent supply whose creation price is less than or equal to the represented block's spot price. Uses all UTXOs.",
             PERCENT_DESCRIPTION,
         ),
     ] {
@@ -1455,16 +1601,16 @@ fn assert_audited_descriptions() {
         );
     }
 
-    for name in [
-        "hash_rate_sma_1w",
-        "hash_rate_sma_1m",
-        "hash_rate_sma_2m",
-        "hash_rate_sma_1y",
+    for (name, duration) in [
+        ("hash_rate_sma_1w", "Uses a trailing 7-day duration."),
+        ("hash_rate_sma_1m", "Uses a trailing 30-day duration."),
+        ("hash_rate_sma_2m", "Uses a trailing 60-day duration."),
+        ("hash_rate_sma_1y", "Uses a trailing 365-day duration."),
     ] {
         let info = vecs.series_info(&SeriesName::from(name)).unwrap();
         assert_eq!(
             info.description.as_deref(),
-            Some(HASH_RATE_SMA_DESCRIPTION),
+            Some(format!("{HASH_RATE_SMA_DESCRIPTION} {duration}").as_str()),
             "wrong description for {name}"
         );
     }
@@ -2303,7 +2449,11 @@ fn assert_audited_descriptions() {
         "wrong small-plugin descriptions: {wrong_small_plugin_descriptions:#?}"
     );
 
-    for suffix in ["24h", "1w", "1m"] {
+    for (suffix, base_interval) in [
+        ("24h", "Uses a 1-day base interval."),
+        ("1w", "Uses a 7-day base interval."),
+        ("1m", "Uses a 30-day base interval."),
+    ] {
         for (field, detail) in [
             ("ema_fast", MACD_EMA_FAST_DESCRIPTION),
             ("ema_slow", MACD_EMA_SLOW_DESCRIPTION),
@@ -2312,7 +2462,7 @@ fn assert_audited_descriptions() {
             ("histogram", MACD_HISTOGRAM_DESCRIPTION),
         ] {
             let name = format!("macd_{field}_{suffix}");
-            let expected = format!("{MACD_DESCRIPTION} {detail}");
+            let expected = format!("{MACD_DESCRIPTION} {base_interval} {detail}");
             let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
             assert_eq!(
                 info.description.as_deref(),
@@ -2350,9 +2500,32 @@ fn assert_audited_descriptions() {
     );
     let mut audited_model_roots = 0;
     for (mode, mode_description) in BEDROCK_MODE_DESCRIPTIONS {
-        for percentile in ["pct95", "pct98", "pct99", "pct99_5", "pct99_9"] {
+        for (percentile, percentile_description) in [
+            (
+                "pct95",
+                "Uses the 95th percentile of the mode's supply-in-loss history.",
+            ),
+            (
+                "pct98",
+                "Uses the 98th percentile of the mode's supply-in-loss history.",
+            ),
+            (
+                "pct99",
+                "Uses the 99th percentile of the mode's supply-in-loss history.",
+            ),
+            (
+                "pct99_5",
+                "Uses the 99.5th percentile of the mode's supply-in-loss history.",
+            ),
+            (
+                "pct99_9",
+                "Uses the 99.9th percentile of the mode's supply-in-loss history.",
+            ),
+        ] {
             let name = format!("bedrock_{mode}_loss_threshold_{percentile}");
-            let expected = format!("{mode_description} {BEDROCK_LOSS_THRESHOLD_DESCRIPTION}");
+            let expected = format!(
+                "{mode_description} {BEDROCK_LOSS_THRESHOLD_DESCRIPTION} {percentile_description}"
+            );
             let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
             assert_eq!(
                 info.description.as_deref(),
@@ -2363,28 +2536,74 @@ fn assert_audited_descriptions() {
         }
     }
 
-    for component in [
-        "realized_price",
-        "capitalized_price",
-        "sth_realized_price",
-        "sth_capitalized_price",
-        "lth_realized_price",
-        "lth_capitalized_price",
-        "over_6m_realized_price",
-        "over_4m_realized_price",
-        "under_4m_realized_price",
-        "under_6m_realized_price",
-        "vaulted_price",
-        "active_price",
-        "true_market_mean_price",
-        "cointime_price",
-        "coinflow_price",
+    for (component, component_description) in [
+        (
+            "realized_price",
+            "Uses the all-chain realized price as the component price.",
+        ),
+        (
+            "capitalized_price",
+            "Uses the all-chain capitalized price as the component price.",
+        ),
+        (
+            "sth_realized_price",
+            "Uses the short-term-holder realized price as the component price.",
+        ),
+        (
+            "sth_capitalized_price",
+            "Uses the short-term-holder capitalized price as the component price.",
+        ),
+        (
+            "lth_realized_price",
+            "Uses the long-term-holder realized price as the component price.",
+        ),
+        (
+            "lth_capitalized_price",
+            "Uses the long-term-holder capitalized price as the component price.",
+        ),
+        (
+            "over_6m_realized_price",
+            "Uses the realized price of UTXOs at least 180 days old as the component price.",
+        ),
+        (
+            "over_4m_realized_price",
+            "Uses the realized price of UTXOs at least 120 days old as the component price.",
+        ),
+        (
+            "under_4m_realized_price",
+            "Uses the realized price of UTXOs less than 120 days old as the component price.",
+        ),
+        (
+            "under_6m_realized_price",
+            "Uses the realized price of UTXOs less than 180 days old as the component price.",
+        ),
+        (
+            "vaulted_price",
+            "Uses the cointime vaulted price as the component price.",
+        ),
+        (
+            "active_price",
+            "Uses the cointime active price as the component price.",
+        ),
+        (
+            "true_market_mean_price",
+            "Uses the cointime true market mean price as the component price.",
+        ),
+        (
+            "cointime_price",
+            "Uses the cointime price as the component price.",
+        ),
+        (
+            "coinflow_price",
+            "Uses the all-chain coinflow price as the component price.",
+        ),
     ] {
         let name = format!("{component}_ratios_ppm");
+        let expected = format!("{component_description} {RARITY_COMPONENT_RATIOS_DESCRIPTION}");
         let info = vecs.series_info(&SeriesName::from(name.as_str())).unwrap();
         assert_eq!(
             info.description.as_deref(),
-            Some(RARITY_COMPONENT_RATIOS_DESCRIPTION),
+            Some(expected.as_str()),
             "wrong description for {name}"
         );
         audited_model_roots += 1;
@@ -2517,7 +2736,9 @@ fn assert_audited_descriptions() {
     );
     let mut audited_framework_roots = 0;
     let mut assert_framework_description = |name: &str, expected: &str| {
-        let info = vecs.series_info(&SeriesName::from(name)).unwrap();
+        let info = vecs
+            .series_info(&SeriesName::from(name))
+            .unwrap_or_else(|| panic!("missing framework series {name}"));
         assert_eq!(
             info.description.as_deref(),
             Some(expected),
@@ -2636,7 +2857,7 @@ fn assert_audited_descriptions() {
             COINTIME_AWAKE_LOSS_DESCRIPTION,
         ),
         (
-            "all_awake_supply_in_loss_share",
+            "awake_supply_in_loss_share",
             COINTIME_AWAKE_LOSS_DESCRIPTION,
         ),
         (
@@ -2665,9 +2886,9 @@ fn assert_audited_descriptions() {
         assert_framework_description(name, expected);
     }
 
-    for aggregate in ["all", "sth", "lth"] {
+    for aggregate_prefix in ["", "sth_", "lth_"] {
         assert_framework_description(
-            &format!("{aggregate}_coinflow_supply_in_loss_share"),
+            &format!("{aggregate_prefix}coinflow_supply_in_loss_share"),
             COINFLOW_LOSS_DESCRIPTION,
         );
         for (horizon, horizon_description) in ["8y", "4y", "2y", "1y", "6m", "3m", "1m"]
@@ -2676,7 +2897,7 @@ fn assert_audited_descriptions() {
         {
             let expected = format!("{COINFLOW_HORIZON_LOSS_DESCRIPTION} {horizon_description}");
             assert_framework_description(
-                &format!("{aggregate}_coinflow_{horizon}_supply_in_loss_share"),
+                &format!("{aggregate_prefix}coinflow_{horizon}_supply_in_loss_share"),
                 &expected,
             );
         }
@@ -2912,51 +3133,51 @@ fn assert_audited_descriptions() {
         ),
         (
             "supply_sats_by_class",
-            "Amount of bitcoin held in unspent transaction outputs in the selected cohort.",
+            "Amount of bitcoin held in unspent transaction outputs.",
         ),
         (
             "supply_in_profit_sats_by_class",
-            "Unspent supply whose creation price is less than or equal to the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is less than or equal to the represented block's spot price.",
         ),
         (
             "supply_in_loss_sats_by_class",
-            "Unspent supply whose creation price is greater than the current spot price.",
+            "Unspent supply in a UTXO cohort whose creation price is greater than the represented block's spot price.",
         ),
         (
             "utxo_count_by_class",
-            "Number of currently unspent transaction outputs in the selected cohort.",
+            "Number of transaction outputs that are unspent at the represented block.",
         ),
         (
-            "all_coinyears_destroyed",
+            "coinyears_destroyed",
             "Coin years destroyed over the trailing 365-day window: the window's total coin days destroyed divided by 365.",
         ),
         (
-            "all_dormancy",
-            "Average age in days of transferred bitcoin over the named trailing window: coin days destroyed divided by transfer volume in BTC.",
+            "dormancy",
+            "For each supported trailing window, average age in days of transferred bitcoin: coin days destroyed divided by transfer volume in BTC.",
         ),
         (
             "realized_cap_cents_by_class",
-            "Creation-date value of the unspent outputs in the selected cohort: the sum of each output's creation price multiplied by its BTC value.",
+            "Creation-date value of a UTXO cohort's unspent outputs: the sum of each output's creation price multiplied by its BTC value.",
         ),
         (
             "realized_profit_cumulative_cents_by_class",
-            "Profit realized by outputs from the selected cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
+            "Profit realized by outputs from a UTXO cohort when spent: spending value minus creation-date value, counted only for profitable spends.",
         ),
         (
             "realized_loss_cumulative_cents_by_class",
-            "Loss realized by outputs from the selected cohort when spent: creation-date value minus spending value, counted only for losing spends.",
+            "Loss realized by outputs from a UTXO cohort when spent: creation-date value minus spending value, counted only for losing spends.",
         ),
         (
             "sopr_24h_by_class",
-            "24-hour spent output profit ratio for the selected cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
+            "24-hour spent output profit ratio for a UTXO cohort: spending value divided by creation-date value for outputs spent over the trailing 24 hours. Returns one when creation-date value is zero.",
         ),
         (
             "capitalized_price_cents_by_aggregate",
-            "Capital-weighted creation price of unspent outputs in the selected aggregate cohort: sum of creation price squared times sats divided by sum of creation price times sats.",
+            "Capital-weighted creation price of an aggregate UTXO cohort's unspent outputs: Σ(creation price² × unspent sats) / Σ(creation price × unspent sats). Returns zero when the cohort has no invested value.",
         ),
         (
             "mvrv",
-            "Market-value-to-realized-value ratio for the selected cohort: spot price divided by its realized price.",
+            "Market-value-to-realized-value (MVRV) ratio for a UTXO cohort: spot price divided by its realized price.",
         ),
         (
             "realized_loss_neg",
@@ -2968,7 +3189,7 @@ fn assert_audited_descriptions() {
         ),
         (
             "profitability_nupl_ppm",
-            "Net unrealized profit/loss as a share of market cap for the selected profitability range: spot price minus aggregate realized price, divided by spot price.",
+            "Net unrealized profit and loss as a share of market cap for a profitability cohort: spot price minus aggregate realized price, divided by spot price.",
         ),
         (
             "addr_count",
@@ -3004,15 +3225,15 @@ fn assert_audited_descriptions() {
         ),
         (
             "addrs_realized_cap_cents_by_balance_range",
-            "Creation-date value of unspent outputs controlled by funded addresses in the selected current balance range.",
+            "Creation-date value of unspent outputs controlled by funded addresses in an address-balance range at the represented block.",
         ),
         (
             "addrs_realized_profit_cumulative_cents_by_balance_range",
-            "Profit realized by addresses in the selected pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
+            "Profit realized by addresses in a pre-spend balance range: spending value minus creation-date value, counted only for profitable spends.",
         ),
         (
             "addrs_realized_loss_cumulative_cents_by_balance_range",
-            "Loss realized by addresses in the selected pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
+            "Loss realized by addresses in a pre-spend balance range: creation-date value minus spending value, counted only for losing spends.",
         ),
     ];
     for (name, semantic) in distribution_root_semantics {
@@ -3057,7 +3278,7 @@ fn assert_audited_descriptions() {
         ("realized price.", "realized_price"),
         ("realized_price", "realized_price"),
         ("supply in profit", "supply_in_profit"),
-        ("supply in profit share", "all_supply_in_profit_share"),
+        ("supply in profit share", "supply_in_profit_share"),
         ("short-term holder realized price", "sth_realized_price"),
         ("long term holder realized price", "lth_realized_price"),
         (
@@ -3171,6 +3392,16 @@ fn assert_audited_descriptions() {
 
 fn series_description(vecs: &Vecs<'_>, name: &str) -> Option<Cow<'static, str>> {
     vecs.series_info(&SeriesName::from(name))?.description
+}
+
+fn catalog_node<'a>(mut node: &'a TreeNode, path: &[&str]) -> Option<&'a TreeNode> {
+    for segment in path {
+        let TreeNode::Branch(children) = node else {
+            return None;
+        };
+        node = children.get(*segment)?;
+    }
+    Some(node)
 }
 
 fn series_has_plugin(vecs: &Vecs<'_>, name: &str, plugin: &str) -> bool {
@@ -3357,6 +3588,8 @@ fn is_audited_description(description: &str) -> bool {
         CAPITAL_SENTIMENT_SCORE_DESCRIPTION,
         BEDROCK_LOSS_THRESHOLD_DESCRIPTION,
         BEDROCK_PRICE_BANDS_DESCRIPTION,
+        BEDROCK_FLOOR_DESCRIPTION,
+        BEDROCK_LEVEL_DESCRIPTION,
         RARITY_COMPONENT_BANDS_DESCRIPTION,
         RARITY_COMPONENT_RATIOS_DESCRIPTION,
         RARITY_PRICES_DESCRIPTION,

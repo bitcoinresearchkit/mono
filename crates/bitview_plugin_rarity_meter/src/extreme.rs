@@ -66,7 +66,7 @@ const SELLER_EXHAUSTION: Config = Config {
 
 /// Historical extremeness of one metric.
 ///
-/// `tail` is the current observation's top- or bottom-tail share, the three
+/// `tail` is the represented observation's top- or bottom-tail share, the three
 /// `threshold` fields are the highlight boundaries, and `rank` is 0 through 3.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
@@ -76,24 +76,25 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    /// Historical source-value boundaries for 0.1%, 0.05%, and 0.025% tail
-    /// shares, in that column order. Boundaries use the configured history
-    /// before the current observation and the tail direction specified by the
-    /// series' extreme model.
+    /// Source values corresponding to rare historical tail probabilities before
+    /// the represented observation. An upper-tail event is extreme at or above
+    /// its boundary; a lower-tail event is extreme at or below it. The series'
+    /// model determines the history and direction.
     pub thresholds: ColumnarPerBlock<
         T,
         ExtremeThresholdId,
         ThresholdVecs<LazyColumnPerBlock<T, ExtremeThresholdId>>,
         M,
     >,
-    /// Share of accepted observations at least as extreme as the current
-    /// source value, in the model's configured upper or lower tail. The current
-    /// observation is included in both the numerator and denominator.
+    /// Historical tail share: the fraction of accepted observations at least as
+    /// extreme as the represented source value in the configured upper or lower
+    /// tail. A smaller percentage means a rarer observation. The represented
+    /// observation is included in both numerator and denominator.
     pub tail: PercentPerBlock<PartsPerMillion32, M>,
-    /// Discrete extremeness rank: 3 at or beyond the 0.025% tail boundary, 2 at
-    /// or beyond 0.05%, 1 at or beyond 0.1%, and 0 otherwise or while the model
-    /// is unavailable. Boundary direction is upper or lower as specified by the
-    /// series' extreme model.
+    /// Discrete extremeness rank, where a higher value means a rarer event: 3 at
+    /// or beyond the 0.025% tail boundary, 2 at or beyond 0.05%, 1 at or beyond
+    /// 0.1%, and 0 otherwise or while unavailable. The series' model determines
+    /// whether boundaries are crossed upward or downward.
     pub rank: PerBlock<StoredU8, M>,
 
     #[traversable(skip)]

@@ -12,10 +12,9 @@ use super::{SpentOutputCount, UnspentOutputCount};
 
 #[derive(Traversable)]
 pub struct OutputsVecs<M: StorageMode = Rw> {
-    /// Number of currently unspent transaction outputs in the selected cohort.
+    /// Number of transaction outputs that are unspent at the represented block.
     pub unspent_count: UnspentOutputCount<M>,
-    /// Number of transaction outputs from the selected cohort spent in each
-    /// block.
+    /// Number of outputs from a UTXO cohort spent in each block.
     pub spent_count: SpentOutputCount<M>,
 }
 

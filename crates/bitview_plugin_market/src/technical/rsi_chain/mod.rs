@@ -37,7 +37,9 @@ pub struct RsiChain<M: StorageMode = Rw> {
     #[traversable(hidden)]
     average_loss: PerBlock<StoredF32, M>,
     /// Wilder-smoothed average gain divided by the sum of Wilder-smoothed
-    /// average gain and loss. Returns 50% when both averages are zero.
+    /// average gain and loss. The result ranges from 0% to 100%; values above
+    /// 50% mean smoothed gains exceed losses, and values below 50% mean losses
+    /// exceed gains. Returns 50% when both averages are zero.
     pub rsi: PercentPerBlock<PartsPerMillion32, M>,
     #[traversable(hidden)]
     rsi_min: PercentPerBlock<PartsPerMillion32, M>,
@@ -46,10 +48,14 @@ pub struct RsiChain<M: StorageMode = Rw> {
     #[traversable(hidden)]
     stoch_rsi: PercentPerBlock<PartsPerMillion32, M>,
     /// Simple moving average of Stochastic RSI over three times the chain's
-    /// base interval. Stochastic RSI locates RSI within its trailing RSI range.
+    /// base interval. Stochastic RSI locates RSI within its trailing RSI range,
+    /// from 0% at the range minimum to 100% at the range maximum; this K line
+    /// smooths that position.
     pub stoch_rsi_k: PercentPerBlock<PartsPerMillion32, M>,
-    /// Simple moving average of the Stochastic RSI K line over three times the
-    /// chain's base interval.
+    /// Signal line for Stochastic RSI: the simple moving average of its K line
+    /// over three times the chain's base interval. K above D means the smoothed
+    /// position of RSI within its recent range is rising relative to this
+    /// slower signal; K below D means it is falling.
     pub stoch_rsi_d: PercentPerBlock<PartsPerMillion32, M>,
 }
 

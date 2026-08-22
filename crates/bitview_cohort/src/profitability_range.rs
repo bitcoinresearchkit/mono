@@ -223,30 +223,80 @@ impl ProfitabilityRange<CohortName> {
 /// (over_1000pct_in_profit, lowest cost basis) and advances as price crosses each boundary.
 #[derive(Debug, Default, Clone, Traversable, Serialize, JsonSchema)]
 pub struct ProfitabilityRange<T> {
+    /// Uses UTXOs whose represented-block spot price is more than 1,000% above
+    /// creation price.
     pub over_1000pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 500% and no
+    /// more than 1,000% above creation price.
     pub _500pct_to_1000pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 300% and no
+    /// more than 500% above creation price.
     pub _300pct_to_500pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 200% and no
+    /// more than 300% above creation price.
     pub _200pct_to_300pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 100% and no
+    /// more than 200% above creation price.
     pub _100pct_to_200pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 90% and no
+    /// more than 100% above creation price.
     pub _90pct_to_100pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 80% and no
+    /// more than 90% above creation price.
     pub _80pct_to_90pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 70% and no
+    /// more than 80% above creation price.
     pub _70pct_to_80pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 60% and no
+    /// more than 70% above creation price.
     pub _60pct_to_70pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 50% and no
+    /// more than 60% above creation price.
     pub _50pct_to_60pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 40% and no
+    /// more than 50% above creation price.
     pub _40pct_to_50pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 30% and no
+    /// more than 40% above creation price.
     pub _30pct_to_40pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 20% and no
+    /// more than 30% above creation price.
     pub _20pct_to_30pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is more than 10% and no
+    /// more than 20% above creation price.
     pub _10pct_to_20pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price is above creation price by
+    /// no more than 10%.
     pub _0pct_to_10pct_in_profit: T,
+    /// Uses UTXOs whose represented-block spot price equals creation price or
+    /// is less than 10% below it.
     pub _0pct_to_10pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 10% and less
+    /// than 20% below creation price.
     pub _10pct_to_20pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 20% and less
+    /// than 30% below creation price.
     pub _20pct_to_30pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 30% and less
+    /// than 40% below creation price.
     pub _30pct_to_40pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 40% and less
+    /// than 50% below creation price.
     pub _40pct_to_50pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 50% and less
+    /// than 60% below creation price.
     pub _50pct_to_60pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 60% and less
+    /// than 70% below creation price.
     pub _60pct_to_70pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 70% and less
+    /// than 80% below creation price.
     pub _70pct_to_80pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 80% and less
+    /// than 90% below creation price.
     pub _80pct_to_90pct_in_loss: T,
+    /// Uses UTXOs whose represented-block spot price is at least 90% below
+    /// creation price.
     pub _90pct_to_100pct_in_loss: T,
 }
 

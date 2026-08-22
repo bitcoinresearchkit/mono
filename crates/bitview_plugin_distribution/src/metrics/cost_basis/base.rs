@@ -8,21 +8,22 @@ use super::CostBasisSide;
 
 #[derive(Clone, Traversable)]
 pub struct CostBasis {
+    /// Restricts that cohort to outputs whose creation price is less than or
+    /// equal to the represented block's spot price.
     pub in_profit: CostBasisSide,
+    /// Restricts that cohort to outputs whose creation price is greater than the
+    /// represented block's spot price.
     pub in_loss: CostBasisSide,
-    /// Lowest creation price represented by an unspent output in the selected
-    /// cohort.
+    /// Lowest creation price among that cohort's unspent outputs.
     pub min: Price<LazyColumnPerBlock<Cents, UTXOAggregateId>>,
-    /// Highest creation price represented by an unspent output in the selected
-    /// cohort.
+    /// Highest creation price among that cohort's unspent outputs.
     pub max: Price<LazyColumnPerBlock<Cents, UTXOAggregateId>>,
-    /// Creation-price percentiles weighted by unspent satoshis in the selected
-    /// cohort.
+    /// Creation-price percentiles weighted by that cohort's unspent satoshis.
     pub per_coin: PercentilePrices<Price<LazyColumnPerBlock<Cents, PercentileId>>>,
-    /// Creation-price percentiles weighted by creation-date USD value in the
-    /// selected cohort.
+    /// Creation-price percentiles weighted by each output's USD value at
+    /// creation.
     pub per_dollar: PercentilePrices<Price<LazyColumnPerBlock<Cents, PercentileId>>>,
-    /// Share of the selected cohort's unspent supply with a creation price
-    /// within 5% above or below spot price.
+    /// Share of that cohort's unspent supply with a creation price within 5%
+    /// above or below the represented block's spot price.
     pub supply_density: LazyColumnPercentPerBlock<PartsPerMillion32, UTXOAggregateId>,
 }

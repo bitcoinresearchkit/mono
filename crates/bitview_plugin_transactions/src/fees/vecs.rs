@@ -34,7 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// transactions are zero.
     pub fee_rate: M::Stored<EagerVec<PcoVec<TxIndex, FeeRate>>>,
     /// Effective transaction fee rate in sat/vB after applying Bitcoin Core's
-    /// Single Fee Linearization independently to each same-block dependency
+    /// Single Fee Linearization (SFL) independently to each same-block dependency
     /// component. Every transaction in an ancestor-closed SFL chunk receives
     /// the chunk's combined fees divided by combined virtual size, rounded
     /// upward to the nearest 0.001 sat/vB. The transaction-index series

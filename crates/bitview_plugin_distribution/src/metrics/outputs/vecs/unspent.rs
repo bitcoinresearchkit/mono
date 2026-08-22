@@ -14,6 +14,7 @@ pub struct UnspentOutputCount<M: StorageMode = Rw> {
     pub cohorts: UTXOGroups<LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>>,
     #[traversable(flatten)]
     pub matrices: UTXOColumnarMetric<StoredU64, M>,
+    /// Groups funded addresses by their balance at the represented block.
     pub addr_balance: ColumnarAmount<
         StoredU64,
         LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,

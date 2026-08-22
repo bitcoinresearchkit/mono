@@ -9,6 +9,6 @@ pub struct NegRealizedLoss {
     #[traversable(flatten)]
     /// Negative realized loss for the represented block.
     pub base: LazyVec<Height, Dollars, Height, Cents>,
-    /// Sum of negative realized loss over the named trailing window.
+    /// Sum of negative realized loss over each supported trailing window.
     pub sum: Windows<LazyPerBlock<Dollars, Cents>>,
 }

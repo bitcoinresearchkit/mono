@@ -11,9 +11,10 @@ use super::{
 
 #[derive(Traversable)]
 pub struct AddrVecs<M: StorageMode = Rw> {
-    /// Addresses that currently hold at least one unspent output.
+    /// Addresses that hold at least one unspent output at the represented block.
     pub funded: FundedAddrCountsVecs<M>,
-    /// Previously seen addresses that currently hold no unspent outputs.
+    /// Previously seen addresses that hold no unspent outputs at the represented
+    /// block.
     pub empty: AddrCountsVecs<M>,
     pub activity: AddrActivityVecs<M>,
     /// All previously seen addresses, equal to funded addresses plus empty
@@ -31,8 +32,8 @@ pub struct AddrVecs<M: StorageMode = Rw> {
     /// P2PK and P2TR are exposed when funded; hashed script types become
     /// exposed when spent; P2A is excluded.
     pub exposed: ExposedAddrVecs<M>,
-    /// Change in funded address count over the named trailing window, with the
-    /// percentage change measured against the window's starting count.
+    /// Change in funded address count over a trailing window, with the relative
+    /// change measured against the window's starting count.
     pub delta: DeltaVecs,
     pub avg_amount: AvgAmountVecs<M>,
 }

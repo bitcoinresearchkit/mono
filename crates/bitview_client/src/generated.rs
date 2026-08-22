@@ -2861,7 +2861,7 @@ pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern5 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern12 {
+pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern13 {
     pub _10y_to_12y: BtcCentsSatsUsdPattern,
     pub _12y_to_15y: BtcCentsSatsUsdPattern,
     pub _18m_to_2y: BtcCentsSatsUsdPattern,
@@ -2888,7 +2888,7 @@ pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern12 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern13 {
+pub struct _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern14 {
     pub _10y_to_12y: CentsUsdPattern,
     pub _12y_to_15y: CentsUsdPattern,
     pub _18m_to_2y: CentsUsdPattern,
@@ -3319,7 +3319,7 @@ pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern5 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12 {
+pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13 {
     pub _10y: BtcCentsSatsUsdPattern,
     pub _12y: BtcCentsSatsUsdPattern,
     pub _15y: BtcCentsSatsUsdPattern,
@@ -3343,7 +3343,7 @@ pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12 {
+pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13 {
     pub _10y: BtcCentsSatsUsdPattern,
     pub _12y: BtcCentsSatsUsdPattern,
     pub _18m: BtcCentsSatsUsdPattern,
@@ -3367,7 +3367,7 @@ pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13 {
+pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern14 {
     pub _10y: CentsUsdPattern,
     pub _12y: CentsUsdPattern,
     pub _15y: CentsUsdPattern,
@@ -3391,7 +3391,7 @@ pub struct _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13 {
+pub struct _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern14 {
     pub _10y: CentsUsdPattern,
     pub _12y: CentsUsdPattern,
     pub _18m: CentsUsdPattern,
@@ -3713,7 +3713,7 @@ pub struct _20092010201120122013201420152016201720182019202020212022202320242025
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _200920102011201220132014201520162017201820192020202120222023202420252026Pattern12 {
+pub struct _200920102011201220132014201520162017201820192020202120222023202420252026Pattern13 {
     pub _2009: BtcCentsSatsUsdPattern,
     pub _2010: BtcCentsSatsUsdPattern,
     pub _2011: BtcCentsSatsUsdPattern,
@@ -3735,7 +3735,7 @@ pub struct _20092010201120122013201420152016201720182019202020212022202320242025
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _200920102011201220132014201520162017201820192020202120222023202420252026Pattern13 {
+pub struct _200920102011201220132014201520162017201820192020202120222023202420252026Pattern14 {
     pub _2009: CentsUsdPattern,
     pub _2010: CentsUsdPattern,
     pub _2011: CentsUsdPattern,
@@ -4243,7 +4243,7 @@ impl _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern9 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2 {
+pub struct _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctTotalPattern2 {
     pub _100pct: AllLthSthPattern4,
     pub _10pct: AllLthSthPattern4,
     pub _200pct: AllLthSthPattern4,
@@ -4257,7 +4257,7 @@ pub struct _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pc
     pub _70pct: AllLthSthPattern4,
     pub _80pct: AllLthSthPattern4,
     pub _90pct: AllLthSthPattern4,
-    pub all: AllLthSthPattern4,
+    pub total: AllLthSthPattern4,
 }
 
 /// Pattern struct for repeated tree structure.
@@ -4941,16 +4941,16 @@ impl _10y1m1w1y2y3m3y4y5y6m6y8yPattern2 {
 
 /// Pattern struct for repeated tree structure.
 pub struct AgeAllClassEntryEpochTermTypePattern2 {
-    pub age: OverRangeUnderPattern21,
+    pub age: OverRangeUnderPattern22,
     pub age_range_matrix: SeriesPattern18<Sats>,
     pub all: BtcCentsSatsUsdPattern,
-    pub class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern12,
+    pub class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern13,
     pub class_matrix: SeriesPattern18<Sats>,
-    pub entry: DiscountPremiumPattern12,
+    pub entry: DiscountPremiumPattern13,
     pub entry_matrix: SeriesPattern18<Sats>,
-    pub epoch: _01234Pattern12,
+    pub epoch: _01234Pattern13,
     pub epoch_matrix: SeriesPattern18<Sats>,
-    pub term: LongShortPattern13,
+    pub term: LongShortPattern14,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10,
     pub type_matrix: SeriesPattern18<Sats>,
 }
@@ -5272,7 +5272,7 @@ pub struct AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2 {
+pub struct _10pct20pct30pct40pct50pct60pct70pct80pctTotalPattern2 {
     pub _10pct: AllLthSthPattern4,
     pub _20pct: AllLthSthPattern4,
     pub _30pct: AllLthSthPattern4,
@@ -5281,7 +5281,7 @@ pub struct _10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2 {
     pub _60pct: AllLthSthPattern4,
     pub _70pct: AllLthSthPattern4,
     pub _80pct: AllLthSthPattern4,
-    pub all: AllLthSthPattern4,
+    pub total: AllLthSthPattern4,
 }
 
 /// Pattern struct for repeated tree structure.
@@ -5746,7 +5746,7 @@ pub struct _01234Pattern5 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _01234Pattern12 {
+pub struct _01234Pattern13 {
     pub _0: BtcCentsSatsUsdPattern,
     pub _1: BtcCentsSatsUsdPattern,
     pub _2: BtcCentsSatsUsdPattern,
@@ -5755,7 +5755,7 @@ pub struct _01234Pattern12 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct _01234Pattern13 {
+pub struct _01234Pattern14 {
     pub _0: CentsUsdPattern,
     pub _1: CentsUsdPattern,
     pub _2: CentsUsdPattern,
@@ -6140,6 +6140,26 @@ impl _1m1w1y24hPattern6 {
 }
 
 /// Pattern struct for repeated tree structure.
+pub struct _1m1w1y24hPattern8 {
+    pub _1m: CentsUsdPattern5,
+    pub _1w: CentsUsdPattern5,
+    pub _1y: CentsUsdPattern5,
+    pub _24h: CentsUsdPattern5,
+}
+
+impl _1m1w1y24hPattern8 {
+    /// Create a new pattern node with accumulated series name.
+    pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
+        Self {
+            _1m: CentsUsdPattern5::new(client.clone(), _m(&acc, "1m")),
+            _1w: CentsUsdPattern5::new(client.clone(), _m(&acc, "1w")),
+            _1y: CentsUsdPattern5::new(client.clone(), _m(&acc, "1y")),
+            _24h: CentsUsdPattern5::new(client.clone(), _m(&acc, "24h")),
+        }
+    }
+}
+
+/// Pattern struct for repeated tree structure.
 pub struct _1m1w1y24hPattern2 {
     pub _1m: PercentPpmRatioPattern,
     pub _1w: PercentPpmRatioPattern,
@@ -6219,6 +6239,26 @@ impl AverageBlockCumulativeSumPattern2 {
             block: BtcCentsSatsUsdPattern3::new(client.clone(), acc.clone()),
             cumulative: BtcCentsSatsUsdPattern::new(client.clone(), _m(&acc, "cumulative")),
             sum: _1m1w1y24hPattern4::new(client.clone(), _m(&acc, "sum")),
+        }
+    }
+}
+
+/// Pattern struct for repeated tree structure.
+pub struct AverageBlockCumulativeSumPattern3 {
+    pub average: _1m1w1y24hPattern8,
+    pub block: CentsUsdPattern3,
+    pub cumulative: CentsUsdPattern,
+    pub sum: _1m1w1y24hPattern7,
+}
+
+impl AverageBlockCumulativeSumPattern3 {
+    /// Create a new pattern node with accumulated series name.
+    pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
+        Self {
+            average: _1m1w1y24hPattern8::new(client.clone(), _m(&acc, "average")),
+            block: CentsUsdPattern3::new(client.clone(), acc.clone()),
+            cumulative: CentsUsdPattern::new(client.clone(), _m(&acc, "cumulative")),
+            sum: _1m1w1y24hPattern7::new(client.clone(), _m(&acc, "sum")),
         }
     }
 }
@@ -6314,8 +6354,8 @@ pub struct CapHorizonPriceSupplyPattern2 {
 /// Pattern struct for repeated tree structure.
 pub struct HeightLossProfitRangePattern2 {
     pub height: SeriesPattern18<Cents>,
-    pub loss: _10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2,
-    pub profit: _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2,
+    pub loss: _10pct20pct30pct40pct50pct60pct70pct80pctTotalPattern2,
+    pub profit: _100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctTotalPattern2,
     pub range:
         _0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2,
 }
@@ -6427,7 +6467,7 @@ impl AllLthSthPattern6 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
-            all: PercentPpmRatioPattern2::new(client.clone(), _p("all", &acc)),
+            all: PercentPpmRatioPattern2::new(client.clone(), acc.clone()),
             lth: PercentPpmRatioPattern2::new(client.clone(), _p("lth", &acc)),
             sth: PercentPpmRatioPattern2::new(client.clone(), _p("sth", &acc)),
         }
@@ -6445,7 +6485,7 @@ impl AllLthSthPattern2 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
-            all: _1m1w1y24hHeightPattern::new(client.clone(), _p("all", &acc)),
+            all: _1m1w1y24hHeightPattern::new(client.clone(), acc.clone()),
             lth: _1m1w1y24hHeightPattern::new(client.clone(), _p("lth", &acc)),
             sth: _1m1w1y24hHeightPattern::new(client.clone(), _p("sth", &acc)),
         }
@@ -6634,13 +6674,13 @@ pub struct OverRangeUnderPattern11 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct OverRangeUnderPattern17 {
+pub struct OverRangeUnderPattern18 {
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern8,
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern8,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern8,
 }
 
-impl OverRangeUnderPattern17 {
+impl OverRangeUnderPattern18 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -6661,13 +6701,13 @@ impl OverRangeUnderPattern17 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct OverRangeUnderPattern19 {
+pub struct OverRangeUnderPattern20 {
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern9,
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern9,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern9,
 }
 
-impl OverRangeUnderPattern19 {
+impl OverRangeUnderPattern20 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -6695,17 +6735,17 @@ pub struct OverRangeUnderPattern {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct OverRangeUnderPattern21 {
-    pub over: _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12,
-    pub range: _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern12,
-    pub under: _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern12,
-}
-
-/// Pattern struct for repeated tree structure.
-pub struct OverRangeUnderPattern23 {
+pub struct OverRangeUnderPattern22 {
     pub over: _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13,
     pub range: _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern13,
     pub under: _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern13,
+}
+
+/// Pattern struct for repeated tree structure.
+pub struct OverRangeUnderPattern24 {
+    pub over: _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern14,
+    pub range: _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern14,
+    pub under: _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern14,
 }
 
 /// Pattern struct for repeated tree structure.
@@ -7112,6 +7152,22 @@ impl CentsSatsPattern {
 }
 
 /// Pattern struct for repeated tree structure.
+pub struct CentsUsdPattern5 {
+    pub cents: SeriesPattern1<StoredF32>,
+    pub usd: SeriesPattern1<Dollars>,
+}
+
+impl CentsUsdPattern5 {
+    /// Create a new pattern node with accumulated series name.
+    pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
+        Self {
+            cents: SeriesPattern1::new(client.clone(), _m(&acc, "cents")),
+            usd: SeriesPattern1::new(client.clone(), _m(&acc, "usd")),
+        }
+    }
+}
+
+/// Pattern struct for repeated tree structure.
 pub struct DiscountPremiumPattern {
     pub discount: AverageBlockCumulativeSumPattern<StoredF64>,
     pub premium: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -7160,12 +7216,12 @@ impl DiscountPremiumPattern5 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct DiscountPremiumPattern12 {
+pub struct DiscountPremiumPattern13 {
     pub discount: BtcCentsSatsUsdPattern,
     pub premium: BtcCentsSatsUsdPattern,
 }
 
-impl DiscountPremiumPattern12 {
+impl DiscountPremiumPattern13 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -7176,12 +7232,12 @@ impl DiscountPremiumPattern12 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct DiscountPremiumPattern13 {
+pub struct DiscountPremiumPattern14 {
     pub discount: CentsUsdPattern,
     pub premium: CentsUsdPattern,
 }
 
-impl DiscountPremiumPattern13 {
+impl DiscountPremiumPattern14 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -7252,12 +7308,12 @@ impl LongShortPattern6 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct LongShortPattern13 {
+pub struct LongShortPattern14 {
     pub long: BtcCentsSatsUsdPattern,
     pub short: BtcCentsSatsUsdPattern,
 }
 
-impl LongShortPattern13 {
+impl LongShortPattern14 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -7268,12 +7324,12 @@ impl LongShortPattern13 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct LongShortPattern14 {
+pub struct LongShortPattern15 {
     pub long: CentsUsdPattern,
     pub short: CentsUsdPattern,
 }
 
-impl LongShortPattern14 {
+impl LongShortPattern15 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -11998,7 +12054,7 @@ impl SeriesTree_Cointime {
                 format!("{base_path}_age_range"),
             ),
             awake: SeriesTree_Cointime_Awake::new(client.clone(), format!("{base_path}_awake")),
-            dormant: SupplyPattern2::new(client.clone(), "all_dormant_supply".to_string()),
+            dormant: SupplyPattern2::new(client.clone(), "dormant_supply".to_string()),
             sth: SeriesTree_Cointime_Sth::new(client.clone(), format!("{base_path}_sth")),
             lth: SeriesTree_Cointime_Lth::new(client.clone(), format!("{base_path}_lth")),
             sources: SeriesTree_Cointime_Sources::new(
@@ -13050,8 +13106,8 @@ impl SeriesTree_Cointime_Awake {
                 client.clone(),
                 format!("{base_path}_supply"),
             ),
-            cap: CentsUsdPattern::new(client.clone(), "all_awake_cap".to_string()),
-            price: CentsPpmRatioSatsUsdPattern::new(client.clone(), "all_awake_price".to_string()),
+            cap: CentsUsdPattern::new(client.clone(), "awake_cap".to_string()),
+            price: CentsPpmRatioSatsUsdPattern::new(client.clone(), "awake_price".to_string()),
         }
     }
 }
@@ -13068,14 +13124,11 @@ pub struct SeriesTree_Cointime_Awake_Supply {
 impl SeriesTree_Cointime_Awake_Supply {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            btc: SeriesPattern1::new(client.clone(), "all_awake_supply".to_string()),
-            sats: SeriesPattern1::new(client.clone(), "all_awake_supply_sats".to_string()),
-            usd: SeriesPattern1::new(client.clone(), "all_awake_supply_usd".to_string()),
-            cents: SeriesPattern1::new(client.clone(), "all_awake_supply_cents".to_string()),
-            in_loss: SharePattern3::new(
-                client.clone(),
-                "all_awake_supply_in_loss_share".to_string(),
-            ),
+            btc: SeriesPattern1::new(client.clone(), "awake_supply".to_string()),
+            sats: SeriesPattern1::new(client.clone(), "awake_supply_sats".to_string()),
+            usd: SeriesPattern1::new(client.clone(), "awake_supply_usd".to_string()),
+            cents: SeriesPattern1::new(client.clone(), "awake_supply_cents".to_string()),
+            in_loss: SharePattern3::new(client.clone(), "awake_supply_in_loss_share".to_string()),
         }
     }
 }
@@ -13415,12 +13468,9 @@ impl SeriesTree_Coinflow {
                 format!("{base_path}_age_range"),
             ),
             supply: SeriesTree_Coinflow_Supply::new(client.clone(), format!("{base_path}_supply")),
-            horizon: _1m1y2y3m4y6m8yPattern2::new(client.clone(), "all_coinflow".to_string()),
-            cap: CentsUsdPattern::new(client.clone(), "all_coinflow_cap".to_string()),
-            price: CentsPpmRatioSatsUsdPattern::new(
-                client.clone(),
-                "all_coinflow_price".to_string(),
-            ),
+            horizon: _1m1y2y3m4y6m8yPattern2::new(client.clone(), "coinflow".to_string()),
+            cap: CentsUsdPattern::new(client.clone(), "coinflow_cap".to_string()),
+            price: CentsPpmRatioSatsUsdPattern::new(client.clone(), "coinflow_price".to_string()),
             sth: SeriesTree_Coinflow_Sth::new(client.clone(), format!("{base_path}_sth")),
             lth: SeriesTree_Coinflow_Lth::new(client.clone(), format!("{base_path}_lth")),
             aggregate_sources: SeriesTree_Coinflow_AggregateSources::new(
@@ -14146,10 +14196,7 @@ impl SeriesTree_Coinflow_Supply {
                 client.clone(),
                 format!("{base_path}_mobile"),
             ),
-            immobile: BtcCentsSatsUsdPattern::new(
-                client.clone(),
-                "all_immobile_supply".to_string(),
-            ),
+            immobile: BtcCentsSatsUsdPattern::new(client.clone(), "immobile_supply".to_string()),
         }
     }
 }
@@ -14166,13 +14213,13 @@ pub struct SeriesTree_Coinflow_Supply_Mobile {
 impl SeriesTree_Coinflow_Supply_Mobile {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            btc: SeriesPattern1::new(client.clone(), "all_mobile_supply".to_string()),
-            sats: SeriesPattern1::new(client.clone(), "all_mobile_supply_sats".to_string()),
-            usd: SeriesPattern1::new(client.clone(), "all_mobile_supply_usd".to_string()),
-            cents: SeriesPattern1::new(client.clone(), "all_mobile_supply_cents".to_string()),
+            btc: SeriesPattern1::new(client.clone(), "mobile_supply".to_string()),
+            sats: SeriesPattern1::new(client.clone(), "mobile_supply_sats".to_string()),
+            usd: SeriesPattern1::new(client.clone(), "mobile_supply_usd".to_string()),
+            cents: SeriesPattern1::new(client.clone(), "mobile_supply_cents".to_string()),
             in_loss: SharePattern3::new(
                 client.clone(),
-                "all_coinflow_supply_in_loss_share".to_string(),
+                "coinflow_supply_in_loss_share".to_string(),
             ),
         }
     }
@@ -16840,64 +16887,45 @@ impl SeriesTree_Supply_Velocity {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts {
-    pub cohorts: SeriesTree_Cohorts_Cohorts,
+    pub supply: SeriesTree_Cohorts_Supply,
+    pub outputs: SeriesTree_Cohorts_Outputs,
+    pub activity: SeriesTree_Cohorts_Activity,
+    pub realized: SeriesTree_Cohorts_Realized,
+    pub unrealized: SeriesTree_Cohorts_Unrealized,
+    pub cost_basis: SeriesTree_Cohorts_CostBasis,
+    pub relative: SeriesTree_Cohorts_Relative,
+    pub profitability: SeriesTree_Cohorts_Profitability,
 }
 
 impl SeriesTree_Cohorts {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            cohorts: SeriesTree_Cohorts_Cohorts::new(
-                client.clone(),
-                format!("{base_path}_cohorts"),
-            ),
-        }
-    }
-}
-
-/// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts {
-    pub supply: SeriesTree_Cohorts_Cohorts_Supply,
-    pub outputs: SeriesTree_Cohorts_Cohorts_Outputs,
-    pub activity: SeriesTree_Cohorts_Cohorts_Activity,
-    pub realized: SeriesTree_Cohorts_Cohorts_Realized,
-    pub unrealized: SeriesTree_Cohorts_Cohorts_Unrealized,
-    pub cost_basis: SeriesTree_Cohorts_Cohorts_CostBasis,
-    pub relative: SeriesTree_Cohorts_Cohorts_Relative,
-    pub profitability: SeriesTree_Cohorts_Cohorts_Profitability,
-}
-
-impl SeriesTree_Cohorts_Cohorts {
-    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
-        Self {
-            supply: SeriesTree_Cohorts_Cohorts_Supply::new(
-                client.clone(),
-                format!("{base_path}_supply"),
-            ),
-            outputs: SeriesTree_Cohorts_Cohorts_Outputs::new(
+            supply: SeriesTree_Cohorts_Supply::new(client.clone(), format!("{base_path}_supply")),
+            outputs: SeriesTree_Cohorts_Outputs::new(
                 client.clone(),
                 format!("{base_path}_outputs"),
             ),
-            activity: SeriesTree_Cohorts_Cohorts_Activity::new(
+            activity: SeriesTree_Cohorts_Activity::new(
                 client.clone(),
                 format!("{base_path}_activity"),
             ),
-            realized: SeriesTree_Cohorts_Cohorts_Realized::new(
+            realized: SeriesTree_Cohorts_Realized::new(
                 client.clone(),
                 format!("{base_path}_realized"),
             ),
-            unrealized: SeriesTree_Cohorts_Cohorts_Unrealized::new(
+            unrealized: SeriesTree_Cohorts_Unrealized::new(
                 client.clone(),
                 format!("{base_path}_unrealized"),
             ),
-            cost_basis: SeriesTree_Cohorts_Cohorts_CostBasis::new(
+            cost_basis: SeriesTree_Cohorts_CostBasis::new(
                 client.clone(),
                 format!("{base_path}_cost_basis"),
             ),
-            relative: SeriesTree_Cohorts_Cohorts_Relative::new(
+            relative: SeriesTree_Cohorts_Relative::new(
                 client.clone(),
                 format!("{base_path}_relative"),
             ),
-            profitability: SeriesTree_Cohorts_Cohorts_Profitability::new(
+            profitability: SeriesTree_Cohorts_Profitability::new(
                 client.clone(),
                 format!("{base_path}_profitability"),
             ),
@@ -16906,44 +16934,41 @@ impl SeriesTree_Cohorts_Cohorts {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply {
-    pub total: SeriesTree_Cohorts_Cohorts_Supply_Total,
-    pub matured: SeriesTree_Cohorts_Cohorts_Supply_Matured,
-    pub half: SeriesTree_Cohorts_Cohorts_Supply_Half,
-    pub in_profit: SeriesTree_Cohorts_Cohorts_Supply_InProfit,
-    pub in_loss: SeriesTree_Cohorts_Cohorts_Supply_InLoss,
-    pub delta: SeriesTree_Cohorts_Cohorts_Supply_Delta,
-    pub dominance: SeriesTree_Cohorts_Cohorts_Supply_Dominance,
+pub struct SeriesTree_Cohorts_Supply {
+    pub total: SeriesTree_Cohorts_Supply_Total,
+    pub matured: SeriesTree_Cohorts_Supply_Matured,
+    pub half: SeriesTree_Cohorts_Supply_Half,
+    pub in_profit: SeriesTree_Cohorts_Supply_InProfit,
+    pub in_loss: SeriesTree_Cohorts_Supply_InLoss,
+    pub delta: SeriesTree_Cohorts_Supply_Delta,
+    pub dominance: SeriesTree_Cohorts_Supply_Dominance,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply {
+impl SeriesTree_Cohorts_Supply {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            total: SeriesTree_Cohorts_Cohorts_Supply_Total::new(
+            total: SeriesTree_Cohorts_Supply_Total::new(
                 client.clone(),
                 format!("{base_path}_total"),
             ),
-            matured: SeriesTree_Cohorts_Cohorts_Supply_Matured::new(
+            matured: SeriesTree_Cohorts_Supply_Matured::new(
                 client.clone(),
                 format!("{base_path}_matured"),
             ),
-            half: SeriesTree_Cohorts_Cohorts_Supply_Half::new(
-                client.clone(),
-                format!("{base_path}_half"),
-            ),
-            in_profit: SeriesTree_Cohorts_Cohorts_Supply_InProfit::new(
+            half: SeriesTree_Cohorts_Supply_Half::new(client.clone(), format!("{base_path}_half")),
+            in_profit: SeriesTree_Cohorts_Supply_InProfit::new(
                 client.clone(),
                 format!("{base_path}_in_profit"),
             ),
-            in_loss: SeriesTree_Cohorts_Cohorts_Supply_InLoss::new(
+            in_loss: SeriesTree_Cohorts_Supply_InLoss::new(
                 client.clone(),
                 format!("{base_path}_in_loss"),
             ),
-            delta: SeriesTree_Cohorts_Cohorts_Supply_Delta::new(
+            delta: SeriesTree_Cohorts_Supply_Delta::new(
                 client.clone(),
                 format!("{base_path}_delta"),
             ),
-            dominance: SeriesTree_Cohorts_Cohorts_Supply_Dominance::new(
+            dominance: SeriesTree_Cohorts_Supply_Dominance::new(
                 client.clone(),
                 format!("{base_path}_dominance"),
             ),
@@ -16952,14 +16977,14 @@ impl SeriesTree_Cohorts_Cohorts_Supply {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total {
+pub struct SeriesTree_Cohorts_Supply_Total {
     pub all: BtcCentsSatsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_Total_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_Total_Class,
-    pub entry: DiscountPremiumPattern12,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Supply_Total_UtxoAmount,
-    pub term: LongShortPattern13,
+    pub age: SeriesTree_Cohorts_Supply_Total_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_Total_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_Total_Class,
+    pub entry: DiscountPremiumPattern13,
+    pub utxo_amount: SeriesTree_Cohorts_Supply_Total_UtxoAmount,
+    pub term: LongShortPattern14,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10,
     pub age_range_matrix: SeriesPattern18<Sats>,
     pub epoch_matrix: SeriesPattern18<Sats>,
@@ -16967,31 +16992,31 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total {
     pub entry_matrix: SeriesPattern18<Sats>,
     pub type_matrix: SeriesPattern18<Sats>,
     pub amount_range_matrix: SeriesPattern18<Sats>,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Supply_Total_AddrBalance,
+    pub addr_balance: SeriesTree_Cohorts_Supply_Total_AddrBalance,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total {
+impl SeriesTree_Cohorts_Supply_Total {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BtcCentsSatsUsdPattern::new(client.clone(), "supply".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_Total_Age::new(
+            age: SeriesTree_Cohorts_Supply_Total_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_Total_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_Total_Class::new(
+            class: SeriesTree_Cohorts_Supply_Total_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern12::new(client.clone(), "supply".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Supply_Total_UtxoAmount::new(
+            entry: DiscountPremiumPattern13::new(client.clone(), "supply".to_string()),
+            utxo_amount: SeriesTree_Cohorts_Supply_Total_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
-            term: LongShortPattern13::new(client.clone(), "supply".to_string()),
+            term: LongShortPattern14::new(client.clone(), "supply".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10::new(
                 client.clone(),
                 "supply".to_string(),
@@ -17008,7 +17033,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total {
                 client.clone(),
                 "utxos_supply_sats_by_amount_range".to_string(),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Supply_Total_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Supply_Total_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
@@ -17017,24 +17042,24 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_Total_Age {
+    pub range: SeriesTree_Cohorts_Supply_Total_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_Total_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_Total_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age {
+impl SeriesTree_Cohorts_Supply_Total_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_Total_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_Total_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_Total_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -17043,7 +17068,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_Total_Age_Range {
     pub under_1h: BtcCentsSatsUsdPattern,
     pub _1h_to_1d: BtcCentsSatsUsdPattern,
     pub _1d_to_1w: BtcCentsSatsUsdPattern,
@@ -17069,7 +17094,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range {
     pub over_15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range {
+impl SeriesTree_Cohorts_Supply_Total_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BtcCentsSatsUsdPattern::new(
@@ -17169,7 +17194,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_Total_Age_Under {
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
     pub _2m: BtcCentsSatsUsdPattern,
@@ -17192,7 +17217,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under {
     pub _15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under {
+impl SeriesTree_Cohorts_Supply_Total_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BtcCentsSatsUsdPattern::new(
@@ -17280,7 +17305,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_Total_Age_Over {
     pub _1d: BtcCentsSatsUsdPattern,
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
@@ -17303,7 +17328,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over {
     pub _12y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over {
+impl SeriesTree_Cohorts_Supply_Total_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BtcCentsSatsUsdPattern::new(
@@ -17391,7 +17416,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch {
+pub struct SeriesTree_Cohorts_Supply_Total_Epoch {
     pub _0: BtcCentsSatsUsdPattern,
     pub _1: BtcCentsSatsUsdPattern,
     pub _2: BtcCentsSatsUsdPattern,
@@ -17399,7 +17424,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch {
     pub _4: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch {
+impl SeriesTree_Cohorts_Supply_Total_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BtcCentsSatsUsdPattern::new(client.clone(), "epoch_0_supply".to_string()),
@@ -17412,7 +17437,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Class {
+pub struct SeriesTree_Cohorts_Supply_Total_Class {
     pub _2009: BtcCentsSatsUsdPattern,
     pub _2010: BtcCentsSatsUsdPattern,
     pub _2011: BtcCentsSatsUsdPattern,
@@ -17433,7 +17458,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_Class {
     pub _2026: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_Class {
+impl SeriesTree_Cohorts_Supply_Total_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BtcCentsSatsUsdPattern::new(client.clone(), "class_2009_supply".to_string()),
@@ -17459,13 +17484,13 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_UtxoAmount {
+pub struct SeriesTree_Cohorts_Supply_Total_UtxoAmount {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern10,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern10,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern10,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_UtxoAmount {
+impl SeriesTree_Cohorts_Supply_Total_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern10::new(
@@ -17485,14 +17510,14 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Total_AddrBalance {
+pub struct SeriesTree_Cohorts_Supply_Total_AddrBalance {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern10,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern10,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern10,
     pub matrix: SeriesPattern18<Sats>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Total_AddrBalance {
+impl SeriesTree_Cohorts_Supply_Total_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern10::new(
@@ -17516,7 +17541,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Total_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Matured {
+pub struct SeriesTree_Cohorts_Supply_Matured {
     pub under_1h: AverageBlockCumulativeSumPattern2,
     pub _1h_to_1d: AverageBlockCumulativeSumPattern2,
     pub _1d_to_1w: AverageBlockCumulativeSumPattern2,
@@ -17544,7 +17569,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Matured {
     pub cents: CumulativePattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Matured {
+impl SeriesTree_Cohorts_Supply_Matured {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: AverageBlockCumulativeSumPattern2::new(
@@ -17652,34 +17677,34 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Matured {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half {
+pub struct SeriesTree_Cohorts_Supply_Half {
     pub all: BtcCentsSatsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_Half_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_Half_Class,
-    pub entry: DiscountPremiumPattern12,
-    pub term: LongShortPattern13,
+    pub age: SeriesTree_Cohorts_Supply_Half_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_Half_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_Half_Class,
+    pub entry: DiscountPremiumPattern13,
+    pub term: LongShortPattern14,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half {
+impl SeriesTree_Cohorts_Supply_Half {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BtcCentsSatsUsdPattern::new(client.clone(), "supply_half".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_Half_Age::new(
+            age: SeriesTree_Cohorts_Supply_Half_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_Half_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_Half_Class::new(
+            class: SeriesTree_Cohorts_Supply_Half_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern12::new(client.clone(), "supply_half".to_string()),
-            term: LongShortPattern13::new(client.clone(), "supply_half".to_string()),
+            entry: DiscountPremiumPattern13::new(client.clone(), "supply_half".to_string()),
+            term: LongShortPattern14::new(client.clone(), "supply_half".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10::new(
                 client.clone(),
                 "supply_half".to_string(),
@@ -17689,24 +17714,24 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_Half_Age {
+    pub range: SeriesTree_Cohorts_Supply_Half_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_Half_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_Half_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age {
+impl SeriesTree_Cohorts_Supply_Half_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_Half_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_Half_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_Half_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -17715,7 +17740,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_Half_Age_Range {
     pub under_1h: BtcCentsSatsUsdPattern,
     pub _1h_to_1d: BtcCentsSatsUsdPattern,
     pub _1d_to_1w: BtcCentsSatsUsdPattern,
@@ -17741,7 +17766,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range {
     pub over_15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range {
+impl SeriesTree_Cohorts_Supply_Half_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BtcCentsSatsUsdPattern::new(
@@ -17841,7 +17866,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_Half_Age_Under {
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
     pub _2m: BtcCentsSatsUsdPattern,
@@ -17864,7 +17889,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under {
     pub _15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under {
+impl SeriesTree_Cohorts_Supply_Half_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BtcCentsSatsUsdPattern::new(
@@ -17952,7 +17977,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_Half_Age_Over {
     pub _1d: BtcCentsSatsUsdPattern,
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
@@ -17975,7 +18000,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over {
     pub _12y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over {
+impl SeriesTree_Cohorts_Supply_Half_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BtcCentsSatsUsdPattern::new(
@@ -18063,7 +18088,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch {
+pub struct SeriesTree_Cohorts_Supply_Half_Epoch {
     pub _0: BtcCentsSatsUsdPattern,
     pub _1: BtcCentsSatsUsdPattern,
     pub _2: BtcCentsSatsUsdPattern,
@@ -18071,7 +18096,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch {
     pub _4: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch {
+impl SeriesTree_Cohorts_Supply_Half_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BtcCentsSatsUsdPattern::new(client.clone(), "epoch_0_supply_half".to_string()),
@@ -18084,7 +18109,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Class {
+pub struct SeriesTree_Cohorts_Supply_Half_Class {
     pub _2009: BtcCentsSatsUsdPattern,
     pub _2010: BtcCentsSatsUsdPattern,
     pub _2011: BtcCentsSatsUsdPattern,
@@ -18105,7 +18130,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Half_Class {
     pub _2026: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Half_Class {
+impl SeriesTree_Cohorts_Supply_Half_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BtcCentsSatsUsdPattern::new(
@@ -18185,13 +18210,13 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Half_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit {
+pub struct SeriesTree_Cohorts_Supply_InProfit {
     pub all: BtcCentsSatsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class,
-    pub entry: DiscountPremiumPattern12,
-    pub term: LongShortPattern13,
+    pub age: SeriesTree_Cohorts_Supply_InProfit_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_InProfit_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_InProfit_Class,
+    pub entry: DiscountPremiumPattern13,
+    pub term: LongShortPattern14,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10,
     pub age_range_matrix: SeriesPattern18<Sats>,
     pub epoch_matrix: SeriesPattern18<Sats>,
@@ -18200,24 +18225,24 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit {
     pub type_matrix: SeriesPattern18<Sats>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit {
+impl SeriesTree_Cohorts_Supply_InProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BtcCentsSatsUsdPattern::new(client.clone(), "supply_in_profit".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age::new(
+            age: SeriesTree_Cohorts_Supply_InProfit_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_InProfit_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class::new(
+            class: SeriesTree_Cohorts_Supply_InProfit_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern12::new(client.clone(), "supply_in_profit".to_string()),
-            term: LongShortPattern13::new(client.clone(), "supply_in_profit".to_string()),
+            entry: DiscountPremiumPattern13::new(client.clone(), "supply_in_profit".to_string()),
+            term: LongShortPattern14::new(client.clone(), "supply_in_profit".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10::new(
                 client.clone(),
                 "supply_in_profit".to_string(),
@@ -18247,24 +18272,24 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_InProfit_Age {
+    pub range: SeriesTree_Cohorts_Supply_InProfit_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_InProfit_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_InProfit_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age {
+impl SeriesTree_Cohorts_Supply_InProfit_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_InProfit_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_InProfit_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_InProfit_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -18273,7 +18298,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_InProfit_Age_Range {
     pub under_1h: BtcCentsSatsUsdPattern,
     pub _1h_to_1d: BtcCentsSatsUsdPattern,
     pub _1d_to_1w: BtcCentsSatsUsdPattern,
@@ -18299,7 +18324,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range {
     pub over_15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range {
+impl SeriesTree_Cohorts_Supply_InProfit_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BtcCentsSatsUsdPattern::new(
@@ -18399,7 +18424,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_InProfit_Age_Under {
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
     pub _2m: BtcCentsSatsUsdPattern,
@@ -18422,7 +18447,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under {
     pub _15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under {
+impl SeriesTree_Cohorts_Supply_InProfit_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BtcCentsSatsUsdPattern::new(
@@ -18510,7 +18535,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_InProfit_Age_Over {
     pub _1d: BtcCentsSatsUsdPattern,
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
@@ -18533,7 +18558,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over {
     pub _12y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over {
+impl SeriesTree_Cohorts_Supply_InProfit_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BtcCentsSatsUsdPattern::new(
@@ -18621,7 +18646,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch {
+pub struct SeriesTree_Cohorts_Supply_InProfit_Epoch {
     pub _0: BtcCentsSatsUsdPattern,
     pub _1: BtcCentsSatsUsdPattern,
     pub _2: BtcCentsSatsUsdPattern,
@@ -18629,7 +18654,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch {
     pub _4: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch {
+impl SeriesTree_Cohorts_Supply_InProfit_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BtcCentsSatsUsdPattern::new(client.clone(), "epoch_0_supply_in_profit".to_string()),
@@ -18642,7 +18667,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class {
+pub struct SeriesTree_Cohorts_Supply_InProfit_Class {
     pub _2009: BtcCentsSatsUsdPattern,
     pub _2010: BtcCentsSatsUsdPattern,
     pub _2011: BtcCentsSatsUsdPattern,
@@ -18663,7 +18688,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class {
     pub _2026: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class {
+impl SeriesTree_Cohorts_Supply_InProfit_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BtcCentsSatsUsdPattern::new(
@@ -18743,13 +18768,13 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InProfit_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss {
+pub struct SeriesTree_Cohorts_Supply_InLoss {
     pub all: BtcCentsSatsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class,
-    pub entry: DiscountPremiumPattern12,
-    pub term: LongShortPattern13,
+    pub age: SeriesTree_Cohorts_Supply_InLoss_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_InLoss_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_InLoss_Class,
+    pub entry: DiscountPremiumPattern13,
+    pub term: LongShortPattern14,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10,
     pub age_range_matrix: SeriesPattern18<Sats>,
     pub epoch_matrix: SeriesPattern18<Sats>,
@@ -18758,24 +18783,24 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss {
     pub type_matrix: SeriesPattern18<Sats>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss {
+impl SeriesTree_Cohorts_Supply_InLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BtcCentsSatsUsdPattern::new(client.clone(), "supply_in_loss".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age::new(
+            age: SeriesTree_Cohorts_Supply_InLoss_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_InLoss_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class::new(
+            class: SeriesTree_Cohorts_Supply_InLoss_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern12::new(client.clone(), "supply_in_loss".to_string()),
-            term: LongShortPattern13::new(client.clone(), "supply_in_loss".to_string()),
+            entry: DiscountPremiumPattern13::new(client.clone(), "supply_in_loss".to_string()),
+            term: LongShortPattern14::new(client.clone(), "supply_in_loss".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10::new(
                 client.clone(),
                 "supply_in_loss".to_string(),
@@ -18805,24 +18830,24 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_InLoss_Age {
+    pub range: SeriesTree_Cohorts_Supply_InLoss_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_InLoss_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_InLoss_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age {
+impl SeriesTree_Cohorts_Supply_InLoss_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_InLoss_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_InLoss_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_InLoss_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -18831,7 +18856,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_InLoss_Age_Range {
     pub under_1h: BtcCentsSatsUsdPattern,
     pub _1h_to_1d: BtcCentsSatsUsdPattern,
     pub _1d_to_1w: BtcCentsSatsUsdPattern,
@@ -18857,7 +18882,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range {
     pub over_15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range {
+impl SeriesTree_Cohorts_Supply_InLoss_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BtcCentsSatsUsdPattern::new(
@@ -18957,7 +18982,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_InLoss_Age_Under {
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
     pub _2m: BtcCentsSatsUsdPattern,
@@ -18980,7 +19005,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under {
     pub _15y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under {
+impl SeriesTree_Cohorts_Supply_InLoss_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BtcCentsSatsUsdPattern::new(
@@ -19068,7 +19093,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_InLoss_Age_Over {
     pub _1d: BtcCentsSatsUsdPattern,
     pub _1w: BtcCentsSatsUsdPattern,
     pub _1m: BtcCentsSatsUsdPattern,
@@ -19091,7 +19116,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over {
     pub _12y: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over {
+impl SeriesTree_Cohorts_Supply_InLoss_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BtcCentsSatsUsdPattern::new(
@@ -19179,7 +19204,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch {
+pub struct SeriesTree_Cohorts_Supply_InLoss_Epoch {
     pub _0: BtcCentsSatsUsdPattern,
     pub _1: BtcCentsSatsUsdPattern,
     pub _2: BtcCentsSatsUsdPattern,
@@ -19187,7 +19212,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch {
     pub _4: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch {
+impl SeriesTree_Cohorts_Supply_InLoss_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BtcCentsSatsUsdPattern::new(client.clone(), "epoch_0_supply_in_loss".to_string()),
@@ -19200,7 +19225,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class {
+pub struct SeriesTree_Cohorts_Supply_InLoss_Class {
     pub _2009: BtcCentsSatsUsdPattern,
     pub _2010: BtcCentsSatsUsdPattern,
     pub _2011: BtcCentsSatsUsdPattern,
@@ -19221,7 +19246,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class {
     pub _2026: BtcCentsSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class {
+impl SeriesTree_Cohorts_Supply_InLoss_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BtcCentsSatsUsdPattern::new(
@@ -19301,71 +19326,71 @@ impl SeriesTree_Cohorts_Cohorts_Supply_InLoss_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta {
+pub struct SeriesTree_Cohorts_Supply_Delta {
     pub all: AbsoluteRatePattern2,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_Delta_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Supply_Delta_Entry,
-    pub utxo_amount: OverRangeUnderPattern17,
-    pub term: SeriesTree_Cohorts_Cohorts_Supply_Delta_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Supply_Delta_Type,
-    pub addr_balance: OverRangeUnderPattern17,
+    pub age: SeriesTree_Cohorts_Supply_Delta_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_Delta_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_Delta_Class,
+    pub entry: SeriesTree_Cohorts_Supply_Delta_Entry,
+    pub utxo_amount: OverRangeUnderPattern18,
+    pub term: SeriesTree_Cohorts_Supply_Delta_Term,
+    pub type_: SeriesTree_Cohorts_Supply_Delta_Type,
+    pub addr_balance: OverRangeUnderPattern18,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta {
+impl SeriesTree_Cohorts_Supply_Delta {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AbsoluteRatePattern2::new(client.clone(), "supply_delta".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age::new(
+            age: SeriesTree_Cohorts_Supply_Delta_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_Delta_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_Delta_Class::new(
+            class: SeriesTree_Cohorts_Supply_Delta_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Supply_Delta_Entry::new(
+            entry: SeriesTree_Cohorts_Supply_Delta_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: OverRangeUnderPattern17::new(client.clone(), "utxos".to_string()),
-            term: SeriesTree_Cohorts_Cohorts_Supply_Delta_Term::new(
+            utxo_amount: OverRangeUnderPattern18::new(client.clone(), "utxos".to_string()),
+            term: SeriesTree_Cohorts_Supply_Delta_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Supply_Delta_Type::new(
+            type_: SeriesTree_Cohorts_Supply_Delta_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
-            addr_balance: OverRangeUnderPattern17::new(client.clone(), "addrs".to_string()),
+            addr_balance: OverRangeUnderPattern18::new(client.clone(), "addrs".to_string()),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_Delta_Age {
+    pub range: SeriesTree_Cohorts_Supply_Delta_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_Delta_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_Delta_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age {
+impl SeriesTree_Cohorts_Supply_Delta_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_Delta_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_Delta_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_Delta_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -19374,7 +19399,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_Delta_Age_Range {
     pub under_1h: AbsoluteRatePattern2,
     pub _1h_to_1d: AbsoluteRatePattern2,
     pub _1d_to_1w: AbsoluteRatePattern2,
@@ -19400,7 +19425,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range {
     pub over_15y: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range {
+impl SeriesTree_Cohorts_Supply_Delta_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: AbsoluteRatePattern2::new(
@@ -19500,7 +19525,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_Delta_Age_Under {
     pub _1w: AbsoluteRatePattern2,
     pub _1m: AbsoluteRatePattern2,
     pub _2m: AbsoluteRatePattern2,
@@ -19523,7 +19548,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under {
     pub _15y: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under {
+impl SeriesTree_Cohorts_Supply_Delta_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: AbsoluteRatePattern2::new(
@@ -19611,7 +19636,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_Delta_Age_Over {
     pub _1d: AbsoluteRatePattern2,
     pub _1w: AbsoluteRatePattern2,
     pub _1m: AbsoluteRatePattern2,
@@ -19634,7 +19659,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over {
     pub _12y: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over {
+impl SeriesTree_Cohorts_Supply_Delta_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: AbsoluteRatePattern2::new(
@@ -19722,7 +19747,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch {
+pub struct SeriesTree_Cohorts_Supply_Delta_Epoch {
     pub _0: AbsoluteRatePattern2,
     pub _1: AbsoluteRatePattern2,
     pub _2: AbsoluteRatePattern2,
@@ -19730,7 +19755,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch {
     pub _4: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch {
+impl SeriesTree_Cohorts_Supply_Delta_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: AbsoluteRatePattern2::new(client.clone(), "epoch_0_supply_delta".to_string()),
@@ -19743,7 +19768,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Class {
+pub struct SeriesTree_Cohorts_Supply_Delta_Class {
     pub _2009: AbsoluteRatePattern2,
     pub _2010: AbsoluteRatePattern2,
     pub _2011: AbsoluteRatePattern2,
@@ -19764,7 +19789,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Class {
     pub _2026: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Class {
+impl SeriesTree_Cohorts_Supply_Delta_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: AbsoluteRatePattern2::new(client.clone(), "class_2009_supply_delta".to_string()),
@@ -19790,12 +19815,12 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Entry {
+pub struct SeriesTree_Cohorts_Supply_Delta_Entry {
     pub discount: AbsoluteRatePattern2,
     pub premium: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Entry {
+impl SeriesTree_Cohorts_Supply_Delta_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: AbsoluteRatePattern2::new(client.clone(), "veteran_supply_delta".to_string()),
@@ -19805,12 +19830,12 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Term {
+pub struct SeriesTree_Cohorts_Supply_Delta_Term {
     pub short: AbsoluteRatePattern2,
     pub long: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Term {
+impl SeriesTree_Cohorts_Supply_Delta_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: AbsoluteRatePattern2::new(client.clone(), "sth_supply_delta".to_string()),
@@ -19820,7 +19845,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Type {
+pub struct SeriesTree_Cohorts_Supply_Delta_Type {
     pub p2pk65: AbsoluteRatePattern2,
     pub p2pk33: AbsoluteRatePattern2,
     pub p2pkh: AbsoluteRatePattern2,
@@ -19834,7 +19859,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Delta_Type {
     pub empty: AbsoluteRatePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Type {
+impl SeriesTree_Cohorts_Supply_Delta_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: AbsoluteRatePattern2::new(client.clone(), "p2pk65_supply_delta".to_string()),
@@ -19859,71 +19884,71 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Delta_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance {
+pub struct SeriesTree_Cohorts_Supply_Dominance {
     pub all: PercentPpmRatioPattern2,
-    pub age: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Entry,
-    pub utxo_amount: OverRangeUnderPattern19,
-    pub term: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type,
-    pub addr_balance: OverRangeUnderPattern19,
+    pub age: SeriesTree_Cohorts_Supply_Dominance_Age,
+    pub epoch: SeriesTree_Cohorts_Supply_Dominance_Epoch,
+    pub class: SeriesTree_Cohorts_Supply_Dominance_Class,
+    pub entry: SeriesTree_Cohorts_Supply_Dominance_Entry,
+    pub utxo_amount: OverRangeUnderPattern20,
+    pub term: SeriesTree_Cohorts_Supply_Dominance_Term,
+    pub type_: SeriesTree_Cohorts_Supply_Dominance_Type,
+    pub addr_balance: OverRangeUnderPattern20,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance {
+impl SeriesTree_Cohorts_Supply_Dominance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern2::new(client.clone(), "supply_dominance".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age::new(
+            age: SeriesTree_Cohorts_Supply_Dominance_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch::new(
+            epoch: SeriesTree_Cohorts_Supply_Dominance_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class::new(
+            class: SeriesTree_Cohorts_Supply_Dominance_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Entry::new(
+            entry: SeriesTree_Cohorts_Supply_Dominance_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: OverRangeUnderPattern19::new(client.clone(), "utxos".to_string()),
-            term: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Term::new(
+            utxo_amount: OverRangeUnderPattern20::new(client.clone(), "utxos".to_string()),
+            term: SeriesTree_Cohorts_Supply_Dominance_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type::new(
+            type_: SeriesTree_Cohorts_Supply_Dominance_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
-            addr_balance: OverRangeUnderPattern19::new(client.clone(), "addrs".to_string()),
+            addr_balance: OverRangeUnderPattern20::new(client.clone(), "addrs".to_string()),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over,
+pub struct SeriesTree_Cohorts_Supply_Dominance_Age {
+    pub range: SeriesTree_Cohorts_Supply_Dominance_Age_Range,
+    pub under: SeriesTree_Cohorts_Supply_Dominance_Age_Under,
+    pub over: SeriesTree_Cohorts_Supply_Dominance_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age {
+impl SeriesTree_Cohorts_Supply_Dominance_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range::new(
+            range: SeriesTree_Cohorts_Supply_Dominance_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under::new(
+            under: SeriesTree_Cohorts_Supply_Dominance_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over::new(
+            over: SeriesTree_Cohorts_Supply_Dominance_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -19932,7 +19957,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Age_Range {
     pub under_1h: PercentPpmRatioPattern2,
     pub _1h_to_1d: PercentPpmRatioPattern2,
     pub _1d_to_1w: PercentPpmRatioPattern2,
@@ -19958,7 +19983,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range {
     pub over_15y: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range {
+impl SeriesTree_Cohorts_Supply_Dominance_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: PercentPpmRatioPattern2::new(
@@ -20058,7 +20083,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Age_Under {
     pub _1w: PercentPpmRatioPattern2,
     pub _1m: PercentPpmRatioPattern2,
     pub _2m: PercentPpmRatioPattern2,
@@ -20081,7 +20106,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under {
     pub _15y: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under {
+impl SeriesTree_Cohorts_Supply_Dominance_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: PercentPpmRatioPattern2::new(
@@ -20169,7 +20194,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Age_Over {
     pub _1d: PercentPpmRatioPattern2,
     pub _1w: PercentPpmRatioPattern2,
     pub _1m: PercentPpmRatioPattern2,
@@ -20192,7 +20217,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over {
     pub _12y: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over {
+impl SeriesTree_Cohorts_Supply_Dominance_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: PercentPpmRatioPattern2::new(
@@ -20280,7 +20305,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Epoch {
     pub _0: PercentPpmRatioPattern2,
     pub _1: PercentPpmRatioPattern2,
     pub _2: PercentPpmRatioPattern2,
@@ -20288,7 +20313,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch {
     pub _4: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch {
+impl SeriesTree_Cohorts_Supply_Dominance_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: PercentPpmRatioPattern2::new(
@@ -20316,7 +20341,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Class {
     pub _2009: PercentPpmRatioPattern2,
     pub _2010: PercentPpmRatioPattern2,
     pub _2011: PercentPpmRatioPattern2,
@@ -20337,7 +20362,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class {
     pub _2026: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class {
+impl SeriesTree_Cohorts_Supply_Dominance_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: PercentPpmRatioPattern2::new(
@@ -20417,12 +20442,12 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Entry {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Entry {
     pub discount: PercentPpmRatioPattern2,
     pub premium: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Entry {
+impl SeriesTree_Cohorts_Supply_Dominance_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: PercentPpmRatioPattern2::new(
@@ -20438,12 +20463,12 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Term {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Term {
     pub short: PercentPpmRatioPattern2,
     pub long: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Term {
+impl SeriesTree_Cohorts_Supply_Dominance_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: PercentPpmRatioPattern2::new(client.clone(), "sth_supply_dominance".to_string()),
@@ -20453,7 +20478,7 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type {
+pub struct SeriesTree_Cohorts_Supply_Dominance_Type {
     pub p2pk65: PercentPpmRatioPattern2,
     pub p2pk33: PercentPpmRatioPattern2,
     pub p2pkh: PercentPpmRatioPattern2,
@@ -20467,7 +20492,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type {
     pub empty: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type {
+impl SeriesTree_Cohorts_Supply_Dominance_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: PercentPpmRatioPattern2::new(
@@ -20507,19 +20532,19 @@ impl SeriesTree_Cohorts_Cohorts_Supply_Dominance_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs {
-    pub unspent_count: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount,
-    pub spent_count: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount,
+pub struct SeriesTree_Cohorts_Outputs {
+    pub unspent_count: SeriesTree_Cohorts_Outputs_UnspentCount,
+    pub spent_count: SeriesTree_Cohorts_Outputs_SpentCount,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs {
+impl SeriesTree_Cohorts_Outputs {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            unspent_count: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount::new(
+            unspent_count: SeriesTree_Cohorts_Outputs_UnspentCount::new(
                 client.clone(),
                 format!("{base_path}_unspent_count"),
             ),
-            spent_count: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount::new(
+            spent_count: SeriesTree_Cohorts_Outputs_SpentCount::new(
                 client.clone(),
                 format!("{base_path}_spent_count"),
             ),
@@ -20528,53 +20553,53 @@ impl SeriesTree_Cohorts_Cohorts_Outputs {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount {
     pub all: BaseDeltaPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Entry,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount,
-    pub term: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type,
+    pub age: SeriesTree_Cohorts_Outputs_UnspentCount_Age,
+    pub epoch: SeriesTree_Cohorts_Outputs_UnspentCount_Epoch,
+    pub class: SeriesTree_Cohorts_Outputs_UnspentCount_Class,
+    pub entry: SeriesTree_Cohorts_Outputs_UnspentCount_Entry,
+    pub utxo_amount: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount,
+    pub term: SeriesTree_Cohorts_Outputs_UnspentCount_Term,
+    pub type_: SeriesTree_Cohorts_Outputs_UnspentCount_Type,
     pub age_range_matrix: SeriesPattern18<StoredU64>,
     pub epoch_matrix: SeriesPattern18<StoredU64>,
     pub class_matrix: SeriesPattern18<StoredU64>,
     pub entry_matrix: SeriesPattern18<StoredU64>,
     pub type_matrix: SeriesPattern18<StoredU64>,
     pub amount_range_matrix: SeriesPattern18<StoredU64>,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance,
+    pub addr_balance: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount {
+impl SeriesTree_Cohorts_Outputs_UnspentCount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BaseDeltaPattern::new(client.clone(), "utxo_count".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age::new(
+            age: SeriesTree_Cohorts_Outputs_UnspentCount_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch::new(
+            epoch: SeriesTree_Cohorts_Outputs_UnspentCount_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class::new(
+            class: SeriesTree_Cohorts_Outputs_UnspentCount_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Entry::new(
+            entry: SeriesTree_Cohorts_Outputs_UnspentCount_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Term::new(
+            term: SeriesTree_Cohorts_Outputs_UnspentCount_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type::new(
+            type_: SeriesTree_Cohorts_Outputs_UnspentCount_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
@@ -20590,7 +20615,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount {
                 client.clone(),
                 "utxos_utxo_count_by_amount_range".to_string(),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
@@ -20599,24 +20624,24 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over,
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Age {
+    pub range: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Range,
+    pub under: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Under,
+    pub over: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range::new(
+            range: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under::new(
+            under: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over::new(
+            over: SeriesTree_Cohorts_Outputs_UnspentCount_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -20625,7 +20650,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Age_Range {
     pub under_1h: BaseDeltaPattern,
     pub _1h_to_1d: BaseDeltaPattern,
     pub _1d_to_1w: BaseDeltaPattern,
@@ -20651,7 +20676,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range {
     pub over_15y: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BaseDeltaPattern::new(
@@ -20751,7 +20776,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Age_Under {
     pub _1w: BaseDeltaPattern,
     pub _1m: BaseDeltaPattern,
     pub _2m: BaseDeltaPattern,
@@ -20774,7 +20799,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under {
     pub _15y: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BaseDeltaPattern::new(client.clone(), "utxos_under_1w_old_utxo_count".to_string()),
@@ -20814,7 +20839,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Age_Over {
     pub _1d: BaseDeltaPattern,
     pub _1w: BaseDeltaPattern,
     pub _1m: BaseDeltaPattern,
@@ -20837,7 +20862,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over {
     pub _12y: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BaseDeltaPattern::new(client.clone(), "utxos_over_1d_old_utxo_count".to_string()),
@@ -20874,7 +20899,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Epoch {
     pub _0: BaseDeltaPattern,
     pub _1: BaseDeltaPattern,
     pub _2: BaseDeltaPattern,
@@ -20882,7 +20907,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch {
     pub _4: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BaseDeltaPattern::new(client.clone(), "epoch_0_utxo_count".to_string()),
@@ -20895,7 +20920,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Class {
     pub _2009: BaseDeltaPattern,
     pub _2010: BaseDeltaPattern,
     pub _2011: BaseDeltaPattern,
@@ -20916,7 +20941,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class {
     pub _2026: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BaseDeltaPattern::new(client.clone(), "class_2009_utxo_count".to_string()),
@@ -20942,12 +20967,12 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Entry {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Entry {
     pub discount: BaseDeltaPattern,
     pub premium: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Entry {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: BaseDeltaPattern::new(client.clone(), "veteran_utxo_count".to_string()),
@@ -20957,24 +20982,24 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -20983,7 +21008,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
     pub _0sats: BaseDeltaPattern,
     pub _1sat_to_10sats: BaseDeltaPattern,
     pub _10sats_to_100sats: BaseDeltaPattern,
@@ -21001,7 +21026,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
     pub over_100k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BaseDeltaPattern::new(client.clone(), "utxos_0sats_utxo_count".to_string()),
@@ -21066,7 +21091,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
     pub _10sats: BaseDeltaPattern,
     pub _100sats: BaseDeltaPattern,
     pub _1k_sats: BaseDeltaPattern,
@@ -21082,7 +21107,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
     pub _100k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BaseDeltaPattern::new(
@@ -21139,7 +21164,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
     pub _1sat: BaseDeltaPattern,
     pub _10sats: BaseDeltaPattern,
     pub _100sats: BaseDeltaPattern,
@@ -21155,7 +21180,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
     pub _10k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BaseDeltaPattern::new(client.clone(), "utxos_over_1sat_utxo_count".to_string()),
@@ -21209,12 +21234,12 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Term {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Term {
     pub short: BaseDeltaPattern,
     pub long: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Term {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: BaseDeltaPattern::new(client.clone(), "sth_utxo_count".to_string()),
@@ -21224,7 +21249,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_Type {
     pub p2pk65: BaseDeltaPattern,
     pub p2pk33: BaseDeltaPattern,
     pub p2pkh: BaseDeltaPattern,
@@ -21238,7 +21263,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type {
     pub empty: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: BaseDeltaPattern::new(client.clone(), "p2pk65_utxo_count".to_string()),
@@ -21260,25 +21285,25 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance {
-    pub range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over,
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance {
+    pub range: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Range,
+    pub under: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Under,
+    pub over: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Over,
     pub matrix: SeriesPattern18<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range::new(
+            range: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under::new(
+            under: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over::new(
+            over: SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -21291,7 +21316,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
     pub _0sats: BaseDeltaPattern,
     pub _1sat_to_10sats: BaseDeltaPattern,
     pub _10sats_to_100sats: BaseDeltaPattern,
@@ -21309,7 +21334,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
     pub over_100k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BaseDeltaPattern::new(client.clone(), "addrs_0sats_utxo_count".to_string()),
@@ -21374,7 +21399,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
     pub _10sats: BaseDeltaPattern,
     pub _100sats: BaseDeltaPattern,
     pub _1k_sats: BaseDeltaPattern,
@@ -21390,7 +21415,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
     pub _100k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BaseDeltaPattern::new(
@@ -21447,7 +21472,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
+pub struct SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
     pub _1sat: BaseDeltaPattern,
     pub _10sats: BaseDeltaPattern,
     pub _100sats: BaseDeltaPattern,
@@ -21463,7 +21488,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
     pub _10k_btc: BaseDeltaPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
+impl SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BaseDeltaPattern::new(client.clone(), "addrs_over_1sat_utxo_count".to_string()),
@@ -21517,15 +21542,15 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_UnspentCount_AddrBalance_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount {
     pub all: AverageBlockCumulativeSumPattern<StoredU64>,
-    pub age: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class,
+    pub age: SeriesTree_Cohorts_Outputs_SpentCount_Age,
+    pub epoch: SeriesTree_Cohorts_Outputs_SpentCount_Epoch,
+    pub class: SeriesTree_Cohorts_Outputs_SpentCount_Class,
     pub entry: DiscountPremiumPattern,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount,
+    pub utxo_amount: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount,
     pub term: LongShortPattern,
-    pub type_: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type,
+    pub type_: SeriesTree_Cohorts_Outputs_SpentCount_Type,
     pub age_range_matrix: SeriesPattern18<StoredU64>,
     pub epoch_matrix: SeriesPattern18<StoredU64>,
     pub class_matrix: SeriesPattern18<StoredU64>,
@@ -21534,32 +21559,32 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount {
     pub amount_range_matrix: SeriesPattern18<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount {
+impl SeriesTree_Cohorts_Outputs_SpentCount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern::new(
                 client.clone(),
                 "spent_utxo_count".to_string(),
             ),
-            age: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age::new(
+            age: SeriesTree_Cohorts_Outputs_SpentCount_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch::new(
+            epoch: SeriesTree_Cohorts_Outputs_SpentCount_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class::new(
+            class: SeriesTree_Cohorts_Outputs_SpentCount_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern::new(client.clone(), "spent_utxo_count".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
             term: LongShortPattern::new(client.clone(), "spent_utxo_count".to_string()),
-            type_: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type::new(
+            type_: SeriesTree_Cohorts_Outputs_SpentCount_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
@@ -21592,24 +21617,24 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over,
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Age {
+    pub range: SeriesTree_Cohorts_Outputs_SpentCount_Age_Range,
+    pub under: SeriesTree_Cohorts_Outputs_SpentCount_Age_Under,
+    pub over: SeriesTree_Cohorts_Outputs_SpentCount_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range::new(
+            range: SeriesTree_Cohorts_Outputs_SpentCount_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under::new(
+            under: SeriesTree_Cohorts_Outputs_SpentCount_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over::new(
+            over: SeriesTree_Cohorts_Outputs_SpentCount_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -21618,7 +21643,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Age_Range {
     pub under_1h: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1h_to_1d: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1d_to_1w: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -21644,7 +21669,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range {
     pub over_15y: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: AverageBlockCumulativeSumPattern::new(
@@ -21744,7 +21769,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Age_Under {
     pub _1w: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1m: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _2m: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -21767,7 +21792,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under {
     pub _15y: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: AverageBlockCumulativeSumPattern::new(
@@ -21855,7 +21880,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Age_Over {
     pub _1d: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1w: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1m: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -21878,7 +21903,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over {
     pub _12y: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: AverageBlockCumulativeSumPattern::new(
@@ -21966,7 +21991,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Epoch {
     pub _0: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _2: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -21974,7 +21999,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch {
     pub _4: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: AverageBlockCumulativeSumPattern::new(
@@ -22002,7 +22027,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Class {
     pub _2009: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _2010: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _2011: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -22023,7 +22048,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class {
     pub _2026: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: AverageBlockCumulativeSumPattern::new(
@@ -22103,24 +22128,24 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount {
+impl SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -22129,7 +22154,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
     pub _0sats: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1sat_to_10sats: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _10sats_to_100sats: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -22147,7 +22172,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
     pub over_100k_btc: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: AverageBlockCumulativeSumPattern::new(
@@ -22215,7 +22240,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
     pub _10sats: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _100sats: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _1k_sats: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -22231,7 +22256,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
     pub _100k_btc: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: AverageBlockCumulativeSumPattern::new(
@@ -22291,7 +22316,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
     pub _1sat: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _10sats: AverageBlockCumulativeSumPattern<StoredU64>,
     pub _100sats: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -22307,7 +22332,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
     pub _10k_btc: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: AverageBlockCumulativeSumPattern::new(
@@ -22367,7 +22392,7 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type {
+pub struct SeriesTree_Cohorts_Outputs_SpentCount_Type {
     pub p2pk65: AverageBlockCumulativeSumPattern<StoredU64>,
     pub p2pk33: AverageBlockCumulativeSumPattern<StoredU64>,
     pub p2pkh: AverageBlockCumulativeSumPattern<StoredU64>,
@@ -22381,7 +22406,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type {
     pub empty: AverageBlockCumulativeSumPattern<StoredU64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type {
+impl SeriesTree_Cohorts_Outputs_SpentCount_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: AverageBlockCumulativeSumPattern::new(
@@ -22433,25 +22458,25 @@ impl SeriesTree_Cohorts_Cohorts_Outputs_SpentCount_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity {
-    pub transfer_volume: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume,
-    pub coindays_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed,
-    pub coinyears_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed,
+pub struct SeriesTree_Cohorts_Activity {
+    pub transfer_volume: SeriesTree_Cohorts_Activity_TransferVolume,
+    pub coindays_destroyed: SeriesTree_Cohorts_Activity_CoindaysDestroyed,
+    pub coinyears_destroyed: SeriesTree_Cohorts_Activity_CoinyearsDestroyed,
     pub dormancy: AllLthSthPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity {
+impl SeriesTree_Cohorts_Activity {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            transfer_volume: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume::new(
+            transfer_volume: SeriesTree_Cohorts_Activity_TransferVolume::new(
                 client.clone(),
                 format!("{base_path}_transfer_volume"),
             ),
-            coindays_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed::new(
+            coindays_destroyed: SeriesTree_Cohorts_Activity_CoindaysDestroyed::new(
                 client.clone(),
                 format!("{base_path}_coindays_destroyed"),
             ),
-            coinyears_destroyed: SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed::new(
+            coinyears_destroyed: SeriesTree_Cohorts_Activity_CoinyearsDestroyed::new(
                 client.clone(),
                 format!("{base_path}_coinyears_destroyed"),
             ),
@@ -22461,22 +22486,22 @@ impl SeriesTree_Cohorts_Cohorts_Activity {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume {
     pub all: AverageBlockCumulativeSumPattern2,
     pub age: OverRangeUnderPattern2,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class,
+    pub epoch: SeriesTree_Cohorts_Activity_TransferVolume_Epoch,
+    pub class: SeriesTree_Cohorts_Activity_TransferVolume_Class,
     pub entry: DiscountPremiumPattern2,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_UtxoAmount,
+    pub utxo_amount: SeriesTree_Cohorts_Activity_TransferVolume_UtxoAmount,
     pub term: LongShortPattern2,
-    pub type_: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type,
-    pub cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_AddrBalance,
-    pub in_profit: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit,
-    pub in_loss: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss,
+    pub type_: SeriesTree_Cohorts_Activity_TransferVolume_Type,
+    pub cumulative: SeriesTree_Cohorts_Activity_TransferVolume_Cumulative,
+    pub addr_balance: SeriesTree_Cohorts_Activity_TransferVolume_AddrBalance,
+    pub in_profit: SeriesTree_Cohorts_Activity_TransferVolume_InProfit,
+    pub in_loss: SeriesTree_Cohorts_Activity_TransferVolume_InLoss,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume {
+impl SeriesTree_Cohorts_Activity_TransferVolume {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern2::new(
@@ -22484,37 +22509,37 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume {
                 "transfer_volume".to_string(),
             ),
             age: OverRangeUnderPattern2::new(client.clone(), "utxos".to_string()),
-            epoch: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch::new(
+            epoch: SeriesTree_Cohorts_Activity_TransferVolume_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class::new(
+            class: SeriesTree_Cohorts_Activity_TransferVolume_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern2::new(client.clone(), "transfer_volume".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Activity_TransferVolume_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
             term: LongShortPattern2::new(client.clone(), "transfer_volume".to_string()),
-            type_: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type::new(
+            type_: SeriesTree_Cohorts_Activity_TransferVolume_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
-            cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative::new(
+            cumulative: SeriesTree_Cohorts_Activity_TransferVolume_Cumulative::new(
                 client.clone(),
                 format!("{base_path}_cumulative"),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Activity_TransferVolume_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
-            in_profit: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit::new(
+            in_profit: SeriesTree_Cohorts_Activity_TransferVolume_InProfit::new(
                 client.clone(),
                 format!("{base_path}_in_profit"),
             ),
-            in_loss: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss::new(
+            in_loss: SeriesTree_Cohorts_Activity_TransferVolume_InLoss::new(
                 client.clone(),
                 format!("{base_path}_in_loss"),
             ),
@@ -22523,7 +22548,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_Epoch {
     pub _0: AverageBlockCumulativeSumPattern2,
     pub _1: AverageBlockCumulativeSumPattern2,
     pub _2: AverageBlockCumulativeSumPattern2,
@@ -22531,7 +22556,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch {
     pub _4: AverageBlockCumulativeSumPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch {
+impl SeriesTree_Cohorts_Activity_TransferVolume_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: AverageBlockCumulativeSumPattern2::new(
@@ -22559,7 +22584,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_Class {
     pub _2009: AverageBlockCumulativeSumPattern2,
     pub _2010: AverageBlockCumulativeSumPattern2,
     pub _2011: AverageBlockCumulativeSumPattern2,
@@ -22580,7 +22605,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class {
     pub _2026: AverageBlockCumulativeSumPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class {
+impl SeriesTree_Cohorts_Activity_TransferVolume_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: AverageBlockCumulativeSumPattern2::new(
@@ -22660,13 +22685,13 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_UtxoAmount {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_UtxoAmount {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern2,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_UtxoAmount {
+impl SeriesTree_Cohorts_Activity_TransferVolume_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2::new(
@@ -22686,7 +22711,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_Type {
     pub p2pk65: AverageBlockCumulativeSumPattern2,
     pub p2pk33: AverageBlockCumulativeSumPattern2,
     pub p2pkh: AverageBlockCumulativeSumPattern2,
@@ -22700,7 +22725,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type {
     pub empty: AverageBlockCumulativeSumPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type {
+impl SeriesTree_Cohorts_Activity_TransferVolume_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: AverageBlockCumulativeSumPattern2::new(
@@ -22752,7 +22777,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_Cumulative {
     pub age_range: CentsSatsPattern,
     pub epoch: CentsSatsPattern,
     pub class: CentsSatsPattern,
@@ -22761,7 +22786,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative {
     pub type_: CentsSatsPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative {
+impl SeriesTree_Cohorts_Activity_TransferVolume_Cumulative {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             age_range: CentsSatsPattern::new(
@@ -22793,14 +22818,14 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_Cumulative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_AddrBalance {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_AddrBalance {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern2,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern2,
     pub values: CentsSatsPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_AddrBalance {
+impl SeriesTree_Cohorts_Activity_TransferVolume_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern2::new(
@@ -22824,17 +22849,17 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_InProfit {
     pub all: AverageBlockCumulativeSumPattern2,
     pub age: OverRangeUnderPattern2,
     pub epoch: _01234Pattern2,
     pub class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2,
     pub entry: DiscountPremiumPattern2,
     pub term: LongShortPattern2,
-    pub cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit_Cumulative,
+    pub cumulative: SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Cumulative,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit {
+impl SeriesTree_Cohorts_Activity_TransferVolume_InProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern2::new(client.clone(), "transfer_volume_in_profit".to_string()),
@@ -22843,20 +22868,20 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit {
             class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2::new(client.clone(), "class".to_string(), "in_profit".to_string()),
             entry: DiscountPremiumPattern2::new(client.clone(), "transfer_volume_in_profit".to_string()),
             term: LongShortPattern2::new(client.clone(), "transfer_volume_in_profit".to_string()),
-            cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit_Cumulative::new(client.clone(), format!("{base_path}_cumulative")),
+            cumulative: SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Cumulative::new(client.clone(), format!("{base_path}_cumulative")),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit_Cumulative {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Cumulative {
     pub age_range: CentsSatsPattern,
     pub epoch: CentsSatsPattern,
     pub class: CentsSatsPattern,
     pub entry: CentsSatsPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit_Cumulative {
+impl SeriesTree_Cohorts_Activity_TransferVolume_InProfit_Cumulative {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             age_range: CentsSatsPattern::new(
@@ -22880,17 +22905,17 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InProfit_Cumulative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_InLoss {
     pub all: AverageBlockCumulativeSumPattern2,
     pub age: OverRangeUnderPattern2,
     pub epoch: _01234Pattern2,
     pub class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2,
     pub entry: DiscountPremiumPattern2,
     pub term: LongShortPattern2,
-    pub cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative,
+    pub cumulative: SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Cumulative,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss {
+impl SeriesTree_Cohorts_Activity_TransferVolume_InLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern2::new(client.clone(), "transfer_volume_in_loss".to_string()),
@@ -22899,20 +22924,20 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss {
             class: _200920102011201220132014201520162017201820192020202120222023202420252026Pattern2::new(client.clone(), "class".to_string(), "in_loss".to_string()),
             entry: DiscountPremiumPattern2::new(client.clone(), "transfer_volume_in_loss".to_string()),
             term: LongShortPattern2::new(client.clone(), "transfer_volume_in_loss".to_string()),
-            cumulative: SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative::new(client.clone(), format!("{base_path}_cumulative")),
+            cumulative: SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Cumulative::new(client.clone(), format!("{base_path}_cumulative")),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative {
+pub struct SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Cumulative {
     pub age_range: CentsSatsPattern,
     pub epoch: CentsSatsPattern,
     pub class: CentsSatsPattern,
     pub entry: CentsSatsPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative {
+impl SeriesTree_Cohorts_Activity_TransferVolume_InLoss_Cumulative {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             age_range: CentsSatsPattern::new(
@@ -22936,11 +22961,11 @@ impl SeriesTree_Cohorts_Cohorts_Activity_TransferVolume_InLoss_Cumulative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed {
     pub all: AverageBlockCumulativeSumPattern<StoredF64>,
-    pub age: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class,
+    pub age: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age,
+    pub epoch: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch,
+    pub class: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class,
     pub entry: DiscountPremiumPattern,
     pub term: LongShortPattern,
     pub age_range_matrix: SeriesPattern18<StoredF64>,
@@ -22949,22 +22974,22 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed {
     pub entry_matrix: SeriesPattern18<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern::new(
                 client.clone(),
                 "coindays_destroyed".to_string(),
             ),
-            age: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age::new(
+            age: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch::new(
+            epoch: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class::new(
+            class: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
@@ -22991,24 +23016,24 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over,
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age {
+    pub range: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Range,
+    pub under: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Under,
+    pub over: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range::new(
+            range: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under::new(
+            under: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over::new(
+            over: SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -23017,7 +23042,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Range {
     pub under_1h: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1h_to_1d: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1d_to_1w: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -23043,7 +23068,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range {
     pub over_15y: AverageBlockCumulativeSumPattern<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: AverageBlockCumulativeSumPattern::new(
@@ -23143,7 +23168,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Under {
     pub _1w: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1m: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _2m: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -23166,7 +23191,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under {
     pub _15y: AverageBlockCumulativeSumPattern<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: AverageBlockCumulativeSumPattern::new(
@@ -23254,7 +23279,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Over {
     pub _1d: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1w: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1m: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -23277,7 +23302,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over {
     pub _12y: AverageBlockCumulativeSumPattern<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: AverageBlockCumulativeSumPattern::new(
@@ -23365,7 +23390,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch {
     pub _0: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _1: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _2: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -23373,7 +23398,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch {
     pub _4: AverageBlockCumulativeSumPattern<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: AverageBlockCumulativeSumPattern::new(
@@ -23401,7 +23426,7 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class {
+pub struct SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class {
     pub _2009: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _2010: AverageBlockCumulativeSumPattern<StoredF64>,
     pub _2011: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -23422,7 +23447,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class {
     pub _2026: AverageBlockCumulativeSumPattern<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class {
+impl SeriesTree_Cohorts_Activity_CoindaysDestroyed_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: AverageBlockCumulativeSumPattern::new(
@@ -23502,16 +23527,16 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoindaysDestroyed_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed {
+pub struct SeriesTree_Cohorts_Activity_CoinyearsDestroyed {
     pub all: SeriesPattern1<StoredF64>,
     pub sth: SeriesPattern1<StoredF64>,
     pub lth: SeriesPattern1<StoredF64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed {
+impl SeriesTree_Cohorts_Activity_CoinyearsDestroyed {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: SeriesPattern1::new(client.clone(), "all_coinyears_destroyed".to_string()),
+            all: SeriesPattern1::new(client.clone(), "coinyears_destroyed".to_string()),
             sth: SeriesPattern1::new(client.clone(), "sth_coinyears_destroyed".to_string()),
             lth: SeriesPattern1::new(client.clone(), "lth_coinyears_destroyed".to_string()),
         }
@@ -23519,62 +23544,59 @@ impl SeriesTree_Cohorts_Cohorts_Activity_CoinyearsDestroyed {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized {
-    pub cap: SeriesTree_Cohorts_Cohorts_Realized_Cap,
-    pub price: SeriesTree_Cohorts_Cohorts_Realized_Price,
-    pub profit: SeriesTree_Cohorts_Cohorts_Realized_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Realized_Loss,
-    pub net_pnl: SeriesTree_Cohorts_Cohorts_Realized_NetPnl,
-    pub sopr: SeriesTree_Cohorts_Cohorts_Realized_Sopr,
-    pub adjusted_sopr: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr,
-    pub gross_pnl: SeriesTree_Cohorts_Cohorts_Realized_GrossPnl,
-    pub capitalized_price: SeriesTree_Cohorts_Cohorts_Realized_CapitalizedPrice,
+pub struct SeriesTree_Cohorts_Realized {
+    pub cap: SeriesTree_Cohorts_Realized_Cap,
+    pub price: SeriesTree_Cohorts_Realized_Price,
+    pub profit: SeriesTree_Cohorts_Realized_Profit,
+    pub loss: SeriesTree_Cohorts_Realized_Loss,
+    pub net_pnl: SeriesTree_Cohorts_Realized_NetPnl,
+    pub sopr: SeriesTree_Cohorts_Realized_Sopr,
+    pub adjusted_sopr: SeriesTree_Cohorts_Realized_AdjustedSopr,
+    pub gross_pnl: SeriesTree_Cohorts_Realized_GrossPnl,
+    pub capitalized_price: SeriesTree_Cohorts_Realized_CapitalizedPrice,
     pub cap_raw: MatrixPattern<CentsSats>,
     pub capitalized_cap_raw: MatrixPattern<CentsSquaredSats>,
-    pub peak_regret: SeriesTree_Cohorts_Cohorts_Realized_PeakRegret,
-    pub net_pnl_change_1m_to_rcap: SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap,
-    pub sell_side_risk_ratio: SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio,
-    pub sopr_ratio_extended: SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended,
+    pub peak_regret: SeriesTree_Cohorts_Realized_PeakRegret,
+    pub net_pnl_change_1m_to_rcap: SeriesTree_Cohorts_Realized_NetPnlChange1mToRcap,
+    pub sell_side_risk_ratio: SeriesTree_Cohorts_Realized_SellSideRiskRatio,
+    pub sopr_ratio_extended: SeriesTree_Cohorts_Realized_SoprRatioExtended,
     pub profit_to_loss_ratio: AllLthSthPattern2,
-    pub mvrv: SeriesTree_Cohorts_Cohorts_Realized_Mvrv,
+    pub mvrv: SeriesTree_Cohorts_Realized_Mvrv,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized {
+impl SeriesTree_Cohorts_Realized {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            cap: SeriesTree_Cohorts_Cohorts_Realized_Cap::new(
-                client.clone(),
-                format!("{base_path}_cap"),
-            ),
-            price: SeriesTree_Cohorts_Cohorts_Realized_Price::new(
+            cap: SeriesTree_Cohorts_Realized_Cap::new(client.clone(), format!("{base_path}_cap")),
+            price: SeriesTree_Cohorts_Realized_Price::new(
                 client.clone(),
                 format!("{base_path}_price"),
             ),
-            profit: SeriesTree_Cohorts_Cohorts_Realized_Profit::new(
+            profit: SeriesTree_Cohorts_Realized_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Realized_Loss::new(
+            loss: SeriesTree_Cohorts_Realized_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
-            net_pnl: SeriesTree_Cohorts_Cohorts_Realized_NetPnl::new(
+            net_pnl: SeriesTree_Cohorts_Realized_NetPnl::new(
                 client.clone(),
                 format!("{base_path}_net_pnl"),
             ),
-            sopr: SeriesTree_Cohorts_Cohorts_Realized_Sopr::new(
+            sopr: SeriesTree_Cohorts_Realized_Sopr::new(
                 client.clone(),
                 format!("{base_path}_sopr"),
             ),
-            adjusted_sopr: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr::new(
+            adjusted_sopr: SeriesTree_Cohorts_Realized_AdjustedSopr::new(
                 client.clone(),
                 format!("{base_path}_adjusted_sopr"),
             ),
-            gross_pnl: SeriesTree_Cohorts_Cohorts_Realized_GrossPnl::new(
+            gross_pnl: SeriesTree_Cohorts_Realized_GrossPnl::new(
                 client.clone(),
                 format!("{base_path}_gross_pnl"),
             ),
-            capitalized_price: SeriesTree_Cohorts_Cohorts_Realized_CapitalizedPrice::new(
+            capitalized_price: SeriesTree_Cohorts_Realized_CapitalizedPrice::new(
                 client.clone(),
                 format!("{base_path}_capitalized_price"),
             ),
@@ -23583,20 +23605,19 @@ impl SeriesTree_Cohorts_Cohorts_Realized {
                 client.clone(),
                 "capitalized_cap_raw_by_term".to_string(),
             ),
-            peak_regret: SeriesTree_Cohorts_Cohorts_Realized_PeakRegret::new(
+            peak_regret: SeriesTree_Cohorts_Realized_PeakRegret::new(
                 client.clone(),
                 format!("{base_path}_peak_regret"),
             ),
-            net_pnl_change_1m_to_rcap:
-                SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap::new(
-                    client.clone(),
-                    format!("{base_path}_net_pnl_change_1m_to_rcap"),
-                ),
-            sell_side_risk_ratio: SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio::new(
+            net_pnl_change_1m_to_rcap: SeriesTree_Cohorts_Realized_NetPnlChange1mToRcap::new(
+                client.clone(),
+                format!("{base_path}_net_pnl_change_1m_to_rcap"),
+            ),
+            sell_side_risk_ratio: SeriesTree_Cohorts_Realized_SellSideRiskRatio::new(
                 client.clone(),
                 format!("{base_path}_sell_side_risk_ratio"),
             ),
-            sopr_ratio_extended: SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended::new(
+            sopr_ratio_extended: SeriesTree_Cohorts_Realized_SoprRatioExtended::new(
                 client.clone(),
                 format!("{base_path}_sopr_ratio_extended"),
             ),
@@ -23604,7 +23625,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized {
                 client.clone(),
                 "realized_profit_to_loss_ratio".to_string(),
             ),
-            mvrv: SeriesTree_Cohorts_Cohorts_Realized_Mvrv::new(
+            mvrv: SeriesTree_Cohorts_Realized_Mvrv::new(
                 client.clone(),
                 format!("{base_path}_mvrv"),
             ),
@@ -23613,54 +23634,54 @@ impl SeriesTree_Cohorts_Cohorts_Realized {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap {
+pub struct SeriesTree_Cohorts_Realized_Cap {
     pub all: CentsDeltaUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Cap_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Realized_Cap_Entry,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Cap_UtxoAmount,
-    pub term: SeriesTree_Cohorts_Cohorts_Realized_Cap_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Realized_Cap_Type,
+    pub age: SeriesTree_Cohorts_Realized_Cap_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Cap_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Cap_Class,
+    pub entry: SeriesTree_Cohorts_Realized_Cap_Entry,
+    pub utxo_amount: SeriesTree_Cohorts_Realized_Cap_UtxoAmount,
+    pub term: SeriesTree_Cohorts_Realized_Cap_Term,
+    pub type_: SeriesTree_Cohorts_Realized_Cap_Type,
     pub age_range_matrix: SeriesPattern18<Cents>,
     pub epoch_matrix: SeriesPattern18<Cents>,
     pub class_matrix: SeriesPattern18<Cents>,
     pub entry_matrix: SeriesPattern18<Cents>,
     pub type_matrix: SeriesPattern18<Cents>,
     pub amount_range_matrix: SeriesPattern18<Cents>,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance,
+    pub addr_balance: SeriesTree_Cohorts_Realized_Cap_AddrBalance,
     pub to_own_mcap: AllLthSthPattern6,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap {
+impl SeriesTree_Cohorts_Realized_Cap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsDeltaUsdPattern::new(client.clone(), "realized_cap".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age::new(
+            age: SeriesTree_Cohorts_Realized_Cap_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Cap_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Cap_Class::new(
+            class: SeriesTree_Cohorts_Realized_Cap_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Realized_Cap_Entry::new(
+            entry: SeriesTree_Cohorts_Realized_Cap_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Cap_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Realized_Cap_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Realized_Cap_Term::new(
+            term: SeriesTree_Cohorts_Realized_Cap_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Realized_Cap_Type::new(
+            type_: SeriesTree_Cohorts_Realized_Cap_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
@@ -23688,7 +23709,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap {
                 client.clone(),
                 "utxos_realized_cap_cents_by_amount_range".to_string(),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Realized_Cap_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
@@ -23701,24 +23722,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Cap_Age {
+    pub range: SeriesTree_Cohorts_Realized_Cap_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Cap_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Cap_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age {
+impl SeriesTree_Cohorts_Realized_Cap_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Cap_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Cap_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Cap_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -23727,7 +23748,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Cap_Age_Range {
     pub under_1h: CentsDeltaUsdPattern,
     pub _1h_to_1d: CentsDeltaUsdPattern,
     pub _1d_to_1w: CentsDeltaUsdPattern,
@@ -23753,7 +23774,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range {
     pub over_15y: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range {
+impl SeriesTree_Cohorts_Realized_Cap_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: CentsDeltaUsdPattern::new(
@@ -23853,7 +23874,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Cap_Age_Under {
     pub _1w: CentsDeltaUsdPattern,
     pub _1m: CentsDeltaUsdPattern,
     pub _2m: CentsDeltaUsdPattern,
@@ -23876,7 +23897,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under {
     pub _15y: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under {
+impl SeriesTree_Cohorts_Realized_Cap_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: CentsDeltaUsdPattern::new(
@@ -23964,7 +23985,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Cap_Age_Over {
     pub _1d: CentsDeltaUsdPattern,
     pub _1w: CentsDeltaUsdPattern,
     pub _1m: CentsDeltaUsdPattern,
@@ -23987,7 +24008,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over {
     pub _12y: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over {
+impl SeriesTree_Cohorts_Realized_Cap_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: CentsDeltaUsdPattern::new(
@@ -24075,7 +24096,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Cap_Epoch {
     pub _0: CentsDeltaUsdPattern,
     pub _1: CentsDeltaUsdPattern,
     pub _2: CentsDeltaUsdPattern,
@@ -24083,7 +24104,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch {
     pub _4: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch {
+impl SeriesTree_Cohorts_Realized_Cap_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: CentsDeltaUsdPattern::new(client.clone(), "epoch_0_realized_cap".to_string()),
@@ -24096,7 +24117,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Class {
+pub struct SeriesTree_Cohorts_Realized_Cap_Class {
     pub _2009: CentsDeltaUsdPattern,
     pub _2010: CentsDeltaUsdPattern,
     pub _2011: CentsDeltaUsdPattern,
@@ -24117,7 +24138,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Class {
     pub _2026: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Class {
+impl SeriesTree_Cohorts_Realized_Cap_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: CentsDeltaUsdPattern::new(client.clone(), "class_2009_realized_cap".to_string()),
@@ -24143,12 +24164,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Entry {
+pub struct SeriesTree_Cohorts_Realized_Cap_Entry {
     pub discount: CentsDeltaUsdPattern,
     pub premium: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Entry {
+impl SeriesTree_Cohorts_Realized_Cap_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: CentsDeltaUsdPattern::new(client.clone(), "veteran_realized_cap".to_string()),
@@ -24158,13 +24179,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_UtxoAmount {
+pub struct SeriesTree_Cohorts_Realized_Cap_UtxoAmount {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern4,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern4,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_UtxoAmount {
+impl SeriesTree_Cohorts_Realized_Cap_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4::new(
@@ -24184,12 +24205,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Term {
+pub struct SeriesTree_Cohorts_Realized_Cap_Term {
     pub short: CentsDeltaUsdPattern,
     pub long: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Term {
+impl SeriesTree_Cohorts_Realized_Cap_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: CentsDeltaUsdPattern::new(client.clone(), "sth_realized_cap".to_string()),
@@ -24199,7 +24220,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Type {
+pub struct SeriesTree_Cohorts_Realized_Cap_Type {
     pub p2pk65: CentsDeltaUsdPattern,
     pub p2pk33: CentsDeltaUsdPattern,
     pub p2pkh: CentsDeltaUsdPattern,
@@ -24213,7 +24234,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_Type {
     pub empty: CentsDeltaUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Type {
+impl SeriesTree_Cohorts_Realized_Cap_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: CentsDeltaUsdPattern::new(client.clone(), "p2pk65_realized_cap".to_string()),
@@ -24238,14 +24259,14 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance {
+pub struct SeriesTree_Cohorts_Realized_Cap_AddrBalance {
     pub range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4,
     pub under: _100btc100k100sats10btc10k10m10sats1btc1k1mPattern4,
     pub over: _100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern4,
     pub matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance {
+impl SeriesTree_Cohorts_Realized_Cap_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             range: _0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4::new(
@@ -24269,15 +24290,15 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Cap_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price {
+pub struct SeriesTree_Cohorts_Realized_Price {
     pub all: CentsPpmRatioSatsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Price_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Price_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Realized_Price_Entry,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount,
-    pub term: SeriesTree_Cohorts_Cohorts_Realized_Price_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Realized_Price_Type,
+    pub age: SeriesTree_Cohorts_Realized_Price_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Price_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Price_Class,
+    pub entry: SeriesTree_Cohorts_Realized_Price_Entry,
+    pub utxo_amount: SeriesTree_Cohorts_Realized_Price_UtxoAmount,
+    pub term: SeriesTree_Cohorts_Realized_Price_Term,
+    pub type_: SeriesTree_Cohorts_Realized_Price_Type,
     pub age_range_matrix: SeriesPattern18<Cents>,
     pub epoch_matrix: SeriesPattern18<Cents>,
     pub class_matrix: SeriesPattern18<Cents>,
@@ -24291,35 +24312,35 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price {
     pub over_amount_matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price {
+impl SeriesTree_Cohorts_Realized_Price {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsPpmRatioSatsUsdPattern::new(client.clone(), "realized_price".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Price_Age::new(
+            age: SeriesTree_Cohorts_Realized_Price_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Price_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Price_Class::new(
+            class: SeriesTree_Cohorts_Realized_Price_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Realized_Price_Entry::new(
+            entry: SeriesTree_Cohorts_Realized_Price_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Realized_Price_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Realized_Price_Term::new(
+            term: SeriesTree_Cohorts_Realized_Price_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Realized_Price_Type::new(
+            type_: SeriesTree_Cohorts_Realized_Price_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
@@ -24372,24 +24393,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Price_Age {
+    pub range: SeriesTree_Cohorts_Realized_Price_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Price_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Price_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age {
+impl SeriesTree_Cohorts_Realized_Price_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Price_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Price_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Price_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -24398,7 +24419,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Price_Age_Range {
     pub under_1h: CentsPpmRatioSatsUsdPattern,
     pub _1h_to_1d: CentsPpmRatioSatsUsdPattern,
     pub _1d_to_1w: CentsPpmRatioSatsUsdPattern,
@@ -24424,7 +24445,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range {
     pub over_15y: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range {
+impl SeriesTree_Cohorts_Realized_Price_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: CentsPpmRatioSatsUsdPattern::new(
@@ -24524,7 +24545,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Price_Age_Under {
     pub _1w: CentsPpmRatioSatsUsdPattern,
     pub _1m: CentsPpmRatioSatsUsdPattern,
     pub _2m: CentsPpmRatioSatsUsdPattern,
@@ -24547,7 +24568,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under {
     pub _15y: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under {
+impl SeriesTree_Cohorts_Realized_Price_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: CentsPpmRatioSatsUsdPattern::new(
@@ -24635,7 +24656,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Price_Age_Over {
     pub _1d: CentsPpmRatioSatsUsdPattern,
     pub _1w: CentsPpmRatioSatsUsdPattern,
     pub _1m: CentsPpmRatioSatsUsdPattern,
@@ -24658,7 +24679,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over {
     pub _12y: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over {
+impl SeriesTree_Cohorts_Realized_Price_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: CentsPpmRatioSatsUsdPattern::new(
@@ -24746,7 +24767,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Price_Epoch {
     pub _0: CentsPpmRatioSatsUsdPattern,
     pub _1: CentsPpmRatioSatsUsdPattern,
     pub _2: CentsPpmRatioSatsUsdPattern,
@@ -24754,7 +24775,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch {
     pub _4: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch {
+impl SeriesTree_Cohorts_Realized_Price_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: CentsPpmRatioSatsUsdPattern::new(
@@ -24782,7 +24803,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Class {
+pub struct SeriesTree_Cohorts_Realized_Price_Class {
     pub _2009: CentsPpmRatioSatsUsdPattern,
     pub _2010: CentsPpmRatioSatsUsdPattern,
     pub _2011: CentsPpmRatioSatsUsdPattern,
@@ -24803,7 +24824,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Class {
     pub _2026: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Class {
+impl SeriesTree_Cohorts_Realized_Price_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: CentsPpmRatioSatsUsdPattern::new(
@@ -24883,12 +24904,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Entry {
+pub struct SeriesTree_Cohorts_Realized_Price_Entry {
     pub discount: CentsPpmRatioSatsUsdPattern,
     pub premium: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Entry {
+impl SeriesTree_Cohorts_Realized_Price_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: CentsPpmRatioSatsUsdPattern::new(
@@ -24904,24 +24925,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Realized_Price_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount {
+impl SeriesTree_Cohorts_Realized_Price_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Realized_Price_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -24930,7 +24951,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Realized_Price_UtxoAmount_Range {
     pub _0sats: CentsPpmRatioSatsUsdPattern,
     pub _1sat_to_10sats: CentsPpmRatioSatsUsdPattern,
     pub _10sats_to_100sats: CentsPpmRatioSatsUsdPattern,
@@ -24948,7 +24969,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range {
     pub over_100k_btc: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Realized_Price_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: CentsPpmRatioSatsUsdPattern::new(
@@ -25016,7 +25037,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Realized_Price_UtxoAmount_Under {
     pub _10sats: CentsPpmRatioSatsUsdPattern,
     pub _100sats: CentsPpmRatioSatsUsdPattern,
     pub _1k_sats: CentsPpmRatioSatsUsdPattern,
@@ -25032,7 +25053,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under {
     pub _100k_btc: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Realized_Price_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: CentsPpmRatioSatsUsdPattern::new(
@@ -25092,7 +25113,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Realized_Price_UtxoAmount_Over {
     pub _1sat: CentsPpmRatioSatsUsdPattern,
     pub _10sats: CentsPpmRatioSatsUsdPattern,
     pub _100sats: CentsPpmRatioSatsUsdPattern,
@@ -25108,7 +25129,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over {
     pub _10k_btc: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Realized_Price_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: CentsPpmRatioSatsUsdPattern::new(
@@ -25168,12 +25189,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Term {
+pub struct SeriesTree_Cohorts_Realized_Price_Term {
     pub short: CentsPpmRatioSatsUsdPattern,
     pub long: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Term {
+impl SeriesTree_Cohorts_Realized_Price_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: CentsPpmRatioSatsUsdPattern::new(
@@ -25189,7 +25210,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Type {
+pub struct SeriesTree_Cohorts_Realized_Price_Type {
     pub p2pk65: CentsPpmRatioSatsUsdPattern,
     pub p2pk33: CentsPpmRatioSatsUsdPattern,
     pub p2pkh: CentsPpmRatioSatsUsdPattern,
@@ -25203,7 +25224,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Price_Type {
     pub empty: CentsPpmRatioSatsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Price_Type {
+impl SeriesTree_Cohorts_Realized_Price_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: CentsPpmRatioSatsUsdPattern::new(
@@ -25252,13 +25273,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Price_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit {
+pub struct SeriesTree_Cohorts_Realized_Profit {
     pub all: BlockCumulativeSumPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Profit_Class,
+    pub age: SeriesTree_Cohorts_Realized_Profit_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Profit_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Profit_Class,
     pub entry: DiscountPremiumPattern5,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount,
+    pub utxo_amount: SeriesTree_Cohorts_Realized_Profit_UtxoAmount,
     pub term: LongShortPattern6,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern5,
     pub age_range_matrix: SeriesPattern18<Cents>,
@@ -25267,27 +25288,27 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit {
     pub entry_matrix: SeriesPattern18<Cents>,
     pub type_matrix: SeriesPattern18<Cents>,
     pub amount_range_matrix: SeriesPattern18<Cents>,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance,
+    pub addr_balance: SeriesTree_Cohorts_Realized_Profit_AddrBalance,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit {
+impl SeriesTree_Cohorts_Realized_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BlockCumulativeSumPattern::new(client.clone(), "realized_profit".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age::new(
+            age: SeriesTree_Cohorts_Realized_Profit_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Profit_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Profit_Class::new(
+            class: SeriesTree_Cohorts_Realized_Profit_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern5::new(client.clone(), "realized_profit".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Realized_Profit_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
@@ -25320,7 +25341,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit {
                 client.clone(),
                 "utxos_realized_profit_cumulative_cents_by_amount_range".to_string(),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Realized_Profit_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
@@ -25329,24 +25350,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Profit_Age {
+    pub range: SeriesTree_Cohorts_Realized_Profit_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Profit_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Profit_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age {
+impl SeriesTree_Cohorts_Realized_Profit_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Profit_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Profit_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Profit_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -25355,7 +25376,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Profit_Age_Range {
     pub under_1h: BlockCumulativeSumPattern,
     pub _1h_to_1d: BlockCumulativeSumPattern,
     pub _1d_to_1w: BlockCumulativeSumPattern,
@@ -25381,7 +25402,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range {
     pub over_15y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range {
+impl SeriesTree_Cohorts_Realized_Profit_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BlockCumulativeSumPattern::new(
@@ -25481,7 +25502,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Profit_Age_Under {
     pub _1w: BlockCumulativeSumPattern,
     pub _1m: BlockCumulativeSumPattern,
     pub _2m: BlockCumulativeSumPattern,
@@ -25504,7 +25525,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under {
     pub _15y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under {
+impl SeriesTree_Cohorts_Realized_Profit_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BlockCumulativeSumPattern::new(
@@ -25592,7 +25613,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Profit_Age_Over {
     pub _1d: BlockCumulativeSumPattern,
     pub _1w: BlockCumulativeSumPattern,
     pub _1m: BlockCumulativeSumPattern,
@@ -25615,7 +25636,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over {
     pub _12y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over {
+impl SeriesTree_Cohorts_Realized_Profit_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BlockCumulativeSumPattern::new(
@@ -25703,7 +25724,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Profit_Epoch {
     pub _0: BlockCumulativeSumPattern,
     pub _1: BlockCumulativeSumPattern,
     pub _2: BlockCumulativeSumPattern,
@@ -25711,7 +25732,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch {
     pub _4: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch {
+impl SeriesTree_Cohorts_Realized_Profit_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BlockCumulativeSumPattern::new(
@@ -25739,7 +25760,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Class {
+pub struct SeriesTree_Cohorts_Realized_Profit_Class {
     pub _2009: BlockCumulativeSumPattern,
     pub _2010: BlockCumulativeSumPattern,
     pub _2011: BlockCumulativeSumPattern,
@@ -25760,7 +25781,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_Class {
     pub _2026: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Class {
+impl SeriesTree_Cohorts_Realized_Profit_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BlockCumulativeSumPattern::new(
@@ -25840,24 +25861,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Realized_Profit_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount {
+impl SeriesTree_Cohorts_Realized_Profit_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -25866,7 +25887,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Range {
     pub _0sats: BlockCumulativeSumPattern,
     pub _1sat_to_10sats: BlockCumulativeSumPattern,
     pub _10sats_to_100sats: BlockCumulativeSumPattern,
@@ -25884,7 +25905,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range {
     pub over_100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BlockCumulativeSumPattern::new(
@@ -25952,7 +25973,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Under {
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
     pub _1k_sats: BlockCumulativeSumPattern,
@@ -25968,7 +25989,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under {
     pub _100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BlockCumulativeSumPattern::new(
@@ -26028,7 +26049,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Over {
     pub _1sat: BlockCumulativeSumPattern,
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
@@ -26044,7 +26065,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over {
     pub _10k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Realized_Profit_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BlockCumulativeSumPattern::new(
@@ -26104,25 +26125,25 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over,
+pub struct SeriesTree_Cohorts_Realized_Profit_AddrBalance {
+    pub range: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Range,
+    pub under: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Under,
+    pub over: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Over,
     pub matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance {
+impl SeriesTree_Cohorts_Realized_Profit_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range::new(
+            range: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under::new(
+            under: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over::new(
+            over: SeriesTree_Cohorts_Realized_Profit_AddrBalance_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -26135,7 +26156,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range {
+pub struct SeriesTree_Cohorts_Realized_Profit_AddrBalance_Range {
     pub _0sats: BlockCumulativeSumPattern,
     pub _1sat_to_10sats: BlockCumulativeSumPattern,
     pub _10sats_to_100sats: BlockCumulativeSumPattern,
@@ -26153,7 +26174,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range {
     pub over_100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range {
+impl SeriesTree_Cohorts_Realized_Profit_AddrBalance_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BlockCumulativeSumPattern::new(
@@ -26221,7 +26242,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under {
+pub struct SeriesTree_Cohorts_Realized_Profit_AddrBalance_Under {
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
     pub _1k_sats: BlockCumulativeSumPattern,
@@ -26237,7 +26258,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under {
     pub _100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under {
+impl SeriesTree_Cohorts_Realized_Profit_AddrBalance_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BlockCumulativeSumPattern::new(
@@ -26297,7 +26318,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over {
+pub struct SeriesTree_Cohorts_Realized_Profit_AddrBalance_Over {
     pub _1sat: BlockCumulativeSumPattern,
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
@@ -26313,7 +26334,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over {
     pub _10k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over {
+impl SeriesTree_Cohorts_Realized_Profit_AddrBalance_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BlockCumulativeSumPattern::new(
@@ -26373,13 +26394,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Profit_AddrBalance_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss {
+pub struct SeriesTree_Cohorts_Realized_Loss {
     pub all: BlockCumulativeSumPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Loss_Class,
+    pub age: SeriesTree_Cohorts_Realized_Loss_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Loss_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Loss_Class,
     pub entry: DiscountPremiumPattern5,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount,
+    pub utxo_amount: SeriesTree_Cohorts_Realized_Loss_UtxoAmount,
     pub term: LongShortPattern6,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern5,
     pub age_range_matrix: SeriesPattern18<Cents>,
@@ -26388,28 +26409,28 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss {
     pub entry_matrix: SeriesPattern18<Cents>,
     pub type_matrix: SeriesPattern18<Cents>,
     pub amount_range_matrix: SeriesPattern18<Cents>,
-    pub addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance,
-    pub negative: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative,
+    pub addr_balance: SeriesTree_Cohorts_Realized_Loss_AddrBalance,
+    pub negative: SeriesTree_Cohorts_Realized_Loss_Negative,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss {
+impl SeriesTree_Cohorts_Realized_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BlockCumulativeSumPattern::new(client.clone(), "realized_loss".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age::new(
+            age: SeriesTree_Cohorts_Realized_Loss_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Loss_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Loss_Class::new(
+            class: SeriesTree_Cohorts_Realized_Loss_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern5::new(client.clone(), "realized_loss".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Realized_Loss_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
@@ -26442,11 +26463,11 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss {
                 client.clone(),
                 "utxos_realized_loss_cumulative_cents_by_amount_range".to_string(),
             ),
-            addr_balance: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance::new(
+            addr_balance: SeriesTree_Cohorts_Realized_Loss_AddrBalance::new(
                 client.clone(),
                 format!("{base_path}_addr_balance"),
             ),
-            negative: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative::new(
+            negative: SeriesTree_Cohorts_Realized_Loss_Negative::new(
                 client.clone(),
                 format!("{base_path}_negative"),
             ),
@@ -26455,24 +26476,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Loss_Age {
+    pub range: SeriesTree_Cohorts_Realized_Loss_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Loss_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Loss_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age {
+impl SeriesTree_Cohorts_Realized_Loss_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Loss_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Loss_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Loss_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -26481,7 +26502,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Loss_Age_Range {
     pub under_1h: BlockCumulativeSumPattern,
     pub _1h_to_1d: BlockCumulativeSumPattern,
     pub _1d_to_1w: BlockCumulativeSumPattern,
@@ -26507,7 +26528,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range {
     pub over_15y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range {
+impl SeriesTree_Cohorts_Realized_Loss_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BlockCumulativeSumPattern::new(
@@ -26607,7 +26628,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Loss_Age_Under {
     pub _1w: BlockCumulativeSumPattern,
     pub _1m: BlockCumulativeSumPattern,
     pub _2m: BlockCumulativeSumPattern,
@@ -26630,7 +26651,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under {
     pub _15y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under {
+impl SeriesTree_Cohorts_Realized_Loss_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BlockCumulativeSumPattern::new(
@@ -26718,7 +26739,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Loss_Age_Over {
     pub _1d: BlockCumulativeSumPattern,
     pub _1w: BlockCumulativeSumPattern,
     pub _1m: BlockCumulativeSumPattern,
@@ -26741,7 +26762,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over {
     pub _12y: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over {
+impl SeriesTree_Cohorts_Realized_Loss_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BlockCumulativeSumPattern::new(
@@ -26829,7 +26850,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Loss_Epoch {
     pub _0: BlockCumulativeSumPattern,
     pub _1: BlockCumulativeSumPattern,
     pub _2: BlockCumulativeSumPattern,
@@ -26837,7 +26858,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch {
     pub _4: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch {
+impl SeriesTree_Cohorts_Realized_Loss_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BlockCumulativeSumPattern::new(client.clone(), "epoch_0_realized_loss".to_string()),
@@ -26850,7 +26871,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Class {
+pub struct SeriesTree_Cohorts_Realized_Loss_Class {
     pub _2009: BlockCumulativeSumPattern,
     pub _2010: BlockCumulativeSumPattern,
     pub _2011: BlockCumulativeSumPattern,
@@ -26871,7 +26892,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Class {
     pub _2026: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Class {
+impl SeriesTree_Cohorts_Realized_Loss_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BlockCumulativeSumPattern::new(
@@ -26951,24 +26972,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Realized_Loss_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount {
+impl SeriesTree_Cohorts_Realized_Loss_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -26977,7 +26998,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Range {
     pub _0sats: BlockCumulativeSumPattern,
     pub _1sat_to_10sats: BlockCumulativeSumPattern,
     pub _10sats_to_100sats: BlockCumulativeSumPattern,
@@ -26995,7 +27016,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range {
     pub over_100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BlockCumulativeSumPattern::new(
@@ -27063,7 +27084,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Under {
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
     pub _1k_sats: BlockCumulativeSumPattern,
@@ -27079,7 +27100,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under {
     pub _100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BlockCumulativeSumPattern::new(
@@ -27139,7 +27160,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Over {
     pub _1sat: BlockCumulativeSumPattern,
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
@@ -27155,7 +27176,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over {
     pub _10k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Realized_Loss_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BlockCumulativeSumPattern::new(
@@ -27215,25 +27236,25 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over,
+pub struct SeriesTree_Cohorts_Realized_Loss_AddrBalance {
+    pub range: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Range,
+    pub under: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Under,
+    pub over: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Over,
     pub matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance {
+impl SeriesTree_Cohorts_Realized_Loss_AddrBalance {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range::new(
+            range: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under::new(
+            under: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over::new(
+            over: SeriesTree_Cohorts_Realized_Loss_AddrBalance_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -27246,7 +27267,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range {
+pub struct SeriesTree_Cohorts_Realized_Loss_AddrBalance_Range {
     pub _0sats: BlockCumulativeSumPattern,
     pub _1sat_to_10sats: BlockCumulativeSumPattern,
     pub _10sats_to_100sats: BlockCumulativeSumPattern,
@@ -27264,7 +27285,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range {
     pub over_100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range {
+impl SeriesTree_Cohorts_Realized_Loss_AddrBalance_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: BlockCumulativeSumPattern::new(
@@ -27332,7 +27353,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under {
+pub struct SeriesTree_Cohorts_Realized_Loss_AddrBalance_Under {
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
     pub _1k_sats: BlockCumulativeSumPattern,
@@ -27348,7 +27369,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under {
     pub _100k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under {
+impl SeriesTree_Cohorts_Realized_Loss_AddrBalance_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: BlockCumulativeSumPattern::new(
@@ -27408,7 +27429,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over {
+pub struct SeriesTree_Cohorts_Realized_Loss_AddrBalance_Over {
     pub _1sat: BlockCumulativeSumPattern,
     pub _10sats: BlockCumulativeSumPattern,
     pub _100sats: BlockCumulativeSumPattern,
@@ -27424,7 +27445,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over {
     pub _10k_btc: BlockCumulativeSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over {
+impl SeriesTree_Cohorts_Realized_Loss_AddrBalance_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: BlockCumulativeSumPattern::new(
@@ -27484,36 +27505,36 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_AddrBalance_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative {
     pub all: BaseSumPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Entry,
-    pub term: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Term,
+    pub age: SeriesTree_Cohorts_Realized_Loss_Negative_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Loss_Negative_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Loss_Negative_Class,
+    pub entry: SeriesTree_Cohorts_Realized_Loss_Negative_Entry,
+    pub term: SeriesTree_Cohorts_Realized_Loss_Negative_Term,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative {
+impl SeriesTree_Cohorts_Realized_Loss_Negative {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BaseSumPattern::new(client.clone(), "realized_loss_neg".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age::new(
+            age: SeriesTree_Cohorts_Realized_Loss_Negative_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Loss_Negative_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class::new(
+            class: SeriesTree_Cohorts_Realized_Loss_Negative_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Entry::new(
+            entry: SeriesTree_Cohorts_Realized_Loss_Negative_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Term::new(
+            term: SeriesTree_Cohorts_Realized_Loss_Negative_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
@@ -27522,24 +27543,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Age {
+    pub range: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Loss_Negative_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -27548,7 +27569,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Age_Range {
     pub under_1h: BaseSumPattern,
     pub _1h_to_1d: BaseSumPattern,
     pub _1d_to_1w: BaseSumPattern,
@@ -27574,7 +27595,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range {
     pub over_15y: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BaseSumPattern::new(
@@ -27674,7 +27695,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Age_Under {
     pub _1w: BaseSumPattern,
     pub _1m: BaseSumPattern,
     pub _2m: BaseSumPattern,
@@ -27697,7 +27718,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under {
     pub _15y: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BaseSumPattern::new(
@@ -27785,7 +27806,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Age_Over {
     pub _1d: BaseSumPattern,
     pub _1w: BaseSumPattern,
     pub _1m: BaseSumPattern,
@@ -27808,7 +27829,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over {
     pub _12y: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BaseSumPattern::new(
@@ -27896,7 +27917,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Epoch {
     pub _0: BaseSumPattern,
     pub _1: BaseSumPattern,
     pub _2: BaseSumPattern,
@@ -27904,7 +27925,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch {
     pub _4: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BaseSumPattern::new(client.clone(), "epoch_0_realized_loss_neg".to_string()),
@@ -27917,7 +27938,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Class {
     pub _2009: BaseSumPattern,
     pub _2010: BaseSumPattern,
     pub _2011: BaseSumPattern,
@@ -27938,7 +27959,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class {
     pub _2026: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BaseSumPattern::new(client.clone(), "class_2009_realized_loss_neg".to_string()),
@@ -27964,12 +27985,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Entry {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Entry {
     pub discount: BaseSumPattern,
     pub premium: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Entry {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: BaseSumPattern::new(client.clone(), "veteran_realized_loss_neg".to_string()),
@@ -27979,12 +28000,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Term {
+pub struct SeriesTree_Cohorts_Realized_Loss_Negative_Term {
     pub short: BaseSumPattern,
     pub long: BaseSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Term {
+impl SeriesTree_Cohorts_Realized_Loss_Negative_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: BaseSumPattern::new(client.clone(), "sth_realized_loss_neg".to_string()),
@@ -27994,44 +28015,44 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Loss_Negative_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl {
+pub struct SeriesTree_Cohorts_Realized_NetPnl {
     pub all: BlockCumulativeDeltaSumPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Entry,
-    pub term: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Term,
+    pub age: SeriesTree_Cohorts_Realized_NetPnl_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_NetPnl_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_NetPnl_Class,
+    pub entry: SeriesTree_Cohorts_Realized_NetPnl_Entry,
+    pub term: SeriesTree_Cohorts_Realized_NetPnl_Term,
     pub age_range_matrix: SeriesPattern18<CentsSigned>,
     pub epoch_matrix: SeriesPattern18<CentsSigned>,
     pub class_matrix: SeriesPattern18<CentsSigned>,
     pub entry_matrix: SeriesPattern18<CentsSigned>,
-    pub change_1m: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m,
+    pub change_1m: SeriesTree_Cohorts_Realized_NetPnl_Change1m,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl {
+impl SeriesTree_Cohorts_Realized_NetPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: BlockCumulativeDeltaSumPattern::new(
                 client.clone(),
                 "net_realized_pnl".to_string(),
             ),
-            age: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age::new(
+            age: SeriesTree_Cohorts_Realized_NetPnl_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_NetPnl_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class::new(
+            class: SeriesTree_Cohorts_Realized_NetPnl_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Entry::new(
+            entry: SeriesTree_Cohorts_Realized_NetPnl_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Term::new(
+            term: SeriesTree_Cohorts_Realized_NetPnl_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
@@ -28051,7 +28072,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl {
                 client.clone(),
                 "net_realized_pnl_cumulative_cents_by_entry".to_string(),
             ),
-            change_1m: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m::new(
+            change_1m: SeriesTree_Cohorts_Realized_NetPnl_Change1m::new(
                 client.clone(),
                 format!("{base_path}_change_1m"),
             ),
@@ -28060,24 +28081,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Age {
+    pub range: SeriesTree_Cohorts_Realized_NetPnl_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_NetPnl_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_NetPnl_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age {
+impl SeriesTree_Cohorts_Realized_NetPnl_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_NetPnl_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_NetPnl_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_NetPnl_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -28086,7 +28107,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Age_Range {
     pub under_1h: BlockCumulativeDeltaSumPattern,
     pub _1h_to_1d: BlockCumulativeDeltaSumPattern,
     pub _1d_to_1w: BlockCumulativeDeltaSumPattern,
@@ -28112,7 +28133,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range {
     pub over_15y: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range {
+impl SeriesTree_Cohorts_Realized_NetPnl_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: BlockCumulativeDeltaSumPattern::new(
@@ -28212,7 +28233,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Age_Under {
     pub _1w: BlockCumulativeDeltaSumPattern,
     pub _1m: BlockCumulativeDeltaSumPattern,
     pub _2m: BlockCumulativeDeltaSumPattern,
@@ -28235,7 +28256,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under {
     pub _15y: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under {
+impl SeriesTree_Cohorts_Realized_NetPnl_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: BlockCumulativeDeltaSumPattern::new(
@@ -28323,7 +28344,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Age_Over {
     pub _1d: BlockCumulativeDeltaSumPattern,
     pub _1w: BlockCumulativeDeltaSumPattern,
     pub _1m: BlockCumulativeDeltaSumPattern,
@@ -28346,7 +28367,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over {
     pub _12y: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over {
+impl SeriesTree_Cohorts_Realized_NetPnl_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: BlockCumulativeDeltaSumPattern::new(
@@ -28434,7 +28455,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Epoch {
     pub _0: BlockCumulativeDeltaSumPattern,
     pub _1: BlockCumulativeDeltaSumPattern,
     pub _2: BlockCumulativeDeltaSumPattern,
@@ -28442,7 +28463,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch {
     pub _4: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch {
+impl SeriesTree_Cohorts_Realized_NetPnl_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: BlockCumulativeDeltaSumPattern::new(
@@ -28470,7 +28491,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Class {
     pub _2009: BlockCumulativeDeltaSumPattern,
     pub _2010: BlockCumulativeDeltaSumPattern,
     pub _2011: BlockCumulativeDeltaSumPattern,
@@ -28491,7 +28512,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class {
     pub _2026: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class {
+impl SeriesTree_Cohorts_Realized_NetPnl_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: BlockCumulativeDeltaSumPattern::new(
@@ -28571,12 +28592,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Entry {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Entry {
     pub discount: BlockCumulativeDeltaSumPattern,
     pub premium: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Entry {
+impl SeriesTree_Cohorts_Realized_NetPnl_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: BlockCumulativeDeltaSumPattern::new(
@@ -28592,12 +28613,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Term {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Term {
     pub short: BlockCumulativeDeltaSumPattern,
     pub long: BlockCumulativeDeltaSumPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Term {
+impl SeriesTree_Cohorts_Realized_NetPnl_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: BlockCumulativeDeltaSumPattern::new(
@@ -28613,14 +28634,14 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m {
-    pub to_mcap: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap,
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Change1m {
+    pub to_mcap: SeriesTree_Cohorts_Realized_NetPnl_Change1m_ToMcap,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m {
+impl SeriesTree_Cohorts_Realized_NetPnl_Change1m {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            to_mcap: SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap::new(
+            to_mcap: SeriesTree_Cohorts_Realized_NetPnl_Change1m_ToMcap::new(
                 client.clone(),
                 format!("{base_path}_to_mcap"),
             ),
@@ -28629,18 +28650,18 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap {
+pub struct SeriesTree_Cohorts_Realized_NetPnl_Change1m_ToMcap {
     pub all: PercentPpmRatioPattern,
     pub sth: PercentPpmRatioPattern,
     pub lth: PercentPpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap {
+impl SeriesTree_Cohorts_Realized_NetPnl_Change1m_ToMcap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern::new(
                 client.clone(),
-                "all_net_pnl_change_1m_to_mcap".to_string(),
+                "net_pnl_change_1m_to_mcap".to_string(),
             ),
             sth: PercentPpmRatioPattern::new(
                 client.clone(),
@@ -28655,70 +28676,70 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnl_Change1m_ToMcap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr {
-    pub value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed,
+pub struct SeriesTree_Cohorts_Realized_Sopr {
+    pub value_destroyed: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed,
     pub all: SeriesPattern1<StoredF32>,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class,
+    pub age: SeriesTree_Cohorts_Realized_Sopr_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Sopr_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Sopr_Class,
     pub entry: DiscountPremiumPattern7<StoredF32>,
     pub term: LongShortPattern7<StoredF32>,
-    pub aggregate_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix,
-    pub age_range_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix,
-    pub under_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix,
-    pub over_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix,
-    pub epoch_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix,
-    pub class_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix,
-    pub entry_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix,
+    pub aggregate_matrix: SeriesTree_Cohorts_Realized_Sopr_AggregateMatrix,
+    pub age_range_matrix: SeriesTree_Cohorts_Realized_Sopr_AgeRangeMatrix,
+    pub under_age_matrix: SeriesTree_Cohorts_Realized_Sopr_UnderAgeMatrix,
+    pub over_age_matrix: SeriesTree_Cohorts_Realized_Sopr_OverAgeMatrix,
+    pub epoch_matrix: SeriesTree_Cohorts_Realized_Sopr_EpochMatrix,
+    pub class_matrix: SeriesTree_Cohorts_Realized_Sopr_ClassMatrix,
+    pub entry_matrix: SeriesTree_Cohorts_Realized_Sopr_EntryMatrix,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr {
+impl SeriesTree_Cohorts_Realized_Sopr {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed::new(
+            value_destroyed: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed::new(
                 client.clone(),
                 format!("{base_path}_value_destroyed"),
             ),
             all: SeriesPattern1::new(client.clone(), "sopr_24h".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age::new(
+            age: SeriesTree_Cohorts_Realized_Sopr_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Sopr_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class::new(
+            class: SeriesTree_Cohorts_Realized_Sopr_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern7::new(client.clone(), "sopr_24h".to_string()),
             term: LongShortPattern7::new(client.clone(), "sopr_24h".to_string()),
-            aggregate_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix::new(
+            aggregate_matrix: SeriesTree_Cohorts_Realized_Sopr_AggregateMatrix::new(
                 client.clone(),
                 format!("{base_path}_aggregate_matrix"),
             ),
-            age_range_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix::new(
+            age_range_matrix: SeriesTree_Cohorts_Realized_Sopr_AgeRangeMatrix::new(
                 client.clone(),
                 format!("{base_path}_age_range_matrix"),
             ),
-            under_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix::new(
+            under_age_matrix: SeriesTree_Cohorts_Realized_Sopr_UnderAgeMatrix::new(
                 client.clone(),
                 format!("{base_path}_under_age_matrix"),
             ),
-            over_age_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix::new(
+            over_age_matrix: SeriesTree_Cohorts_Realized_Sopr_OverAgeMatrix::new(
                 client.clone(),
                 format!("{base_path}_over_age_matrix"),
             ),
-            epoch_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix::new(
+            epoch_matrix: SeriesTree_Cohorts_Realized_Sopr_EpochMatrix::new(
                 client.clone(),
                 format!("{base_path}_epoch_matrix"),
             ),
-            class_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix::new(
+            class_matrix: SeriesTree_Cohorts_Realized_Sopr_ClassMatrix::new(
                 client.clone(),
                 format!("{base_path}_class_matrix"),
             ),
-            entry_matrix: SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix::new(
+            entry_matrix: SeriesTree_Cohorts_Realized_Sopr_EntryMatrix::new(
                 client.clone(),
                 format!("{base_path}_entry_matrix"),
             ),
@@ -28727,37 +28748,46 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed {
-    pub all: BlockCumulativeSumPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Class,
-    pub entry: DiscountPremiumPattern5,
-    pub term: LongShortPattern6,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed {
+    pub all: AverageBlockCumulativeSumPattern3,
+    pub age: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class,
+    pub entry: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry,
+    pub term: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term,
     pub age_range_matrix: SeriesPattern18<Cents>,
     pub epoch_matrix: SeriesPattern18<Cents>,
     pub class_matrix: SeriesPattern18<Cents>,
     pub entry_matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: BlockCumulativeSumPattern::new(client.clone(), "value_destroyed".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age::new(
+            all: AverageBlockCumulativeSumPattern3::new(
+                client.clone(),
+                "value_destroyed".to_string(),
+            ),
+            age: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Class::new(
+            class: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern5::new(client.clone(), "value_destroyed".to_string()),
-            term: LongShortPattern6::new(client.clone(), "value_destroyed".to_string()),
+            entry: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry::new(
+                client.clone(),
+                format!("{base_path}_entry"),
+            ),
+            term: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term::new(
+                client.clone(),
+                format!("{base_path}_term"),
+            ),
             age_range_matrix: SeriesPattern18::new(
                 client.clone(),
                 "utxos_value_destroyed_cumulative_cents_by_age_range".to_string(),
@@ -28779,24 +28809,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age {
+    pub range: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -28805,124 +28835,124 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range {
-    pub under_1h: BlockCumulativeSumPattern,
-    pub _1h_to_1d: BlockCumulativeSumPattern,
-    pub _1d_to_1w: BlockCumulativeSumPattern,
-    pub _1w_to_1m: BlockCumulativeSumPattern,
-    pub _1m_to_2m: BlockCumulativeSumPattern,
-    pub _2m_to_3m: BlockCumulativeSumPattern,
-    pub _3m_to_4m: BlockCumulativeSumPattern,
-    pub _4m_to_5m: BlockCumulativeSumPattern,
-    pub _5m_to_6m: BlockCumulativeSumPattern,
-    pub _6m_to_9m: BlockCumulativeSumPattern,
-    pub _9m_to_1y: BlockCumulativeSumPattern,
-    pub _1y_to_18m: BlockCumulativeSumPattern,
-    pub _18m_to_2y: BlockCumulativeSumPattern,
-    pub _2y_to_3y: BlockCumulativeSumPattern,
-    pub _3y_to_4y: BlockCumulativeSumPattern,
-    pub _4y_to_5y: BlockCumulativeSumPattern,
-    pub _5y_to_6y: BlockCumulativeSumPattern,
-    pub _6y_to_7y: BlockCumulativeSumPattern,
-    pub _7y_to_8y: BlockCumulativeSumPattern,
-    pub _8y_to_10y: BlockCumulativeSumPattern,
-    pub _10y_to_12y: BlockCumulativeSumPattern,
-    pub _12y_to_15y: BlockCumulativeSumPattern,
-    pub over_15y: BlockCumulativeSumPattern,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range {
+    pub under_1h: AverageBlockCumulativeSumPattern3,
+    pub _1h_to_1d: AverageBlockCumulativeSumPattern3,
+    pub _1d_to_1w: AverageBlockCumulativeSumPattern3,
+    pub _1w_to_1m: AverageBlockCumulativeSumPattern3,
+    pub _1m_to_2m: AverageBlockCumulativeSumPattern3,
+    pub _2m_to_3m: AverageBlockCumulativeSumPattern3,
+    pub _3m_to_4m: AverageBlockCumulativeSumPattern3,
+    pub _4m_to_5m: AverageBlockCumulativeSumPattern3,
+    pub _5m_to_6m: AverageBlockCumulativeSumPattern3,
+    pub _6m_to_9m: AverageBlockCumulativeSumPattern3,
+    pub _9m_to_1y: AverageBlockCumulativeSumPattern3,
+    pub _1y_to_18m: AverageBlockCumulativeSumPattern3,
+    pub _18m_to_2y: AverageBlockCumulativeSumPattern3,
+    pub _2y_to_3y: AverageBlockCumulativeSumPattern3,
+    pub _3y_to_4y: AverageBlockCumulativeSumPattern3,
+    pub _4y_to_5y: AverageBlockCumulativeSumPattern3,
+    pub _5y_to_6y: AverageBlockCumulativeSumPattern3,
+    pub _6y_to_7y: AverageBlockCumulativeSumPattern3,
+    pub _7y_to_8y: AverageBlockCumulativeSumPattern3,
+    pub _8y_to_10y: AverageBlockCumulativeSumPattern3,
+    pub _10y_to_12y: AverageBlockCumulativeSumPattern3,
+    pub _12y_to_15y: AverageBlockCumulativeSumPattern3,
+    pub over_15y: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            under_1h: BlockCumulativeSumPattern::new(
+            under_1h: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_1h_old_value_destroyed".to_string(),
             ),
-            _1h_to_1d: BlockCumulativeSumPattern::new(
+            _1h_to_1d: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_1h_to_1d_old_value_destroyed".to_string(),
             ),
-            _1d_to_1w: BlockCumulativeSumPattern::new(
+            _1d_to_1w: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_1d_to_1w_old_value_destroyed".to_string(),
             ),
-            _1w_to_1m: BlockCumulativeSumPattern::new(
+            _1w_to_1m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_1w_to_1m_old_value_destroyed".to_string(),
             ),
-            _1m_to_2m: BlockCumulativeSumPattern::new(
+            _1m_to_2m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_1m_to_2m_old_value_destroyed".to_string(),
             ),
-            _2m_to_3m: BlockCumulativeSumPattern::new(
+            _2m_to_3m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_2m_to_3m_old_value_destroyed".to_string(),
             ),
-            _3m_to_4m: BlockCumulativeSumPattern::new(
+            _3m_to_4m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_3m_to_4m_old_value_destroyed".to_string(),
             ),
-            _4m_to_5m: BlockCumulativeSumPattern::new(
+            _4m_to_5m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_4m_to_5m_old_value_destroyed".to_string(),
             ),
-            _5m_to_6m: BlockCumulativeSumPattern::new(
+            _5m_to_6m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_5m_to_6m_old_value_destroyed".to_string(),
             ),
-            _6m_to_9m: BlockCumulativeSumPattern::new(
+            _6m_to_9m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_6m_to_9m_old_value_destroyed".to_string(),
             ),
-            _9m_to_1y: BlockCumulativeSumPattern::new(
+            _9m_to_1y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_9m_to_1y_old_value_destroyed".to_string(),
             ),
-            _1y_to_18m: BlockCumulativeSumPattern::new(
+            _1y_to_18m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_1y_to_18m_old_value_destroyed".to_string(),
             ),
-            _18m_to_2y: BlockCumulativeSumPattern::new(
+            _18m_to_2y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_18m_to_2y_old_value_destroyed".to_string(),
             ),
-            _2y_to_3y: BlockCumulativeSumPattern::new(
+            _2y_to_3y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_2y_to_3y_old_value_destroyed".to_string(),
             ),
-            _3y_to_4y: BlockCumulativeSumPattern::new(
+            _3y_to_4y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_3y_to_4y_old_value_destroyed".to_string(),
             ),
-            _4y_to_5y: BlockCumulativeSumPattern::new(
+            _4y_to_5y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_4y_to_5y_old_value_destroyed".to_string(),
             ),
-            _5y_to_6y: BlockCumulativeSumPattern::new(
+            _5y_to_6y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_5y_to_6y_old_value_destroyed".to_string(),
             ),
-            _6y_to_7y: BlockCumulativeSumPattern::new(
+            _6y_to_7y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_6y_to_7y_old_value_destroyed".to_string(),
             ),
-            _7y_to_8y: BlockCumulativeSumPattern::new(
+            _7y_to_8y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_7y_to_8y_old_value_destroyed".to_string(),
             ),
-            _8y_to_10y: BlockCumulativeSumPattern::new(
+            _8y_to_10y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_8y_to_10y_old_value_destroyed".to_string(),
             ),
-            _10y_to_12y: BlockCumulativeSumPattern::new(
+            _10y_to_12y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_10y_to_12y_old_value_destroyed".to_string(),
             ),
-            _12y_to_15y: BlockCumulativeSumPattern::new(
+            _12y_to_15y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_12y_to_15y_old_value_destroyed".to_string(),
             ),
-            over_15y: BlockCumulativeSumPattern::new(
+            over_15y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_15y_old_value_destroyed".to_string(),
             ),
@@ -28931,109 +28961,109 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under {
-    pub _1w: BlockCumulativeSumPattern,
-    pub _1m: BlockCumulativeSumPattern,
-    pub _2m: BlockCumulativeSumPattern,
-    pub _3m: BlockCumulativeSumPattern,
-    pub _4m: BlockCumulativeSumPattern,
-    pub _5m: BlockCumulativeSumPattern,
-    pub _6m: BlockCumulativeSumPattern,
-    pub _9m: BlockCumulativeSumPattern,
-    pub _1y: BlockCumulativeSumPattern,
-    pub _18m: BlockCumulativeSumPattern,
-    pub _2y: BlockCumulativeSumPattern,
-    pub _3y: BlockCumulativeSumPattern,
-    pub _4y: BlockCumulativeSumPattern,
-    pub _5y: BlockCumulativeSumPattern,
-    pub _6y: BlockCumulativeSumPattern,
-    pub _7y: BlockCumulativeSumPattern,
-    pub _8y: BlockCumulativeSumPattern,
-    pub _10y: BlockCumulativeSumPattern,
-    pub _12y: BlockCumulativeSumPattern,
-    pub _15y: BlockCumulativeSumPattern,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under {
+    pub _1w: AverageBlockCumulativeSumPattern3,
+    pub _1m: AverageBlockCumulativeSumPattern3,
+    pub _2m: AverageBlockCumulativeSumPattern3,
+    pub _3m: AverageBlockCumulativeSumPattern3,
+    pub _4m: AverageBlockCumulativeSumPattern3,
+    pub _5m: AverageBlockCumulativeSumPattern3,
+    pub _6m: AverageBlockCumulativeSumPattern3,
+    pub _9m: AverageBlockCumulativeSumPattern3,
+    pub _1y: AverageBlockCumulativeSumPattern3,
+    pub _18m: AverageBlockCumulativeSumPattern3,
+    pub _2y: AverageBlockCumulativeSumPattern3,
+    pub _3y: AverageBlockCumulativeSumPattern3,
+    pub _4y: AverageBlockCumulativeSumPattern3,
+    pub _5y: AverageBlockCumulativeSumPattern3,
+    pub _6y: AverageBlockCumulativeSumPattern3,
+    pub _7y: AverageBlockCumulativeSumPattern3,
+    pub _8y: AverageBlockCumulativeSumPattern3,
+    pub _10y: AverageBlockCumulativeSumPattern3,
+    pub _12y: AverageBlockCumulativeSumPattern3,
+    pub _15y: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            _1w: BlockCumulativeSumPattern::new(
+            _1w: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_1w_old_value_destroyed".to_string(),
             ),
-            _1m: BlockCumulativeSumPattern::new(
+            _1m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_1m_old_value_destroyed".to_string(),
             ),
-            _2m: BlockCumulativeSumPattern::new(
+            _2m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_2m_old_value_destroyed".to_string(),
             ),
-            _3m: BlockCumulativeSumPattern::new(
+            _3m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_3m_old_value_destroyed".to_string(),
             ),
-            _4m: BlockCumulativeSumPattern::new(
+            _4m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_4m_old_value_destroyed".to_string(),
             ),
-            _5m: BlockCumulativeSumPattern::new(
+            _5m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_5m_old_value_destroyed".to_string(),
             ),
-            _6m: BlockCumulativeSumPattern::new(
+            _6m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_6m_old_value_destroyed".to_string(),
             ),
-            _9m: BlockCumulativeSumPattern::new(
+            _9m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_9m_old_value_destroyed".to_string(),
             ),
-            _1y: BlockCumulativeSumPattern::new(
+            _1y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_1y_old_value_destroyed".to_string(),
             ),
-            _18m: BlockCumulativeSumPattern::new(
+            _18m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_18m_old_value_destroyed".to_string(),
             ),
-            _2y: BlockCumulativeSumPattern::new(
+            _2y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_2y_old_value_destroyed".to_string(),
             ),
-            _3y: BlockCumulativeSumPattern::new(
+            _3y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_3y_old_value_destroyed".to_string(),
             ),
-            _4y: BlockCumulativeSumPattern::new(
+            _4y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_4y_old_value_destroyed".to_string(),
             ),
-            _5y: BlockCumulativeSumPattern::new(
+            _5y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_5y_old_value_destroyed".to_string(),
             ),
-            _6y: BlockCumulativeSumPattern::new(
+            _6y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_6y_old_value_destroyed".to_string(),
             ),
-            _7y: BlockCumulativeSumPattern::new(
+            _7y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_7y_old_value_destroyed".to_string(),
             ),
-            _8y: BlockCumulativeSumPattern::new(
+            _8y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_8y_old_value_destroyed".to_string(),
             ),
-            _10y: BlockCumulativeSumPattern::new(
+            _10y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_10y_old_value_destroyed".to_string(),
             ),
-            _12y: BlockCumulativeSumPattern::new(
+            _12y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_12y_old_value_destroyed".to_string(),
             ),
-            _15y: BlockCumulativeSumPattern::new(
+            _15y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_under_15y_old_value_destroyed".to_string(),
             ),
@@ -29042,109 +29072,109 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over {
-    pub _1d: BlockCumulativeSumPattern,
-    pub _1w: BlockCumulativeSumPattern,
-    pub _1m: BlockCumulativeSumPattern,
-    pub _2m: BlockCumulativeSumPattern,
-    pub _3m: BlockCumulativeSumPattern,
-    pub _4m: BlockCumulativeSumPattern,
-    pub _5m: BlockCumulativeSumPattern,
-    pub _6m: BlockCumulativeSumPattern,
-    pub _9m: BlockCumulativeSumPattern,
-    pub _1y: BlockCumulativeSumPattern,
-    pub _18m: BlockCumulativeSumPattern,
-    pub _2y: BlockCumulativeSumPattern,
-    pub _3y: BlockCumulativeSumPattern,
-    pub _4y: BlockCumulativeSumPattern,
-    pub _5y: BlockCumulativeSumPattern,
-    pub _6y: BlockCumulativeSumPattern,
-    pub _7y: BlockCumulativeSumPattern,
-    pub _8y: BlockCumulativeSumPattern,
-    pub _10y: BlockCumulativeSumPattern,
-    pub _12y: BlockCumulativeSumPattern,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over {
+    pub _1d: AverageBlockCumulativeSumPattern3,
+    pub _1w: AverageBlockCumulativeSumPattern3,
+    pub _1m: AverageBlockCumulativeSumPattern3,
+    pub _2m: AverageBlockCumulativeSumPattern3,
+    pub _3m: AverageBlockCumulativeSumPattern3,
+    pub _4m: AverageBlockCumulativeSumPattern3,
+    pub _5m: AverageBlockCumulativeSumPattern3,
+    pub _6m: AverageBlockCumulativeSumPattern3,
+    pub _9m: AverageBlockCumulativeSumPattern3,
+    pub _1y: AverageBlockCumulativeSumPattern3,
+    pub _18m: AverageBlockCumulativeSumPattern3,
+    pub _2y: AverageBlockCumulativeSumPattern3,
+    pub _3y: AverageBlockCumulativeSumPattern3,
+    pub _4y: AverageBlockCumulativeSumPattern3,
+    pub _5y: AverageBlockCumulativeSumPattern3,
+    pub _6y: AverageBlockCumulativeSumPattern3,
+    pub _7y: AverageBlockCumulativeSumPattern3,
+    pub _8y: AverageBlockCumulativeSumPattern3,
+    pub _10y: AverageBlockCumulativeSumPattern3,
+    pub _12y: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            _1d: BlockCumulativeSumPattern::new(
+            _1d: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_1d_old_value_destroyed".to_string(),
             ),
-            _1w: BlockCumulativeSumPattern::new(
+            _1w: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_1w_old_value_destroyed".to_string(),
             ),
-            _1m: BlockCumulativeSumPattern::new(
+            _1m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_1m_old_value_destroyed".to_string(),
             ),
-            _2m: BlockCumulativeSumPattern::new(
+            _2m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_2m_old_value_destroyed".to_string(),
             ),
-            _3m: BlockCumulativeSumPattern::new(
+            _3m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_3m_old_value_destroyed".to_string(),
             ),
-            _4m: BlockCumulativeSumPattern::new(
+            _4m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_4m_old_value_destroyed".to_string(),
             ),
-            _5m: BlockCumulativeSumPattern::new(
+            _5m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_5m_old_value_destroyed".to_string(),
             ),
-            _6m: BlockCumulativeSumPattern::new(
+            _6m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_6m_old_value_destroyed".to_string(),
             ),
-            _9m: BlockCumulativeSumPattern::new(
+            _9m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_9m_old_value_destroyed".to_string(),
             ),
-            _1y: BlockCumulativeSumPattern::new(
+            _1y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_1y_old_value_destroyed".to_string(),
             ),
-            _18m: BlockCumulativeSumPattern::new(
+            _18m: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_18m_old_value_destroyed".to_string(),
             ),
-            _2y: BlockCumulativeSumPattern::new(
+            _2y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_2y_old_value_destroyed".to_string(),
             ),
-            _3y: BlockCumulativeSumPattern::new(
+            _3y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_3y_old_value_destroyed".to_string(),
             ),
-            _4y: BlockCumulativeSumPattern::new(
+            _4y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_4y_old_value_destroyed".to_string(),
             ),
-            _5y: BlockCumulativeSumPattern::new(
+            _5y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_5y_old_value_destroyed".to_string(),
             ),
-            _6y: BlockCumulativeSumPattern::new(
+            _6y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_6y_old_value_destroyed".to_string(),
             ),
-            _7y: BlockCumulativeSumPattern::new(
+            _7y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_7y_old_value_destroyed".to_string(),
             ),
-            _8y: BlockCumulativeSumPattern::new(
+            _8y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_8y_old_value_destroyed".to_string(),
             ),
-            _10y: BlockCumulativeSumPattern::new(
+            _10y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_10y_old_value_destroyed".to_string(),
             ),
-            _12y: BlockCumulativeSumPattern::new(
+            _12y: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "utxos_over_12y_old_value_destroyed".to_string(),
             ),
@@ -29153,34 +29183,34 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Epoch {
-    pub _0: BlockCumulativeSumPattern,
-    pub _1: BlockCumulativeSumPattern,
-    pub _2: BlockCumulativeSumPattern,
-    pub _3: BlockCumulativeSumPattern,
-    pub _4: BlockCumulativeSumPattern,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch {
+    pub _0: AverageBlockCumulativeSumPattern3,
+    pub _1: AverageBlockCumulativeSumPattern3,
+    pub _2: AverageBlockCumulativeSumPattern3,
+    pub _3: AverageBlockCumulativeSumPattern3,
+    pub _4: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Epoch {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            _0: BlockCumulativeSumPattern::new(
+            _0: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "epoch_0_value_destroyed".to_string(),
             ),
-            _1: BlockCumulativeSumPattern::new(
+            _1: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "epoch_1_value_destroyed".to_string(),
             ),
-            _2: BlockCumulativeSumPattern::new(
+            _2: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "epoch_2_value_destroyed".to_string(),
             ),
-            _3: BlockCumulativeSumPattern::new(
+            _3: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "epoch_3_value_destroyed".to_string(),
             ),
-            _4: BlockCumulativeSumPattern::new(
+            _4: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "epoch_4_value_destroyed".to_string(),
             ),
@@ -29189,99 +29219,99 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Class {
-    pub _2009: BlockCumulativeSumPattern,
-    pub _2010: BlockCumulativeSumPattern,
-    pub _2011: BlockCumulativeSumPattern,
-    pub _2012: BlockCumulativeSumPattern,
-    pub _2013: BlockCumulativeSumPattern,
-    pub _2014: BlockCumulativeSumPattern,
-    pub _2015: BlockCumulativeSumPattern,
-    pub _2016: BlockCumulativeSumPattern,
-    pub _2017: BlockCumulativeSumPattern,
-    pub _2018: BlockCumulativeSumPattern,
-    pub _2019: BlockCumulativeSumPattern,
-    pub _2020: BlockCumulativeSumPattern,
-    pub _2021: BlockCumulativeSumPattern,
-    pub _2022: BlockCumulativeSumPattern,
-    pub _2023: BlockCumulativeSumPattern,
-    pub _2024: BlockCumulativeSumPattern,
-    pub _2025: BlockCumulativeSumPattern,
-    pub _2026: BlockCumulativeSumPattern,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class {
+    pub _2009: AverageBlockCumulativeSumPattern3,
+    pub _2010: AverageBlockCumulativeSumPattern3,
+    pub _2011: AverageBlockCumulativeSumPattern3,
+    pub _2012: AverageBlockCumulativeSumPattern3,
+    pub _2013: AverageBlockCumulativeSumPattern3,
+    pub _2014: AverageBlockCumulativeSumPattern3,
+    pub _2015: AverageBlockCumulativeSumPattern3,
+    pub _2016: AverageBlockCumulativeSumPattern3,
+    pub _2017: AverageBlockCumulativeSumPattern3,
+    pub _2018: AverageBlockCumulativeSumPattern3,
+    pub _2019: AverageBlockCumulativeSumPattern3,
+    pub _2020: AverageBlockCumulativeSumPattern3,
+    pub _2021: AverageBlockCumulativeSumPattern3,
+    pub _2022: AverageBlockCumulativeSumPattern3,
+    pub _2023: AverageBlockCumulativeSumPattern3,
+    pub _2024: AverageBlockCumulativeSumPattern3,
+    pub _2025: AverageBlockCumulativeSumPattern3,
+    pub _2026: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Class {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            _2009: BlockCumulativeSumPattern::new(
+            _2009: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2009_value_destroyed".to_string(),
             ),
-            _2010: BlockCumulativeSumPattern::new(
+            _2010: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2010_value_destroyed".to_string(),
             ),
-            _2011: BlockCumulativeSumPattern::new(
+            _2011: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2011_value_destroyed".to_string(),
             ),
-            _2012: BlockCumulativeSumPattern::new(
+            _2012: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2012_value_destroyed".to_string(),
             ),
-            _2013: BlockCumulativeSumPattern::new(
+            _2013: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2013_value_destroyed".to_string(),
             ),
-            _2014: BlockCumulativeSumPattern::new(
+            _2014: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2014_value_destroyed".to_string(),
             ),
-            _2015: BlockCumulativeSumPattern::new(
+            _2015: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2015_value_destroyed".to_string(),
             ),
-            _2016: BlockCumulativeSumPattern::new(
+            _2016: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2016_value_destroyed".to_string(),
             ),
-            _2017: BlockCumulativeSumPattern::new(
+            _2017: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2017_value_destroyed".to_string(),
             ),
-            _2018: BlockCumulativeSumPattern::new(
+            _2018: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2018_value_destroyed".to_string(),
             ),
-            _2019: BlockCumulativeSumPattern::new(
+            _2019: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2019_value_destroyed".to_string(),
             ),
-            _2020: BlockCumulativeSumPattern::new(
+            _2020: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2020_value_destroyed".to_string(),
             ),
-            _2021: BlockCumulativeSumPattern::new(
+            _2021: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2021_value_destroyed".to_string(),
             ),
-            _2022: BlockCumulativeSumPattern::new(
+            _2022: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2022_value_destroyed".to_string(),
             ),
-            _2023: BlockCumulativeSumPattern::new(
+            _2023: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2023_value_destroyed".to_string(),
             ),
-            _2024: BlockCumulativeSumPattern::new(
+            _2024: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2024_value_destroyed".to_string(),
             ),
-            _2025: BlockCumulativeSumPattern::new(
+            _2025: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2025_value_destroyed".to_string(),
             ),
-            _2026: BlockCumulativeSumPattern::new(
+            _2026: AverageBlockCumulativeSumPattern3::new(
                 client.clone(),
                 "class_2026_value_destroyed".to_string(),
             ),
@@ -29290,24 +29320,66 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ValueDestroyed_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry {
+    pub discount: AverageBlockCumulativeSumPattern3,
+    pub premium: AverageBlockCumulativeSumPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age {
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range::new(
+            discount: AverageBlockCumulativeSumPattern3::new(
+                client.clone(),
+                "veteran_value_destroyed".to_string(),
+            ),
+            premium: AverageBlockCumulativeSumPattern3::new(
+                client.clone(),
+                "rookie_value_destroyed".to_string(),
+            ),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term {
+    pub short: AverageBlockCumulativeSumPattern3,
+    pub long: AverageBlockCumulativeSumPattern3,
+}
+
+impl SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
+            short: AverageBlockCumulativeSumPattern3::new(
+                client.clone(),
+                "sth_value_destroyed".to_string(),
+            ),
+            long: AverageBlockCumulativeSumPattern3::new(
+                client.clone(),
+                "lth_value_destroyed".to_string(),
+            ),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Cohorts_Realized_Sopr_Age {
+    pub range: SeriesTree_Cohorts_Realized_Sopr_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Sopr_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Sopr_Age_Over,
+}
+
+impl SeriesTree_Cohorts_Realized_Sopr_Age {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
+            range: SeriesTree_Cohorts_Realized_Sopr_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Sopr_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Sopr_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -29316,7 +29388,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Sopr_Age_Range {
     pub under_1h: SeriesPattern1<StoredF32>,
     pub _1h_to_1d: SeriesPattern1<StoredF32>,
     pub _1d_to_1w: SeriesPattern1<StoredF32>,
@@ -29342,7 +29414,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
     pub over_15y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
+impl SeriesTree_Cohorts_Realized_Sopr_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: SeriesPattern1::new(
@@ -29442,7 +29514,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Sopr_Age_Under {
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
     pub _2m: SeriesPattern1<StoredF32>,
@@ -29465,7 +29537,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
     pub _15y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
+impl SeriesTree_Cohorts_Realized_Sopr_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: SeriesPattern1::new(client.clone(), "utxos_under_1w_old_sopr_24h".to_string()),
@@ -29493,7 +29565,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Sopr_Age_Over {
     pub _1d: SeriesPattern1<StoredF32>,
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
@@ -29516,7 +29588,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
     pub _12y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
+impl SeriesTree_Cohorts_Realized_Sopr_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: SeriesPattern1::new(client.clone(), "utxos_over_1d_old_sopr_24h".to_string()),
@@ -29544,7 +29616,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Sopr_Epoch {
     pub _0: SeriesPattern1<StoredF32>,
     pub _1: SeriesPattern1<StoredF32>,
     pub _2: SeriesPattern1<StoredF32>,
@@ -29552,7 +29624,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
     pub _4: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
+impl SeriesTree_Cohorts_Realized_Sopr_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: SeriesPattern1::new(client.clone(), "epoch_0_sopr_24h".to_string()),
@@ -29565,7 +29637,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
+pub struct SeriesTree_Cohorts_Realized_Sopr_Class {
     pub _2009: SeriesPattern1<StoredF32>,
     pub _2010: SeriesPattern1<StoredF32>,
     pub _2011: SeriesPattern1<StoredF32>,
@@ -29586,7 +29658,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
     pub _2026: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
+impl SeriesTree_Cohorts_Realized_Sopr_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: SeriesPattern1::new(client.clone(), "class_2009_sopr_24h".to_string()),
@@ -29612,14 +29684,14 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_AggregateMatrix {
     pub all: SeriesPattern1<StoredF32>,
     pub sth: SeriesPattern1<StoredF32>,
     pub lth: SeriesPattern1<StoredF32>,
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_AggregateMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: SeriesPattern1::new(client.clone(), "sopr_24h_by_aggregate_column_0".to_string()),
@@ -29631,7 +29703,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AggregateMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_AgeRangeMatrix {
     pub under_1h: SeriesPattern1<StoredF32>,
     pub _1h_to_1d: SeriesPattern1<StoredF32>,
     pub _1d_to_1w: SeriesPattern1<StoredF32>,
@@ -29658,7 +29730,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_AgeRangeMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: SeriesPattern1::new(
@@ -29759,7 +29831,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_AgeRangeMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_UnderAgeMatrix {
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
     pub _2m: SeriesPattern1<StoredF32>,
@@ -29783,7 +29855,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_UnderAgeMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: SeriesPattern1::new(
@@ -29872,7 +29944,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_UnderAgeMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_OverAgeMatrix {
     pub _1d: SeriesPattern1<StoredF32>,
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
@@ -29896,7 +29968,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_OverAgeMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: SeriesPattern1::new(
@@ -29985,7 +30057,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_OverAgeMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_EpochMatrix {
     pub _0: SeriesPattern1<StoredF32>,
     pub _1: SeriesPattern1<StoredF32>,
     pub _2: SeriesPattern1<StoredF32>,
@@ -29994,7 +30066,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_EpochMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: SeriesPattern1::new(client.clone(), "sopr_24h_by_epoch_column_0".to_string()),
@@ -30008,7 +30080,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EpochMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_ClassMatrix {
     pub _2009: SeriesPattern1<StoredF32>,
     pub _2010: SeriesPattern1<StoredF32>,
     pub _2011: SeriesPattern1<StoredF32>,
@@ -30030,7 +30102,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_ClassMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: SeriesPattern1::new(client.clone(), "sopr_24h_by_class_column_0".to_string()),
@@ -30057,13 +30129,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_ClassMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix {
+pub struct SeriesTree_Cohorts_Realized_Sopr_EntryMatrix {
     pub discount: SeriesPattern1<StoredF32>,
     pub premium: SeriesPattern1<StoredF32>,
     pub height: SeriesPattern18<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix {
+impl SeriesTree_Cohorts_Realized_Sopr_EntryMatrix {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: SeriesPattern1::new(client.clone(), "sopr_24h_by_entry_column_0".to_string()),
@@ -30074,24 +30146,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Sopr_EntryMatrix {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr {
-    pub ratio: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio,
-    pub transfer_volume: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume,
-    pub value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_ValueDestroyed,
+pub struct SeriesTree_Cohorts_Realized_AdjustedSopr {
+    pub ratio: SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio,
+    pub transfer_volume: SeriesTree_Cohorts_Realized_AdjustedSopr_TransferVolume,
+    pub value_destroyed: SeriesTree_Cohorts_Realized_AdjustedSopr_ValueDestroyed,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr {
+impl SeriesTree_Cohorts_Realized_AdjustedSopr {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            ratio: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio::new(
+            ratio: SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio::new(
                 client.clone(),
                 format!("{base_path}_ratio"),
             ),
-            transfer_volume: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume::new(
+            transfer_volume: SeriesTree_Cohorts_Realized_AdjustedSopr_TransferVolume::new(
                 client.clone(),
                 format!("{base_path}_transfer_volume"),
             ),
-            value_destroyed: SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_ValueDestroyed::new(
+            value_destroyed: SeriesTree_Cohorts_Realized_AdjustedSopr_ValueDestroyed::new(
                 client.clone(),
                 format!("{base_path}_value_destroyed"),
             ),
@@ -30100,12 +30172,12 @@ impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio {
+pub struct SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio {
     pub all: _1m1w1y24hHeightPattern,
     pub sth: _1m1w1y24hHeightPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio {
+impl SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: _1m1w1y24hHeightPattern::new(client.clone(), "asopr".to_string()),
@@ -30115,13 +30187,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_Ratio {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume {
+pub struct SeriesTree_Cohorts_Realized_AdjustedSopr_TransferVolume {
     pub all: AverageBlockCumulativeSumPattern<Cents>,
     pub sth: AverageBlockCumulativeSumPattern<Cents>,
     pub cumulative: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume {
+impl SeriesTree_Cohorts_Realized_AdjustedSopr_TransferVolume {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern::new(
@@ -30141,13 +30213,13 @@ impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_TransferVolume {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_ValueDestroyed {
+pub struct SeriesTree_Cohorts_Realized_AdjustedSopr_ValueDestroyed {
     pub all: AverageBlockCumulativeSumPattern<Cents>,
     pub sth: AverageBlockCumulativeSumPattern<Cents>,
     pub cumulative: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_ValueDestroyed {
+impl SeriesTree_Cohorts_Realized_AdjustedSopr_ValueDestroyed {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: AverageBlockCumulativeSumPattern::new(
@@ -30167,20 +30239,17 @@ impl SeriesTree_Cohorts_Cohorts_Realized_AdjustedSopr_ValueDestroyed {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_GrossPnl {
+pub struct SeriesTree_Cohorts_Realized_GrossPnl {
     pub all: BlockCumulativeSumPattern,
     pub sth: BlockCumulativeSumPattern,
     pub lth: BlockCumulativeSumPattern,
     pub cumulative: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_GrossPnl {
+impl SeriesTree_Cohorts_Realized_GrossPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: BlockCumulativeSumPattern::new(
-                client.clone(),
-                "all_realized_gross_pnl".to_string(),
-            ),
+            all: BlockCumulativeSumPattern::new(client.clone(), "realized_gross_pnl".to_string()),
             sth: BlockCumulativeSumPattern::new(
                 client.clone(),
                 "sth_realized_gross_pnl".to_string(),
@@ -30198,20 +30267,17 @@ impl SeriesTree_Cohorts_Cohorts_Realized_GrossPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_CapitalizedPrice {
+pub struct SeriesTree_Cohorts_Realized_CapitalizedPrice {
     pub all: CentsPpmRatioSatsUsdPattern,
     pub sth: CentsPpmRatioSatsUsdPattern,
     pub lth: CentsPpmRatioSatsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_CapitalizedPrice {
+impl SeriesTree_Cohorts_Realized_CapitalizedPrice {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsPpmRatioSatsUsdPattern::new(
-                client.clone(),
-                "all_capitalized_price".to_string(),
-            ),
+            all: CentsPpmRatioSatsUsdPattern::new(client.clone(), "capitalized_price".to_string()),
             sth: CentsPpmRatioSatsUsdPattern::new(
                 client.clone(),
                 "sth_capitalized_price".to_string(),
@@ -30229,20 +30295,17 @@ impl SeriesTree_Cohorts_Cohorts_Realized_CapitalizedPrice {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_PeakRegret {
+pub struct SeriesTree_Cohorts_Realized_PeakRegret {
     pub all: BlockCumulativeSumPattern,
     pub sth: BlockCumulativeSumPattern,
     pub lth: BlockCumulativeSumPattern,
     pub cumulative: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_PeakRegret {
+impl SeriesTree_Cohorts_Realized_PeakRegret {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: BlockCumulativeSumPattern::new(
-                client.clone(),
-                "all_realized_peak_regret".to_string(),
-            ),
+            all: BlockCumulativeSumPattern::new(client.clone(), "realized_peak_regret".to_string()),
             sth: BlockCumulativeSumPattern::new(
                 client.clone(),
                 "sth_realized_peak_regret".to_string(),
@@ -30260,19 +30323,19 @@ impl SeriesTree_Cohorts_Cohorts_Realized_PeakRegret {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap {
+pub struct SeriesTree_Cohorts_Realized_NetPnlChange1mToRcap {
     pub all: PercentPpmRatioPattern,
     pub sth: PercentPpmRatioPattern,
     pub lth: PercentPpmRatioPattern,
     pub height: SeriesPattern18<PartsPerMillionSigned64>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap {
+impl SeriesTree_Cohorts_Realized_NetPnlChange1mToRcap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern::new(
                 client.clone(),
-                "all_net_pnl_change_1m_to_rcap".to_string(),
+                "net_pnl_change_1m_to_rcap".to_string(),
             ),
             sth: PercentPpmRatioPattern::new(
                 client.clone(),
@@ -30291,19 +30354,16 @@ impl SeriesTree_Cohorts_Cohorts_Realized_NetPnlChange1mToRcap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio {
+pub struct SeriesTree_Cohorts_Realized_SellSideRiskRatio {
     pub all: _1m1w1y24hHeightPattern2,
     pub sth: _1m1w1y24hHeightPattern2,
     pub lth: _1m1w1y24hHeightPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio {
+impl SeriesTree_Cohorts_Realized_SellSideRiskRatio {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: _1m1w1y24hHeightPattern2::new(
-                client.clone(),
-                "all_sell_side_risk_ratio".to_string(),
-            ),
+            all: _1m1w1y24hHeightPattern2::new(client.clone(), "sell_side_risk_ratio".to_string()),
             sth: _1m1w1y24hHeightPattern2::new(
                 client.clone(),
                 "sth_sell_side_risk_ratio".to_string(),
@@ -30317,16 +30377,16 @@ impl SeriesTree_Cohorts_Cohorts_Realized_SellSideRiskRatio {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended {
+pub struct SeriesTree_Cohorts_Realized_SoprRatioExtended {
     pub all: _1m1w1yHeightPattern,
     pub sth: _1m1w1yHeightPattern,
     pub lth: _1m1w1yHeightPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended {
+impl SeriesTree_Cohorts_Realized_SoprRatioExtended {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: _1m1w1yHeightPattern::new(client.clone(), "all_sopr".to_string()),
+            all: _1m1w1yHeightPattern::new(client.clone(), "sopr".to_string()),
             sth: _1m1w1yHeightPattern::new(client.clone(), "sth_sopr".to_string()),
             lth: _1m1w1yHeightPattern::new(client.clone(), "lth_sopr".to_string()),
         }
@@ -30334,35 +30394,35 @@ impl SeriesTree_Cohorts_Cohorts_Realized_SoprRatioExtended {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv {
+pub struct SeriesTree_Cohorts_Realized_Mvrv {
     pub all: SeriesPattern1<StoredF32>,
-    pub age: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class,
+    pub age: SeriesTree_Cohorts_Realized_Mvrv_Age,
+    pub epoch: SeriesTree_Cohorts_Realized_Mvrv_Epoch,
+    pub class: SeriesTree_Cohorts_Realized_Mvrv_Class,
     pub entry: DiscountPremiumPattern7<StoredF32>,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount,
+    pub utxo_amount: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount,
     pub term: LongShortPattern7<StoredF32>,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv {
+impl SeriesTree_Cohorts_Realized_Mvrv {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: SeriesPattern1::new(client.clone(), "mvrv".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age::new(
+            age: SeriesTree_Cohorts_Realized_Mvrv_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch::new(
+            epoch: SeriesTree_Cohorts_Realized_Mvrv_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class::new(
+            class: SeriesTree_Cohorts_Realized_Mvrv_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
             entry: DiscountPremiumPattern7::new(client.clone(), "mvrv".to_string()),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
@@ -30376,24 +30436,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over,
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Age {
+    pub range: SeriesTree_Cohorts_Realized_Mvrv_Age_Range,
+    pub under: SeriesTree_Cohorts_Realized_Mvrv_Age_Under,
+    pub over: SeriesTree_Cohorts_Realized_Mvrv_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age {
+impl SeriesTree_Cohorts_Realized_Mvrv_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range::new(
+            range: SeriesTree_Cohorts_Realized_Mvrv_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under::new(
+            under: SeriesTree_Cohorts_Realized_Mvrv_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over::new(
+            over: SeriesTree_Cohorts_Realized_Mvrv_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -30402,7 +30462,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Age_Range {
     pub under_1h: SeriesPattern1<StoredF32>,
     pub _1h_to_1d: SeriesPattern1<StoredF32>,
     pub _1d_to_1w: SeriesPattern1<StoredF32>,
@@ -30428,7 +30488,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range {
     pub over_15y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range {
+impl SeriesTree_Cohorts_Realized_Mvrv_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: SeriesPattern1::new(client.clone(), "utxos_under_1h_old_mvrv".to_string()),
@@ -30465,7 +30525,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Age_Under {
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
     pub _2m: SeriesPattern1<StoredF32>,
@@ -30488,7 +30548,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under {
     pub _15y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under {
+impl SeriesTree_Cohorts_Realized_Mvrv_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: SeriesPattern1::new(client.clone(), "utxos_under_1w_old_mvrv".to_string()),
@@ -30516,7 +30576,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Age_Over {
     pub _1d: SeriesPattern1<StoredF32>,
     pub _1w: SeriesPattern1<StoredF32>,
     pub _1m: SeriesPattern1<StoredF32>,
@@ -30539,7 +30599,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over {
     pub _12y: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over {
+impl SeriesTree_Cohorts_Realized_Mvrv_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: SeriesPattern1::new(client.clone(), "utxos_over_1d_old_mvrv".to_string()),
@@ -30567,7 +30627,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Epoch {
     pub _0: SeriesPattern1<StoredF32>,
     pub _1: SeriesPattern1<StoredF32>,
     pub _2: SeriesPattern1<StoredF32>,
@@ -30575,7 +30635,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch {
     pub _4: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch {
+impl SeriesTree_Cohorts_Realized_Mvrv_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: SeriesPattern1::new(client.clone(), "epoch_0_mvrv".to_string()),
@@ -30588,7 +30648,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_Class {
     pub _2009: SeriesPattern1<StoredF32>,
     pub _2010: SeriesPattern1<StoredF32>,
     pub _2011: SeriesPattern1<StoredF32>,
@@ -30609,7 +30669,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class {
     pub _2026: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class {
+impl SeriesTree_Cohorts_Realized_Mvrv_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: SeriesPattern1::new(client.clone(), "class_2009_mvrv".to_string()),
@@ -30635,24 +30695,24 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount {
+impl SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -30661,7 +30721,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Range {
     pub _0sats: SeriesPattern1<StoredF32>,
     pub _1sat_to_10sats: SeriesPattern1<StoredF32>,
     pub _10sats_to_100sats: SeriesPattern1<StoredF32>,
@@ -30679,7 +30739,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range {
     pub over_100k_btc: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: SeriesPattern1::new(client.clone(), "utxos_0sats_mvrv".to_string()),
@@ -30744,7 +30804,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Under {
     pub _10sats: SeriesPattern1<StoredF32>,
     pub _100sats: SeriesPattern1<StoredF32>,
     pub _1k_sats: SeriesPattern1<StoredF32>,
@@ -30760,7 +30820,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under {
     pub _100k_btc: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: SeriesPattern1::new(client.clone(), "utxos_under_10sats_mvrv".to_string()),
@@ -30784,7 +30844,7 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Over {
     pub _1sat: SeriesPattern1<StoredF32>,
     pub _10sats: SeriesPattern1<StoredF32>,
     pub _100sats: SeriesPattern1<StoredF32>,
@@ -30800,7 +30860,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over {
     pub _10k_btc: SeriesPattern1<StoredF32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Realized_Mvrv_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: SeriesPattern1::new(client.clone(), "utxos_over_1sat_mvrv".to_string()),
@@ -30824,50 +30884,48 @@ impl SeriesTree_Cohorts_Cohorts_Realized_Mvrv_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized {
-    pub profit: SeriesTree_Cohorts_Cohorts_Unrealized_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Unrealized_Loss,
-    pub net_pnl: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl,
-    pub gross_pnl: SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl,
-    pub invested_capital_in_profit: SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit,
-    pub invested_capital_in_loss: SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss,
+pub struct SeriesTree_Cohorts_Unrealized {
+    pub profit: SeriesTree_Cohorts_Unrealized_Profit,
+    pub loss: SeriesTree_Cohorts_Unrealized_Loss,
+    pub net_pnl: SeriesTree_Cohorts_Unrealized_NetPnl,
+    pub gross_pnl: SeriesTree_Cohorts_Unrealized_GrossPnl,
+    pub invested_capital_in_profit: SeriesTree_Cohorts_Unrealized_InvestedCapitalInProfit,
+    pub invested_capital_in_loss: SeriesTree_Cohorts_Unrealized_InvestedCapitalInLoss,
     pub capitalized_cap_in_profit_raw: MatrixPattern<CentsSquaredSats>,
     pub capitalized_cap_in_loss_raw: MatrixPattern<CentsSquaredSats>,
-    pub pain_index: SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex,
-    pub greed_index: SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex,
-    pub net_sentiment: SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment,
-    pub nupl: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl,
+    pub pain_index: SeriesTree_Cohorts_Unrealized_PainIndex,
+    pub greed_index: SeriesTree_Cohorts_Unrealized_GreedIndex,
+    pub net_sentiment: SeriesTree_Cohorts_Unrealized_NetSentiment,
+    pub nupl: SeriesTree_Cohorts_Unrealized_Nupl,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized {
+impl SeriesTree_Cohorts_Unrealized {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            profit: SeriesTree_Cohorts_Cohorts_Unrealized_Profit::new(
+            profit: SeriesTree_Cohorts_Unrealized_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Unrealized_Loss::new(
+            loss: SeriesTree_Cohorts_Unrealized_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
-            net_pnl: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl::new(
+            net_pnl: SeriesTree_Cohorts_Unrealized_NetPnl::new(
                 client.clone(),
                 format!("{base_path}_net_pnl"),
             ),
-            gross_pnl: SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl::new(
+            gross_pnl: SeriesTree_Cohorts_Unrealized_GrossPnl::new(
                 client.clone(),
                 format!("{base_path}_gross_pnl"),
             ),
-            invested_capital_in_profit:
-                SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit::new(
-                    client.clone(),
-                    format!("{base_path}_invested_capital_in_profit"),
-                ),
-            invested_capital_in_loss:
-                SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss::new(
-                    client.clone(),
-                    format!("{base_path}_invested_capital_in_loss"),
-                ),
+            invested_capital_in_profit: SeriesTree_Cohorts_Unrealized_InvestedCapitalInProfit::new(
+                client.clone(),
+                format!("{base_path}_invested_capital_in_profit"),
+            ),
+            invested_capital_in_loss: SeriesTree_Cohorts_Unrealized_InvestedCapitalInLoss::new(
+                client.clone(),
+                format!("{base_path}_invested_capital_in_loss"),
+            ),
             capitalized_cap_in_profit_raw: MatrixPattern::new(
                 client.clone(),
                 "capitalized_cap_in_profit_raw_by_term".to_string(),
@@ -30876,19 +30934,19 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized {
                 client.clone(),
                 "capitalized_cap_in_loss_raw_by_term".to_string(),
             ),
-            pain_index: SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex::new(
+            pain_index: SeriesTree_Cohorts_Unrealized_PainIndex::new(
                 client.clone(),
                 format!("{base_path}_pain_index"),
             ),
-            greed_index: SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex::new(
+            greed_index: SeriesTree_Cohorts_Unrealized_GreedIndex::new(
                 client.clone(),
                 format!("{base_path}_greed_index"),
             ),
-            net_sentiment: SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment::new(
+            net_sentiment: SeriesTree_Cohorts_Unrealized_NetSentiment::new(
                 client.clone(),
                 format!("{base_path}_net_sentiment"),
             ),
-            nupl: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl::new(
+            nupl: SeriesTree_Cohorts_Unrealized_Nupl::new(
                 client.clone(),
                 format!("{base_path}_nupl"),
             ),
@@ -30897,13 +30955,13 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit {
+pub struct SeriesTree_Cohorts_Unrealized_Profit {
     pub all: CentsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class,
-    pub entry: DiscountPremiumPattern13,
-    pub term: LongShortPattern14,
+    pub age: SeriesTree_Cohorts_Unrealized_Profit_Age,
+    pub epoch: SeriesTree_Cohorts_Unrealized_Profit_Epoch,
+    pub class: SeriesTree_Cohorts_Unrealized_Profit_Class,
+    pub entry: DiscountPremiumPattern14,
+    pub term: LongShortPattern15,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11,
     pub age_range_matrix: SeriesPattern18<Cents>,
     pub epoch_matrix: SeriesPattern18<Cents>,
@@ -30912,24 +30970,24 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit {
     pub type_matrix: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit {
+impl SeriesTree_Cohorts_Unrealized_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "unrealized_profit".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age::new(
+            age: SeriesTree_Cohorts_Unrealized_Profit_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch::new(
+            epoch: SeriesTree_Cohorts_Unrealized_Profit_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class::new(
+            class: SeriesTree_Cohorts_Unrealized_Profit_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern13::new(client.clone(), "unrealized_profit".to_string()),
-            term: LongShortPattern14::new(client.clone(), "unrealized_profit".to_string()),
+            entry: DiscountPremiumPattern14::new(client.clone(), "unrealized_profit".to_string()),
+            term: LongShortPattern15::new(client.clone(), "unrealized_profit".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11::new(
                 client.clone(),
                 "unrealized_profit".to_string(),
@@ -30959,24 +31017,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over,
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Age {
+    pub range: SeriesTree_Cohorts_Unrealized_Profit_Age_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_Profit_Age_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_Profit_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age {
+impl SeriesTree_Cohorts_Unrealized_Profit_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_Profit_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_Profit_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_Profit_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -30985,7 +31043,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range {
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Age_Range {
     pub under_1h: CentsUsdPattern,
     pub _1h_to_1d: CentsUsdPattern,
     pub _1d_to_1w: CentsUsdPattern,
@@ -31011,7 +31069,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range {
     pub over_15y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range {
+impl SeriesTree_Cohorts_Unrealized_Profit_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: CentsUsdPattern::new(
@@ -31111,7 +31169,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under {
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Age_Under {
     pub _1w: CentsUsdPattern,
     pub _1m: CentsUsdPattern,
     pub _2m: CentsUsdPattern,
@@ -31134,7 +31192,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under {
     pub _15y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under {
+impl SeriesTree_Cohorts_Unrealized_Profit_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: CentsUsdPattern::new(
@@ -31222,7 +31280,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over {
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Age_Over {
     pub _1d: CentsUsdPattern,
     pub _1w: CentsUsdPattern,
     pub _1m: CentsUsdPattern,
@@ -31245,7 +31303,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over {
     pub _12y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over {
+impl SeriesTree_Cohorts_Unrealized_Profit_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: CentsUsdPattern::new(
@@ -31333,7 +31391,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch {
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Epoch {
     pub _0: CentsUsdPattern,
     pub _1: CentsUsdPattern,
     pub _2: CentsUsdPattern,
@@ -31341,7 +31399,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch {
     pub _4: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch {
+impl SeriesTree_Cohorts_Unrealized_Profit_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: CentsUsdPattern::new(client.clone(), "epoch_0_unrealized_profit".to_string()),
@@ -31354,7 +31412,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class {
+pub struct SeriesTree_Cohorts_Unrealized_Profit_Class {
     pub _2009: CentsUsdPattern,
     pub _2010: CentsUsdPattern,
     pub _2011: CentsUsdPattern,
@@ -31375,7 +31433,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class {
     pub _2026: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class {
+impl SeriesTree_Cohorts_Unrealized_Profit_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: CentsUsdPattern::new(client.clone(), "class_2009_unrealized_profit".to_string()),
@@ -31401,40 +31459,40 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Profit_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss {
+pub struct SeriesTree_Cohorts_Unrealized_Loss {
     pub all: CentsUsdPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class,
-    pub entry: DiscountPremiumPattern13,
-    pub term: LongShortPattern14,
+    pub age: SeriesTree_Cohorts_Unrealized_Loss_Age,
+    pub epoch: SeriesTree_Cohorts_Unrealized_Loss_Epoch,
+    pub class: SeriesTree_Cohorts_Unrealized_Loss_Class,
+    pub entry: DiscountPremiumPattern14,
+    pub term: LongShortPattern15,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11,
     pub age_range_matrix: SeriesPattern18<Cents>,
     pub epoch_matrix: SeriesPattern18<Cents>,
     pub class_matrix: SeriesPattern18<Cents>,
     pub entry_matrix: SeriesPattern18<Cents>,
     pub type_matrix: SeriesPattern18<Cents>,
-    pub negative: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative,
+    pub negative: SeriesTree_Cohorts_Unrealized_Loss_Negative,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss {
+impl SeriesTree_Cohorts_Unrealized_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "unrealized_loss".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age::new(
+            age: SeriesTree_Cohorts_Unrealized_Loss_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch::new(
+            epoch: SeriesTree_Cohorts_Unrealized_Loss_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class::new(
+            class: SeriesTree_Cohorts_Unrealized_Loss_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: DiscountPremiumPattern13::new(client.clone(), "unrealized_loss".to_string()),
-            term: LongShortPattern14::new(client.clone(), "unrealized_loss".to_string()),
+            entry: DiscountPremiumPattern14::new(client.clone(), "unrealized_loss".to_string()),
+            term: LongShortPattern15::new(client.clone(), "unrealized_loss".to_string()),
             type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern11::new(
                 client.clone(),
                 "unrealized_loss".to_string(),
@@ -31459,7 +31517,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss {
                 client.clone(),
                 "unrealized_loss_cents_by_type".to_string(),
             ),
-            negative: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative::new(
+            negative: SeriesTree_Cohorts_Unrealized_Loss_Negative::new(
                 client.clone(),
                 format!("{base_path}_negative"),
             ),
@@ -31468,24 +31526,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over,
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Age {
+    pub range: SeriesTree_Cohorts_Unrealized_Loss_Age_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_Loss_Age_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_Loss_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age {
+impl SeriesTree_Cohorts_Unrealized_Loss_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_Loss_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_Loss_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_Loss_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -31494,7 +31552,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Age_Range {
     pub under_1h: CentsUsdPattern,
     pub _1h_to_1d: CentsUsdPattern,
     pub _1d_to_1w: CentsUsdPattern,
@@ -31520,7 +31578,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range {
     pub over_15y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range {
+impl SeriesTree_Cohorts_Unrealized_Loss_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: CentsUsdPattern::new(
@@ -31620,7 +31678,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Age_Under {
     pub _1w: CentsUsdPattern,
     pub _1m: CentsUsdPattern,
     pub _2m: CentsUsdPattern,
@@ -31643,7 +31701,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under {
     pub _15y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under {
+impl SeriesTree_Cohorts_Unrealized_Loss_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: CentsUsdPattern::new(
@@ -31731,7 +31789,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Age_Over {
     pub _1d: CentsUsdPattern,
     pub _1w: CentsUsdPattern,
     pub _1m: CentsUsdPattern,
@@ -31754,7 +31812,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over {
     pub _12y: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over {
+impl SeriesTree_Cohorts_Unrealized_Loss_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: CentsUsdPattern::new(
@@ -31842,7 +31900,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Epoch {
     pub _0: CentsUsdPattern,
     pub _1: CentsUsdPattern,
     pub _2: CentsUsdPattern,
@@ -31850,7 +31908,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch {
     pub _4: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch {
+impl SeriesTree_Cohorts_Unrealized_Loss_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: CentsUsdPattern::new(client.clone(), "epoch_0_unrealized_loss".to_string()),
@@ -31863,7 +31921,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Class {
     pub _2009: CentsUsdPattern,
     pub _2010: CentsUsdPattern,
     pub _2011: CentsUsdPattern,
@@ -31884,7 +31942,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class {
     pub _2026: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class {
+impl SeriesTree_Cohorts_Unrealized_Loss_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: CentsUsdPattern::new(client.clone(), "class_2009_unrealized_loss".to_string()),
@@ -31910,29 +31968,29 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative {
     pub all: SeriesPattern1<Dollars>,
-    pub age: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class,
+    pub age: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age,
+    pub epoch: SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch,
+    pub class: SeriesTree_Cohorts_Unrealized_Loss_Negative_Class,
     pub entry: DiscountPremiumPattern7<Dollars>,
     pub term: LongShortPattern7<Dollars>,
     pub type_: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: SeriesPattern1::new(client.clone(), "unrealized_loss_neg".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age::new(
+            age: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch::new(
+            epoch: SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class::new(
+            class: SeriesTree_Cohorts_Unrealized_Loss_Negative_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
@@ -31947,24 +32005,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over,
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Age {
+    pub range: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -31973,7 +32031,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Range {
     pub under_1h: SeriesPattern1<Dollars>,
     pub _1h_to_1d: SeriesPattern1<Dollars>,
     pub _1d_to_1w: SeriesPattern1<Dollars>,
@@ -31999,7 +32057,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range {
     pub over_15y: SeriesPattern1<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: SeriesPattern1::new(
@@ -32099,7 +32157,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Under {
     pub _1w: SeriesPattern1<Dollars>,
     pub _1m: SeriesPattern1<Dollars>,
     pub _2m: SeriesPattern1<Dollars>,
@@ -32122,7 +32180,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under {
     pub _15y: SeriesPattern1<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: SeriesPattern1::new(
@@ -32210,7 +32268,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Over {
     pub _1d: SeriesPattern1<Dollars>,
     pub _1w: SeriesPattern1<Dollars>,
     pub _1m: SeriesPattern1<Dollars>,
@@ -32233,7 +32291,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over {
     pub _12y: SeriesPattern1<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: SeriesPattern1::new(
@@ -32321,7 +32379,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch {
     pub _0: SeriesPattern1<Dollars>,
     pub _1: SeriesPattern1<Dollars>,
     pub _2: SeriesPattern1<Dollars>,
@@ -32329,7 +32387,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch {
     pub _4: SeriesPattern1<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: SeriesPattern1::new(client.clone(), "epoch_0_unrealized_loss_neg".to_string()),
@@ -32342,7 +32400,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class {
+pub struct SeriesTree_Cohorts_Unrealized_Loss_Negative_Class {
     pub _2009: SeriesPattern1<Dollars>,
     pub _2010: SeriesPattern1<Dollars>,
     pub _2011: SeriesPattern1<Dollars>,
@@ -32363,7 +32421,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class {
     pub _2026: SeriesPattern1<Dollars>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class {
+impl SeriesTree_Cohorts_Unrealized_Loss_Negative_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: SeriesPattern1::new(
@@ -32443,40 +32501,40 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Loss_Negative_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl {
     pub all: CentsUsdPattern2,
-    pub age: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry,
-    pub term: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term,
+    pub age: SeriesTree_Cohorts_Unrealized_NetPnl_Age,
+    pub epoch: SeriesTree_Cohorts_Unrealized_NetPnl_Epoch,
+    pub class: SeriesTree_Cohorts_Unrealized_NetPnl_Class,
+    pub entry: SeriesTree_Cohorts_Unrealized_NetPnl_Entry,
+    pub term: SeriesTree_Cohorts_Unrealized_NetPnl_Term,
     pub age_range_matrix: SeriesPattern18<CentsSigned>,
     pub epoch_matrix: SeriesPattern18<CentsSigned>,
     pub class_matrix: SeriesPattern18<CentsSigned>,
     pub entry_matrix: SeriesPattern18<CentsSigned>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl {
+impl SeriesTree_Cohorts_Unrealized_NetPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern2::new(client.clone(), "net_unrealized_pnl".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age::new(
+            age: SeriesTree_Cohorts_Unrealized_NetPnl_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch::new(
+            epoch: SeriesTree_Cohorts_Unrealized_NetPnl_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class::new(
+            class: SeriesTree_Cohorts_Unrealized_NetPnl_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry::new(
+            entry: SeriesTree_Cohorts_Unrealized_NetPnl_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term::new(
+            term: SeriesTree_Cohorts_Unrealized_NetPnl_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
@@ -32501,24 +32559,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over,
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Age {
+    pub range: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_NetPnl_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -32527,7 +32585,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Age_Range {
     pub under_1h: CentsUsdPattern2,
     pub _1h_to_1d: CentsUsdPattern2,
     pub _1d_to_1w: CentsUsdPattern2,
@@ -32553,7 +32611,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range {
     pub over_15y: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: CentsUsdPattern2::new(
@@ -32653,7 +32711,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Age_Under {
     pub _1w: CentsUsdPattern2,
     pub _1m: CentsUsdPattern2,
     pub _2m: CentsUsdPattern2,
@@ -32676,7 +32734,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under {
     pub _15y: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: CentsUsdPattern2::new(
@@ -32764,7 +32822,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Age_Over {
     pub _1d: CentsUsdPattern2,
     pub _1w: CentsUsdPattern2,
     pub _1m: CentsUsdPattern2,
@@ -32787,7 +32845,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over {
     pub _12y: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: CentsUsdPattern2::new(
@@ -32875,7 +32933,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Epoch {
     pub _0: CentsUsdPattern2,
     pub _1: CentsUsdPattern2,
     pub _2: CentsUsdPattern2,
@@ -32883,7 +32941,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch {
     pub _4: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: CentsUsdPattern2::new(client.clone(), "epoch_0_net_unrealized_pnl".to_string()),
@@ -32896,7 +32954,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Class {
     pub _2009: CentsUsdPattern2,
     pub _2010: CentsUsdPattern2,
     pub _2011: CentsUsdPattern2,
@@ -32917,7 +32975,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class {
     pub _2026: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: CentsUsdPattern2::new(
@@ -32997,12 +33055,12 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Entry {
     pub discount: CentsUsdPattern2,
     pub premium: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: CentsUsdPattern2::new(
@@ -33015,12 +33073,12 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term {
+pub struct SeriesTree_Cohorts_Unrealized_NetPnl_Term {
     pub short: CentsUsdPattern2,
     pub long: CentsUsdPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term {
+impl SeriesTree_Cohorts_Unrealized_NetPnl_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: CentsUsdPattern2::new(client.clone(), "sth_net_unrealized_pnl".to_string()),
@@ -33030,17 +33088,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetPnl_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl {
+pub struct SeriesTree_Cohorts_Unrealized_GrossPnl {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl {
+impl SeriesTree_Cohorts_Unrealized_GrossPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern::new(client.clone(), "all_unrealized_gross_pnl".to_string()),
+            all: CentsUsdPattern::new(client.clone(), "unrealized_gross_pnl".to_string()),
             sth: CentsUsdPattern::new(client.clone(), "sth_unrealized_gross_pnl".to_string()),
             lth: CentsUsdPattern::new(client.clone(), "lth_unrealized_gross_pnl".to_string()),
             height: SeriesPattern18::new(
@@ -33052,17 +33110,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_GrossPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit {
+pub struct SeriesTree_Cohorts_Unrealized_InvestedCapitalInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit {
+impl SeriesTree_Cohorts_Unrealized_InvestedCapitalInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern::new(client.clone(), "all_invested_capital_in_profit".to_string()),
+            all: CentsUsdPattern::new(client.clone(), "invested_capital_in_profit".to_string()),
             sth: CentsUsdPattern::new(client.clone(), "sth_invested_capital_in_profit".to_string()),
             lth: CentsUsdPattern::new(client.clone(), "lth_invested_capital_in_profit".to_string()),
             height: SeriesPattern18::new(
@@ -33074,17 +33132,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInProfit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss {
+pub struct SeriesTree_Cohorts_Unrealized_InvestedCapitalInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss {
+impl SeriesTree_Cohorts_Unrealized_InvestedCapitalInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern::new(client.clone(), "all_invested_capital_in_loss".to_string()),
+            all: CentsUsdPattern::new(client.clone(), "invested_capital_in_loss".to_string()),
             sth: CentsUsdPattern::new(client.clone(), "sth_invested_capital_in_loss".to_string()),
             lth: CentsUsdPattern::new(client.clone(), "lth_invested_capital_in_loss".to_string()),
             height: SeriesPattern18::new(
@@ -33096,17 +33154,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_InvestedCapitalInLoss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex {
+pub struct SeriesTree_Cohorts_Unrealized_PainIndex {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex {
+impl SeriesTree_Cohorts_Unrealized_PainIndex {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern::new(client.clone(), "all_pain_index".to_string()),
+            all: CentsUsdPattern::new(client.clone(), "pain_index".to_string()),
             sth: CentsUsdPattern::new(client.clone(), "sth_pain_index".to_string()),
             lth: CentsUsdPattern::new(client.clone(), "lth_pain_index".to_string()),
             height: SeriesPattern18::new(
@@ -33118,17 +33176,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_PainIndex {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex {
+pub struct SeriesTree_Cohorts_Unrealized_GreedIndex {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex {
+impl SeriesTree_Cohorts_Unrealized_GreedIndex {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern::new(client.clone(), "all_greed_index".to_string()),
+            all: CentsUsdPattern::new(client.clone(), "greed_index".to_string()),
             sth: CentsUsdPattern::new(client.clone(), "sth_greed_index".to_string()),
             lth: CentsUsdPattern::new(client.clone(), "lth_greed_index".to_string()),
             height: SeriesPattern18::new(
@@ -33140,17 +33198,17 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_GreedIndex {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment {
+pub struct SeriesTree_Cohorts_Unrealized_NetSentiment {
     pub all: CentsUsdPattern2,
     pub sth: CentsUsdPattern2,
     pub lth: CentsUsdPattern2,
     pub height: SeriesPattern18<CentsSigned>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment {
+impl SeriesTree_Cohorts_Unrealized_NetSentiment {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: CentsUsdPattern2::new(client.clone(), "all_net_sentiment".to_string()),
+            all: CentsUsdPattern2::new(client.clone(), "net_sentiment".to_string()),
             sth: CentsUsdPattern2::new(client.clone(), "sth_net_sentiment".to_string()),
             lth: CentsUsdPattern2::new(client.clone(), "lth_net_sentiment".to_string()),
             height: SeriesPattern18::new(
@@ -33162,46 +33220,46 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_NetSentiment {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl {
     pub all: PpmRatioPattern,
-    pub age: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age,
-    pub epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch,
-    pub class: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class,
-    pub entry: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Entry,
-    pub utxo_amount: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount,
-    pub term: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Term,
-    pub type_: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type,
+    pub age: SeriesTree_Cohorts_Unrealized_Nupl_Age,
+    pub epoch: SeriesTree_Cohorts_Unrealized_Nupl_Epoch,
+    pub class: SeriesTree_Cohorts_Unrealized_Nupl_Class,
+    pub entry: SeriesTree_Cohorts_Unrealized_Nupl_Entry,
+    pub utxo_amount: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount,
+    pub term: SeriesTree_Cohorts_Unrealized_Nupl_Term,
+    pub type_: SeriesTree_Cohorts_Unrealized_Nupl_Type,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl {
+impl SeriesTree_Cohorts_Unrealized_Nupl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PpmRatioPattern::new(client.clone(), "nupl".to_string()),
-            age: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age::new(
+            age: SeriesTree_Cohorts_Unrealized_Nupl_Age::new(
                 client.clone(),
                 format!("{base_path}_age"),
             ),
-            epoch: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch::new(
+            epoch: SeriesTree_Cohorts_Unrealized_Nupl_Epoch::new(
                 client.clone(),
                 format!("{base_path}_epoch"),
             ),
-            class: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class::new(
+            class: SeriesTree_Cohorts_Unrealized_Nupl_Class::new(
                 client.clone(),
                 format!("{base_path}_class"),
             ),
-            entry: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Entry::new(
+            entry: SeriesTree_Cohorts_Unrealized_Nupl_Entry::new(
                 client.clone(),
                 format!("{base_path}_entry"),
             ),
-            utxo_amount: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount::new(
+            utxo_amount: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount::new(
                 client.clone(),
                 format!("{base_path}_utxo_amount"),
             ),
-            term: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Term::new(
+            term: SeriesTree_Cohorts_Unrealized_Nupl_Term::new(
                 client.clone(),
                 format!("{base_path}_term"),
             ),
-            type_: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type::new(
+            type_: SeriesTree_Cohorts_Unrealized_Nupl_Type::new(
                 client.clone(),
                 format!("{base_path}_type"),
             ),
@@ -33210,24 +33268,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over,
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Age {
+    pub range: SeriesTree_Cohorts_Unrealized_Nupl_Age_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_Nupl_Age_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_Nupl_Age_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Age {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_Nupl_Age_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_Nupl_Age_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_Nupl_Age_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -33236,7 +33294,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Age_Range {
     pub under_1h: PpmRatioPattern,
     pub _1h_to_1d: PpmRatioPattern,
     pub _1d_to_1w: PpmRatioPattern,
@@ -33262,7 +33320,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range {
     pub over_15y: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Age_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             under_1h: PpmRatioPattern::new(client.clone(), "utxos_under_1h_old_nupl".to_string()),
@@ -33308,7 +33366,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Age_Under {
     pub _1w: PpmRatioPattern,
     pub _1m: PpmRatioPattern,
     pub _2m: PpmRatioPattern,
@@ -33331,7 +33389,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under {
     pub _15y: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Age_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1w: PpmRatioPattern::new(client.clone(), "utxos_under_1w_old_nupl".to_string()),
@@ -33359,7 +33417,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Age_Over {
     pub _1d: PpmRatioPattern,
     pub _1w: PpmRatioPattern,
     pub _1m: PpmRatioPattern,
@@ -33382,7 +33440,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over {
     pub _12y: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Age_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1d: PpmRatioPattern::new(client.clone(), "utxos_over_1d_old_nupl".to_string()),
@@ -33410,7 +33468,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Age_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Epoch {
     pub _0: PpmRatioPattern,
     pub _1: PpmRatioPattern,
     pub _2: PpmRatioPattern,
@@ -33418,7 +33476,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch {
     pub _4: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Epoch {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0: PpmRatioPattern::new(client.clone(), "epoch_0_nupl".to_string()),
@@ -33431,7 +33489,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Epoch {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Class {
     pub _2009: PpmRatioPattern,
     pub _2010: PpmRatioPattern,
     pub _2011: PpmRatioPattern,
@@ -33452,7 +33510,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class {
     pub _2026: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Class {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _2009: PpmRatioPattern::new(client.clone(), "class_2009_nupl".to_string()),
@@ -33478,12 +33536,12 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Class {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Entry {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Entry {
     pub discount: PpmRatioPattern,
     pub premium: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Entry {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Entry {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             discount: PpmRatioPattern::new(client.clone(), "veteran_nupl".to_string()),
@@ -33493,24 +33551,24 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Entry {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount {
-    pub range: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range,
-    pub under: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under,
-    pub over: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over,
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount {
+    pub range: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Range,
+    pub under: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Under,
+    pub over: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Over,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount {
+impl SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range::new(
+            range: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            under: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under::new(
+            under: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Under::new(
                 client.clone(),
                 format!("{base_path}_under"),
             ),
-            over: SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over::new(
+            over: SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Over::new(
                 client.clone(),
                 format!("{base_path}_over"),
             ),
@@ -33519,7 +33577,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
     pub _0sats: PpmRatioPattern,
     pub _1sat_to_10sats: PpmRatioPattern,
     pub _10sats_to_100sats: PpmRatioPattern,
@@ -33537,7 +33595,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
     pub over_100k_btc: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
+impl SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _0sats: PpmRatioPattern::new(client.clone(), "utxos_0sats_nupl".to_string()),
@@ -33602,7 +33660,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
     pub _10sats: PpmRatioPattern,
     pub _100sats: PpmRatioPattern,
     pub _1k_sats: PpmRatioPattern,
@@ -33618,7 +33676,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
     pub _100k_btc: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
+impl SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _10sats: PpmRatioPattern::new(client.clone(), "utxos_under_10sats_nupl".to_string()),
@@ -33651,7 +33709,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Under {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
     pub _1sat: PpmRatioPattern,
     pub _10sats: PpmRatioPattern,
     pub _100sats: PpmRatioPattern,
@@ -33667,7 +33725,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
     pub _10k_btc: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
+impl SeriesTree_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             _1sat: PpmRatioPattern::new(client.clone(), "utxos_over_1sat_nupl".to_string()),
@@ -33691,12 +33749,12 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_UtxoAmount_Over {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Term {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Term {
     pub short: PpmRatioPattern,
     pub long: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Term {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Term {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: PpmRatioPattern::new(client.clone(), "sth_nupl".to_string()),
@@ -33706,7 +33764,7 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Term {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type {
+pub struct SeriesTree_Cohorts_Unrealized_Nupl_Type {
     pub p2pk65: PpmRatioPattern,
     pub p2pk33: PpmRatioPattern,
     pub p2pkh: PpmRatioPattern,
@@ -33720,7 +33778,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type {
     pub empty: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type {
+impl SeriesTree_Cohorts_Unrealized_Nupl_Type {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             p2pk65: PpmRatioPattern::new(client.clone(), "p2pk65_nupl".to_string()),
@@ -33739,16 +33797,16 @@ impl SeriesTree_Cohorts_Cohorts_Unrealized_Nupl_Type {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_CostBasis {
-    pub all: InMaxMinPerSupplyPattern,
+pub struct SeriesTree_Cohorts_CostBasis {
+    pub all: SeriesTree_Cohorts_CostBasis_All,
     pub sth: InMaxMinPerSupplyPattern,
     pub lth: InMaxMinPerSupplyPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_CostBasis {
+impl SeriesTree_Cohorts_CostBasis {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: InMaxMinPerSupplyPattern::new(client.clone(), "all".to_string()),
+            all: SeriesTree_Cohorts_CostBasis_All::new(client.clone(), format!("{base_path}_all")),
             sth: InMaxMinPerSupplyPattern::new(client.clone(), "sth".to_string()),
             lth: InMaxMinPerSupplyPattern::new(client.clone(), "lth".to_string()),
         }
@@ -33756,24 +33814,49 @@ impl SeriesTree_Cohorts_Cohorts_CostBasis {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative {
-    pub supply: SeriesTree_Cohorts_Cohorts_Relative_Supply,
-    pub unrealized: SeriesTree_Cohorts_Cohorts_Relative_Unrealized,
-    pub invested_capital: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital,
+pub struct SeriesTree_Cohorts_CostBasis_All {
+    pub in_profit: PerPattern,
+    pub in_loss: PerPattern,
+    pub min: CentsSatsUsdPattern,
+    pub max: CentsSatsUsdPattern,
+    pub per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub per_dollar: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub supply_density: PercentPpmRatioPattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative {
+impl SeriesTree_Cohorts_CostBasis_All {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            supply: SeriesTree_Cohorts_Cohorts_Relative_Supply::new(
+            in_profit: PerPattern::new(client.clone(), "cost_basis_in_profit_per".to_string()),
+            in_loss: PerPattern::new(client.clone(), "cost_basis_in_loss_per".to_string()),
+            min: CentsSatsUsdPattern::new(client.clone(), "cost_basis_min".to_string()),
+            max: CentsSatsUsdPattern::new(client.clone(), "cost_basis_max".to_string()),
+            per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "cost_basis_per_coin".to_string()),
+            per_dollar: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "cost_basis_per_dollar".to_string()),
+            supply_density: PercentPpmRatioPattern2::new(client.clone(), "supply_density".to_string()),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Cohorts_Relative {
+    pub supply: SeriesTree_Cohorts_Relative_Supply,
+    pub unrealized: SeriesTree_Cohorts_Relative_Unrealized,
+    pub invested_capital: SeriesTree_Cohorts_Relative_InvestedCapital,
+}
+
+impl SeriesTree_Cohorts_Relative {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
+            supply: SeriesTree_Cohorts_Relative_Supply::new(
                 client.clone(),
                 format!("{base_path}_supply"),
             ),
-            unrealized: SeriesTree_Cohorts_Cohorts_Relative_Unrealized::new(
+            unrealized: SeriesTree_Cohorts_Relative_Unrealized::new(
                 client.clone(),
                 format!("{base_path}_unrealized"),
             ),
-            invested_capital: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital::new(
+            invested_capital: SeriesTree_Cohorts_Relative_InvestedCapital::new(
                 client.clone(),
                 format!("{base_path}_invested_capital"),
             ),
@@ -33782,12 +33865,12 @@ impl SeriesTree_Cohorts_Cohorts_Relative {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Supply {
+pub struct SeriesTree_Cohorts_Relative_Supply {
     pub in_profit: SharePattern2,
     pub in_loss: SharePattern2,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Supply {
+impl SeriesTree_Cohorts_Relative_Supply {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             in_profit: SharePattern2::new(client.clone(), "supply_in_profit_share".to_string()),
@@ -33797,24 +33880,24 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Supply {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized {
-    pub profit: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss,
-    pub net_pnl: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl,
+pub struct SeriesTree_Cohorts_Relative_Unrealized {
+    pub profit: SeriesTree_Cohorts_Relative_Unrealized_Profit,
+    pub loss: SeriesTree_Cohorts_Relative_Unrealized_Loss,
+    pub net_pnl: SeriesTree_Cohorts_Relative_Unrealized_NetPnl,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized {
+impl SeriesTree_Cohorts_Relative_Unrealized {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            profit: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit::new(
+            profit: SeriesTree_Cohorts_Relative_Unrealized_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss::new(
+            loss: SeriesTree_Cohorts_Relative_Unrealized_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
-            net_pnl: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl::new(
+            net_pnl: SeriesTree_Cohorts_Relative_Unrealized_NetPnl::new(
                 client.clone(),
                 format!("{base_path}_net_pnl"),
             ),
@@ -33823,20 +33906,20 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_Profit {
     pub to_mcap: AllLthSthPattern6,
-    pub to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap,
+    pub to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_Profit_ToOwnMcap,
     pub to_own_gross_pnl: AllLthSthPattern6,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit {
+impl SeriesTree_Cohorts_Relative_Unrealized_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             to_mcap: AllLthSthPattern6::new(
                 client.clone(),
                 "unrealized_profit_to_mcap".to_string(),
             ),
-            to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap::new(
+            to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_Profit_ToOwnMcap::new(
                 client.clone(),
                 format!("{base_path}_to_own_mcap"),
             ),
@@ -33849,13 +33932,13 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_Profit_ToOwnMcap {
     pub short: PercentPpmRatioPattern2,
     pub long: PercentPpmRatioPattern2,
     pub height: SeriesPattern18<PartsPerMillion32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap {
+impl SeriesTree_Cohorts_Relative_Unrealized_Profit_ToOwnMcap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: PercentPpmRatioPattern2::new(
@@ -33875,17 +33958,17 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Profit_ToOwnMcap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_Loss {
     pub to_mcap: AllLthSthPattern6,
-    pub to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap,
+    pub to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap,
     pub to_own_gross_pnl: AllLthSthPattern6,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss {
+impl SeriesTree_Cohorts_Relative_Unrealized_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             to_mcap: AllLthSthPattern6::new(client.clone(), "unrealized_loss_to_mcap".to_string()),
-            to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap::new(
+            to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap::new(
                 client.clone(),
                 format!("{base_path}_to_own_mcap"),
             ),
@@ -33898,13 +33981,13 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap {
     pub short: PercentPpmRatioPattern2,
     pub long: PercentPpmRatioPattern2,
     pub height: SeriesPattern18<PartsPerMillion32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap {
+impl SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: PercentPpmRatioPattern2::new(
@@ -33924,34 +34007,33 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_Loss_ToOwnMcap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl {
-    pub to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap,
-    pub to_own_gross_pnl: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl,
+pub struct SeriesTree_Cohorts_Relative_Unrealized_NetPnl {
+    pub to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap,
+    pub to_own_gross_pnl: SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl {
+impl SeriesTree_Cohorts_Relative_Unrealized_NetPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            to_own_mcap: SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap::new(
+            to_own_mcap: SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap::new(
                 client.clone(),
                 format!("{base_path}_to_own_mcap"),
             ),
-            to_own_gross_pnl:
-                SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl::new(
-                    client.clone(),
-                    format!("{base_path}_to_own_gross_pnl"),
-                ),
+            to_own_gross_pnl: SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl::new(
+                client.clone(),
+                format!("{base_path}_to_own_gross_pnl"),
+            ),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap {
     pub short: PercentPpmRatioPattern3,
     pub long: PercentPpmRatioPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap {
+impl SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             short: PercentPpmRatioPattern3::new(
@@ -33967,18 +34049,18 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnMcap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl {
+pub struct SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl {
     pub all: PercentPpmRatioPattern3,
     pub sth: PercentPpmRatioPattern3,
     pub lth: PercentPpmRatioPattern3,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl {
+impl SeriesTree_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern3::new(
                 client.clone(),
-                "all_net_unrealized_pnl_to_own_gross_pnl".to_string(),
+                "net_unrealized_pnl_to_own_gross_pnl".to_string(),
             ),
             sth: PercentPpmRatioPattern3::new(
                 client.clone(),
@@ -33993,19 +34075,19 @@ impl SeriesTree_Cohorts_Cohorts_Relative_Unrealized_NetPnl_ToOwnGrossPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital {
-    pub in_profit: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit,
-    pub in_loss: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss,
+pub struct SeriesTree_Cohorts_Relative_InvestedCapital {
+    pub in_profit: SeriesTree_Cohorts_Relative_InvestedCapital_InProfit,
+    pub in_loss: SeriesTree_Cohorts_Relative_InvestedCapital_InLoss,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital {
+impl SeriesTree_Cohorts_Relative_InvestedCapital {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            in_profit: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit::new(
+            in_profit: SeriesTree_Cohorts_Relative_InvestedCapital_InProfit::new(
                 client.clone(),
                 format!("{base_path}_in_profit"),
             ),
-            in_loss: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss::new(
+            in_loss: SeriesTree_Cohorts_Relative_InvestedCapital_InLoss::new(
                 client.clone(),
                 format!("{base_path}_in_loss"),
             ),
@@ -34014,14 +34096,14 @@ impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit {
-    pub share: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share,
+pub struct SeriesTree_Cohorts_Relative_InvestedCapital_InProfit {
+    pub share: SeriesTree_Cohorts_Relative_InvestedCapital_InProfit_Share,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit {
+impl SeriesTree_Cohorts_Relative_InvestedCapital_InProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            share: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share::new(
+            share: SeriesTree_Cohorts_Relative_InvestedCapital_InProfit_Share::new(
                 client.clone(),
                 format!("{base_path}_share"),
             ),
@@ -34030,19 +34112,19 @@ impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share {
+pub struct SeriesTree_Cohorts_Relative_InvestedCapital_InProfit_Share {
     pub all: PercentPpmRatioPattern2,
     pub sth: PercentPpmRatioPattern2,
     pub lth: PercentPpmRatioPattern2,
     pub height: SeriesPattern18<PartsPerMillion32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share {
+impl SeriesTree_Cohorts_Relative_InvestedCapital_InProfit_Share {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern2::new(
                 client.clone(),
-                "all_invested_capital_in_profit_share".to_string(),
+                "invested_capital_in_profit_share".to_string(),
             ),
             sth: PercentPpmRatioPattern2::new(
                 client.clone(),
@@ -34061,14 +34143,14 @@ impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InProfit_Share {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss {
-    pub share: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss_Share,
+pub struct SeriesTree_Cohorts_Relative_InvestedCapital_InLoss {
+    pub share: SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss {
+impl SeriesTree_Cohorts_Relative_InvestedCapital_InLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            share: SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss_Share::new(
+            share: SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share::new(
                 client.clone(),
                 format!("{base_path}_share"),
             ),
@@ -34077,19 +34159,19 @@ impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss_Share {
+pub struct SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share {
     pub all: PercentPpmRatioPattern2,
     pub sth: PercentPpmRatioPattern2,
     pub lth: PercentPpmRatioPattern2,
     pub height: SeriesPattern18<PartsPerMillion32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss_Share {
+impl SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: PercentPpmRatioPattern2::new(
                 client.clone(),
-                "all_invested_capital_in_loss_share".to_string(),
+                "invested_capital_in_loss_share".to_string(),
             ),
             sth: PercentPpmRatioPattern2::new(
                 client.clone(),
@@ -34108,29 +34190,29 @@ impl SeriesTree_Cohorts_Cohorts_Relative_InvestedCapital_InLoss_Share {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability {
-    pub supply: SeriesTree_Cohorts_Cohorts_Profitability_Supply,
-    pub realized_cap: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap,
-    pub unrealized_pnl: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl,
-    pub nupl: SeriesTree_Cohorts_Cohorts_Profitability_Nupl,
+pub struct SeriesTree_Cohorts_Profitability {
+    pub supply: SeriesTree_Cohorts_Profitability_Supply,
+    pub realized_cap: SeriesTree_Cohorts_Profitability_RealizedCap,
+    pub unrealized_pnl: SeriesTree_Cohorts_Profitability_UnrealizedPnl,
+    pub nupl: SeriesTree_Cohorts_Profitability_Nupl,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability {
+impl SeriesTree_Cohorts_Profitability {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            supply: SeriesTree_Cohorts_Cohorts_Profitability_Supply::new(
+            supply: SeriesTree_Cohorts_Profitability_Supply::new(
                 client.clone(),
                 format!("{base_path}_supply"),
             ),
-            realized_cap: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap::new(
+            realized_cap: SeriesTree_Cohorts_Profitability_RealizedCap::new(
                 client.clone(),
                 format!("{base_path}_realized_cap"),
             ),
-            unrealized_pnl: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl::new(
+            unrealized_pnl: SeriesTree_Cohorts_Profitability_UnrealizedPnl::new(
                 client.clone(),
                 format!("{base_path}_unrealized_pnl"),
             ),
-            nupl: SeriesTree_Cohorts_Cohorts_Profitability_Nupl::new(
+            nupl: SeriesTree_Cohorts_Profitability_Nupl::new(
                 client.clone(),
                 format!("{base_path}_nupl"),
             ),
@@ -34139,25 +34221,25 @@ impl SeriesTree_Cohorts_Cohorts_Profitability {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply {
-    pub range: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range,
-    pub profit: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss,
+pub struct SeriesTree_Cohorts_Profitability_Supply {
+    pub range: SeriesTree_Cohorts_Profitability_Supply_Range,
+    pub profit: SeriesTree_Cohorts_Profitability_Supply_Profit,
+    pub loss: SeriesTree_Cohorts_Profitability_Supply_Loss,
     pub height: SeriesPattern18<Sats>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Supply {
+impl SeriesTree_Cohorts_Profitability_Supply {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range::new(
+            range: SeriesTree_Cohorts_Profitability_Supply_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            profit: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit::new(
+            profit: SeriesTree_Cohorts_Profitability_Supply_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss::new(
+            loss: SeriesTree_Cohorts_Profitability_Supply_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
@@ -34170,7 +34252,7 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Supply {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range {
+pub struct SeriesTree_Cohorts_Profitability_Supply_Range {
     pub over_1000pct_in_profit: AllLthSthPattern5,
     pub _500pct_to_1000pct_in_profit: AllLthSthPattern5,
     pub _300pct_to_500pct_in_profit: AllLthSthPattern5,
@@ -34198,7 +34280,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range {
     pub _90pct_to_100pct_in_loss: AllLthSthPattern5,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range {
+impl SeriesTree_Cohorts_Profitability_Supply_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             over_1000pct_in_profit: AllLthSthPattern5::new(
@@ -34306,8 +34388,8 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit {
-    pub all: AllLthSthPattern5,
+pub struct SeriesTree_Cohorts_Profitability_Supply_Profit {
+    pub total: AllLthSthPattern5,
     pub _10pct: AllLthSthPattern5,
     pub _20pct: AllLthSthPattern5,
     pub _30pct: AllLthSthPattern5,
@@ -34323,10 +34405,10 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit {
     pub _500pct: AllLthSthPattern5,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit {
+impl SeriesTree_Cohorts_Profitability_Supply_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: AllLthSthPattern5::new(client.clone(), "utxos_in_profit".to_string()),
+            total: AllLthSthPattern5::new(client.clone(), "utxos_in_profit".to_string()),
             _10pct: AllLthSthPattern5::new(
                 client.clone(),
                 "utxos_over_10pct_in_profit".to_string(),
@@ -34384,8 +34466,8 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss {
-    pub all: AllLthSthPattern5,
+pub struct SeriesTree_Cohorts_Profitability_Supply_Loss {
+    pub total: AllLthSthPattern5,
     pub _10pct: AllLthSthPattern5,
     pub _20pct: AllLthSthPattern5,
     pub _30pct: AllLthSthPattern5,
@@ -34396,10 +34478,10 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss {
     pub _80pct: AllLthSthPattern5,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss {
+impl SeriesTree_Cohorts_Profitability_Supply_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: AllLthSthPattern5::new(client.clone(), "utxos_in_loss".to_string()),
+            total: AllLthSthPattern5::new(client.clone(), "utxos_in_loss".to_string()),
             _10pct: AllLthSthPattern5::new(client.clone(), "utxos_over_10pct_in_loss".to_string()),
             _20pct: AllLthSthPattern5::new(client.clone(), "utxos_over_20pct_in_loss".to_string()),
             _30pct: AllLthSthPattern5::new(client.clone(), "utxos_over_30pct_in_loss".to_string()),
@@ -34413,25 +34495,25 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Supply_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap {
-    pub range: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range,
-    pub profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss,
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap {
+    pub range: SeriesTree_Cohorts_Profitability_RealizedCap_Range,
+    pub profit: SeriesTree_Cohorts_Profitability_RealizedCap_Profit,
+    pub loss: SeriesTree_Cohorts_Profitability_RealizedCap_Loss,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap {
+impl SeriesTree_Cohorts_Profitability_RealizedCap {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range::new(
+            range: SeriesTree_Cohorts_Profitability_RealizedCap_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit::new(
+            profit: SeriesTree_Cohorts_Profitability_RealizedCap_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss::new(
+            loss: SeriesTree_Cohorts_Profitability_RealizedCap_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
@@ -34444,99 +34526,199 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range {
     pub over_1000pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit,
     pub _500pct_to_1000pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit,
     pub _300pct_to_500pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit,
     pub _200pct_to_300pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit,
     pub _100pct_to_200pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit,
     pub _90pct_to_100pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit,
     pub _80pct_to_90pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit,
     pub _70pct_to_80pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit,
     pub _60pct_to_70pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit,
     pub _50pct_to_60pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit,
     pub _40pct_to_50pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit,
     pub _30pct_to_40pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit,
     pub _20pct_to_30pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit,
     pub _10pct_to_20pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit,
     pub _0pct_to_10pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit,
     pub _0pct_to_10pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss,
     pub _10pct_to_20pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss,
     pub _20pct_to_30pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss,
     pub _30pct_to_40pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss,
     pub _40pct_to_50pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss,
     pub _50pct_to_60pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss,
     pub _60pct_to_70pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss,
     pub _70pct_to_80pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss,
     pub _80pct_to_90pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss,
     pub _90pct_to_100pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss,
+        SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            over_1000pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit::new(client.clone(), format!("{base_path}_over_1000pct_in_profit")),
-            _500pct_to_1000pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit::new(client.clone(), format!("{base_path}_500pct_to_1000pct_in_profit")),
-            _300pct_to_500pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit::new(client.clone(), format!("{base_path}_300pct_to_500pct_in_profit")),
-            _200pct_to_300pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit::new(client.clone(), format!("{base_path}_200pct_to_300pct_in_profit")),
-            _100pct_to_200pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit::new(client.clone(), format!("{base_path}_100pct_to_200pct_in_profit")),
-            _90pct_to_100pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit::new(client.clone(), format!("{base_path}_90pct_to_100pct_in_profit")),
-            _80pct_to_90pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit::new(client.clone(), format!("{base_path}_80pct_to_90pct_in_profit")),
-            _70pct_to_80pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit::new(client.clone(), format!("{base_path}_70pct_to_80pct_in_profit")),
-            _60pct_to_70pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit::new(client.clone(), format!("{base_path}_60pct_to_70pct_in_profit")),
-            _50pct_to_60pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit::new(client.clone(), format!("{base_path}_50pct_to_60pct_in_profit")),
-            _40pct_to_50pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit::new(client.clone(), format!("{base_path}_40pct_to_50pct_in_profit")),
-            _30pct_to_40pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit::new(client.clone(), format!("{base_path}_30pct_to_40pct_in_profit")),
-            _20pct_to_30pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit::new(client.clone(), format!("{base_path}_20pct_to_30pct_in_profit")),
-            _10pct_to_20pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit::new(client.clone(), format!("{base_path}_10pct_to_20pct_in_profit")),
-            _0pct_to_10pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit::new(client.clone(), format!("{base_path}_0pct_to_10pct_in_profit")),
-            _0pct_to_10pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss::new(client.clone(), format!("{base_path}_0pct_to_10pct_in_loss")),
-            _10pct_to_20pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss::new(client.clone(), format!("{base_path}_10pct_to_20pct_in_loss")),
-            _20pct_to_30pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss::new(client.clone(), format!("{base_path}_20pct_to_30pct_in_loss")),
-            _30pct_to_40pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss::new(client.clone(), format!("{base_path}_30pct_to_40pct_in_loss")),
-            _40pct_to_50pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss::new(client.clone(), format!("{base_path}_40pct_to_50pct_in_loss")),
-            _50pct_to_60pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss::new(client.clone(), format!("{base_path}_50pct_to_60pct_in_loss")),
-            _60pct_to_70pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss::new(client.clone(), format!("{base_path}_60pct_to_70pct_in_loss")),
-            _70pct_to_80pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss::new(client.clone(), format!("{base_path}_70pct_to_80pct_in_loss")),
-            _80pct_to_90pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss::new(client.clone(), format!("{base_path}_80pct_to_90pct_in_loss")),
-            _90pct_to_100pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss::new(client.clone(), format!("{base_path}_90pct_to_100pct_in_loss")),
+            over_1000pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_over_1000pct_in_profit"),
+                ),
+            _500pct_to_1000pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_500pct_to_1000pct_in_profit"),
+                ),
+            _300pct_to_500pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_300pct_to_500pct_in_profit"),
+                ),
+            _200pct_to_300pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_200pct_to_300pct_in_profit"),
+                ),
+            _100pct_to_200pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_100pct_to_200pct_in_profit"),
+                ),
+            _90pct_to_100pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_90pct_to_100pct_in_profit"),
+                ),
+            _80pct_to_90pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_80pct_to_90pct_in_profit"),
+                ),
+            _70pct_to_80pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_70pct_to_80pct_in_profit"),
+                ),
+            _60pct_to_70pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_60pct_to_70pct_in_profit"),
+                ),
+            _50pct_to_60pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_50pct_to_60pct_in_profit"),
+                ),
+            _40pct_to_50pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_40pct_to_50pct_in_profit"),
+                ),
+            _30pct_to_40pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_30pct_to_40pct_in_profit"),
+                ),
+            _20pct_to_30pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_20pct_to_30pct_in_profit"),
+                ),
+            _10pct_to_20pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_10pct_to_20pct_in_profit"),
+                ),
+            _0pct_to_10pct_in_profit:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_0pct_to_10pct_in_profit"),
+                ),
+            _0pct_to_10pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_0pct_to_10pct_in_loss"),
+                ),
+            _10pct_to_20pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_10pct_to_20pct_in_loss"),
+                ),
+            _20pct_to_30pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_20pct_to_30pct_in_loss"),
+                ),
+            _30pct_to_40pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_30pct_to_40pct_in_loss"),
+                ),
+            _40pct_to_50pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_40pct_to_50pct_in_loss"),
+                ),
+            _50pct_to_60pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_50pct_to_60pct_in_loss"),
+                ),
+            _60pct_to_70pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_60pct_to_70pct_in_loss"),
+                ),
+            _70pct_to_80pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_70pct_to_80pct_in_loss"),
+                ),
+            _80pct_to_90pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_80pct_to_90pct_in_loss"),
+                ),
+            _90pct_to_100pct_in_loss:
+                SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_90pct_to_100pct_in_loss"),
+                ),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_Over1000pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34556,13 +34738,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_Over1000pctInPro
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34582,13 +34764,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_500pctTo1000pctI
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34608,13 +34790,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_300pctTo500pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34634,13 +34816,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_200pctTo300pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34660,13 +34842,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_100pctTo200pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34686,13 +34868,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInP
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34712,13 +34894,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34738,13 +34920,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34764,13 +34946,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34790,13 +34972,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34816,13 +34998,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34842,13 +35024,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34868,13 +35050,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34894,13 +35076,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInPr
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34920,13 +35102,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInPro
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34946,13 +35128,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_0pctTo10pctInLos
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34972,13 +35154,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_10pctTo20pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -34998,13 +35180,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_20pctTo30pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35024,13 +35206,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_30pctTo40pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35050,13 +35232,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_40pctTo50pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35076,13 +35258,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_50pctTo60pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35102,13 +35284,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_60pctTo70pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35128,13 +35310,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_70pctTo80pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35154,13 +35336,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_80pctTo90pctInLo
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35180,79 +35362,79 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Range_90pctTo100pctInL
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit {
-    pub all: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All,
-    pub _10pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct,
-    pub _20pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct,
-    pub _30pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct,
-    pub _40pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct,
-    pub _50pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct,
-    pub _60pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct,
-    pub _70pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct,
-    pub _80pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct,
-    pub _90pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct,
-    pub _100pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct,
-    pub _200pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct,
-    pub _300pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct,
-    pub _500pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct,
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit {
+    pub total: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_Total,
+    pub _10pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_10pct,
+    pub _20pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_20pct,
+    pub _30pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_30pct,
+    pub _40pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_40pct,
+    pub _50pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_50pct,
+    pub _60pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_60pct,
+    pub _70pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_70pct,
+    pub _80pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_80pct,
+    pub _90pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_90pct,
+    pub _100pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_100pct,
+    pub _200pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_200pct,
+    pub _300pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_300pct,
+    pub _500pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_500pct,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All::new(
+            total: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_Total::new(
                 client.clone(),
-                format!("{base_path}_all"),
+                format!("{base_path}_total"),
             ),
-            _10pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct::new(
+            _10pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_10pct::new(
                 client.clone(),
                 format!("{base_path}_10pct"),
             ),
-            _20pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct::new(
+            _20pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_20pct::new(
                 client.clone(),
                 format!("{base_path}_20pct"),
             ),
-            _30pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct::new(
+            _30pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_30pct::new(
                 client.clone(),
                 format!("{base_path}_30pct"),
             ),
-            _40pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct::new(
+            _40pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_40pct::new(
                 client.clone(),
                 format!("{base_path}_40pct"),
             ),
-            _50pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct::new(
+            _50pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_50pct::new(
                 client.clone(),
                 format!("{base_path}_50pct"),
             ),
-            _60pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct::new(
+            _60pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_60pct::new(
                 client.clone(),
                 format!("{base_path}_60pct"),
             ),
-            _70pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct::new(
+            _70pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_70pct::new(
                 client.clone(),
                 format!("{base_path}_70pct"),
             ),
-            _80pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct::new(
+            _80pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_80pct::new(
                 client.clone(),
                 format!("{base_path}_80pct"),
             ),
-            _90pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct::new(
+            _90pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_90pct::new(
                 client.clone(),
                 format!("{base_path}_90pct"),
             ),
-            _100pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct::new(
+            _100pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_100pct::new(
                 client.clone(),
                 format!("{base_path}_100pct"),
             ),
-            _200pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct::new(
+            _200pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_200pct::new(
                 client.clone(),
                 format!("{base_path}_200pct"),
             ),
-            _300pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct::new(
+            _300pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_300pct::new(
                 client.clone(),
                 format!("{base_path}_300pct"),
             ),
-            _500pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct::new(
+            _500pct: SeriesTree_Cohorts_Profitability_RealizedCap_Profit_500pct::new(
                 client.clone(),
                 format!("{base_path}_500pct"),
             ),
@@ -35261,13 +35443,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_Total {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_Total {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "utxos_in_profit_realized_cap".to_string()),
@@ -35284,13 +35466,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_All {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_10pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_10pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35310,13 +35492,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_10pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_20pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_20pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35336,13 +35518,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_20pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_30pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_30pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35362,13 +35544,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_30pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_40pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_40pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35388,13 +35570,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_40pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_50pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_50pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35414,13 +35596,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_50pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_60pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_60pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35440,13 +35622,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_60pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_70pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_70pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35466,13 +35648,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_70pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_80pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_80pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35492,13 +35674,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_80pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_90pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_90pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35518,13 +35700,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_90pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_100pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_100pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35544,13 +35726,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_100pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_200pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_200pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35570,13 +35752,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_200pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_300pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_300pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35596,13 +35778,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_300pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Profit_500pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Profit_500pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35622,54 +35804,54 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Profit_500pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss {
-    pub all: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All,
-    pub _10pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct,
-    pub _20pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct,
-    pub _30pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct,
-    pub _40pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct,
-    pub _50pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct,
-    pub _60pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct,
-    pub _70pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct,
-    pub _80pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct,
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss {
+    pub total: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_Total,
+    pub _10pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_10pct,
+    pub _20pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_20pct,
+    pub _30pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_30pct,
+    pub _40pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_40pct,
+    pub _50pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_50pct,
+    pub _60pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_60pct,
+    pub _70pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_70pct,
+    pub _80pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_80pct,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All::new(
+            total: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_Total::new(
                 client.clone(),
-                format!("{base_path}_all"),
+                format!("{base_path}_total"),
             ),
-            _10pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct::new(
+            _10pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_10pct::new(
                 client.clone(),
                 format!("{base_path}_10pct"),
             ),
-            _20pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct::new(
+            _20pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_20pct::new(
                 client.clone(),
                 format!("{base_path}_20pct"),
             ),
-            _30pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct::new(
+            _30pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_30pct::new(
                 client.clone(),
                 format!("{base_path}_30pct"),
             ),
-            _40pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct::new(
+            _40pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_40pct::new(
                 client.clone(),
                 format!("{base_path}_40pct"),
             ),
-            _50pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct::new(
+            _50pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_50pct::new(
                 client.clone(),
                 format!("{base_path}_50pct"),
             ),
-            _60pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct::new(
+            _60pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_60pct::new(
                 client.clone(),
                 format!("{base_path}_60pct"),
             ),
-            _70pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct::new(
+            _70pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_70pct::new(
                 client.clone(),
                 format!("{base_path}_70pct"),
             ),
-            _80pct: SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct::new(
+            _80pct: SeriesTree_Cohorts_Profitability_RealizedCap_Loss_80pct::new(
                 client.clone(),
                 format!("{base_path}_80pct"),
             ),
@@ -35678,13 +35860,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_Total {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_Total {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "utxos_in_loss_realized_cap".to_string()),
@@ -35695,13 +35877,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_All {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_10pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_10pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35721,13 +35903,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_10pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_20pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_20pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35747,13 +35929,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_20pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_30pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_30pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35773,13 +35955,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_30pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_40pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_40pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35799,13 +35981,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_40pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_50pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_50pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35825,13 +36007,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_50pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_60pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_60pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35851,13 +36033,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_60pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_70pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_70pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35877,13 +36059,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_70pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct {
+pub struct SeriesTree_Cohorts_Profitability_RealizedCap_Loss_80pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct {
+impl SeriesTree_Cohorts_Profitability_RealizedCap_Loss_80pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -35903,25 +36085,25 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_RealizedCap_Loss_80pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl {
-    pub range: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range,
-    pub profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss,
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl {
+    pub range: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range,
+    pub profit: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit,
+    pub loss: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss,
     pub height: SeriesPattern18<Cents>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range::new(
+            range: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit::new(
+            profit: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss::new(
+            loss: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
@@ -35934,99 +36116,199 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range {
     pub over_1000pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit,
     pub _500pct_to_1000pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit,
     pub _300pct_to_500pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit,
     pub _200pct_to_300pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit,
     pub _100pct_to_200pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit,
     pub _90pct_to_100pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit,
     pub _80pct_to_90pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit,
     pub _70pct_to_80pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit,
     pub _60pct_to_70pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit,
     pub _50pct_to_60pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit,
     pub _40pct_to_50pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit,
     pub _30pct_to_40pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit,
     pub _20pct_to_30pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit,
     pub _10pct_to_20pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit,
     pub _0pct_to_10pct_in_profit:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit,
     pub _0pct_to_10pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss,
     pub _10pct_to_20pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss,
     pub _20pct_to_30pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss,
     pub _30pct_to_40pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss,
     pub _40pct_to_50pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss,
     pub _50pct_to_60pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss,
     pub _60pct_to_70pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss,
     pub _70pct_to_80pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss,
     pub _80pct_to_90pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss,
     pub _90pct_to_100pct_in_loss:
-        SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss,
+        SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            over_1000pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit::new(client.clone(), format!("{base_path}_over_1000pct_in_profit")),
-            _500pct_to_1000pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit::new(client.clone(), format!("{base_path}_500pct_to_1000pct_in_profit")),
-            _300pct_to_500pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit::new(client.clone(), format!("{base_path}_300pct_to_500pct_in_profit")),
-            _200pct_to_300pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit::new(client.clone(), format!("{base_path}_200pct_to_300pct_in_profit")),
-            _100pct_to_200pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit::new(client.clone(), format!("{base_path}_100pct_to_200pct_in_profit")),
-            _90pct_to_100pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit::new(client.clone(), format!("{base_path}_90pct_to_100pct_in_profit")),
-            _80pct_to_90pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit::new(client.clone(), format!("{base_path}_80pct_to_90pct_in_profit")),
-            _70pct_to_80pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit::new(client.clone(), format!("{base_path}_70pct_to_80pct_in_profit")),
-            _60pct_to_70pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit::new(client.clone(), format!("{base_path}_60pct_to_70pct_in_profit")),
-            _50pct_to_60pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit::new(client.clone(), format!("{base_path}_50pct_to_60pct_in_profit")),
-            _40pct_to_50pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit::new(client.clone(), format!("{base_path}_40pct_to_50pct_in_profit")),
-            _30pct_to_40pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit::new(client.clone(), format!("{base_path}_30pct_to_40pct_in_profit")),
-            _20pct_to_30pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit::new(client.clone(), format!("{base_path}_20pct_to_30pct_in_profit")),
-            _10pct_to_20pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit::new(client.clone(), format!("{base_path}_10pct_to_20pct_in_profit")),
-            _0pct_to_10pct_in_profit: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit::new(client.clone(), format!("{base_path}_0pct_to_10pct_in_profit")),
-            _0pct_to_10pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss::new(client.clone(), format!("{base_path}_0pct_to_10pct_in_loss")),
-            _10pct_to_20pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss::new(client.clone(), format!("{base_path}_10pct_to_20pct_in_loss")),
-            _20pct_to_30pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss::new(client.clone(), format!("{base_path}_20pct_to_30pct_in_loss")),
-            _30pct_to_40pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss::new(client.clone(), format!("{base_path}_30pct_to_40pct_in_loss")),
-            _40pct_to_50pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss::new(client.clone(), format!("{base_path}_40pct_to_50pct_in_loss")),
-            _50pct_to_60pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss::new(client.clone(), format!("{base_path}_50pct_to_60pct_in_loss")),
-            _60pct_to_70pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss::new(client.clone(), format!("{base_path}_60pct_to_70pct_in_loss")),
-            _70pct_to_80pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss::new(client.clone(), format!("{base_path}_70pct_to_80pct_in_loss")),
-            _80pct_to_90pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss::new(client.clone(), format!("{base_path}_80pct_to_90pct_in_loss")),
-            _90pct_to_100pct_in_loss: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss::new(client.clone(), format!("{base_path}_90pct_to_100pct_in_loss")),
+            over_1000pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_over_1000pct_in_profit"),
+                ),
+            _500pct_to_1000pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_500pct_to_1000pct_in_profit"),
+                ),
+            _300pct_to_500pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_300pct_to_500pct_in_profit"),
+                ),
+            _200pct_to_300pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_200pct_to_300pct_in_profit"),
+                ),
+            _100pct_to_200pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_100pct_to_200pct_in_profit"),
+                ),
+            _90pct_to_100pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_90pct_to_100pct_in_profit"),
+                ),
+            _80pct_to_90pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_80pct_to_90pct_in_profit"),
+                ),
+            _70pct_to_80pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_70pct_to_80pct_in_profit"),
+                ),
+            _60pct_to_70pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_60pct_to_70pct_in_profit"),
+                ),
+            _50pct_to_60pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_50pct_to_60pct_in_profit"),
+                ),
+            _40pct_to_50pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_40pct_to_50pct_in_profit"),
+                ),
+            _30pct_to_40pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_30pct_to_40pct_in_profit"),
+                ),
+            _20pct_to_30pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_20pct_to_30pct_in_profit"),
+                ),
+            _10pct_to_20pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_10pct_to_20pct_in_profit"),
+                ),
+            _0pct_to_10pct_in_profit:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit::new(
+                    client.clone(),
+                    format!("{base_path}_0pct_to_10pct_in_profit"),
+                ),
+            _0pct_to_10pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_0pct_to_10pct_in_loss"),
+                ),
+            _10pct_to_20pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_10pct_to_20pct_in_loss"),
+                ),
+            _20pct_to_30pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_20pct_to_30pct_in_loss"),
+                ),
+            _30pct_to_40pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_30pct_to_40pct_in_loss"),
+                ),
+            _40pct_to_50pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_40pct_to_50pct_in_loss"),
+                ),
+            _50pct_to_60pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_50pct_to_60pct_in_loss"),
+                ),
+            _60pct_to_70pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_60pct_to_70pct_in_loss"),
+                ),
+            _70pct_to_80pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_70pct_to_80pct_in_loss"),
+                ),
+            _80pct_to_90pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_80pct_to_90pct_in_loss"),
+                ),
+            _90pct_to_100pct_in_loss:
+                SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss::new(
+                    client.clone(),
+                    format!("{base_path}_90pct_to_100pct_in_loss"),
+                ),
         }
     }
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36046,13 +36328,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_Over1000pctInP
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36072,13 +36354,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_500pctTo1000pc
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36098,13 +36380,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_300pctTo500pct
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36124,13 +36406,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_200pctTo300pct
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36150,13 +36432,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_100pctTo200pct
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36176,13 +36458,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctI
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36202,13 +36484,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36228,13 +36510,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36254,13 +36536,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36280,13 +36562,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36306,13 +36588,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36332,13 +36614,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36358,13 +36640,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36384,13 +36666,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInProfit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36410,13 +36692,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInP
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36436,13 +36718,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_0pctTo10pctInL
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36462,13 +36744,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_10pctTo20pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36488,13 +36770,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_20pctTo30pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36514,13 +36796,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_30pctTo40pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36540,13 +36822,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_40pctTo50pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36566,13 +36848,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_50pctTo60pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36592,13 +36874,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_60pctTo70pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36618,13 +36900,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_70pctTo80pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36644,13 +36926,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_80pctTo90pctIn
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctInLoss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36670,79 +36952,79 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Range_90pctTo100pctI
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit {
-    pub all: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All,
-    pub _10pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct,
-    pub _20pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct,
-    pub _30pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct,
-    pub _40pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct,
-    pub _50pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct,
-    pub _60pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct,
-    pub _70pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct,
-    pub _80pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct,
-    pub _90pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct,
-    pub _100pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct,
-    pub _200pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct,
-    pub _300pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct,
-    pub _500pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct,
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit {
+    pub total: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total,
+    pub _10pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct,
+    pub _20pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct,
+    pub _30pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct,
+    pub _40pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct,
+    pub _50pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct,
+    pub _60pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct,
+    pub _70pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct,
+    pub _80pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct,
+    pub _90pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct,
+    pub _100pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct,
+    pub _200pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct,
+    pub _300pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct,
+    pub _500pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All::new(
+            total: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total::new(
                 client.clone(),
-                format!("{base_path}_all"),
+                format!("{base_path}_total"),
             ),
-            _10pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct::new(
+            _10pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct::new(
                 client.clone(),
                 format!("{base_path}_10pct"),
             ),
-            _20pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct::new(
+            _20pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct::new(
                 client.clone(),
                 format!("{base_path}_20pct"),
             ),
-            _30pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct::new(
+            _30pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct::new(
                 client.clone(),
                 format!("{base_path}_30pct"),
             ),
-            _40pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct::new(
+            _40pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct::new(
                 client.clone(),
                 format!("{base_path}_40pct"),
             ),
-            _50pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct::new(
+            _50pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct::new(
                 client.clone(),
                 format!("{base_path}_50pct"),
             ),
-            _60pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct::new(
+            _60pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct::new(
                 client.clone(),
                 format!("{base_path}_60pct"),
             ),
-            _70pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct::new(
+            _70pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct::new(
                 client.clone(),
                 format!("{base_path}_70pct"),
             ),
-            _80pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct::new(
+            _80pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct::new(
                 client.clone(),
                 format!("{base_path}_80pct"),
             ),
-            _90pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct::new(
+            _90pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct::new(
                 client.clone(),
                 format!("{base_path}_90pct"),
             ),
-            _100pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct::new(
+            _100pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct::new(
                 client.clone(),
                 format!("{base_path}_100pct"),
             ),
-            _200pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct::new(
+            _200pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct::new(
                 client.clone(),
                 format!("{base_path}_200pct"),
             ),
-            _300pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct::new(
+            _300pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct::new(
                 client.clone(),
                 format!("{base_path}_300pct"),
             ),
-            _500pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct::new(
+            _500pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct::new(
                 client.clone(),
                 format!("{base_path}_500pct"),
             ),
@@ -36751,13 +37033,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "utxos_in_profit_unrealized_pnl".to_string()),
@@ -36774,13 +37056,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_All {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36800,13 +37082,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_10pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36826,13 +37108,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_20pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36852,13 +37134,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_30pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36878,13 +37160,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_40pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36904,13 +37186,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_50pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36930,13 +37212,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_60pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36956,13 +37238,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_70pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -36982,13 +37264,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_80pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37008,13 +37290,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_90pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37034,13 +37316,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_100pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37060,13 +37342,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_200pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37086,13 +37368,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_300pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37112,54 +37394,54 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Profit_500pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss {
-    pub all: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All,
-    pub _10pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct,
-    pub _20pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct,
-    pub _30pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct,
-    pub _40pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct,
-    pub _50pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct,
-    pub _60pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct,
-    pub _70pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct,
-    pub _80pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct,
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss {
+    pub total: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_Total,
+    pub _10pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_10pct,
+    pub _20pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_20pct,
+    pub _30pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_30pct,
+    pub _40pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_40pct,
+    pub _50pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_50pct,
+    pub _60pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_60pct,
+    pub _70pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_70pct,
+    pub _80pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_80pct,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All::new(
+            total: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_Total::new(
                 client.clone(),
-                format!("{base_path}_all"),
+                format!("{base_path}_total"),
             ),
-            _10pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct::new(
+            _10pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_10pct::new(
                 client.clone(),
                 format!("{base_path}_10pct"),
             ),
-            _20pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct::new(
+            _20pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_20pct::new(
                 client.clone(),
                 format!("{base_path}_20pct"),
             ),
-            _30pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct::new(
+            _30pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_30pct::new(
                 client.clone(),
                 format!("{base_path}_30pct"),
             ),
-            _40pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct::new(
+            _40pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_40pct::new(
                 client.clone(),
                 format!("{base_path}_40pct"),
             ),
-            _50pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct::new(
+            _50pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_50pct::new(
                 client.clone(),
                 format!("{base_path}_50pct"),
             ),
-            _60pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct::new(
+            _60pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_60pct::new(
                 client.clone(),
                 format!("{base_path}_60pct"),
             ),
-            _70pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct::new(
+            _70pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_70pct::new(
                 client.clone(),
                 format!("{base_path}_70pct"),
             ),
-            _80pct: SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct::new(
+            _80pct: SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_80pct::new(
                 client.clone(),
                 format!("{base_path}_80pct"),
             ),
@@ -37168,13 +37450,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_Total {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_Total {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(client.clone(), "utxos_in_loss_unrealized_pnl".to_string()),
@@ -37191,13 +37473,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_All {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_10pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_10pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37217,13 +37499,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_10pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_20pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_20pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37243,13 +37525,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_20pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_30pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_30pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37269,13 +37551,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_30pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_40pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_40pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37295,13 +37577,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_40pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_50pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_50pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37321,13 +37603,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_50pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_60pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_60pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37347,13 +37629,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_60pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_70pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_70pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37373,13 +37655,13 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_70pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct {
+pub struct SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_80pct {
     pub all: CentsUsdPattern,
     pub sth: CentsUsdPattern,
     pub lth: CentsUsdPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct {
+impl SeriesTree_Cohorts_Profitability_UnrealizedPnl_Loss_80pct {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             all: CentsUsdPattern::new(
@@ -37399,25 +37681,25 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_UnrealizedPnl_Loss_80pct {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl {
-    pub range: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range,
-    pub profit: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit,
-    pub loss: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss,
+pub struct SeriesTree_Cohorts_Profitability_Nupl {
+    pub range: SeriesTree_Cohorts_Profitability_Nupl_Range,
+    pub profit: SeriesTree_Cohorts_Profitability_Nupl_Profit,
+    pub loss: SeriesTree_Cohorts_Profitability_Nupl_Loss,
     pub height: SeriesPattern18<PartsPerMillionSigned32>,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl {
+impl SeriesTree_Cohorts_Profitability_Nupl {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            range: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range::new(
+            range: SeriesTree_Cohorts_Profitability_Nupl_Range::new(
                 client.clone(),
                 format!("{base_path}_range"),
             ),
-            profit: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit::new(
+            profit: SeriesTree_Cohorts_Profitability_Nupl_Profit::new(
                 client.clone(),
                 format!("{base_path}_profit"),
             ),
-            loss: SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss::new(
+            loss: SeriesTree_Cohorts_Profitability_Nupl_Loss::new(
                 client.clone(),
                 format!("{base_path}_loss"),
             ),
@@ -37427,7 +37709,7 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range {
+pub struct SeriesTree_Cohorts_Profitability_Nupl_Range {
     pub over_1000pct_in_profit: PpmRatioPattern,
     pub _500pct_to_1000pct_in_profit: PpmRatioPattern,
     pub _300pct_to_500pct_in_profit: PpmRatioPattern,
@@ -37455,7 +37737,7 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range {
     pub _90pct_to_100pct_in_loss: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range {
+impl SeriesTree_Cohorts_Profitability_Nupl_Range {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
             over_1000pct_in_profit: PpmRatioPattern::new(
@@ -37563,8 +37845,8 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Range {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit {
-    pub all: PpmRatioPattern,
+pub struct SeriesTree_Cohorts_Profitability_Nupl_Profit {
+    pub total: PpmRatioPattern,
     pub _10pct: PpmRatioPattern,
     pub _20pct: PpmRatioPattern,
     pub _30pct: PpmRatioPattern,
@@ -37580,10 +37862,10 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit {
     pub _500pct: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit {
+impl SeriesTree_Cohorts_Profitability_Nupl_Profit {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: PpmRatioPattern::new(client.clone(), "utxos_in_profit_nupl".to_string()),
+            total: PpmRatioPattern::new(client.clone(), "utxos_in_profit_nupl".to_string()),
             _10pct: PpmRatioPattern::new(
                 client.clone(),
                 "utxos_over_10pct_in_profit_nupl".to_string(),
@@ -37641,8 +37923,8 @@ impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Profit {
 }
 
 /// Series tree node.
-pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss {
-    pub all: PpmRatioPattern,
+pub struct SeriesTree_Cohorts_Profitability_Nupl_Loss {
+    pub total: PpmRatioPattern,
     pub _10pct: PpmRatioPattern,
     pub _20pct: PpmRatioPattern,
     pub _30pct: PpmRatioPattern,
@@ -37653,10 +37935,10 @@ pub struct SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss {
     pub _80pct: PpmRatioPattern,
 }
 
-impl SeriesTree_Cohorts_Cohorts_Profitability_Nupl_Loss {
+impl SeriesTree_Cohorts_Profitability_Nupl_Loss {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            all: PpmRatioPattern::new(client.clone(), "utxos_in_loss_nupl".to_string()),
+            total: PpmRatioPattern::new(client.clone(), "utxos_in_loss_nupl".to_string()),
             _10pct: PpmRatioPattern::new(
                 client.clone(),
                 "utxos_over_10pct_in_loss_nupl".to_string(),

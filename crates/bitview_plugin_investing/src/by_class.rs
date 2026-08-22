@@ -36,17 +36,29 @@ pub const DCA_CLASS_NAMES: ByDcaClass<&'static str> = ByDcaClass {
 /// Generic wrapper for DCA year class data
 #[derive(Clone, Default, Traversable)]
 pub struct ByDcaClass<T> {
+    /// Uses January 1, 2015 as the strategy start date.
     pub from_2015: T,
+    /// Uses January 1, 2016 as the strategy start date.
     pub from_2016: T,
+    /// Uses January 1, 2017 as the strategy start date.
     pub from_2017: T,
+    /// Uses January 1, 2018 as the strategy start date.
     pub from_2018: T,
+    /// Uses January 1, 2019 as the strategy start date.
     pub from_2019: T,
+    /// Uses January 1, 2020 as the strategy start date.
     pub from_2020: T,
+    /// Uses January 1, 2021 as the strategy start date.
     pub from_2021: T,
+    /// Uses January 1, 2022 as the strategy start date.
     pub from_2022: T,
+    /// Uses January 1, 2023 as the strategy start date.
     pub from_2023: T,
+    /// Uses January 1, 2024 as the strategy start date.
     pub from_2024: T,
+    /// Uses January 1, 2025 as the strategy start date.
     pub from_2025: T,
+    /// Uses January 1, 2026 as the strategy start date.
     pub from_2026: T,
 }
 

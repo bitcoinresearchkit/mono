@@ -47,14 +47,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub size: SizeVecs<M>,
     pub fees: FeesVecs<M>,
     pub patterns: PatternsVecs<M>,
-    /// BRK's deterministic, transaction-local approximation of default Bitcoin
-    /// Core relay standardness, selected by mainnet block height rather than
-    /// actual node adoption. It checks transaction version, weight and stripped
-    /// size, script and witness forms, signature-operation limits, dust, and
-    /// `OP_RETURN` policy. The approximation changes after height 863,500 and
-    /// at heights 905,000 and 921,000. It does not reconstruct fee-floor,
-    /// mempool/package topology, conflict or replacement policy, or
-    /// node-specific settings. Coinbase transactions are classified false.
+    /// BRK's transaction-local approximation of default Bitcoin Core relay
+    /// standardness at the represented block height. It checks version,
+    /// size and weight, scripts and witnesses, signature-operation limits,
+    /// dust, and `OP_RETURN` policy. It does not model node adoption, fee
+    /// floors, mempool or package topology, conflicts or replacement, or
+    /// node-specific settings. Modeled rules change after height 863,500 and at
+    /// heights 905,000 and 921,000; coinbase is classified nonstandard.
     pub policy: PolicyVecs<M>,
     pub sigops: SigopsVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit

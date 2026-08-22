@@ -14,7 +14,7 @@ pub struct FeesSeries<C: ColumnId> {
     #[deref_mut]
     #[traversable(flatten)]
     pub fees: LazyColumnPerBlockCumulativeRolling<Sats, C>,
-    /// Fees of transactions in the selected bucket divided by all transaction
+    /// Fees of transactions in a breakdown bucket divided by all transaction
     /// fees over the same cumulative or trailing window.
     pub fee_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

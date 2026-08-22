@@ -10,11 +10,13 @@ use vecdb::ColumnId;
 
 #[derive(Default, Clone, Traversable)]
 pub struct UTXOGroups<T> {
+    /// Uses all UTXOs.
     pub all: T,
     pub age: ByAge<T>,
     pub epoch: ByEpoch<T>,
     pub class: Class<T>,
     pub entry: ByEntry<T>,
+    /// Groups UTXOs by their individual output value.
     pub utxo_amount: Amount<T>,
     pub term: ByTerm<T>,
     #[traversable(rename = "type")]

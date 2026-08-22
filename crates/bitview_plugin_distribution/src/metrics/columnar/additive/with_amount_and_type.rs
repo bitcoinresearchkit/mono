@@ -21,11 +21,23 @@ pub struct UTXOColumnarMetric<T, M: StorageMode = Rw>
 where
     T: PcoVecValue,
 {
+    /// Height-indexed matrix with one column per exact UTXO age range, ordered
+    /// from youngest to oldest.
     pub age_range_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, AgeRangeId>>>,
+    /// Height-indexed matrix with one column per subsidy-halving epoch, ordered
+    /// from earliest to latest.
     pub epoch_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, EpochId>>>,
+    /// Height-indexed matrix with one column per output-creation year, in
+    /// chronological order.
     pub class_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, ClassId>>>,
+    /// Height-indexed matrix with discount-entry followed by premium-entry
+    /// UTXOs.
     pub entry_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, EntryId>>>,
+    /// Height-indexed matrix with one column per spendable BRK output type, in
+    /// canonical `SpendableTypeId` order.
     pub type_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, SpendableTypeId>>>,
+    /// Height-indexed matrix with one column per exact UTXO value range,
+    /// ordered from smallest to largest.
     pub amount_range_matrix: M::Stored<EagerVec<ColumnarVec<PcoVec<Height, T>, AmountRangeId>>>,
 }
 

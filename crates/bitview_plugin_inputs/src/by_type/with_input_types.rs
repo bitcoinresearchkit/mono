@@ -18,6 +18,7 @@ use vecdb::{
 /// output types. The "type" of an input is the previous output it spends.
 #[derive(Clone, Traversable)]
 pub struct WithInputTypes<V> {
+    /// Across all inputs, regardless of the type of output they spend.
     pub all: LazyPerBlockCumulativeRolling<StoredU64>,
     #[traversable(skip)]
     cached_all: CachedBoxedVec<Height, StoredU64>,

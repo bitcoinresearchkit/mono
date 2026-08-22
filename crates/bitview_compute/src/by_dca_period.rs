@@ -37,17 +37,29 @@ pub const DCA_PERIOD_NAMES: ByDcaPeriod<&'static str> = ByDcaPeriod {
 /// Generic wrapper for DCA period-based data
 #[derive(Clone, Default, Traversable)]
 pub struct ByDcaPeriod<T> {
+    /// Uses a trailing 7-day investment period.
     pub _1w: T,
+    /// Uses a trailing 30-day investment period.
     pub _1m: T,
+    /// Uses a trailing 90-day investment period.
     pub _3m: T,
+    /// Uses a trailing 180-day investment period.
     pub _6m: T,
+    /// Uses a trailing 365-day investment period.
     pub _1y: T,
+    /// Uses a trailing 730-day investment period.
     pub _2y: T,
+    /// Uses a trailing 1,095-day investment period.
     pub _3y: T,
+    /// Uses a trailing 1,460-day investment period.
     pub _4y: T,
+    /// Uses a trailing 1,825-day investment period.
     pub _5y: T,
+    /// Uses a trailing 2,190-day investment period.
     pub _6y: T,
+    /// Uses a trailing 2,920-day investment period.
     pub _8y: T,
+    /// Uses a trailing 3,650-day investment period.
     pub _10y: T,
 }
 
