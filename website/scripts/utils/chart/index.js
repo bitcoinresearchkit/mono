@@ -70,7 +70,7 @@ import { Unit } from "../units.js";
  * @property {(index: number) => void} removeFrom
  */
 
-const lineWidth = /** @type {const} */ (1);
+const lineWidth = /** @type {1} */ (/** @type {unknown} */ (1.5));
 
 const MAX_SIZE = 10_000;
 
