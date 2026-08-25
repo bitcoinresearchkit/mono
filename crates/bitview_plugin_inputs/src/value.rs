@@ -1,18 +1,15 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
-use brk_types::{Sats, TxOutIndex};
+use brk_types::{Sats, TxInIndex, TxOutIndex};
 use rayon::prelude::*;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecIndex, WritableVec};
-
-use super::Vecs;
+use vecdb::{AnyStoredVec, AnyVec, Exit, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 const SORT_MEMORY_BUDGET: usize = 2 * 1024 * 1024 * 1024;
 const BATCH_SIZE: usize = SORT_MEMORY_BUDGET / (size_of::<Entry>() + size_of::<Sats>());
 
-pub fn compute_value(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<()> {
-    let Vecs { value, .. } = vecs;
+pub fn compute(value: &mut PcoVec<TxInIndex, Sats>, indexer: &Indexer, exit: &Exit) -> Result<()> {
     let starting_lengths = indexer.safe_lengths();
     let txout_indexes = &indexer.vecs().inputs.txout_index;
     let dep_version = txout_indexes.version() + indexer.vecs().outputs.value.version();

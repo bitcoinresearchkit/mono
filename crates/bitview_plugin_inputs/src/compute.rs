@@ -1,23 +1,33 @@
 use brk_error::Result;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin_blocks::Vecs as BlockVecs;
 use bitview_plugin_indexer::Indexer;
+use rayon::join;
 use vecdb::Exit;
 
 use super::Vecs;
 use crate::Dependencies;
+
 impl Vecs {
-    fn compute_inner(
-        &mut self,
-        indexer: &Indexer,
-        blocks: &bitview_plugin_blocks::Vecs,
-        exit: &Exit,
-    ) -> Result<()> {
+    fn compute_inner(&mut self, indexer: &Indexer, blocks: &BlockVecs, exit: &Exit) -> Result<()> {
         self.db.sync_bg_tasks()?;
 
-        super::value::compute_value(self, indexer, exit)?;
-        self.count.compute(indexer, blocks, exit)?;
-        self.by_type.compute(indexer, exit)?;
+        let Vecs {
+            value,
+            count,
+            by_type,
+            ..
+        } = self;
+        let (value_result, rest_result) = join(
+            || super::value::compute(value, indexer, exit),
+            || {
+                count.compute(indexer, blocks, exit)?;
+                by_type.compute(indexer, exit)
+            },
+        );
+        value_result?;
+        rest_result?;
 
         let exit = exit.clone();
         self.db.run_bg(move |db| {
