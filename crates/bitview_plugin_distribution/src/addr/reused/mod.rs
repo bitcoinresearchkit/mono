@@ -36,8 +36,10 @@ use super::{
 use bitview_compute::{CachedWindowStartVec, Windows};
 
 mod state;
+mod type_state;
 
 pub use state::ReusedAddrState;
+pub use type_state::ReusedAddrTypeState;
 
 /// Top-level container for all reused address tracking: counts (funded +
 /// total), per-block reuse events (output-side + input-side), and funded

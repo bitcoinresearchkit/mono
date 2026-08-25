@@ -2,7 +2,7 @@ use brk_error::Result;
 
 use std::path::Path;
 
-use bitview_cohort::{ByTerm, Filter, ProfitabilityRangeId, Term, UTXOAggregate};
+use bitview_cohort::{ByTerm, ProfitabilityRangeId, UTXOAggregate};
 use brk_types::{Cents, Date};
 use vecdb::ColumnId;
 
@@ -23,7 +23,7 @@ impl CohortMetrics {
             self.push_fenwick_results(states, spot_price);
         }
         if let Some(date) = date {
-            states.write_urpds(date, states_path, &Filter::Term(Term::Sth))?;
+            states.write_urpds(date, states_path)?;
         }
         Ok(())
     }

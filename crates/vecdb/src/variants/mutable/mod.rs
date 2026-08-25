@@ -8,7 +8,7 @@ use parking_lot::RwLock;
 
 use log::debug;
 
-use crate::{Bytes, TypedVec, WithPrev, vec_region_name_with};
+use crate::{AnyVec, Bytes, Error, Result, TypedVec, VecIndex, WithPrev, vec_region_name_with};
 
 mod any_stored_vec;
 mod any_vec;
@@ -113,7 +113,7 @@ where
 
     fn holes_region_name(&self) -> String
     where
-        V: crate::AnyVec,
+        V: AnyVec,
     {
         Self::holes_region_name_with(self.vec.name())
     }
@@ -127,7 +127,81 @@ impl<V> MutableVec<V>
 where
     V: MutableRawVec,
 {
-    fn write_inner(&mut self, preserve_rollback_values: bool) -> crate::Result<bool> {
+    fn install_updates(&mut self, mut updates: BTreeMap<usize, V::T>) {
+        let stored_len = self.vec.stored_len();
+        let pushed = updates.split_off(&stored_len);
+        for (index, value) in pushed {
+            self.vec.pushed_mut()[index - stored_len] = value;
+        }
+
+        if self.current_updated().is_empty() {
+            *self.updated.current_mut() = updates;
+        } else {
+            self.mut_updated().append(&mut updates);
+        }
+    }
+
+    /// Applies a batch of replacements. Sorted input lets `BTreeMap` build the
+    /// mutation tree in linear time.
+    pub fn update_many(&mut self, updates: impl IntoIterator<Item = (V::I, V::T)>) -> Result<()> {
+        let updates: BTreeMap<_, _> = updates
+            .into_iter()
+            .map(|(index, value)| (index.to_usize(), value))
+            .collect();
+        let Some((&last, _)) = updates.last_key_value() else {
+            return Ok(());
+        };
+        let len = self.vec.len();
+        if last >= len {
+            return Err(Error::IndexTooHigh {
+                index: last,
+                len,
+                name: self.vec.name().to_string(),
+            });
+        }
+
+        if !self.current_holes().is_empty() {
+            let holes = self.mut_holes();
+            for index in updates.keys() {
+                holes.remove(index);
+            }
+        }
+        self.install_updates(updates);
+        Ok(())
+    }
+
+    /// Fills the lowest available indexes, then appends the remaining values.
+    pub fn fill_holes_or_push_many(
+        &mut self,
+        mut values: impl ExactSizeIterator<Item = V::T>,
+    ) -> Vec<V::I> {
+        let hole_count = self.current_holes().len().min(values.len());
+        let mut indices = Vec::with_capacity(values.len());
+        if hole_count > 0 {
+            let holes = self.mut_holes();
+            indices.extend(
+                (0..hole_count).map(|_| holes.pop_first().expect("bounded MutableVec hole batch")),
+            );
+        }
+
+        let updates = indices
+            .iter()
+            .copied()
+            .zip(values.by_ref().take(hole_count))
+            .collect();
+        self.install_updates(updates);
+
+        let append_start = self.vec.len();
+        let append_count = values.len();
+        self.vec.reserve_pushed(append_count);
+        for value in values {
+            self.vec.push(value);
+        }
+        indices.extend(append_start..append_start + append_count);
+        indices.into_iter().map(V::I::from).collect()
+    }
+
+    fn write_inner(&mut self, preserve_rollback_values: bool) -> Result<bool> {
         let mut changed = self.vec.write()?;
 
         if !self.current_updated().is_empty() {
@@ -173,11 +247,11 @@ where
         Ok(changed)
     }
 
-    fn update_value_at(&mut self, index: usize, value: V::T) -> crate::Result<()> {
+    fn update_value_at(&mut self, index: usize, value: V::T) -> Result<()> {
         let stored_len = self.vec.stored_len();
         if index >= stored_len {
             let Some(slot) = self.vec.pushed_mut().get_mut(index - stored_len) else {
-                return Err(crate::Error::IndexTooHigh {
+                return Err(Error::IndexTooHigh {
                     index,
                     len: stored_len,
                     name: self.vec.name().to_string(),

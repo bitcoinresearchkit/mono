@@ -124,9 +124,9 @@ impl UrpdRaw {
     pub fn serialize_iter(
         iter: impl Iterator<Item = (CentsCompact, Sats)>,
     ) -> brk_error::Result<Vec<u8>> {
-        let entries: Vec<_> = iter.collect();
-        let keys: Vec<u32> = entries.iter().map(|(k, _)| k.inner()).collect();
-        let values: Vec<u64> = entries.iter().map(|(_, v)| u64::from(*v)).collect();
+        let (keys, values): (Vec<u32>, Vec<u64>) = iter
+            .map(|(key, value)| (key.inner(), u64::from(value)))
+            .unzip();
 
         let config = ChunkConfig::default();
         let compressed_keys = simple_compress(&keys, &config)?;

@@ -1,5 +1,5 @@
 use bitview_cohort::{AddrTypeId, ByAddrType};
-use brk_types::{Height, OutputType, Sats};
+use brk_types::{Height, Sats};
 use derive_more::{Deref, DerefMut};
 use vecdb::{ColumnId, ReadableVec};
 
@@ -16,11 +16,9 @@ impl AddrTypeToSupply {
         AddrTypeId::from_fn(|column| *column.select(&self.0))
     }
 
-    /// Apply a signed `after - before` delta to the slot for `output_type`.
-    /// Sats is unsigned, so branch on sign.
+    /// Apply a signed `after - before` delta to an unsigned supply slot.
     #[inline]
-    pub fn apply_delta(&mut self, output_type: OutputType, before: Sats, after: Sats) {
-        let slot = self.get_mut_unwrap(output_type);
+    pub fn apply_delta(slot: &mut Sats, before: Sats, after: Sats) {
         if after >= before {
             *slot += after - before;
         } else {

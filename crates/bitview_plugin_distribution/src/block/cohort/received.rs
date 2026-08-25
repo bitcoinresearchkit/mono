@@ -3,11 +3,11 @@ use brk_types::{Cents, Sats, TypeIndex};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    addr::{AddrMetricsState, AddrReceivePreState, AddrTypeToVec},
+    addr::{AddrMetricsState, AddrReceivePreState, AddrReceiveStatus, AddrTypeToVec},
     state::AddrStates,
 };
 
-use super::super::cache::{AddrLookup, TrackingStatus};
+use super::super::cache::AddrLookup;
 
 /// Aggregated receive data for a single address within a block.
 #[derive(Default)]
@@ -43,11 +43,13 @@ pub fn process_received(
             entry.output_count += 1;
         }
 
+        let mut lookup = lookup.select(output_type);
+        let mut metrics = state.select(output_type);
         for (type_index, recv) in aggregated.drain() {
-            let (addr_data, status) = lookup.get_or_create_for_receive(output_type, type_index);
+            let (addr_data, status) = lookup.get_or_create_for_receive(type_index);
             let pre = AddrReceivePreState::capture(addr_data, output_type);
 
-            if matches!(status, TrackingStatus::New | TrackingStatus::WasEmpty) {
+            if matches!(status, AddrReceiveStatus::New | AddrReceiveStatus::WasEmpty) {
                 addr_data.receive_outputs(recv.total_value, price, recv.output_count);
                 cohorts
                     .amount_range
@@ -91,7 +93,7 @@ pub fn process_received(
                 }
             }
 
-            state.on_receive_applied(output_type, status, addr_data, &pre, recv.output_count);
+            metrics.on_receive_applied(status, addr_data, &pre, recv.output_count);
         }
     }
 }

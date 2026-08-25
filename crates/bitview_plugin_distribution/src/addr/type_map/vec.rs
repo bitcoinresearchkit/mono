@@ -17,6 +17,12 @@ impl<T> AddrTypeToVec<T> {
         Self(ByAddrType::from_fn(|_| Vec::with_capacity(capacity)))
     }
 
+    pub fn with_capacities(capacities: ByAddrType<usize>) -> Self {
+        Self(ByAddrType::from_fn(|id| {
+            Vec::with_capacity(*capacities.get_unwrap(id.output_type()))
+        }))
+    }
+
     /// Consume the wrapper and return its vectors.
     pub fn into_inner(self) -> ByAddrType<Vec<T>> {
         self.0

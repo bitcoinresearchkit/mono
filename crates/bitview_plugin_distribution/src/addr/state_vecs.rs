@@ -8,14 +8,20 @@ use brk_types::{
     OutputType, P2AAddrIndex, P2PK33AddrIndex, P2PK65AddrIndex, P2PKHAddrIndex, P2SHAddrIndex,
     P2TRAddrIndex, P2WPKHAddrIndex, P2WSHAddrIndex, TypeIndex, Version,
 };
-use rayon::prelude::*;
+use rayon::{join, prelude::*};
 use tracing::info;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
-    OverflowVec, ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
+    OverflowVec, OverflowVecValue, ReadableVec, Rw, Stamp, StorageMode, VecIndex, WritableVec,
 };
 
 use super::{AddrTypeToTypeIndexMap, AddrTypeToVec, SourcedAddrData};
+
+mod empty_updates;
+mod funded_updates;
+
+use empty_updates::EmptyAddrUpdates;
+use funded_updates::FundedAddrUpdates;
 
 const SAVED_STAMPED_CHANGES: u16 = 10;
 const FUNDED_DATA_VERSION: Version = Version::new(3);
@@ -35,11 +41,7 @@ pub struct AddrStateVecs<M: StorageMode = Rw> {
     pub p2tr: M::Stored<MutableVec<BytesVec<P2TRAddrIndex, AddrState>>>,
     pub p2wpkh: M::Stored<MutableVec<BytesVec<P2WPKHAddrIndex, AddrState>>>,
     pub p2wsh: M::Stored<MutableVec<BytesVec<P2WSHAddrIndex, AddrState>>>,
-    /// Persisted state record for each address that currently holds at least
-    /// one unspent output.
     pub funded: M::Stored<OverflowVec<FundedAddrIndex, FundedAddrData>>,
-    /// Persisted state record for each previously seen address that currently
-    /// holds no unspent outputs.
     pub extended_empty: M::Stored<OverflowVec<ExtendedEmptyAddrIndex, EmptyAddrData>>,
 }
 
@@ -139,137 +141,75 @@ impl AddrStateVecs {
 
     pub fn apply_updates(
         &mut self,
-        empty: AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
-        funded: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
+        empty_cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
+        funded_cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     ) -> Result<()> {
         info!("Processing addr updates...");
         let started = Instant::now();
-        let mut primaries = AddrTypeToVec::default();
-        let mut funded_updates = Vec::new();
-        let mut funded_deletes = Vec::new();
-        let mut funded_pushes = Vec::new();
-        let mut extended_updates = Vec::new();
-        let mut extended_deletes = Vec::new();
-        let mut extended_pushes = Vec::new();
+        let primary_capacities = empty_cache.lengths() + funded_cache.lengths();
+        let staged_empty = EmptyAddrUpdates::stage(empty_cache, primary_capacities);
+        let staged_funded = FundedAddrUpdates::stage(funded_cache);
+        let EmptyAddrUpdates {
+            mut primaries,
+            funded_deletes,
+            extended_updates,
+            mut extended_deletes,
+            extended_pushes,
+        } = staged_empty;
+        let FundedAddrUpdates {
+            funded_updates,
+            funded_pushes,
+            extended_deletes: mut funded_extended_deletes,
+        } = staged_funded;
+        extended_deletes.append(&mut funded_extended_deletes);
 
-        for (addr_type, entries) in empty.into_iter() {
-            for (type_index, source) in entries {
-                match source {
-                    SourcedAddrData::New(data) | SourcedAddrData::FromInlineEmpty(data) => {
-                        Self::stage_empty(
-                            &mut primaries,
-                            &mut extended_pushes,
-                            addr_type,
-                            type_index,
-                            data,
-                        )
-                    }
-                    SourcedAddrData::FromFunded(index, data) => {
-                        funded_deletes.push(index);
-                        Self::stage_empty(
-                            &mut primaries,
-                            &mut extended_pushes,
-                            addr_type,
-                            type_index,
-                            data,
-                        );
-                    }
-                    SourcedAddrData::FromExtendedEmpty(index, data) => {
-                        if let Some(state) = AddrState::from_empty(&data) {
-                            extended_deletes.push(index);
-                            primaries
-                                .get_mut_unwrap(addr_type)
-                                .push((type_index, state));
-                        } else {
-                            extended_updates.push((index, data));
-                        }
-                    }
-                }
-            }
-        }
+        self.funded.delete_many(funded_deletes);
+        self.extended_empty.delete_many(extended_deletes);
 
-        for (addr_type, entries) in funded.into_iter() {
-            for (type_index, source) in entries {
-                match source {
-                    SourcedAddrData::New(data) | SourcedAddrData::FromInlineEmpty(data) => {
-                        funded_pushes.push((addr_type, type_index, data));
-                    }
-                    SourcedAddrData::FromFunded(index, data) => {
-                        funded_updates.push((index, data));
-                    }
-                    SourcedAddrData::FromExtendedEmpty(index, data) => {
-                        extended_deletes.push(index);
-                        funded_pushes.push((addr_type, type_index, data));
-                    }
-                }
-            }
-        }
+        let funded_vec = &mut self.funded;
+        let extended_empty_vec = &mut self.extended_empty;
+        let (funded_result, extended_empty_result) = join(
+            || funded_vec.update_many(funded_updates),
+            || extended_empty_vec.update_many(extended_updates),
+        );
+        funded_result?;
+        extended_empty_result?;
 
-        for index in funded_deletes {
-            self.funded.delete(index);
-        }
-        for index in extended_deletes {
-            self.extended_empty.delete(index);
-        }
-
-        funded_updates.sort_unstable_by_key(|(index, _)| *index);
-        extended_updates.sort_unstable_by_key(|(index, _)| *index);
-        self.funded.update_many(funded_updates)?;
-        self.extended_empty.update_many(extended_updates)?;
-
-        let mut pushes = funded_pushes.into_iter();
-        let holes = self.funded.holes().len();
-        for (addr_type, type_index, data) in pushes.by_ref().take(holes) {
-            let index = self.funded.fill_first_hole_or_push(data)?;
-            primaries
-                .get_mut_unwrap(addr_type)
-                .push((type_index, AddrState::from_funded(index)));
-        }
-        self.funded.reserve_pushed(pushes.len());
-        for (next_index, (addr_type, type_index, data)) in (self.funded.len()..).zip(pushes) {
-            self.funded.push(data);
-            primaries.get_mut_unwrap(addr_type).push((
-                type_index,
-                AddrState::from_funded(FundedAddrIndex::from(next_index)),
-            ));
-        }
-
-        let mut pushes = extended_pushes.into_iter();
-        let holes = self.extended_empty.holes().len();
-        for (addr_type, type_index, data) in pushes.by_ref().take(holes) {
-            let index = self.extended_empty.fill_first_hole_or_push(data)?;
-            primaries
-                .get_mut_unwrap(addr_type)
-                .push((type_index, AddrState::from_extended_empty(index)));
-        }
-        self.extended_empty.reserve_pushed(pushes.len());
-        for (next_index, (addr_type, type_index, data)) in (self.extended_empty.len()..).zip(pushes)
-        {
-            self.extended_empty.push(data);
-            primaries.get_mut_unwrap(addr_type).push((
-                type_index,
-                AddrState::from_extended_empty(ExtendedEmptyAddrIndex::from(next_index)),
-            ));
-        }
-
+        Self::insert_sidecar(
+            &mut self.funded,
+            funded_pushes,
+            &mut primaries,
+            AddrState::from_funded,
+        );
+        Self::insert_sidecar(
+            &mut self.extended_empty,
+            extended_pushes,
+            &mut primaries,
+            AddrState::from_extended_empty,
+        );
         self.update_primaries(primaries)?;
         info!("Processed addr updates in {:?}", started.elapsed());
         Ok(())
     }
 
-    fn stage_empty(
+    fn insert_sidecar<I, T>(
+        sidecar: &mut OverflowVec<I, T>,
+        values: Vec<(OutputType, TypeIndex, T)>,
         primaries: &mut AddrTypeToVec<(TypeIndex, AddrState)>,
-        extended_pushes: &mut Vec<(OutputType, TypeIndex, EmptyAddrData)>,
-        addr_type: OutputType,
-        type_index: TypeIndex,
-        data: EmptyAddrData,
-    ) {
-        if let Some(state) = AddrState::from_empty(&data) {
+        to_state: fn(I) -> AddrState,
+    ) where
+        I: VecIndex,
+        T: OverflowVecValue,
+    {
+        let (metadata, values): (Vec<_>, Vec<_>) = values
+            .into_iter()
+            .map(|(addr_type, type_index, value)| ((addr_type, type_index), value))
+            .unzip();
+        let indices = sidecar.fill_holes_or_push_many(values);
+        for ((addr_type, type_index), index) in metadata.into_iter().zip(indices) {
             primaries
                 .get_mut_unwrap(addr_type)
-                .push((type_index, state));
-        } else {
-            extended_pushes.push((addr_type, type_index, data));
+                .push((type_index, to_state(index)));
         }
     }
 
@@ -315,22 +255,27 @@ impl AddrStateVecs {
 
     fn update_primary<I: VecIndex>(
         vec: &mut MutableVec<BytesVec<I, AddrState>>,
-        updates: Vec<(TypeIndex, AddrState)>,
+        mut updates: Vec<(TypeIndex, AddrState)>,
     ) -> Result<()> {
-        let len = vec.len();
-        let mut pushed = Vec::new();
-        for (type_index, state) in updates {
-            let index = usize::from(type_index);
-            if index < len {
-                vec.update(I::from(index), state)?;
-            } else {
-                pushed.push((type_index, state));
-            }
-        }
+        updates.sort_unstable_by_key(|(type_index, _)| *type_index);
+        debug_assert!(
+            updates.windows(2).all(|pair| pair[0].0 != pair[1].0),
+            "an address type must have only one final state"
+        );
 
-        pushed.sort_unstable_by_key(|(type_index, _)| *type_index);
-        vec.reserve_pushed(pushed.len());
-        for (offset, (type_index, state)) in pushed.into_iter().enumerate() {
+        let len = vec.len();
+        let pushed_start =
+            updates.partition_point(|(type_index, _)| usize::from(*type_index) < len);
+        let mut updates = updates.into_iter();
+        vec.update_many(
+            updates
+                .by_ref()
+                .take(pushed_start)
+                .map(|(type_index, state)| (I::from(usize::from(type_index)), state)),
+        )?;
+
+        vec.reserve_pushed(updates.len());
+        for (offset, (type_index, state)) in updates.enumerate() {
             debug_assert_eq!(usize::from(type_index), len + offset);
             vec.push(state);
         }
@@ -398,7 +343,19 @@ mod tests {
             TypeIndex::new(0),
             SourcedAddrData::New(funded_data),
         );
-        state.apply_updates(empty, funded)?;
+        let empty_capacity = empty.get_unwrap(OutputType::P2PKH).capacity();
+        let funded_capacity = funded.get_unwrap(OutputType::P2PKH).capacity();
+        state.apply_updates(&mut empty, &mut funded)?;
+        assert!(empty.lengths().into_iter().all(|(_, len)| len == 0));
+        assert!(funded.lengths().into_iter().all(|(_, len)| len == 0));
+        assert_eq!(
+            empty.get_unwrap(OutputType::P2PKH).capacity(),
+            empty_capacity
+        );
+        assert_eq!(
+            funded.get_unwrap(OutputType::P2PKH).capacity(),
+            funded_capacity
+        );
         state.p2pkh.write()?;
         state.funded.write()?;
         state.extended_empty.write()?;
@@ -445,7 +402,7 @@ mod tests {
             TypeIndex::new(1),
             SourcedAddrData::FromInlineEmpty(newly_funded),
         );
-        state.apply_updates(empty, funded)?;
+        state.apply_updates(&mut empty, &mut funded)?;
         state.p2pkh.write()?;
         state.funded.write()?;
         state.extended_empty.write()?;
@@ -490,7 +447,7 @@ mod tests {
                 extended_to_funded,
             ),
         );
-        state.apply_updates(empty, funded)?;
+        state.apply_updates(&mut empty, &mut funded)?;
 
         assert_eq!(state.extended_empty.len(), 1);
         assert!(state.extended_empty.holes().is_empty());
@@ -554,7 +511,7 @@ mod tests {
             TypeIndex::new(1),
             SourcedAddrData::New(funded_b.clone()),
         );
-        state.apply_updates(empty, funded)?;
+        state.apply_updates(&mut empty, &mut funded)?;
         write_state(&mut state, Stamp::new(1))?;
 
         let funded_a_index = funded_index(&state, 0);
@@ -600,7 +557,7 @@ mod tests {
             TypeIndex::new(0),
             SourcedAddrData::FromFunded(funded_a_index, funded_updated.clone()),
         );
-        state.apply_updates(empty, funded)?;
+        state.apply_updates(&mut empty, &mut funded)?;
         write_state(&mut state, Stamp::new(2))?;
 
         assert_eq!(funded_index(&state, 0), funded_a_index);

@@ -496,8 +496,7 @@ impl HistoryStats for CoordinateHistory<'_> {
 
     fn quantile(&self, percentile: f64) -> f64 {
         let target = ((self.len - 1) as f64 * percentile).floor();
-        let mut index = [0];
-        self.tree.kth(&[target], &|count: &f64| *count, &mut index);
+        let index = self.tree.kth([target], &|count: &f64| *count);
         self.coordinates[index[0]]
     }
 

@@ -26,9 +26,11 @@ pub fn process_sent(
 
         for (output_type, vec) in by_type.into_inner().into_iter() {
             let (type_received, type_seen) = addresses.sets_for(output_type);
+            let mut lookup = lookup.select(output_type);
+            let mut metrics = state.select(output_type);
 
             for (type_index, value) in vec {
-                let addr_data = lookup.get_for_send(output_type, type_index);
+                let addr_data = lookup.get_for_send(type_index);
                 let pre = AddrSendPreState::capture(addr_data, output_type);
 
                 let prev_balance = addr_data.balance();
@@ -43,8 +45,7 @@ pub fn process_sent(
                 cohort_state.send(addr_data, value, current_price, prev_price)?;
                 let new_bucket = AmountBucket::from(addr_data.balance());
                 let crossing_boundary = prev_bucket != new_bucket;
-                state.on_send_applied(
-                    output_type,
+                metrics.on_send_applied(
                     addr_data,
                     &pre,
                     is_first_encounter,
@@ -56,7 +57,7 @@ pub fn process_sent(
                     cohort_state.subtract(addr_data);
                 }
                 if will_be_empty {
-                    lookup.move_to_empty(output_type, type_index);
+                    lookup.move_to_empty(type_index);
                 } else if crossing_boundary {
                     cohorts
                         .amount_range

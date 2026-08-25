@@ -10,8 +10,8 @@ use rawdb::{Database, Region};
 use crate::{
     AnyStoredVec, AnyVec, BytesVec, BytesVecReader, Error, Header, ImportOptions, ImportableVec,
     MutableVec, OverflowVecReader, OverflowVecValue, ReadOnlyOverflowVec, ReadableBoxedVec,
-    ReadableCloneableVec, ReadableVec, SharedLen, Stamp, StoredVec, TypedVec, VecIndex, Version,
-    WritableVec, short_type_name, unlikely,
+    ReadableCloneableVec, ReadableVec, Result, SharedLen, Stamp, StoredVec, TypedVec, VecIndex,
+    Version, WritableVec, short_type_name, unlikely,
 };
 
 use super::DECODE_CHUNK_SIZE;
@@ -43,7 +43,7 @@ where
         format!("{name}_overflow")
     }
 
-    fn import_inner(mut options: ImportOptions, forced: bool) -> crate::Result<Self> {
+    fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
         options.version = options.version.combine(VERSION).combine(T::VERSION);
         let overflow_name = Self::overflow_name(options.name);
         let overflow_options = ImportOptions {
@@ -126,51 +126,45 @@ where
         }
     }
 
-    fn store_overflow(&mut self, value: T) -> usize {
-        self.overflow
+    fn store_overflow(overflow: &mut MutableVec<BytesVec<usize, T>>, value: T) -> usize {
+        overflow
             .fill_first_hole_or_push(value)
             .expect("OverflowVec sidecar hole must remain writable")
     }
 
-    fn encode(&mut self, value: &T) -> T::Compact {
+    #[inline(always)]
+    fn encode_with_overflow(
+        overflow: &mut MutableVec<BytesVec<usize, T>>,
+        value: &T,
+    ) -> T::Compact {
         if let Some(compact) = value.to_compact() {
             debug_assert!(T::overflow_index(compact).is_none());
             return compact;
         }
 
-        let index = self.store_overflow(value.clone());
+        let index = Self::store_overflow(overflow, value.clone());
         let compact = T::from_overflow_index(index);
         debug_assert_eq!(T::overflow_index(compact), Some(index));
         compact
     }
 
-    fn update_at_with_reader(
-        &mut self,
-        index: usize,
-        value: T,
-        reader: &OverflowVecReader<I, T>,
-    ) -> crate::Result<()> {
-        if self.compact.holes().contains(&index) {
-            let compact = self.encode(&value);
-            self.compact.update_at(index, compact)?;
-            let stored_len = self.compact.stored_len();
-            if index >= stored_len {
-                self.pushed[index - stored_len] = value;
-            }
-            return Ok(());
+    fn encode(&mut self, value: &T) -> T::Compact {
+        Self::encode_with_overflow(&mut self.overflow, value)
+    }
+
+    fn fill_hole_at(&mut self, index: usize, value: T) -> Result<()> {
+        debug_assert!(self.compact.holes().contains(&index));
+        let compact = self.encode(&value);
+        self.compact.update_at(index, compact)?;
+        let stored_len = self.compact.stored_len();
+        if index >= stored_len {
+            self.pushed[index - stored_len] = value;
         }
+        Ok(())
+    }
 
-        let old = reader
-            .compact(&self.compact, I::from(index))
-            .ok_or_else(|| Error::IndexTooHigh {
-                index,
-                len: self.len(),
-                name: self.name().to_string(),
-            })?;
-        let old_overflow = T::overflow_index(old);
-        let new_compact = value.to_compact();
-
-        let compact = match (old_overflow, new_compact) {
+    fn replace_compact(&mut self, old: T::Compact, value: &T) -> Result<T::Compact> {
+        Ok(match (T::overflow_index(old), value.to_compact()) {
             (Some(overflow_index), None) => {
                 self.overflow.update_at(overflow_index, value.clone())?;
                 old
@@ -181,10 +175,30 @@ where
             }
             (None, Some(compact)) => compact,
             (None, None) => {
-                let overflow_index = self.store_overflow(value.clone());
+                let overflow_index = Self::store_overflow(&mut self.overflow, value.clone());
                 T::from_overflow_index(overflow_index)
             }
-        };
+        })
+    }
+
+    fn update_at_with_reader(
+        &mut self,
+        index: usize,
+        value: T,
+        reader: &OverflowVecReader<I, T>,
+    ) -> Result<()> {
+        if self.compact.holes().contains(&index) {
+            return self.fill_hole_at(index, value);
+        }
+
+        let old = reader
+            .compact(&self.compact, I::from(index))
+            .ok_or_else(|| Error::IndexTooHigh {
+                index,
+                len: self.len(),
+                name: self.name().to_string(),
+            })?;
+        let compact = self.replace_compact(old, &value)?;
 
         self.compact.update_at(index, compact)?;
         let stored_len = self.compact.stored_len();
@@ -194,9 +208,18 @@ where
         Ok(())
     }
 
-    fn update_at(&mut self, index: usize, value: T) -> crate::Result<()> {
+    fn update_at(&mut self, index: usize, value: T) -> Result<()> {
         let reader = self.reader();
         self.update_at_with_reader(index, value, &reader)
+    }
+
+    fn delete_with_reader(&mut self, index: I, reader: &OverflowVecReader<I, T>) {
+        if let Some(compact) = reader.compact(&self.compact, index) {
+            if let Some(overflow_index) = T::overflow_index(compact) {
+                self.overflow.delete_at(overflow_index);
+            }
+            self.compact.delete(index);
+        }
     }
 
     pub fn read_only_clone(&self) -> ReadOnlyOverflowVec<I, T> {
@@ -234,25 +257,59 @@ where
         self.pushed.push(value);
     }
 
-    pub fn update(&mut self, index: I, value: T) -> crate::Result<()> {
+    pub fn update(&mut self, index: I, value: T) -> Result<()> {
         self.update_at(index.to_usize(), value)
     }
 
-    pub fn update_many(&mut self, values: impl IntoIterator<Item = (I, T)>) -> crate::Result<()> {
-        let reader = self.reader();
-        for (index, value) in values {
-            self.update_at_with_reader(index.to_usize(), value, &reader)?;
+    /// Replaces one final value per index, sorting and applying the owned batch.
+    pub fn update_many(&mut self, mut values: Vec<(I, T)>) -> Result<()> {
+        values.sort_unstable_by_key(|(index, _)| index.to_usize());
+        debug_assert!(
+            values.windows(2).all(|pair| pair[0].0 != pair[1].0),
+            "OverflowVec update batch must contain one final value per index"
+        );
+        if let Some((index, _)) = values.last()
+            && index.to_usize() >= self.len()
+        {
+            let index = index.to_usize();
+            return Err(Error::IndexTooHigh {
+                index,
+                len: self.len(),
+                name: self.name().to_string(),
+            });
         }
-        Ok(())
+
+        let reader = self.reader();
+        let stored_len = self.compact.stored_len();
+        let mut compact_updates = Vec::with_capacity(values.len());
+        for (index, value) in values {
+            let index_at = index.to_usize();
+            let compact = if self.compact.holes().contains(&index_at) {
+                self.encode(&value)
+            } else {
+                let old = reader
+                    .compact(&self.compact, index)
+                    .expect("validated OverflowVec update index");
+                self.replace_compact(old, &value)?
+            };
+
+            compact_updates.push((index, compact));
+            if index_at >= stored_len {
+                self.pushed[index_at - stored_len] = value;
+            }
+        }
+        self.compact.update_many(compact_updates)
     }
 
     pub fn delete(&mut self, index: I) {
         let reader = self.reader();
-        if let Some(compact) = reader.compact(&self.compact, index) {
-            if let Some(overflow_index) = T::overflow_index(compact) {
-                self.overflow.delete_at(overflow_index);
-            }
-            self.compact.delete(index);
+        self.delete_with_reader(index, &reader);
+    }
+
+    pub fn delete_many(&mut self, indices: impl IntoIterator<Item = I>) {
+        let reader = self.reader();
+        for index in indices {
+            self.delete_with_reader(index, &reader);
         }
     }
 
@@ -260,9 +317,14 @@ where
         self.compact.get_first_empty_index()
     }
 
-    pub fn fill_first_hole_or_push(&mut self, value: T) -> crate::Result<I> {
-        if let Some(index) = self.compact.holes().first().copied() {
-            self.update_at(index, value)?;
+    pub fn fill_first_hole_or_push(&mut self, value: T) -> Result<I> {
+        if !self.compact.holes().is_empty() {
+            let compact = self.encode(&value);
+            let stored_len = self.compact.stored_len();
+            let index = self.compact.fill_first_hole_or_push(compact)?.to_usize();
+            if index >= stored_len {
+                self.pushed[index - stored_len] = value;
+            }
             return Ok(I::from(index));
         }
         let index = I::from(self.len());
@@ -270,7 +332,34 @@ where
         Ok(index)
     }
 
-    fn write_inner(&mut self) -> crate::Result<bool> {
+    /// Fills the lowest available indexes, then appends, preserving input order.
+    pub fn fill_holes_or_push_many(&mut self, values: Vec<T>) -> Vec<I> {
+        let compacts = values
+            .iter()
+            .map(|value| Self::encode_with_overflow(&mut self.overflow, value));
+        let indices = self.compact.fill_holes_or_push_many(compacts);
+        let stored_len = self.compact.stored_len();
+        self.pushed.reserve(
+            self.compact
+                .len()
+                .saturating_sub(stored_len + self.pushed.len()),
+        );
+        for (&index, value) in indices.iter().zip(values) {
+            let index = index.to_usize();
+            if index >= stored_len {
+                let offset = index - stored_len;
+                if offset < self.pushed.len() {
+                    self.pushed[offset] = value;
+                } else {
+                    debug_assert_eq!(offset, self.pushed.len());
+                    self.pushed.push(value);
+                }
+            }
+        }
+        indices
+    }
+
+    fn write_inner(&mut self) -> Result<bool> {
         let overflow = self.overflow.write()?;
         let compact = self.compact.write()?;
         self.pushed.clear();
@@ -284,19 +373,19 @@ where
     I: VecIndex,
     T: OverflowVecValue,
 {
-    fn import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
+    fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::import_with((db, name, version).into())
     }
 
-    fn import_with(options: ImportOptions) -> crate::Result<Self> {
+    fn import_with(options: ImportOptions) -> Result<Self> {
         Self::import_inner(options, false)
     }
 
-    fn forced_import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
+    fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::forced_import_with((db, name, version).into())
     }
 
-    fn forced_import_with(options: ImportOptions) -> crate::Result<Self> {
+    fn forced_import_with(options: ImportOptions) -> Result<Self> {
         Self::import_inner(options, true)
     }
 }
@@ -375,13 +464,13 @@ where
         self.compact.saved_stamped_changes()
     }
 
-    fn write(&mut self) -> crate::Result<bool> {
+    fn write(&mut self) -> Result<bool> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.write_inner()
     }
 
-    fn flush(&mut self) -> crate::Result<()> {
+    fn flush(&mut self) -> Result<()> {
         if self.write()? {
             self.overflow.region().flush()?;
             self.compact.region().flush()?;
@@ -406,7 +495,7 @@ where
         self.compact.update_stamp(stamp);
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
         self.stamped_write_with_changes(stamp)
     }
 
@@ -414,7 +503,7 @@ where
         self.save_rollback_state();
     }
 
-    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
+    fn serialize_changes(&self) -> Result<Vec<u8>> {
         let compact = self.compact.serialize_changes()?;
         let overflow = self.overflow.serialize_changes()?;
         let mut changes = Vec::with_capacity(8 + compact.len() + overflow.len());
@@ -424,16 +513,16 @@ where
         Ok(changes)
     }
 
-    fn remove(self) -> crate::Result<()> {
+    fn remove(self) -> Result<()> {
         self.overflow.remove()?;
         self.compact.remove()
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
         self.truncate_if_needed_at(index)
     }
 
-    fn any_reset(&mut self) -> crate::Result<()> {
+    fn any_reset(&mut self) -> Result<()> {
         self.reset()
     }
 }
@@ -451,7 +540,7 @@ where
         &self.pushed
     }
 
-    fn truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
+    fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
         let len = self.len();
         if index >= len {
             return Ok(());
@@ -471,7 +560,7 @@ where
         Ok(())
     }
 
-    fn reset(&mut self) -> crate::Result<()> {
+    fn reset(&mut self) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.reset()?;
@@ -494,7 +583,7 @@ where
         self.compact.is_dirty() || self.overflow.is_dirty()
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.stamped_write_with_changes(stamp)?;
@@ -504,7 +593,7 @@ where
         Ok(())
     }
 
-    fn rollback(&mut self) -> crate::Result<()> {
+    fn rollback(&mut self) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.rollback()?;
@@ -514,7 +603,7 @@ where
         Ok(())
     }
 
-    fn find_rollback_files(&self) -> crate::Result<BTreeMap<Stamp, PathBuf>> {
+    fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
         let compact = self.compact.find_rollback_files()?;
         let overflow = self.overflow.find_rollback_files()?;
         debug_assert!(compact.keys().eq(overflow.keys()));

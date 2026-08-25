@@ -331,6 +331,15 @@ impl<T> ByAddrType<T> {
     }
 
     #[inline]
+    pub fn output_type_refs(&self) -> [Option<&T>; OutputType::COUNT] {
+        let mut refs = [None; OutputType::COUNT];
+        for (output_type, value) in self.iter() {
+            refs[output_type as usize] = Some(value);
+        }
+        refs
+    }
+
+    #[inline]
     #[allow(clippy::should_implement_trait)]
     pub fn into_iter(self) -> impl Iterator<Item = (OutputType, T)> {
         [

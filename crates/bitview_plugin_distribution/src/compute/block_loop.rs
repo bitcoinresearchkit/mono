@@ -210,7 +210,7 @@ pub fn process_blocks(
     debug!("addr metrics state recovered");
 
     debug!("creating AddrCache");
-    let mut cache = AddrCache::new();
+    let mut cache = AddrCache::default();
     debug!("AddrCache created, entering main loop");
 
     // Initialize Fenwick tree from imported BTreeMap state (one-time)
@@ -347,11 +347,8 @@ pub fn process_blocks(
             },
         );
 
-        // Combine tx_index_vecs from outputs and inputs, then update tx_count
-        let combined_tx_index_vecs = outputs_result
-            .tx_index_vecs
-            .merge_vec(inputs_result.tx_index_vecs);
-        cache.update_tx_counts(combined_tx_index_vecs);
+        // Update tx_count from the transaction-ordered output and input maps.
+        cache.update_tx_counts(outputs_result.tx_index_vecs, inputs_result.tx_index_vecs);
 
         let mut transacted = outputs_result.transacted;
         let mut height_to_sent = inputs_result.height_to_sent;
@@ -477,10 +474,7 @@ pub fn process_blocks(
             // Drop readers to release mmap handles
             drop(vr);
 
-            let (empty_updates, funded_updates) = cache.take();
-
-            vecs.addr_state
-                .apply_updates(empty_updates, funded_updates)?;
+            cache.flush_into(&mut vecs.addr_state)?;
 
             let _lock = exit.lock();
 
@@ -508,10 +502,7 @@ pub fn process_blocks(
     let _lock = exit.lock();
     drop(vr);
 
-    let (empty_updates, funded_updates) = cache.take();
-
-    vecs.addr_state
-        .apply_updates(empty_updates, funded_updates)?;
+    cache.flush_into(&mut vecs.addr_state)?;
 
     // Write to disk (pure I/O) - save changes for rollback
     write(

@@ -1,9 +1,11 @@
+use std::collections::hash_map::Entry;
+
 use brk_types::{Height, OutputType, Sats, TxIndex, TypeIndex};
 use rustc_hash::FxHashMap;
-use smallvec::SmallVec;
 
 use crate::{
     addr::{AddrTypeToTypeIndexMap, HeightToAddrTypeToVec},
+    block::TxIndexes,
     state::Transacted,
 };
 
@@ -14,7 +16,7 @@ pub struct InputsResult {
     /// Per-height, per-address-type sent data: (type_index, value) for each address.
     pub sent_data: HeightToAddrTypeToVec<(TypeIndex, Sats)>,
     /// Transaction indexes per address for tx_count tracking.
-    pub tx_index_vecs: AddrTypeToTypeIndexMap<SmallVec<[TxIndex; 4]>>,
+    pub tx_index_vecs: AddrTypeToTypeIndexMap<TxIndexes>,
 }
 
 /// Process inputs (spent UTXOs) for a block.
@@ -39,6 +41,11 @@ pub fn process_inputs(
     debug_assert_eq!(txin_index_to_type_index.len(), input_count);
     debug_assert_eq!(txin_index_to_prev_height.len(), input_count);
 
+    let txin_index_to_tx_index = &txin_index_to_tx_index[..input_count];
+    let txin_index_to_output_type = &txin_index_to_output_type[..input_count];
+    let txin_index_to_type_index = &txin_index_to_type_index[..input_count];
+    let txin_index_to_prev_height = &txin_index_to_prev_height[..input_count];
+
     // Estimate: unique heights bounded by block depth, addresses spread across ~8 types
     let estimated_unique_heights = (input_count / 4).max(16);
     let estimated_per_type = (input_count / 8).max(8);
@@ -47,8 +54,7 @@ pub fn process_inputs(
         Default::default(),
     );
     let mut sent_data = HeightToAddrTypeToVec::with_capacity(estimated_unique_heights);
-    let mut tx_index_vecs =
-        AddrTypeToTypeIndexMap::<SmallVec<[TxIndex; 4]>>::with_capacity(estimated_per_type);
+    let mut tx_index_vecs = AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated_per_type);
 
     for local_idx in 0..input_count {
         let prev_height = txin_index_to_prev_height[local_idx];
@@ -71,12 +77,18 @@ pub fn process_inputs(
             .get_mut(output_type)
             .unwrap()
             .push((type_index, value));
-        tx_index_vecs
+        match tx_index_vecs
             .get_mut(output_type)
             .unwrap()
             .entry(type_index)
-            .or_default()
-            .push(txin_index_to_tx_index[local_idx]);
+        {
+            Entry::Occupied(mut entry) => {
+                entry.get_mut().push(txin_index_to_tx_index[local_idx]);
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(TxIndexes::new(txin_index_to_tx_index[local_idx]));
+            }
+        }
     }
 
     InputsResult {

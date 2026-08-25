@@ -68,46 +68,49 @@ impl<S: Accumulate> CostBasisData<S> {
             return;
         }
         let map = &mut self.map.as_mut().unwrap().map;
-        for (cents, PendingDelta { inc, dec }) in self.pending.drain() {
+        for (cents, pending) in self.pending.drain() {
+            let delta = pending.inner();
+            if delta == 0 {
+                continue;
+            }
             match map.entry(cents) {
                 Entry::Occupied(mut e) => {
-                    *e.get_mut() += inc;
-                    if unlikely(*e.get() < dec) {
+                    if delta > 0 {
+                        *e.get_mut() += Sats::new(delta as u64);
+                        continue;
+                    }
+                    let decrement = Sats::new(delta.unsigned_abs());
+                    if unlikely(*e.get() < decrement) {
                         panic!(
                             "CostBasisData::apply_pending underflow!\n\
                             Path: {:?}\n\
                             Price: {}\n\
-                            Current + increments: {}\n\
+                            Current: {}\n\
                             Trying to decrement by: {}",
                             self.raw.path(),
                             cents.to_dollars(),
                             e.get(),
-                            dec
+                            decrement
                         );
                     }
-                    *e.get_mut() -= dec;
+                    *e.get_mut() -= decrement;
                     if *e.get() == Sats::ZERO {
                         e.remove();
                     }
                 }
                 Entry::Vacant(e) => {
-                    if unlikely(inc < dec) {
+                    if unlikely(delta < 0) {
                         panic!(
                             "CostBasisData::apply_pending underflow (new entry)!\n\
                             Path: {:?}\n\
                             Price: {}\n\
-                            Increment: {}\n\
                             Trying to decrement by: {}",
                             self.raw.path(),
                             cents.to_dollars(),
-                            inc,
-                            dec
+                            delta.unsigned_abs()
                         );
                     }
-                    let val = inc - dec;
-                    if val != Sats::ZERO {
-                        e.insert(val);
-                    }
+                    e.insert(Sats::new(delta as u64));
                 }
             }
         }
@@ -167,7 +170,10 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
         price_sats: CentsSats,
         capitalized_cap: CentsSquaredSats,
     ) {
-        self.pending.entry(price.into()).or_default().inc += sats;
+        self.pending
+            .entry(price.into())
+            .or_default()
+            .increment(sats);
         self.raw.increment_cap(price_sats);
         if S::TRACK_CAPITAL && capitalized_cap != CentsSquaredSats::ZERO {
             self.pending_capitalized_cap.inc += capitalized_cap;
@@ -185,7 +191,10 @@ impl<S: Accumulate> CostBasisOps for CostBasisData<S> {
         price_sats: CentsSats,
         capitalized_cap: CentsSquaredSats,
     ) {
-        self.pending.entry(price.into()).or_default().dec += sats;
+        self.pending
+            .entry(price.into())
+            .or_default()
+            .decrement(sats);
         self.raw.decrement_cap(price_sats);
         if S::TRACK_CAPITAL && capitalized_cap != CentsSquaredSats::ZERO {
             self.pending_capitalized_cap.dec += capitalized_cap;

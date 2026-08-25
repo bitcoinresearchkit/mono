@@ -44,7 +44,7 @@ impl<N: FenwickNode> FenwickTree<N> {
         let mut i = bucket + 1;
         while i < self.tree.len() {
             self.tree[i].add_assign(delta);
-            i += i & i.wrapping_neg();
+            i += i.isolate_lowest_one();
         }
     }
 
@@ -55,7 +55,7 @@ impl<N: FenwickNode> FenwickTree<N> {
         assert!(i < self.tree.len(), "Fenwick bucket out of bounds");
         while i > 0 {
             result.add_assign(&self.tree[i]);
-            i -= i & i.wrapping_neg();
+            i -= i.isolate_lowest_one();
         }
         result
     }
@@ -63,23 +63,25 @@ impl<N: FenwickNode> FenwickTree<N> {
     /// Find the 0-indexed bucket containing the k-th element for each target.
     ///
     /// `field_fn` extracts the relevant count field from a node.
-    /// `sorted_targets` must be sorted ascending. `out` receives the 0-indexed
-    /// bucket for each target. Both slices must have the same length.
+    /// `sorted_targets` must be sorted ascending. Returns the 0-indexed bucket
+    /// for each target.
     ///
     /// Processes all targets at each tree level for better cache locality.
     #[inline]
-    pub fn kth<V, F>(&self, sorted_targets: &[V], field_fn: &F, out: &mut [usize])
+    pub fn kth<V, F, const LEN: usize>(
+        &self,
+        sorted_targets: [V; LEN],
+        field_fn: &F,
+    ) -> [usize; LEN]
     where
         V: Copy + PartialOrd + std::ops::SubAssign,
         F: Fn(&N) -> V,
     {
-        assert_eq!(out.len(), sorted_targets.len());
         let len = self.tree.len();
         assert!(len > 1, "cannot search an empty Fenwick tree");
         let size = len - 1;
-        out.fill(0);
-        // Copy targets so we can subtract in-place
-        let mut remaining: smallvec::SmallVec<[V; 24]> = sorted_targets.into();
+        let mut remaining = sorted_targets;
+        let mut out = [0; LEN];
         let mut bit = 1usize << (usize::BITS - 1 - size.leading_zeros());
         while bit > 0 {
             for (remaining, out) in remaining.iter_mut().zip(out.iter_mut()) {
@@ -94,6 +96,7 @@ impl<N: FenwickNode> FenwickTree<N> {
             }
             bit >>= 1;
         }
+        out
     }
 
     /// Write a raw frequency delta at a bucket. Does NOT maintain the Fenwick invariant.
@@ -109,7 +112,7 @@ impl<N: FenwickNode> FenwickTree<N> {
     pub fn build_in_place(&mut self) {
         let len = self.tree.len();
         for i in 1..len {
-            let parent = i + (i & i.wrapping_neg());
+            let parent = i + i.isolate_lowest_one();
             if parent < len {
                 let child = self.tree[i];
                 self.tree[parent].add_assign(&child);
@@ -145,8 +148,7 @@ mod tests {
         tree.add(3, &5);
         tree.add(4, &1);
 
-        let mut out = [0usize; 6];
-        tree.kth(&[0u32, 2, 3, 4, 5, 10], &|n: &u32| *n, &mut out);
+        let out = tree.kth([0u32, 2, 3, 4, 5, 10], &|n: &u32| *n);
         assert_eq!(out[0], 0); // kth(0) → bucket 0
         assert_eq!(out[1], 0); // kth(2) → bucket 0 (last of bucket 0)
         assert_eq!(out[2], 1); // kth(3) → bucket 1

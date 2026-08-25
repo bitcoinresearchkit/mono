@@ -48,8 +48,10 @@ use super::{
 };
 
 mod state;
+mod type_state;
 
 pub use state::ExposedAddrState;
+pub use type_state::ExposedAddrTypeState;
 
 /// Top-level container for all exposed address tracking: counts (funded +
 /// total), the funded supply, and share of supply.

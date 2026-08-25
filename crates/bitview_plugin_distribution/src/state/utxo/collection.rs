@@ -187,21 +187,31 @@ impl UTXOStates {
     }
 
     pub fn apply_pending(&mut self) {
-        self.age_range
-            .iter_mut()
-            .for_each(|state| state.apply_pending());
-        self.epoch
-            .iter_mut()
-            .for_each(|state| state.apply_pending());
-        self.class
-            .iter_mut()
-            .for_each(|state| state.apply_pending());
-        self.entry
-            .iter_mut()
-            .for_each(|state| state.apply_pending());
-        self.type_
-            .iter_mut()
-            .for_each(|state| state.apply_pending());
+        let Self {
+            age_range,
+            epoch,
+            class,
+            entry,
+            type_,
+            ..
+        } = self;
+        rayon::scope(|scope| {
+            for state in age_range.iter_mut() {
+                scope.spawn(move |_| state.apply_pending());
+            }
+            for state in epoch.iter_mut() {
+                scope.spawn(move |_| state.apply_pending());
+            }
+            for state in class.iter_mut() {
+                scope.spawn(move |_| state.apply_pending());
+            }
+            for state in entry.iter_mut() {
+                scope.spawn(move |_| state.apply_pending());
+            }
+            for state in type_.iter_mut() {
+                scope.spawn(move |_| state.apply_pending());
+            }
+        });
     }
 
     pub fn reset_block(&mut self) {

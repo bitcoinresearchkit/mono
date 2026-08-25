@@ -137,7 +137,7 @@ impl CostBasisFenwick {
 
     /// Apply a net delta from a pending map entry.
     pub fn apply_delta(&mut self, price: CentsCompact, pending: &PendingDelta, is_sth: bool) {
-        let net_sats = u64::from(pending.inc) as i64 - u64::from(pending.dec) as i64;
+        let net_sats = pending.inner();
         if net_sats == 0 {
             return;
         }
@@ -226,8 +226,7 @@ impl CostBasisFenwick {
         }
         sat_targets[PERCENTILES_LEN + 1] = total_sats - 1; // max
 
-        let mut sat_buckets = [0usize; PERCENTILES_LEN + 2];
-        self.tree.kth(&sat_targets, &sat_field, &mut sat_buckets);
+        let sat_buckets = self.tree.kth(sat_targets, &sat_field);
 
         result.min_price = bucket_to_cents(sat_buckets[0]);
         (0..PERCENTILES_LEN).for_each(|i| {
@@ -242,8 +241,7 @@ impl CostBasisFenwick {
                 usd_targets[i] = (total_usd * i128::from(p) / 100 - 1).max(0);
             }
 
-            let mut usd_buckets = [0usize; PERCENTILES_LEN];
-            self.tree.kth(&usd_targets, &usd_field, &mut usd_buckets);
+            let usd_buckets = self.tree.kth(usd_targets, &usd_field);
 
             (0..PERCENTILES_LEN).for_each(|i| {
                 result.usd_prices[i] = bucket_to_cents(usd_buckets[i]);

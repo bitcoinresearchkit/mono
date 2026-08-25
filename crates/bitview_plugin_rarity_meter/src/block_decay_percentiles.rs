@@ -84,9 +84,7 @@ impl BlockDecayPercentiles {
             targets[index] = (quantile * self.mass).next_down().max(0.0);
         }
 
-        let mut buckets = [0; N];
-        self.tree
-            .kth(&targets, &|weight: &f64| *weight, &mut buckets);
+        let buckets = self.tree.kth(targets, &|weight: &f64| *weight);
         for (index, bucket) in buckets.iter().enumerate() {
             out[index] = *bucket as f64 * BUCKET_WIDTH;
         }
