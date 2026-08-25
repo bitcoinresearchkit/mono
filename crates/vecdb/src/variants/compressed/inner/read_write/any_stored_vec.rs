@@ -1,6 +1,7 @@
 use std::{mem, path::PathBuf};
 
 use rawdb::{Database, Region};
+use rayon::prelude::*;
 
 use crate::{AnyStoredVec, AnyVec, Error, Header, Stamp, VecIndex, VecValue, WritableVec};
 
@@ -146,21 +147,27 @@ where
         }
 
         let num_pages = values.len().div_ceil(Self::PER_PAGE);
-        let mut buf = Vec::new();
-        let mut page_sizes: Vec<(usize, usize, bool)> = Vec::with_capacity(num_pages);
-        for chunk in values.chunks(Self::PER_PAGE) {
+        let encode_page = |chunk: &[T]| {
             let (encoded, is_raw) = if chunk.len() == Self::PER_PAGE {
                 (Self::compress_page(chunk)?, false)
             } else {
                 (S::values_to_bytes(chunk), true)
             };
-
-            if page_sizes.is_empty() {
-                // Size the aggregate from the first page's observed ratio
-                // instead of duplicating the entire uncompressed batch.
-                buf.reserve(encoded.len().saturating_mul(num_pages));
-            }
-            page_sizes.push((encoded.len(), chunk.len(), is_raw));
+            Ok::<_, Error>((encoded, chunk.len(), is_raw))
+        };
+        let encoded_pages = if num_pages == 1 {
+            vec![encode_page(&values)?]
+        } else {
+            values
+                .par_chunks(Self::PER_PAGE)
+                .map(encode_page)
+                .collect::<crate::Result<Vec<_>>>()?
+        };
+        let encoded_len = encoded_pages.iter().map(|(page, _, _)| page.len()).sum();
+        let mut buf = Vec::with_capacity(encoded_len);
+        let mut page_sizes = Vec::with_capacity(num_pages);
+        for (encoded, values_len, is_raw) in encoded_pages {
+            page_sizes.push((encoded.len(), values_len, is_raw));
             buf.extend_from_slice(&encoded);
         }
 

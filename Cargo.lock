@@ -4603,6 +4603,7 @@ dependencies = [
  "parking_lot",
  "pco",
  "rawdb",
+ "rayon",
  "ryu",
  "schemars",
  "serde",
