@@ -1,4 +1,5 @@
 use brk_error::Result;
+use rayon::join;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
@@ -6,6 +7,7 @@ use vecdb::Exit;
 
 use super::Vecs;
 use crate::Dependencies;
+
 impl Vecs {
     fn compute_inner(
         &mut self,
@@ -20,8 +22,12 @@ impl Vecs {
         let starting_lengths = indexer.safe_lengths();
 
         super::count::compute(&mut self.count, indexer, blocks, exit)?;
-        super::value::compute(&mut self.value, indexer, prices, exit)?;
-        super::by_type::compute(&mut self.by_type, indexer, exit)?;
+        let (value_result, by_type_result) = join(
+            || super::value::compute(&mut self.value, indexer, prices, exit),
+            || super::by_type::compute(&mut self.by_type, indexer, exit),
+        );
+        value_result?;
+        by_type_result?;
         super::unspent::compute(
             &mut self.unspent,
             &self.count,
