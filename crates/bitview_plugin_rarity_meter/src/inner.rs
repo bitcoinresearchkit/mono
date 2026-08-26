@@ -54,7 +54,7 @@ pub fn forced_import(
 pub fn compute(
     inner: &mut RarityMeterInner,
     components: &[&Component],
-    lower_components: &[[&dyn ReadableVec<Height, Option<Cents>>; 5]],
+    lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
     spot: &impl ReadableVec<Height, Cents>,
     indexer: &Indexer,
     exit: &Exit,
@@ -73,6 +73,30 @@ pub fn compute_combined(
 }
 
 impl RarityMeterInner {
+    pub fn needs_compute(
+        &self,
+        components: &[&Component],
+        lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
+        spot: &impl ReadableVec<Height, Cents>,
+        starting_height: Height,
+    ) -> bool {
+        let prices_end = components
+            .iter()
+            .map(|component| component::boundary_len(component))
+            .chain(lower_components.iter().flatten().map(|band| band.len()))
+            .min()
+            .unwrap_or_default();
+        let score_end = prices_end.min(spot.len());
+        let starting_height = usize::from(starting_height);
+
+        self.prices.height.len() != prices_end
+            || self.index.height.len() != score_end
+            || self.score.height.len() != score_end
+            || self.prices.height.len() > starting_height
+            || self.index.height.len() > starting_height
+            || self.score.height.len() > starting_height
+    }
+
     fn forced_import(
         db: &Database,
         prefix: &str,
@@ -107,7 +131,7 @@ impl RarityMeterInner {
     fn compute(
         &mut self,
         components: &[&Component],
-        lower_components: &[[&dyn ReadableVec<Height, Option<Cents>>; 5]],
+        lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         indexer: &Indexer,
         exit: &Exit,
@@ -146,7 +170,7 @@ impl RarityMeterInner {
                     .map(|bands| {
                         bands
                             .each_ref()
-                            .map(|band| band.collect_range_dyn(range.start, range.end))
+                            .map(|band| band.collect_range_at(range.start, range.end))
                     })
                     .collect();
 
@@ -253,7 +277,7 @@ impl RarityMeterInner {
     fn compute_score(
         &mut self,
         components: &[&Component],
-        lower_components: &[[&dyn ReadableVec<Height, Option<Cents>>; 5]],
+        lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         indexer: &Indexer,
         exit: &Exit,
@@ -295,7 +319,7 @@ impl RarityMeterInner {
                     .map(|bands| {
                         bands
                             .each_ref()
-                            .map(|band| band.collect_range_dyn(range.start, range.end))
+                            .map(|band| band.collect_range_at(range.start, range.end))
                     })
                     .collect();
                 for (offset, price) in spot.into_iter().enumerate() {

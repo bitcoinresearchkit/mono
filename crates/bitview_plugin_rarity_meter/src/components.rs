@@ -1,4 +1,5 @@
 use brk_error::Result;
+use rayon::prelude::*;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
@@ -146,33 +147,69 @@ impl Components {
         let realized_price = &utxos.realized.price.cohorts;
         let capitalized_price = &utxos.realized.capitalized_price.series;
 
-        macro_rules! compute {
-            ($component:ident, $source:expr) => {
-                component::compute(
-                    &mut self.$component,
-                    &starting_lengths,
-                    &$source.ratio.height,
-                    exit,
-                )?;
-            };
+        let jobs = [
+            (&mut self.realized_price, &realized_price.all.ratio.height),
+            (
+                &mut self.capitalized_price,
+                &capitalized_price.all.ratio.height,
+            ),
+            (
+                &mut self.sth_realized_price,
+                &realized_price.term.short.ratio.height,
+            ),
+            (
+                &mut self.sth_capitalized_price,
+                &capitalized_price.sth.ratio.height,
+            ),
+            (
+                &mut self.lth_realized_price,
+                &realized_price.term.long.ratio.height,
+            ),
+            (
+                &mut self.lth_capitalized_price,
+                &capitalized_price.lth.ratio.height,
+            ),
+            (
+                &mut self.over_6m_realized_price,
+                &realized_price.age.over._6m.ratio.height,
+            ),
+            (
+                &mut self.over_4m_realized_price,
+                &realized_price.age.over._4m.ratio.height,
+            ),
+            (
+                &mut self.under_4m_realized_price,
+                &realized_price.age.under._4m.ratio.height,
+            ),
+            (
+                &mut self.under_6m_realized_price,
+                &realized_price.age.under._6m.ratio.height,
+            ),
+            (
+                &mut self.vaulted_price,
+                &cointime.prices.vaulted.ratio.height,
+            ),
+            (&mut self.active_price, &cointime.prices.active.ratio.height),
+            (
+                &mut self.true_market_mean_price,
+                &cointime.prices.true_market_mean.ratio.height,
+            ),
+            (
+                &mut self.cointime_price,
+                &cointime.prices.cointime.ratio.height,
+            ),
+            (&mut self.coinflow_price, &coinflow.all.price.ratio.height),
+        ];
+        let has_work = jobs
+            .iter()
+            .any(|(component, source)| component.needs_compute(starting_lengths.height, *source));
+        let compute =
+            |(component, source)| component::compute(component, &starting_lengths, source, exit);
+
+        if has_work {
+            jobs.into_par_iter().try_for_each(compute)
+        } else {
+            jobs.into_iter().try_for_each(compute)
         }
-
-        compute!(realized_price, &realized_price.all);
-        compute!(capitalized_price, &capitalized_price.all);
-        compute!(sth_realized_price, &realized_price.term.short);
-        compute!(sth_capitalized_price, &capitalized_price.sth);
-        compute!(lth_realized_price, &realized_price.term.long);
-        compute!(lth_capitalized_price, &capitalized_price.lth);
-        compute!(over_6m_realized_price, &realized_price.age.over._6m);
-        compute!(over_4m_realized_price, &realized_price.age.over._4m);
-        compute!(under_4m_realized_price, &realized_price.age.under._4m);
-        compute!(under_6m_realized_price, &realized_price.age.under._6m);
-        compute!(vaulted_price, &cointime.prices.vaulted);
-        compute!(active_price, &cointime.prices.active);
-        compute!(true_market_mean_price, &cointime.prices.true_market_mean);
-        compute!(cointime_price, &cointime.prices.cointime);
-        compute!(coinflow_price, &coinflow.all.price);
-
-        Ok(())
     }
 }

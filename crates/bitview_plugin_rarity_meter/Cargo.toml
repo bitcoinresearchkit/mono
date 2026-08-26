@@ -21,5 +21,6 @@ bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true }
 derive_more = { workspace = true }
+rayon = { workspace = true }
 schemars = { workspace = true }
 vecdb = { workspace = true }

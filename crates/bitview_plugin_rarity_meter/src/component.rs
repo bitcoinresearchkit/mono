@@ -7,8 +7,8 @@ use brk_types::{
     RarityPercentileId, StoredF32, Version,
 };
 use vecdb::{
-    AnyVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec, PcoVec, ReadOnlyClone,
-    ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
+    AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec, PcoVec,
+    ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
 };
 
 use super::{
@@ -86,6 +86,16 @@ pub fn collect_boundary_prices(
 }
 
 impl Component {
+    pub fn needs_compute(
+        &self,
+        starting_height: Height,
+        ratio_source: &impl ReadableVec<Height, StoredF32>,
+    ) -> bool {
+        self.ratios.len() != ratio_source.len()
+            || self.ratios.version() != self.ratios.header().vec_version() + ratio_source.version()
+            || self.ratios.len() > usize::from(starting_height)
+    }
+
     fn forced_import(
         db: &Database,
         name: &str,

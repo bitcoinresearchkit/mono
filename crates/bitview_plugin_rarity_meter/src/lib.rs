@@ -14,14 +14,15 @@ mod percentiles;
 mod threshold_vecs;
 
 use brk_error::Result;
+use rayon::{join, prelude::*};
 
+use bitview_compute::{DailyView, RepeatDay};
 use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginGate, PluginId, PluginStorage, UpdateContext,
 };
-use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, Exit, Rw, StorageMode};
 
 use band::Band;
 use component::Component;
@@ -96,59 +97,58 @@ impl Vecs {
         Ok(this)
     }
 
-    fn compute_inner(
-        &mut self,
-        indexer: &Indexer,
-        bedrock: &bitview_plugin_bedrock::Vecs,
-        distribution: &bitview_plugin_distribution::Vecs,
-        cointime: &bitview_plugin_cointime::Vecs,
-        coinflow: &bitview_plugin_coinflow::Vecs,
-        prices: &bitview_plugin_price::Vecs,
-        exit: &Exit,
-    ) -> Result<()> {
+    fn compute_inner(&mut self, dependencies: Dependencies<'_>, exit: &Exit) -> Result<()> {
+        let Dependencies {
+            indexer,
+            bedrock,
+            distribution,
+            cointime,
+            coinflow,
+            price: prices,
+        } = dependencies;
         self.db.sync_bg_tasks()?;
 
         let spot = &prices.spot.cents.height;
         let metrics = &distribution.cohorts;
         let realized = &metrics.realized;
 
-        components::compute(
-            &mut self.components,
-            indexer,
-            distribution,
-            cointime,
-            coinflow,
-            exit,
-        )?;
-        extremes::compute(
-            &mut self.extremes,
-            indexer,
-            &metrics.supply.in_loss.cohorts.all.btc.height,
-            &realized.profit.cohorts.all.sum._24h.usd.height,
-            &realized.loss.cohorts.all.sum._24h.usd.height,
-            &realized.peak_regret.series.all.sum._24h.usd.height,
-            &realized.sell_side_risk_ratio.all._24h.percent.height,
-            exit,
-        )?;
+        let (components_result, extremes_result) = join(
+            || {
+                components::compute(
+                    &mut self.components,
+                    indexer,
+                    distribution,
+                    cointime,
+                    coinflow,
+                    exit,
+                )
+            },
+            || {
+                extremes::compute(
+                    &mut self.extremes,
+                    indexer,
+                    &metrics.supply.in_loss.cohorts.all.btc.height,
+                    &realized.profit.cohorts.all.sum._24h.usd.height,
+                    &realized.loss.cohorts.all.sum._24h.usd.height,
+                    &realized.peak_regret.series.all.sum._24h.usd.height,
+                    &realized.sell_side_risk_ratio.all._24h.percent.height,
+                    exit,
+                )
+            },
+        );
+        components_result?;
+        extremes_result?;
 
-        // Local: young-coin and STH components, 4 models
-        inner::compute(
-            &mut self.local,
-            &[
-                &self.components.under_4m_realized_price,
-                &self.components.under_6m_realized_price,
-                &self.components.sth_realized_price,
-                &self.components.sth_capitalized_price,
-            ],
-            &[],
-            spot,
-            indexer,
-            exit,
-        )?;
+        let local_components = [
+            &self.components.under_4m_realized_price,
+            &self.components.under_6m_realized_price,
+            &self.components.sth_realized_price,
+            &self.components.sth_capitalized_price,
+        ];
 
         // Bedrock floors run from the rarest low boundary to the broadest one,
         // matching the rarity meter's P0.1, P0.5, P1, P2, and P5 order.
-        let bedrock_floors: [[&dyn ReadableVec<Height, Option<Cents>>; 5]; 3] = [
+        let bedrock_floors = [
             [
                 &bedrock.raw.floor.pct99_9.cents.views.height,
                 &bedrock.raw.floor.pct99_5.cents.views.height,
@@ -172,22 +172,35 @@ impl Vecs {
             ],
         ];
 
-        // Cycle: old-coin, all-chain, and LTH components plus 3 Bedrock models.
-        inner::compute(
-            &mut self.cycle,
-            &[
-                &self.components.over_4m_realized_price,
-                &self.components.over_6m_realized_price,
-                &self.components.realized_price,
-                &self.components.capitalized_price,
-                &self.components.lth_realized_price,
-                &self.components.lth_capitalized_price,
-            ],
-            &bedrock_floors,
-            spot,
-            indexer,
-            exit,
-        )?;
+        let cycle_components = [
+            &self.components.over_4m_realized_price,
+            &self.components.over_6m_realized_price,
+            &self.components.realized_price,
+            &self.components.capitalized_price,
+            &self.components.lth_realized_price,
+            &self.components.lth_capitalized_price,
+        ];
+        let jobs: [(
+            &mut RarityMeterInner,
+            &[&Component],
+            &[[&DailyView<Height, Cents, RepeatDay>; 5]],
+        ); 2] = [
+            (&mut self.local, &local_components, &[]),
+            (&mut self.cycle, &cycle_components, &bedrock_floors),
+        ];
+        let starting_height = indexer.safe_lengths().height;
+        let has_work = jobs.iter().any(|(inner, components, lower_components)| {
+            inner.needs_compute(components, lower_components, spot, starting_height)
+        });
+        let compute = |(inner, components, lower_components)| {
+            inner::compute(inner, components, lower_components, spot, indexer, exit)
+        };
+
+        if has_work {
+            jobs.into_par_iter().try_for_each(compute)?;
+        } else {
+            jobs.into_iter().try_for_each(compute)?;
+        }
 
         // Full inherits every boundary and score from Local and Cycle.
         inner::compute_combined(
@@ -230,14 +243,6 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
-        self.compute_inner(
-            dependencies.indexer,
-            dependencies.bedrock,
-            dependencies.distribution,
-            dependencies.cointime,
-            dependencies.coinflow,
-            dependencies.price,
-            context.exit(),
-        )
+        self.compute_inner(dependencies, context.exit())
     }
 }
