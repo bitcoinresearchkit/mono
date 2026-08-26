@@ -30,9 +30,10 @@ impl Builder {
     /// Sets the i-th bit
     pub fn enable_bit(&mut self, idx: usize) {
         let byte_idx = idx / 8;
+        debug_assert!(byte_idx < self.0.len());
 
-        #[expect(clippy::expect_used, reason = "we trust the caller")]
-        let byte = self.0.get_mut(byte_idx).expect("should be in bounds");
+        #[expect(unsafe_code, reason = "the caller guarantees that idx is in bounds")]
+        let byte = unsafe { self.0.get_unchecked_mut(byte_idx) };
 
         let bit_idx = idx % 8;
         *byte = enable_bit(*byte, bit_idx);
