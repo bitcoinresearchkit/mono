@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{convert::Infallible, sync::Arc};
 
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
@@ -46,21 +46,38 @@ where
         }
     }
 
-    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
+    fn try_fold_values<B, E>(
+        &self,
+        from: usize,
+        to: usize,
+        init: B,
+        mut fold: impl FnMut(B, T) -> Result<B, E>,
+    ) -> Result<B, E> {
         let metadata = self.metadata.snapshot();
-        let to = to.min(self.len()).min(metadata.len());
+        let to = to.min(self.source.len()).min(metadata.len());
         if from >= to {
-            return;
+            return Ok(init);
         }
 
         let source = self.source.collect_range_dyn(from, to);
-        for (offset, (source, metadata)) in source
+        source
             .into_iter()
             .zip(metadata[from..to].iter().cloned())
             .enumerate()
-        {
-            each((self.compute)(I::from(from + offset), source, metadata));
-        }
+            .try_fold(init, |accumulator, (offset, (source, metadata))| {
+                fold(
+                    accumulator,
+                    (self.compute)(I::from(from + offset), source, metadata),
+                )
+            })
+    }
+
+    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(T)) {
+        self.try_fold_values(from, to, (), |(), value| {
+            each(value);
+            Ok::<_, Infallible>(())
+        })
+        .unwrap();
     }
 }
 
@@ -145,10 +162,17 @@ where
         self.for_each_value(from, to, f);
     }
 
-    fn fold_range_at<B, F: FnMut(B, T) -> B>(&self, from: usize, to: usize, init: B, f: F) -> B {
-        let mut values = Vec::with_capacity(to.saturating_sub(from));
-        self.read_into_at(from, to, &mut values);
-        values.into_iter().fold(init, f)
+    fn fold_range_at<B, F: FnMut(B, T) -> B>(
+        &self,
+        from: usize,
+        to: usize,
+        init: B,
+        mut fold: F,
+    ) -> B {
+        self.try_fold_values(from, to, init, |accumulator, value| {
+            Ok::<_, Infallible>(fold(accumulator, value))
+        })
+        .unwrap()
     }
 
     fn try_fold_range_at<B, E, F: FnMut(B, T) -> Result<B, E>>(
@@ -156,11 +180,9 @@ where
         from: usize,
         to: usize,
         init: B,
-        f: F,
+        fold: F,
     ) -> Result<B, E> {
-        let mut values = Vec::with_capacity(to.saturating_sub(from));
-        self.read_into_at(from, to, &mut values);
-        values.into_iter().try_fold(init, f)
+        self.try_fold_values(from, to, init, fold)
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {
@@ -199,5 +221,78 @@ where
 
     fn to_tree_node(&self) -> TreeNode {
         make_leaf::<I, T, _>(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Height, StoredU64, Version};
+    use vecdb::{
+        AnyStoredVec, CachedVec, Database, EagerVec, ImportableVec, PcoVec, ReadableCloneableVec,
+        ReadableVec, VecIndex, WritableVec,
+    };
+
+    use super::LazyIndexedVec;
+
+    #[test]
+    fn folds_aligned_values_and_stops_on_error() {
+        let suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path =
+            std::env::temp_dir().join(format!("brk-lazy-indexed-{}-{suffix}", std::process::id()));
+        let db = Database::open(&path).unwrap();
+        let mut source: EagerVec<PcoVec<Height, StoredU64>> =
+            EagerVec::forced_import(&db, "source", Version::ONE).unwrap();
+        let mut metadata: EagerVec<PcoVec<Height, StoredU64>> =
+            EagerVec::forced_import(&db, "metadata", Version::ONE).unwrap();
+
+        for value in [10_u64, 20, 30, 40, 50] {
+            source.push(StoredU64::from(value));
+        }
+        for value in [1_u64, 2, 3, 4] {
+            metadata.push(StoredU64::from(value));
+        }
+        source.write().unwrap();
+        metadata.write().unwrap();
+
+        let metadata = CachedVec::wrap(metadata);
+        let indexed = LazyIndexedVec::new(
+            "indexed",
+            Version::ONE,
+            source.read_only_boxed_clone(),
+            metadata.read_only_cached_boxed_clone(),
+            |height, source, metadata| {
+                StoredU64::from(height.to_usize() as u64 + *source + *metadata)
+            },
+        );
+
+        assert_eq!(
+            indexed.collect_range_at(1, 10),
+            [23_u64, 35, 47].map(StoredU64::from)
+        );
+        assert_eq!(
+            indexed.fold_range_at(1, 10, 0_u64, |sum, value| sum + *value),
+            105
+        );
+
+        let mut visited = Vec::new();
+        let result = indexed.try_fold_range_at(0, 10, 0_u64, |sum, value| {
+            visited.push(*value);
+            if *value == 35 {
+                Err(35)
+            } else {
+                Ok(sum + *value)
+            }
+        });
+        assert_eq!(result, Err(35));
+        assert_eq!(visited, [11, 23, 35]);
+
+        drop(indexed);
+        drop(metadata);
+        drop(source);
+        drop(db);
+        std::fs::remove_dir_all(path).unwrap();
     }
 }
