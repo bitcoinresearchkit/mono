@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, mem};
 use log::debug;
 use smallvec::SmallVec;
 
-use crate::{Error, Region, Regions};
+use crate::{Error, Region, Regions, Result};
 
 /// Tracks regions, holes, and reservations in the database file.
 #[derive(Debug, Default)]
@@ -19,14 +19,21 @@ pub struct Layout {
     holes_need_punch: bool,
 }
 
-impl From<&Regions> for Layout {
-    fn from(regions: &Regions) -> Self {
+impl TryFrom<&Regions> for Layout {
+    type Error = Error;
+
+    fn try_from(regions: &Regions) -> Result<Self> {
         let start_to_region: BTreeMap<usize, Region> = regions
             .index_to_region()
             .iter()
             .flatten()
             .map(|region| (region.meta().start(), region.clone()))
             .collect();
+        if start_to_region.len() != regions.len() {
+            return Err(Error::CorruptedMetadata(
+                "multiple regions have the same start".to_string(),
+            ));
+        }
 
         let mut layout = Self {
             start_to_hole: BTreeMap::default(),
@@ -39,7 +46,12 @@ impl From<&Regions> for Layout {
 
         let mut prev_end = 0;
         for (&start, region) in &start_to_region {
-            if prev_end != start {
+            if start < prev_end {
+                return Err(Error::CorruptedMetadata(format!(
+                    "region at {start} overlaps previous end {prev_end}"
+                )));
+            }
+            if prev_end < start {
                 let size = start - prev_end;
                 layout.insert_hole(prev_end, size);
             }
@@ -48,7 +60,7 @@ impl From<&Regions> for Layout {
 
         layout.start_to_region = start_to_region;
         layout.holes_need_punch = !layout.start_to_hole.is_empty();
-        layout
+        Ok(layout)
     }
 }
 
@@ -146,13 +158,13 @@ impl Layout {
         assert!(self.start_to_region.insert(start, region.clone()).is_none())
     }
 
-    pub fn move_region(&mut self, new_start: usize, region: &Region) -> crate::Result<()> {
+    pub fn move_region(&mut self, new_start: usize, region: &Region) -> Result<()> {
         self.remove_region(region)?;
         self.insert_region(new_start, region);
         Ok(())
     }
 
-    pub fn remove_region(&mut self, region: &Region) -> crate::Result<()> {
+    pub fn remove_region(&mut self, region: &Region) -> Result<()> {
         let region_meta = region.meta();
         let start = region_meta.start();
         let reserved = region_meta.reserved();
@@ -182,11 +194,7 @@ impl Layout {
             .and_then(|(_, starts)| starts.first().copied())
     }
 
-    pub fn remove_or_compress_hole(
-        &mut self,
-        start: usize,
-        compress_by: usize,
-    ) -> crate::Result<()> {
+    pub fn remove_or_compress_hole(&mut self, start: usize, compress_by: usize) -> Result<()> {
         let Some(size) = self.remove_hole(start) else {
             return Ok(());
         };

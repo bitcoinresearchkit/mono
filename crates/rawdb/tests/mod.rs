@@ -1,6 +1,5 @@
 use rawdb::{Database, Error, PAGE_SIZE, Result};
-use std::sync::Arc;
-use std::thread;
+use std::{fs, sync::Arc, thread};
 use tempfile::TempDir;
 
 /// Helper to create a temporary test database
@@ -19,6 +18,117 @@ fn test_database_creation() -> rawdb::Result<()> {
     assert_eq!(db.layout().start_to_region().len(), 0);
     assert_eq!(db.layout().start_to_hole().len(), 0);
 
+    Ok(())
+}
+
+#[test]
+fn test_open_rejects_invalid_nonempty_metadata() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let region = db.create_region_if_needed("test")?;
+    db.flush()?;
+    drop(region);
+    drop(db);
+
+    let path = temp.path().join("regions");
+    let mut bytes = fs::read(&path)?;
+    bytes[16..24].copy_from_slice(&0u64.to_le_bytes());
+    fs::write(path, bytes)?;
+
+    assert!(matches!(
+        Database::open(temp.path()),
+        Err(Error::CorruptedMetadata(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn test_open_rejects_nonzero_vacant_metadata() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let first = db.create_region_if_needed("first")?;
+    let second = db.create_region_if_needed("second")?;
+    drop(first);
+    db.remove_region("first")?;
+    db.flush()?;
+    drop(second);
+    drop(db);
+
+    let path = temp.path().join("regions");
+    let mut bytes = fs::read(&path)?;
+    bytes[PAGE_SIZE - 1] = 1;
+    fs::write(path, bytes)?;
+
+    assert!(matches!(
+        Database::open(temp.path()),
+        Err(Error::CorruptedMetadata(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn test_open_rejects_overlapping_regions() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let first = db.create_region_if_needed("first")?;
+    let second = db.create_region_if_needed("second")?;
+    db.flush()?;
+    drop(first);
+    drop(second);
+    drop(db);
+
+    let path = temp.path().join("regions");
+    let mut bytes = fs::read(&path)?;
+    let second_start = PAGE_SIZE;
+    bytes[second_start..second_start + 8].copy_from_slice(&0u64.to_le_bytes());
+    fs::write(path, bytes)?;
+
+    assert!(matches!(
+        Database::open(temp.path()),
+        Err(Error::CorruptedMetadata(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn test_open_rejects_duplicate_region_ids() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let first = db.create_region_if_needed("first")?;
+    let second = db.create_region_if_needed("second")?;
+    db.flush()?;
+    drop(first);
+    drop(second);
+    drop(db);
+
+    let path = temp.path().join("regions");
+    let mut bytes = fs::read(&path)?;
+    let second_start = PAGE_SIZE;
+    bytes[second_start + 24..second_start + 32].copy_from_slice(&5u64.to_le_bytes());
+    bytes[second_start + 32..second_start + 37].copy_from_slice(b"first");
+    fs::write(path, bytes)?;
+
+    assert!(matches!(
+        Database::open(temp.path()),
+        Err(Error::CorruptedMetadata(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn test_open_rejects_region_beyond_data_file() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let region = db.create_region_if_needed("test")?;
+    db.flush()?;
+    drop(region);
+    drop(db);
+
+    let data_len = fs::metadata(temp.path().join("data"))?.len();
+    let path = temp.path().join("regions");
+    let mut bytes = fs::read(&path)?;
+    bytes[..8].copy_from_slice(&data_len.to_le_bytes());
+    fs::write(path, bytes)?;
+
+    assert!(matches!(
+        Database::open(temp.path()),
+        Err(Error::CorruptedMetadata(_))
+    ));
     Ok(())
 }
 
@@ -531,7 +641,7 @@ fn test_retain_accessed_regions() -> rawdb::Result<()> {
 #[test]
 fn test_retain_regions_shrinks_metadata_and_preserves_hole_reuse() -> rawdb::Result<()> {
     let temp = TempDir::new()?;
-    let regions = std::fs::File::create(temp.path().join("regions"))?;
+    let regions = fs::File::create(temp.path().join("regions"))?;
     regions.set_len(50_000 * PAGE_SIZE as u64)?;
     let db = Database::open(temp.path())?;
 
@@ -545,7 +655,7 @@ fn test_retain_regions_shrinks_metadata_and_preserves_hole_reuse() -> rawdb::Res
             .collect(),
     )?;
     assert_eq!(
-        std::fs::metadata(temp.path().join("regions"))?.len(),
+        fs::metadata(temp.path().join("regions"))?.len(),
         3 * PAGE_SIZE as u64
     );
 

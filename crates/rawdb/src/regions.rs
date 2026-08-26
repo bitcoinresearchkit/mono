@@ -10,9 +10,11 @@ use memmap2::MmapMut;
 use parking_lot::Mutex;
 
 use crate::{
-    Database, Error, PAGE_SIZE, RegionMetadata, SIZE_OF_REGION_METADATA, create_mmap,
+    Database, Error, PAGE_SIZE, RegionMetadata, Result, SIZE_OF_REGION_METADATA, create_mmap,
     region::Region, write_to_mmap,
 };
+
+static EMPTY_REGION_METADATA: [u8; SIZE_OF_REGION_METADATA] = [0; SIZE_OF_REGION_METADATA];
 
 #[derive(Debug)]
 pub struct Regions {
@@ -25,7 +27,7 @@ pub struct Regions {
 }
 
 impl Regions {
-    pub fn open(parent: &Path) -> crate::Result<Self> {
+    pub fn open(parent: &Path) -> Result<Self> {
         fs::create_dir_all(parent)?;
 
         let file = OpenOptions::new()
@@ -47,22 +49,24 @@ impl Regions {
         })
     }
 
-    fn file_len(&self) -> crate::Result<usize> {
+    fn file_len(&self) -> Result<usize> {
         Ok(self.file.metadata()?.len() as usize)
     }
 
-    pub(crate) fn fill(&mut self, db: &Database) -> crate::Result<()> {
-        let file_len = self.file_len()?;
+    pub(crate) fn fill(&mut self, db: &Database) -> Result<()> {
+        let metadata_len = self.file_len()?;
+        let data_len = db.file_len();
 
-        if file_len % SIZE_OF_REGION_METADATA != 0 {
+        if metadata_len % SIZE_OF_REGION_METADATA != 0 {
             return Err(Error::CorruptedMetadata(format!(
                 "regions file size {} is not a multiple of {}",
-                file_len, SIZE_OF_REGION_METADATA
+                metadata_len, SIZE_OF_REGION_METADATA
             )));
         }
 
-        let num_slots = file_len / SIZE_OF_REGION_METADATA;
+        let num_slots = metadata_len / SIZE_OF_REGION_METADATA;
 
+        self.id_to_index.reserve(num_slots);
         self.index_to_region
             .resize_with(num_slots, Default::default);
 
@@ -70,18 +74,42 @@ impl Regions {
             let start = index * SIZE_OF_REGION_METADATA;
             let bytes = &self.mmap[start..start + SIZE_OF_REGION_METADATA];
 
-            let Ok(meta) = RegionMetadata::from_bytes(bytes) else {
-                continue;
+            let meta = match RegionMetadata::from_bytes(bytes) {
+                Ok(meta) => meta,
+                Err(Error::EmptyMetadata) if bytes.iter().all(|&byte| byte == 0) => continue,
+                Err(error) => {
+                    return Err(Error::CorruptedMetadata(format!(
+                        "region slot {index}: {error}"
+                    )));
+                }
             };
 
-            self.id_to_index.insert(meta.id().to_string(), index);
+            let end = meta
+                .start()
+                .checked_add(meta.reserved())
+                .ok_or_else(|| Error::CorruptedMetadata("region end overflows".to_string()))?;
+            if end > data_len {
+                return Err(Error::CorruptedMetadata(format!(
+                    "region slot {index} ends at {end}, beyond data file length {data_len}"
+                )));
+            }
+            if self
+                .id_to_index
+                .insert(meta.id().to_string(), index)
+                .is_some()
+            {
+                return Err(Error::CorruptedMetadata(format!(
+                    "duplicate region id '{}'",
+                    meta.id()
+                )));
+            }
             self.index_to_region[index] = Some(Region::from(db, index, meta));
         }
 
         Ok(())
     }
 
-    pub(crate) fn set_min_len(&mut self, len: usize) -> crate::Result<()> {
+    pub(crate) fn set_min_len(&mut self, len: usize) -> Result<()> {
         let file_len = self.file_len()?;
         if file_len < len {
             let target_len = len.max(file_len.saturating_mul(2));
@@ -91,7 +119,7 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn shrink_to_fit(&mut self) -> crate::Result<()> {
+    pub(crate) fn shrink_to_fit(&mut self) -> Result<()> {
         while self.index_to_region.last().is_some_and(Option::is_none) {
             self.index_to_region.pop();
         }
@@ -105,19 +133,15 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn create(
-        &mut self,
-        db: &Database,
-        id: String,
-        start: usize,
-    ) -> crate::Result<Region> {
-        let index = self
-            .index_to_region
-            .iter()
-            .enumerate()
-            .find(|(_, opt)| opt.is_none())
-            .map(|(index, _)| index)
-            .unwrap_or_else(|| self.index_to_region.len());
+    pub(crate) fn create(&mut self, db: &Database, id: String, start: usize) -> Result<Region> {
+        let index = if self.id_to_index.len() == self.index_to_region.len() {
+            self.index_to_region.len()
+        } else {
+            self.index_to_region
+                .iter()
+                .position(Option::is_none)
+                .expect("region index must contain a free slot")
+        };
 
         let region = Region::new(db, id.clone(), index, start, 0, PAGE_SIZE);
 
@@ -151,7 +175,7 @@ impl Regions {
             .and_then(|&index| self.get_from_index(index))
     }
 
-    pub(crate) fn rename(&mut self, old_id: &str, new_id: &str) -> crate::Result<()> {
+    pub(crate) fn rename(&mut self, old_id: &str, new_id: &str) -> Result<()> {
         let index = self
             .id_to_index
             .get(old_id)
@@ -168,17 +192,18 @@ impl Regions {
         Ok(())
     }
 
-    pub(crate) fn remove(&mut self, region: &Region) -> crate::Result<()> {
+    pub(crate) fn remove(&mut self, region: &Region) -> Result<()> {
         // Expected 2: one from caller, one from self.index_to_region.
         let ref_count = Arc::strong_count(region.arc());
+        let meta = region.meta();
         debug!(
             "regions.remove '{}': arc count = {} (expected <= 2)",
-            region.meta().id(),
+            meta.id(),
             ref_count
         );
         if ref_count > 2 {
             return Err(Error::RegionStillReferenced {
-                id: region.meta().id().to_string(),
+                id: meta.id().to_string(),
                 ref_count,
             });
         }
@@ -192,15 +217,16 @@ impl Regions {
             return Err(Error::RegionNotFound);
         }
 
-        self.id_to_index.remove(region.meta().id());
+        self.id_to_index.remove(meta.id());
+        drop(meta);
 
-        self.write_at(region.index(), &[0u8; SIZE_OF_REGION_METADATA]);
+        self.write_at(region.index(), &EMPTY_REGION_METADATA);
 
         Ok(())
     }
 
     /// Makes every completed metadata write preceding this call durable.
-    pub(crate) fn flush(&self) -> crate::Result<bool> {
+    pub(crate) fn flush(&self) -> Result<bool> {
         let mut dirty = self.dirty.lock();
         if !*dirty {
             return Ok(false);

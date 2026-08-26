@@ -62,17 +62,17 @@ struct DatabaseInner {
     mmap: RwLock<MmapMut>,
     file: RwLock<File>,
     cached_file_len: AtomicUsize,
-    bg_tasks: Mutex<Vec<JoinHandle<crate::Result<()>>>>,
+    bg_tasks: Mutex<Vec<JoinHandle<Result<()>>>>,
     bg_sync: (Mutex<bool>, Condvar),
 }
 
 impl Database {
     /// Opens or creates a database at `path`.
-    pub fn open(path: &Path) -> crate::Result<Self> {
+    pub fn open(path: &Path) -> Result<Self> {
         Self::open_with_min_len(path, 0)
     }
 
-    pub fn open_with_min_len(path: &Path, min_len: usize) -> crate::Result<Self> {
+    pub fn open_with_min_len(path: &Path, min_len: usize) -> Result<Self> {
         let name = path
             .file_name()
             .and_then(|s| s.to_str())
@@ -113,7 +113,7 @@ impl Database {
         }));
 
         db.regions_mut().fill(&db)?;
-        *db.layout_mut() = Layout::from(&*db.regions());
+        *db.layout_mut() = Layout::try_from(&*db.regions())?;
 
         debug!("{}: opened with {} regions", db, db.regions().len());
 
@@ -127,7 +127,7 @@ impl Database {
     }
 
     /// Grows the file if needed (doubles size, 1 MiB floor, sparse-file friendly).
-    pub fn set_min_len(&self, len: usize) -> crate::Result<()> {
+    pub fn set_min_len(&self, len: usize) -> Result<()> {
         let len = Self::ceil_number_to_page_size_multiple(len);
 
         if self.file_len() >= len {
@@ -165,7 +165,7 @@ impl Database {
         region
     }
 
-    pub fn create_region_if_needed(&self, id: &str) -> crate::Result<Region> {
+    pub fn create_region_if_needed(&self, id: &str) -> Result<Region> {
         if let Some(region) = self.get_region(id) {
             return Ok(region);
         }
@@ -220,7 +220,7 @@ impl Database {
         write_to_mmap(&self.mmap(), start, data);
     }
 
-    pub(crate) fn copy(&self, src: usize, dst: usize, len: usize) -> crate::Result<()> {
+    pub(crate) fn copy(&self, src: usize, dst: usize, len: usize) -> Result<()> {
         if len == 0 {
             return Ok(());
         }
@@ -241,14 +241,14 @@ impl Database {
         Ok(())
     }
 
-    pub fn remove_region_if_exists(&self, id: &str) -> crate::Result<()> {
+    pub fn remove_region_if_exists(&self, id: &str) -> Result<()> {
         match self.remove_region(id) {
             Ok(()) | Err(Error::RegionNotFound) => Ok(()),
             Err(e) => Err(e),
         }
     }
 
-    pub fn remove_region(&self, id: &str) -> crate::Result<()> {
+    pub fn remove_region(&self, id: &str) -> Result<()> {
         let Some(region) = self.get_region(id) else {
             return Err(Error::RegionNotFound);
         };
@@ -256,7 +256,7 @@ impl Database {
     }
 
     /// Removes all regions except those in `ids`.
-    pub fn retain_regions(&self, mut ids: HashSet<String>) -> crate::Result<()> {
+    pub fn retain_regions(&self, mut ids: HashSet<String>) -> Result<()> {
         debug!(
             "{}: retain_regions called with {} ids to keep",
             self,
@@ -281,19 +281,38 @@ impl Database {
             );
         }
 
-        if !regions_to_remove.is_empty() {
+        self.remove_regions(regions_to_remove)
+    }
+
+    /// Removes every region that has not been returned by [`Self::get_region`]
+    /// or [`Self::create_region_if_needed`] since this database was opened.
+    pub fn retain_accessed_regions(&self) -> Result<()> {
+        let regions = self.regions();
+        let regions_to_remove = regions
+            .index_to_region()
+            .iter()
+            .flatten()
+            .filter(|region| !region.was_accessed())
+            .cloned()
+            .collect();
+        drop(regions);
+        self.remove_regions(regions_to_remove)
+    }
+
+    fn remove_regions(&self, regions: Vec<Region>) -> Result<()> {
+        if !regions.is_empty() {
             debug!(
-                "{}: retain_regions removing {} regions: {:?}",
+                "{}: removing {} regions: {:?}",
                 self,
-                regions_to_remove.len(),
-                regions_to_remove
+                regions.len(),
+                regions
                     .iter()
-                    .map(|r| r.meta().id().to_string())
+                    .map(|region| region.meta().id().to_string())
                     .collect::<Vec<_>>()
             );
         }
 
-        for region in regions_to_remove {
+        for region in regions {
             let ref_count = Arc::strong_count(region.arc());
             debug!(
                 "{}: removing '{}' (arc count: {})",
@@ -303,38 +322,22 @@ impl Database {
             );
             region.remove()?;
         }
-        self.regions_mut().shrink_to_fit()?;
-        Ok(())
-    }
-
-    /// Removes every region that has not been returned by [`Self::get_region`]
-    /// or [`Self::create_region_if_needed`] since this database was opened.
-    pub fn retain_accessed_regions(&self) -> crate::Result<()> {
-        let regions = self.regions();
-        let ids = regions
-            .index_to_region()
-            .iter()
-            .flatten()
-            .filter(|region| region.was_accessed())
-            .map(|region| region.meta().id().to_owned())
-            .collect();
-        drop(regions);
-        self.retain_regions(ids)
+        self.regions_mut().shrink_to_fit()
     }
 
     /// Opens the data file read-only (for external consumers like mmap readers).
     #[inline]
-    pub fn open_read_only_file(&self) -> crate::Result<File> {
+    pub fn open_read_only_file(&self) -> Result<File> {
         File::open(self.data_path()).map_err(Error::from)
     }
 
-    pub fn disk_usage(&self) -> crate::Result<DiskUsage> {
+    pub fn disk_usage(&self) -> Result<DiskUsage> {
         DiskUsage::from_file(&self.file())
     }
 
     /// Flushes all dirty data and metadata to disk.
     /// Returns the number of regions whose data was flushed.
-    pub fn flush(&self) -> crate::Result<usize> {
+    pub fn flush(&self) -> Result<usize> {
         let dirty_regions: Vec<(Region, Vec<(usize, usize)>)> = self
             .regions()
             .index_to_region()
@@ -414,7 +417,7 @@ impl Database {
     /// Gives the OS time to write dirty mmap pages before fsyncing.
     /// Intended for background tasks where the delay is invisible.
     /// Cancellable: `sync_bg_tasks` cuts the wait short.
-    pub fn compact_deferred(&self, delay: Duration) -> crate::Result<()> {
+    pub fn compact_deferred(&self, delay: Duration) -> Result<()> {
         self.bg_sleep(delay);
         self.compact()
     }
@@ -430,13 +433,13 @@ impl Database {
     }
 
     /// Like `compact_deferred` with a 5-second default delay.
-    pub fn compact_deferred_default(&self) -> crate::Result<()> {
+    pub fn compact_deferred_default(&self) -> Result<()> {
         self.compact_deferred(Duration::from_secs(5))
     }
 
     /// Flushes, then punches holes to reclaim disk space.
     #[inline]
-    pub fn compact(&self) -> crate::Result<()> {
+    pub fn compact(&self) -> Result<()> {
         let i = Instant::now();
         self.flush()?;
         let flush_time = i.elapsed();
@@ -456,7 +459,7 @@ impl Database {
     /// Runs `f` on a background thread without incrementing the Arc refcount,
     /// so `strong_count` reflects only real owners.
     /// Call `sync_bg_tasks()` before the next write to this database.
-    pub fn run_bg(&self, f: impl FnOnce(&Self) -> crate::Result<()> + Send + 'static) {
+    pub fn run_bg(&self, f: impl FnOnce(&Self) -> Result<()> + Send + 'static) {
         // Safety: sync_bg_tasks (called explicitly or from Drop at strong_count == 1)
         // joins this thread before the Arc is deallocated.
         // ManuallyDrop prevents the refcount decrement we never incremented.
@@ -465,7 +468,7 @@ impl Database {
     }
 
     /// Wakes any `bg_sleep` waiters and joins all pending background tasks.
-    pub fn sync_bg_tasks(&self) -> crate::Result<()> {
+    pub fn sync_bg_tasks(&self) -> Result<()> {
         {
             let (m, cv) = &self.0.bg_sync;
             *m.lock() = true;
@@ -479,24 +482,14 @@ impl Database {
         Ok(())
     }
 
-    fn punch_holes(&self) -> crate::Result<()> {
+    fn punch_holes(&self) -> Result<()> {
         let mut layout = self.layout_mut();
-
-        let regions_to_check: Vec<Region> = {
-            let regions = self.regions();
-            regions
-                .index_to_region()
-                .iter()
-                .flatten()
-                .cloned()
-                .collect()
-        };
-
+        let regions = self.regions();
         let file = self.file();
         let mut punched = 0usize;
 
         // Keep each region boundary stable while deriving and punching its tail.
-        for region in &regions_to_check {
+        for region in regions.index_to_region().iter().flatten() {
             let mut meta = region.meta_mut();
             if !meta.tail_needs_punch() {
                 continue;
@@ -528,6 +521,7 @@ impl Database {
         }
 
         drop(file);
+        drop(regions);
         drop(layout);
 
         // No mmap recreation needed: KEEP_SIZE preserves file length, kernel zeroes punched pages.

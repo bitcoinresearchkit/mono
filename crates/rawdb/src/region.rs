@@ -15,7 +15,8 @@ use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::region_group::RegionGroupInner;
 use crate::{
-    Database, Error, HolePunch, PAGE_SIZE, PAGE_SIZE_MINUS_1, Reader, RegionMetadata, WeakDatabase,
+    Database, Error, HolePunch, PAGE_SIZE, PAGE_SIZE_MINUS_1, Reader, RegionMetadata, Result,
+    WeakDatabase,
 };
 
 const RESIDENCY_SAMPLE_BYTES: usize = 16 * 1024 * 1024;
@@ -91,7 +92,7 @@ impl Region {
         f(&mmap[start..end])
     }
 
-    pub fn open_db_read_only_file(&self) -> crate::Result<File> {
+    pub fn open_db_read_only_file(&self) -> Result<File> {
         self.db().open_read_only_file()
     }
 
@@ -190,7 +191,7 @@ impl Region {
     /// Reserving capacity does not change the region's logical length or write
     /// into the added space. When the region cannot grow in place, its current
     /// contents are moved once to a sufficiently large contiguous range.
-    pub fn reserve_capacity(&self, capacity: usize) -> crate::Result<()> {
+    pub fn reserve_capacity(&self, capacity: usize) -> Result<()> {
         let capacity = capacity
             .max(PAGE_SIZE)
             .checked_add(PAGE_SIZE_MINUS_1)
@@ -290,13 +291,13 @@ impl Region {
 
     /// Appends data to the region. Not durable until `flush()`.
     #[inline]
-    pub fn write(&self, data: &[u8]) -> crate::Result<()> {
+    pub fn write(&self, data: &[u8]) -> Result<()> {
         self.write_with(data, None, false, false)
     }
 
     /// Writes data at offset within the region. Not durable until `flush()`.
     #[inline]
-    pub fn write_at(&self, data: &[u8], at: usize) -> crate::Result<()> {
+    pub fn write_at(&self, data: &[u8], at: usize) -> Result<()> {
         self.write_with(data, Some(at), false, false)
     }
 
@@ -308,14 +309,14 @@ impl Region {
     /// sections are filled out of order.
     #[doc(hidden)]
     #[inline]
-    pub fn write_at_grow(&self, data: &[u8], at: usize) -> crate::Result<()> {
+    pub fn write_at_grow(&self, data: &[u8], at: usize) -> Result<()> {
         self.write_with(data, Some(at), false, true)
     }
 
     /// Deallocates initialized but unused bytes inside this region without
     /// changing its logical length.
     #[doc(hidden)]
-    pub fn punch_hole(&self, offset: usize, len: usize) -> crate::Result<()> {
+    pub fn punch_hole(&self, offset: usize, len: usize) -> Result<()> {
         if len == 0 {
             return Ok(());
         }
@@ -386,7 +387,7 @@ impl Region {
         self.mark_dirty(first_offset, dirty_end - first_offset);
     }
 
-    pub fn truncate(&self, from: usize) -> crate::Result<()> {
+    pub fn truncate(&self, from: usize) -> Result<()> {
         let len = self.meta().len();
         if from == len {
             return Ok(());
@@ -408,7 +409,7 @@ impl Region {
 
     /// Truncates to `at`, then writes data there.
     #[inline]
-    pub fn truncate_write(&self, at: usize, data: &[u8]) -> crate::Result<()> {
+    pub fn truncate_write(&self, at: usize, data: &[u8]) -> Result<()> {
         self.write_with(data, Some(at), true, false)
     }
 
@@ -419,7 +420,7 @@ impl Region {
         at: Option<usize>,
         truncate: bool,
         allow_grow: bool,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         let db = self.db();
         let index = self.index();
         let meta = self.meta();
@@ -603,7 +604,7 @@ impl Region {
         Ok(())
     }
 
-    pub fn rename(&self, new_id: &str) -> crate::Result<()> {
+    pub fn rename(&self, new_id: &str) -> Result<()> {
         let old_id = self.meta().id().to_string();
         let db = self.db();
         debug!("{}: rename '{}' -> '{}'", db, old_id, new_id);
@@ -621,16 +622,15 @@ impl Region {
     }
 
     /// Space becomes reusable after the next `flush()`.
-    pub fn remove(self) -> crate::Result<()> {
+    pub fn remove(self) -> Result<()> {
         let db = self.db();
-        let id = self.meta().id().to_string();
-        debug!("{}: '{}' remove", db, id);
-        trace!("{}: '{}' remove acquiring layout_mut", db, id);
+        debug!("{}: '{}' remove", db, self.meta().id());
+        trace!("{}: remove acquiring layout_mut", db);
         // Lock order: layout → regions
         let mut layout = db.layout_mut();
-        trace!("{}: '{}' remove acquiring regions_mut", db, id);
+        trace!("{}: remove acquiring regions_mut", db);
         let mut regions = db.regions_mut();
-        trace!("{}: '{}' remove got locks", db, id);
+        trace!("{}: remove got locks", db);
         layout.remove_region(&self)?;
         regions.remove(&self)?;
         Ok(())
@@ -638,7 +638,7 @@ impl Region {
 
     /// Flushes this region's dirty data and all pending metadata.
     /// Returns whether anything was flushed.
-    pub fn flush(&self) -> crate::Result<bool> {
+    pub fn flush(&self) -> Result<bool> {
         let db = self.db();
         let dirty_ranges = self.take_dirty_ranges();
 
