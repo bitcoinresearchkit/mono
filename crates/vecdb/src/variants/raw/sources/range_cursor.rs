@@ -14,7 +14,7 @@ enum Owner<'a, I, T, S> {
 
 /// Forward cursor over a bounded persisted range of a raw vector.
 ///
-/// The complete range lets the cursor choose once between direct mmap access
+/// The declared range lets the cursor choose once between direct mmap access
 /// for resident data and buffered file I/O for a cold sequential scan.
 pub struct RawRangeCursor<'a, I, T, S> {
     owner: Owner<'a, I, T, S>,

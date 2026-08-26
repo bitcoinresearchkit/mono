@@ -43,13 +43,14 @@ impl Vecs {
             let fi_batch = first_tx_index.collect_range_at(skip, end);
             let txid_len = indexer.vecs().transactions.txid.len();
             let total_txout_len = indexer.vecs().outputs.output_type.len();
-            let fo_reader = indexer.vecs().transactions.first_txout_index.reader();
+            let first_txout_index = &indexer.vecs().transactions.first_txout_index;
             let first_tx = fi_batch
                 .first()
                 .expect("block range is nonempty")
                 .to_usize();
-            let first_txout = fo_reader.try_get_at(first_tx).data()?.to_usize();
-            let mut otype_cursor = indexer
+            let mut first_txout_cursor = first_txout_index.range_cursor_at(first_tx, txid_len);
+            let first_txout = first_txout_cursor.next().data()?.to_usize();
+            let mut output_type_cursor = indexer
                 .vecs()
                 .outputs
                 .output_type
@@ -61,14 +62,14 @@ impl Vecs {
                 txid_len,
                 CoinbasePolicy::Include,
                 |tx_pos, per_tx| {
-                    let next_fo = if tx_pos + 1 < txid_len {
-                        fo_reader.try_get_at(tx_pos + 1).data()?.to_usize()
+                    let next_first_txout = if tx_pos + 1 < txid_len {
+                        first_txout_cursor.next().data()?.to_usize()
                     } else {
                         total_txout_len
                     };
 
-                    let output_count = next_fo - otype_cursor.position();
-                    otype_cursor.for_each(output_count, |otype| {
+                    let output_count = next_first_txout - output_type_cursor.position();
+                    output_type_cursor.for_each(output_count, |otype| {
                         per_tx[otype as usize] += 1;
                     });
                     Ok(())

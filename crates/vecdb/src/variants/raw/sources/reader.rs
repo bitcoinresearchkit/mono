@@ -28,7 +28,7 @@ pub struct VecReader<I, T, S> {
 ///
 /// Unlike [`crate::Cursor`], this reads values directly from the existing mmap
 /// and does not allocate or copy through a staging buffer. Like [`VecReader`],
-/// it only sees persisted values. Use [`crate::RawRangeCursor`] when the full
+/// it only sees persisted values. Use [`crate::RawRangeCursor`] when a bounded
 /// range is known and may be nonresident.
 pub struct VecReaderCursor<I, T, S> {
     reader: VecReader<I, T, S>,
