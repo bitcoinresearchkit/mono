@@ -191,9 +191,8 @@ impl DefaultPlugins {
             Ok(utxo_states)
         })?;
 
-        // Supply, Coinflow, Capital Sentiment, and indicators are independent.
-        // Cointime follows supply; Bedrock and Rarity Meter then consume both
-        // Cointime and Coinflow.
+        // Supply feeds Cointime while Coinflow is independent. Bedrock and
+        // Rarity Meter then consume both Cointime and Coinflow.
         thread::scope(|scope| -> Result<()> {
             let indicators = scope.spawn(|| {
                 timed("Computed indicators", || {
@@ -223,7 +222,7 @@ impl DefaultPlugins {
                 })
             });
 
-            let (supply, coinflow) = join(
+            let (cointime, coinflow) = join(
                 || {
                     timed("Computed supply", || {
                         self.supply.compute(
@@ -232,6 +231,21 @@ impl DefaultPlugins {
                                 outputs: self.outputs.as_ref(),
                                 mining: self.mining.as_ref(),
                                 price: self.price.as_ref(),
+                            },
+                            context,
+                        )
+                    })?;
+
+                    timed("Computed cointime", || {
+                        self.cointime.compute(
+                            CointimeDependencies {
+                                indexer,
+                                price: self.price.as_ref(),
+                                blocks: self.blocks.as_ref(),
+                                inflation_rate: &self.supply.inflation_rate,
+                                velocity_native: &self.supply.velocity.native,
+                                velocity_fiat: &self.supply.velocity.fiat,
+                                distribution: self.distribution.as_ref(),
                             },
                             context,
                         )
@@ -250,23 +264,8 @@ impl DefaultPlugins {
                     })
                 },
             );
-            supply?;
+            cointime?;
             coinflow?;
-
-            timed("Computed cointime", || {
-                self.cointime.compute(
-                    CointimeDependencies {
-                        indexer,
-                        price: self.price.as_ref(),
-                        blocks: self.blocks.as_ref(),
-                        inflation_rate: &self.supply.inflation_rate,
-                        velocity_native: &self.supply.velocity.native,
-                        velocity_fiat: &self.supply.velocity.fiat,
-                        distribution: self.distribution.as_ref(),
-                    },
-                    context,
-                )
-            })?;
 
             timed("Computed bedrock", || {
                 self.bedrock.compute(
