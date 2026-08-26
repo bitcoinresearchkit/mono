@@ -1,3 +1,4 @@
+mod batch;
 mod compute;
 mod import;
 

@@ -864,6 +864,7 @@ dependencies = [
  "brk_error",
  "brk_types",
  "derive_more",
+ "rayon",
  "vecdb",
 ]
 

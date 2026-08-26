@@ -1,5 +1,6 @@
 use bitview_compute::{CachedWindowStartVec, Windows};
 use bitview_plugin::ImportContext;
+use bitview_plugin_mappings::Vecs as MappingsVecs;
 use brk_error::Result;
 use brk_types::{Height, Sats, StoredU64, Version};
 use vecdb::CachedBoxedVec;
@@ -10,7 +11,7 @@ use crate::{STORAGE, breakdown::BreakdownVecs, total::Total};
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
-        mappings: &bitview_plugin_mappings::Vecs,
+        mappings: &MappingsVecs,
         cached_starts: &Windows<&CachedWindowStartVec>,
         block_size: CachedBoxedVec<Height, StoredU64>,
         chain_fees: CachedBoxedVec<Height, Sats>,
