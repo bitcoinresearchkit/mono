@@ -251,6 +251,7 @@ where
         self.pushed.reserve(additional);
     }
 
+    #[inline(always)]
     pub fn push(&mut self, value: T) {
         let compact = self.encode(&value);
         self.compact.push(compact);
