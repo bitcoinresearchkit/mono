@@ -36,11 +36,17 @@ use super::{
 const FLUSH_BLOCK_INTERVAL: usize = 10_000;
 const FLUSH_TIME_INTERVAL: Duration = Duration::from_secs(60);
 
-fn is_periodic_flush_due(height: Height, last_height: Height, elapsed: Duration) -> bool {
+fn is_periodic_flush_due(
+    height: Height,
+    last_height: Height,
+    pending_blocks: usize,
+    elapsed: Duration,
+) -> bool {
     height != last_height
-        && height != Height::ZERO
-        && height.to_usize().is_multiple_of(FLUSH_BLOCK_INTERVAL)
-        && elapsed >= FLUSH_TIME_INTERVAL
+        && (pending_blocks >= FLUSH_BLOCK_INTERVAL
+            || (height != Height::ZERO
+                && height.to_usize().is_multiple_of(FLUSH_BLOCK_INTERVAL)
+                && elapsed >= FLUSH_TIME_INTERVAL))
 }
 
 /// Process all blocks from starting_height to last_height.
@@ -237,6 +243,7 @@ pub fn process_blocks(
 
     // Track earliest chain_state modification from sends (for incremental supply_state writes)
     let mut min_supply_modified: Option<Height> = None;
+    let mut pending_blocks = 0;
     let mut last_flush = Instant::now();
 
     // Main block iteration
@@ -469,8 +476,10 @@ pub fn process_blocks(
             &vecs.states_path,
         )?;
 
+        pending_blocks += 1;
+
         // Periodic checkpoint flush
-        if is_periodic_flush_due(height, last_height, last_flush.elapsed()) {
+        if is_periodic_flush_due(height, last_height, pending_blocks, last_flush.elapsed()) {
             // Drop readers to release mmap handles
             drop(vr);
 
@@ -490,6 +499,7 @@ pub fn process_blocks(
             )?;
             min_supply_modified = None;
             crate::vecs::flush(vecs)?;
+            pending_blocks = 0;
             last_flush = Instant::now();
 
             // Recreate readers
@@ -551,33 +561,44 @@ mod tests {
     use super::*;
 
     #[test]
-    fn periodic_flush_requires_an_intermediate_checkpoint_and_elapsed_interval() {
+    fn periodic_flush_uses_block_limit_or_aligned_time() {
         let checkpoint_height = Height::from(FLUSH_BLOCK_INTERVAL);
 
         assert!(!is_periodic_flush_due(
             Height::ZERO,
             checkpoint_height,
+            0,
             FLUSH_TIME_INTERVAL
         ));
         assert!(!is_periodic_flush_due(
             checkpoint_height.incremented(),
             checkpoint_height.incremented().incremented(),
+            FLUSH_BLOCK_INTERVAL - 1,
             FLUSH_TIME_INTERVAL
         ));
         assert!(!is_periodic_flush_due(
             checkpoint_height,
             checkpoint_height,
+            FLUSH_BLOCK_INTERVAL,
             FLUSH_TIME_INTERVAL
         ));
         assert!(!is_periodic_flush_due(
             checkpoint_height,
             checkpoint_height.incremented(),
+            FLUSH_BLOCK_INTERVAL - 1,
             FLUSH_TIME_INTERVAL - Duration::from_nanos(1)
         ));
         assert!(is_periodic_flush_due(
             checkpoint_height,
             checkpoint_height.incremented(),
+            FLUSH_BLOCK_INTERVAL - 1,
             FLUSH_TIME_INTERVAL
+        ));
+        assert!(is_periodic_flush_due(
+            checkpoint_height.incremented(),
+            checkpoint_height.incremented().incremented(),
+            FLUSH_BLOCK_INTERVAL,
+            Duration::ZERO
         ));
     }
 }
