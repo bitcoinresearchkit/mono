@@ -35,7 +35,6 @@ pub use hints::*;
 use hole_punch::*;
 use layout::*;
 use mmap::*;
-use rayon::prelude::*;
 pub use reader::*;
 pub use region::*;
 pub use region_metadata::*;
@@ -501,10 +500,9 @@ impl Database {
         if layout.holes_need_punch() {
             // The layout write lock prevents holes from being allocated while
             // they are punched. No per-region lock is needed for free space.
-            layout
-                .start_to_hole()
-                .par_iter()
-                .try_for_each(|(&start, &hole)| HolePunch::punch(&file, start, hole))?;
+            for (&start, &hole) in layout.start_to_hole() {
+                HolePunch::punch(&file, start, hole)?;
+            }
             punched += layout.start_to_hole().len();
             layout.mark_holes_punched();
         }

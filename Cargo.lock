@@ -3447,7 +3447,6 @@ dependencies = [
  "log",
  "memmap2",
  "parking_lot",
- "rayon",
  "smallvec",
  "tempfile",
  "thiserror",
