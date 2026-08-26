@@ -1,4 +1,26 @@
-use crate::{AnyReadableVec, Formattable, ReadableVec, TypedVec, ValueWriter, VecIteratorWriter};
+use std::vec::IntoIter;
+
+use crate::{
+    AnyReadableVec, Error, Formattable, ReadableVec, Result, TypedVec, ValueWriter, VecValue,
+};
+
+struct IteratorWriter<T> {
+    iter: IntoIter<T>,
+}
+
+impl<T> ValueWriter for IteratorWriter<T>
+where
+    T: VecValue + Formattable,
+{
+    fn write_next(&mut self, buf: &mut String) -> Result<()> {
+        if let Some(value) = self.iter.next() {
+            value.fmt_csv(buf)?;
+            Ok(())
+        } else {
+            Err(Error::IteratorEnded)
+        }
+    }
+}
 
 /// Type-erased trait for vecs that can produce a boxed row-by-row [`ValueWriter`].
 pub trait AnyVecWithWriter: AnyReadableVec {
@@ -19,7 +41,7 @@ where
             .unwrap_or_else(|| self.len());
 
         let values = self.collect_range_at(from_usize, to_usize);
-        Box::new(VecIteratorWriter {
+        Box::new(IteratorWriter {
             iter: values.into_iter(),
         })
     }
