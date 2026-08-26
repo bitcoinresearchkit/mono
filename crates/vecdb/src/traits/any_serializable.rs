@@ -1,5 +1,6 @@
+use crate::Result;
 #[cfg(feature = "serde")]
-use crate::Formattable;
+use crate::{Formattable, ReadableVec, TypedVec};
 
 use super::AnyReadableVec;
 
@@ -7,20 +8,11 @@ use super::AnyReadableVec;
 pub trait AnySerializableVec: AnyReadableVec {
     /// Write JSON array to output buffer
     #[cfg(feature = "serde")]
-    fn write_json(
-        &self,
-        from: Option<usize>,
-        to: Option<usize>,
-        buf: &mut Vec<u8>,
-    ) -> crate::Result<()>;
+    fn write_json(&self, from: Option<usize>, to: Option<usize>, buf: &mut Vec<u8>) -> Result<()>;
 
     /// Write one value as raw JSON, if the index is in bounds.
     #[cfg(feature = "serde")]
-    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> crate::Result<()>;
-
-    /// Return the last value as a serde_json::Value, or None if empty.
-    #[cfg(feature = "serde_json")]
-    fn last_json_value(&self) -> Option<serde_json::Value>;
+    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()>;
 
     /// Write all values as CSV cells (newline-separated) directly without materializing a Vec.
     fn write_csv_column(
@@ -28,22 +20,17 @@ pub trait AnySerializableVec: AnyReadableVec {
         from: Option<usize>,
         to: Option<usize>,
         buf: &mut String,
-    ) -> crate::Result<()>;
+    ) -> Result<()>;
 }
 
 #[cfg(feature = "serde")]
 impl<V> AnySerializableVec for V
 where
-    V: crate::TypedVec,
-    V: crate::ReadableVec<V::I, V::T>,
-    V::T: serde::Serialize + crate::Formattable,
+    V: TypedVec,
+    V: ReadableVec<V::I, V::T>,
+    V::T: serde::Serialize + Formattable,
 {
-    fn write_json(
-        &self,
-        from: Option<usize>,
-        to: Option<usize>,
-        buf: &mut Vec<u8>,
-    ) -> crate::Result<()> {
+    fn write_json(&self, from: Option<usize>, to: Option<usize>, buf: &mut Vec<u8>) -> Result<()> {
         let len = self.len();
         let from_idx = from.unwrap_or(0);
         let to_idx = to.unwrap_or(len).min(len);
@@ -52,30 +39,23 @@ where
         buf.reserve(count * 20 + 2);
 
         buf.push(b'[');
-        let mut first = true;
         self.for_each_range_at(from_idx, to_idx, |value: V::T| {
-            if !first {
-                buf.push(b',');
-            }
-            first = false;
             value.fmt_json(buf);
+            buf.push(b',');
         });
+        if count > 0 {
+            let _ = buf.pop();
+        }
         buf.push(b']');
 
         Ok(())
     }
 
-    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> crate::Result<()> {
+    fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()> {
         if let Some(value) = self.collect_one_at(index) {
             value.fmt_json(buf);
         }
         Ok(())
-    }
-
-    #[cfg(feature = "serde_json")]
-    fn last_json_value(&self) -> Option<serde_json::Value> {
-        let value: V::T = self.collect_last()?;
-        serde_json::to_value(&value).ok()
     }
 
     fn write_csv_column(
@@ -83,7 +63,7 @@ where
         from: Option<usize>,
         to: Option<usize>,
         buf: &mut String,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         let len = self.len();
         let from_idx = from.unwrap_or(0);
         let to_idx = to.unwrap_or(len).min(len);

@@ -127,7 +127,6 @@ June 2027.
 
 [Discord](https://discord.gg/WACpShCB7M) ·
 [X](https://x.com/_nym21_) ·
-[Nostr](https://primal.net/p/nprofile1qqsfw5dacngjlahye34krvgz7u0yghhjgk7gxzl5ptm9v6n2y3sn03sqxu2e6) ·
 [Issues](https://github.com/bitcoinresearchkit/brk/issues) ·
 [Support](mailto:support@bitcoinresearchkit.org)
 

@@ -28,7 +28,7 @@ const CSV_HEADER_BYTES_PER_COL: usize = 10;
 /// Estimated bytes per cell value
 const CSV_CELL_BYTES: usize = 15;
 /// Estimated bytes per JSON cell value
-const JSON_CELL_BYTES: usize = 12;
+const JSON_CELL_BYTES: usize = 20;
 
 impl Query {
     /// Write one series response without materializing an intermediate value tree.
@@ -379,15 +379,10 @@ impl Query {
             Format::CSV => Output::CSV(Self::columns_to_csv(&vecs, start, end)?),
             Format::JSON => {
                 let count = end.saturating_sub(start);
-                let buf = if ALWAYS_JSON_ARRAY {
-                    Self::write_json_array_bulk(&vecs, count, 256, |v, buf| {
+                let buf =
+                    Self::write_json_array(&vecs, count, 256, ALWAYS_JSON_ARRAY, |v, buf| {
                         Self::write_series_data(*v, index, start, end, buf)
-                    })?
-                } else {
-                    Self::write_json_array(&vecs, count, 256, |v, buf| {
-                        Self::write_series_data(*v, index, start, end, buf)
-                    })?
-                };
+                    })?;
                 Output::Json(buf)
             }
         };
@@ -424,7 +419,7 @@ impl Query {
         } = resolved;
 
         let count = end.saturating_sub(start);
-        let buf = Self::write_json_array(&vecs, count, 2, |v, buf| {
+        let buf = Self::write_json_array(&vecs, count, 2, false, |v, buf| {
             Ok(v.write_json(Some(start), Some(end), buf)?)
         })?;
 
@@ -442,11 +437,12 @@ impl Query {
         values: &[T],
         cell_count: usize,
         wrapper_overhead: usize,
+        always_array: bool,
         mut write_one: impl FnMut(&T, &mut Vec<u8>) -> Result<()>,
     ) -> Result<Vec<u8>> {
         let mut buf =
             Vec::with_capacity(cell_count * JSON_CELL_BYTES * values.len() + wrapper_overhead);
-        let wrap = values.len() > 1;
+        let wrap = always_array || values.len() > 1;
         if wrap {
             buf.push(b'[');
         }
@@ -459,27 +455,6 @@ impl Query {
         if wrap {
             buf.push(b']');
         }
-        Ok(buf)
-    }
-
-    #[inline]
-    fn write_json_array_bulk<T>(
-        values: &[T],
-        cell_count: usize,
-        wrapper_overhead: usize,
-        mut write_one: impl FnMut(&T, &mut Vec<u8>) -> Result<()>,
-    ) -> Result<Vec<u8>> {
-        let mut buf =
-            Vec::with_capacity(cell_count * JSON_CELL_BYTES * values.len() + wrapper_overhead);
-        buf.push(b'[');
-        if let Some((first, rest)) = values.split_first() {
-            write_one(first, &mut buf)?;
-            for value in rest {
-                buf.push(b',');
-                write_one(value, &mut buf)?;
-            }
-        }
-        buf.push(b']');
         Ok(buf)
     }
 
@@ -662,23 +637,23 @@ mod tests {
         };
 
         assert_eq!(
-            Query::write_json_array(&single_value, 0, 0, write).unwrap(),
+            Query::write_json_array(&single_value, 0, 0, false, write).unwrap(),
             b"{}"
         );
         assert_eq!(
-            Query::write_json_array(&multiple_values, 0, 0, write).unwrap(),
+            Query::write_json_array(&multiple_values, 0, 0, false, write).unwrap(),
             b"[{},[]]"
         );
         assert_eq!(
-            Query::write_json_array_bulk(&empty, 0, 0, write).unwrap(),
+            Query::write_json_array(&empty, 0, 0, true, write).unwrap(),
             b"[]"
         );
         assert_eq!(
-            Query::write_json_array_bulk(&single_value, 0, 0, write).unwrap(),
+            Query::write_json_array(&single_value, 0, 0, true, write).unwrap(),
             b"[{}]"
         );
         assert_eq!(
-            Query::write_json_array_bulk(&multiple_values, 0, 0, write).unwrap(),
+            Query::write_json_array(&multiple_values, 0, 0, true, write).unwrap(),
             b"[{},[]]"
         );
     }

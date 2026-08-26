@@ -32,13 +32,6 @@ pub enum Error {
     LZ4(#[from] lz4_flex::block::DecompressError),
     #[error(transparent)]
     RawDB(#[from] rawdb::Error),
-    #[cfg(feature = "serde_json")]
-    #[error(transparent)]
-    SerdeJSON(#[from] serde_json::Error),
-    #[cfg(feature = "sonic-rs")]
-    #[error(transparent)]
-    SonicRS(#[from] sonic_rs::Error),
-
     #[error("Wrong length: received: {received:?}, expected: {expected:?}")]
     WrongLength { received: usize, expected: usize },
     #[error("Wrong endian")]

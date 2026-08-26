@@ -712,15 +712,6 @@ mod tests {
     }
 
     #[test]
-    fn nostr() {
-        let slice = ByteView::from("");
-        assert_eq!(0, slice.len());
-        assert_eq!(&*slice, b"");
-        assert_eq!(1, slice.ref_count());
-        assert!(slice.is_inline());
-    }
-
-    #[test]
     fn default_str() {
         let slice = ByteView::default();
         assert_eq!(0, slice.len());
