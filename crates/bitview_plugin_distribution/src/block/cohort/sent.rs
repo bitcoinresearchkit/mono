@@ -25,7 +25,6 @@ pub fn process_sent(
         let prev_price = height_to_price[receive_height.to_usize()];
 
         for (output_type, vec) in by_type.into_inner().into_iter() {
-            let (type_received, type_seen) = addresses.sets_for(output_type);
             let mut lookup = lookup.select(output_type);
             let mut metrics = state.select(output_type);
 
@@ -34,8 +33,8 @@ pub fn process_sent(
                 let pre = AddrSendPreState::capture(addr_data, output_type);
 
                 let prev_balance = addr_data.balance();
-                let is_first_encounter = type_seen.insert(type_index);
-                let also_received = type_received.is_some_and(|s| s.contains(&type_index));
+                let (is_first_encounter, also_received) =
+                    addresses.observe_send(output_type, type_index);
                 let will_be_empty = addr_data.has_1_utxos();
 
                 let prev_bucket = AmountBucket::from(prev_balance);
