@@ -1,6 +1,8 @@
 use bitcoin::{
     Script,
-    opcodes::all::{OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY},
+    opcodes::all::{
+        OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY, OP_PUSHNUM_13,
+    },
     script::Instruction,
 };
 use brk_types::{OpReturnKind, StoredU32};
@@ -14,19 +16,20 @@ pub struct Facts {
 
 pub fn analyze(script: &Script) -> Facts {
     let data = &script.as_bytes()[1..];
-    let (prefix, legacy_sigops) = scan(script);
+    let (kind, legacy_sigops) = if data.first().copied() == Some(OP_PUSHNUM_13.to_u8()) {
+        (OpReturnKind::Runes, script[1..].count_sigops_legacy())
+    } else {
+        let (prefix, legacy_sigops) = scan(script);
+        (classify(data, prefix), legacy_sigops)
+    };
     Facts {
-        kind: classify(data, prefix),
+        kind,
         legacy_sigops: StoredU32::from(legacy_sigops),
         post_op_return_bytes: StoredU32::from(data.len()),
     }
 }
 
-pub fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
-    if data.first() == Some(&0x5d) {
-        return OpReturnKind::Runes;
-    }
-
+fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
     let Some(prefix) = prefix else {
         return OpReturnKind::Empty;
     };
@@ -76,7 +79,7 @@ pub fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
     }
 }
 
-pub fn scan(script: &Script) -> (Option<&[u8]>, usize) {
+fn scan(script: &Script) -> (Option<&[u8]>, usize) {
     let mut first_push = None;
     let mut legacy_sigops = 0;
 
@@ -99,13 +102,13 @@ pub fn scan(script: &Script) -> (Option<&[u8]>, usize) {
     (first_push, legacy_sigops)
 }
 
-pub fn is_memo(prefix: &[u8]) -> bool {
+fn is_memo(prefix: &[u8]) -> bool {
     prefix.len() >= 2
         && prefix[0] == 0x6d
         && (matches!(prefix[1], 0x01..=0x07) || prefix[1] == 0x0c)
 }
 
-pub fn is_text(prefix: &[u8]) -> bool {
+fn is_text(prefix: &[u8]) -> bool {
     prefix.len() >= 4
         && prefix
             .iter()
@@ -117,13 +120,19 @@ pub fn is_text(prefix: &[u8]) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::ScriptBuf;
-    use bitcoin::opcodes::all::OP_RETURN;
-    use bitcoin::script::{Builder, PushBytesBuf};
+    use bitcoin::{
+        ScriptBuf,
+        opcodes::all::{
+            OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY,
+            OP_PUSHNUM_13, OP_RETURN,
+        },
+        script::{Builder, PushBytesBuf},
+    };
+    use brk_types::OpReturnKind;
 
-    use super::*;
+    use super::analyze;
 
-    pub fn pushed(data: &[u8]) -> ScriptBuf {
+    fn pushed(data: &[u8]) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_RETURN)
             .push_slice(PushBytesBuf::try_from(data.to_vec()).unwrap())
@@ -131,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    pub fn classifies_exact_prefix_before_heuristics() {
+    fn classifies_exact_prefix_before_heuristics() {
         let mut payload = b"omni".to_vec();
         payload.resize(80, 0);
 
@@ -139,15 +148,19 @@ mod tests {
     }
 
     #[test]
-    pub fn classifies_runes_opcode() {
+    fn classifies_runes_opcode() {
         assert_eq!(
-            analyze(&ScriptBuf::from_bytes(vec![OP_RETURN.to_u8(), 0x5d])).kind,
+            analyze(&ScriptBuf::from_bytes(vec![
+                OP_RETURN.to_u8(),
+                OP_PUSHNUM_13.to_u8(),
+            ]))
+            .kind,
             OpReturnKind::Runes
         );
     }
 
     #[test]
-    pub fn classifies_empty_and_unknown() {
+    fn classifies_empty_and_unknown() {
         assert_eq!(
             analyze(&ScriptBuf::from_bytes(vec![OP_RETURN.to_u8()])).kind,
             OpReturnKind::Empty
@@ -159,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    pub fn classifies_known_protocol_prefixes() {
+    fn classifies_known_protocol_prefixes() {
         let cases: &[(&[u8], OpReturnKind)] = &[
             (b"omni", OpReturnKind::Omni),
             (b"X2", OpReturnKind::Stacks),
@@ -188,7 +201,7 @@ mod tests {
     }
 
     #[test]
-    pub fn classifies_length_and_content_heuristics() {
+    fn classifies_length_and_content_heuristics() {
         assert_eq!(analyze(&pushed(&[1; 80])).kind, OpReturnKind::VeriBlock);
         assert_eq!(analyze(&pushed(&[1; 35])).kind, OpReturnKind::Komodo);
         assert_eq!(analyze(&pushed(&[1; 20])).kind, OpReturnKind::BareHash);
@@ -196,11 +209,7 @@ mod tests {
     }
 
     #[test]
-    pub fn counts_only_executed_legacy_sigop_opcodes() {
-        use bitcoin::opcodes::all::{
-            OP_CHECKMULTISIG, OP_CHECKMULTISIGVERIFY, OP_CHECKSIG, OP_CHECKSIGVERIFY,
-        };
-
+    fn counts_only_executed_legacy_sigop_opcodes() {
         let opcodes = ScriptBuf::from_bytes(vec![
             OP_RETURN.to_u8(),
             OP_CHECKSIG.to_u8(),
@@ -217,5 +226,15 @@ mod tests {
             OP_CHECKMULTISIGVERIFY.to_u8(),
         ]);
         assert_eq!(u32::from(analyze(&pushed).legacy_sigops), 0);
+
+        let runes = ScriptBuf::from_bytes(vec![
+            OP_RETURN.to_u8(),
+            OP_PUSHNUM_13.to_u8(),
+            OP_CHECKSIG.to_u8(),
+            OP_CHECKMULTISIG.to_u8(),
+        ]);
+        let facts = analyze(&runes);
+        assert_eq!(facts.kind, OpReturnKind::Runes);
+        assert_eq!(u32::from(facts.legacy_sigops), 21);
     }
 }
