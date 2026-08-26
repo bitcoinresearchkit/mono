@@ -42,8 +42,22 @@ impl Vecs {
             let txid_len = indexer.vecs().transactions.txid.len();
             let total_txin_len = indexer.vecs().inputs.output_type.len();
 
-            let mut itype_cursor = indexer.vecs().inputs.output_type.cursor();
             let mut fi_in_cursor = indexer.vecs().transactions.first_txin_index.cursor();
+            let first_tx = fi_batch
+                .first()
+                .expect("block range is nonempty")
+                .to_usize()
+                + 1;
+            let first_txin = if first_tx < txid_len {
+                fi_in_cursor.get(first_tx).data()?.to_usize()
+            } else {
+                total_txin_len
+            };
+            let mut itype_cursor = indexer
+                .vecs()
+                .inputs
+                .output_type
+                .range_cursor_at(first_txin, total_txin_len);
             let mut height = skip;
 
             walk_blocks(

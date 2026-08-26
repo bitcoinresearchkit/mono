@@ -93,8 +93,10 @@ impl Vecs {
         let mut output_value = indexer.vecs().outputs.value.reader().cursor();
         let mut output_type = indexer.vecs().outputs.output_type.reader().cursor();
         let mut output_type_index = indexer.vecs().outputs.type_index.reader().cursor();
-        let mut has_op_return = features.has_op_return.cursor();
-        let mut has_inscription = features.has_inscription.cursor();
+        let mut has_op_return = features.has_op_return.range_cursor_at(start_tx, target_tx);
+        let mut has_inscription = features
+            .has_inscription
+            .range_cursor_at(start_tx, target_tx);
         let mut tx_count = mappings.height.tx_index_count.cursor();
 
         input_count.advance(start_tx);
@@ -105,8 +107,6 @@ impl Vecs {
         output_value.advance(first_txout);
         output_type.advance(first_txout);
         output_type_index.advance(first_txout);
-        has_op_return.advance(start_tx);
-        has_inscription.advance(start_tx);
         tx_count.advance(start_height);
 
         let mut candidate = Candidate::default();

@@ -35,6 +35,8 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 /// `vec.reader().cursor()` to avoid the general cursor's staging buffer.
 /// For a known persisted raw range, use `vec.range_cursor_at(from, to)` so a
 /// cold scan can use buffered I/O while resident data stays zero-copy.
+/// Compressed vectors expose the same bounded `range_cursor_at` role: pages are
+/// decoded once while a cold range uses sequential buffered I/O.
 /// For any vec through the trait, use `collect_one(i)` — this materializes
 /// a single value (decodes a page for compressed vecs).
 ///

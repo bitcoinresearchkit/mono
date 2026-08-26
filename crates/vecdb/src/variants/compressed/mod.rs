@@ -13,6 +13,7 @@ pub use inner::{CompressionStrategy, ReadOnlyCompressedVec};
 pub use lz4::*;
 #[cfg(feature = "pco")]
 pub use pco::*;
+pub use sources::CompressedRangeCursor;
 pub(crate) use sources::*;
 #[cfg(feature = "zstd")]
 pub use zstd::*;

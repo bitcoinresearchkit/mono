@@ -12,8 +12,8 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Error, Format, ImportOptions, ReadWriteBaseVec, VecIndex, VecValue,
-    Version, WritableVec, vec_region_name_with,
+    AnyStoredVec, AnyVec, CompressedRangeCursor, Error, Format, ImportOptions, ReadWriteBaseVec,
+    VecIndex, VecValue, Version, WritableVec, vec_region_name_with,
 };
 
 use super::{CompressionStrategy, Pages, ReadOnlyCompressedVec};
@@ -46,6 +46,12 @@ where
 
     pub fn read_only_clone(&self) -> ReadOnlyCompressedVec<I, T, S> {
         ReadOnlyCompressedVec::new(self.base.read_only_base(), Arc::clone(&self.pages))
+    }
+
+    /// Creates a forward cursor over a bounded persisted range.
+    #[inline]
+    pub fn range_cursor_at(&self, from: usize, to: usize) -> CompressedRangeCursor<'_, I, T, S> {
+        CompressedRangeCursor::new(self.region(), &self.pages, self.stored_len(), from, to)
     }
 
     /// # Warning

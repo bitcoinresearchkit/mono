@@ -78,6 +78,12 @@ where
         Some(())
     }
 
+    #[inline(always)]
+    pub fn decoded_page(&mut self, page_index: usize) -> Option<&[T]> {
+        self.ensure_page_decoded(page_index)?;
+        Some(&self.page_buf)
+    }
+
     /// Fold all remaining elements — tight pointer loop per page so LLVM can vectorize.
     #[inline(always)]
     pub(crate) fn fold<B, F: FnMut(B, T) -> B>(mut self, init: B, mut f: F) -> B {
@@ -93,11 +99,11 @@ where
             }
             let page_end = (end - page_start).min(self.page_buf.len());
             let ptr = self.page_buf.as_ptr();
-            let mut i = in_page_offset;
-            while i < page_end {
+            let mut index = in_page_offset;
+            while index < page_end {
                 // Clone rather than move: page_buf still owns and drops every value.
-                accum = f(accum, unsafe { (&*ptr.add(i)).clone() });
-                i += 1;
+                accum = f(accum, unsafe { (&*ptr.add(index)).clone() });
+                index += 1;
             }
             self.pos = page_start + page_end;
             page_index += 1;

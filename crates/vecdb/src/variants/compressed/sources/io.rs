@@ -159,6 +159,12 @@ where
         self.decode_from_buffer(page_index, page)
     }
 
+    #[inline(always)]
+    pub fn decoded_page(&mut self, page_index: usize) -> Option<&[T]> {
+        self.ensure_page_decoded(page_index)?;
+        Some(&self.decoded_values)
+    }
+
     /// Reads remaining pages directly into the destination allocation.
     pub(crate) fn read_into(mut self, output: &mut Vec<T>) {
         output.reserve(self.end_index - self.index);
@@ -205,11 +211,11 @@ where
             }
             let page_end = (end_index - page_start).min(self.decoded_values.len());
             let ptr = self.decoded_values.as_ptr();
-            let mut i = in_page_offset;
-            while i < page_end {
+            let mut index = in_page_offset;
+            while index < page_end {
                 // Clone rather than move: decoded_values still owns and drops every value.
-                accum = f(accum, unsafe { (&*ptr.add(i)).clone() });
-                i += 1;
+                accum = f(accum, unsafe { (&*ptr.add(index)).clone() });
+                index += 1;
             }
             self.index = page_start + page_end;
             page_index += 1;

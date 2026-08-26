@@ -6,7 +6,10 @@ mod any_vec;
 mod readable;
 mod typed;
 
-use crate::{CompressedIoSource, CompressedMmapSource, ReadOnlyBaseVec, VecIndex, VecValue};
+use crate::{
+    CompressedIoSource, CompressedMmapSource, CompressedRangeCursor, ReadOnlyBaseVec, VecIndex,
+    VecValue,
+};
 
 use super::{CompressionStrategy, Pages, ReadWriteCompressedVec};
 
@@ -39,6 +42,12 @@ where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
+    /// Creates a forward cursor over a bounded persisted range.
+    #[inline]
+    pub fn range_cursor_at(&self, from: usize, to: usize) -> CompressedRangeCursor<'_, I, T, S> {
+        CompressedRangeCursor::new(self.base.region(), &self.pages, self.base.len(), from, to)
+    }
+
     #[inline(always)]
     pub(super) fn fold_source<B, F: FnMut(B, T) -> B>(
         &self,

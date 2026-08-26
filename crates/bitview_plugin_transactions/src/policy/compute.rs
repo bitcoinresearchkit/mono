@@ -73,12 +73,14 @@ impl Vecs {
         self.is_nonstandard.truncate_if_needed_at(start_tx)?;
         self.count.nonstandard.truncate_if_needed_at(start_height)?;
 
-        let mut unconditional = features.is_unconditionally_nonstandard.cursor();
-        let mut has_dust = features.has_dust_output.cursor();
+        let mut unconditional = features
+            .is_unconditionally_nonstandard
+            .range_cursor_at(start_tx, target_tx);
+        let mut has_dust = features
+            .has_dust_output
+            .range_cursor_at(start_tx, target_tx);
         let mut fee = fees.fee.tx_index.cursor();
         let mut tx_count = mappings.height.tx_index_count.cursor();
-        unconditional.advance(start_tx);
-        has_dust.advance(start_tx);
         fee.advance(start_tx);
         tx_count.advance(start_height);
 
