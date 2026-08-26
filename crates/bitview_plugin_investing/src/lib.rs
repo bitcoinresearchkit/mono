@@ -16,4 +16,5 @@ use brk_types::{Dollars, Version};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("investing"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
-const DCA_AMOUNT: Dollars = Dollars::mint(100.0);
+const DCA_DOLLARS_PER_DAY: f64 = 100.0;
+const DCA_AMOUNT: Dollars = Dollars::mint(DCA_DOLLARS_PER_DAY);

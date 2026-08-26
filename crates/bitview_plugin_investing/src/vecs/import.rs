@@ -1,21 +1,15 @@
 use bitview_compute::{
-    ByDcaCagr, ByDcaPeriod, CentsUnsignedToDollars, Identity, LazyIndexedVec, LazyPerBlock,
-    LazyPercentPerBlock, LazyPreviousDeltaVec, LazySinceDayVec, LazyWindowVec, Price,
-    RatioDiffCents, SatsToBitcoin, SatsToCents,
+    ByDcaCagr, ByDcaPeriod, LazyIndexedVec, LazyPercentPerBlock, LazyPreviousDeltaVec,
+    LazySinceDayVec, LazyWindowVec, Price, RatioDiffCents,
 };
 use brk_error::{Error, Result};
-use brk_types::{
-    Bitcoin, Cents, Date, Day1, Dollars, Height, PartsPerMillionSigned64, Sats, Version,
-};
-use vecdb::{
-    BinaryTransform, CachedBoxedVec, CheckedSub, ReadableCloneableVec, ReadableVec, TypedVec,
-    VecIndex,
-};
+use brk_types::{Cents, Date, Day1, Height, PartsPerMillionSigned64, Sats};
+use vecdb::{BinaryTransform, CheckedSub, ReadableCloneableVec, VecIndex};
 
 use super::Vecs;
 use crate::{
-    DCA_AMOUNT, STORAGE, by_class, cached_dca_sats::CachedDcaSats, class_vecs::ClassVecs,
-    dca_stack::DcaStack, lump_sum_stack::LumpSumStack, period_vecs::PeriodVecs,
+    STORAGE, by_class, cached_dca_sats::CachedDcaSats, class_vecs::ClassVecs, dca_stack::DcaStack,
+    lump_sum_stack::LumpSumStack, period_vecs::PeriodVecs,
 };
 
 impl Vecs {
@@ -56,7 +50,7 @@ impl Vecs {
                     true,
                     |current, before, _| current.checked_sub(before).unwrap_or_default(),
                 );
-                dca_stack_from_source(&metric_name, version, mappings, source, &spot_price)
+                DcaStack::from_source(&metric_name, version, mappings, source, &spot_price)
             })?;
 
         let first_price_day = Day1::try_from(Date::new(2010, 7, 12)).unwrap();
@@ -73,7 +67,7 @@ impl Vecs {
                     }
                     let num_days =
                         (days as usize).min(day.to_usize() + 1 - first_price_day.to_usize());
-                    Cents::from(DCA_AMOUNT * num_days / Bitcoin::from(stack_sats))
+                    DcaStack::cost_basis_cents(num_days, stack_sats)
                 },
             );
             Ok::<_, Error>(Price::from_height_source(
@@ -115,7 +109,7 @@ impl Vecs {
 
         let lump_sum_stack =
             ByDcaPeriod::try_from_period(&cached_starts, |name, days, window_starts| {
-                lump_sum_stack(
+                LumpSumStack::from_window(
                     &format!("lump_sum_stack_{name}"),
                     days,
                     version,
@@ -156,7 +150,7 @@ impl Vecs {
                 day,
                 |current, before| current.checked_sub(before).unwrap_or_default(),
             );
-            dca_stack_from_source(&metric_name, version, mappings, source, &spot_price)
+            DcaStack::from_source(&metric_name, version, mappings, source, &spot_price)
         })?;
 
         let class_cost_basis =
@@ -172,7 +166,7 @@ impl Vecs {
                             return Cents::ZERO;
                         }
                         let num_days = day.to_usize() + 1 - from.to_usize();
-                        Cents::from(DCA_AMOUNT * num_days / Bitcoin::from(stack_sats))
+                        DcaStack::cost_basis_cents(num_days, stack_sats)
                     },
                 );
                 Ok::<_, Error>(Price::from_height_source(
@@ -221,110 +215,5 @@ impl Vecs {
                 dca_return: class_return,
             },
         })
-    }
-}
-
-fn dca_stack_from_source<V>(
-    name: &str,
-    version: Version,
-    mappings: &bitview_plugin_mappings::Vecs,
-    source: V,
-    spot_price: &CachedBoxedVec<Height, Cents>,
-) -> Result<DcaStack>
-where
-    V: TypedVec<I = Height, T = Sats> + ReadableVec<Height, Sats> + Clone + 'static,
-{
-    let sats = LazyPerBlock::from_height_source::<Identity<Sats>>(
-        &format!("{name}_sats"),
-        version,
-        source,
-        mappings,
-    );
-    let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
-    let cents_source = LazyIndexedVec::new(
-        &format!("{name}_cents_source"),
-        version,
-        sats.height.read_only_boxed_clone(),
-        spot_price.clone(),
-        |_, sats, spot| SatsToCents::apply(sats, spot),
-    );
-    let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
-        &format!("{name}_cents"),
-        version,
-        cents_source,
-        mappings,
-    );
-    let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-        &format!("{name}_usd"),
-        version,
-        &cents,
-    );
-    Ok(DcaStack {
-        btc,
-        sats,
-        usd,
-        cents,
-    })
-}
-
-fn lump_sum_stack(
-    name: &str,
-    days: u32,
-    version: Version,
-    mappings: &bitview_plugin_mappings::Vecs,
-    window_starts: &CachedBoxedVec<Height, Height>,
-    prices: &bitview_plugin_price::Vecs,
-) -> Result<LumpSumStack> {
-    let total_invested = DCA_AMOUNT * days as usize;
-
-    let sats_source = LazyWindowVec::<Height, Cents, Sats>::new(
-        &format!("{name}_sats_source"),
-        version,
-        prices.spot.cents.height.read_only_boxed_clone(),
-        window_starts.clone(),
-        false,
-        move |_, past, _| lump_sum_sats(total_invested, past),
-    );
-    let sats = LazyPerBlock::from_height_source::<Identity<Sats>>(
-        &format!("{name}_sats"),
-        version,
-        sats_source,
-        mappings,
-    );
-    let btc = LazyPerBlock::from_lazy::<SatsToBitcoin, Sats>(name, version, &sats);
-
-    let cents_source = LazyWindowVec::<Height, Cents, Cents>::new(
-        &format!("{name}_cents_source"),
-        version,
-        prices.spot.cents.height.read_only_boxed_clone(),
-        window_starts.clone(),
-        false,
-        move |current, past, _| SatsToCents::apply(lump_sum_sats(total_invested, past), current),
-    );
-    let cents = LazyPerBlock::from_height_source::<Identity<Cents>>(
-        &format!("{name}_cents"),
-        version,
-        cents_source,
-        mappings,
-    );
-    let usd = LazyPerBlock::from_lazy::<CentsUnsignedToDollars, Cents>(
-        &format!("{name}_usd"),
-        version,
-        &cents,
-    );
-
-    Ok(LumpSumStack {
-        btc,
-        sats,
-        usd,
-        cents,
-    })
-}
-
-fn lump_sum_sats(total_invested: Dollars, past_price: Cents) -> Sats {
-    if past_price == Cents::ZERO {
-        Sats::ZERO
-    } else {
-        Sats::from(Bitcoin::from(total_invested / Dollars::from(past_price)))
     }
 }

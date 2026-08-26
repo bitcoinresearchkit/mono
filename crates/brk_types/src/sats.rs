@@ -91,6 +91,20 @@ impl Sats {
     pub const ONE_BTC_U128: u128 = 1_00_000_000;
     pub const ONE_BTC_I128: i128 = 1_00_000_000;
 
+    #[inline(always)]
+    pub fn from_dollars_at_price(amount: Dollars, price: Dollars) -> Self {
+        if amount.is_nan()
+            || amount.is_negative()
+            || price.is_nan()
+            || price.is_zero()
+            || price.is_negative()
+        {
+            Self::ZERO
+        } else {
+            Self::from(f64::from(amount) * Self::ONE_BTC_U64 as f64 / f64::from(price))
+        }
+    }
+
     pub fn new(sats: u64) -> Self {
         Self(sats)
     }
@@ -392,5 +406,34 @@ mod tests {
             let compact = Sats::from_overflow_index(index);
             assert_eq!(Sats::overflow_index(compact), Some(index));
         }
+    }
+
+    #[test]
+    fn dollars_at_price_matches_typed_conversion() {
+        for index in 0..1_200_000_u64 {
+            let amount = Dollars::from((index % 6_000 + 1) as f64 * 100.0);
+            let price = Dollars::from((index.wrapping_mul(2_654_435_761) % 200_000 + 1) as f64);
+            assert_eq!(
+                Sats::from_dollars_at_price(amount, price),
+                Sats::from(Bitcoin::from(amount / price)),
+            );
+        }
+
+        assert_eq!(
+            Sats::from_dollars_at_price(Dollars::mint(100.0), Dollars::ZERO),
+            Sats::ZERO,
+        );
+        assert_eq!(
+            Sats::from_dollars_at_price(Dollars::NAN, Dollars::mint(1.0)),
+            Sats::ZERO,
+        );
+        assert_eq!(
+            Sats::from_dollars_at_price(Dollars::mint(-1.0), Dollars::mint(1.0)),
+            Sats::ZERO,
+        );
+        assert_eq!(
+            Sats::from_dollars_at_price(Dollars::mint(1.0), Dollars::mint(-1.0)),
+            Sats::ZERO,
+        );
     }
 }

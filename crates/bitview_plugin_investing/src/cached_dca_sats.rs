@@ -1,4 +1,4 @@
-use brk_types::{Bitcoin, Day1, Dollars, Height, Sats, Version};
+use brk_types::{Day1, Dollars, Height, Sats, Version};
 use vecdb::{
     AnyVec, CachedBoxedVec, CachedVec, PrintableIndex, ReadOnlyClone, ReadableBoxedVec,
     ReadableVec, TypedVec, VecIndex, short_type_name,
@@ -172,6 +172,11 @@ struct DcaSatsByDay {
 }
 
 impl DcaSatsByDay {
+    #[inline(always)]
+    fn sats_at_price(price: Dollars) -> Sats {
+        Sats::from_dollars_at_price(DCA_AMOUNT, price)
+    }
+
     fn try_for_each_cumulative<E>(
         &self,
         from: usize,
@@ -190,7 +195,7 @@ impl DcaSatsByDay {
             .into_iter()
             .enumerate()
         {
-            cumulative += sats_from_dca(price.unwrap_or_default());
+            cumulative += Self::sats_at_price(price.unwrap_or_default());
             if day >= from {
                 each(cumulative)?;
             }
@@ -282,14 +287,6 @@ impl ReadableVec<Day1, Sats> for DcaSatsByDay {
             Ok(())
         })?;
         Ok(acc.unwrap())
-    }
-}
-
-fn sats_from_dca(price: Dollars) -> Sats {
-    if price == Dollars::ZERO {
-        Sats::ZERO
-    } else {
-        Sats::from(Bitcoin::from(DCA_AMOUNT / price))
     }
 }
 
@@ -421,16 +418,16 @@ mod tests {
             days.cached_boxed_clone(),
         );
 
-        let first = sats_from_dca(Dollars::mint(100.0));
-        let third = first + sats_from_dca(Dollars::mint(200.0));
+        let first = DcaSatsByDay::sats_at_price(Dollars::mint(100.0));
+        let third = first + DcaSatsByDay::sats_at_price(Dollars::mint(200.0));
         assert_eq!(cached.daily.snapshot().as_slice(), &[first, first, third]);
 
         prices.replace(0, Some(Dollars::mint(50.0)));
         assert_eq!(cached.daily.snapshot().as_slice(), &[first, first, third]);
 
         cached.invalidate();
-        let replaced = sats_from_dca(Dollars::mint(50.0));
-        let third = replaced + sats_from_dca(Dollars::mint(200.0));
+        let replaced = DcaSatsByDay::sats_at_price(Dollars::mint(50.0));
+        let third = replaced + DcaSatsByDay::sats_at_price(Dollars::mint(200.0));
         assert_eq!(
             cached.daily.snapshot().as_slice(),
             &[replaced, replaced, third]
@@ -453,8 +450,8 @@ mod tests {
         ]));
         let cached = CachedDcaSats::new(ReadableBoxedVec::new(prices), days.cached_boxed_clone());
 
-        let first = sats_from_dca(Dollars::mint(100.0));
-        let third = first + sats_from_dca(Dollars::mint(200.0));
+        let first = DcaSatsByDay::sats_at_price(Dollars::mint(100.0));
+        let third = first + DcaSatsByDay::sats_at_price(Dollars::mint(200.0));
         assert_eq!(cached.collect(), [first, first, first, third, third]);
         assert_eq!(cached.collect_one_at(3), Some(third));
         assert_eq!(cached.collect_one_at(5), None);

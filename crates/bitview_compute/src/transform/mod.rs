@@ -1,11 +1,14 @@
 mod arithmetic;
+mod cagr;
 mod currency;
-mod derived;
+mod days_to_years;
 mod fixed_ratio;
+mod price_times_ratio;
 mod ratio;
 mod ratio_cents_f32;
 mod sopr_ratio;
 mod specialized;
+mod times_sqrt;
 
 pub use arithmetic::{
     BlocksToDaysF32, DifficultyToHashF64, HalveCents, HalveDollars, HalveSats, HalveSatsToBitcoin,
@@ -13,13 +16,15 @@ pub use arithmetic::{
     ReturnU16, StoredU16ToStoredU64, StoredU64ToStoredU32, ThsToPhsF32, VBytesToWeight,
     WeightToVSize,
 };
+pub use cagr::Cagr;
 pub use currency::{
     AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,
     CentsUnsignedToSats, DollarsToSatsFract, NegCentsUnsignedToDollars, SatsSignedToBitcoin,
     SatsToBitcoin, SatsToCents, StoredU64ToCents, StoredU64ToSats,
 };
-pub use derived::{Cagr, Days1, Days7, Days30, Days365, DaysToYears, PriceTimesRatio, TimesSqrt};
+pub use days_to_years::DaysToYears;
 pub use fixed_ratio::{FixedToPercent, FixedToRatio};
+pub use price_times_ratio::PriceTimesRatio;
 pub use ratio::{
     RatioBytes, RatioCents, RatioCentsSignedCents, RatioDiffCents, RatioDiffDollars, RatioDiffF32,
     RatioDollars, RatioSats, RatioU64,
@@ -31,3 +36,4 @@ pub use specialized::{
     OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,
     OhlcCentsToSats,
 };
+pub use times_sqrt::TimesSqrt;
