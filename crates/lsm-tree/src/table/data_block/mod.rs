@@ -19,8 +19,10 @@ use crate::table::util::{SliceIndexes, compare_prefixed_slice};
 use crate::{InternalValue, Slice, ValueType, value::PointReadValue};
 use byteorder::WriteBytesExt;
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::io::Cursor;
-use std::io::Seek;
+use std::{
+    cmp::Ordering,
+    io::{Cursor, Seek},
+};
 use varint_rs::{VarintReader, VarintWriter};
 
 impl Decodable<DataBlockParsedItem> for InternalValue {
@@ -467,56 +469,43 @@ impl DataBlock {
     }
 
     fn point_read_item(&self, needle: &[u8]) -> Option<DataBlockParsedItem> {
-        let iter = if let Some(hash_index_reader) = self.get_hash_index_reader() {
-            match hash_index_reader.get(needle) {
-                MARKER_FREE => {
-                    return None;
-                }
-                MARKER_CONFLICT => {
-                    // NOTE: Fallback to binary search
-                    let mut iter = self.iter();
-
-                    if !iter.seek(needle) {
-                        return None;
-                    }
-
-                    iter
-                }
-                idx => {
-                    let offset: usize = self.get_binary_index_reader().get(usize::from(idx));
-
-                    let mut iter = self.iter();
-                    iter.seek_to_offset(offset);
-
-                    iter
-                }
-            }
-        } else {
-            let mut iter = self.iter();
-
-            // NOTE: Fallback to binary search
-            if !iter.seek(needle) {
-                return None;
-            }
-
-            iter
+        let Some(hash_index_reader) = self.get_hash_index_reader() else {
+            return self.binary_point_read(needle);
         };
+
+        let idx = match hash_index_reader.get(needle) {
+            MARKER_FREE => return None,
+            MARKER_CONFLICT => return self.binary_point_read(needle),
+            idx => idx,
+        };
+        let offset = self.get_binary_index_reader().get(usize::from(idx));
+        let mut iter = self.iter();
+        iter.seek_to_offset(offset);
 
         // Linear scan
         for item in iter {
             match item.compare_key(needle, &self.inner.data) {
-                std::cmp::Ordering::Greater => {
+                Ordering::Greater => {
                     // We are before our searched key/seqno
                     return None;
                 }
-                std::cmp::Ordering::Equal => {
+                Ordering::Equal => {
                     return Some(item);
                 }
-                std::cmp::Ordering::Less => {}
+                Ordering::Less => {}
             }
         }
 
         None
+    }
+
+    fn binary_point_read(&self, needle: &[u8]) -> Option<DataBlockParsedItem> {
+        let mut iter = self.iter();
+        if !iter.seek(needle) {
+            return None;
+        }
+
+        iter.next()
     }
 
     #[must_use]
