@@ -106,7 +106,6 @@ impl Vecs {
     ) -> Result<Self> {
         let db_path = STORAGE.path(context);
         let states_path = db_path.join("states");
-
         let db = STORAGE.open_database(context, 20_000_000)?;
         db.set_min_regions(50_000)?;
 

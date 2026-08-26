@@ -166,6 +166,11 @@ impl ColumnId for AgeRangeId {
 }
 
 impl AgeRangeId {
+    pub fn from_cohort_name(context: CohortContext, name: &str) -> Option<Self> {
+        let name = name.strip_prefix(context.prefix())?.strip_prefix('_')?;
+        Self::ALL.iter().copied().find(|id| id.name().id == name)
+    }
+
     pub fn matching(filter: &Filter) -> Option<Self> {
         Self::ALL
             .iter()
@@ -496,6 +501,35 @@ impl<T> AgeRange<T> {
         }
     }
 
+    pub fn par_from_fn(create: impl Fn(AgeRangeId) -> T + Send + Sync) -> Self
+    where
+        T: Send,
+    {
+        let mut values = AGE_RANGE_IDS
+            .into_par_iter()
+            .map(create)
+            .collect::<Vec<_>>()
+            .into_iter();
+        Self::from_fn(|_| values.next().expect("one value per age range"))
+    }
+
+    pub fn par_try_from_fn<E>(
+        create: impl Fn(AgeRangeId) -> Result<T, E> + Send + Sync,
+    ) -> Result<Self, E>
+    where
+        T: Send,
+        E: Send,
+    {
+        let mut values = AGE_RANGE_IDS
+            .into_par_iter()
+            .map(create)
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter();
+        Ok(Self::from_fn(|_| {
+            values.next().expect("one value per age range")
+        }))
+    }
+
     pub fn try_from_fn<E>(mut create: impl FnMut(AgeRangeId) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
             under_1h: create(AgeRangeId::Under1H)?,
@@ -706,6 +740,20 @@ mod tests {
             assert_eq!(*column, expected_column);
             assert_eq!(name, &CohortContext::Utxo.prefixed(expected_name.id));
         }
+    }
+
+    #[test]
+    fn cohort_names_roundtrip_to_typed_ids() {
+        for context in [CohortContext::Utxo, CohortContext::Addr] {
+            for id in AGE_RANGE_IDS {
+                let name = context.prefixed(id.name().id);
+                assert_eq!(AgeRangeId::from_cohort_name(context, &name), Some(id));
+            }
+        }
+        assert_eq!(
+            AgeRangeId::from_cohort_name(CohortContext::Utxo, "all"),
+            None
+        );
     }
 
     #[test]

@@ -8,13 +8,13 @@ use std::{
 };
 
 use bitview_cohort::{
-    AgeRangeId, ByTerm, CohortContext, TERM_FILTERS, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate,
+    AgeRangeId, ByTerm, TERM_FILTERS, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate, UTXOAggregateId,
 };
+use bitview_plugin_distribution::{AgeRangeUrpds, UTXOStates};
 use brk_types::{CentsCompact, Date, Sats, UrpdRaw, UrpdWeight, Version};
 use vecdb::ColumnId;
 
 use super::{ModeId, ModeWeights, WeightedModeId, WeightedModes, WeightedPair, WeightedUrpdNames};
-use bitview_plugin_distribution::UTXOStates;
 
 const VERSION_FILE: &str = "bedrock_urpd.version";
 
@@ -79,20 +79,26 @@ impl DayUrpds {
         }
     }
 
-    pub fn read(
+    pub fn read_if_exists(
         distribution_states_path: &Path,
         date: Date,
         weights: &ModeWeights,
-    ) -> Result<Self> {
-        let raw = UrpdRaw::read(distribution_states_path, UTXO_ALL_NAME.id, date)?;
+    ) -> Result<Option<Self>> {
+        if !AgeRangeUrpds::path(distribution_states_path, date).try_exists()? {
+            return Ok(None);
+        }
+        Self::read(distribution_states_path, date, weights).map(Some)
+    }
+
+    fn read(distribution_states_path: &Path, date: Date, weights: &ModeWeights) -> Result<Self> {
+        let sources = AgeRangeUrpds::read(distribution_states_path, date)?;
+        let raw = sources.aggregate(UTXOAggregateId::All);
         let mut weighted = BTreeMap::new();
 
         for &age in AgeRangeId::ALL {
-            let cohort = CohortContext::Utxo.prefixed(age.name().id);
-            let source = UrpdRaw::read(distribution_states_path, &cohort, date)?;
             let is_short = TERM_FILTERS.short.includes(age.filter());
 
-            for (price, sats) in source.map {
+            for &(price, sats) in sources.get(age) {
                 Self::add_weighted_entry(&mut weighted, price, sats, age, is_short, weights);
             }
         }
@@ -101,7 +107,14 @@ impl DayUrpds {
     }
 
     pub fn current(utxos: &UTXOStates, weights: &ModeWeights) -> Self {
-        Self::from_age_entries(utxos.age_range_urpd_entries(), weights)
+        Self::from_age_entries(
+            AgeRangeId::ALL.iter().copied().flat_map(|age| {
+                utxos
+                    .age_range_urpd_entries(age)
+                    .map(move |(price, sats)| (age, price, sats))
+            }),
+            weights,
+        )
     }
 
     fn from_age_entries(
@@ -269,8 +282,9 @@ impl DayUrpds {
 
 #[cfg(test)]
 mod tests {
-    use bitview_cohort::{AgeRange, AgeRangeId};
-    use brk_types::{CentsCompact, Sats};
+    use bitview_cohort::{AgeRange, AgeRangeId, UTXO_ALL_NAME};
+    use bitview_plugin_distribution::{AgeRangeUrpds, UTXOStates};
+    use brk_types::{CentsCompact, Date, Sats, UrpdRaw};
 
     use super::{DayUrpds, ModeWeights};
 
@@ -305,5 +319,23 @@ mod tests {
         assert_eq!(names.all.coinflow, "bedrock_coinflow");
         assert_eq!(names.sth.cointime, "bedrock_cointime_sth");
         assert_eq!(names.lth.coinflow, "bedrock_coinflow_lth");
+    }
+
+    #[test]
+    fn historical_read_uses_packed_source_without_legacy_all_file() {
+        let root = tempfile::tempdir().unwrap();
+        let date = Date::new(2026, 8, 26);
+        let mut utxos = UTXOStates::new(root.path());
+        utxos.reset().unwrap();
+        utxos.write_urpds(date, root.path()).unwrap();
+
+        assert!(AgeRangeUrpds::path(root.path(), date).exists());
+        assert!(!UrpdRaw::path(root.path(), UTXO_ALL_NAME.id, date).exists());
+
+        let weights = ModeWeights::from_fn(|_| None);
+        let urpds = DayUrpds::read_if_exists(root.path(), date, &weights)
+            .unwrap()
+            .expect("packed source");
+        assert!(urpds.raw.map.is_empty());
     }
 }

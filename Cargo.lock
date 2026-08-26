@@ -605,6 +605,7 @@ dependencies = [
  "derive_more",
  "schemars",
  "serde",
+ "tempfile",
  "vecdb",
 ]
 

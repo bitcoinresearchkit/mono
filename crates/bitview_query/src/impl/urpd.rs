@@ -1,13 +1,15 @@
 use std::{
+    cmp::Ordering,
     fs,
     path::{Path, PathBuf},
 };
 
-use bitview_cohort::{UTXO_AGGREGATE_NAMES, UTXO_ALL_NAME};
+use bitview_cohort::{AgeRangeId, CohortContext, UTXO_ALL_NAME, UTXOAggregateId};
 use bitview_plugin::{Plugin, PluginReadGuard};
+use bitview_plugin_distribution::AgeRangeUrpds;
 use brk_error::{Error, Result};
 use brk_types::{Cohort, Date, Day1, Urpd, UrpdAggregation, UrpdRaw, UrpdWeight};
-use vecdb::ReadableOptionVec;
+use vecdb::{ColumnId, ReadableOptionVec};
 
 use crate::Query;
 
@@ -27,24 +29,52 @@ impl Query {
 
     fn urpd_cohorts_inner(&self) -> brk_error::Result<Vec<Cohort>> {
         let states_path = &self.plugins().distribution.states_path;
+        let age_range_dir = AgeRangeUrpds::dir(states_path);
 
         let mut cohorts: Vec<Cohort> = fs::read_dir(states_path)?
             .filter_map(|entry| {
-                let name = entry.ok()?.file_name().into_string().ok()?;
-                if !UrpdRaw::dir(states_path, &name).exists() {
+                let entry = entry.ok()?;
+                if entry.path() == age_range_dir || !entry.file_type().ok()?.is_dir() {
                     return None;
                 }
-                Cohort::new(name)
+                let cohort = Cohort::new(entry.file_name().into_string().ok()?)?;
+                if Self::urpd_age_range_id(&cohort).is_some()
+                    || Self::urpd_aggregate_id(&cohort).is_some()
+                {
+                    return None;
+                }
+                Some(cohort)
             })
             .collect();
 
+        if age_range_dir.exists() {
+            cohorts.extend(
+                AgeRangeId::ALL
+                    .iter()
+                    .filter_map(|id| Cohort::new(CohortContext::Utxo.prefixed(id.name().id))),
+            );
+            cohorts.extend(
+                UTXOAggregateId::ALL
+                    .iter()
+                    .filter_map(|id| Cohort::new(id.cohort_name().id)),
+            );
+        }
+
         cohorts.sort_unstable();
+        cohorts.dedup();
 
         Ok(cohorts)
     }
 
     fn urpd_dir(&self, cohort: &Cohort) -> brk_error::Result<PathBuf> {
-        let dir = UrpdRaw::dir(&self.plugins().distribution.states_path, cohort);
+        let states_path = &self.plugins().distribution.states_path;
+        let is_age_range = Self::urpd_age_range_id(cohort).is_some();
+        let is_aggregate = Self::urpd_aggregate_id(cohort).is_some();
+        let dir = if is_age_range || is_aggregate {
+            AgeRangeUrpds::dir(states_path)
+        } else {
+            UrpdRaw::dir(states_path, cohort)
+        };
 
         if !dir.exists() {
             let valid = self
@@ -89,7 +119,7 @@ impl Query {
         }
 
         let all = Cohort::new(UTXO_ALL_NAME.id).expect("canonical cohort is valid");
-        let weighted_cohort = if is_aggregate_cohort(cohort) {
+        let weighted_cohort = if Self::urpd_aggregate_id(cohort).is_some() {
             cohort
         } else {
             &all
@@ -132,10 +162,10 @@ impl Query {
         }
 
         if weight == UrpdWeight::Raw {
-            return UrpdRaw::read(&self.plugins().distribution.states_path, cohort, date);
+            return self.read_raw_urpd(cohort, date);
         }
 
-        if is_aggregate_cohort(cohort) {
+        if Self::urpd_aggregate_id(cohort).is_some() {
             let path = self
                 .weighted_urpd_dir(cohort, weight)?
                 .join(date.to_string());
@@ -164,10 +194,26 @@ impl Query {
                     "No {weight} weight for cohort '{cohort}' on {date}"
                 ))
             })?;
-        Ok(
-            UrpdRaw::read(&self.plugins().distribution.states_path, cohort, date)?
-                .apply_weight(scalar),
-        )
+        Ok(self.read_raw_urpd(cohort, date)?.apply_weight(scalar))
+    }
+
+    fn read_raw_urpd(&self, cohort: &Cohort, date: Date) -> Result<UrpdRaw> {
+        let states_path = &self.plugins().distribution.states_path;
+        if let Some(id) = Self::urpd_age_range_id(cohort) {
+            return AgeRangeUrpds::read_one(states_path, id, date);
+        }
+        if let Some(id) = Self::urpd_aggregate_id(cohort) {
+            return AgeRangeUrpds::read_aggregate(states_path, id, date);
+        }
+        UrpdRaw::read(states_path, cohort, date)
+    }
+
+    fn urpd_age_range_id(cohort: &Cohort) -> Option<AgeRangeId> {
+        AgeRangeId::from_cohort_name(CohortContext::Utxo, cohort)
+    }
+
+    fn urpd_aggregate_id(cohort: &Cohort) -> Option<UTXOAggregateId> {
+        UTXOAggregateId::from_cohort_name(cohort)
     }
 
     /// URPD for a cohort on a specific date.
@@ -246,10 +292,6 @@ impl Query {
     }
 }
 
-fn is_aggregate_cohort(cohort: &Cohort) -> bool {
-    UTXO_AGGREGATE_NAMES.iter().any(|name| name.id == &**cohort)
-}
-
 fn dates_in_dir(dir: &Path) -> brk_error::Result<Vec<Date>> {
     let mut dates: Vec<Date> = fs::read_dir(dir)?
         .filter_map(|entry| entry.ok()?.file_name().to_str()?.parse().ok())
@@ -266,13 +308,13 @@ fn intersect_dates(left: Vec<Date>, right: Vec<Date>) -> Vec<Date> {
 
     while let (Some(&a), Some(&b)) = (left.peek(), right.peek()) {
         match a.cmp(&b) {
-            std::cmp::Ordering::Less => {
+            Ordering::Less => {
                 left.next();
             }
-            std::cmp::Ordering::Greater => {
+            Ordering::Greater => {
                 right.next();
             }
-            std::cmp::Ordering::Equal => {
+            Ordering::Equal => {
                 intersection.push(a);
                 left.next();
                 right.next();

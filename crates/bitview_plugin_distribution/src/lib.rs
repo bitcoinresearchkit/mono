@@ -16,7 +16,7 @@ pub use all_chain_sources::AllChainSources;
 pub use dependencies::Dependencies;
 pub use has::HasDistribution;
 use metrics::CohortMetrics;
-pub use state::UTXOStates;
+pub use state::{AgeRangeUrpds, UTXOStates};
 pub use vecs::Vecs;
 
 use bitview_plugin::{PluginId, PluginStorage};

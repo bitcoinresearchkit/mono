@@ -1,12 +1,12 @@
 use brk_error::Result;
 
-use bitview_cohort::{AgeRange, AgeRangeId, UTXO_ALL_NAME};
+use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::{AgeBand, db_utils::validate_any_computed_version_or_reset};
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_coinflow::HorizonId;
 use bitview_plugin_distribution::UTXOStates;
 use bitview_plugin_indexer::Indexer;
-use brk_types::{Day1, Sats, StoredF64, UrpdRaw, Version};
+use brk_types::{Day1, Sats, StoredF64, Version};
 use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
 
 use super::Vecs;
@@ -196,12 +196,8 @@ impl Vecs {
                 );
                 let urpds = if day_index + 1 == source_end {
                     Some(DayUrpds::current(utxo_states, &weights))
-                } else if UrpdRaw::path(&distribution.states_path, UTXO_ALL_NAME.id, date)
-                    .try_exists()?
-                {
-                    Some(DayUrpds::read(&distribution.states_path, date, &weights)?)
                 } else {
-                    None
+                    DayUrpds::read_if_exists(&distribution.states_path, date, &weights)?
                 };
 
                 if let Some(urpds) = urpds {

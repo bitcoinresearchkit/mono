@@ -1,9 +1,10 @@
 use std::{
     collections::BTreeMap,
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
+use brk_error::{Error, Result};
 use pco::{
     ChunkConfig,
     standalone::{simple_compress, simple_decompress},
@@ -21,6 +22,11 @@ pub struct UrpdRaw {
     pub map: BTreeMap<CentsCompact, Sats>,
 }
 
+struct DecodedEntries<'a> {
+    entries: Vec<(CentsCompact, Sats)>,
+    rest: &'a [u8],
+}
+
 impl UrpdRaw {
     pub fn dir(states_path: &Path, name: &str) -> PathBuf {
         states_path.join(name).join("urpd")
@@ -30,15 +36,17 @@ impl UrpdRaw {
         Self::dir(states_path, name).join(date.to_string())
     }
 
-    pub fn read(states_path: &Path, name: &str, date: Date) -> brk_error::Result<Self> {
+    pub fn read(states_path: &Path, name: &str, date: Date) -> Result<Self> {
         let path = Self::path(states_path, name, date);
         let bytes = fs::read(&path).map_err(|error| {
-            std::io::Error::new(
+            io::Error::new(
                 error.kind(),
                 format!("Cannot read URPD '{}': {error}", path.display()),
             )
         })?;
-        Self::deserialize(&bytes)
+        Ok(Self {
+            map: Self::deserialize_entries(&bytes)?.into_iter().collect(),
+        })
     }
 
     pub fn write(
@@ -46,7 +54,7 @@ impl UrpdRaw {
         name: &str,
         date: Date,
         entries: impl Iterator<Item = (CentsCompact, Sats)>,
-    ) -> brk_error::Result<()> {
+    ) -> Result<()> {
         let dir = Self::dir(states_path, name);
         fs::create_dir_all(&dir)?;
         fs::write(dir.join(date.to_string()), Self::serialize_iter(entries)?)?;
@@ -73,9 +81,20 @@ impl UrpdRaw {
     }
 
     /// Deserialize from the pco-compressed format, returning remaining bytes.
-    pub fn deserialize_with_rest(data: &[u8]) -> brk_error::Result<(Self, &[u8])> {
+    pub fn deserialize_with_rest(data: &[u8]) -> Result<(Self, &[u8])> {
+        Self::decode_entries(data).map(|decoded| {
+            (
+                Self {
+                    map: decoded.entries.into_iter().collect(),
+                },
+                decoded.rest,
+            )
+        })
+    }
+
+    fn decode_entries(data: &[u8]) -> Result<DecodedEntries<'_>> {
         if data.len() < 24 {
-            return Err(brk_error::Error::Deserialization(format!(
+            return Err(Error::Deserialization(format!(
                 "UrpdRaw: data too short ({} bytes, need >= 24)",
                 data.len()
             )));
@@ -89,7 +108,7 @@ impl UrpdRaw {
         let rest_start = values_start + values_len;
 
         if data.len() < rest_start {
-            return Err(brk_error::Error::Deserialization(format!(
+            return Err(Error::Deserialization(format!(
                 "UrpdRaw: data too short ({} bytes, need >= {})",
                 data.len(),
                 rest_start
@@ -99,31 +118,45 @@ impl UrpdRaw {
         let keys: Vec<u32> = simple_decompress(&data[keys_start..values_start])?;
         let values: Vec<u64> = simple_decompress(&data[values_start..rest_start])?;
 
-        let map: BTreeMap<CentsCompact, Sats> = keys
+        let entries = keys
             .into_iter()
             .zip(values)
             .map(|(k, v)| (CentsCompact::new(k), Sats::from(v)))
-            .collect();
+            .collect::<Vec<_>>();
 
-        debug_assert_eq!(map.len(), entry_count);
+        debug_assert_eq!(entries.len(), entry_count);
+        debug_assert!(entries.windows(2).all(|pair| pair[0].0 < pair[1].0));
 
-        Ok((Self { map }, &data[rest_start..]))
+        Ok(DecodedEntries {
+            entries,
+            rest: &data[rest_start..],
+        })
+    }
+
+    /// Deserialize exactly one sorted sequence of on-disk entries.
+    pub fn deserialize_entries(data: &[u8]) -> Result<Vec<(CentsCompact, Sats)>> {
+        let decoded = Self::decode_entries(data)?;
+        if !decoded.rest.is_empty() {
+            return Err(Error::Deserialization(format!(
+                "UrpdRaw: {} trailing bytes",
+                decoded.rest.len()
+            )));
+        }
+        Ok(decoded.entries)
     }
 
     /// Deserialize from the pco-compressed format.
-    pub fn deserialize(data: &[u8]) -> brk_error::Result<Self> {
+    pub fn deserialize(data: &[u8]) -> Result<Self> {
         Self::deserialize_with_rest(data).map(|(s, _)| s)
     }
 
     /// Serialize to the pco-compressed format.
-    pub fn serialize(&self) -> brk_error::Result<Vec<u8>> {
+    pub fn serialize(&self) -> Result<Vec<u8>> {
         Self::serialize_iter(self.map.iter().map(|(&k, &v)| (k, v)))
     }
 
     /// Serialize from a sorted iterator of (price, sats) pairs.
-    pub fn serialize_iter(
-        iter: impl Iterator<Item = (CentsCompact, Sats)>,
-    ) -> brk_error::Result<Vec<u8>> {
+    pub fn serialize_iter(iter: impl Iterator<Item = (CentsCompact, Sats)>) -> Result<Vec<u8>> {
         let (keys, values): (Vec<u32>, Vec<u64>) = iter
             .map(|(key, value)| (key.inner(), u64::from(value)))
             .unzip();
