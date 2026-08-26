@@ -50,10 +50,10 @@ impl<'a> QuickMatch<'a> {
             let id = ItemId(id as u32);
             let item = item.as_ref();
             max_query_len = max_query_len.max(item.len());
-            let item_words: Vec<&str> = words(item, &sep).collect();
-            max_words = max_words.max(item_words.len());
-
-            for word in &item_words {
+            let mut previous_word: Option<&str> = None;
+            let mut word_count = 0;
+            for word in words(item, &sep) {
+                word_count += 1;
                 max_word_len = max_word_len.max(word.len());
 
                 for len in 1..=word.len() {
@@ -71,19 +71,21 @@ impl<'a> QuickMatch<'a> {
                         b = c;
                     }
                 }
-            }
 
-            for pair in item_words.windows(2) {
-                let compound = format!("{}{}", pair[0], pair[1]);
-                // A joined-word query ("hashrate") can be longer than any
-                // single word. Capping at the longest index key keeps the
-                // DDoS guard data-bounded while still letting it match.
-                max_word_len = max_word_len.max(compound.len());
-                let from = pair[0].len() + 1;
-                for len in from..=compound.len() {
-                    Self::insert_word(&mut word_index, &compound[..len], id);
+                if let Some(previous_word) = previous_word {
+                    let compound = format!("{previous_word}{word}");
+                    // A joined-word query ("hashrate") can be longer than any
+                    // single word. Capping at the longest index key keeps the
+                    // DDoS guard data-bounded while still letting it match.
+                    max_word_len = max_word_len.max(compound.len());
+                    let from = previous_word.len() + 1;
+                    for len in from..=compound.len() {
+                        Self::insert_word(&mut word_index, &compound[..len], id);
+                    }
                 }
+                previous_word = Some(word);
             }
+            max_words = max_words.max(word_count);
         }
 
         let item_rank = if items
