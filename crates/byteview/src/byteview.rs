@@ -150,11 +150,7 @@ impl std::cmp::PartialEq for ByteView {
 
 impl std::cmp::Ord for ByteView {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.prefix().cmp(other.prefix()).then_with(|| {
-            self.get(PREFIX_SIZE..)
-                .unwrap_or_default()
-                .cmp(other.get(PREFIX_SIZE..).unwrap_or_default())
-        })
+        self.as_ref().cmp(other.as_ref())
     }
 }
 
@@ -197,6 +193,7 @@ impl ByteView {
         unsafe { Builder::new(Self::with_size_unzeroed(len)) }
     }
 
+    #[cfg(test)]
     fn prefix(&self) -> &[u8] {
         let len = PREFIX_SIZE.min(self.len());
 
