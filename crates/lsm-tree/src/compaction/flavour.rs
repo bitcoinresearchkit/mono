@@ -3,11 +3,11 @@
 // (found in the LICENSE-* files in the repository)
 
 use crate::{
-    InternalValue, Table,
+    InternalValue, Result, Table,
     compaction::{Input as CompactionPayload, worker::Worker},
     table::multi_writer::MultiWriter,
 };
-use std::time::Instant;
+use std::{mem, time::Instant};
 
 pub struct StandardCompaction {
     start: Instant,
@@ -24,21 +24,20 @@ impl StandardCompaction {
         }
     }
 
-    pub fn write(&mut self, item: InternalValue) -> crate::Result<()> {
+    pub fn write(&mut self, item: InternalValue) -> Result<()> {
         self.table_writer.write(item)
     }
 
-    fn consume_writer(self, worker: &Worker, dst_lvl: usize) -> crate::Result<Vec<Table>> {
+    fn consume_writer(self, worker: &Worker, dst_lvl: usize) -> Result<Vec<Table>> {
         let pin_filter = worker.config.filter_block_pinning_policy.get(dst_lvl);
         let pin_index = worker.config.index_block_pinning_policy.get(dst_lvl);
         let (table_base_folder, results) = self.table_writer.finish()?;
 
         results
             .into_iter()
-            .map(|(table_id, checksum)| {
+            .map(|table_id| {
                 Table::recover(
                     table_base_folder.join(table_id.to_string()),
-                    checksum,
                     0,
                     worker.tree_id,
                     worker.config.cache.clone(),
@@ -55,10 +54,10 @@ impl StandardCompaction {
         worker: &Worker,
         payload: &CompactionPayload,
         dst_lvl: usize,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         log::debug!("Compaction done in {:?}", self.start.elapsed());
 
-        let tables_to_delete = std::mem::take(&mut self.tables_to_rewrite);
+        let tables_to_delete = mem::take(&mut self.tables_to_rewrite);
         let created_tables = self.consume_writer(worker, dst_lvl)?;
 
         let table_ids = payload.table_ids.iter().copied().collect::<Vec<_>>();

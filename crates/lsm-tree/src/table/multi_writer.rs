@@ -3,8 +3,8 @@
 // (found in the LICENSE-* files in the repository)
 
 use super::{filter::BloomConstructionPolicy, id::next_table_id, writer::Writer};
-use crate::{Checksum, CompressionType, SequenceNumberCounter, value::InternalValue};
-use std::path::PathBuf;
+use crate::{CompressionType, Result, SequenceNumberCounter, value::InternalValue};
+use std::{mem, path::PathBuf};
 
 /// Like `Writer` but will rotate to a new table, once a table grows larger than `target_size`
 ///
@@ -28,7 +28,7 @@ pub struct MultiWriter {
     /// resulting in a sorted "run" of tables
     pub target_size: u64,
 
-    results: Vec<(u32, Checksum)>,
+    results: Vec<u32>,
 
     table_id_generator: SequenceNumberCounter,
 
@@ -46,7 +46,7 @@ impl MultiWriter {
         base_path: PathBuf,
         table_id_generator: SequenceNumberCounter,
         target_size: u64,
-    ) -> crate::Result<Self> {
+    ) -> Result<Self> {
         let current_table_id = next_table_id(&table_id_generator);
 
         let path = base_path.join(current_table_id.to_string());
@@ -145,7 +145,7 @@ impl MultiWriter {
     }
 
     /// Flushes the current writer, stores its metadata, and sets up a new writer for the next table
-    fn rotate(&mut self) -> crate::Result<()> {
+    fn rotate(&mut self) -> Result<()> {
         log::debug!("Rotating table writer");
 
         let new_table_id = next_table_id(&self.table_id_generator);
@@ -167,17 +167,17 @@ impl MultiWriter {
             new_writer = new_writer.use_partitioned_filter();
         }
 
-        let old_writer = std::mem::replace(&mut self.writer, new_writer);
+        let old_writer = mem::replace(&mut self.writer, new_writer);
 
-        if let Some((table_id, checksum)) = old_writer.finish()? {
-            self.results.push((table_id, checksum));
+        if let Some(table_id) = old_writer.finish()? {
+            self.results.push(table_id);
         }
 
         Ok(())
     }
 
     /// Writes an item with a user key greater than the previous item.
-    pub fn write(&mut self, item: InternalValue) -> crate::Result<()> {
+    pub fn write(&mut self, item: InternalValue) -> Result<()> {
         if *self.writer.meta.file_pos >= self.target_size {
             self.rotate()?;
         }
@@ -193,9 +193,9 @@ impl MultiWriter {
     /// Finishes the last table, making sure all data is written durably
     ///
     /// Returns the metadata of created tables
-    pub fn finish(mut self) -> crate::Result<(PathBuf, Vec<(u32, Checksum)>)> {
-        if let Some((table_id, checksum)) = self.writer.finish()? {
-            self.results.push((table_id, checksum));
+    pub fn finish(mut self) -> Result<(PathBuf, Vec<u32>)> {
+        if let Some(table_id) = self.writer.finish()? {
+            self.results.push(table_id);
         }
 
         Ok((self.base_path, self.results))

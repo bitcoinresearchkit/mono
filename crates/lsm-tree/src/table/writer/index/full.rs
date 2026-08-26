@@ -3,8 +3,7 @@
 // (found in the LICENSE-* files in the repository)
 
 use crate::{
-    CompressionType,
-    checksum::ChecksummedWriter,
+    CompressionType, Result,
     table::{
         Block, IndexBlock, block::Header as BlockHeader, index_block::KeyedBlockHandle,
         writer::index::BlockIndexWriter,
@@ -26,20 +25,20 @@ impl FullIndexWriter {
     }
 }
 
-impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for FullIndexWriter {
-    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn BlockIndexWriter<W>> {
+impl BlockIndexWriter for FullIndexWriter {
+    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn BlockIndexWriter> {
         self
     }
 
     fn use_compression(
         mut self: Box<Self>,
         compression: CompressionType,
-    ) -> Box<dyn BlockIndexWriter<W>> {
+    ) -> Box<dyn BlockIndexWriter> {
         self.compression = compression;
         self
     }
 
-    fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> crate::Result<()> {
+    fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> Result<()> {
         log::trace!(
             "Registering block at {:?} with size {} [end_key={:?}]",
             block_handle.offset(),
@@ -51,10 +50,7 @@ impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for FullIndexWriter 
         Ok(())
     }
 
-    fn finish(
-        self: Box<Self>,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
-    ) -> crate::Result<usize> {
+    fn finish(self: Box<Self>, file_writer: &mut sfa::Writer<BufWriter<File>>) -> Result<usize> {
         file_writer.start("tli")?;
 
         let mut bytes = vec![];

@@ -4,7 +4,7 @@
 
 use super::{block_index::BlockIndexImpl, meta::ParsedMeta, regions::ParsedRegions};
 use crate::{
-    Checksum, GlobalTableId,
+    GlobalTableId,
     cache::Cache,
     file_accessor::FileAccessor,
     table::{IndexBlock, filter::block::FilterBlock},
@@ -50,8 +50,6 @@ pub struct Inner {
     ///
     /// Open readers keep the table alive until they finish.
     pub is_deleted: AtomicBool,
-
-    pub(super) checksum: Checksum,
 
     pub(super) global_seqno: u64,
 }

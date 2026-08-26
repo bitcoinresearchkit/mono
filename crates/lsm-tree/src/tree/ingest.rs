@@ -1,4 +1,9 @@
-use crate::{Slice, Table, Tree, config::FilterPolicyEntry, table::multi_writer::MultiWriter};
+use crate::{
+    InternalValue, Result, Slice, Table, Tree, ValueType,
+    config::{BloomConstructionPolicy, FilterPolicyEntry},
+    file::TABLES_FOLDER,
+    table::multi_writer::MultiWriter,
+};
 
 const INGESTION_LEVEL: usize = 1;
 
@@ -16,19 +21,19 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when the table writer cannot be created.
-    pub fn new(tree: &'a Tree) -> crate::Result<Self> {
+    pub fn new(tree: &'a Tree) -> Result<Self> {
         let config = &tree.config;
         let mut writer = MultiWriter::new(
-            config.path.join(crate::file::TABLES_FOLDER),
+            config.path.join(TABLES_FOLDER),
             tree.table_id_counter.clone(),
             64 * 1_024 * 1_024,
         )?
         .use_bloom_policy(if config.expect_point_read_hits {
-            crate::config::BloomConstructionPolicy::BitsPerKey(0.0)
+            BloomConstructionPolicy::BitsPerKey(0.0)
         } else if let FilterPolicyEntry::Bloom(policy) = config.filter_policy.get(INGESTION_LEVEL) {
             policy
         } else {
-            crate::config::BloomConstructionPolicy::BitsPerKey(0.0)
+            BloomConstructionPolicy::BitsPerKey(0.0)
         })
         .use_data_block_size(config.data_block_size_policy.get(INGESTION_LEVEL))
         .use_data_block_hash_ratio(config.data_block_hash_ratio_policy.get(INGESTION_LEVEL))
@@ -65,14 +70,14 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when the table cannot accept the item.
-    pub fn write<K: Into<Slice>, V: Into<Slice>>(&mut self, key: K, value: V) -> crate::Result<()> {
+    pub fn write<K: Into<Slice>, V: Into<Slice>>(&mut self, key: K, value: V) -> Result<()> {
         let key = key.into();
         self.validate_key(&key);
-        self.writer.write(crate::InternalValue::from_components(
+        self.writer.write(InternalValue::from_components(
             key,
             value,
             0,
-            crate::ValueType::Value,
+            ValueType::Value,
         ))
     }
 
@@ -81,14 +86,14 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when the table cannot accept the item.
-    pub fn write_weak_tombstone<K: Into<Slice>>(&mut self, key: K) -> crate::Result<()> {
+    pub fn write_weak_tombstone<K: Into<Slice>>(&mut self, key: K) -> Result<()> {
         let key = key.into();
         self.validate_key(&key);
-        self.writer.write(crate::InternalValue::from_components(
+        self.writer.write(InternalValue::from_components(
             key,
-            crate::Slice::empty(),
+            Slice::empty(),
             0,
-            crate::ValueType::WeakTombstone,
+            ValueType::WeakTombstone,
         ))
     }
 
@@ -97,7 +102,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error when tables cannot be finalized, recovered, or published.
-    pub fn finish(self) -> crate::Result<()> {
+    pub fn finish(self) -> Result<()> {
         if self.writer.is_empty() {
             return Ok(());
         }
@@ -106,10 +111,9 @@ impl<'a> Ingestion<'a> {
         let global_seqno = self.tree.seqno.next();
         let tables = outputs
             .into_iter()
-            .map(|(table_id, checksum)| {
+            .map(|table_id| {
                 Table::recover(
                     folder.join(table_id.to_string()),
-                    checksum,
                     global_seqno,
                     self.tree.id,
                     self.tree.config.cache.clone(),
@@ -118,7 +122,7 @@ impl<'a> Ingestion<'a> {
                     false,
                 )
             })
-            .collect::<crate::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?;
 
         self.tree
             .versions

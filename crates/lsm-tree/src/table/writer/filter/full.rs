@@ -4,12 +4,11 @@
 
 use super::FilterWriter;
 use crate::{
-    CompressionType, Slice,
-    checksum::ChecksummedWriter,
+    CompressionType, Result, Slice,
     config::BloomConstructionPolicy,
     table::{Block, filter::standard_bloom::Builder},
 };
-use std::{fs::File, io::BufWriter};
+use std::{fs::File, io::BufWriter, time::Instant};
 
 pub struct FullFilterWriter {
     /// Key hashes for AMQ filter
@@ -27,32 +26,29 @@ impl FullFilterWriter {
     }
 }
 
-impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for FullFilterWriter {
-    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn FilterWriter<W>> {
+impl FilterWriter for FullFilterWriter {
+    fn use_partition_size(self: Box<Self>, _: u32) -> Box<dyn FilterWriter> {
         self
     }
 
-    fn use_tli_compression(self: Box<Self>, _: CompressionType) -> Box<dyn FilterWriter<W>> {
+    fn use_tli_compression(self: Box<Self>, _: CompressionType) -> Box<dyn FilterWriter> {
         self
     }
 
     fn set_filter_policy(
         mut self: Box<Self>,
         policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<W>> {
+    ) -> Box<dyn FilterWriter> {
         self.bloom_policy = policy;
         self
     }
 
-    fn register_key(&mut self, key: &Slice) -> crate::Result<()> {
+    fn register_key(&mut self, key: &Slice) -> Result<()> {
         self.bloom_hash_buffer.push(Builder::get_hash(key));
         Ok(())
     }
 
-    fn finish(
-        self: Box<Self>,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
-    ) -> crate::Result<usize> {
+    fn finish(self: Box<Self>, file_writer: &mut sfa::Writer<BufWriter<File>>) -> Result<usize> {
         if self.bloom_hash_buffer.is_empty() {
             log::trace!("Filter writer has no buffered hashes - not building filter");
         } else {
@@ -65,7 +61,7 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for FullFilterWriter {
                 self.bloom_policy,
             );
 
-            let start = std::time::Instant::now();
+            let start = Instant::now();
 
             let filter_bytes = {
                 let mut builder = self.bloom_policy.init(n);

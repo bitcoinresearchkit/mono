@@ -3,8 +3,7 @@
 // (found in the LICENSE-* files in the repository)
 
 use crate::{
-    CompressionType,
-    checksum::ChecksummedWriter,
+    CompressionType, Result,
     table::{
         Block, BlockHandle, BlockOffset, IndexBlock, block::Header as BlockHeader,
         index_block::KeyedBlockHandle, writer::index::BlockIndexWriter,
@@ -13,6 +12,7 @@ use crate::{
 use std::{
     fs::File,
     io::{BufWriter, Seek, Write},
+    mem::size_of,
 };
 
 pub struct PartitionedIndexWriter {
@@ -51,7 +51,7 @@ impl PartitionedIndexWriter {
         }
     }
 
-    fn cut_index_block(&mut self) -> crate::Result<()> {
+    fn cut_index_block(&mut self) -> Result<()> {
         let mut bytes = vec![];
         IndexBlock::encode_into(&mut bytes, &self.data_block_handles)?;
 
@@ -105,9 +105,9 @@ impl PartitionedIndexWriter {
 
     fn write_top_level_index(
         &mut self,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
+        file_writer: &mut sfa::Writer<BufWriter<File>>,
         index_base_offset: BlockOffset,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         file_writer.start("tli")?;
 
         for item in &mut self.tli_handles {
@@ -141,8 +141,8 @@ impl PartitionedIndexWriter {
     }
 }
 
-impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for PartitionedIndexWriter {
-    fn use_partition_size(mut self: Box<Self>, size: u32) -> Box<dyn BlockIndexWriter<W>> {
+impl BlockIndexWriter for PartitionedIndexWriter {
+    fn use_partition_size(mut self: Box<Self>, size: u32) -> Box<dyn BlockIndexWriter> {
         self.partition_size = size;
         self
     }
@@ -150,12 +150,12 @@ impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for PartitionedIndex
     fn use_compression(
         mut self: Box<Self>,
         compression: CompressionType,
-    ) -> Box<dyn BlockIndexWriter<W>> {
+    ) -> Box<dyn BlockIndexWriter> {
         self.compression = compression;
         self
     }
 
-    fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> crate::Result<()> {
+    fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> Result<()> {
         log::trace!(
             "Registering block at {:?} with size {} [end_key={:?}]",
             block_handle.offset(),
@@ -168,7 +168,7 @@ impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for PartitionedIndex
             reason = "key is u16 max, so we can not exceed u32::MAX"
         )]
         let block_handle_size =
-            (block_handle.end_key().len() + std::mem::size_of::<KeyedBlockHandle>()) as u32;
+            (block_handle.end_key().len() + size_of::<KeyedBlockHandle>()) as u32;
 
         self.buffer_size += block_handle_size;
 
@@ -183,8 +183,8 @@ impl<W: std::io::Write + std::io::Seek> BlockIndexWriter<W> for PartitionedIndex
 
     fn finish(
         mut self: Box<Self>,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
-    ) -> crate::Result<usize> {
+        file_writer: &mut sfa::Writer<BufWriter<File>>,
+    ) -> Result<usize> {
         if self.buffer_size > 0 {
             self.cut_index_block()?;
         }

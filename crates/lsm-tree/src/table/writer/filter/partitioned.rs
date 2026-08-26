@@ -4,8 +4,7 @@
 
 use super::FilterWriter;
 use crate::{
-    CompressionType, Slice,
-    checksum::ChecksummedWriter,
+    CompressionType, Result, Slice,
     config::BloomConstructionPolicy,
     table::{
         Block, BlockHandle, BlockOffset, IndexBlock, KeyedBlockHandle,
@@ -57,7 +56,7 @@ impl PartitionedFilterWriter {
         }
     }
 
-    fn spill_filter_partition(&mut self, key: &Slice) -> crate::Result<()> {
+    fn spill_filter_partition(&mut self, key: &Slice) -> Result<()> {
         let filter_bytes = {
             let mut builder = self.bloom_policy.init(self.bloom_hash_buffer.len());
 
@@ -102,9 +101,9 @@ impl PartitionedFilterWriter {
 
     fn write_top_level_index(
         &mut self,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
+        file_writer: &mut sfa::Writer<BufWriter<File>>,
         index_base_offset: BlockOffset,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         file_writer.start("filter_tli")?;
 
         for item in &mut self.tli_handles {
@@ -138,8 +137,8 @@ impl PartitionedFilterWriter {
     }
 }
 
-impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for PartitionedFilterWriter {
-    fn use_partition_size(mut self: Box<Self>, size: u32) -> Box<dyn FilterWriter<W>> {
+impl FilterWriter for PartitionedFilterWriter {
+    fn use_partition_size(mut self: Box<Self>, size: u32) -> Box<dyn FilterWriter> {
         self.partition_size = size;
         self
     }
@@ -147,7 +146,7 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for PartitionedFilterWri
     fn use_tli_compression(
         mut self: Box<Self>,
         compression: CompressionType,
-    ) -> Box<dyn FilterWriter<W>> {
+    ) -> Box<dyn FilterWriter> {
         self.compression = compression;
         self
     }
@@ -155,12 +154,12 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for PartitionedFilterWri
     fn set_filter_policy(
         mut self: Box<Self>,
         policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<W>> {
+    ) -> Box<dyn FilterWriter> {
         self.bloom_policy = policy;
         self
     }
 
-    fn register_key(&mut self, key: &Slice) -> crate::Result<()> {
+    fn register_key(&mut self, key: &Slice) -> Result<()> {
         self.bloom_hash_buffer.push(Builder::get_hash(key));
 
         self.approx_filter_size = self
@@ -178,8 +177,8 @@ impl<W: std::io::Write + std::io::Seek> FilterWriter<W> for PartitionedFilterWri
 
     fn finish(
         mut self: Box<Self>,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
-    ) -> crate::Result<usize> {
+        file_writer: &mut sfa::Writer<BufWriter<File>>,
+    ) -> Result<usize> {
         if self.last_key.is_none() {
             log::trace!("Filter writer has not seen any writes - not building filter");
             return Ok(0);

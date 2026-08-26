@@ -7,7 +7,7 @@ use crate::{
     Cache, CompressionType, KeyRange, Table, file_accessor::FileAccessor, table::block::BlockType,
     version::run::Ranged,
 };
-use std::{path::Path, sync::Arc};
+use std::{mem::size_of, path::Path, sync::Arc};
 
 #[must_use]
 pub fn aggregate_run_key_range(tables: &[Table]) -> KeyRange {
@@ -70,10 +70,41 @@ pub fn load_block(
 
 #[must_use]
 pub fn longest_shared_prefix_length(s1: &[u8], s2: &[u8]) -> usize {
-    s1.iter()
-        .zip(s2.iter())
-        .take_while(|(c1, c2)| c1 == c2)
-        .count()
+    const WORD_BYTES: usize = size_of::<usize>();
+
+    let len = s1.len().min(s2.len());
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "len is bounded by both slice lengths"
+    )]
+    let s1 = &s1[..len];
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "len is bounded by both slice lengths"
+    )]
+    let s2 = &s2[..len];
+    let (s1_words, s1_tail) = s1.as_chunks::<WORD_BYTES>();
+    let (s2_words, s2_tail) = s2.as_chunks::<WORD_BYTES>();
+
+    for (index, (s1_word, s2_word)) in s1_words.iter().zip(s2_words).enumerate() {
+        let difference = usize::from_ne_bytes(*s1_word) ^ usize::from_ne_bytes(*s2_word);
+        if difference != 0 {
+            #[cfg(target_endian = "little")]
+            let byte = difference.trailing_zeros() as usize / u8::BITS as usize;
+            #[cfg(target_endian = "big")]
+            let byte = difference.leading_zeros() as usize / u8::BITS as usize;
+
+            return index * WORD_BYTES + byte;
+        }
+    }
+
+    let word_bytes = s1_words.len() * WORD_BYTES;
+    word_bytes
+        + s1_tail
+            .iter()
+            .zip(s2_tail)
+            .take_while(|(s1, s2)| s1 == s2)
+            .count()
 }
 
 #[must_use]
@@ -119,6 +150,10 @@ mod tests {
     use test_log::test;
 
     #[test]
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "the index comes from the array's range"
+    )]
     fn test_longest_shared_prefix_length() {
         assert_eq!(3, longest_shared_prefix_length(b"abc", b"abc"));
         assert_eq!(1, longest_shared_prefix_length(b"abc", b"a"));
@@ -129,6 +164,18 @@ mod tests {
         assert_eq!(0, longest_shared_prefix_length(b"", b""));
         assert_eq!(0, longest_shared_prefix_length(b"abc", b"def"));
         assert_eq!(1, longest_shared_prefix_length(b"abc", b"acc"));
+
+        let shared = [42; 3 * size_of::<usize>()];
+        assert_eq!(shared.len(), longest_shared_prefix_length(&shared, &shared));
+
+        for different_at in 0..shared.len() {
+            let mut different = shared;
+            different[different_at] = 24;
+            assert_eq!(
+                different_at,
+                longest_shared_prefix_length(&shared, &different),
+            );
+        }
     }
 
     #[test]

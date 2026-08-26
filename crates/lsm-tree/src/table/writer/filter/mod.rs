@@ -8,26 +8,18 @@ mod partitioned;
 pub use full::FullFilterWriter;
 pub use partitioned::PartitionedFilterWriter;
 
-use crate::{CompressionType, Slice, checksum::ChecksummedWriter, config::BloomConstructionPolicy};
+use crate::{CompressionType, Result, Slice, config::BloomConstructionPolicy};
 use std::{fs::File, io::BufWriter};
 
-pub trait FilterWriter<W: std::io::Write> {
-    fn register_key(&mut self, key: &Slice) -> crate::Result<()>;
+pub trait FilterWriter {
+    fn register_key(&mut self, key: &Slice) -> Result<()>;
 
-    fn finish(
-        self: Box<Self>,
-        file_writer: &mut sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
-    ) -> crate::Result<usize>;
+    fn finish(self: Box<Self>, file_writer: &mut sfa::Writer<BufWriter<File>>) -> Result<usize>;
 
-    fn set_filter_policy(
-        self: Box<Self>,
-        policy: BloomConstructionPolicy,
-    ) -> Box<dyn FilterWriter<W>>;
+    fn set_filter_policy(self: Box<Self>, policy: BloomConstructionPolicy)
+    -> Box<dyn FilterWriter>;
 
-    fn use_tli_compression(
-        self: Box<Self>,
-        compression: CompressionType,
-    ) -> Box<dyn FilterWriter<W>>;
+    fn use_tli_compression(self: Box<Self>, compression: CompressionType) -> Box<dyn FilterWriter>;
 
-    fn use_partition_size(self: Box<Self>, size: u32) -> Box<dyn FilterWriter<W>>;
+    fn use_partition_size(self: Box<Self>, size: u32) -> Box<dyn FilterWriter>;
 }

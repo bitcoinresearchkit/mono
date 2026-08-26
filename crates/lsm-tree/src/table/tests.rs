@@ -40,12 +40,11 @@ fn test_with_table(
             }
             writer.write(item.clone())?;
         }
-        let (_, checksum) = writer.finish()?.unwrap();
+        writer.finish()?.unwrap();
 
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -70,7 +69,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -95,7 +93,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -120,7 +117,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -145,7 +141,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -183,12 +178,11 @@ fn test_with_table(
             }
             writer.write(item.clone())?;
         }
-        let (_, checksum) = writer.finish()?.unwrap();
+        writer.finish()?.unwrap();
 
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -212,7 +206,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -236,7 +229,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -261,7 +253,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file.clone(),
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -286,7 +277,6 @@ fn test_with_table(
         {
             let table = Table::recover(
                 file,
-                checksum,
                 0,
                 0,
                 Arc::new(Cache::with_capacity_bytes(1_000_000)),
@@ -1078,7 +1068,6 @@ fn table_read_fuzz_1() -> crate::Result<()> {
 
     let table = crate::Table::recover(
         file,
-        crate::Checksum::from_raw(0),
         0,
         0,
         Arc::new(crate::Cache::with_capacity_bytes(0)),
@@ -1094,10 +1083,10 @@ fn table_read_fuzz_1() -> crate::Result<()> {
     assert_eq!(items.len(), item_count_usize);
     let items = items.into_iter().collect::<Vec<_>>();
 
-    assert_eq!(items, table.iter().collect::<Result<Vec<_>, _>>().unwrap());
+    assert_eq!(items, table.iter().collect::<Result<Vec<_>>>().unwrap());
     assert_eq!(
         items.iter().rev().cloned().collect::<Vec<_>>(),
-        table.iter().rev().collect::<Result<Vec<_>, _>>().unwrap(),
+        table.iter().rev().collect::<Result<Vec<_>>>().unwrap(),
     );
 
     {
@@ -1113,7 +1102,7 @@ fn table_read_fuzz_1() -> crate::Result<()> {
 
         let iter = table.range(lo_key..=hi_key);
 
-        assert_eq!(expected_range, iter.collect::<Result<Vec<_>, _>>().unwrap());
+        assert_eq!(expected_range, iter.collect::<Result<Vec<_>>>().unwrap());
     }
 
     Ok(())
@@ -1152,7 +1141,6 @@ fn table_partitioned_index() -> crate::Result<()> {
 
     let table = crate::Table::recover(
         file,
-        crate::Checksum::from_raw(0),
         0,
         0,
         Arc::new(crate::Cache::with_capacity_bytes(0)),
@@ -1200,7 +1188,6 @@ fn table_return_global_seqno() -> crate::Result<()> {
 
     let table = crate::Table::recover(
         file,
-        crate::Checksum::from_raw(0),
         SEQNO,
         0,
         Arc::new(crate::Cache::with_capacity_bytes(0)),

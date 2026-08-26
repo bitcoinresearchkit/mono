@@ -78,10 +78,6 @@ impl<W: std::io::Write> ChecksummedWriter<W> {
     pub fn checksum(&self) -> Checksum {
         Checksum::from_raw(self.hasher.digest128())
     }
-
-    pub fn inner_mut(&mut self) -> &mut W {
-        &mut self.inner
-    }
 }
 
 impl<W: std::io::Write> std::io::Write for ChecksummedWriter<W> {

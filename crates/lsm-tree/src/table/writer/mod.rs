@@ -11,8 +11,8 @@ use super::{
     filter::BloomConstructionPolicy,
 };
 use crate::{
-    Checksum, CompressionType, InternalValue,
-    checksum::{ChecksumType, ChecksummedWriter},
+    CompressionType, InternalValue, Result, ValueType,
+    checksum::ChecksumType,
     coding::Encode,
     file::fsync_directory,
     table::{
@@ -24,7 +24,13 @@ use crate::{
     },
 };
 use index::BlockIndexWriter;
-use std::{fs::File, io::BufWriter, path::PathBuf};
+use std::{
+    fs::{self, File},
+    io::{BufWriter, Write},
+    path::{self, PathBuf},
+};
+
+const FILE_BUFFER_CAPACITY: usize = 256 * 1_024;
 
 #[derive(Default)]
 struct FixedLen {
@@ -77,15 +83,15 @@ pub struct Writer {
 
     /// File writer
     #[expect(clippy::struct_field_names)]
-    file_writer: sfa::Writer<ChecksummedWriter<BufWriter<File>>>,
+    file_writer: sfa::Writer<BufWriter<File>>,
 
     /// Writer of index blocks
     #[expect(clippy::struct_field_names)]
-    index_writer: Box<dyn BlockIndexWriter<BufWriter<File>>>,
+    index_writer: Box<dyn BlockIndexWriter>,
 
     /// Writer of filter
     #[expect(clippy::struct_field_names)]
-    filter_writer: Box<dyn FilterWriter<BufWriter<File>>>,
+    filter_writer: Box<dyn FilterWriter>,
 
     /// Buffer of KVs
     chunk: Vec<InternalValue>,
@@ -102,9 +108,8 @@ pub struct Writer {
 }
 
 impl Writer {
-    pub fn new(path: PathBuf, table_id: u32) -> crate::Result<Self> {
-        let writer = BufWriter::with_capacity(u16::MAX.into(), File::create_new(&path)?);
-        let writer = ChecksummedWriter::new(writer);
+    pub fn new(path: PathBuf, table_id: u32) -> Result<Self> {
+        let writer = BufWriter::with_capacity(FILE_BUFFER_CAPACITY, File::create_new(&path)?);
         let mut writer = sfa::Writer::from_writer(writer);
         writer.start("data")?;
 
@@ -125,7 +130,7 @@ impl Writer {
             data_block_compression: CompressionType::None,
             index_block_compression: CompressionType::None,
 
-            path: std::path::absolute(path)?,
+            path: path::absolute(path)?,
 
             index_writer: Box::new(FullIndexWriter::new()),
             filter_writer: Box::new(FullFilterWriter::new(BloomConstructionPolicy::default())),
@@ -227,7 +232,7 @@ impl Writer {
     /// # Note
     ///
     /// Items must have strictly increasing user keys.
-    pub fn write(&mut self, item: InternalValue) -> crate::Result<()> {
+    pub fn write(&mut self, item: InternalValue) -> Result<()> {
         let value_type = item.key.value_type;
         let seqno = item.key.seqno;
         let user_key = &item.key.user_key;
@@ -261,7 +266,7 @@ impl Writer {
     /// This is triggered when a `Writer::write` causes the buffer to grow to the configured `block_size`.
     ///
     /// Should only be called when the block has items in it.
-    pub(crate) fn spill_block(&mut self) -> crate::Result<()> {
+    pub(crate) fn spill_block(&mut self) -> Result<()> {
         let Some(last) = self.chunk.last() else {
             return Ok(());
         };
@@ -343,14 +348,12 @@ impl Writer {
 
     // TODO: split meta writing into new function
     /// Finishes the table, making sure all data is written durably
-    pub fn finish(mut self) -> crate::Result<Option<(u32, Checksum)>> {
-        use std::io::Write;
-
+    pub fn finish(mut self) -> Result<Option<u32>> {
         self.spill_block()?;
 
         // No items written! Just delete table file and return nothing
         if self.meta.item_count == 0 {
-            std::fs::remove_file(&self.path)?;
+            fs::remove_file(&self.path)?;
             return Ok(None);
         }
 
@@ -370,7 +373,7 @@ impl Writer {
 
         {
             fn meta(key: &str, value: &[u8]) -> InternalValue {
-                InternalValue::from_components(key, value, 0, crate::ValueType::Value)
+                InternalValue::from_components(key, value, 0, ValueType::Value)
             }
 
             let meta_items = [
@@ -428,9 +431,8 @@ impl Writer {
 
         // Write fixed-size trailer
         // and flush & fsync the table file
-        let mut checksum = self.file_writer.into_inner()?;
-        checksum.inner_mut().get_mut().sync_all()?;
-        let checksum = checksum.checksum();
+        let writer = self.file_writer.into_inner()?;
+        writer.get_ref().sync_all()?;
 
         // IMPORTANT: fsync folder on Unix
 
@@ -448,7 +450,7 @@ impl Writer {
             *self.meta.file_pos / 1_024 / 1_024,
         );
 
-        Ok(Some((self.table_id, checksum)))
+        Ok(Some(self.table_id))
     }
 }
 
@@ -458,7 +460,7 @@ mod tests {
     use test_log::test;
 
     #[test]
-    fn table_writer_count() -> crate::Result<()> {
+    fn table_writer_count() -> Result<()> {
         let dir = tempfile::tempdir()?;
         let path = dir.path().join("1");
         let mut writer = Writer::new(path, 1)?;
@@ -468,7 +470,7 @@ mod tests {
             b"a",
             b"a",
             0,
-            crate::ValueType::Value,
+            ValueType::Value,
         ))?;
         assert_eq!(2, writer.chunk_size);
 
@@ -476,7 +478,7 @@ mod tests {
             b"b",
             b"b",
             0,
-            crate::ValueType::Value,
+            ValueType::Value,
         ))?;
         assert_eq!(4, writer.chunk_size);
 
@@ -484,7 +486,7 @@ mod tests {
             b"c",
             b"c",
             0,
-            crate::ValueType::Value,
+            ValueType::Value,
         ))?;
         assert_eq!(6, writer.chunk_size);
 

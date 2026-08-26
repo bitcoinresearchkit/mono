@@ -30,7 +30,7 @@ pub use index_block::{BlockHandle, IndexBlock, KeyedBlockHandle};
 pub use scanner::Scanner;
 
 use crate::{
-    Checksum, CompressionType, InternalValue, Slice,
+    CompressionType, Error, InternalValue, Result, Slice,
     cache::Cache,
     descriptor_table::DescriptorTable,
     file_accessor::FileAccessor,
@@ -38,20 +38,26 @@ use crate::{
         block::{BlockType, ParsedItem},
         block_index::{BlockIndex, FullBlockIndex, TwoLevelBlockIndex, VolatileBlockIndex},
         filter::block::FilterBlock,
+        meta::ParsedMeta,
         regions::ParsedRegions,
     },
     value::PointReadValue,
 };
 use block_index::BlockIndexImpl;
 use bound::Bound as IterBound;
+use byteorder::ReadBytesExt;
 use inner::Inner;
 use iter::Iter;
 use std::{
     borrow::Cow,
+    fmt,
     fs::File,
-    ops::{Bound, RangeBounds},
+    ops::{Bound, Deref, RangeBounds},
     path::PathBuf,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 use util::load_block;
 
@@ -67,7 +73,7 @@ use util::load_block;
 #[derive(Clone)]
 pub struct Table(Arc<Inner>);
 
-impl std::ops::Deref for Table {
+impl Deref for Table {
     type Target = Inner;
 
     fn deref(&self) -> &Self::Target {
@@ -76,8 +82,8 @@ impl std::ops::Deref for Table {
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
-impl std::fmt::Debug for Table {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Debug for Table {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Table:{}({:?})", self.id(), self.metadata.key_range)
     }
 }
@@ -132,7 +138,7 @@ impl Table {
         handle: &BlockHandle,
         block_type: BlockType,
         compression: CompressionType,
-    ) -> crate::Result<Block> {
+    ) -> Result<Block> {
         load_block(
             self.global_id(),
             &self.path,
@@ -144,7 +150,7 @@ impl Table {
         )
     }
 
-    fn load_data_block(&self, handle: &BlockHandle) -> crate::Result<DataBlock> {
+    fn load_data_block(&self, handle: &BlockHandle) -> Result<DataBlock> {
         self.load_block(
             handle,
             BlockType::Data,
@@ -158,7 +164,7 @@ impl Table {
         self.metadata.file_size
     }
 
-    pub fn get(&self, key: &[u8], key_hash: u64) -> crate::Result<Option<InternalValue>> {
+    pub fn get(&self, key: &[u8], key_hash: u64) -> Result<Option<InternalValue>> {
         let mut key_hash = Some(key_hash);
         self.get_with(key, &mut key_hash, Self::point_read)
     }
@@ -167,7 +173,7 @@ impl Table {
         &self,
         key: &[u8],
         key_hash: &mut Option<u64>,
-    ) -> crate::Result<Option<PointReadValue>> {
+    ) -> Result<Option<PointReadValue>> {
         self.get_with(key, key_hash, Self::point_read_value)
     }
 
@@ -175,8 +181,8 @@ impl Table {
         &self,
         key: &[u8],
         key_hash: &mut Option<u64>,
-        point_read: impl FnOnce(&Self, &[u8]) -> crate::Result<Option<T>>,
-    ) -> crate::Result<Option<T>> {
+        point_read: impl FnOnce(&Self, &[u8]) -> Result<Option<T>>,
+    ) -> Result<Option<T>> {
         let filter_block = if let Some(block) = &self.pinned_filter_block {
             Some(Cow::Borrowed(block))
         } else if let Some(filter_idx) = &self.pinned_filter_index {
@@ -222,7 +228,7 @@ impl Table {
         point_read(self, key)
     }
 
-    fn point_read(&self, key: &[u8]) -> crate::Result<Option<InternalValue>> {
+    fn point_read(&self, key: &[u8]) -> Result<Option<InternalValue>> {
         self.point_read_with(key, |block, key| {
             block.point_read(key).map(|mut item| {
                 item.key.seqno += self.global_seqno();
@@ -231,7 +237,7 @@ impl Table {
         })
     }
 
-    fn point_read_value(&self, key: &[u8]) -> crate::Result<Option<PointReadValue>> {
+    fn point_read_value(&self, key: &[u8]) -> Result<Option<PointReadValue>> {
         self.point_read_with(key, DataBlock::point_read_value)
     }
 
@@ -239,7 +245,7 @@ impl Table {
         &self,
         key: &[u8],
         point_read: impl Fn(&DataBlock, &[u8]) -> Option<T>,
-    ) -> crate::Result<Option<T>> {
+    ) -> Result<Option<T>> {
         let Some(iter) = self.block_index.forward_reader(key, u64::MAX) else {
             return Ok(None);
         };
@@ -272,7 +278,7 @@ impl Table {
     ///
     /// Will return `Err` if an IO error occurs.
     #[doc(hidden)]
-    pub fn scan(&self) -> crate::Result<Scanner> {
+    pub fn scan(&self) -> Result<Scanner> {
         #[expect(
             clippy::expect_used,
             reason = "there shouldn't be 4 billion data blocks in a single table"
@@ -298,7 +304,7 @@ impl Table {
     /// Will return `Err` if an IO error occurs.
     #[must_use]
     #[doc(hidden)]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + use<> {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + use<> {
         self.range(..)
     }
 
@@ -312,7 +318,7 @@ impl Table {
     pub fn range<R: RangeBounds<Slice> + Send>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + Send + use<R> {
+    ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + use<R> {
         let index_iter = self.block_index.iter();
 
         let mut iter = Iter::new(self.clone(), index_iter);
@@ -336,13 +342,13 @@ impl Table {
         regions: &ParsedRegions,
         file: &File,
         compression: CompressionType,
-    ) -> crate::Result<IndexBlock> {
+    ) -> Result<IndexBlock> {
         log::trace!("Reading TLI block, with tli_ptr={:?}", regions.tli);
 
         let block = Block::from_file(file, regions.tli, compression)?;
 
         if block.header.block_type != BlockType::Index {
-            return Err(crate::Error::InvalidTag((
+            return Err(Error::InvalidTag((
                 "BlockType",
                 block.header.block_type.into(),
             )));
@@ -353,26 +359,20 @@ impl Table {
 
     /// Tries to recover a table from a file.
     #[expect(
-        clippy::too_many_arguments,
         clippy::too_many_lines,
         reason = "table recovery mirrors the complete persisted table configuration"
     )]
     pub fn recover(
         file_path: PathBuf,
-        checksum: Checksum,
         global_seqno: u64,
         tree_id: u32,
         cache: Arc<Cache>,
         descriptor_table: Option<Arc<DescriptorTable>>,
         pin_filter: bool,
         pin_index: bool,
-    ) -> crate::Result<Self> {
-        use meta::ParsedMeta;
-        use regions::ParsedRegions;
-        use std::sync::atomic::AtomicBool;
-
+    ) -> Result<Self> {
         log::debug!("Recovering table from file {}", file_path.display());
-        let mut file = std::fs::File::open(&file_path)?;
+        let mut file = File::open(&file_path)?;
         let file_path = Arc::new(file_path);
 
         let trailer = sfa::Reader::from_reader(&mut file)?;
@@ -380,13 +380,13 @@ impl Table {
         let table_version = trailer
             .toc()
             .section(b"table_version")
-            .ok_or(crate::Error::Unrecoverable)?;
+            .ok_or(Error::Unrecoverable)?;
         if table_version.len() != 1 {
-            return Err(crate::Error::Unrecoverable);
+            return Err(Error::Unrecoverable);
         }
-        let version = byteorder::ReadBytesExt::read_u8(&mut table_version.buf_reader(&file_path)?)?;
+        let version = ReadBytesExt::read_u8(&mut table_version.buf_reader(&file_path)?)?;
         if version != 7 {
-            return Err(crate::Error::InvalidVersion(version));
+            return Err(Error::InvalidVersion(version));
         }
 
         let regions = ParsedRegions::parse_from_toc(trailer.toc())?;
@@ -459,20 +459,20 @@ impl Table {
                     let block = Block::from_file(
                         &file,
                         filter_handle,
-                        crate::CompressionType::None, // NOTE: We never write a filter block with compression
+                        CompressionType::None, // NOTE: We never write a filter block with compression
                     )
                     .and_then(|block| {
                         if block.header.block_type == BlockType::Filter {
                             Ok(block)
                         } else {
-                            Err(crate::Error::InvalidTag((
+                            Err(Error::InvalidTag((
                                 "BlockType",
                                 block.header.block_type.into(),
                             )))
                         }
                     })?;
 
-                    Ok::<_, crate::Error>(FilterBlock::new(block))
+                    Ok::<_, Error>(FilterBlock::new(block))
                 })
                 .transpose()?
         } else {
@@ -504,20 +504,12 @@ impl Table {
 
             is_deleted: AtomicBool::default(),
 
-            checksum,
             global_seqno,
         })))
     }
 
-    #[must_use]
-    pub fn checksum(&self) -> Checksum {
-        self.0.checksum
-    }
-
     pub(crate) fn mark_as_deleted(&self) {
-        self.0
-            .is_deleted
-            .store(true, std::sync::atomic::Ordering::Release);
+        self.0.is_deleted.store(true, Ordering::Release);
     }
 
     /// Checks if a key range is (partially or fully) contained in this table.

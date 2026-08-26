@@ -2,8 +2,8 @@ pub mod ingest;
 pub mod inner;
 
 use crate::{
-    BoxedIterator, Checksum, Config, InternalValue, Slice, Table,
-    file::CURRENT_VERSION_FILE,
+    BoxedIterator, Config, Error, InternalValue, Result, Slice, Table,
+    file::{CURRENT_VERSION_FILE, TABLES_FOLDER},
     merge::Merger,
     mvcc_stream::MvccStream,
     run_reader::RunReader,
@@ -11,7 +11,8 @@ use crate::{
 };
 use inner::Inner;
 use std::{
-    ops::{Bound, RangeBounds},
+    fs,
+    ops::{Bound, Deref, RangeBounds},
     path::Path,
     sync::Arc,
 };
@@ -20,7 +21,7 @@ use std::{
 #[derive(Clone)]
 pub struct Tree(Arc<Inner>);
 
-impl std::ops::Deref for Tree {
+impl Deref for Tree {
     type Target = Inner;
 
     fn deref(&self) -> &Self::Target {
@@ -34,11 +35,11 @@ impl Tree {
     /// # Errors
     ///
     /// Returns an error when the tree cannot be created, recovered, or read.
-    pub fn open(config: Config) -> crate::Result<Self> {
+    pub fn open(config: Config) -> Result<Self> {
         log::debug!("Opening LSM tree at {}", config.path.display());
 
         if config.path.join("version").try_exists()? {
-            return Err(crate::Error::InvalidVersion(1));
+            return Err(Error::InvalidVersion(1));
         }
 
         if config.path.join(CURRENT_VERSION_FILE).try_exists()? {
@@ -53,7 +54,7 @@ impl Tree {
     /// # Errors
     ///
     /// Returns an error when the table writer cannot be created.
-    pub fn ingestion(&self) -> crate::Result<ingest::Ingestion<'_>> {
+    pub fn ingestion(&self) -> Result<ingest::Ingestion<'_>> {
         ingest::Ingestion::new(self)
     }
 
@@ -62,16 +63,14 @@ impl Tree {
     /// # Errors
     ///
     /// Returns an error when an underlying table cannot be read.
-    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> crate::Result<Option<Slice>> {
+    pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
         let version = self.versions.load();
         Self::get_from_tables(&version, key.as_ref())
     }
 
     /// Iterates over all latest key-value pairs.
     #[must_use]
-    pub fn iter(
-        &self,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
+    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.range::<&[u8], _>(..)
     }
 
@@ -80,7 +79,7 @@ impl Tree {
     pub fn range<K: AsRef<[u8]>, R: RangeBounds<K>>(
         &self,
         range: R,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         let bounds = Self::owned_bounds(&range);
         let version = self.versions.load();
 
@@ -93,7 +92,7 @@ impl Tree {
     pub fn prefix<K: AsRef<[u8]>>(
         &self,
         prefix: K,
-    ) -> impl DoubleEndedIterator<Item = crate::Result<(Slice, Slice)>> + Send + 'static {
+    ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.range(crate::range::prefix_to_range(prefix.as_ref()))
     }
 
@@ -124,7 +123,7 @@ impl Tree {
     /// # Errors
     ///
     /// Returns an error when compaction cannot read, write, or publish its tables.
-    pub fn compact(&self) -> crate::Result<()> {
+    pub fn compact(&self) -> Result<()> {
         crate::compaction::worker::Worker::new(self).run()
     }
 
@@ -135,7 +134,7 @@ impl Tree {
         self.versions.load().id()
     }
 
-    fn get_from_tables(version: &Version, key: &[u8]) -> crate::Result<Option<Slice>> {
+    fn get_from_tables(version: &Version, key: &[u8]) -> Result<Option<Slice>> {
         let mut key_hash = None;
 
         for table in version
@@ -168,8 +167,7 @@ impl Tree {
     fn range_from(
         version: &Version,
         bounds: (Bound<Slice>, Bound<Slice>),
-    ) -> impl DoubleEndedIterator<Item = crate::Result<InternalValue>> + Send + 'static + use<>
-    {
+    ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + 'static + use<> {
         let mut readers: Vec<BoxedIterator<'static>> = Vec::new();
         let overlap = (
             bounds.0.as_ref().map(AsRef::as_ref),
@@ -200,7 +198,7 @@ impl Tree {
         })
     }
 
-    fn recover(config: Config) -> crate::Result<Self> {
+    fn recover(config: Config) -> Result<Self> {
         log::info!("Recovering LSM tree at {}", config.path.display());
         let tree_id = Inner::next_tree_id();
 
@@ -208,30 +206,29 @@ impl Tree {
         Ok(Self(Arc::new(Inner::recover(config, version, tree_id))))
     }
 
-    fn create_new(config: Config) -> crate::Result<Self> {
+    fn create_new(config: Config) -> Result<Self> {
         let path = config.path.clone();
-        std::fs::create_dir_all(path.join(crate::file::TABLES_FOLDER))?;
+        fs::create_dir_all(path.join(TABLES_FOLDER))?;
 
         Ok(Self(Arc::new(Inner::create_new(config)?)))
     }
 
-    fn recover_tables(path: &Path, tree_id: u32, config: &Config) -> crate::Result<Version> {
+    fn recover_tables(path: &Path, tree_id: u32, config: &Config) -> Result<Version> {
         let recovery = Recovery::load(path)?;
-        let mut expected: rustc_hash::FxHashMap<u32, (u8, Checksum, u64)> =
-            rustc_hash::FxHashMap::default();
+        let mut expected: rustc_hash::FxHashMap<u32, (u8, u64)> = rustc_hash::FxHashMap::default();
 
         for (level_index, runs) in (0_u8..).zip(&recovery.table_ids) {
             for table in runs.iter().flatten() {
-                expected.insert(table.id, (level_index, table.checksum, table.global_seqno));
+                expected.insert(table.id, (level_index, table.global_seqno));
             }
         }
 
         let tables_path = path.join(crate::file::TABLES_FOLDER);
-        std::fs::create_dir_all(&tables_path)?;
+        fs::create_dir_all(&tables_path)?;
         let mut tables = Vec::with_capacity(expected.len());
         let mut orphaned = Vec::new();
 
-        for entry in std::fs::read_dir(&tables_path)? {
+        for entry in fs::read_dir(&tables_path)? {
             let entry = entry?;
             let file_name = entry.file_name();
             if file_name == ".DS_Store" || file_name.to_string_lossy().starts_with("._") {
@@ -240,14 +237,13 @@ impl Tree {
 
             let table_id = file_name
                 .to_str()
-                .ok_or(crate::Error::Unrecoverable)?
+                .ok_or(Error::Unrecoverable)?
                 .parse::<u32>()
-                .map_err(|_| crate::Error::Unrecoverable)?;
+                .map_err(|_| Error::Unrecoverable)?;
 
-            if let Some(&(level, checksum, global_seqno)) = expected.get(&table_id) {
+            if let Some(&(level, global_seqno)) = expected.get(&table_id) {
                 tables.push(Table::recover(
                     entry.path(),
-                    checksum,
                     global_seqno,
                     tree_id,
                     config.cache.clone(),
@@ -261,12 +257,12 @@ impl Tree {
         }
 
         if tables.len() != expected.len() {
-            return Err(crate::Error::Unrecoverable);
+            return Err(Error::Unrecoverable);
         }
 
         let version = Version::from_recovery(&recovery, &tables)?;
         for table in orphaned {
-            std::fs::remove_file(table)?;
+            fs::remove_file(table)?;
         }
 
         Ok(version)

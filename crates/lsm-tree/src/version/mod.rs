@@ -14,12 +14,13 @@ pub use level::Level;
 pub use run::Run;
 pub use set::Set;
 
-use crate::Table;
 use crate::compaction::state::hidden_set::HiddenSet;
 use crate::version::recovery::Recovery;
+use crate::{Error, Result, Table};
+use byteorder::{LittleEndian, WriteBytesExt};
 use inner::Inner;
 use optimize::optimize_runs;
-use std::{ops::Deref, sync::Arc};
+use std::{io::Write, ops::Deref, sync::Arc};
 
 pub const DEFAULT_LEVEL_COUNT: u8 = 7;
 
@@ -31,7 +32,7 @@ pub struct Version {
     inner: Arc<Inner>,
 }
 
-impl std::ops::Deref for Version {
+impl Deref for Version {
     type Target = Inner;
 
     fn deref(&self) -> &Self::Target {
@@ -70,7 +71,7 @@ impl Version {
         }
     }
 
-    pub fn from_recovery(recovery: &Recovery, tables: &[Table]) -> crate::Result<Self> {
+    pub fn from_recovery(recovery: &Recovery, tables: &[Table]) -> Result<Self> {
         let version_levels = recovery
             .table_ids
             .iter()
@@ -85,9 +86,9 @@ impl Version {
                                     .iter()
                                     .find(|x| x.id() == table.id)
                                     .cloned()
-                                    .ok_or(crate::Error::Unrecoverable)
+                                    .ok_or(Error::Unrecoverable)
                             })
-                            .collect::<crate::Result<Vec<_>>>()?;
+                            .collect::<Result<Vec<_>>>()?;
 
                         Ok(Arc::new(
                             #[expect(
@@ -97,11 +98,11 @@ impl Version {
                             Run::new(run_tables).expect("persisted runs should not be empty"),
                         ))
                     })
-                    .collect::<crate::Result<Vec<_>>>()?;
+                    .collect::<Result<Vec<_>>>()?;
 
                 Ok(Level::from_runs(level_runs))
             })
-            .collect::<crate::Result<Vec<_>>>()?;
+            .collect::<Result<Vec<_>>>()?;
 
         Ok(Self::from_levels(recovery.curr_version_id, version_levels))
     }
@@ -195,7 +196,7 @@ impl Version {
         clippy::unnecessary_wraps,
         reason = "preserves the fallible version-transformation API"
     )]
-    pub fn with_dropped(&self, ids: &[u32]) -> crate::Result<Self> {
+    pub fn with_dropped(&self, ids: &[u32]) -> Result<Self> {
         let id = self.id + 1;
 
         let mut levels = vec![];
@@ -302,9 +303,7 @@ impl Version {
 }
 
 impl Version {
-    pub fn encode_into(&self, writer: &mut impl std::io::Write) -> crate::Result<()> {
-        use byteorder::{LittleEndian, WriteBytesExt};
-
+    pub fn encode_into(&self, writer: &mut impl Write) -> Result<()> {
         for level in self.iter_levels() {
             // Run count
             #[expect(
@@ -324,7 +323,8 @@ impl Version {
                 // Tables
                 for table in run.iter() {
                     writer.write_u32::<LittleEndian>(table.id())?;
-                    writer.write_u128::<LittleEndian>(table.checksum().into_u128())?;
+                    // Reserved legacy whole-table checksum slot.
+                    writer.write_u128::<LittleEndian>(0)?;
                     writer.write_u64::<LittleEndian>(table.global_seqno())?;
                 }
             }

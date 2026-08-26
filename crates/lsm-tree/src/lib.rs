@@ -36,7 +36,6 @@
         clippy::too_many_lines,
         clippy::unwrap_used,
         clippy::useless_vec,
-        clippy::from_iter_instead_of_collect,
         reason = "test fixtures favor direct assertions and intentionally bounded inputs"
     )
 )]

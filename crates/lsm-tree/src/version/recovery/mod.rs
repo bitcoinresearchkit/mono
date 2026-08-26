@@ -3,12 +3,13 @@ mod recovered_table;
 pub use recovered_table::RecoveredTable;
 
 use crate::{
-    Checksum,
+    Checksum, Error, Result,
     file::{CURRENT_MAGIC, CURRENT_VERSION_FILE},
     version::DEFAULT_LEVEL_COUNT,
 };
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
-use std::path::Path;
+use std::{fs, path::Path};
+use xxhash_rust::xxh3::xxh3_128;
 
 pub struct Recovery {
     pub curr_version_id: u64,
@@ -16,25 +17,25 @@ pub struct Recovery {
 }
 
 impl Recovery {
-    pub fn load(folder: &Path) -> crate::Result<Self> {
+    pub fn load(folder: &Path) -> Result<Self> {
         let current_path = folder.join(CURRENT_VERSION_FILE);
-        let bytes = std::fs::read(&current_path)?;
+        let bytes = fs::read(&current_path)?;
         let magic = bytes
             .get(..CURRENT_MAGIC.len())
-            .ok_or(crate::Error::Unrecoverable)?;
+            .ok_or(Error::Unrecoverable)?;
         if magic != CURRENT_MAGIC {
-            let version = magic.last().copied().ok_or(crate::Error::Unrecoverable)?;
-            return Err(crate::Error::InvalidVersion(version));
+            let version = magic.last().copied().ok_or(Error::Unrecoverable)?;
+            return Err(Error::InvalidVersion(version));
         }
         if bytes.len() < CURRENT_MAGIC.len() + size_of::<u64>() + size_of::<u128>() {
-            return Err(crate::Error::Unrecoverable);
+            return Err(Error::Unrecoverable);
         }
         let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());
-        Checksum::from_raw(xxhash_rust::xxh3::xxh3_128(payload))
+        Checksum::from_raw(xxh3_128(payload))
             .check(Checksum::from_raw(LittleEndian::read_u128(checksum)))?;
         let mut reader = payload
             .get(CURRENT_MAGIC.len()..)
-            .ok_or(crate::Error::Unrecoverable)?;
+            .ok_or(Error::Unrecoverable)?;
         let curr_version_id = reader.read_u64::<LittleEndian>()?;
 
         log::info!("Recovering current manifest at {}", current_path.display());
@@ -46,14 +47,16 @@ impl Recovery {
 
             for _ in 0..run_count {
                 let table_count = reader.read_u32::<LittleEndian>()?;
-                let capacity =
-                    usize::try_from(table_count).map_err(|_| crate::Error::Unrecoverable)?;
+                let capacity = usize::try_from(table_count).map_err(|_| Error::Unrecoverable)?;
                 let mut run = Vec::with_capacity(capacity);
 
                 for _ in 0..table_count {
+                    let id = reader.read_u32::<LittleEndian>()?;
+                    // Retained for compatibility with manifests that stored a whole-table
+                    // checksum here. Block and manifest checksums provide actual validation.
+                    let _legacy_checksum = reader.read_u128::<LittleEndian>()?;
                     run.push(RecoveredTable {
-                        id: reader.read_u32::<LittleEndian>()?,
-                        checksum: Checksum::from_raw(reader.read_u128::<LittleEndian>()?),
+                        id,
                         global_seqno: reader.read_u64::<LittleEndian>()?,
                     });
                 }
@@ -65,12 +68,59 @@ impl Recovery {
         }
 
         if !reader.is_empty() {
-            return Err(crate::Error::Unrecoverable);
+            return Err(Error::Unrecoverable);
         }
 
         Ok(Self {
             curr_version_id,
             table_ids: levels,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use byteorder::WriteBytesExt;
+    use test_log::test;
+
+    #[test]
+    fn recovery_ignores_legacy_table_checksum() -> Result<()> {
+        const TABLE_ID: u32 = 42;
+        const GLOBAL_SEQNO: u64 = 84;
+
+        let directory = tempfile::tempdir()?;
+        let mut current = CURRENT_MAGIC.to_vec();
+        current.write_u64::<LittleEndian>(7)?;
+
+        for level in 0..DEFAULT_LEVEL_COUNT {
+            if level == 0 {
+                current.write_u8(1)?;
+                current.write_u32::<LittleEndian>(1)?;
+                current.write_u32::<LittleEndian>(TABLE_ID)?;
+                current.write_u128::<LittleEndian>(u128::MAX)?;
+                current.write_u64::<LittleEndian>(GLOBAL_SEQNO)?;
+            } else {
+                current.write_u8(0)?;
+            }
+        }
+
+        let checksum = xxh3_128(&current);
+        current.write_u128::<LittleEndian>(checksum)?;
+        fs::write(directory.path().join(CURRENT_VERSION_FILE), current)?;
+
+        let recovery = Recovery::load(directory.path())?;
+        let Some(table) = recovery
+            .table_ids
+            .first()
+            .and_then(|level| level.first())
+            .and_then(|run| run.first())
+        else {
+            panic!("recovered table should exist");
+        };
+        assert_eq!(TABLE_ID, table.id);
+        assert_eq!(GLOBAL_SEQNO, table.global_seqno);
+
+        Ok(())
     }
 }
