@@ -1016,7 +1016,6 @@ dependencies = [
  "brk_reader",
  "brk_rpc",
  "brk_types",
- "derive_more",
  "itoa",
  "jiff",
  "parking_lot",

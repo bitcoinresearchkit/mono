@@ -1,6 +1,8 @@
 use std::{
     borrow::Cow,
+    cmp::Ordering,
     collections::{BTreeMap, BTreeSet, btree_map::Entry},
+    iter,
 };
 
 use bitview_plugin::Plugin;
@@ -24,7 +26,7 @@ use index_to_vec::IndexToVec;
 pub use series_entry::SeriesEntry;
 
 pub struct Vecs<'a> {
-    by_series: BTreeMap<&'a str, IndexToVec<'a>>,
+    by_series: FxHashMap<&'a str, IndexToVec<'a>>,
     series_names: Vec<&'a str>,
     indexes: Vec<IndexInfo>,
     counts: SeriesCount,
@@ -150,7 +152,7 @@ impl<'a> Vecs<'a> {
 
         let indexes = by_series
             .values()
-            .flat_map(|index_to_vec| index_to_vec.keys().copied())
+            .flat_map(IndexToVec::indexes)
             .collect::<BTreeSet<_>>()
             .into_iter()
             .map(|index| IndexInfo {
@@ -215,15 +217,15 @@ impl<'a> Vecs<'a> {
     pub fn series_indexes(&self, series: &SeriesName) -> Option<Vec<Index>> {
         self.by_series
             .get(series.normalize().as_ref())
-            .map(|index_to_vec| index_to_vec.keys().copied().collect())
+            .map(|index_to_vec| index_to_vec.indexes().collect())
     }
 
     pub fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
         let normalized = series.normalize();
         let name = normalized.as_ref();
         let index_to_vec = self.by_series.get(name)?;
-        let value_type = index_to_vec.values().next()?.vec().value_type_to_string();
-        let indexes = index_to_vec.keys().copied().collect();
+        let value_type = index_to_vec.first()?.vec().value_type_to_string();
+        let indexes = index_to_vec.indexes().collect();
         let description = self
             .series_position(name)
             .and_then(|index| self.description_search.description(index));
@@ -304,7 +306,7 @@ impl<'a> Vecs<'a> {
             return rank_candidates(
                 &self.series_names,
                 candidates,
-                std::iter::empty(),
+                iter::empty(),
                 0,
                 &query,
                 *limit,
@@ -323,7 +325,7 @@ impl<'a> Vecs<'a> {
             return rank_candidates(
                 &self.series_names,
                 candidates,
-                std::iter::empty(),
+                iter::empty(),
                 0,
                 &query,
                 *limit,
@@ -361,7 +363,7 @@ impl<'a> Vecs<'a> {
     pub fn entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
         self.by_series
             .get(series.normalize().as_ref())
-            .and_then(|index_to_vec| index_to_vec.get(&index).copied())
+            .and_then(|index_to_vec| index_to_vec.get(index).copied())
     }
 
     fn series_position(&self, name: &str) -> Option<usize> {
@@ -489,7 +491,7 @@ fn rank_candidates<'a>(
 }
 
 impl RankedCandidate<'_> {
-    fn cmp(a: &Self, b: &Self) -> std::cmp::Ordering {
+    fn cmp(a: &Self, b: &Self) -> Ordering {
         b.normalized_exact
             .cmp(&a.normalized_exact)
             .then_with(|| b.expanded_exact.cmp(&a.expanded_exact))
@@ -514,7 +516,7 @@ impl RankedCandidate<'_> {
 
 #[derive(Default)]
 struct Builder<'a> {
-    by_series: BTreeMap<&'a str, IndexToVec<'a>>,
+    by_series: FxHashMap<&'a str, IndexToVec<'a>>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
     seen_by_db: FxHashMap<&'a str, FxHashSet<&'a str>>,
@@ -527,9 +529,9 @@ impl<'a> Builder<'a> {
         let index = Index::try_from(serialized_index)
             .unwrap_or_else(|_| panic!("Unknown index type: {serialized_index}"));
         let requires_gate = matches!(index.cache_class(), CacheClass::Mutable) || vec.is_mutable();
-        let entry = SeriesEntry::new(vec, plugin, requires_gate);
+        let entry = SeriesEntry::new(index, vec, plugin, requires_gate);
 
-        let prev = self.by_series.entry(name).or_default().insert(index, entry);
+        let prev = self.by_series.entry(name).or_default().insert(entry);
         assert!(
             prev.is_none(),
             "Duplicate series: {name} for index {index:?}"

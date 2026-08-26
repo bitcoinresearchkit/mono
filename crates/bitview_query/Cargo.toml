@@ -71,7 +71,6 @@ brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true }
-derive_more = { workspace = true }
 itoa = "1.0.18"
 jiff = { workspace = true }
 parking_lot = { workspace = true }
