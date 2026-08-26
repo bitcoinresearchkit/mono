@@ -6,17 +6,8 @@ use super::Vecs;
 use bitview_compute::{Identity, LazyPerBlock};
 use bitview_plugin_distribution::AllChainSources;
 
-pub fn forced_import(
-    version: Version,
-    mappings: &bitview_plugin_mappings::Vecs,
-    all_chain: &AllChainSources,
-    transactions: &bitview_plugin_transactions::Vecs,
-) -> Result<Vecs> {
-    Vecs::forced_import(version, mappings, all_chain, transactions)
-}
-
 impl Vecs {
-    fn forced_import(
+    pub fn forced_import(
         version: Version,
         mappings: &bitview_plugin_mappings::Vecs,
         all_chain: &AllChainSources,

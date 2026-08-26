@@ -30,7 +30,7 @@ impl Vecs {
         let circulating =
             LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
 
-        let burned = burned::forced_import(&db, version, mappings)?;
+        let burned = burned::Vecs::forced_import(&db, version, mappings)?;
 
         let inflation_version = version + Version::TWO;
         let inflation_source = LazyWindowVec::<Height, Sats, PartsPerMillionSigned64>::new(
@@ -56,7 +56,7 @@ impl Vecs {
         );
 
         // Velocity
-        let velocity = velocity::forced_import(version, mappings, all_chain, transactions)?;
+        let velocity = velocity::Vecs::forced_import(version, mappings, all_chain, transactions)?;
 
         // Market cap - lazy fiat (cents + usd) from distribution supply
         let market_cap = LazyFiatPerBlock::from_lazy("market_cap", version, &supply_metrics.cents);

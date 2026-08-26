@@ -6,16 +6,8 @@ use vecdb::Database;
 use super::Vecs;
 use bitview_compute::ValuePerBlockCumulative;
 
-pub fn forced_import(
-    db: &Database,
-    version: Version,
-    mappings: &bitview_plugin_mappings::Vecs,
-) -> Result<Vecs> {
-    Vecs::forced_import(db, version, mappings)
-}
-
 impl Vecs {
-    fn forced_import(
+    pub fn forced_import(
         db: &Database,
         version: Version,
         mappings: &bitview_plugin_mappings::Vecs,

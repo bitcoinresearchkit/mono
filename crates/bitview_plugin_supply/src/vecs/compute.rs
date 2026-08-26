@@ -5,7 +5,7 @@ use bitview_plugin_indexer::Indexer;
 use vecdb::Exit;
 
 use super::Vecs;
-use crate::{Dependencies, burned};
+use crate::Dependencies;
 
 impl Vecs {
     fn compute_inner(
@@ -18,8 +18,8 @@ impl Vecs {
     ) -> Result<()> {
         self.db.sync_bg_tasks()?;
 
-        // 1. Compute burned/unspendable supply
-        burned::compute(&mut self.burned, indexer, outputs, mining, prices, exit)?;
+        self.burned
+            .compute(indexer, outputs, mining, prices, exit)?;
 
         let exit = exit.clone();
         self.db.run_bg(move |db| {
