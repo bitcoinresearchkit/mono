@@ -8,12 +8,13 @@ use bitview_compute::{
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::{Indexer, Lengths};
 use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
-use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, WritableVec};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, VecValue, WritableVec};
 
 use super::Vecs;
 use crate::{AGE_COHORT_COUNT, AggregateSources, Dependencies, HorizonId, Horizons};
 
-const WRITE_INTERVAL: usize = 10_000;
+const WRITE_INTERVAL: usize = 20_000;
 
 #[derive(Clone, Copy)]
 struct DecayFit {
@@ -90,6 +91,134 @@ impl AggregateState {
     }
 }
 
+struct PrimaryBatch {
+    timestamps: Vec<Timestamp>,
+    transfer_volumes: AgeRange<Vec<Sats>>,
+    coindays_created: Vec<AgeRange<StoredF64>>,
+    supplies: AgeRange<Vec<Sats>>,
+    loss_supplies: AgeRange<Vec<Sats>>,
+    realized_caps: AgeRange<Vec<Cents>>,
+}
+
+impl PrimaryBatch {
+    #[allow(clippy::too_many_arguments)]
+    fn collect(
+        timestamps: &impl ReadableVec<Height, Timestamp>,
+        transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        coindays_created: &impl ReadableVec<Height, AgeRange<StoredF64>>,
+        supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        loss_supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        realized_caps: &AgeRange<&impl ReadableVec<Height, Cents>>,
+        start: usize,
+        end: usize,
+    ) -> Self {
+        Self {
+            timestamps: timestamps.collect_range_at(start, end),
+            transfer_volumes: Self::collect_age_range(transfer_volumes, start, end),
+            coindays_created: coindays_created.collect_range_at(start, end),
+            supplies: Self::collect_age_range(supplies, start, end),
+            loss_supplies: Self::collect_age_range(loss_supplies, start, end),
+            realized_caps: Self::collect_age_range(realized_caps, start, end),
+        }
+    }
+
+    #[inline]
+    fn len(&self) -> usize {
+        self.timestamps.len()
+    }
+
+    fn collect_age_range<T, V>(sources: &AgeRange<&V>, start: usize, end: usize) -> AgeRange<Vec<T>>
+    where
+        T: VecValue,
+        V: ReadableVec<Height, T>,
+    {
+        AgeRange::par_from_fn(|id| id.select(sources).collect_range_at(start, end))
+    }
+
+    fn rows(&self, genesis_timestamp: Timestamp, bounds: &AgeRange<AgeBand>) -> Vec<PrimaryRow> {
+        (0..self.len())
+            .into_par_iter()
+            .map(|offset| self.row(offset, genesis_timestamp, bounds))
+            .collect()
+    }
+
+    fn row(
+        &self,
+        offset: usize,
+        genesis_timestamp: Timestamp,
+        bounds: &AgeRange<AgeBand>,
+    ) -> PrimaryRow {
+        let hazards = AgeRange::from_fn(|id| {
+            Self::spending_rate(
+                id.select(&self.transfer_volumes)[offset],
+                *id.get(&self.coindays_created[offset]),
+            )
+        });
+        let network_age = self.timestamps[offset]
+            .difference_in_days_between_float(genesis_timestamp)
+            .max(MINIMUM_DURATION_DAYS);
+        let exposures = DecayFit::exposures(&hazards, network_age, bounds);
+        let mobilities = AgeRange::from_fn(|id| AgeBand::mobility(*id.select(&exposures)));
+        let horizon_mobilities: Horizons<AgeRange<f64>> = HorizonId::from_fn(|horizon| {
+            let horizon = horizon.days();
+            AgeRange::from_fn(|age| AgeBand::horizon_mobility(&hazards, age, horizon, bounds))
+        });
+        let mut terms = ByTerm::<AggregateState>::default();
+        let mut mobile_supply = AgeRange::default();
+        let mut immobile_supply = AgeRange::default();
+
+        for &id in AgeRangeId::ALL {
+            let mobility = StoredF64::from(*id.select(&mobilities));
+            let total_supply = id.select(&self.supplies)[offset];
+            let total_cap = id.select(&self.realized_caps)[offset];
+            let loss_supply = id.select(&self.loss_supplies)[offset];
+
+            let term = if TERM_FILTERS.short.includes(id.filter()) {
+                &mut terms.short
+            } else {
+                &mut terms.long
+            };
+            let contribution = term.add(
+                total_supply,
+                loss_supply,
+                total_cap,
+                mobility,
+                &horizon_mobilities,
+                id,
+            );
+
+            *id.select_mut(&mut mobile_supply) = contribution.weighted_supply;
+            *id.select_mut(&mut immobile_supply) = contribution.complement_supply;
+        }
+
+        PrimaryRow {
+            spending_rate: AgeRangeId::from_fn(|id| StoredF64::from(*id.select(&hazards))),
+            spending_exposure: AgeRangeId::from_fn(|id| StoredF64::from(*id.select(&exposures))),
+            mobile_supply: AgeRangeId::from_fn(|id| *id.select(&mobile_supply)),
+            immobile_supply: AgeRangeId::from_fn(|id| *id.select(&immobile_supply)),
+            terms,
+        }
+    }
+
+    #[inline]
+    fn spending_rate(transfer_volume: Sats, coindays_created: StoredF64) -> f64 {
+        let exposure = f64::from(coindays_created);
+        if exposure > 0.0 {
+            (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
+        } else {
+            0.0
+        }
+    }
+}
+
+struct PrimaryRow {
+    spending_rate: AgeRange<StoredF64>,
+    spending_exposure: AgeRange<StoredF64>,
+    mobile_supply: AgeRange<Sats>,
+    immobile_supply: AgeRange<Sats>,
+    terms: ByTerm<AggregateState>,
+}
+
 impl Vecs {
     fn compute_inner(
         &mut self,
@@ -153,25 +282,17 @@ impl Vecs {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn compute_primary<T, D, V, S, L, C>(
+    fn compute_primary(
         &mut self,
         starting_lengths: &Lengths,
-        timestamps: &T,
-        transfer_volumes: &AgeRange<&V>,
-        coindays_created: &D,
-        supplies: &AgeRange<&S>,
-        loss_supplies: &AgeRange<&L>,
-        realized_caps: &AgeRange<&C>,
+        timestamps: &impl ReadableVec<Height, Timestamp>,
+        transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        coindays_created: &impl ReadableVec<Height, AgeRange<StoredF64>>,
+        supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        loss_supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        realized_caps: &AgeRange<&impl ReadableVec<Height, Cents>>,
         exit: &Exit,
-    ) -> Result<Height>
-    where
-        T: ReadableVec<Height, Timestamp>,
-        D: ReadableVec<Height, AgeRange<StoredF64>>,
-        V: ReadableVec<Height, Sats>,
-        S: ReadableVec<Height, Sats>,
-        L: ReadableVec<Height, Sats>,
-        C: ReadableVec<Height, Cents>,
-    {
+    ) -> Result<Height> {
         let source_version = Version::combine_all(
             std::iter::once(timestamps.version())
                 .chain(transfer_volumes.iter().map(|vec| vec.version()))
@@ -218,90 +339,18 @@ impl Vecs {
         let mut chunk_start = start;
         while chunk_start < source_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
-            let timestamp_batch = timestamps.collect_range_at(chunk_start, chunk_end);
-            let transfer_batches = AgeRange::from_fn(|id| {
-                id.select(transfer_volumes)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let coinday_batch = coindays_created.collect_range_at(chunk_start, chunk_end);
-            let supply_batches = AgeRange::from_fn(|id| {
-                id.select(supplies).collect_range_at(chunk_start, chunk_end)
-            });
-            let loss_supply_batches = AgeRange::from_fn(|id| {
-                id.select(loss_supplies)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let cap_batches = AgeRange::from_fn(|id| {
-                id.select(realized_caps)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-
-            for offset in 0..(chunk_end - chunk_start) {
-                let hazards = AgeRange::from_fn(|id| {
-                    Self::spending_rate(
-                        id.select(&transfer_batches)[offset],
-                        *id.get(&coinday_batch[offset]),
-                    )
-                });
-                let network_age = timestamp_batch[offset]
-                    .difference_in_days_between_float(genesis_timestamp)
-                    .max(MINIMUM_DURATION_DAYS);
-                let exposures = DecayFit::exposures(&hazards, network_age, &bounds);
-                let mobilities = AgeRange::from_fn(|id| AgeBand::mobility(*id.select(&exposures)));
-                let horizon_mobilities: Horizons<AgeRange<f64>> = HorizonId::from_fn(|horizon| {
-                    let horizon = horizon.days();
-                    AgeRange::from_fn(|age| {
-                        AgeBand::horizon_mobility(&hazards, age, horizon, &bounds)
-                    })
-                });
-                self.age_range.spending_rate.push(AgeRangeId::from_fn(|id| {
-                    StoredF64::from(*id.select(&hazards))
-                }));
-                self.age_range
-                    .spending_exposure
-                    .push(AgeRangeId::from_fn(|id| {
-                        StoredF64::from(*id.select(&exposures))
-                    }));
-
-                let mut terms = ByTerm::<AggregateState>::default();
-                let mut mobile_supply = AgeRange::default();
-                let mut immobile_supply = AgeRange::default();
-
-                for &id in AgeRangeId::ALL {
-                    let mobility = StoredF64::from(*id.select(&mobilities));
-                    let total_supply = id.select(&supply_batches)[offset];
-                    let total_cap = id.select(&cap_batches)[offset];
-                    let loss_supply = id.select(&loss_supply_batches)[offset];
-
-                    let term = if TERM_FILTERS.short.includes(id.filter()) {
-                        &mut terms.short
-                    } else {
-                        &mut terms.long
-                    };
-                    let contribution = term.add(
-                        total_supply,
-                        loss_supply,
-                        total_cap,
-                        mobility,
-                        &horizon_mobilities,
-                        id,
-                    );
-
-                    *id.select_mut(&mut mobile_supply) = contribution.weighted_supply;
-                    *id.select_mut(&mut immobile_supply) = contribution.complement_supply;
-                }
-
-                self.age_range
-                    .supply
-                    .mobile
-                    .push(AgeRangeId::from_fn(|id| *id.select(&mobile_supply)));
-                self.age_range
-                    .supply
-                    .immobile
-                    .push(AgeRangeId::from_fn(|id| *id.select(&immobile_supply)));
-
-                let all = terms.short.merged(terms.long);
-                self.aggregate_sources.push(terms, all);
+            let batch = PrimaryBatch::collect(
+                timestamps,
+                transfer_volumes,
+                coindays_created,
+                supplies,
+                loss_supplies,
+                realized_caps,
+                chunk_start,
+                chunk_end,
+            );
+            for row in batch.rows(genesis_timestamp, &bounds) {
+                self.push_primary(row);
             }
 
             {
@@ -316,6 +365,16 @@ impl Vecs {
         Ok(Height::from(start))
     }
 
+    fn push_primary(&mut self, row: PrimaryRow) {
+        self.age_range.spending_rate.push(row.spending_rate);
+        self.age_range.spending_exposure.push(row.spending_exposure);
+        self.age_range.supply.mobile.push(row.mobile_supply);
+        self.age_range.supply.immobile.push(row.immobile_supply);
+
+        let all = row.terms.short.merged(row.terms.long);
+        self.aggregate_sources.push(row.terms, all);
+    }
+
     fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         [
             self.age_range.spending_rate.stored_mut(),
@@ -325,16 +384,6 @@ impl Vecs {
         ]
         .into_iter()
         .chain(self.aggregate_sources.primary_vecs_mut())
-    }
-
-    #[inline]
-    fn spending_rate(transfer_volume: Sats, coindays_created: StoredF64) -> f64 {
-        let exposure = f64::from(coindays_created);
-        if exposure > 0.0 {
-            (f64::from(Bitcoin::from(transfer_volume)) / exposure).max(0.0)
-        } else {
-            0.0
-        }
     }
 }
 
