@@ -1,7 +1,10 @@
 use std::{
     fs::File,
     mem,
-    sync::{Arc, Weak},
+    sync::{
+        Arc, Weak,
+        atomic::{AtomicBool, Ordering},
+    },
 };
 
 #[cfg(unix)]
@@ -30,6 +33,7 @@ pub struct Region(Arc<RegionInner>);
 pub(crate) struct RegionInner {
     db: WeakDatabase,
     index: usize,
+    accessed: AtomicBool,
     meta: RwLock<RegionMetadata>,
     /// Sorted, merged dirty byte ranges relative to the region start.
     dirty_ranges: Mutex<Vec<(usize, usize)>>,
@@ -48,6 +52,7 @@ impl Region {
         Self(Arc::new(RegionInner {
             db: db.weak_clone(),
             index,
+            accessed: AtomicBool::new(false),
             meta: RwLock::new(RegionMetadata::new(id, start, len, reserved)),
             dirty_ranges: Mutex::new(Vec::new()),
             group: RwLock::new(Weak::new()),
@@ -58,6 +63,7 @@ impl Region {
         Self(Arc::new(RegionInner {
             db: db.weak_clone(),
             index,
+            accessed: AtomicBool::new(false),
             meta: RwLock::new(meta),
             dirty_ranges: Mutex::new(Vec::new()),
             group: RwLock::new(Weak::new()),
@@ -671,6 +677,16 @@ impl Region {
     #[inline(always)]
     pub(crate) fn arc(&self) -> &Arc<RegionInner> {
         &self.0
+    }
+
+    #[inline(always)]
+    pub(crate) fn mark_accessed(&self) {
+        self.0.accessed.store(true, Ordering::Relaxed);
+    }
+
+    #[inline(always)]
+    pub(crate) fn was_accessed(&self) -> bool {
+        self.0.accessed.load(Ordering::Relaxed)
     }
 
     #[inline]

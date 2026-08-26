@@ -1321,6 +1321,20 @@ fn test_reader_bounds_check() {
     let _ = reader.read(0, 100);
 }
 
+#[test]
+#[should_panic]
+fn test_reader_bounds_overflow() {
+    let (db, _temp) = setup_test_db().unwrap();
+
+    let first = db.create_region_if_needed("first").unwrap();
+    first.write(&[0; PAGE_SIZE]).unwrap();
+    let second = db.create_region_if_needed("second").unwrap();
+    second.write(b"Short").unwrap();
+
+    let reader = second.create_reader();
+    let _ = reader.read(usize::MAX, 1);
+}
+
 // Test that Reader is self-contained and safe to use after dropping original references
 #[test]
 fn test_reader_outlives_region_variable() -> rawdb::Result<()> {

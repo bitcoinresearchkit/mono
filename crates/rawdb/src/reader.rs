@@ -51,7 +51,7 @@ impl Reader {
 
     #[inline(always)]
     pub fn read(&self, offset: usize, len: usize) -> &[u8] {
-        assert!(offset + len <= self.len());
+        assert!(len <= self.len() && offset <= self.len() - len);
         self.unchecked_read(offset, len)
     }
 
