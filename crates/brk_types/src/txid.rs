@@ -93,9 +93,24 @@ impl<'de> Deserialize<'de> for Txid {
     where
         D: Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        let bitcoin_txid = bitcoin::Txid::from_str(&s).map_err(de::Error::custom)?;
-        Ok(Self::from(bitcoin_txid))
+        deserializer.deserialize_str(TxidVisitor)
+    }
+}
+
+struct TxidVisitor;
+
+impl de::Visitor<'_> for TxidVisitor {
+    type Value = Txid;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str("a transaction ID")
+    }
+
+    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+    where
+        E: de::Error,
+    {
+        Txid::from_str(value).map_err(E::custom)
     }
 }
 

@@ -1,16 +1,22 @@
-use std::{thread::sleep, time::Duration};
+use std::{fs::read_to_string, thread::sleep, time::Duration};
 
-use brk_error::Error;
-use corepc_jsonrpc::{Client as JsonRpcClient, Request, error::Error as JsonRpcError, simple_http};
+use brk_error::{Error, Result};
+use corepc_jsonrpc::{
+    Client as JsonRpcClient, Request, Response,
+    error::{Error as JsonRpcError, RpcError},
+    simple_http,
+};
 use parking_lot::RwLock;
-use serde::Deserialize;
-use serde_json::{Value, value::RawValue};
+use serde::{Deserialize, Serialize};
+use serde_json::value::{RawValue, to_raw_value};
 use tracing::info;
 
 use crate::Auth;
 
+use super::rpc_call::RpcCall;
+
 #[derive(Debug)]
-pub(crate) struct ClientInner {
+pub struct ClientInner {
     url: String,
     auth: Auth,
     client: RwLock<JsonRpcClient>,
@@ -19,12 +25,7 @@ pub(crate) struct ClientInner {
 }
 
 impl ClientInner {
-    pub(crate) fn new(
-        url: &str,
-        auth: Auth,
-        max_retries: usize,
-        retry_delay: Duration,
-    ) -> brk_error::Result<Self> {
+    pub fn new(url: &str, auth: Auth, max_retries: usize, retry_delay: Duration) -> Result<Self> {
         let client = Self::create_client(url, &auth)?;
         Ok(Self {
             url: url.to_string(),
@@ -39,7 +40,7 @@ impl ClientInner {
     /// keeps a single pooled TCP socket with reconnect-on-failure. The
     /// upstream `corepc-client` hard-wires `bitreq_http` (one TCP connect
     /// per request), which collapses under concurrent load.
-    fn create_client(url: &str, auth: &Auth) -> brk_error::Result<JsonRpcClient> {
+    fn create_client(url: &str, auth: &Auth) -> Result<JsonRpcClient> {
         let builder = simple_http::Builder::new()
             .url(url)
             .map_err(|e| Error::Parse(format!("bad rpc url: {e}")))?
@@ -48,14 +49,14 @@ impl ClientInner {
             Auth::None => builder,
             Auth::UserPass(u, p) => builder.auth(u.clone(), Some(p.clone())),
             Auth::CookieFile(path) => {
-                let cookie = std::fs::read_to_string(path)?;
+                let cookie = read_to_string(path)?;
                 builder.cookie_auth(cookie.trim())
             }
         };
         Ok(JsonRpcClient::with_transport(builder.build()))
     }
 
-    fn recreate(&self) -> brk_error::Result<()> {
+    fn recreate(&self) -> Result<()> {
         *self.client.write() = Self::create_client(&self.url, &self.auth)?;
         Ok(())
     }
@@ -68,11 +69,12 @@ impl ClientInner {
         }
     }
 
-    pub(crate) fn call_with_retry<T>(&self, method: &str, args: &[Value]) -> brk_error::Result<T>
+    pub fn call_with_retry<T, P>(&self, method: &str, args: &P) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
+        P: Serialize + ?Sized,
     {
-        let raw = serde_json::value::to_raw_value(args).map_err(Error::from)?;
+        let raw = to_raw_value(args).map_err(Error::from)?;
 
         for attempt in 0..=self.max_retries {
             if attempt > 0 {
@@ -107,7 +109,7 @@ impl ClientInner {
             "Could not reconnect to Bitcoin Core after {} attempts",
             self.max_retries + 1
         );
-        Err(JsonRpcError::Rpc(corepc_jsonrpc::error::RpcError {
+        Err(JsonRpcError::Rpc(RpcError {
             code: -1,
             message: "Max retries exceeded".to_string(),
             data: None,
@@ -115,40 +117,51 @@ impl ClientInner {
         .into())
     }
 
-    pub(crate) fn call_once<T>(&self, method: &str, args: &[Value]) -> brk_error::Result<T>
+    pub fn call_once<T, P>(&self, method: &str, args: &P) -> Result<T>
     where
         T: for<'de> Deserialize<'de>,
+        P: Serialize + ?Sized,
     {
-        let raw = serde_json::value::to_raw_value(args).map_err(Error::from)?;
+        let raw = to_raw_value(args).map_err(Error::from)?;
         Ok(self.client.read().call::<T>(method, Some(&raw))?)
     }
 
-    /// Send a batch of calls sharing `method`, one set of args per request.
-    /// No retry: the caller decides batch sizing and failure semantics.
-    pub(crate) fn call_batch<T>(
+    fn send_batch<P>(
         &self,
         method: &str,
-        batch_args: impl IntoIterator<Item = Vec<Value>>,
-    ) -> brk_error::Result<Vec<T>>
+        batch_args: impl IntoIterator<Item = P>,
+    ) -> Result<Vec<Option<Response>>>
     where
-        T: for<'de> Deserialize<'de>,
+        P: Serialize,
     {
         let params: Vec<Box<RawValue>> = batch_args
             .into_iter()
-            .map(|args| serde_json::value::to_raw_value(&args).map_err(Error::from))
-            .collect::<brk_error::Result<Vec<_>>>()?;
+            .map(|args| to_raw_value(&args).map_err(Error::from))
+            .collect::<Result<Vec<_>>>()?;
 
         let client = self.client.read();
         let requests: Vec<Request> = params
             .iter()
-            .map(|p| client.build_request(method, Some(p)))
+            .map(|params| client.build_request(method, Some(params)))
             .collect();
 
-        let responses = client
+        client
             .send_batch(&requests)
-            .map_err(|e| Error::Parse(format!("batch {method} failed: {e}")))?;
+            .map_err(|error| Error::Parse(format!("batch {method} failed: {error}")))
+    }
 
-        responses
+    /// Send a batch of calls sharing `method`, one set of args per request.
+    /// No retry: the caller decides batch sizing and failure semantics.
+    pub fn call_batch<T, P>(
+        &self,
+        method: &str,
+        batch_args: impl IntoIterator<Item = P>,
+    ) -> Result<Vec<T>>
+    where
+        T: for<'de> Deserialize<'de>,
+        P: Serialize,
+    {
+        self.send_batch(method, batch_args)?
             .into_iter()
             .map(|resp| {
                 let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
@@ -163,30 +176,17 @@ impl ClientInner {
     /// failures preserve the underlying `JsonRpcError` so the caller can
     /// pattern-match on the RPC error code. The outer `Result` still fails
     /// if the HTTP round-trip itself fails.
-    pub(crate) fn call_batch_per_item<T>(
+    pub fn call_batch_per_item<T, P>(
         &self,
         method: &str,
-        batch_args: impl IntoIterator<Item = Vec<Value>>,
-    ) -> brk_error::Result<Vec<brk_error::Result<T>>>
+        batch_args: impl IntoIterator<Item = P>,
+    ) -> Result<Vec<Result<T>>>
     where
         T: for<'de> Deserialize<'de>,
+        P: Serialize,
     {
-        let params: Vec<Box<RawValue>> = batch_args
-            .into_iter()
-            .map(|args| serde_json::value::to_raw_value(&args).map_err(Error::from))
-            .collect::<brk_error::Result<Vec<_>>>()?;
-
-        let client = self.client.read();
-        let requests: Vec<Request> = params
-            .iter()
-            .map(|p| client.build_request(method, Some(p)))
-            .collect();
-
-        let responses = client
-            .send_batch(&requests)
-            .map_err(|e| Error::Parse(format!("batch {method} failed: {e}")))?;
-
-        Ok(responses
+        Ok(self
+            .send_batch(method, batch_args)?
             .into_iter()
             .map(|resp| {
                 let resp = resp.ok_or(Error::Internal("Missing response in JSON-RPC batch"))?;
@@ -199,24 +199,15 @@ impl ClientInner {
     /// in a single round-trip. Each result is independently parsed by the
     /// caller using its own `T`. Outer `Result` fails on transport errors;
     /// inner `Result`s fail on per-item RPC errors.
-    pub(crate) fn call_mixed_batch(
-        &self,
-        requests: &[(&str, Vec<Value>)],
-    ) -> brk_error::Result<Vec<brk_error::Result<Box<RawValue>>>> {
-        let params: Vec<Box<RawValue>> = requests
-            .iter()
-            .map(|(_, args)| serde_json::value::to_raw_value(args).map_err(Error::from))
-            .collect::<brk_error::Result<Vec<_>>>()?;
-
+    pub fn call_mixed_batch(&self, calls: &[RpcCall]) -> Result<Vec<Result<Box<RawValue>>>> {
         let client = self.client.read();
-        let built: Vec<Request> = requests
+        let requests: Vec<Request> = calls
             .iter()
-            .zip(&params)
-            .map(|((method, _), p)| client.build_request(method, Some(p)))
+            .map(|call| client.build_request(call.method, Some(&call.params)))
             .collect();
 
         let responses = client
-            .send_batch(&built)
+            .send_batch(&requests)
             .map_err(|e| Error::Parse(format!("mixed batch failed: {e}")))?;
 
         Ok(responses
