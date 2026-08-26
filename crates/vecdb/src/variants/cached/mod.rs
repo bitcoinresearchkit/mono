@@ -21,41 +21,41 @@ use crate::{ReadOnlyClone, ReadableVec, StoredVec, TypedVec, VecIndex, Version};
 static NO_BUDGET: NoBudget = NoBudget;
 
 struct CacheState<T> {
-    valid: bool,
     len: usize,
     version: Version,
     generation: u64,
-    data: Arc<Vec<T>>,
+    data: Option<Arc<Vec<T>>>,
 }
 
 impl<T> CacheState<T> {
     fn empty() -> Self {
         Self {
-            valid: false,
             len: 0,
             version: Version::ZERO,
             generation: 0,
-            data: Arc::new(Vec::new()),
+            data: None,
         }
     }
 
-    fn matches(&self, len: usize, version: Version) -> bool {
-        self.valid && self.len == len && self.version == version
+    fn matching_data(&self, len: usize, version: Version) -> Option<Arc<Vec<T>>> {
+        if self.len == len && self.version == version {
+            self.data.clone()
+        } else {
+            None
+        }
     }
 
     fn invalidate(&mut self) {
-        self.valid = false;
         self.len = 0;
         self.version = Version::ZERO;
         self.generation = self.generation.wrapping_add(1);
-        self.data = Arc::new(Vec::new());
+        self.data = None;
     }
 
     fn replace(&mut self, len: usize, version: Version, data: Arc<Vec<T>>) {
-        self.valid = true;
         self.len = len;
         self.version = version;
-        self.data = data;
+        self.data = Some(data);
     }
 }
 
@@ -128,7 +128,7 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
     /// Returns a full snapshot, retaining it when the budget allows.
     #[inline(always)]
     pub fn snapshot(&self) -> Arc<Vec<V::T>> {
-        self.materialize(true)
+        self.materialize(|| true)
             .unwrap_or_else(|| Arc::new(self.inner.collect_range_dyn(0, self.inner.len())))
     }
 
@@ -147,24 +147,25 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
     /// Returns `None` when this read should not populate an empty budgeted cache
     /// or when the budget cannot retain the snapshot.
     #[inline]
-    pub(super) fn try_snapshot(&self, cache_worthy: bool) -> Option<Arc<Vec<V::T>>> {
+    fn try_snapshot(&self, cache_worthy: impl Fn() -> bool) -> Option<Arc<Vec<V::T>>> {
         self.materialize(cache_worthy)
     }
 
-    fn materialize(&self, cache_worthy: bool) -> Option<Arc<Vec<V::T>>> {
+    fn materialize(&self, cache_worthy: impl Fn() -> bool) -> Option<Arc<Vec<V::T>>> {
+        let mut admitted = None;
         loop {
             let len = self.inner.len();
             let version = self.inner.version();
-            let cache_is_invalid = {
+            let cache_is_empty = {
                 let cache = self.cache.read();
-                if cache.matches(len, version) {
+                if let Some(data) = cache.matching_data(len, version) {
                     self.record_cache_access();
-                    return Some(cache.data.clone());
+                    return Some(data);
                 }
-                !cache.valid
+                cache.data.is_none()
             };
-            let admitted = self.budget.admit(cache_worthy);
-            if cache_is_invalid && !admitted {
+            let admitted = *admitted.get_or_insert_with(|| self.budget.admit(cache_worthy()));
+            if cache_is_empty && !admitted {
                 return None;
             }
 
@@ -174,9 +175,9 @@ impl<V: TypedVec + ReadableVec<V::I, V::T>> CachedVec<V> {
             let version = self.inner.version();
             let (generation, released_bytes) = {
                 let mut cache = self.cache.write();
-                if cache.matches(len, version) {
+                if let Some(data) = cache.matching_data(len, version) {
                     self.record_cache_access();
-                    return Some(cache.data.clone());
+                    return Some(data);
                 }
                 cache.invalidate();
                 (cache.generation, self.resident_bytes.swap(0, Relaxed))
