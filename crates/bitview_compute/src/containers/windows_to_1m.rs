@@ -12,7 +12,6 @@ pub struct WindowsTo1m<A> {
 
 impl<A> WindowsTo1m<A> {
     pub const SUFFIXES: [&'static str; 3] = ["24h", "1w", "1m"];
-    pub const DAYS: [usize; 3] = [1, 7, 30];
 
     pub fn try_from_fn<E>(
         mut f: impl FnMut(&str) -> std::result::Result<A, E>,
@@ -30,5 +29,9 @@ impl<A> WindowsTo1m<A> {
 
     pub fn as_mut_array(&mut self) -> [&mut A; 3] {
         [&mut self._24h, &mut self._1w, &mut self._1m]
+    }
+
+    pub fn as_mut_array_with_days(&mut self) -> [(&mut A, usize); 3] {
+        [(&mut self._24h, 1), (&mut self._1w, 7), (&mut self._1m, 30)]
     }
 }

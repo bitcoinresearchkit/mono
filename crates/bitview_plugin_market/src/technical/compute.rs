@@ -2,10 +2,14 @@ use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
 use brk_types::{Dollars, PartsPerMillion32};
+use rayon::{
+    join,
+    prelude::{IntoParallelIterator, ParallelIterator},
+};
 use vecdb::Exit;
 
 use super::{super::moving_average, Vecs, macd, rsi_chain};
-use bitview_compute::{RatioDollars, WindowsTo1m};
+use bitview_compute::RatioDollars;
 
 pub fn compute(
     vecs: &mut Vecs,
@@ -28,32 +32,35 @@ impl Vecs {
         exit: &Exit,
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
-        for (rsi_chain, &m) in self
-            .rsi
-            .as_mut_array()
-            .into_iter()
-            .zip(&WindowsTo1m::<()>::DAYS)
-        {
-            rsi_chain::compute(rsi_chain, indexer, blocks, 14 * m, 3 * m, exit)?;
-        }
-
-        for (macd_chain, &m) in self
-            .macd
-            .as_mut_array()
-            .into_iter()
-            .zip(&WindowsTo1m::<()>::DAYS)
-        {
-            macd::compute(
-                macd_chain,
-                indexer,
-                blocks,
-                prices,
-                12 * m,
-                26 * m,
-                9 * m,
-                exit,
-            )?;
-        }
+        let (rsi, macd) = join(
+            || {
+                self.rsi
+                    .as_mut_array_with_days()
+                    .into_par_iter()
+                    .try_for_each(|(chain, days)| {
+                        rsi_chain::compute(chain, indexer, blocks, 14 * days, 3 * days, exit)
+                    })
+            },
+            || {
+                self.macd
+                    .as_mut_array_with_days()
+                    .into_par_iter()
+                    .try_for_each(|(chain, days)| {
+                        macd::compute(
+                            chain,
+                            indexer,
+                            blocks,
+                            prices,
+                            12 * days,
+                            26 * days,
+                            9 * days,
+                            exit,
+                        )
+                    })
+            },
+        );
+        rsi?;
+        macd?;
 
         self.pi_cycle
             .ppm

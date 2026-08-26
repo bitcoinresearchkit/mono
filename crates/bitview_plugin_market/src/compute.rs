@@ -2,6 +2,7 @@ use brk_error::Result;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use rayon::join;
 use vecdb::Exit;
 
 use super::Vecs;
@@ -18,11 +19,10 @@ impl Vecs {
     ) -> Result<()> {
         self.db.sync_bg_tasks()?;
 
-        // Phase 1: Independent sub-modules in parallel
-        let (r1, r2) = rayon::join(
+        let (ath, (range, moving_average)) = join(
             || super::ath::compute(&mut self.ath, indexer, prices, mappings, exit),
             || {
-                rayon::join(
+                join(
                     || super::range::compute(&mut self.range, indexer, prices, blocks, exit),
                     || {
                         super::moving_average::compute(
@@ -36,22 +36,25 @@ impl Vecs {
                 )
             },
         );
-        r1?;
-        r2.0?;
-        r2.1?;
+        ath?;
+        range?;
+        moving_average?;
 
-        // Phase 2: Stored volatility inputs derived from lazy 24h returns.
-        super::returns::compute(&mut self.returns, indexer, blocks, exit)?;
-
-        // Phase 3: Depends on moving_average
-        super::technical::compute(
-            &mut self.technical,
-            indexer,
-            prices,
-            blocks,
-            &self.moving_average,
-            exit,
-        )?;
+        let (returns, technical) = join(
+            || super::returns::compute(&mut self.returns, indexer, blocks, exit),
+            || {
+                super::technical::compute(
+                    &mut self.technical,
+                    indexer,
+                    prices,
+                    blocks,
+                    &self.moving_average,
+                    exit,
+                )
+            },
+        );
+        returns?;
+        technical?;
 
         let exit = exit.clone();
         self.db.run_bg(move |db| {
