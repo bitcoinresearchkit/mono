@@ -122,12 +122,12 @@ impl CacheParams {
     }
 
     pub fn matches_etag(&self, headers: &HeaderMap) -> bool {
-        headers.has_etag(self.etag.as_str())
+        self.etag.matches(headers)
     }
 
     /// Write this cache policy (etag + cache-control + cdn-cache-control) onto a response's headers.
     pub fn apply_to(&self, headers: &mut HeaderMap) {
-        headers.insert_etag(self.etag.as_str());
+        self.etag.insert(headers);
         headers.insert_cache_control(self.cache_control);
         headers.insert_cdn_cache_control(self.cdn_cache_control);
     }

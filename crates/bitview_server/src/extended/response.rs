@@ -1,6 +1,6 @@
 use axum::{
     body::{Body, Bytes},
-    http::{HeaderMap, Response, StatusCode, header},
+    http::{HeaderMap, HeaderValue, Response, StatusCode, header},
     response::IntoResponse,
 };
 
@@ -52,8 +52,11 @@ impl ResponseExtended for Response<Body> {
         }
         let mut response = Response::new(Body::from(bytes));
         let h = response.headers_mut();
-        h.insert(header::CONTENT_TYPE, content_type.parse().unwrap());
-        h.insert(header::CONTENT_ENCODING, content_encoding.parse().unwrap());
+        h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
+        h.insert(
+            header::CONTENT_ENCODING,
+            HeaderValue::from_static(content_encoding),
+        );
         h.insert_vary_accept_encoding();
         params.apply_to(h);
         response

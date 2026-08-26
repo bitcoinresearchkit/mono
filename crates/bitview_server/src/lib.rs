@@ -15,7 +15,7 @@ use axum::{
     body::Body,
     http::{
         Request, Response, StatusCode, Uri,
-        header::{ALLOW, CONTENT_TYPE, VARY},
+        header::{ALLOW, CONTENT_TYPE},
     },
     middleware::Next,
     response::{IntoResponse, Redirect},
@@ -249,23 +249,6 @@ impl Server {
             .layer(json_error_layer)
             .layer(compression_layer)
             .layer(CorsLayer::permissive())
-            .layer(axum::middleware::from_fn(
-                async |request: Request<Body>, next: Next| -> Response<Body> {
-                    let mut response = next.run(request).await;
-                    // Consolidate multiple Vary headers into one
-                    let vary: Vec<&str> = response
-                        .headers()
-                        .get_all(VARY)
-                        .iter()
-                        .filter_map(|v| v.to_str().ok())
-                        .collect();
-                    if vary.len() > 1 {
-                        let merged = vary.join(", ");
-                        response.headers_mut().insert(VARY, merged.parse().unwrap());
-                    }
-                    response
-                },
-            ))
             .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
                 let msg = panic
                     .downcast_ref::<String>()

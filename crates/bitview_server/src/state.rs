@@ -14,7 +14,10 @@ use jiff::Timestamp;
 use serde::Serialize;
 use vecdb::ReadableVec;
 
-use crate::{CacheParams, CacheStrategy, Error, Website, extended::ResponseExtended};
+use crate::{
+    CacheParams, CacheStrategy, Error, Website, error::into_response_with_etag,
+    extended::ResponseExtended,
+};
 
 #[derive(Clone, Deref)]
 pub struct AppState {
@@ -168,6 +171,23 @@ impl AppState {
         CacheStrategy::MempoolHash(hash)
     }
 
+    fn assemble_response(
+        params: CacheParams,
+        result: Result<Bytes>,
+        apply_content_headers: impl FnOnce(&mut HeaderMap),
+    ) -> Response<Body> {
+        match result {
+            Ok(bytes) => {
+                let mut response = Response::new(Body::from(bytes));
+                let headers = response.headers_mut();
+                apply_content_headers(headers);
+                params.apply_to(headers);
+                response
+            }
+            Err(error) => into_response_with_etag(Error::from(error), params.etag.clone()),
+        }
+    }
+
     /// Shared response pipeline: ETag short-circuit, body computation on the
     /// query thread, and header assembly. Used by [`AppState::respond`]
     /// (strategy-driven) and series endpoints, which build [`CacheParams`]
@@ -186,16 +206,7 @@ impl AppState {
             return ResponseExtended::new_not_modified(&params);
         }
 
-        match self.run(f).await {
-            Ok(bytes) => {
-                let mut response = Response::new(Body::from(bytes));
-                let h = response.headers_mut();
-                apply_content_headers(h);
-                params.apply_to(h);
-                response
-            }
-            Err(e) => crate::error::into_response_with_etag(Error::from(e), params.etag.clone()),
-        }
+        Self::assemble_response(params, self.run(f).await, apply_content_headers)
     }
 
     /// Strategy-driven cached response.
@@ -264,42 +275,54 @@ impl AppState {
             return ResponseExtended::new_not_modified(&optimistic_params);
         }
 
-        let (value_result, strategy) = match self.run(f).await {
-            Ok((v, s)) => (Ok(v), s),
-            Err(e) => (Err(e), CacheStrategy::Tip),
+        let request_headers = headers.clone();
+        let outcome = self
+            .run(move |query| {
+                let (value, strategy) = match f(query) {
+                    Ok((value, strategy)) => (Ok(value), strategy),
+                    Err(error) => (Err(error), CacheStrategy::Tip),
+                };
+                let params = CacheParams::resolve(&strategy, tip);
+                if params.matches_etag(&request_headers) {
+                    return Ok((params, None));
+                }
+                let body = value.map(|value| Bytes::from(serde_json::to_vec(&value).unwrap()));
+                Ok((params, Some(body)))
+            })
+            .await;
+
+        let (params, result) = match outcome {
+            Ok((params, None)) => return ResponseExtended::new_not_modified(&params),
+            Ok((params, Some(result))) => (params, result),
+            Err(error) => {
+                let params = CacheParams::resolve(&CacheStrategy::Tip, tip);
+                if params.matches_etag(headers) {
+                    return ResponseExtended::new_not_modified(&params);
+                }
+                (params, Err(error))
+            }
         };
-        let params = CacheParams::resolve(&strategy, tip);
-        self.respond_with_params(
-            headers,
-            params,
-            |h| {
-                h.insert(
-                    header::CONTENT_TYPE,
-                    HeaderValue::from_static("application/json"),
-                );
-            },
-            move |_q| {
-                let value = value_result?;
-                Ok(Bytes::from(serde_json::to_vec(&value).unwrap()))
-            },
-        )
-        .await
+        Self::assemble_response(params, result, |headers| {
+            headers.insert(
+                header::CONTENT_TYPE,
+                HeaderValue::from_static("application/json"),
+            );
+        })
     }
 
     /// Text response with HTTP cache validation.
-    pub async fn respond_text<T, F>(
+    pub async fn respond_text<F>(
         &self,
         headers: &HeaderMap,
         strategy: CacheStrategy,
         f: F,
     ) -> Response<Body>
     where
-        T: AsRef<str> + Send + 'static,
-        F: FnOnce(&bitview_query::Query) -> Result<T> + Send + 'static,
+        F: FnOnce(&bitview_query::Query) -> Result<String> + Send + 'static,
     {
         self.respond(headers, strategy, "text/plain", move |q| {
             let value = f(q)?;
-            Ok(Bytes::from(value.as_ref().as_bytes().to_vec()))
+            Ok(Bytes::from(value))
         })
         .await
     }
