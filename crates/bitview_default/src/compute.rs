@@ -165,7 +165,6 @@ impl DefaultPlugins {
                     self.pools.compute(
                         PoolsDependencies {
                             indexer,
-                            mappings: self.mappings.as_ref(),
                             price: self.price.as_ref(),
                             mining: self.mining.as_ref(),
                         },

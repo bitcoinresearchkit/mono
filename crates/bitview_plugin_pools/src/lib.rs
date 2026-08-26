@@ -7,11 +7,10 @@ use bitview_plugin::{
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
-use brk_types::{
-    Addr, AddrBytes, Height, OutputType, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex,
-    pools,
+use brk_types::{Height, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex, pools};
+use rayon::prelude::{
+    IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
-use rayon::prelude::*;
 use vecdb::{
     AnyStoredVec, AnyVec, BytesVec, Database, Exit, ImportableVec, ReadableVec, Rw, StorageMode,
     VecIndex, Version, WritableVec,
@@ -127,14 +126,13 @@ impl Vecs {
     fn compute_inner(
         &mut self,
         indexer: &Indexer,
-        mappings: &bitview_plugin_mappings::Vecs,
         prices: &bitview_plugin_price::Vecs,
         mining: &bitview_plugin_mining::Vecs,
         exit: &Exit,
     ) -> Result<()> {
         self.db.sync_bg_tasks()?;
 
-        self.compute_pool(indexer, mappings, exit)?;
+        self.compute_pool(indexer, exit)?;
 
         self.major
             .par_iter_mut()
@@ -148,19 +146,13 @@ impl Vecs {
         Ok(())
     }
 
-    fn compute_pool(
-        &mut self,
-        indexer: &Indexer,
-        mappings: &bitview_plugin_mappings::Vecs,
-        exit: &Exit,
-    ) -> Result<()> {
+    fn compute_pool(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
 
         let dep_version: Version = [
             indexer.vecs().blocks.coinbase_tag.version(),
             indexer.vecs().transactions.first_tx_index.version(),
             indexer.vecs().transactions.first_txout_index.version(),
-            mappings.tx_index.output_count.version(),
             indexer.vecs().outputs.output_type.version(),
             indexer.vecs().outputs.type_index.version(),
             indexer.vecs().addrs.p2pk65.bytes.version(),
@@ -188,72 +180,50 @@ impl Vecs {
         let first_txout_index = indexer.vecs().transactions.first_txout_index.reader();
         let output_type = indexer.vecs().outputs.output_type.reader();
         let type_index = indexer.vecs().outputs.type_index.reader();
-        let p2pk65 = indexer.vecs().addrs.p2pk65.bytes.reader();
-        let p2pk33 = indexer.vecs().addrs.p2pk33.bytes.reader();
-        let p2pkh = indexer.vecs().addrs.p2pkh.bytes.reader();
-        let p2sh = indexer.vecs().addrs.p2sh.bytes.reader();
-        let p2wpkh = indexer.vecs().addrs.p2wpkh.bytes.reader();
-        let p2wsh = indexer.vecs().addrs.p2wsh.bytes.reader();
-        let p2tr = indexer.vecs().addrs.p2tr.bytes.reader();
-        let p2a = indexer.vecs().addrs.p2a.bytes.reader();
+        let addr_readers = indexer.vecs().addrs.addr_readers();
 
         let unknown = self.pools.get_unknown();
 
         let min = starting_height.to_usize().min(self.pool.len());
 
-        // Cursors avoid per-height PcoVec page decompression.
-        // Heights are sequential, tx_index values derived from them are monotonically
-        // increasing, so both cursors only advance forward.
-        let mut first_tx_index_cursor = indexer.vecs().transactions.first_tx_index.cursor();
-        first_tx_index_cursor.advance(min);
-        let mut output_count_cursor = mappings.tx_index.output_count.cursor();
-
         self.pool.truncate_if_needed_at(min)?;
         self.heights.truncate(min);
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
-        let mut next_height = min;
-
-        indexer.vecs().blocks.coinbase_tag.try_for_each_range_at(
-            min,
-            len,
-            |coinbase_tag| -> Result<()> {
-                let tx_index = first_tx_index_cursor.next().unwrap();
+        let coinbase_tags = indexer.vecs().blocks.coinbase_tag.reader();
+        let first_tx_indexes = indexer
+            .vecs()
+            .transactions
+            .first_tx_index
+            .collect_range_at(min, len);
+        let output_len = indexer.vecs().outputs.output_type.len();
+        let pool_slugs = first_tx_indexes
+            .into_par_iter()
+            .enumerate()
+            .map(|(offset, tx_index)| {
                 let out_start = first_txout_index.get(tx_index);
+                let out_end = first_txout_index
+                    .try_get(tx_index.incremented())
+                    .unwrap_or_else(|| TxOutIndex::from(output_len));
+                let coinbase_tag = coinbase_tags.get_at(min + offset);
 
-                let ti = tx_index.to_usize();
-                output_count_cursor.advance(ti - output_count_cursor.position());
-                let output_count_val = output_count_cursor.next().unwrap();
-
-                let pool = (*out_start..(*out_start + *output_count_val))
+                (*out_start..*out_end)
                     .map(TxOutIndex::from)
                     .find_map(|txout_index| {
-                        let ot = output_type.get(txout_index);
-                        let ti = usize::from(type_index.get(txout_index));
-                        match ot {
-                            OutputType::P2PK65 => Some(AddrBytes::from(p2pk65.get_at(ti))),
-                            OutputType::P2PK33 => Some(AddrBytes::from(p2pk33.get_at(ti))),
-                            OutputType::P2PKH => Some(AddrBytes::from(p2pkh.get_at(ti))),
-                            OutputType::P2SH => Some(AddrBytes::from(p2sh.get_at(ti))),
-                            OutputType::P2WPKH => Some(AddrBytes::from(p2wpkh.get_at(ti))),
-                            OutputType::P2WSH => Some(AddrBytes::from(p2wsh.get_at(ti))),
-                            OutputType::P2TR => Some(AddrBytes::from(p2tr.get_at(ti))),
-                            OutputType::P2A => Some(AddrBytes::from(p2a.get_at(ti))),
-                            _ => None,
-                        }
-                        .map(|bytes| Addr::try_from(&bytes).unwrap())
-                        .and_then(|addr| self.pools.find_from_addr(&addr))
+                        addr_readers
+                            .get(output_type.get(txout_index), type_index.get(txout_index))
+                            .and_then(|addr| self.pools.find_from_addr(&addr))
                     })
                     .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.as_str()))
-                    .unwrap_or(unknown);
+                    .unwrap_or(unknown)
+                    .slug
+            })
+            .collect::<Vec<_>>();
 
-                self.pool.push(pool.slug);
-                self.heights.push(pool.slug, Height::from(next_height));
-                next_height += 1;
-
-                Ok(())
-            },
-        )?;
+        for (offset, slug) in pool_slugs.into_iter().enumerate() {
+            self.pool.push(slug);
+            self.heights.push(slug, Height::from(min + offset));
+        }
 
         let _lock = exit.lock();
         self.pool.write()?;
@@ -272,7 +242,6 @@ impl ComputePlugin for Vecs {
     ) -> Result<Self::Output> {
         self.compute_inner(
             dependencies.indexer,
-            dependencies.mappings,
             dependencies.price,
             dependencies.mining,
             context.exit(),

@@ -1,8 +1,9 @@
 use std::sync::OnceLock;
 
+use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
-use crate::{PoolSlug, Version};
+use crate::{AddrBytes, PoolSlug, Version};
 
 use super::Pool;
 
@@ -38,7 +39,10 @@ fn empty_pool(id: usize) -> Pool {
 }
 
 #[derive(Debug)]
-pub struct Pools(Vec<Pool>);
+pub struct Pools {
+    pools: Vec<Pool>,
+    by_addr: FxHashMap<AddrBytes, PoolSlug>,
+}
 
 impl Pools {
     pub fn find_from_coinbase_tag(&self, coinbase_tag: &str) -> Option<&Pool> {
@@ -50,21 +54,21 @@ impl Pools {
         })
     }
 
-    pub fn find_from_addr(&self, addr: &str) -> Option<&Pool> {
-        self.iter().find(|pool| pool.addrs.contains(&addr))
+    pub fn find_from_addr(&self, addr: &AddrBytes) -> Option<&Pool> {
+        self.by_addr.get(addr).map(|&slug| self.get(slug))
     }
 
     pub fn get_unknown(&self) -> &Pool {
-        &self.0[0]
+        &self.pools[0]
     }
 
     pub fn get(&self, slug: PoolSlug) -> &Pool {
         let i: u8 = slug.into();
-        &self.0[i as usize]
+        &self.pools[i as usize]
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &Pool> + '_ {
-        self.0.iter().filter(|p| !p.name.is_empty())
+        self.pools.iter().filter(|pool| !pool.name.is_empty())
     }
 
     #[allow(clippy::len_without_is_empty)]
@@ -128,12 +132,23 @@ pub fn pools() -> &'static Pools {
             };
         }
 
-        Pools(pools)
+        let mut by_addr = FxHashMap::default();
+        for pool in pools.iter().filter(|pool| !pool.name.is_empty()) {
+            for addr in &pool.addrs {
+                if let Ok(addr) = addr.parse() {
+                    by_addr.entry(addr).or_insert(pool.slug);
+                }
+            }
+        }
+
+        Pools { pools, by_addr }
     })
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::Addr;
+
     use super::*;
 
     #[test]
@@ -161,5 +176,29 @@ mod tests {
         let dmnd = pools().get(PoolSlug::Dmnd);
         assert_eq!(dmnd.name, "DMND");
         assert_eq!(dmnd.mempool_unique_id(), 171);
+    }
+
+    #[test]
+    fn binary_lookup_matches_string_lookup() {
+        let pools = pools();
+
+        for pool in pools.iter() {
+            for configured in &pool.addrs {
+                let Ok(bytes) = configured.parse::<AddrBytes>() else {
+                    continue;
+                };
+                let reconstructed = Addr::try_from(&bytes).unwrap().to_string();
+                let expected = pools
+                    .iter()
+                    .find(|pool| pool.addrs.contains(&reconstructed.as_str()))
+                    .map(|pool| pool.slug);
+
+                assert_eq!(
+                    pools.find_from_addr(&bytes).map(|pool| pool.slug),
+                    expected,
+                    "{configured}"
+                );
+            }
+        }
     }
 }

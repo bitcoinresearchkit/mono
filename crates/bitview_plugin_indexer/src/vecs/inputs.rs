@@ -102,7 +102,6 @@ impl InputsVecs {
 #[cfg(test)]
 mod tests {
     use brk_types::{Version, Vout};
-    use rayon::prelude::*;
     use vecdb::{AnyVec, ReadableVec};
 
     use super::*;
