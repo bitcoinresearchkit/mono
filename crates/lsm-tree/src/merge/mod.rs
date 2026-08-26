@@ -2,27 +2,35 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
+mod forward;
+
+pub use forward::ForwardMerger;
+
 use crate::{InternalValue, Result};
 use interval_heap::IntervalHeap as Heap;
+use std::cmp::Ordering;
 
-struct HeapItem(usize, InternalValue);
+struct HeapItem {
+    iterator_index: usize,
+    value: InternalValue,
+}
 
 impl Eq for HeapItem {}
 
 impl PartialEq for HeapItem {
     fn eq(&self, other: &Self) -> bool {
-        self.1.key == other.1.key
+        self.value.key == other.value.key
     }
 }
 
 impl Ord for HeapItem {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.1.key.cmp(&other.1.key)
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.value.key.cmp(&other.value.key)
     }
 }
 
 impl PartialOrd for HeapItem {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -54,7 +62,10 @@ impl<I: Iterator<Item = Result<InternalValue>>> Merger<I> {
         for (idx, it) in self.iterators.iter_mut().enumerate() {
             if let Some(item) = it.next() {
                 let item = item?;
-                self.heap.push(HeapItem(idx, item));
+                self.heap.push(HeapItem {
+                    iterator_index: idx,
+                    value: item,
+                });
             }
         }
         self.initialized_lo = true;
@@ -67,7 +78,10 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Merger<I> {
         for (idx, it) in self.iterators.iter_mut().enumerate() {
             if let Some(item) = it.next_back() {
                 let item = item?;
-                self.heap.push(HeapItem(idx, item));
+                self.heap.push(HeapItem {
+                    iterator_index: idx,
+                    value: item,
+                });
             }
         }
         self.initialized_hi = true;
@@ -86,12 +100,15 @@ impl<I: Iterator<Item = Result<InternalValue>>> Iterator for Merger<I> {
         let min_item = self.heap.pop_min()?;
 
         #[expect(clippy::indexing_slicing, reason = "we trust the HeapItem index")]
-        if let Some(next_item) = self.iterators[min_item.0].next() {
+        if let Some(next_item) = self.iterators[min_item.iterator_index].next() {
             let next_item = fail_iter!(next_item);
-            self.heap.push(HeapItem(min_item.0, next_item));
+            self.heap.push(HeapItem {
+                iterator_index: min_item.iterator_index,
+                value: next_item,
+            });
         }
 
-        Some(Ok(min_item.1))
+        Some(Ok(min_item.value))
     }
 }
 
@@ -104,12 +121,15 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> DoubleEndedIterator f
         let max_item = self.heap.pop_max()?;
 
         #[expect(clippy::indexing_slicing, reason = "we trust the HeapItem index")]
-        if let Some(next_item) = self.iterators[max_item.0].next_back() {
+        if let Some(next_item) = self.iterators[max_item.iterator_index].next_back() {
             let next_item = fail_iter!(next_item);
-            self.heap.push(HeapItem(max_item.0, next_item));
+            self.heap.push(HeapItem {
+                iterator_index: max_item.iterator_index,
+                value: next_item,
+            });
         }
 
-        Some(Ok(max_item.1))
+        Some(Ok(max_item.value))
     }
 }
 

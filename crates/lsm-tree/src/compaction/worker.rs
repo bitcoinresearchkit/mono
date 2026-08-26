@@ -1,27 +1,28 @@
 use crate::{
-    Config, InternalValue, SequenceNumberCounter, Table, Tree,
+    Config, InternalValue, Result, SequenceNumberCounter, Table, Tree,
     compaction::{
-        Choice, Input, flavour::StandardCompaction, state::CompactionState,
+        Choice, Input, flavour::StandardCompaction, leveled::Strategy, state::CompactionState,
         stream::CompactionStream,
     },
     config::FilterPolicyEntry,
-    merge::Merger,
+    file::TABLES_FOLDER,
+    merge::ForwardMerger,
     run_scanner::RunScanner,
     table::{filter::BloomConstructionPolicy, multi_writer::MultiWriter},
-    version::{Run, Set, Version},
+    version::{Level, Run, Set, Version},
 };
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-struct Reader(Box<dyn Iterator<Item = crate::Result<InternalValue>>>);
+struct Reader(Box<dyn Iterator<Item = Result<InternalValue>>>);
 
 impl Reader {
-    fn new(iterator: impl Iterator<Item = crate::Result<InternalValue>> + 'static) -> Self {
+    fn new(iterator: impl Iterator<Item = Result<InternalValue>> + 'static) -> Self {
         Self(Box::new(iterator))
     }
 }
 
 impl Iterator for Reader {
-    type Item = crate::Result<InternalValue>;
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.0.next()
@@ -47,12 +48,12 @@ impl Worker {
         }
     }
 
-    pub fn run(&self) -> crate::Result<()> {
+    pub fn run(&self) -> Result<()> {
         loop {
             let state = self.state();
             let version = self.versions.load();
 
-            match crate::compaction::leveled::Strategy::choose(&version, &state) {
+            match Strategy::choose(&version, &state) {
                 Choice::Merge(input) => self.merge_tables(state, &version, &input)?,
                 Choice::Move(input) => self.move_tables(&state, &input)?,
                 Choice::DoNothing => return Ok(()),
@@ -66,7 +67,7 @@ impl Worker {
             .unwrap_or_else(PoisonError::into_inner)
     }
 
-    fn move_tables(&self, state: &CompactionState, input: &Input) -> crate::Result<()> {
+    fn move_tables(&self, state: &CompactionState, input: &Input) -> Result<()> {
         if state
             .hidden_set()
             .should_decline_compaction(input.table_ids.iter().copied())
@@ -85,7 +86,7 @@ impl Worker {
         mut state: MutexGuard<'_, CompactionState>,
         version: &Version,
         input: &Input,
-    ) -> crate::Result<()> {
+    ) -> Result<()> {
         if state
             .hidden_set()
             .should_decline_compaction(input.table_ids.iter().copied())
@@ -125,10 +126,10 @@ impl Worker {
         result
     }
 
-    fn prepare_writer(&self, version: &Version, input: &Input) -> crate::Result<MultiWriter> {
+    fn prepare_writer(&self, version: &Version, input: &Input) -> Result<MultiWriter> {
         let level = usize::from(input.canonical_level);
         let mut writer = MultiWriter::new(
-            self.config.path.join(crate::file::TABLES_FOLDER),
+            self.config.path.join(TABLES_FOLDER),
             self.table_id_generator.clone(),
             input.target_size,
         )?;
@@ -181,11 +182,11 @@ impl Worker {
     fn create_stream(
         version: &Version,
         table_ids: &[u32],
-    ) -> crate::Result<Option<CompactionStream<Merger<Reader>>>> {
+    ) -> Result<Option<CompactionStream<ForwardMerger<Reader>>>> {
         let mut readers = Vec::<Reader>::new();
         let mut found = 0;
 
-        for run in version.iter_levels().flat_map(crate::version::Level::iter) {
+        for run in version.iter_levels().flat_map(Level::iter) {
             if run.len() > 1 {
                 let Some((start, end)) = Self::run_indexes(run, table_ids) else {
                     continue;
@@ -203,7 +204,7 @@ impl Worker {
             }
         }
 
-        Ok((found == table_ids.len()).then(|| CompactionStream::new(Merger::new(readers))))
+        Ok((found == table_ids.len()).then(|| CompactionStream::new(ForwardMerger::new(readers))))
     }
 
     fn run_indexes(run: &Run<Table>, table_ids: &[u32]) -> Option<(usize, usize)> {
