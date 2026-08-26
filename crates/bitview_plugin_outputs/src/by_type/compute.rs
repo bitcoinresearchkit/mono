@@ -1,13 +1,11 @@
-use brk_error::Result;
-
 use bitview_cohort::OutputTypeId;
+use bitview_compute::{CoinbasePolicy, walk_blocks};
 use bitview_plugin_indexer::Indexer;
-use brk_error::OptionData;
+use brk_error::{OptionData, Result};
 use brk_types::{StoredU16, StoredU64};
 use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};
 
 use super::Vecs;
-use bitview_compute::{CoinbasePolicy, walk_blocks};
 
 const WRITE_INTERVAL: usize = 10_000;
 
@@ -45,14 +43,17 @@ impl Vecs {
             let fi_batch = first_tx_index.collect_range_at(skip, end);
             let txid_len = indexer.vecs().transactions.txid.len();
             let total_txout_len = indexer.vecs().outputs.output_type.len();
-
-            let mut otype_cursor = indexer.vecs().outputs.output_type.reader().cursor();
-            let fo_cursor = indexer
+            let fo_reader = indexer.vecs().transactions.first_txout_index.reader();
+            let first_tx = fi_batch
+                .first()
+                .expect("block range is nonempty")
+                .to_usize();
+            let first_txout = fo_reader.try_get_at(first_tx).data()?.to_usize();
+            let mut otype_cursor = indexer
                 .vecs()
-                .transactions
-                .first_txout_index
-                .reader()
-                .cursor();
+                .outputs
+                .output_type
+                .range_cursor_at(first_txout, total_txout_len);
             let mut height = skip;
 
             walk_blocks(
@@ -60,18 +61,16 @@ impl Vecs {
                 txid_len,
                 CoinbasePolicy::Include,
                 |tx_pos, per_tx| {
-                    let fo = fo_cursor.get(tx_pos).data()?.to_usize();
                     let next_fo = if tx_pos + 1 < txid_len {
-                        fo_cursor.get(tx_pos + 1).data()?.to_usize()
+                        fo_reader.try_get_at(tx_pos + 1).data()?.to_usize()
                     } else {
                         total_txout_len
                     };
 
-                    otype_cursor.advance(fo - otype_cursor.position());
-                    for _ in fo..next_fo {
-                        let otype = otype_cursor.next().unwrap();
+                    let output_count = next_fo - otype_cursor.position();
+                    otype_cursor.for_each(output_count, |otype| {
                         per_tx[otype as usize] += 1;
-                    }
+                    });
                     Ok(())
                 },
                 |agg| {

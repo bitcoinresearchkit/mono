@@ -12,7 +12,7 @@ mod writable;
 
 use crate::{
     AnyStoredVec, AnyVec, Error, Format, HEADER_OFFSET, ImportOptions, RawIoSource, RawMmapSource,
-    ReadWriteBaseVec, VecIndex, VecReader, VecValue, Version, vec_region_name_with,
+    RawRangeCursor, ReadWriteBaseVec, VecIndex, VecReader, VecValue, Version, vec_region_name_with,
 };
 
 use super::{RawStrategy, ReadOnlyRawVec};
@@ -128,6 +128,12 @@ where
     #[inline]
     pub fn reader(&self) -> VecReader<I, T, S> {
         VecReader::from_read_write(self)
+    }
+
+    /// Creates a forward cursor over a bounded persisted range.
+    #[inline]
+    pub fn range_cursor_at(&self, from: usize, to: usize) -> RawRangeCursor<'_, I, T, S> {
+        RawRangeCursor::new(self.region(), self.stored_len(), from, to)
     }
 
     #[inline]

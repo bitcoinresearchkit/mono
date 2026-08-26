@@ -64,6 +64,12 @@ where
         }
     }
 
+    pub(crate) fn byte_window(&self) -> (*const u8, usize) {
+        let byte_position = self.pos * Self::SIZE_OF_T;
+        let byte_len = (self.end - self.pos) * Self::SIZE_OF_T;
+        (unsafe { self.data.add(byte_position) }, byte_len)
+    }
+
     /// Fold all elements in the range — tight pointer loop.
     #[inline(always)]
     pub(crate) fn fold<B, F: FnMut(B, T) -> B>(self, init: B, mut f: F) -> B {

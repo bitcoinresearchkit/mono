@@ -111,6 +111,23 @@ where
         self.buffer_pos = 0;
     }
 
+    pub(crate) fn read_window(&mut self) -> Option<(*const u8, usize)> {
+        if self.cant_read_file() {
+            return None;
+        }
+        self.refill_buffer();
+        Some((self.buffer.as_ptr(), self.buffer_len))
+    }
+
+    pub(crate) fn skip_file_bytes(&mut self, bytes: usize) {
+        debug_assert!(bytes <= self.remaining_file_bytes());
+        self.file
+            .seek(SeekFrom::Current(bytes as i64))
+            .expect("skip raw range");
+        self.file_offset += bytes;
+        self.buffer_pos = self.buffer_len;
+    }
+
     /// Reads native-layout values directly into the destination allocation.
     pub(crate) fn read_into(self, output: &mut Vec<T>) {
         debug_assert!(S::IS_NATIVE_LAYOUT);

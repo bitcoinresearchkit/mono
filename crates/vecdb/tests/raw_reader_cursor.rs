@@ -55,6 +55,37 @@ fn raw_reader_cursor_reads_persisted_values() -> vecdb::Result<()> {
 }
 
 #[test]
+fn raw_range_cursor_stays_within_declared_range() -> vecdb::Result<()> {
+    let temp = TempDir::new()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = BytesVec::<usize, u64>::import(&db, "range", Version::ONE)?;
+    for value in 0..200_000 {
+        vec.push(value);
+    }
+    vec.write()?;
+
+    let mut cursor = vec.range_cursor_at(10_003, 190_007);
+    assert_eq!(cursor.position(), 10_003);
+    assert_eq!(cursor.remaining(), 180_004);
+    assert_eq!(cursor.next(), Some(10_003));
+    cursor.advance(1_000);
+    assert_eq!(cursor.position(), 11_004);
+
+    let sum = cursor.fold(100_000, 0_u64, u64::wrapping_add);
+    assert_eq!(sum, (11_004_u64..111_004).sum::<u64>());
+
+    let mut tail = Vec::new();
+    cursor.for_each(usize::MAX, |value| tail.push(value));
+    assert_eq!(tail.first(), Some(&111_004));
+    assert_eq!(tail.last(), Some(&190_006));
+    assert_eq!(cursor.position(), 190_007);
+    assert_eq!(cursor.remaining(), 0);
+    assert_eq!(cursor.next(), None);
+
+    Ok(())
+}
+
+#[test]
 #[cfg(debug_assertions)]
 #[should_panic(expected = "get_append_only requires a vector without holes or updates")]
 fn append_only_reader_rejects_dirty_vectors() {

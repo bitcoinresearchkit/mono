@@ -5,8 +5,8 @@ mod readable;
 mod typed;
 
 use crate::{
-    Error, HEADER_OFFSET, RawIoSource, RawMmapSource, ReadOnlyBaseVec, Stamp, VecIndex, VecReader,
-    VecValue,
+    Error, HEADER_OFFSET, RawIoSource, RawMmapSource, RawRangeCursor, ReadOnlyBaseVec, Stamp,
+    VecIndex, VecReader, VecValue,
 };
 
 use super::RawStrategy;
@@ -54,6 +54,12 @@ where
 
     pub fn reader(&self) -> VecReader<I, T, S> {
         VecReader::from_read_only(self)
+    }
+
+    /// Creates a forward cursor over a bounded persisted range.
+    #[inline]
+    pub fn range_cursor_at(&self, from: usize, to: usize) -> RawRangeCursor<'_, I, T, S> {
+        RawRangeCursor::new(self.region(), self.stored_len(), from, to)
     }
 
     #[inline]
