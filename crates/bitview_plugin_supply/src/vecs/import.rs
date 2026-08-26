@@ -108,7 +108,7 @@ impl Vecs {
             market_minus_realized_cap_growth_rate,
             hodled_or_lost,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 

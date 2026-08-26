@@ -15,7 +15,7 @@ impl Vecs {
             db,
             streak,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

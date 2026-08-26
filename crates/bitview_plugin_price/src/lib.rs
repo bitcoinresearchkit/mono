@@ -74,7 +74,7 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let this = Self::forced_import_inner(&db, STORAGE.schema_version(), mappings)?;
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 

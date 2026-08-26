@@ -32,7 +32,7 @@ impl Vecs {
             by_type,
             value,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

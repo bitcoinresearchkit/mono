@@ -50,7 +50,7 @@ impl Vecs {
             moving_average,
             technical,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

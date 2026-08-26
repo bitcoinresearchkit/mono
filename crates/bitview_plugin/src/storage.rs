@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, PAGE_SIZE};
@@ -45,13 +44,8 @@ impl PluginStorage {
         Ok(db)
     }
 
-    pub fn finalize_database(self, db: &Database, traversable: &impl Traversable) -> Result<()> {
-        db.retain_regions(
-            traversable
-                .iter_any_exportable()
-                .flat_map(|vec| vec.region_names())
-                .collect(),
-        )?;
+    pub fn finalize_database(self, db: &Database) -> Result<()> {
+        db.retain_accessed_regions()?;
         db.compact()?;
         Ok(())
     }

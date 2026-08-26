@@ -60,6 +60,7 @@ struct DatabaseInner {
     mmap: RwLock<MmapMut>,
     file: RwLock<File>,
     cached_file_len: AtomicUsize,
+    accessed_region_indices: Mutex<HashSet<usize>>,
     bg_tasks: Mutex<Vec<JoinHandle<crate::Result<()>>>>,
     bg_sync: (Mutex<bool>, Condvar),
 }
@@ -106,6 +107,7 @@ impl Database {
             mmap: RwLock::new(mmap),
             file: RwLock::new(file),
             cached_file_len: AtomicUsize::new(file_len),
+            accessed_region_indices: Mutex::new(HashSet::new()),
             bg_tasks: Mutex::new(Vec::new()),
             bg_sync: (Mutex::new(false), Condvar::new()),
         }));
@@ -156,7 +158,16 @@ impl Database {
     }
 
     pub fn get_region(&self, id: &str) -> Option<Region> {
-        self.regions().get_from_id(id).cloned()
+        let region = self.regions().get_from_id(id).cloned();
+        if let Some(region) = &region {
+            self.mark_region_accessed(region);
+        }
+        region
+    }
+
+    #[inline]
+    fn mark_region_accessed(&self, region: &Region) {
+        self.0.accessed_region_indices.lock().insert(region.index());
     }
 
     pub fn create_region_if_needed(&self, id: &str) -> crate::Result<Region> {
@@ -185,23 +196,27 @@ impl Database {
         );
         let mut regions = self.regions_mut();
 
-        if let Some(region) = regions.get_from_id(id).cloned() {
-            return Ok(region);
-        }
+        let region = if let Some(region) = regions.get_from_id(id).cloned() {
+            region
+        } else {
+            let (start, reused_hole) =
+                if let Some(start) = layout.find_smallest_adequate_hole(PAGE_SIZE) {
+                    layout.remove_or_compress_hole(start, PAGE_SIZE)?;
+                    (start, true)
+                } else {
+                    (layout.len(), false)
+                };
 
-        let (start, reused_hole) =
-            if let Some(start) = layout.find_smallest_adequate_hole(PAGE_SIZE) {
-                layout.remove_or_compress_hole(start, PAGE_SIZE)?;
-                (start, true)
-            } else {
-                (layout.len(), false)
-            };
-
-        let region = regions.create(self, id.to_owned(), start)?;
-        if reused_hole {
-            region.meta_mut().mark_tail_needs_punch();
-        }
-        layout.insert_region(start, &region);
+            let region = regions.create(self, id.to_owned(), start)?;
+            if reused_hole {
+                region.meta_mut().mark_tail_needs_punch();
+            }
+            layout.insert_region(start, &region);
+            region
+        };
+        drop(regions);
+        drop(layout);
+        self.mark_region_accessed(&region);
         Ok(region)
     }
 
@@ -295,6 +310,20 @@ impl Database {
         }
         self.regions_mut().shrink_to_fit()?;
         Ok(())
+    }
+
+    /// Removes every region that has not been returned by [`Self::get_region`]
+    /// or [`Self::create_region_if_needed`] since this database was opened.
+    pub fn retain_accessed_regions(&self) -> crate::Result<()> {
+        let indices = self.0.accessed_region_indices.lock().clone();
+        let regions = self.regions();
+        let ids = indices
+            .into_iter()
+            .filter_map(|index| regions.get_from_index(index))
+            .map(|region| region.meta().id().to_owned())
+            .collect();
+        drop(regions);
+        self.retain_regions(ids)
     }
 
     /// Opens the data file read-only (for external consumers like mmap readers).

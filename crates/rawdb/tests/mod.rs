@@ -418,6 +418,32 @@ fn test_retain_regions() -> rawdb::Result<()> {
 }
 
 #[test]
+fn test_retain_accessed_regions() -> rawdb::Result<()> {
+    let temp = TempDir::new()?;
+    {
+        let db = Database::open(temp.path())?;
+        let _ = db.create_region_if_needed("kept_by_get")?;
+        let _ = db.create_region_if_needed("kept_by_create")?;
+        let _ = db.create_region_if_needed("stale")?;
+    }
+
+    let db = Database::open(temp.path())?;
+    let _ = db.get_region("kept_by_get").unwrap();
+    let _ = db.create_region_if_needed("kept_by_create")?;
+    let _ = db.create_region_if_needed("new")?;
+    db.retain_accessed_regions()?;
+
+    let regions = db.regions();
+    assert_eq!(regions.len(), 3);
+    assert!(regions.get_from_id("kept_by_get").is_some());
+    assert!(regions.get_from_id("kept_by_create").is_some());
+    assert!(regions.get_from_id("new").is_some());
+    assert!(regions.get_from_id("stale").is_none());
+
+    Ok(())
+}
+
+#[test]
 fn test_retain_regions_shrinks_metadata_and_preserves_hole_reuse() -> rawdb::Result<()> {
     let temp = TempDir::new()?;
     let regions = std::fs::File::create(temp.path().join("regions"))?;

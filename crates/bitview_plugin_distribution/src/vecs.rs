@@ -233,7 +233,7 @@ impl Vecs {
             states_path,
         };
 
-        STORAGE.finalize_database(&this.inner.db, &this)?;
+        STORAGE.finalize_database(&this.inner.db)?;
         Ok(this)
     }
 

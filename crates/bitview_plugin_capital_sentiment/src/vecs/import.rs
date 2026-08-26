@@ -87,7 +87,7 @@ impl Vecs {
             phase,
             score,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

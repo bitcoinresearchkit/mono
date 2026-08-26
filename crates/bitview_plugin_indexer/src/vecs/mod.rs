@@ -106,11 +106,7 @@ impl IndexerVecs for Vecs {
             op_return,
         };
 
-        this.db.retain_regions(
-            this.iter_any_exportable()
-                .flat_map(|v| v.region_names())
-                .collect(),
-        )?;
+        this.db.retain_accessed_regions()?;
         this.db.compact()?;
 
         Ok(this)

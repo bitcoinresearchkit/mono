@@ -93,7 +93,7 @@ impl Vecs {
             cycle: inner::forced_import(&db, "cycle_rarity_meter", version, mappings)?,
             db,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 

@@ -28,7 +28,7 @@ impl Vecs {
             per_sec,
             by_type,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

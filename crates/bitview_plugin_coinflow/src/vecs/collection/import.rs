@@ -309,7 +309,7 @@ impl Vecs {
             lth,
             aggregate_sources,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

@@ -59,7 +59,7 @@ impl Vecs {
             adjusted,
             reserve_risk,
         };
-        STORAGE.finalize_database(&this.db, &this)?;
+        STORAGE.finalize_database(&this.db)?;
         Ok(this)
     }
 }

@@ -1,4 +1,4 @@
-use brk_error::Result;
+use std::thread;
 
 use bitview_cohort::{
     AgeRange, AgeRangeId, AmountRange, ByEntry, ByEpoch, Class, Filter, SpendableType, Term,
@@ -6,6 +6,7 @@ use bitview_cohort::{
 };
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
+use brk_error::Result;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{
@@ -24,6 +25,7 @@ use crate::{
 use bitview_compute::{CachedWindowStartVec, Windows};
 
 const VERSION: Version = Version::new(0);
+const IMPORT_STACK_SIZE: usize = 8 * 1024 * 1024;
 
 /// Distribution metrics organized by metric, with cohorts at the leaves.
 #[derive(Traversable)]
@@ -49,7 +51,7 @@ impl CohortMetrics<Rw> {
     ) -> Result<Self> {
         let v = version + VERSION;
 
-        // Phase 1: Import supply first so its shared sources can back every cohort view.
+        // Supply must exist before either branch can build its shared views.
         let supply = Box::new(SupplyVecs::forced_import(
             db,
             v,
@@ -59,22 +61,62 @@ impl CohortMetrics<Rw> {
         )?);
         let all_chain_sources =
             AllChainSources::new(supply.total.all_supply(), supply.total.all_market_cap());
-        let outputs = Box::new(OutputsVecs::forced_import(db, v, mappings, cached_starts)?);
-        let activity = Box::new(ActivityVecs::forced_import(db, v, mappings, cached_starts)?);
-        let realized = Box::new(RealizedVecs::forced_import(
-            db,
-            v,
-            mappings,
-            cached_starts,
-            spot_price,
-            &all_chain_sources,
-        )?);
-        let unrealized = Box::new(UnrealizedVecs::forced_import(
-            db,
-            v,
-            mappings,
-            &realized.price.cohorts,
-        )?);
+
+        // These branches are independent once the supply sources exist.
+        let ((realized, unrealized, relative), (outputs, activity)) =
+            thread::scope(|scope| -> Result<_> {
+                let outputs_activity = thread::Builder::new()
+                    .stack_size(IMPORT_STACK_SIZE)
+                    .spawn_scoped(scope, || -> Result<_> {
+                        let outputs =
+                            Box::new(OutputsVecs::forced_import(db, v, mappings, cached_starts)?);
+                        let activity =
+                            Box::new(ActivityVecs::forced_import(db, v, mappings, cached_starts)?);
+                        Ok((outputs, activity))
+                    })?;
+
+                let realized = Box::new(RealizedVecs::forced_import(
+                    db,
+                    v,
+                    mappings,
+                    cached_starts,
+                    spot_price,
+                    &all_chain_sources,
+                )?);
+                let unrealized = Box::new(UnrealizedVecs::forced_import(
+                    db,
+                    v,
+                    mappings,
+                    &realized.price.cohorts,
+                )?);
+                let relative_sources = UTXOAggregate::from_fn(|id| {
+                    let filter = id.select(&UTXO_AGGREGATE_FILTERS);
+                    RelativeSource {
+                        supply: supply.sources(filter).expect("aggregate supply sources"),
+                        unrealized: unrealized
+                            .sources(filter)
+                            .expect("aggregate unrealized sources"),
+                        unrealized_aggregate: unrealized
+                            .aggregate_sources(filter)
+                            .expect("aggregate unrealized sources"),
+                        realized: realized
+                            .sources(filter)
+                            .expect("aggregate realized sources"),
+                        nupl: unrealized.nupl.get(filter).expect("aggregate NUPL source"),
+                    }
+                });
+                let relative = Box::new(RelativeVecs::forced_import(
+                    db,
+                    v,
+                    mappings,
+                    &all_chain_sources,
+                    &relative_sources,
+                )?);
+                Ok((
+                    (realized, unrealized, relative),
+                    outputs_activity.join().unwrap()?,
+                ))
+            })?;
         let cost_basis = Box::new(CostBasisVecs::forced_import(db, v, mappings)?);
         let profitability = Box::new(ProfitabilityVecs::forced_import(
             db,
@@ -82,30 +124,6 @@ impl CohortMetrics<Rw> {
             mappings,
             cached_starts,
             spot_price,
-        )?);
-
-        let relative_sources = UTXOAggregate::from_fn(|id| {
-            let filter = id.select(&UTXO_AGGREGATE_FILTERS);
-            RelativeSource {
-                supply: supply.sources(filter).expect("aggregate supply sources"),
-                unrealized: unrealized
-                    .sources(filter)
-                    .expect("aggregate unrealized sources"),
-                unrealized_aggregate: unrealized
-                    .aggregate_sources(filter)
-                    .expect("aggregate unrealized sources"),
-                realized: realized
-                    .sources(filter)
-                    .expect("aggregate realized sources"),
-                nupl: unrealized.nupl.get(filter).expect("aggregate NUPL source"),
-            }
-        });
-        let relative = Box::new(RelativeVecs::forced_import(
-            db,
-            v,
-            mappings,
-            &all_chain_sources,
-            &relative_sources,
         )?);
 
         Ok(Self {
