@@ -8,15 +8,17 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_cohort = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_market = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_plugin_transactions = { workspace = true }
-brk_error = { workspace = true, features = ["vecdb"] }
-bitview_plugin_indexer = { workspace = true }
 bitview_traversable = { workspace = true }
+brk_error = { workspace = true, features = ["vecdb"] }
 brk_types = { workspace = true }
+rayon = { workspace = true }
 vecdb = { workspace = true }

@@ -752,6 +752,7 @@ dependencies = [
 name = "bitview_plugin_indicators"
 version = "0.11.2"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_distribution",
@@ -763,6 +764,7 @@ dependencies = [
  "bitview_traversable",
  "brk_error",
  "brk_types",
+ "rayon",
  "vecdb",
 ]
 

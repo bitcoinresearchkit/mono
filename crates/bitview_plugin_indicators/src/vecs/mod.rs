@@ -1,3 +1,7 @@
+mod compute;
+mod import;
+
+use bitview_compute::{LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock};
 use bitview_plugin::{Plugin, PluginGate, PluginStorage};
 use bitview_traversable::Traversable;
 use brk_types::{PartsPerMillion32, PartsPerMillion64, StoredF32};
@@ -5,7 +9,6 @@ use vecdb::{Database, Rw, StorageMode};
 
 use super::dormancy_vecs::DormancyVecs;
 use crate::STORAGE;
-use bitview_compute::{LazyPerBlock, LazyRatioPerBlock, PerBlock, PercentPerBlock, RatioPerBlock};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -76,5 +79,3 @@ where
         &self.plugin_gate
     }
 }
-mod compute;
-mod import;
