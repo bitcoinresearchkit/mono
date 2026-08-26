@@ -517,6 +517,7 @@ dependencies = [
  "brk_types",
  "derive_more",
  "parking_lot",
+ "rayon",
  "schemars",
  "serde",
  "serde_json",
@@ -621,6 +622,7 @@ dependencies = [
  "brk_error",
  "brk_types",
  "derive_more",
+ "rayon",
  "vecdb",
 ]
 

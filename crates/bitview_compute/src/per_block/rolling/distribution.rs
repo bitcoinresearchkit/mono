@@ -3,6 +3,7 @@ use brk_error::Result;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
+use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
 use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode};
 
@@ -43,31 +44,59 @@ where
         T: Copy + Ord + From<f64> + Default,
         f64: From<T>,
     {
-        let mut values_cache = None;
-        macro_rules! compute_window {
+        let DistributionStats {
+            min,
+            max,
+            pct10,
+            pct25,
+            median,
+            pct75,
+            pct90,
+        } = &mut self.0;
+        let min = &mut min.0;
+        let max = &mut max.0;
+        let pct10 = &mut pct10.0;
+        let pct25 = &mut pct25.0;
+        let median = &mut median.0;
+        let pct75 = &mut pct75.0;
+        let pct90 = &mut pct90.0;
+
+        macro_rules! window {
             ($w:ident) => {
-                compute_rolling_distribution_from_starts(
-                    max_from,
-                    windows.$w,
-                    source,
-                    &mut self.0.min.$w.height,
-                    &mut self.0.max.$w.height,
-                    &mut self.0.pct10.$w.height,
-                    &mut self.0.pct25.$w.height,
-                    &mut self.0.median.$w.height,
-                    &mut self.0.pct75.$w.height,
-                    &mut self.0.pct90.$w.height,
-                    exit,
-                    &mut values_cache,
-                )?
+                DistributionStats {
+                    min: &mut min.$w.height,
+                    max: &mut max.$w.height,
+                    pct10: &mut pct10.$w.height,
+                    pct25: &mut pct25.$w.height,
+                    median: &mut median.$w.height,
+                    pct75: &mut pct75.$w.height,
+                    pct90: &mut pct90.$w.height,
+                }
             };
         }
-        // Largest window first: its cache covers all smaller windows.
-        compute_window!(_1y);
-        compute_window!(_1m);
-        compute_window!(_1w);
-        compute_window!(_24h);
 
-        Ok(())
+        let year = window!(_1y);
+        let month = window!(_1m);
+        let week = window!(_1w);
+        let day = window!(_24h);
+
+        [
+            (year, windows._1y),
+            (month, windows._1m),
+            (week, windows._1w),
+            (day, windows._24h),
+        ]
+        .into_par_iter()
+        .try_for_each(|(outputs, starts)| {
+            let mut values_cache = None;
+            compute_rolling_distribution_from_starts(
+                max_from,
+                starts,
+                source,
+                outputs,
+                exit,
+                &mut values_cache,
+            )
+        })
     }
 }

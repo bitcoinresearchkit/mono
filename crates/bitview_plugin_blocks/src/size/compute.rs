@@ -1,6 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use rayon::join;
 use vecdb::Exit;
 
 use super::Vecs;
@@ -23,15 +24,21 @@ impl Compute for Vecs {
     ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let window_starts = lookback.window_starts();
+        let Self { vbytes, size } = self;
 
-        self.vbytes.compute(starting_height, &window_starts, exit)?;
-
-        self.size.compute(
-            starting_height,
-            &window_starts,
-            &indexer.vecs().blocks.total,
-            exit,
-        )?;
+        let (vbytes_result, size_result) = join(
+            || vbytes.compute(starting_height, &window_starts, exit),
+            || {
+                size.compute(
+                    starting_height,
+                    &window_starts,
+                    &indexer.vecs().blocks.total,
+                    exit,
+                )
+            },
+        );
+        vbytes_result?;
+        size_result?;
 
         Ok(())
     }

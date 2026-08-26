@@ -5,6 +5,8 @@ use vecdb::{
     WritableVec,
 };
 
+use crate::DistributionStats;
+
 use super::sliding_window::SlidingWindowSorted;
 
 /// Compute all 7 rolling distribution stats (min, max, p10, p25, median, p75, p90)
@@ -14,18 +16,11 @@ use super::sliding_window::SlidingWindowSorted;
 /// `&mut Option<(usize, Vec<f64>)>` cache to each call — the first call reads
 /// and caches, subsequent calls reuse if their range is covered.
 /// Process the largest window first (1y) so its cache covers all smaller windows.
-#[allow(clippy::too_many_arguments)]
 pub fn compute_rolling_distribution_from_starts<I, T, A>(
     max_from: I,
     window_starts: &impl ReadableVec<I, I>,
     values: &impl ReadableVec<I, A>,
-    min_out: &mut EagerVec<PcoVec<I, T>>,
-    max_out: &mut EagerVec<PcoVec<I, T>>,
-    p10_out: &mut EagerVec<PcoVec<I, T>>,
-    p25_out: &mut EagerVec<PcoVec<I, T>>,
-    median_out: &mut EagerVec<PcoVec<I, T>>,
-    p75_out: &mut EagerVec<PcoVec<I, T>>,
-    p90_out: &mut EagerVec<PcoVec<I, T>>,
+    outputs: DistributionStats<&mut EagerVec<PcoVec<I, T>>>,
     exit: &Exit,
     values_cache: &mut Option<(usize, Vec<f64>)>,
 ) -> Result<()>
@@ -35,6 +30,15 @@ where
     A: VecValue + Copy,
     f64: From<A>,
 {
+    let DistributionStats {
+        min: min_out,
+        max: max_out,
+        pct10: p10_out,
+        pct25: p25_out,
+        median: median_out,
+        pct75: p75_out,
+        pct90: p90_out,
+    } = outputs;
     let version = window_starts.version() + values.version();
 
     for v in [
@@ -88,22 +92,19 @@ where
     let (cached_start, cached) = values_cache.as_ref().unwrap();
     let partial_values = &cached[(range_start - cached_start)..(end - cached_start)];
 
-    let capacity = if skip > 0 && skip < end {
-        let first_start = window_starts.collect_one_at(skip).unwrap().to_usize();
-        (skip + 1).saturating_sub(first_start)
-    } else if !partial_values.is_empty() {
-        partial_values.len().min(1024)
-    } else {
-        0
-    };
+    let starts_batch = window_starts.collect_range_at(skip, end);
+    let capacity = starts_batch
+        .iter()
+        .enumerate()
+        .map(|(offset, start)| (skip + offset + 1).saturating_sub(start.to_usize()))
+        .max()
+        .unwrap_or_default();
 
     let mut window = SlidingWindowSorted::with_capacity(capacity);
 
     if skip > 0 {
         window.reconstruct(partial_values, range_start, skip);
     }
-
-    let starts_batch = window_starts.collect_range_at(skip, end);
 
     for v in [
         &mut *min_out,

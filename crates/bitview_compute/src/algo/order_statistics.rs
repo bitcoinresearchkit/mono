@@ -10,8 +10,8 @@ pub struct ExactOrderStats {
 }
 
 impl ExactOrderStats {
-    pub fn new(capacity: usize) -> Self {
-        let block_size = ((capacity as f64).sqrt() as usize).max(64);
+    pub fn new(expected_len: usize) -> Self {
+        let block_size = (expected_len.isqrt() * 3).max(64);
         Self {
             blocks: Vec::new(),
             len: 0,
