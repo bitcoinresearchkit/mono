@@ -111,8 +111,15 @@ pub fn generate_main_client(
     writeln!(output, "   */").unwrap();
     writeln!(output, "  constructor(options) {{").unwrap();
     writeln!(output, "    super(options);").unwrap();
-    writeln!(output, "    /** @type {{SeriesTree}} */").unwrap();
-    writeln!(output, "    this.series = this._buildTree();").unwrap();
+    writeln!(output, "  }}\n").unwrap();
+
+    writeln!(output, "  /** @returns {{SeriesTree}} */").unwrap();
+    writeln!(output, "  get series() {{").unwrap();
+    writeln!(
+        output,
+        "    return _lazy(this, 'series', () => this._buildTree());"
+    )
+    .unwrap();
     writeln!(output, "  }}\n").unwrap();
 
     output.push_str(r##"  /**
@@ -146,6 +153,7 @@ pub fn generate_main_client(
     writeln!(output, "   * @returns {{SeriesTree}}").unwrap();
     writeln!(output, "   */").unwrap();
     writeln!(output, "  _buildTree() {{").unwrap();
+    writeln!(output, "    const client = this;").unwrap();
     writeln!(output, "    return {{").unwrap();
     let mut generated = BTreeSet::new();
     generate_tree_initializer(
@@ -224,7 +232,7 @@ fn generate_tree_initializer(
                 generate_leaf_field(
                     output,
                     &syntax,
-                    "this",
+                    "client",
                     child.name,
                     leaf,
                     metadata,
@@ -232,9 +240,13 @@ fn generate_tree_initializer(
                 );
             }
         } else if child.should_inline {
-            // Inline object
             let child_path = build_child_path(path, child.name);
-            writeln!(output, "{}{}: {{", indent_str, field_name).unwrap();
+            writeln!(
+                output,
+                "{}get {}() {{ return _lazy(this, '{}', () => ({{",
+                indent_str, field_name, field_name
+            )
+            .unwrap();
             generate_tree_initializer(
                 output,
                 child.node,
@@ -245,7 +257,7 @@ fn generate_tree_initializer(
                 metadata,
                 generated,
             );
-            writeln!(output, "{}}},", indent_str).unwrap();
+            writeln!(output, "{}}})); }},", indent_str).unwrap();
         } else {
             generate_tree_node_field(
                 output,
@@ -253,7 +265,7 @@ fn generate_tree_initializer(
                 &child.field,
                 metadata,
                 &indent_str,
-                "this",
+                "client",
                 &child.base_result,
             );
         }

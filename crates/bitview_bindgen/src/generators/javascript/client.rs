@@ -158,8 +158,8 @@ function _wrapSeriesData(raw) {{
     isDateBased: _dateBased,
     indexes() {{
       /** @type {{number[]}} */
-      const result = [];
-      for (let i = start; i < end; i++) result.push(i);
+      const result = new Array(end - start);
+      for (let i = 0; i < result.length; i++) result[i] = start + i;
       return result;
     }},
     keys() {{
@@ -167,8 +167,8 @@ function _wrapSeriesData(raw) {{
     }},
     entries() {{
       /** @type {{Array<[number, T]>}} */
-      const result = [];
-      for (let i = 0; i < data.length; i++) result.push([start + i, data[i]]);
+      const result = new Array(data.length);
+      for (let i = 0; i < data.length; i++) result[i] = [start + i, data[i]];
       return result;
     }},
     toMap() {{
@@ -702,6 +702,20 @@ const _m = (acc, s) => s ? (acc ? `${{acc}}_${{s}}` : s) : acc;
  * @returns {{string}}
  */
 const _p = (prefix, acc) => acc ? `${{prefix}}_${{acc}}` : prefix;
+
+/**
+ * Materialize and replace a lazy object property.
+ * @template T
+ * @param {{object}} owner
+ * @param {{string}} name
+ * @param {{() => T}} init
+ * @returns {{T}}
+ */
+function _lazy(owner, name, init) {{
+  const value = init();
+  Object.defineProperty(owner, name, {{ value, writable: true, enumerable: true, configurable: true }});
+  return value;
+}}
 
 "#
     )

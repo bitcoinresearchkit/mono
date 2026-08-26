@@ -12,6 +12,8 @@ use crate::{
     ClientMetadata, LanguageSyntax, PatternBaseResult, PatternField, PatternMode, StructuralPattern,
 };
 
+use super::FieldParts;
+
 /// Create a path suffix from a name.
 fn path_suffix(name: &str) -> String {
     if name.starts_with('_') {
@@ -88,21 +90,17 @@ pub fn generate_parameterized_field<S: LanguageSyntax>(
     .unwrap();
 }
 
-/// Generate a tree node field for a pattern-type child.
-///
-/// Called for non-inline branch children that match a parameterizable pattern.
-/// For templated patterns, extracts the discriminator from the base result.
-pub fn generate_tree_node_field<S: LanguageSyntax>(
-    output: &mut String,
+/// Build the language-specific parts of a pattern tree-node field.
+pub fn tree_node_field_parts<S: LanguageSyntax>(
     syntax: &S,
     field: &PatternField,
     metadata: &ClientMetadata,
-    indent: &str,
     client_expr: &str,
     base_result: &PatternBaseResult,
-) {
+) -> FieldParts {
     let field_name = syntax.field_name(&field.name);
-    let type_ann = metadata.field_type_annotation(field, false, None, syntax.generic_syntax());
+    let type_annotation =
+        metadata.field_type_annotation(field, false, None, syntax.generic_syntax());
     let base_arg = syntax.string_literal(&base_result.base);
 
     let value = if let Some(pattern) = metadata.find_pattern(&field.rust_type)
@@ -127,12 +125,72 @@ pub fn generate_tree_node_field<S: LanguageSyntax>(
         )
     };
 
+    FieldParts {
+        name: field_name,
+        type_annotation,
+        value,
+    }
+}
+
+/// Generate a tree node field for a pattern-type child.
+///
+/// Called for non-inline branch children that match a parameterizable pattern.
+/// For templated patterns, extracts the discriminator from the base result.
+pub fn generate_tree_node_field<S: LanguageSyntax>(
+    output: &mut String,
+    syntax: &S,
+    field: &PatternField,
+    metadata: &ClientMetadata,
+    indent: &str,
+    client_expr: &str,
+    base_result: &PatternBaseResult,
+) {
+    let FieldParts {
+        name,
+        type_annotation,
+        value,
+    } = tree_node_field_parts(syntax, field, metadata, client_expr, base_result);
+
     writeln!(
         output,
         "{}",
-        syntax.field_init(indent, &field_name, &type_ann, &value)
+        syntax.field_init(indent, &name, &type_annotation, &value)
     )
     .unwrap();
+}
+
+/// Build the language-specific parts of a leaf field.
+pub fn leaf_field_parts<S: LanguageSyntax>(
+    syntax: &S,
+    client_expr: &str,
+    tree_field_name: &str,
+    leaf: &SeriesLeafWithSchema,
+    metadata: &ClientMetadata,
+) -> FieldParts {
+    let field_name = syntax.field_name(tree_field_name);
+    let accessor = metadata
+        .find_index_set_pattern(leaf.indexes())
+        .unwrap_or_else(|| {
+            panic!(
+                "Series '{}' has no matching index pattern. All series must be indexed.",
+                leaf.name()
+            )
+        });
+
+    let type_annotation = metadata.field_type_annotation_from_leaf(leaf, syntax.generic_syntax());
+    let series_name = syntax.string_literal(leaf.name());
+    let value = format!(
+        "{}({}, {})",
+        syntax.constructor_name(&accessor.name),
+        client_expr,
+        series_name
+    );
+
+    FieldParts {
+        name: field_name,
+        type_annotation,
+        value,
+    }
 }
 
 /// Generate a leaf field using the actual series name from the TreeNode::Leaf.
@@ -158,29 +216,16 @@ pub fn generate_leaf_field<S: LanguageSyntax>(
     metadata: &ClientMetadata,
     indent: &str,
 ) {
-    let field_name = syntax.field_name(tree_field_name);
-    let accessor = metadata
-        .find_index_set_pattern(leaf.indexes())
-        .unwrap_or_else(|| {
-            panic!(
-                "Series '{}' has no matching index pattern. All series must be indexed.",
-                leaf.name()
-            )
-        });
-
-    let type_ann = metadata.field_type_annotation_from_leaf(leaf, syntax.generic_syntax());
-    let series_name = syntax.string_literal(leaf.name());
-    let value = format!(
-        "{}({}, {})",
-        syntax.constructor_name(&accessor.name),
-        client_expr,
-        series_name
-    );
+    let FieldParts {
+        name,
+        type_annotation,
+        value,
+    } = leaf_field_parts(syntax, client_expr, tree_field_name, leaf, metadata);
 
     writeln!(
         output,
         "{}",
-        syntax.field_init(indent, &field_name, &type_ann, &value)
+        syntax.field_init(indent, &name, &type_annotation, &value)
     )
     .unwrap();
 }

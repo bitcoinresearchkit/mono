@@ -27,6 +27,7 @@ pub fn generate_python_client(
     writeln!(output, "# Do not edit manually\n").unwrap();
     writeln!(output, "from __future__ import annotations").unwrap();
     writeln!(output, "from dataclasses import dataclass").unwrap();
+    writeln!(output, "from functools import cached_property").unwrap();
     writeln!(
         output,
         "from typing import TypeVar, Generic, Any, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, overload, Tuple, TYPE_CHECKING"

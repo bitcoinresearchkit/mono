@@ -30,7 +30,11 @@ pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     )
     .unwrap();
     writeln!(output, "        super().__init__(base_url, timeout)").unwrap();
-    writeln!(output, "        self.series = SeriesTree(self)").unwrap();
+    writeln!(output).unwrap();
+
+    writeln!(output, "    @cached_property").unwrap();
+    writeln!(output, "    def series(self) -> SeriesTree:").unwrap();
+    writeln!(output, "        return SeriesTree(self)").unwrap();
     writeln!(output).unwrap();
 
     // Generate series_endpoint() method for dynamic series access

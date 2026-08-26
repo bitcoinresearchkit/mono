@@ -15,7 +15,7 @@ pub use brk_types::*;
 use serde::de::DeserializeOwned;
 use std::ops::{Bound, RangeBounds};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 /// Error type for Bitview client operations.
 #[derive(Debug)]
@@ -2670,164 +2670,95 @@ impl _10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern2 {
         Self {
             _10y_to_12y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("10y_to_12y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "10y_to_12y_old_transfer_volume"), &disc),
             ),
             _12y_to_15y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("12y_to_15y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "12y_to_15y_old_transfer_volume"), &disc),
             ),
             _18m_to_2y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("18m_to_2y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "18m_to_2y_old_transfer_volume"), &disc),
             ),
             _1d_to_1w: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("1d_to_1w_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "1d_to_1w_old_transfer_volume"), &disc),
             ),
             _1h_to_1d: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("1h_to_1d_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "1h_to_1d_old_transfer_volume"), &disc),
             ),
             _1m_to_2m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("1m_to_2m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "1m_to_2m_old_transfer_volume"), &disc),
             ),
             _1w_to_1m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("1w_to_1m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "1w_to_1m_old_transfer_volume"), &disc),
             ),
             _1y_to_18m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("1y_to_18m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "1y_to_18m_old_transfer_volume"), &disc),
             ),
             _2m_to_3m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("2m_to_3m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "2m_to_3m_old_transfer_volume"), &disc),
             ),
             _2y_to_3y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("2y_to_3y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "2y_to_3y_old_transfer_volume"), &disc),
             ),
             _3m_to_4m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("3m_to_4m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "3m_to_4m_old_transfer_volume"), &disc),
             ),
             _3y_to_4y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("3y_to_4y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "3y_to_4y_old_transfer_volume"), &disc),
             ),
             _4m_to_5m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("4m_to_5m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "4m_to_5m_old_transfer_volume"), &disc),
             ),
             _4y_to_5y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("4y_to_5y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "4y_to_5y_old_transfer_volume"), &disc),
             ),
             _5m_to_6m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("5m_to_6m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "5m_to_6m_old_transfer_volume"), &disc),
             ),
             _5y_to_6y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("5y_to_6y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "5y_to_6y_old_transfer_volume"), &disc),
             ),
             _6m_to_9m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("6m_to_9m_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "6m_to_9m_old_transfer_volume"), &disc),
             ),
             _6y_to_7y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("6y_to_7y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "6y_to_7y_old_transfer_volume"), &disc),
             ),
             _7y_to_8y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("7y_to_8y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "7y_to_8y_old_transfer_volume"), &disc),
             ),
             _8y_to_10y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("8y_to_10y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "8y_to_10y_old_transfer_volume"), &disc),
             ),
             _9m_to_1y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("9m_to_1y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "9m_to_1y_old_transfer_volume"), &disc),
             ),
             over_15y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("over_15y_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "over_15y_old_transfer_volume"), &disc),
             ),
             under_1h: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(
-                    &acc,
-                    &format!("under_1h_old_transfer_volume{disc}", disc = disc),
-                ),
+                _m(&_m(&acc, "under_1h_old_transfer_volume"), &disc),
             ),
         }
     }
@@ -3076,83 +3007,83 @@ impl _10y12y15y18m1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern2 {
         Self {
             _10y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("10y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "10y_old_transfer_volume"), &disc),
             ),
             _12y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("12y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "12y_old_transfer_volume"), &disc),
             ),
             _15y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("15y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "15y_old_transfer_volume"), &disc),
             ),
             _18m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("18m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "18m_old_transfer_volume"), &disc),
             ),
             _1m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1m_old_transfer_volume"), &disc),
             ),
             _1w: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1w_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1w_old_transfer_volume"), &disc),
             ),
             _1y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1y_old_transfer_volume"), &disc),
             ),
             _2m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2m_old_transfer_volume"), &disc),
             ),
             _2y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2y_old_transfer_volume"), &disc),
             ),
             _3m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("3m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "3m_old_transfer_volume"), &disc),
             ),
             _3y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("3y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "3y_old_transfer_volume"), &disc),
             ),
             _4m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("4m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "4m_old_transfer_volume"), &disc),
             ),
             _4y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("4y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "4y_old_transfer_volume"), &disc),
             ),
             _5m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("5m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "5m_old_transfer_volume"), &disc),
             ),
             _5y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("5y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "5y_old_transfer_volume"), &disc),
             ),
             _6m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("6m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "6m_old_transfer_volume"), &disc),
             ),
             _6y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("6y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "6y_old_transfer_volume"), &disc),
             ),
             _7y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("7y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "7y_old_transfer_volume"), &disc),
             ),
             _8y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("8y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "8y_old_transfer_volume"), &disc),
             ),
             _9m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("9m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "9m_old_transfer_volume"), &disc),
             ),
         }
     }
@@ -3188,83 +3119,83 @@ impl _10y12y18m1d1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mPattern2 {
         Self {
             _10y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("10y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "10y_old_transfer_volume"), &disc),
             ),
             _12y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("12y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "12y_old_transfer_volume"), &disc),
             ),
             _18m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("18m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "18m_old_transfer_volume"), &disc),
             ),
             _1d: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1d_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1d_old_transfer_volume"), &disc),
             ),
             _1m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1m_old_transfer_volume"), &disc),
             ),
             _1w: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1w_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1w_old_transfer_volume"), &disc),
             ),
             _1y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1y_old_transfer_volume"), &disc),
             ),
             _2m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2m_old_transfer_volume"), &disc),
             ),
             _2y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2y_old_transfer_volume"), &disc),
             ),
             _3m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("3m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "3m_old_transfer_volume"), &disc),
             ),
             _3y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("3y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "3y_old_transfer_volume"), &disc),
             ),
             _4m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("4m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "4m_old_transfer_volume"), &disc),
             ),
             _4y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("4y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "4y_old_transfer_volume"), &disc),
             ),
             _5m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("5m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "5m_old_transfer_volume"), &disc),
             ),
             _5y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("5y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "5y_old_transfer_volume"), &disc),
             ),
             _6m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("6m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "6m_old_transfer_volume"), &disc),
             ),
             _6y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("6y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "6y_old_transfer_volume"), &disc),
             ),
             _7y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("7y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "7y_old_transfer_volume"), &disc),
             ),
             _8y: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("8y_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "8y_old_transfer_volume"), &disc),
             ),
             _9m: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("9m_old_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "9m_old_transfer_volume"), &disc),
             ),
         }
     }
@@ -3616,75 +3547,75 @@ impl _200920102011201220132014201520162017201820192020202120222023202420252026Pa
         Self {
             _2009: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2009_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2009_transfer_volume"), &disc),
             ),
             _2010: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2010_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2010_transfer_volume"), &disc),
             ),
             _2011: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2011_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2011_transfer_volume"), &disc),
             ),
             _2012: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2012_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2012_transfer_volume"), &disc),
             ),
             _2013: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2013_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2013_transfer_volume"), &disc),
             ),
             _2014: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2014_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2014_transfer_volume"), &disc),
             ),
             _2015: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2015_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2015_transfer_volume"), &disc),
             ),
             _2016: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2016_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2016_transfer_volume"), &disc),
             ),
             _2017: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2017_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2017_transfer_volume"), &disc),
             ),
             _2018: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2018_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2018_transfer_volume"), &disc),
             ),
             _2019: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2019_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2019_transfer_volume"), &disc),
             ),
             _2020: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2020_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2020_transfer_volume"), &disc),
             ),
             _2021: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2021_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2021_transfer_volume"), &disc),
             ),
             _2022: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2022_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2022_transfer_volume"), &disc),
             ),
             _2023: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2023_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2023_transfer_volume"), &disc),
             ),
             _2024: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2024_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2024_transfer_volume"), &disc),
             ),
             _2025: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2025_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2025_transfer_volume"), &disc),
             ),
             _2026: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2026_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2026_transfer_volume"), &disc),
             ),
         }
     }
@@ -5714,23 +5645,23 @@ impl _01234Pattern2 {
         Self {
             _0: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("0_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "0_transfer_volume"), &disc),
             ),
             _1: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("1_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "1_transfer_volume"), &disc),
             ),
             _2: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("2_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "2_transfer_volume"), &disc),
             ),
             _3: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("3_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "3_transfer_volume"), &disc),
             ),
             _4: AverageBlockCumulativeSumPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("4_transfer_volume{disc}", disc = disc)),
+                _m(&_m(&acc, "4_transfer_volume"), &disc),
             ),
         }
     }
@@ -6880,10 +6811,7 @@ impl PpmPriceRatioPattern {
                 _m(&acc, &format!("ratio_{disc}_ppm", disc = disc)),
             ),
             price: CentsSatsUsdPattern::new(client.clone(), _m(&acc, &disc)),
-            ratio: SeriesPattern1::new(
-                client.clone(),
-                _m(&acc, &format!("ratio_{disc}", disc = disc)),
-            ),
+            ratio: SeriesPattern1::new(client.clone(), _m(&_m(&acc, "ratio"), &disc)),
         }
     }
 }
@@ -6902,11 +6830,11 @@ impl RsiStochPattern {
             rsi: PercentPpmRatioPattern2::new(client.clone(), _m(&acc, &disc)),
             stoch_rsi_d: PercentPpmRatioPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("stoch_d_{disc}", disc = disc)),
+                _m(&_m(&acc, "stoch_d"), &disc),
             ),
             stoch_rsi_k: PercentPpmRatioPattern2::new(
                 client.clone(),
-                _m(&acc, &format!("stoch_k_{disc}", disc = disc)),
+                _m(&_m(&acc, "stoch_k"), &disc),
             ),
         }
     }
@@ -38157,7 +38085,7 @@ impl SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated {
 /// Main Bitview client with series tree and API methods.
 pub struct BitviewClient {
     base: Arc<BitviewClientBase>,
-    series: SeriesTree,
+    series: OnceLock<Box<SeriesTree>>,
 }
 
 impl BitviewClient {
@@ -38167,20 +38095,25 @@ impl BitviewClient {
     /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {
         let base = Arc::new(BitviewClientBase::new(base_url));
-        let series = SeriesTree::new(base.clone(), String::new());
-        Self { base, series }
+        Self {
+            base,
+            series: OnceLock::new(),
+        }
     }
 
     /// Create a new client with options.
     pub fn with_options(options: BitviewClientOptions) -> Self {
         let base = Arc::new(BitviewClientBase::with_options(options));
-        let series = SeriesTree::new(base.clone(), String::new());
-        Self { base, series }
+        Self {
+            base,
+            series: OnceLock::new(),
+        }
     }
 
     /// Get the series tree for navigating series.
     pub fn series(&self) -> &SeriesTree {
-        &self.series
+        self.series
+            .get_or_init(|| Box::new(SeriesTree::new(self.base.clone(), String::new())))
     }
 
     /// Create a dynamic series endpoint builder for any series/index combination.

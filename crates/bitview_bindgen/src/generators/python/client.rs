@@ -384,15 +384,15 @@ class SeriesData(Generic[T]):
 
     def items(self) -> List[Tuple[int, T]]:
         """Get (index, value) pairs."""
-        return list(zip(self.indexes(), self.data))
+        return list(zip(range(self.start, self.end), self.data))
 
     def to_dict(self) -> Dict[int, T]:
         """Return {{index: value}} dict."""
-        return dict(zip(self.indexes(), self.data))
+        return dict(zip(range(self.start, self.end), self.data))
 
     def __iter__(self) -> Iterator[Tuple[int, T]]:
         """Iterate over (index, value) pairs."""
-        return iter(zip(self.indexes(), self.data))
+        return zip(range(self.start, self.end), self.data)
 
     def __len__(self) -> int:
         return len(self.data)

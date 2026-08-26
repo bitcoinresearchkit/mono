@@ -83,11 +83,12 @@ mod types;
 
 pub use analysis::*;
 pub use backends::*;
-pub use generate::*;
 pub use generators::*;
 pub use openapi::*;
 pub use syntax::*;
 pub use types::*;
+
+use generate::*;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 

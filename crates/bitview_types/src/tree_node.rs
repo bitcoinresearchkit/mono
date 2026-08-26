@@ -19,6 +19,14 @@ pub enum TreeNode {
 const BASE: &str = "raw";
 
 impl TreeNode {
+    /// Count all series leaves in this subtree.
+    pub fn leaf_count(&self) -> usize {
+        match self {
+            Self::Branch(children) => children.values().map(Self::leaf_count).sum(),
+            Self::Leaf(_) => 1,
+        }
+    }
+
     /// Attach interned descriptions to every matching series leaf.
     pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, &'static str>) {
         match self {
@@ -252,6 +260,22 @@ mod tests {
             TreeNode::Leaf(l) => Some(&l.leaf.indexes),
             _ => None,
         }
+    }
+
+    #[test]
+    fn leaf_count_includes_nested_branches() {
+        let tree = branch(vec![
+            ("first", leaf("a", Index::Height)),
+            (
+                "nested",
+                branch(vec![
+                    ("second", leaf("b", Index::Day1)),
+                    ("third", leaf("c", Index::Week1)),
+                ]),
+            ),
+        ]);
+
+        assert_eq!(tree.leaf_count(), 3);
     }
 
     #[test]

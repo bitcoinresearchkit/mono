@@ -75,6 +75,9 @@ impl LanguageSyntax for PythonSyntax {
             format!("_m({}, disc)", acc_var)
         } else if !template.contains("{disc}") {
             format!("_m({}, '{}')", acc_var, template)
+        } else if let Some(static_part) = template.strip_suffix("{disc}") {
+            let static_part = static_part.trim_end_matches('_');
+            format!("_m(_m({}, '{}'), disc)", acc_var, static_part)
         } else {
             format!("_m({}, f'{}')", acc_var, template)
         }

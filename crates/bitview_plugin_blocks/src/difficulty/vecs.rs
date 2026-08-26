@@ -5,10 +5,6 @@ use bitview_compute::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 
 #[derive(Clone, Traversable)]
 pub struct Vecs {
-    /// Mining difficulty encoded by the block header, calculated as Bitcoin's
-    /// maximum target divided by this block's proof-of-work target. A larger
-    /// value means a lower valid-hash target and therefore more expected hashing
-    /// work per block.
     pub value: Resolutions<StoredF64>,
     /// Theoretical hash rate implied by difficulty at the ten-minute target:
     /// difficulty multiplied by 2^32 and divided by 600, in hashes per second.

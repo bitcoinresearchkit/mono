@@ -13,7 +13,7 @@ pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
         r#"/// Main Bitview client with series tree and API methods.
 pub struct BitviewClient {{
     base: Arc<BitviewClientBase>,
-    series: SeriesTree,
+    series: OnceLock<Box<SeriesTree>>,
 }}
 
 impl BitviewClient {{
@@ -23,20 +23,19 @@ impl BitviewClient {{
     /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {{
         let base = Arc::new(BitviewClientBase::new(base_url));
-        let series = SeriesTree::new(base.clone(), String::new());
-        Self {{ base, series }}
+        Self {{ base, series: OnceLock::new() }}
     }}
 
     /// Create a new client with options.
     pub fn with_options(options: BitviewClientOptions) -> Self {{
         let base = Arc::new(BitviewClientBase::with_options(options));
-        let series = SeriesTree::new(base.clone(), String::new());
-        Self {{ base, series }}
+        Self {{ base, series: OnceLock::new() }}
     }}
 
     /// Get the series tree for navigating series.
     pub fn series(&self) -> &SeriesTree {{
-        &self.series
+        self.series
+            .get_or_init(|| Box::new(SeriesTree::new(self.base.clone(), String::new())))
     }}
 
     /// Create a dynamic series endpoint builder for any series/index combination.

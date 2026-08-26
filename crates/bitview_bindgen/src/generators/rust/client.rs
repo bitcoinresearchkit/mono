@@ -18,7 +18,7 @@ use crate::{{DateSeriesData, FormatResponse}};
 use serde::de::DeserializeOwned;
 use std::ops::{{Bound, RangeBounds}};
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{{Arc, OnceLock}};
 
 "#
     )
