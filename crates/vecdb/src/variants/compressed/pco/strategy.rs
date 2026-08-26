@@ -10,11 +10,6 @@ use super::{
     value::{AsInnerSlice, FromInnerSlice, PcoVecValue},
 };
 
-/// Returns the default ChunkConfig for pcodec compression.
-fn chunk_config() -> ChunkConfig {
-    ChunkConfig::default().with_enable_8_bit(true)
-}
-
 /// Pcodec compression strategy for numerical data.
 #[derive(Debug, Clone, Copy)]
 pub struct PcodecStrategy<T>(PhantomData<T>);
@@ -26,7 +21,10 @@ where
     T: PcoVecValue,
 {
     fn compress(values: &[T]) -> crate::Result<Vec<u8>> {
-        Ok(simple_compress(values.as_inner_slice(), &chunk_config())?)
+        let config = ChunkConfig::default()
+            .with_compression_level(6)
+            .with_enable_8_bit(true);
+        Ok(simple_compress(values.as_inner_slice(), &config)?)
     }
 
     fn decompress(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>> {
