@@ -418,6 +418,35 @@ fn test_retain_regions() -> rawdb::Result<()> {
 }
 
 #[test]
+fn test_retain_regions_shrinks_metadata_and_preserves_hole_reuse() -> rawdb::Result<()> {
+    let temp = TempDir::new()?;
+    let regions = std::fs::File::create(temp.path().join("regions"))?;
+    regions.set_len(50_000 * PAGE_SIZE as u64)?;
+    let db = Database::open(temp.path())?;
+
+    let _ = db.create_region_if_needed("keep0")?;
+    let _ = db.create_region_if_needed("remove1")?;
+    let _ = db.create_region_if_needed("keep2")?;
+
+    db.retain_regions(
+        ["keep0".to_string(), "keep2".to_string()]
+            .into_iter()
+            .collect(),
+    )?;
+    assert_eq!(
+        std::fs::metadata(temp.path().join("regions"))?.len(),
+        3 * PAGE_SIZE as u64
+    );
+
+    drop(db);
+    let db = Database::open(temp.path())?;
+    assert_eq!(db.regions().len(), 2);
+    assert_eq!(db.create_region_if_needed("reused")?.index(), 1);
+
+    Ok(())
+}
+
+#[test]
 fn test_region_defragmentation() -> rawdb::Result<()> {
     let (db, _temp) = setup_test_db()?;
 
@@ -472,19 +501,6 @@ fn test_concurrent_region_creation() -> rawdb::Result<()> {
     // Verify all regions created
     let regions = db.regions();
     assert_eq!(regions.id_to_index().len(), 10);
-
-    Ok(())
-}
-
-#[test]
-fn test_set_min_regions() -> rawdb::Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    db.set_min_regions(100)?;
-
-    // File should be large enough for 100 regions
-    let file_len = db.file_len();
-    assert!(file_len >= 100 * PAGE_SIZE);
 
     Ok(())
 }

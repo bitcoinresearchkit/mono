@@ -107,7 +107,6 @@ impl Vecs {
         let db_path = STORAGE.path(context);
         let states_path = db_path.join("states");
         let db = STORAGE.open_database(context, 20_000_000)?;
-        db.set_min_regions(50_000)?;
 
         let version = STORAGE.schema_version();
         let spot_price = prices.spot.cents.height.read_only_cached_boxed_clone();

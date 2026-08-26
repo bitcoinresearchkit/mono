@@ -155,12 +155,6 @@ impl Database {
         Ok(())
     }
 
-    pub fn set_min_regions(&self, regions: usize) -> crate::Result<()> {
-        self.regions_mut()
-            .set_min_len(regions * SIZE_OF_REGION_METADATA)?;
-        self.set_min_len(regions * PAGE_SIZE)
-    }
-
     pub fn get_region(&self, id: &str) -> Option<Region> {
         self.regions().get_from_id(id).cloned()
     }
@@ -299,6 +293,7 @@ impl Database {
             );
             region.remove()?;
         }
+        self.regions_mut().shrink_to_fit()?;
         Ok(())
     }
 

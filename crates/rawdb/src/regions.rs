@@ -84,6 +84,21 @@ impl Regions {
     pub(crate) fn set_min_len(&mut self, len: usize) -> crate::Result<()> {
         let file_len = self.file_len()?;
         if file_len < len {
+            let target_len = len.max(file_len.saturating_mul(2));
+            self.file.set_len(target_len as u64)?;
+            self.mmap = create_mmap(&self.file)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn shrink_to_fit(&mut self) -> crate::Result<()> {
+        while self.index_to_region.last().is_some_and(Option::is_none) {
+            self.index_to_region.pop();
+        }
+
+        let len = self.index_to_region.len() * SIZE_OF_REGION_METADATA;
+        if self.file_len()? > len {
+            self.flush()?;
             self.file.set_len(len as u64)?;
             self.mmap = create_mmap(&self.file)?;
         }
