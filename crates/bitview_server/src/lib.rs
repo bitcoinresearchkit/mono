@@ -28,7 +28,10 @@ use tokio::net::TcpListener;
 use tower_http::{
     catch_panic::CatchPanicLayer,
     classify::ServerErrorsFailureClass,
-    compression::{CompressionLayer, CompressionLevel},
+    compression::{
+        CompressionLayer, CompressionLevel,
+        predicate::{DefaultPredicate, Predicate, SizeAbove},
+    },
     cors::CorsLayer,
     normalize_path::NormalizePathLayer,
     timeout::TimeoutLayer,
@@ -65,6 +68,9 @@ const MAX_ERROR_BODY_BYTES: usize = 4096;
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// Avoid spending compression work on responses too small to benefit materially.
+const MIN_COMPRESSED_RESPONSE_BYTES: u64 = 1024;
 
 /// Matches `application/json` and `application/...+json`, ignoring parameters
 /// like `; charset=utf-8`. Used to skip JSON-error rewriting for already-JSON bodies.
@@ -113,7 +119,10 @@ impl Server {
             .br(true)
             .gzip(true)
             .zstd(true)
-            .quality(CompressionLevel::Precise(3));
+            .quality(CompressionLevel::Fastest)
+            .compress_when(
+                DefaultPredicate::new().and(SizeAbove::new(MIN_COMPRESSED_RESPONSE_BYTES)),
+            );
 
         let response_time_layer = axum::middleware::from_fn(
             async |request: Request<Body>, next: Next| -> Response<Body> {
