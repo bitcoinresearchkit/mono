@@ -1,18 +1,16 @@
-use brk_error::Result;
-
 use std::{fs, ops::Range, path::Path, time::Instant};
 
 use rustc_hash::FxHashSet;
 
-use bitview_cohort::ByAddrType;
-use brk_error::{Error, OptionData};
+use bitview_cohort::{AddrTypeId, ByAddrType};
+use brk_error::{Error, OptionData, Result};
 use brk_store::{AnyStore, Kind, Mode, PendingIngest, Store};
 use brk_types::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Height, OutPoint, OutputType,
     TxIndex, TxOutIndex, TxidPrefix, TypeIndex, Unit, Version, Vout,
 };
 use fjall::Database;
-use rayon::prelude::*;
+use rayon::{join, prelude::*};
 use tracing::debug;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -21,10 +19,12 @@ use crate::{Lengths, constants::DUPLICATE_TXID_PREFIXES, vecs::IndexerVecs as _}
 use super::Vecs;
 
 mod checkpoint;
+mod transaction;
 
 use checkpoint::{
     DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
 };
+pub use transaction::TransactionStoresMut;
 
 #[derive(Clone)]
 pub struct Stores {
@@ -41,13 +41,6 @@ struct StoresInner {
     addr_type_to_addr_index_and_unspent_outpoint: ByAddrType<Store<AddrIndexOutPoint, Unit>>,
     blockhash_prefix_to_height: Store<BlockHashPrefix, Height>,
     txid_prefix_to_tx_index: Store<TxidPrefix, TxIndex>,
-}
-
-pub struct TransactionStoresMut<'a> {
-    pub addr_hashes: &'a mut ByAddrType<Store<AddrHash, TypeIndex>>,
-    pub addr_tx_indexes: &'a mut ByAddrType<Store<AddrIndexTxIndex, Unit>>,
-    pub addr_unspent_outpoints: &'a mut ByAddrType<Store<AddrIndexOutPoint, Unit>>,
-    pub txid_prefixes: &'a mut Store<TxidPrefix, TxIndex>,
 }
 
 pub trait IndexerStores: Sized {
@@ -161,61 +154,51 @@ impl StoresInner {
 
         let database_ref = &database;
 
-        let create_addr_hash_to_addr_index_store = |index| {
+        let create_addr_hash_to_addr_index_store = |id: AddrTypeId| {
             Store::import(
                 database_ref,
                 path,
-                &format!("h2i{}", index),
+                &format!("h2i{}", id as usize),
                 version,
                 Mode::PushOnly,
                 Kind::Random,
             )
         };
 
-        let create_addr_index_to_tx_index_store = |index| {
+        let create_addr_index_to_tx_index_store = |id: AddrTypeId| {
             Store::import(
                 database_ref,
                 path,
-                &format!("a2t{}", index),
+                &format!("a2t{}", id as usize),
                 version,
                 Mode::PushOnly,
                 Kind::Vec,
             )
         };
 
-        let create_addr_index_to_unspent_outpoint_store = |index| {
+        let create_addr_index_to_unspent_outpoint_store = |id: AddrTypeId| {
             Store::import(
                 database_ref,
                 path,
-                &format!("a2u{}", index),
+                &format!("a2u{}", id as usize),
                 version,
                 Mode::Any,
                 Kind::Vec,
             )
         };
 
-        let stores = Self {
-            db: database.clone(),
-            checkpoint: StoresCheckpoint::new(path),
-
-            addr_type_to_addr_hash_to_addr_index: ByAddrType::new_with_index(
-                create_addr_hash_to_addr_index_store,
-            )?,
-            addr_type_to_addr_index_and_tx_index: ByAddrType::new_with_index(
-                create_addr_index_to_tx_index_store,
-            )?,
-            addr_type_to_addr_index_and_unspent_outpoint: ByAddrType::new_with_index(
-                create_addr_index_to_unspent_outpoint_store,
-            )?,
-            blockhash_prefix_to_height: Store::import(
+        let create_blockhash_prefix_store = || {
+            Store::import(
                 database_ref,
                 path,
                 "blockhash_prefix_to_height",
                 version,
                 Mode::PushOnly,
                 Kind::Random,
-            )?,
-            txid_prefix_to_tx_index: Store::import_cached(
+            )
+        };
+        let create_txid_prefix_store = || {
+            Store::import_cached(
                 database_ref,
                 path,
                 "txid_prefix_to_tx_index",
@@ -223,7 +206,34 @@ impl StoresInner {
                 Mode::PushOnly,
                 Kind::Recent,
                 5,
-            )?,
+            )
+        };
+
+        let create_address_stores = || {
+            join(
+                || {
+                    join(
+                        || ByAddrType::par_try_from_fn(create_addr_hash_to_addr_index_store),
+                        || ByAddrType::par_try_from_fn(create_addr_index_to_tx_index_store),
+                    )
+                },
+                || ByAddrType::par_try_from_fn(create_addr_index_to_unspent_outpoint_store),
+            )
+        };
+        let create_prefix_stores = || join(create_blockhash_prefix_store, create_txid_prefix_store);
+
+        // Every store owns an independent keyspace, so all 26 can recover in parallel.
+        let (((addr_hashes, addr_tx_indexes), addr_unspent_outpoints), (blockhashes, txids)) =
+            join(create_address_stores, create_prefix_stores);
+
+        let stores = Self {
+            db: database.clone(),
+            checkpoint: StoresCheckpoint::new(path),
+            addr_type_to_addr_hash_to_addr_index: addr_hashes?,
+            addr_type_to_addr_index_and_tx_index: addr_tx_indexes?,
+            addr_type_to_addr_index_and_unspent_outpoint: addr_unspent_outpoints?,
+            blockhash_prefix_to_height: blockhashes?,
+            txid_prefix_to_tx_index: txids?,
         };
 
         if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {

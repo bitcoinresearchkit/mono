@@ -175,6 +175,23 @@ impl<T> ByAddrType<T> {
         })
     }
 
+    pub fn par_try_from_fn<E>(
+        create: impl Fn(AddrTypeId) -> Result<T, E> + Send + Sync,
+    ) -> Result<Self, E>
+    where
+        T: Send,
+        E: Send,
+    {
+        let mut values = ADDR_TYPE_IDS
+            .into_par_iter()
+            .map(create)
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter();
+        Ok(Self::from_fn(|_| {
+            values.next().expect("one value per address type")
+        }))
+    }
+
     pub fn new<F>(mut create: F) -> Self
     where
         F: FnMut(Filter) -> T,
@@ -200,13 +217,6 @@ impl<T> ByAddrType<T> {
             p2tr: f(P2TR, &self.p2tr),
             p2a: f(P2A, &self.p2a),
         }
-    }
-
-    pub fn new_with_index<F>(f: F) -> brk_error::Result<Self>
-    where
-        F: Fn(usize) -> brk_error::Result<T>,
-    {
-        Self::try_from_fn(|id| f(id as usize))
     }
 
     #[inline]
@@ -418,7 +428,7 @@ impl<T> ByAddrType<Option<T>> {
 mod tests {
     use vecdb::ColumnId;
 
-    use super::{ADDR_TYPE_IDS, AddrTypeId};
+    use super::{ADDR_TYPE_IDS, AddrTypeId, ByAddrType};
 
     #[test]
     fn column_order_matches_named_series() {
@@ -435,5 +445,12 @@ mod tests {
         for column in ADDR_TYPE_IDS {
             assert_eq!(*column.get(&row), column.index());
         }
+    }
+
+    #[test]
+    fn parallel_construction_preserves_named_order() {
+        let series = ByAddrType::par_try_from_fn(Ok::<_, ()>).unwrap();
+
+        assert!(series.values().copied().eq(ADDR_TYPE_IDS));
     }
 }

@@ -62,7 +62,7 @@ impl Database {
 
     /// Opens or creates `name` using the supplied immutable-table policy.
     ///
-    /// The policy closure is evaluated only on the first open in this process.
+    /// The policy closure is evaluated only on the first successful open in this process.
     ///
     /// # Errors
     ///
@@ -74,24 +74,31 @@ impl Database {
     ) -> crate::Result<Keyspace> {
         assert!(Self::is_valid_keyspace_name(name), "invalid keyspace name");
 
-        let mut keyspaces = self
-            .inner
-            .keyspaces
-            .lock()
-            .expect("keyspace lock is poisoned");
-        if let Some(keyspace) = keyspaces.get(name) {
+        let slot = {
+            let mut keyspaces = self
+                .inner
+                .keyspaces
+                .lock()
+                .expect("keyspace registry lock is poisoned");
+            keyspaces
+                .entry(name.to_owned())
+                .or_insert_with(|| Arc::new(Mutex::new(None)))
+                .clone()
+        };
+        let mut keyspace = slot.lock().expect("keyspace slot lock is poisoned");
+        if let Some(keyspace) = &*keyspace {
             return Ok(keyspace.clone());
         }
 
-        let keyspace = Keyspace::open(
+        let opened = Keyspace::open(
             name,
             create_options(),
             &self.inner.config,
             &self.inner.worker_pool,
             self.inner.lock.clone(),
         )?;
-        keyspaces.insert(name.to_owned(), keyspace.clone());
-        Ok(keyspace)
+        *keyspace = Some(opened.clone());
+        Ok(opened)
     }
 
     fn is_valid_keyspace_name(name: &str) -> bool {
