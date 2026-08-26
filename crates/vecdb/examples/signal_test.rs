@@ -9,9 +9,11 @@ fn main() {
     exit.set_ctrlc_handler();
 
     eprintln!("Running... press Ctrl+C to test signal handling");
-    for i in 1.. {
+    let mut i = 1_u64;
+    loop {
         let _lock = exit.lock();
         eprintln!("  tick {i}");
         thread::sleep(Duration::from_secs(1));
+        i = i.wrapping_add(1);
     }
 }

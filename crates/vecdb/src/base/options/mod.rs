@@ -17,6 +17,8 @@ pub struct ImportOptions<'a> {
     pub saved_stamped_changes: u16,
     /// Overrides the index type's initial value capacity when set.
     pub initial_capacity: Option<usize>,
+    /// Overrides the compression strategy's maximum uncompressed chunk size.
+    pub max_compression_chunk_size: Option<usize>,
 }
 
 impl<'a> ImportOptions<'a> {
@@ -27,6 +29,7 @@ impl<'a> ImportOptions<'a> {
             version,
             saved_stamped_changes: 0,
             initial_capacity: None,
+            max_compression_chunk_size: None,
         }
     }
 
@@ -37,6 +40,11 @@ impl<'a> ImportOptions<'a> {
 
     pub fn with_initial_capacity(mut self, capacity: usize) -> Self {
         self.initial_capacity = Some(capacity);
+        self
+    }
+
+    pub fn with_max_compression_chunk_size(mut self, bytes: usize) -> Self {
+        self.max_compression_chunk_size = Some(bytes);
         self
     }
 }

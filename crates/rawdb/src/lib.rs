@@ -26,6 +26,7 @@ mod layout;
 mod mmap;
 mod reader;
 mod region;
+mod region_group;
 mod region_metadata;
 mod regions;
 
@@ -37,6 +38,7 @@ use layout::*;
 use mmap::*;
 pub use reader::*;
 pub use region::*;
+pub use region_group::RegionGroup;
 pub use region_metadata::*;
 use regions::*;
 

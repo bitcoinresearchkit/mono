@@ -173,13 +173,13 @@ where
             .fold_range_at(from, to, init, |acc, row| f(acc, C::map(row, compute)))
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, C::Row<T>) -> std::result::Result<B, E>>(
+    fn try_fold_range_at<B, E, F: FnMut(B, C::Row<T>) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
         init: B,
         mut f: F,
-    ) -> std::result::Result<B, E> {
+    ) -> Result<B, E> {
         let compute = self.compute;
         self.source
             .try_fold_range_at(from, to, init, |acc, row| f(acc, C::map(row, compute)))

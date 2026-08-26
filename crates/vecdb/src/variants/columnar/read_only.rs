@@ -12,10 +12,11 @@ where
     V: StoredVec,
     C: ColumnId,
 {
-    pub(super) vec: V::ReadOnly,
+    pub(super) name: Arc<str>,
+    pub(super) columns: Arc<[V::ReadOnly]>,
     pub(super) visible_rows: SharedLen,
     pub(super) gate: Arc<RwLock<()>>,
-    pub(super) columns: PhantomData<C>,
+    pub(super) column_ids: PhantomData<C>,
 }
 
 impl<V, C> Clone for ReadOnlyColumnarVec<V, C>
@@ -25,10 +26,11 @@ where
 {
     fn clone(&self) -> Self {
         Self {
-            vec: self.vec.clone(),
+            name: Arc::clone(&self.name),
+            columns: Arc::clone(&self.columns),
             visible_rows: self.visible_rows.clone(),
             gate: Arc::clone(&self.gate),
-            columns: PhantomData,
+            column_ids: PhantomData,
         }
     }
 }

@@ -16,15 +16,12 @@ use crate::{
     VecIndex, VecValue, Version, WritableVec, vec_region_name_with,
 };
 
-use super::{CompressionStrategy, Pages, ReadOnlyCompressedVec};
+use super::{CompressionStrategy, PAGES_PER_BLOCK, PageDecoder, Pages, ReadOnlyCompressedVec};
 
-/// Maximum size in bytes of a single uncompressed page (16 KiB).
-/// Smaller pages reduce memory overhead during decompression and improve
-/// random access performance, while larger pages compress more efficiently.
-/// 16 KiB balances these trade-offs for typical workloads.
-pub const MAX_UNCOMPRESSED_PAGE_SIZE: usize = 16 * 1024;
+/// Independently decodable uncompressed page size.
+pub const COMPRESSED_PAGE_SIZE: usize = 8 * 1024;
 
-const VERSION: Version = Version::new(3);
+const VERSION: Version = Version::new(4);
 
 /// Inner implementation for compressed storage vectors.
 /// Parameterized by compression strategy to support different compression algorithms.
@@ -33,6 +30,7 @@ const VERSION: Version = Version::new(3);
 pub struct ReadWriteCompressedVec<I, T, S> {
     pub(super) base: ReadWriteBaseVec<I, T>,
     pub(super) pages: Arc<RwLock<Pages>>,
+    pages_per_chunk: usize,
     _strategy: PhantomData<S>,
 }
 
@@ -42,7 +40,7 @@ where
     T: VecValue,
     S: CompressionStrategy<T>,
 {
-    pub(super) const PER_PAGE: usize = MAX_UNCOMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
+    pub(super) const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
 
     pub fn read_only_clone(&self) -> ReadOnlyCompressedVec<I, T, S> {
         ReadOnlyCompressedVec::new(self.base.read_only_base(), Arc::clone(&self.pages))
@@ -63,7 +61,8 @@ where
             Err(Error::WrongEndian)
             | Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
-            | Err(Error::DifferentVersion { .. }) => {
+            | Err(Error::DifferentVersion { .. })
+            | Err(Error::CorruptedRegion { .. }) => {
                 info!("Resetting {}...", options.name);
                 options
                     .db
@@ -82,17 +81,49 @@ where
         options.version = options.version + VERSION;
         let db = options.db;
         let name = options.name;
+        let initial_capacity = options.initial_capacity.unwrap_or(I::INITIAL_CAPACITY);
+        let compression_chunk_size = options
+            .max_compression_chunk_size
+            .unwrap_or(S::MAX_UNCOMPRESSED_CHUNK_SIZE)
+            .min(S::MAX_UNCOMPRESSED_CHUNK_SIZE);
+        let pages_per_chunk =
+            (compression_chunk_size / COMPRESSED_PAGE_SIZE).clamp(1, PAGES_PER_BLOCK);
 
         let base = ReadWriteBaseVec::import(options, format)?;
 
-        let pages = Pages::import(db, &Self::pages_region_name_with(name))?;
+        let pages = Pages::import(
+            db,
+            &Self::pages_region_name_with(name),
+            initial_capacity.div_ceil(Self::PER_PAGE),
+        )?;
+        let region_len = base.region().meta().len();
+        if pages.next_start() != u64::try_from(region_len).map_err(|_| Error::Overflow)? {
+            return Err(Error::CorruptedRegion {
+                name: name.to_string(),
+                region_len,
+            });
+        }
 
         let mut this = Self {
             base,
             pages: Arc::new(RwLock::new(pages)),
+            pages_per_chunk,
             _strategy: PhantomData,
         };
 
+        if Self::PER_PAGE == 0 {
+            return Err(Error::InvalidArgument(
+                "compressed values must fit in one page",
+            ));
+        }
+        if this.pages.read().last().is_some_and(|page| {
+            page.is_raw() && !(page.bytes as usize).is_multiple_of(Self::SIZE_OF_T)
+        }) {
+            return Err(Error::CorruptedRegion {
+                name: name.to_string(),
+                region_len: this.base.region().meta().len(),
+            });
+        }
         let len = this.real_stored_len();
         *this.base.mut_prev_stored_len() = len;
         this.base.update_stored_len(len);
@@ -129,20 +160,18 @@ where
         let page = pages
             .get(page_index)
             .expect("page should exist after bounds check");
-        let data = reader.unchecked_read(page.start as usize, page.bytes as usize);
-        S::decode_page(data, page)
-    }
-
-    #[inline]
-    pub(super) fn compress_page(chunk: &[T]) -> crate::Result<Vec<u8>> {
-        debug_assert!(
-            chunk.len() <= Self::PER_PAGE,
-            "chunk length {} exceeds PER_PAGE {}",
-            chunk.len(),
-            Self::PER_PAGE
-        );
-
-        S::compress(chunk)
+        let header = reader.unchecked_read(page.header_start as usize, page.header_len());
+        let body = reader.unchecked_read(page.start as usize, page.bytes as usize);
+        let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
+        let mut values = Vec::with_capacity(expected_len);
+        PageDecoder::<T, S>::default().decode_into(
+            page,
+            header,
+            body,
+            expected_len,
+            &mut values,
+        )?;
+        Ok(values)
     }
 
     #[inline(always)]
@@ -166,24 +195,28 @@ where
     ) {
         let start_page = Self::index_to_page_index(from);
         let end_page = Self::index_to_page_index(to - 1);
+        let mut decoder = PageDecoder::<T, S>::default();
+        let mut page_buf = Vec::with_capacity(Self::PER_PAGE);
         for page_idx in start_page..=end_page {
             let page_start = Self::page_index_to_index(page_idx);
             let page = pages
                 .get(page_idx)
                 .expect("page should exist after bounds check");
-            let data = reader.unchecked_read(page.start as usize, page.bytes as usize);
-            let values_count = page.values_count() as usize;
+            let header = reader.unchecked_read(page.header_start as usize, page.header_len());
+            let body = reader.unchecked_read(page.start as usize, page.bytes as usize);
+            let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = from.saturating_sub(page_start);
             let local_to = (to - page_start).min(values_count);
 
             if !page.is_raw() && likely(local_from == 0) {
                 let before = buf.len();
-                S::decompress_append(data, values_count, buf)
+                decoder
+                    .decode_append(page, header, body, values_count, buf)
                     .expect("decompression failed in read_into_at");
                 buf.truncate(before + local_to);
             } else {
-                let mut page_buf = Vec::with_capacity(values_count);
-                S::decode_page_into(data, page, &mut page_buf)
+                decoder
+                    .decode_into(page, header, body, values_count, &mut page_buf)
                     .expect("page decode failed in read_into_at");
                 buf.extend_from_slice(&page_buf[local_from..local_to]);
             }
@@ -242,7 +275,7 @@ where
 
         let reader = self.create_reader();
         let pages = self.pages.read();
-        let real_len = pages.stored_len(Self::PER_PAGE);
+        let real_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
         let to = to.min(real_len);
         if from >= to {
             return Ok(vec![]);

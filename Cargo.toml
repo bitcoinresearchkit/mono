@@ -102,7 +102,7 @@ lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.11
 lz4_flex = { version = "=0.13.1", default-features = false }
 owo-colors = "4.3.0"
 parking_lot = "0.12.5"
-pco = "1.0.3"
+pco = { path = "crates/pco", version = "0.11.2" }
 quickmatch = { path = "crates/quickmatch", version = "0.11.2" }
 rawdb = { path = "crates/rawdb", version = "0.11.2" }
 rayon = "1.12.0"

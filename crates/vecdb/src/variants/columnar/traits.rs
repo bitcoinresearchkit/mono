@@ -4,7 +4,8 @@ use rawdb::{Database, Region};
 
 use crate::{
     AnyStoredVec, AnyVec, Error, Header, ImportOptions, ImportableVec, ReadableBoxedVec,
-    ReadableCloneableVec, Stamp, StoredVec, TypedVec, Version, WritableVec, short_type_name,
+    ReadableCloneableVec, Result, Stamp, StoredVec, TypedVec, Version, WritableVec,
+    short_type_name,
 };
 
 use super::{ColumnId, ColumnarVec, LazyColumnVec, ReadOnlyColumnarVec, ReadableColumnarVec};
@@ -14,19 +15,19 @@ where
     V: StoredVec,
     C: ColumnId,
 {
-    fn import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
+    fn import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::import_with((db, name, version).into())
     }
 
-    fn import_with(options: ImportOptions) -> crate::Result<Self> {
+    fn import_with(options: ImportOptions) -> Result<Self> {
         Self::import_inner(options, false)
     }
 
-    fn forced_import(db: &Database, name: &str, version: Version) -> crate::Result<Self> {
+    fn forced_import(db: &Database, name: &str, version: Version) -> Result<Self> {
         Self::forced_import_with((db, name, version).into())
     }
 
-    fn forced_import_with(options: ImportOptions) -> crate::Result<Self> {
+    fn forced_import_with(options: ImportOptions) -> Result<Self> {
         Self::import_inner(options, true)
     }
 }
@@ -37,19 +38,19 @@ where
     C: ColumnId,
 {
     fn version(&self) -> Version {
-        self.vec.version()
+        self.first().version()
     }
 
     fn name(&self) -> &str {
-        self.vec.name()
+        &self.name
     }
 
     fn len(&self) -> usize {
-        self.stored_rows + self.pushed.len()
+        self.stored_rows() + self.pushed.len()
     }
 
     fn index_type_to_string(&self) -> &'static str {
-        self.vec.index_type_to_string()
+        self.first().index_type_to_string()
     }
 
     fn value_type_to_size_of(&self) -> usize {
@@ -61,7 +62,7 @@ where
     }
 
     fn region_names(&self) -> Vec<String> {
-        self.vec.region_names()
+        self.columns.iter().flat_map(AnyVec::region_names).collect()
     }
 }
 
@@ -71,11 +72,11 @@ where
     C: ColumnId,
 {
     fn version(&self) -> Version {
-        self.vec.version()
+        self.columns[0].version()
     }
 
     fn name(&self) -> &str {
-        self.vec.name()
+        &self.name
     }
 
     fn len(&self) -> usize {
@@ -83,7 +84,7 @@ where
     }
 
     fn index_type_to_string(&self) -> &'static str {
-        self.vec.index_type_to_string()
+        self.columns[0].index_type_to_string()
     }
 
     fn value_type_to_size_of(&self) -> usize {
@@ -95,7 +96,7 @@ where
     }
 
     fn region_names(&self) -> Vec<String> {
-        self.vec.region_names()
+        self.columns.iter().flat_map(AnyVec::region_names).collect()
     }
 }
 
@@ -168,47 +169,62 @@ where
     C: ColumnId,
 {
     fn db_path(&self) -> PathBuf {
-        self.vec.db_path()
+        self.first().db_path()
     }
 
     fn region(&self) -> &Region {
-        self.vec.region()
+        self.first().region()
     }
 
     fn header(&self) -> &Header {
-        self.vec.header()
+        self.first().header()
     }
 
     fn mut_header(&mut self) -> &mut Header {
-        self.vec.mut_header()
+        self.first_mut().mut_header()
     }
 
     fn saved_stamped_changes(&self) -> u16 {
-        self.vec.saved_stamped_changes()
+        self.first().saved_stamped_changes()
     }
 
-    fn write(&mut self) -> crate::Result<bool> {
+    fn write(&mut self) -> Result<bool> {
         self.write_pending()
     }
 
+    fn flush(&mut self) -> Result<()> {
+        let db = self.db();
+        if self.write()? {
+            db.flush()?;
+        }
+        Ok(())
+    }
+
     fn db(&self) -> Database {
-        self.vec.db()
+        self.first().db()
     }
 
     fn real_stored_len(&self) -> usize {
+        let len = self.first().real_stored_len();
         debug_assert!(
-            self.vec
-                .real_stored_len()
-                .is_multiple_of(Self::COLUMN_COUNT)
+            self.columns
+                .iter()
+                .all(|column| column.real_stored_len() == len)
         );
-        self.vec.real_stored_len() / Self::COLUMN_COUNT
+        len
     }
 
     fn stored_len(&self) -> usize {
-        self.stored_rows
+        self.stored_rows()
     }
 
-    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
+    fn update_stamp(&mut self, stamp: Stamp) {
+        for column in &mut self.columns {
+            column.update_stamp(stamp);
+        }
+    }
+
+    fn any_stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::stamped_write_with_changes(self, stamp)
     }
 
@@ -216,24 +232,45 @@ where
         <Self as WritableVec<V::I, C::Row<V::T>>>::save_rollback_state(self)
     }
 
-    fn serialize_changes(&self) -> crate::Result<Vec<u8>> {
-        if !self.pushed.is_empty() || self.stored_rows != self.flat_rows() {
+    fn serialize_changes(&self) -> Result<Vec<u8>> {
+        if !self.pushed.is_empty() {
             return Err(Error::InvalidArgument(
                 "ColumnarVec changes must be staged before serialization",
             ));
         }
-        self.vec.serialize_changes()
+        let mut combined = Vec::new();
+        for column in &self.columns {
+            let changes = column.serialize_changes()?;
+            combined.extend_from_slice(
+                &u64::try_from(changes.len())
+                    .map_err(|_| Error::Overflow)?
+                    .to_le_bytes(),
+            );
+            combined.extend(changes);
+        }
+        Ok(combined)
     }
 
-    fn remove(self) -> crate::Result<()> {
-        self.vec.remove()
+    fn remove(self) -> Result<()> {
+        let Self {
+            columns,
+            read_only_columns,
+            group,
+            ..
+        } = self;
+        drop(read_only_columns);
+        drop(group);
+        for column in columns {
+            column.remove()?;
+        }
+        Ok(())
     }
 
-    fn any_truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
+    fn any_truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::truncate_if_needed_at(self, index)
     }
 
-    fn any_reset(&mut self) -> crate::Result<()> {
+    fn any_reset(&mut self) -> Result<()> {
         <Self as WritableVec<V::I, C::Row<V::T>>>::reset(self)
     }
 }
@@ -251,71 +288,90 @@ where
         &self.pushed
     }
 
-    fn truncate_if_needed_at(&mut self, index: usize) -> crate::Result<()> {
+    fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
         let len = self.len();
         if index >= len {
             return Ok(());
         }
-        if index < self.stored_rows {
-            self.stored_rows = index;
+
+        let gate = Arc::clone(&self.gate);
+        let _guard = gate.write();
+        let stored_rows = self.stored_rows();
+        self.visible_rows.set(index.min(stored_rows));
+        if index < stored_rows {
             self.pushed.clear();
+            for column in &mut self.columns {
+                column.truncate_if_needed_at(index)?;
+            }
         } else {
-            self.pushed.truncate(index - self.stored_rows);
+            self.pushed.truncate(index - stored_rows);
         }
+        self.publish_stored_rows();
         Ok(())
     }
 
-    fn reset(&mut self) -> crate::Result<()> {
+    fn reset(&mut self) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
-        self.stored_rows = 0;
-        self.pushed.clear();
-        self.vec.reset()?;
         self.visible_rows.set(0);
+        self.pushed.clear();
+        for column in &mut self.columns {
+            column.reset()?;
+        }
         Ok(())
     }
 
     fn reset_unsaved(&mut self) {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
-        self.vec.reset_unsaved();
-        self.stored_rows = self.flat_rows();
         self.pushed.clear();
-        self.visible_rows.set(self.stored_rows);
+        for column in &mut self.columns {
+            column.reset_unsaved();
+        }
+        self.publish_stored_rows();
     }
 
     fn is_dirty(&self) -> bool {
-        self.stored_rows != self.flat_rows() || !self.pushed.is_empty() || self.vec.is_dirty()
+        !self.pushed.is_empty() || self.columns.iter().any(WritableVec::is_dirty)
     }
 
-    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> crate::Result<()> {
+    fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
-        self.stage_pending()?;
-        self.vec.stamped_write_with_changes(stamp)?;
-        self.stored_rows = self.flat_rows();
-        self.visible_rows.set(self.stored_rows);
+        self.stage_pending();
+        for column in &mut self.columns {
+            column.stamped_write_with_changes(stamp)?;
+        }
+        self.publish_stored_rows();
         Ok(())
     }
 
-    fn rollback(&mut self) -> crate::Result<()> {
+    fn rollback(&mut self) -> Result<()> {
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
+        self.visible_rows.set(0);
         self.pushed.clear();
-        self.vec.rollback()?;
-        self.stored_rows = self.flat_rows();
-        debug_assert!(self.vec.stored_len().is_multiple_of(Self::COLUMN_COUNT));
-        self.visible_rows
-            .set(self.vec.stored_len() / Self::COLUMN_COUNT);
+        for column in &mut self.columns {
+            column.rollback()?;
+        }
+        Self::validate_columns(&self.columns)?;
+        self.publish_stored_rows();
         Ok(())
     }
 
-    fn find_rollback_files(&self) -> crate::Result<BTreeMap<Stamp, PathBuf>> {
-        self.vec.find_rollback_files()
+    fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
+        let files = self.first().find_rollback_files()?;
+        for column in &self.columns[1..] {
+            let other = column.find_rollback_files()?;
+            debug_assert!(files.keys().eq(other.keys()));
+        }
+        Ok(files)
     }
 
     fn save_rollback_state(&mut self) {
-        self.vec.save_rollback_state();
+        for column in &mut self.columns {
+            column.save_rollback_state();
+        }
     }
 }
 

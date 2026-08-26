@@ -1,12 +1,74 @@
-use std::{mem, path::PathBuf};
+use std::{mem, ops::Range, path::PathBuf};
 
 use rawdb::{Database, Region};
 use rayon::prelude::*;
 
 use crate::{AnyStoredVec, AnyVec, Error, Header, Stamp, VecIndex, VecValue, WritableVec};
 
-use super::super::{CompressionStrategy, Page};
+use super::super::{CompressionStrategy, PAGES_PER_BLOCK};
 use super::ReadWriteCompressedVec;
+
+impl<I, T, S> ReadWriteCompressedVec<I, T, S>
+where
+    I: VecIndex,
+    T: VecValue,
+    S: CompressionStrategy<T>,
+{
+    fn encode_pages(
+        &self,
+        values: &[T],
+        starting_page_index: usize,
+    ) -> crate::Result<(Vec<u8>, Vec<(Option<u32>, u32, bool)>)> {
+        let full_pages = values.len() / Self::PER_PAGE;
+        let mut page_offset = 0;
+        let mut ranges = Vec::<Range<usize>>::new();
+        while page_offset < full_pages {
+            let page_index = starting_page_index + page_offset;
+            let block_remaining = PAGES_PER_BLOCK - page_index % PAGES_PER_BLOCK;
+            let chunk_pages = self
+                .pages_per_chunk
+                .min(block_remaining)
+                .min(full_pages - page_offset);
+            let from = page_offset * Self::PER_PAGE;
+            let to = (page_offset + chunk_pages) * Self::PER_PAGE;
+            ranges.push(from..to);
+            page_offset += chunk_pages;
+        }
+
+        let chunks = ranges
+            .par_iter()
+            .map(|range| S::compress_chunk(&values[range.clone()], Self::PER_PAGE))
+            .collect::<crate::Result<Vec<_>>>()?;
+        let mut bytes = Vec::new();
+        let mut layouts = Vec::with_capacity(values.len().div_ceil(Self::PER_PAGE));
+        for (chunk, range) in chunks.into_iter().zip(ranges) {
+            let expected_pages = range.len() / Self::PER_PAGE;
+            if chunk.page_count() != expected_pages {
+                return Err(Error::InvalidArgument(
+                    "compression strategy returned the wrong page count",
+                ));
+            }
+            let (chunk_bytes, header_len, page_ends) = chunk.into_parts();
+            let mut previous_end = header_len;
+            for (index, end) in page_ends.into_iter().enumerate() {
+                let body_bytes = end.checked_sub(previous_end).ok_or(Error::Underflow)?;
+                layouts.push(((index == 0).then_some(header_len), body_bytes, false));
+                previous_end = end;
+            }
+            bytes.extend(chunk_bytes);
+        }
+
+        let raw_from = full_pages * Self::PER_PAGE;
+        if raw_from < values.len() {
+            let raw = S::values_to_bytes(&values[raw_from..]);
+            let raw_len = u32::try_from(raw.len()).map_err(|_| Error::Overflow)?;
+            bytes.extend(raw);
+            layouts.push((Some(0), raw_len, true));
+        }
+
+        Ok((bytes, layouts))
+    }
+}
 
 impl<I, T, S> AnyStoredVec for ReadWriteCompressedVec<I, T, S>
 where
@@ -46,7 +108,9 @@ where
 
     #[inline]
     fn real_stored_len(&self) -> usize {
-        self.pages.read().stored_len(Self::PER_PAGE)
+        self.pages
+            .read()
+            .stored_len(Self::PER_PAGE, Self::SIZE_OF_T)
     }
 
     fn write(&mut self) -> crate::Result<bool> {
@@ -58,7 +122,7 @@ where
         let (truncate_at, starting_page_index, partial_page) = {
             let pages = self.pages.read();
 
-            let real_stored_len = pages.stored_len(Self::PER_PAGE);
+            let real_stored_len = pages.stored_len(Self::PER_PAGE, Self::SIZE_OF_T);
             if stored_len > real_stored_len {
                 return Err(Error::CorruptedRegion {
                     name: self.name().to_string(),
@@ -80,14 +144,18 @@ where
 
             if starting_page_index < pages.len() {
                 let partial_len = stored_len % Self::PER_PAGE;
-                let page = *pages
+                let page = pages
                     .get(starting_page_index)
                     .ok_or(Error::ExpectVecToHaveIndex)?;
+                let rewrite_page_index = page.chunk_start_page;
+                let rewrite_page = pages
+                    .get(rewrite_page_index)
+                    .ok_or(Error::ExpectVecToHaveIndex)?;
                 (
-                    page.start,
-                    starting_page_index,
+                    rewrite_page.header_start,
+                    rewrite_page_index,
                     if partial_len != 0 {
-                        Some((page, partial_len))
+                        Some((page, partial_len, starting_page_index))
                     } else {
                         None
                     },
@@ -101,9 +169,10 @@ where
         // Fast path: append to existing raw page without reading it back.
         // When the last page is raw, not truncated, and won't overflow, just
         // write the new pushed bytes at the end of the existing page data.
-        if let Some((page, partial_len)) = partial_page
+        if let Some((page, partial_len, page_index)) = partial_page
             && page.is_raw()
-            && partial_len == page.values_count() as usize
+            && starting_page_index == page_index
+            && partial_len == page.values_count(Self::PER_PAGE, Self::SIZE_OF_T)
             && partial_len + pushed_len < Self::PER_PAGE
         {
             let taken = mem::take(self.base.mut_pushed());
@@ -113,26 +182,20 @@ where
 
             let mut pages = self.pages.write();
             pages.truncate(starting_page_index);
-            pages.checked_push(
-                starting_page_index,
-                Page::raw(
-                    page.start,
-                    page.bytes + raw.len() as u32,
-                    (partial_len + pushed_len) as u32,
-                ),
-            )?;
+            let total_bytes = page
+                .bytes
+                .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
+                .ok_or(Error::Overflow)?;
+            pages.push_raw(starting_page_index, total_bytes)?;
             self.base.update_stored_len(stored_len + pushed_len);
             pages.flush()?;
             return Ok(true);
         }
 
-        // Decompress the partial page outside the pages lock.
-        let mut values = if let Some((page, partial_len)) = partial_page {
-            let reader = self.create_reader();
-            let data = reader.unchecked_read(page.start as usize, page.bytes as usize);
-            let mut page_values = S::decode_page(data, &page)?;
-            page_values.truncate(partial_len);
-            page_values
+        // Rebuild only the bounded chunk that contains the truncation point.
+        let rewrite_from = Self::page_index_to_index(starting_page_index);
+        let mut values = if rewrite_from < stored_len {
+            self.collect_stored_range(rewrite_from, stored_len)?
         } else {
             vec![]
         };
@@ -146,30 +209,7 @@ where
             values.extend(taken);
         }
 
-        let num_pages = values.len().div_ceil(Self::PER_PAGE);
-        let encode_page = |chunk: &[T]| {
-            let (encoded, is_raw) = if chunk.len() == Self::PER_PAGE {
-                (Self::compress_page(chunk)?, false)
-            } else {
-                (S::values_to_bytes(chunk), true)
-            };
-            Ok::<_, Error>((encoded, chunk.len(), is_raw))
-        };
-        let encoded_pages = if num_pages == 1 {
-            vec![encode_page(&values)?]
-        } else {
-            values
-                .par_chunks(Self::PER_PAGE)
-                .map(encode_page)
-                .collect::<crate::Result<Vec<_>>>()?
-        };
-        let encoded_len = encoded_pages.iter().map(|(page, _, _)| page.len()).sum();
-        let mut buf = Vec::with_capacity(encoded_len);
-        let mut page_sizes = Vec::with_capacity(num_pages);
-        for (encoded, values_len, is_raw) in encoded_pages {
-            page_sizes.push((encoded.len(), values_len, is_raw));
-            buf.extend_from_slice(&encoded);
-        }
+        let (buf, page_layouts) = self.encode_pages(&values, starting_page_index)?;
 
         // Write the region before re-taking the pages lock to avoid deadlock.
         self.region().truncate_write(truncate_at as usize, &buf)?;
@@ -177,14 +217,13 @@ where
         let mut pages = self.pages.write();
         pages.truncate(starting_page_index);
 
-        for (i, &(byte_len, values_len, is_raw)) in page_sizes.iter().enumerate() {
-            let start = pages.next_start();
-            let page = if is_raw {
-                Page::raw(start, byte_len as u32, values_len as u32)
+        for (offset, &(header_bytes, body_bytes, is_raw)) in page_layouts.iter().enumerate() {
+            let page_index = starting_page_index + offset;
+            if is_raw {
+                pages.push_raw(page_index, body_bytes)?;
             } else {
-                Page::compressed(start, byte_len as u32, values_len as u32)
-            };
-            pages.checked_push(starting_page_index + i, page)?;
+                pages.push_compressed(page_index, header_bytes, body_bytes)?;
+            }
         }
 
         self.base.update_stored_len(stored_len + pushed_len);

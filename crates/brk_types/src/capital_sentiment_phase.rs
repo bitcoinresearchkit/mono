@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display};
-use vecdb::{Bytes, Formattable, Pco, TransparentPco};
+use vecdb::{Bytes, Formattable, Pco};
 
 /// Investor phase from the Capital Sentiment model.
 ///
@@ -118,11 +118,22 @@ impl Bytes for CapitalSentimentPhase {
     }
 }
 
-impl Pco for CapitalSentimentPhase {
+// SAFETY: The non-transparent conversion validates every decoded code.
+unsafe impl Pco for CapitalSentimentPhase {
     type NumberType = u8;
-}
 
-impl TransparentPco<u8> for CapitalSentimentPhase {}
+    #[inline(always)]
+    fn to_number(self) -> Self::NumberType {
+        self.code()
+    }
+
+    #[inline(always)]
+    fn from_number(value: Self::NumberType) -> vecdb::Result<Self> {
+        Self::from_code(value).ok_or(vecdb::Error::InvalidArgument(
+            "invalid CapitalSentimentPhase",
+        ))
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -131,10 +142,13 @@ mod tests {
     #[test]
     fn codes_round_trip_and_zero_is_reserved() {
         assert_eq!(CapitalSentimentPhase::from_code(0), None);
+        const { assert!(!CapitalSentimentPhase::IS_TRANSPARENT) };
+        assert!(CapitalSentimentPhase::from_number(0).is_err());
 
         for code in CapitalSentimentPhase::MIN_CODE..=CapitalSentimentPhase::MAX_CODE {
             let phase = CapitalSentimentPhase::from_code(code).unwrap();
             assert_eq!(phase.code(), code);
+            assert_eq!(CapitalSentimentPhase::from_number(code).unwrap(), phase);
         }
 
         assert_eq!(

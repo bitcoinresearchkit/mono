@@ -1,6 +1,6 @@
 [package]
 name = "brk_lsm_tree"
-description = "BRK-maintained fork of lsm-tree, a minimal log-structured merge tree implementation"
+description = "BRK-maintained fork of lsm-tree 3.1.8, a minimal log-structured merge tree implementation"
 license.workspace = true
 version.workspace = true
 edition.workspace = true

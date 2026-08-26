@@ -1,4 +1,4 @@
-use rawdb::{Database, PAGE_SIZE};
+use rawdb::{Database, Error, PAGE_SIZE, Result};
 use std::sync::Arc;
 use std::thread;
 use tempfile::TempDir;
@@ -91,6 +91,91 @@ fn test_reserve_region_capacity_preserves_data() -> rawdb::Result<()> {
     assert_eq!(region.meta().reserved(), PAGE_SIZE * 4);
     assert_eq!(region.create_reader().read_all(), b"preserved");
 
+    Ok(())
+}
+
+#[test]
+fn region_group_is_contiguous_and_moves_as_one() -> rawdb::Result<()> {
+    let (db, temp) = setup_test_db()?;
+    let first = db.create_region_if_needed("first")?;
+    let blocker = db.create_region_if_needed("blocker")?;
+    let second = db.create_region_if_needed("second")?;
+    let third = db.create_region_if_needed("third")?;
+    first.write(b"first")?;
+    second.write(b"second")?;
+    third.write(b"third")?;
+
+    let group = db.group_regions(&[first.clone(), second.clone(), third.clone()])?;
+    assert_eq!(second.meta().start(), first.meta().start() + PAGE_SIZE);
+    assert_eq!(third.meta().start(), second.meta().start() + PAGE_SIZE);
+
+    let old_start = first.meta().start();
+    second.reserve_capacity(PAGE_SIZE * 3 + 1)?;
+    assert_ne!(first.meta().start(), old_start);
+    assert_eq!(first.meta().reserved(), PAGE_SIZE * 4);
+    assert_eq!(second.meta().reserved(), PAGE_SIZE * 4);
+    assert_eq!(third.meta().reserved(), PAGE_SIZE * 4);
+    assert_eq!(
+        second.meta().start(),
+        first.meta().start() + first.meta().reserved()
+    );
+    assert_eq!(
+        third.meta().start(),
+        second.meta().start() + second.meta().reserved()
+    );
+    assert_eq!(first.create_reader().read_all(), b"first");
+    assert_eq!(second.create_reader().read_all(), b"second");
+    assert_eq!(third.create_reader().read_all(), b"third");
+    assert_eq!(blocker.meta().start(), PAGE_SIZE);
+
+    db.flush()?;
+    drop(group);
+    drop(first);
+    drop(second);
+    drop(third);
+    drop(blocker);
+    drop(db);
+
+    let db = Database::open(temp.path())?;
+    let first = db.get_region("first").unwrap();
+    let second = db.get_region("second").unwrap();
+    let third = db.get_region("third").unwrap();
+    assert_eq!(
+        second.meta().start(),
+        first.meta().start() + first.meta().reserved()
+    );
+    assert_eq!(
+        third.meta().start(),
+        second.meta().start() + second.meta().reserved()
+    );
+    assert_eq!(first.create_reader().read_all(), b"first");
+    assert_eq!(second.create_reader().read_all(), b"second");
+    assert_eq!(third.create_reader().read_all(), b"third");
+
+    Ok(())
+}
+
+#[test]
+fn region_group_handle_controls_membership() -> Result<()> {
+    let (db, _temp) = setup_test_db()?;
+    let first = db.create_region_if_needed("first")?;
+    let second = db.create_region_if_needed("second")?;
+
+    let group = db.group_regions(&[first.clone(), second.clone()])?;
+    let same_group = db.group_regions(&[first.clone(), second.clone()])?;
+    drop(same_group);
+    assert!(matches!(
+        db.group_regions(&[second.clone(), first.clone()]),
+        Err(Error::RegionAlreadyGrouped { .. })
+    ));
+
+    drop(group);
+    let regrouped = db.group_regions(&[second.clone(), first.clone()])?;
+    assert_eq!(
+        first.meta().start(),
+        second.meta().start() + second.meta().reserved()
+    );
+    drop(regrouped);
     Ok(())
 }
 

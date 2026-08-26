@@ -12,8 +12,7 @@ use bitview_query::Vecs;
 
 const REALIZED_PRICE_DESCRIPTION: &str = "The sats-weighted average USD creation price of the unspent outputs in a UTXO cohort: Σ(creation price × unspent sats) / Σ(unspent sats). Returns zero when the cohort has no unspent supply.";
 const ALL_UTXOS_DESCRIPTION: &str = "Uses all UTXOs.";
-const LTH_UTXOS_DESCRIPTION: &str =
-    "Uses long-term-holder UTXOs at least 150 days old.";
+const LTH_UTXOS_DESCRIPTION: &str = "Uses long-term-holder UTXOs at least 150 days old.";
 const AGGREGATE_MATRIX_DESCRIPTION: &str = "Height-indexed matrix containing the all, short-term-holder, and long-term-holder aggregates, in that order.";
 const USD_DESCRIPTION: &str = "Reported in USD per BTC.";
 const CENTS_DESCRIPTION: &str = "Reported in cents per BTC.";
@@ -25,8 +24,7 @@ const LOW_PRICE_DESCRIPTION: &str = "Lowest Bitcoin price for each supported tim
 const CLOSE_PRICE_DESCRIPTION: &str = "Closing Bitcoin price for each supported time period, including daily periods. A populated period uses its final block-level price; an empty period is null.";
 const SPOT_PRICE_DESCRIPTION: &str = "Bitcoin spot price assigned to each block.";
 const DCA_CLASS_STACK_DESCRIPTION: &str = "Value at the represented block and accumulated bitcoin from investing $100 at every UTC daily close since a starting year.";
-const DCA_FROM_2020_DESCRIPTION: &str =
-    "Uses January 1, 2020 as the strategy start date.";
+const DCA_FROM_2020_DESCRIPTION: &str = "Uses January 1, 2020 as the strategy start date.";
 const LUMP_SUM_STACK_DESCRIPTION: &str = "Value at the represented block and bitcoin from investing $100 times a trailing period's day count at that period's first block-level spot price.";
 const DCA_PERIOD_1Y_DESCRIPTION: &str = "Uses a trailing 365-day investment period.";
 const OP_RETURN_METRICS_DESCRIPTION: &str = "Metrics across every `OP_RETURN` output and every transaction carrying at least one such output.";
@@ -403,7 +401,8 @@ const INDEXER_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
 const MACD_DESCRIPTION: &str = "Moving average convergence/divergence (MACD) chains at base intervals of 1, 7, and 30 days. Each chain uses fast, slow, and signal durations of 12, 26, and 9 times its base interval, respectively.";
 const MACD_EMA_FAST_DESCRIPTION: &str = "Exponential moving average (EMA) of spot price in USD per BTC using the chain's fast span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
 const MACD_EMA_SLOW_DESCRIPTION: &str = "Exponential moving average (EMA) of spot price in USD per BTC using the chain's slow span. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
-const MACD_LINE_DESCRIPTION: &str = "Moving average convergence/divergence (MACD) line: fast EMA minus slow EMA, in USD per BTC.";
+const MACD_LINE_DESCRIPTION: &str =
+    "Moving average convergence/divergence (MACD) line: fast EMA minus slow EMA, in USD per BTC.";
 const MACD_SIGNAL_DESCRIPTION: &str = "EMA of the MACD line using the chain's signal span, in USD per BTC. It recursively applies `alpha = 2 / (span + 1)`, where `span` is the number of blocks in the corresponding trailing monotonic-time duration.";
 const MACD_HISTOGRAM_DESCRIPTION: &str = "MACD line minus signal line, in USD per BTC.";
 const SMALL_PLUGIN_DIRECT_DESCRIPTIONS: &[(&str, &str)] = &[
@@ -734,12 +733,9 @@ const LIVELINESS_DESCRIPTION: &str =
 const VAULTEDNESS_DESCRIPTION: &str = "One minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const ACTIVITY_TO_VAULTEDNESS_DESCRIPTION: &str =
     "Liveliness divided by vaultedness: `liveliness / (1 - liveliness)`.";
-const COINTIME_ADJ_INFLATION_DESCRIPTION: &str =
-    "Cointime-adjusted supply inflation rate: trailing 365-day circulating-supply growth divided by starting supply, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created. Returns NaN while starting supply is at most 50 BTC.";
-const COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION: &str =
-    "Cointime-adjusted native transaction velocity: trailing 365-day transfer volume in satoshis divided by all-chain supply at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
-const COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION: &str =
-    "Cointime-adjusted fiat transaction velocity: trailing 365-day transfer volume in cents divided by all-chain market capitalization at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const COINTIME_ADJ_INFLATION_DESCRIPTION: &str = "Cointime-adjusted supply inflation rate: trailing 365-day circulating-supply growth divided by starting supply, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created. Returns NaN while starting supply is at most 50 BTC.";
+const COINTIME_ADJ_NATIVE_VELOCITY_DESCRIPTION: &str = "Cointime-adjusted native transaction velocity: trailing 365-day transfer volume in satoshis divided by all-chain supply at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
+const COINTIME_ADJ_FIAT_VELOCITY_DESCRIPTION: &str = "Cointime-adjusted fiat transaction velocity: trailing 365-day transfer volume in cents divided by all-chain market capitalization at the represented block, multiplied by `liveliness / (1 - liveliness)`. Liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const THERMO_CAP_DESCRIPTION: &str = "Cumulative USD value, at each block's spot price, of the derived subsidy component equal to coinbase output value minus transaction fees.";
 const INVESTOR_CAP_DESCRIPTION: &str = "Realized capitalization minus the cumulative issuance-date USD value of the derived block-subsidy component.";
 const VAULTED_CAP_DESCRIPTION: &str = "Realized capitalization multiplied by one minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
@@ -749,8 +745,7 @@ const AVIV_DESCRIPTION: &str = "Active-value-to-investor-value (AVIV) ratio: act
 const VAULTED_PRICE_DESCRIPTION: &str = "Realized price divided by one minus liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const ACTIVE_PRICE_DESCRIPTION: &str = "Realized price divided by liveliness, where liveliness is cumulative coinblocks destroyed divided by cumulative coinblocks created.";
 const TRUE_MARKET_MEAN_DESCRIPTION: &str = "Investor capitalization, equal to realized capitalization minus the cumulative issuance-date USD value of the derived block-subsidy component, divided by active supply in BTC. Active supply is circulating supply multiplied by liveliness.";
-const COINTIME_PRICE_DESCRIPTION: &str =
-    "Cumulative cointime value destroyed divided by cumulative coinblocks stored, expressed as a price per BTC.";
+const COINTIME_PRICE_DESCRIPTION: &str = "Cumulative cointime value destroyed divided by cumulative coinblocks stored, expressed as a price per BTC.";
 const RESERVE_RISK_DESCRIPTION: &str = "Spot price in USD divided by the HODL bank, which is the cumulative sum of spot price minus the trailing-one-year median supply-adjusted value of coin days destroyed.";
 const VOCDD_MEDIAN_1Y_DESCRIPTION: &str =
     "Median per-block value of coin days destroyed over the trailing one-year timestamp window.";
@@ -1155,9 +1150,8 @@ fn assert_audited_descriptions() {
         "all-cohort series retain an all_ prefix: {all_prefixed:#?}"
     );
 
-    let realized_price_description = format!(
-        "{REALIZED_PRICE_DESCRIPTION} {ALL_UTXOS_DESCRIPTION} {USD_DESCRIPTION}"
-    );
+    let realized_price_description =
+        format!("{REALIZED_PRICE_DESCRIPTION} {ALL_UTXOS_DESCRIPTION} {USD_DESCRIPTION}");
     assert_eq!(
         vecs.catalog()
             .descriptions()

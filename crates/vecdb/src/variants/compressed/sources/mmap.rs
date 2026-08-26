@@ -6,17 +6,22 @@ use rawdb::{Reader, Region};
 use crate::{AnyStoredVec, Pages, VecIndex, VecValue, unlikely};
 
 use super::super::inner::{
-    CompressionStrategy, MAX_UNCOMPRESSED_PAGE_SIZE, ReadWriteCompressedVec,
+    COMPRESSED_PAGE_SIZE, CompressionStrategy, PageDecoder, ReadWriteCompressedVec,
 };
 
 /// Read-only mmap-backed source over a compressed vector.
 ///
 /// Only sees **stored** (persisted) values. Pages are decoded lazily —
 /// only when fold/for_each reaches them. Consumed by fold/try_fold/for_each.
-pub struct CompressedMmapSource<'a, I, T, S> {
+pub struct CompressedMmapSource<'a, I, T, S>
+where
+    T: VecValue,
+    S: CompressionStrategy<T>,
+{
     reader: Reader,
     pages: RwLockReadGuard<'a, Pages>,
     page_buf: Vec<T>,
+    decoder: PageDecoder<T, S>,
     page_buf_idx: usize,
     pos: usize,
     end: usize,
@@ -30,7 +35,7 @@ where
     S: CompressionStrategy<T>,
 {
     const SIZE_OF_T: usize = size_of::<T>();
-    const PER_PAGE: usize = MAX_UNCOMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
+    const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
     const NO_PAGE: usize = usize::MAX;
 
     pub(crate) fn new(vec: &'a ReadWriteCompressedVec<I, T, S>, from: usize, to: usize) -> Self {
@@ -50,6 +55,7 @@ where
             reader: region.create_reader(),
             pages: pages.read(),
             page_buf: Vec::with_capacity(Self::PER_PAGE),
+            decoder: PageDecoder::default(),
             page_buf_idx: Self::NO_PAGE,
             pos: from,
             end: to,
@@ -70,10 +76,16 @@ where
     #[inline(always)]
     fn decode_page_into_buf(&mut self, page_index: usize) -> Option<()> {
         let page = self.pages.get(page_index)?;
-        let data = self
+        let header = self
+            .reader
+            .unchecked_read(page.header_start as usize, page.header_len());
+        let body = self
             .reader
             .unchecked_read(page.start as usize, page.bytes as usize);
-        S::decode_page_into(data, page, &mut self.page_buf).ok()?;
+        let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
+        self.decoder
+            .decode_into(page, header, body, expected_len, &mut self.page_buf)
+            .ok()?;
         self.page_buf_idx = page_index;
         Some(())
     }

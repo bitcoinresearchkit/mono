@@ -1,13 +1,19 @@
 use pco::data_types::Number;
 
-/// Witnesses that `Self` has the same memory layout as `T`, enabling the
-/// zero-copy cast between `[Self]` and `[T::NumberType]` used by pco's encoder.
-pub trait TransparentPco<T> {}
-
-/// Binds a vec value type to its underlying pco `Number` representation.
-pub trait Pco
-where
-    Self: TransparentPco<Self::NumberType>,
-{
+/// Converts a vec value to and from its pco number representation.
+///
+/// # Safety
+///
+/// When `IS_TRANSPARENT` is true, `Self` and `NumberType` must have identical
+/// layouts, and every valid `NumberType` bit pattern must also be a valid
+/// `Self` bit pattern. PCO uses that guarantee to encode and decode directly
+/// from the value buffer.
+pub unsafe trait Pco: Sized {
     type NumberType: Number;
+
+    const IS_TRANSPARENT: bool = false;
+
+    fn to_number(self) -> Self::NumberType;
+
+    fn from_number(value: Self::NumberType) -> crate::Result<Self>;
 }

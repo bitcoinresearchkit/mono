@@ -1,0 +1,88 @@
+// must be u16 or larger
+// u32 is performant because it aligns with other things and doesn't require
+// masking
+// exposed in public API
+pub(crate) type Bitlen = u32;
+// must be u32 or larger
+// exposed in public API
+pub(crate) type Weight = u32;
+pub(crate) type DeltaLookback = u32;
+
+// bit lengths
+pub const BITS_TO_ENCODE_ANS_SIZE_LOG: Bitlen = 4;
+pub const BITS_TO_ENCODE_MODE_VARIANT: Bitlen = 4;
+pub const BITS_TO_ENCODE_DELTA_ENCODING_VARIANT: Bitlen = 4;
+pub const BITS_TO_ENCODE_DELTA_ENCODING_ORDER: Bitlen = 3;
+pub const BITS_TO_ENCODE_DELTA_CONV_QUANTIZATION: Bitlen = 5;
+pub const BITS_TO_ENCODE_DELTA_CONV_N_WEIGHTS: Bitlen = 5;
+pub const BITS_TO_ENCODE_DELTA_LOOKBACK_WINDOW_N_LOG: Bitlen = 5;
+pub const BITS_TO_ENCODE_DELTA_LOOKBACK_STATE_N_LOG: Bitlen = 4;
+pub const BITS_TO_ENCODE_N_BINS: Bitlen = 15;
+// conservative: wide enough to support quantizing float datasets with 255 unused bits of precision
+pub const BITS_TO_ENCODE_QUANTIZE_K: Bitlen = 8;
+pub const BITS_TO_ENCODE_DICT_LEN: Bitlen = 25; // enough to encode MAX_ENTRIES
+
+// + 9 because we might read an extra u64 (8 bytes), plus 1 for good measure
+pub const OVERSHOOT_PADDING: usize = 9;
+// enough for one full batch of latents
+pub const MAX_BATCH_LATENT_VAR_SIZE: usize =
+  FULL_BATCH_N * (MAX_SUPPORTED_PRECISION_BYTES + MAX_ANS_BYTES) + OVERSHOOT_PADDING;
+
+// cutoffs and legal parameter values
+pub const MAX_ANS_BITS: Bitlen = 14;
+pub const MAX_ANS_BYTES: usize = MAX_ANS_BITS.div_ceil(8) as usize;
+pub const LIMITED_UNOPTIMIZED_BINS_LOG: Bitlen = 6;
+pub const MAX_COMPRESSION_LEVEL: usize = 12;
+pub const MAX_CONSECUTIVE_DELTA_ORDER: usize = 7;
+pub const MAX_CONV1_DELTA_ORDER: usize = 32;
+pub const MAX_CONV1_DELTA_QUANTIZATION: Bitlen = (1 << BITS_TO_ENCODE_DELTA_CONV_QUANTIZATION) - 1;
+pub const MAX_ENTRIES: usize = 1 << 24;
+// The window_n_log field on the wire is wider than any window we are willing to
+// allocate on read, so reads are capped here. This is deliberately looser than
+// what the encoder emits (ENCODING_LOOKBACK_MAX_WINDOW_N_LOG), leaving room for
+// future encoders; a chunk can hold no more than MAX_ENTRIES numbers, so a
+// larger window could never be fully used anyway.
+pub const MAX_DELTA_LOOKBACK_WINDOW_N_LOG: Bitlen = MAX_ENTRIES.ilog2() as Bitlen;
+pub const MAX_SUPPORTED_PRECISION: Bitlen = 128;
+pub const MAX_SUPPORTED_PRECISION_BYTES: usize = (MAX_SUPPORTED_PRECISION / 8) as usize;
+pub const MULT_REQUIRED_BITS_SAVED_PER_NUM: f64 = 0.5;
+pub const QUANT_REQUIRED_BITS_SAVED_PER_NUM: f64 = 1.5;
+pub const CLASSIC_MEMORIZABLE_BINS_LOG: Bitlen = 8;
+
+// defaults
+pub const DEFAULT_COMPRESSION_LEVEL: usize = 8;
+// if you modify default page size, update docs for PagingSpec
+pub const DEFAULT_MAX_PAGE_N: usize = 1 << 18;
+
+// important parts of the format specification
+pub const ANS_INTERLEAVING: usize = 4;
+/// The count of numbers per batch, the smallest unit of decompression.
+///
+/// Only the final batch in each page may have fewer numbers than this.
+pub const FULL_BATCH_N: usize = 256;
+
+#[cfg(test)]
+mod tests {
+  use crate::constants::*;
+
+  fn bits_to_encode(max_value: usize) -> Bitlen {
+    usize::BITS - max_value.leading_zeros()
+  }
+
+  fn assert_can_encode(n_bits: Bitlen, max_number: usize) {
+    assert!(n_bits >= bits_to_encode(max_number));
+  }
+
+  #[test]
+  fn test_bits_to_encode_delta_encoding_order() {
+    assert_can_encode(
+      BITS_TO_ENCODE_DELTA_ENCODING_ORDER,
+      MAX_CONSECUTIVE_DELTA_ORDER,
+    );
+  }
+
+  #[test]
+  fn test_ans_interleaving_fits_in_u64() {
+    assert!(ANS_INTERLEAVING * MAX_ANS_BITS as usize <= 57);
+  }
+}

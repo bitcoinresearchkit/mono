@@ -1,6 +1,6 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, iter::once};
 
-use crate::{Error, ReadableVec, VecIndex, VecValue, Version};
+use crate::{Error, ReadableVec, Result, VecIndex, VecValue, Version};
 
 use super::{LazyColumnSumVec, LazyColumnVec};
 
@@ -85,7 +85,7 @@ where
     }
 }
 
-pub(super) fn validate_schema<C: ColumnId>() -> crate::Result<Version> {
+pub(super) fn validate_schema<C: ColumnId>() -> Result<Version> {
     if C::ALL.is_empty() {
         return Err(Error::InvalidArgument(
             "ColumnarVec requires at least one column",
@@ -111,7 +111,7 @@ pub(super) fn validate_schema<C: ColumnId>() -> crate::Result<Version> {
                 "ColumnId column names must be unique",
             ));
         }
-        for byte in name.bytes().chain(std::iter::once(0)) {
+        for byte in name.bytes().chain(once(0)) {
             fingerprint ^= u32::from(byte);
             fingerprint = fingerprint.wrapping_mul(FNV_PRIME);
         }

@@ -11,7 +11,7 @@ use serde::{
     de::{SeqAccess, Visitor},
     ser::SerializeTuple,
 };
-use vecdb::{Bytes, Formattable, Pco, TransparentPco};
+use vecdb::{Bytes, Formattable, Pco};
 
 use crate::StoredF64;
 
@@ -195,13 +195,6 @@ pub struct OHLCDollars {
     pub close: Close<Dollars>,
 }
 
-// This is FAKE, just to be able to use EagerVec
-// Need to find a better way
-impl Pco for OHLCDollars {
-    type NumberType = u64;
-}
-impl TransparentPco<u64> for OHLCDollars {}
-
 impl Serialize for OHLCDollars {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -324,13 +317,6 @@ pub struct OHLCSats {
     pub low: Low<Sats>,
     pub close: Close<Sats>,
 }
-
-// This is FAKE, just to be able to use EagerVec
-// Need to find a better way
-impl Pco for OHLCSats {
-    type NumberType = u64;
-}
-impl TransparentPco<u64> for OHLCSats {}
 
 impl Serialize for OHLCSats {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

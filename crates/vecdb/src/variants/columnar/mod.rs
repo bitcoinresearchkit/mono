@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, mem, sync::Arc};
 
+use log::info;
 use parking_lot::RwLock;
+use rawdb::{Error as RawDbError, Region, RegionGroup};
 
-use crate::{
-    Error, ImportOptions, MAX_UNCOMPRESSED_PAGE_SIZE, SharedLen, StoredVec, VecIndex, Version,
-};
+use crate::{Error, ImportOptions, Result, SharedLen, StoredVec, Version};
 
 mod column;
 mod lazy;
@@ -20,28 +20,18 @@ pub use read_only::*;
 pub use schema::*;
 pub use sum::*;
 
-use read::read_rows;
 use schema::validate_schema;
 
-const VERSION: Version = Version::new(8);
+const VERSION: Version = Version::new(10);
 
-#[inline]
-pub(super) const fn rows_per_block<T>() -> usize {
-    MAX_UNCOMPRESSED_PAGE_SIZE / size_of::<T>()
-}
-
-/// One logical vector of rows stored as page-sized, column-major blocks in `V`.
+/// One logical row vector backed by one contiguous stored vector per column.
 ///
-/// `V` remains an ordinary flat scalar vector. Every complete block of
-/// `ROWS_PER_BLOCK` rows is flattened as consecutive scalar column pages:
+/// All column vectors always have the same logical length. If their persisted
+/// lengths or stamps disagree during import, the complete vector is reset.
 ///
-/// ```text
-/// [column 0 page][column 1 page] ... [last column page]
-/// ```
-///
-/// The final incomplete block is rebuilt in column-major order whenever it is
-/// persisted. Raw and compressed vectors therefore keep their existing write,
-/// page, rollback, and compression logic unchanged.
+/// Every column remains an ordinary `V`. Rawdb groups all regions owned by the
+/// columns into one ordered allocation and relocates the complete allocation
+/// whenever any member grows.
 #[derive(Debug)]
 #[must_use = "Vector should be stored to keep data accessible"]
 pub struct ColumnarVec<V, C>
@@ -49,11 +39,13 @@ where
     V: StoredVec,
     C: ColumnId,
 {
-    vec: V,
-    stored_rows: usize,
+    name: Arc<str>,
+    columns: Vec<V>,
+    read_only_columns: Arc<[V::ReadOnly]>,
     pushed: Vec<C::Row<V::T>>,
     visible_rows: SharedLen,
     gate: Arc<RwLock<()>>,
+    group: RegionGroup,
 }
 
 impl<V, C> ColumnarVec<V, C>
@@ -62,75 +54,154 @@ where
     C: ColumnId,
 {
     pub(super) const COLUMN_COUNT: usize = C::ALL.len();
-    pub(super) const ROWS_PER_BLOCK: usize = rows_per_block::<V::T>();
 
-    fn validate_layout() -> crate::Result<Version> {
+    fn column_name(name: &str, column: C) -> String {
+        format!("{name}_{column:?}")
+    }
+
+    fn import_inner(mut options: ImportOptions, forced: bool) -> Result<Self> {
         let schema = validate_schema::<C>()?;
-        if size_of::<V::T>() == 0 || Self::ROWS_PER_BLOCK == 0 {
-            return Err(Error::InvalidArgument(
-                "ColumnarVec requires at least one non-zero-sized scalar per page",
-            ));
-        }
-        Ok(schema)
-    }
-
-    fn validate_flat_len(vec: &V) -> crate::Result<usize> {
-        let len = vec.len();
-        if !len.is_multiple_of(Self::COLUMN_COUNT) {
-            return Err(Error::CorruptedRegion {
-                name: vec.name().to_string(),
-                region_len: vec.region().meta().len(),
-            });
-        }
-        Ok(len / Self::COLUMN_COUNT)
-    }
-
-    fn import_inner(mut options: ImportOptions, forced: bool) -> crate::Result<Self> {
-        let schema = Self::validate_layout()?;
-        let columns = u32::try_from(Self::COLUMN_COUNT).map_err(|_| Error::Overflow)?;
+        let column_count = u32::try_from(Self::COLUMN_COUNT).map_err(|_| Error::Overflow)?;
         options.version = options
             .version
             .combine(VERSION)
             .combine(C::VERSION)
             .combine(schema)
-            .combine(Version::new(columns));
-        options.initial_capacity = Some(
-            options
-                .initial_capacity
-                .unwrap_or(V::I::INITIAL_CAPACITY)
-                .checked_mul(Self::COLUMN_COUNT)
-                .ok_or(Error::Overflow)?,
-        );
-        let mut vec = if forced {
-            V::forced_import_with(options)?
-        } else {
-            V::import_with(options)?
-        };
+            .combine(Version::new(column_count));
 
-        let stored_rows = match Self::validate_flat_len(&vec) {
-            Ok(len) => len,
-            Err(_) if forced => {
-                vec.reset()?;
-                vec.write()?;
-                Self::validate_flat_len(&vec)?
+        let mut columns = Vec::with_capacity(Self::COLUMN_COUNT);
+        for &column in C::ALL {
+            let column_name = Self::column_name(options.name, column);
+            let column_options = ImportOptions {
+                name: &column_name,
+                ..options
+            };
+            columns.push(if forced {
+                V::forced_import_with(column_options)?
+            } else {
+                V::import_with(column_options)?
+            });
+        }
+
+        if let Err(error) = Self::validate_columns(&columns) {
+            info!(
+                "Resetting {} because its columns disagree: {error}",
+                options.name
+            );
+            for column in &mut columns {
+                column.reset()?;
+                column.write()?;
             }
-            Err(error) => return Err(error),
-        };
+            Self::validate_columns(&columns)?;
+        }
+
+        let db = options.db;
+        let mut regions = Vec::<Region>::new();
+        for column in &columns {
+            for name in column.region_names() {
+                regions.push(db.get_region(&name).ok_or(RawDbError::RegionNotFound)?);
+            }
+        }
+        let group = db.group_regions(&regions)?;
+        let stored_rows = columns[0].stored_len();
+        let read_only_columns = columns
+            .iter()
+            .map(StoredVec::read_only_clone)
+            .collect::<Arc<[_]>>();
+
         Ok(Self {
-            vec,
-            stored_rows,
+            name: Arc::from(options.name),
+            columns,
+            read_only_columns,
             pushed: Vec::new(),
             visible_rows: SharedLen::new(stored_rows),
             gate: Arc::new(RwLock::new(())),
+            group,
         })
+    }
+
+    fn validate_columns(columns: &[V]) -> Result<()> {
+        let first = &columns[0];
+        let expected_len = first.len();
+        let expected_real_len = first.real_stored_len();
+        let expected_stamp = first.stamp();
+        for column in &columns[1..] {
+            if column.len() != expected_len {
+                return Err(Error::WrongLength {
+                    received: column.len(),
+                    expected: expected_len,
+                });
+            }
+            if column.real_stored_len() != expected_real_len {
+                return Err(Error::WrongLength {
+                    received: column.real_stored_len(),
+                    expected: expected_real_len,
+                });
+            }
+            if column.stamp() != expected_stamp {
+                return Err(Error::StampMismatch {
+                    file: column.stamp(),
+                    vec: expected_stamp,
+                });
+            }
+        }
+        Ok(())
+    }
+
+    #[inline]
+    pub(super) fn first(&self) -> &V {
+        &self.columns[0]
+    }
+
+    #[inline]
+    pub(super) fn first_mut(&mut self) -> &mut V {
+        &mut self.columns[0]
+    }
+
+    #[inline]
+    pub(super) fn stored_rows(&self) -> usize {
+        let len = self.first().stored_len();
+        debug_assert!(self.columns.iter().all(|column| column.stored_len() == len));
+        len
+    }
+
+    fn stage_pending(&mut self) {
+        let pushed = mem::take(&mut self.pushed);
+        if pushed.is_empty() {
+            return;
+        }
+        for row in &pushed {
+            for &column in C::ALL {
+                self.columns[column.index()].push(column.get(row).clone());
+            }
+        }
+    }
+
+    fn publish_stored_rows(&self) {
+        let len = self.stored_rows();
+        debug_assert!(self.columns.iter().all(|column| column.len() == len));
+        self.visible_rows.set(len);
+    }
+
+    fn write_pending(&mut self) -> Result<bool> {
+        let gate = Arc::clone(&self.gate);
+        let _guard = gate.write();
+        self.stage_pending();
+        let mut written = false;
+        for column in &mut self.columns {
+            written |= column.write()?;
+        }
+        self.publish_stored_rows();
+        Ok(written)
     }
 
     pub fn read_only_clone(&self) -> ReadOnlyColumnarVec<V, C> {
         ReadOnlyColumnarVec {
-            vec: self.vec.read_only_clone(),
+            name: Arc::clone(&self.name),
+            columns: Arc::clone(&self.read_only_columns),
             visible_rows: self.visible_rows.clone(),
             gate: Arc::clone(&self.gate),
-            columns: std::marker::PhantomData,
+            column_ids: PhantomData,
         }
     }
 
@@ -158,81 +229,5 @@ where
 
     pub fn reserve_pushed(&mut self, additional: usize) {
         self.pushed.reserve(additional);
-    }
-
-    #[inline]
-    fn flat_rows(&self) -> usize {
-        debug_assert!(self.vec.len().is_multiple_of(Self::COLUMN_COUNT));
-        self.vec.len() / Self::COLUMN_COUNT
-    }
-
-    #[inline]
-    fn push_block(vec: &mut V, rows: &[C::Row<V::T>]) {
-        for &column in C::ALL {
-            for row in rows {
-                vec.push(column.get(row).clone());
-            }
-        }
-    }
-
-    /// Moves the logical matrix changes into the wrapped flat vector.
-    ///
-    /// Only the incomplete height block is read and rebuilt. Completed blocks
-    /// already consist of aligned scalar column pages and remain untouched.
-    fn stage_pending(&mut self) -> crate::Result<()> {
-        let flat_rows = self.flat_rows();
-        if self.stored_rows == flat_rows && self.pushed.is_empty() {
-            return Ok(());
-        }
-
-        let target_rows = self
-            .stored_rows
-            .checked_add(self.pushed.len())
-            .ok_or(Error::Overflow)?;
-        let block_start = self.stored_rows / Self::ROWS_PER_BLOCK * Self::ROWS_PER_BLOCK;
-        let retained_capacity = if self.stored_rows == block_start {
-            0
-        } else {
-            (target_rows - block_start).min(Self::ROWS_PER_BLOCK)
-        };
-        let mut retained = Vec::with_capacity(retained_capacity);
-        read_rows::<V::I, V::T, V, C>(
-            &self.vec,
-            flat_rows,
-            block_start,
-            self.stored_rows,
-            &mut retained,
-        );
-
-        let mut pushed_from = 0;
-        if !retained.is_empty() {
-            let take = (Self::ROWS_PER_BLOCK - retained.len()).min(self.pushed.len());
-            retained.extend_from_slice(&self.pushed[..take]);
-            pushed_from = take;
-        }
-
-        let flat_start = block_start
-            .checked_mul(Self::COLUMN_COUNT)
-            .ok_or(Error::Overflow)?;
-        self.vec.truncate_if_needed_at(flat_start)?;
-        Self::push_block(&mut self.vec, &retained);
-        for block in self.pushed[pushed_from..].chunks(Self::ROWS_PER_BLOCK) {
-            Self::push_block(&mut self.vec, block);
-        }
-
-        self.stored_rows = target_rows;
-        self.pushed.clear();
-        debug_assert_eq!(self.vec.len(), target_rows * Self::COLUMN_COUNT);
-        Ok(())
-    }
-
-    fn write_pending(&mut self) -> crate::Result<bool> {
-        let gate = Arc::clone(&self.gate);
-        let _guard = gate.write();
-        self.stage_pending()?;
-        let written = self.vec.write()?;
-        self.stored_rows = self.flat_rows();
-        self.visible_rows.set(self.stored_rows);
-        Ok(written)
     }
 }

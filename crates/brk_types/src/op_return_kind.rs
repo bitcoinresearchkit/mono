@@ -1,7 +1,7 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::{AsRefStr, Display};
-use vecdb::{Bytes, ColumnId, Formattable, Pco, TransparentPco, VecValue, Version};
+use vecdb::{Bytes, ColumnId, Formattable, Pco, VecValue, Version};
 
 pub const OP_RETURN_KIND_COUNT: usize = OpReturnKind::Unknown as usize + 1;
 
@@ -119,11 +119,20 @@ impl Bytes for OpReturnKind {
     }
 }
 
-impl Pco for OpReturnKind {
+// SAFETY: The non-transparent conversion validates every decoded discriminant.
+unsafe impl Pco for OpReturnKind {
     type NumberType = u8;
-}
 
-impl TransparentPco<u8> for OpReturnKind {}
+    #[inline(always)]
+    fn to_number(self) -> Self::NumberType {
+        self as u8
+    }
+
+    #[inline(always)]
+    fn from_number(value: Self::NumberType) -> vecdb::Result<Self> {
+        Self::from_bytes(&[value])
+    }
+}
 
 impl ColumnId for OpReturnKind {
     type Row<T>
@@ -179,5 +188,15 @@ mod tests {
             assert_eq!(kind as usize, index);
             assert_eq!(kind.index(), index);
         }
+    }
+
+    #[test]
+    fn pco_conversion_rejects_invalid_discriminants() {
+        const { assert!(!OpReturnKind::IS_TRANSPARENT) };
+        assert_eq!(
+            OpReturnKind::from_number(OpReturnKind::Unknown as u8).unwrap(),
+            OpReturnKind::Unknown
+        );
+        assert!(OpReturnKind::from_number(u8::MAX).is_err());
     }
 }

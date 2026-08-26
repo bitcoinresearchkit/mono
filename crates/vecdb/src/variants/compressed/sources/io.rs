@@ -10,14 +10,18 @@ use rawdb::{Region, RegionMetadata};
 use crate::{AnyStoredVec, BUFFER_SIZE, Pages, VecIndex, VecValue, likely, unlikely};
 
 use super::super::inner::{
-    CompressionStrategy, MAX_UNCOMPRESSED_PAGE_SIZE, Page, ReadWriteCompressedVec,
+    COMPRESSED_PAGE_SIZE, CompressionStrategy, Page, PageDecoder, ReadWriteCompressedVec,
 };
 
 /// Buffered file I/O source for reading stored compressed data.
 ///
 /// Uses dedicated file handle for sequential reads (better OS readahead than mmap).
 /// Only sees stored (persisted) values. Consumed by fold/try_fold/for_each.
-pub struct CompressedIoSource<'a, I, T, S> {
+pub struct CompressedIoSource<'a, I, T, S>
+where
+    T: VecValue,
+    S: CompressionStrategy<T>,
+{
     file: File,
     file_position: u64,
     region_start: u64,
@@ -25,6 +29,7 @@ pub struct CompressedIoSource<'a, I, T, S> {
     buffer_len: usize,
     buffer_start_offset: u64,
     decoded_values: Vec<T>,
+    decoder: PageDecoder<T, S>,
     decoded_page_index: usize,
     pages: RwLockReadGuard<'a, Pages>,
     index: usize,
@@ -40,7 +45,7 @@ where
     S: CompressionStrategy<T>,
 {
     const SIZE_OF_T: usize = size_of::<T>();
-    const PER_PAGE: usize = MAX_UNCOMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
+    const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / Self::SIZE_OF_T;
     const NO_PAGE: usize = usize::MAX;
 
     pub(crate) fn new(vec: &'a ReadWriteCompressedVec<I, T, S>, from: usize, to: usize) -> Self {
@@ -69,6 +74,7 @@ where
             buffer_len: 0,
             buffer_start_offset: 0,
             decoded_values: Vec::with_capacity(Self::PER_PAGE),
+            decoder: PageDecoder::default(),
             decoded_page_index: Self::NO_PAGE,
             pages,
             index: from,
@@ -88,7 +94,7 @@ where
 
     fn refill_buffer(&mut self, starting_page_index: usize) -> Option<()> {
         let start_page = self.pages.get(starting_page_index)?;
-        let start_offset = start_page.start;
+        let start_offset = start_page.header_start;
 
         let last_needed_page = if self.end_index == 0 {
             0
@@ -97,15 +103,16 @@ where
         };
         let max_page = last_needed_page.min(self.pages.len().saturating_sub(1));
 
-        let mut total_bytes = 0usize;
+        let mut end_offset = start_offset;
         for i in starting_page_index..=max_page {
             let page = self.pages.get(i)?;
-            let page_bytes = page.bytes as usize;
-            if total_bytes + page_bytes > BUFFER_SIZE {
+            let candidate_end = page.end();
+            if candidate_end.checked_sub(start_offset)? as usize > BUFFER_SIZE {
                 break;
             }
-            total_bytes += page_bytes;
+            end_offset = candidate_end;
         }
+        let total_bytes = end_offset.checked_sub(start_offset)? as usize;
 
         if total_bytes == 0 {
             return None;
@@ -128,10 +135,16 @@ where
     }
 
     fn decode_from_buffer(&mut self, page_index: usize, page: Page) -> Option<()> {
-        let in_buffer_offset = (page.start - self.buffer_start_offset) as usize;
-        let data = &self.buffer[in_buffer_offset..in_buffer_offset + page.bytes as usize];
-
-        S::decode_page_into(data, &page, &mut self.decoded_values).ok()?;
+        let header_start = (page.header_start - self.buffer_start_offset) as usize;
+        let header_end = (page.header_end - self.buffer_start_offset) as usize;
+        let body_start = (page.start - self.buffer_start_offset) as usize;
+        let body_end = body_start + page.bytes as usize;
+        let header = &self.buffer[header_start..header_end];
+        let body = &self.buffer[body_start..body_end];
+        let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
+        self.decoder
+            .decode_into(page, header, body, expected_len, &mut self.decoded_values)
+            .ok()?;
         self.decoded_page_index = page_index;
 
         Some(())
@@ -142,10 +155,10 @@ where
             return None;
         }
 
-        let page = *self.pages.get(page_index)?;
+        let page = self.pages.get(page_index)?;
         if self.buffer_len > 0 {
             let buffer_end_offset = self.buffer_start_offset + self.buffer_len as u64;
-            if page.start >= self.buffer_start_offset && page.end() <= buffer_end_offset {
+            if page.header_start >= self.buffer_start_offset && page.end() <= buffer_end_offset {
                 return Some(page);
             }
         }
@@ -177,19 +190,25 @@ where
             let page = self
                 .ensure_page_buffered(page_index)
                 .expect("compressed page should exist after bounds check");
-            let local = (page.start - self.buffer_start_offset) as usize;
-            let data = &self.buffer[local..local + page.bytes as usize];
-            let values_count = page.values_count() as usize;
+            let header_start = (page.header_start - self.buffer_start_offset) as usize;
+            let header_end = (page.header_end - self.buffer_start_offset) as usize;
+            let body_start = (page.start - self.buffer_start_offset) as usize;
+            let body_end = body_start + page.bytes as usize;
+            let header = &self.buffer[header_start..header_end];
+            let body = &self.buffer[body_start..body_end];
+            let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = self.index.saturating_sub(page_start);
             let local_to = (self.end_index - page_start).min(values_count);
 
             if !page.is_raw() && likely(local_from == 0) {
                 let before = output.len();
-                S::decompress_append(data, values_count, output)
+                self.decoder
+                    .decode_append(page, header, body, values_count, output)
                     .expect("decompression failed in read_into_at");
                 output.truncate(before + local_to);
             } else {
-                S::decode_page_into(data, &page, &mut page_buf)
+                self.decoder
+                    .decode_into(page, header, body, values_count, &mut page_buf)
                     .expect("page decode failed in read_into_at");
                 output.extend_from_slice(&page_buf[local_from..local_to]);
             }
@@ -269,7 +288,7 @@ mod tests {
         let db = Database::open(temp.path()).unwrap();
         let mut vec: PcoVec<usize, u64> =
             PcoVec::forced_import(&db, "values", Version::ONE).unwrap();
-        let per_page = 16 * 1024 / size_of::<u64>();
+        let per_page = 8 * 1024 / size_of::<u64>();
         let values: Vec<_> = (0..per_page * 3 + 137)
             .map(|index| index as u64 * 17 + index as u64 % 11)
             .collect();

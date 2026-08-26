@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use lz4_flex::{compress_prepend_size, decompress_size_prepended};
 
-use crate::impl_bytes_value_strategy;
+use crate::{EncodedChunk, impl_bytes_value_strategy};
 
 use super::{super::inner::CompressionStrategy, value::LZ4VecValue};
 
@@ -16,17 +16,25 @@ impl<T> CompressionStrategy<T> for LZ4Strategy<T>
 where
     T: LZ4VecValue,
 {
-    fn compress(values: &[T]) -> crate::Result<Vec<u8>> {
-        Ok(compress_prepend_size(&Self::values_to_bytes(values)))
+    type Decoder = ();
+
+    const MAX_UNCOMPRESSED_CHUNK_SIZE: usize = 8 * 1024;
+
+    fn compress_chunk(values: &[T], _values_per_page: usize) -> crate::Result<EncodedChunk> {
+        EncodedChunk::single_page(compress_prepend_size(&Self::values_to_bytes(values)))
     }
 
-    fn decompress(bytes: &[u8], expected_len: usize) -> crate::Result<Vec<T>> {
-        let decompressed = decompress_size_prepended(bytes)?;
-        Self::bytes_to_values(&decompressed, expected_len)
+    fn decoder(_header: &[u8]) -> crate::Result<Self::Decoder> {
+        Ok(())
     }
 
-    fn decompress_into(bytes: &[u8], expected_len: usize, dst: &mut Vec<T>) -> crate::Result<()> {
-        let decompressed = decompress_size_prepended(bytes)?;
+    fn decompress_page_into(
+        _decoder: &mut Self::Decoder,
+        body: &[u8],
+        expected_len: usize,
+        dst: &mut Vec<T>,
+    ) -> crate::Result<()> {
+        let decompressed = decompress_size_prepended(body)?;
         Self::bytes_to_values_into(&decompressed, expected_len, dst)
     }
 }

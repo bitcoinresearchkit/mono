@@ -1,4 +1,8 @@
-use std::{fs::File, mem, sync::Arc};
+use std::{
+    fs::File,
+    mem,
+    sync::{Arc, Weak},
+};
 
 #[cfg(unix)]
 use std::sync::OnceLock;
@@ -6,6 +10,7 @@ use std::sync::OnceLock;
 use log::{debug, trace};
 use parking_lot::{Mutex, RwLock, RwLockReadGuard, RwLockWriteGuard};
 
+use crate::region_group::RegionGroupInner;
 use crate::{
     Database, Error, HolePunch, PAGE_SIZE, PAGE_SIZE_MINUS_1, Reader, RegionMetadata, WeakDatabase,
 };
@@ -28,6 +33,7 @@ pub(crate) struct RegionInner {
     meta: RwLock<RegionMetadata>,
     /// Sorted, merged dirty byte ranges relative to the region start.
     dirty_ranges: Mutex<Vec<(usize, usize)>>,
+    group: RwLock<Weak<RegionGroupInner>>,
 }
 
 impl Region {
@@ -44,6 +50,7 @@ impl Region {
             index,
             meta: RwLock::new(RegionMetadata::new(id, start, len, reserved)),
             dirty_ranges: Mutex::new(Vec::new()),
+            group: RwLock::new(Weak::new()),
         }))
     }
 
@@ -53,6 +60,7 @@ impl Region {
             index,
             meta: RwLock::new(meta),
             dirty_ranges: Mutex::new(Vec::new()),
+            group: RwLock::new(Weak::new()),
         }))
     }
 
@@ -196,6 +204,10 @@ impl Region {
 
         if capacity <= reserved {
             return Ok(());
+        }
+
+        if let Some(group) = self.group() {
+            return group.reserve(self, capacity);
         }
 
         let added_reserve = capacity - reserved;
@@ -461,6 +473,11 @@ impl Region {
         }
         let added_reserve = new_reserved - reserved;
 
+        if let Some(group) = self.group() {
+            group.reserve(self, new_reserved)?;
+            return self.write_with(data, at, truncate, allow_grow);
+        }
+
         let copy_len = if truncate { write_offset } else { len };
 
         trace!(
@@ -654,6 +671,16 @@ impl Region {
     #[inline(always)]
     pub(crate) fn arc(&self) -> &Arc<RegionInner> {
         &self.0
+    }
+
+    #[inline]
+    pub(crate) fn group(&self) -> Option<Arc<RegionGroupInner>> {
+        self.0.group.read().upgrade()
+    }
+
+    #[inline]
+    pub(crate) fn set_group(&self, group: Weak<RegionGroupInner>) {
+        *self.0.group.write() = group;
     }
 
     #[inline(always)]

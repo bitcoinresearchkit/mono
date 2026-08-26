@@ -5,7 +5,7 @@ use crate::{Error, GiB, PAGE_SIZE, Regions};
 pub const SIZE_OF_REGION_METADATA: usize = PAGE_SIZE; // 4096 bytes for atomic writes
 const SIZE_OF_U64: usize = std::mem::size_of::<u64>();
 const MAX_REGION_ID_LEN: usize = 1024;
-const MAX_RESERVED_SIZE: usize = 1024 * GiB; // 1 TiB
+pub(crate) const MAX_RESERVED_SIZE: usize = 1024 * GiB; // 1 TiB
 
 /// Serializable metadata for a region (one page, atomic writes).
 #[derive(Debug)]

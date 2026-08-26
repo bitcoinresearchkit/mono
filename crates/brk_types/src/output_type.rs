@@ -10,7 +10,7 @@ use brk_error::Error;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::Display;
-use vecdb::{Bytes, Formattable, Pco, TransparentPco};
+use vecdb::{Bytes, Formattable, Pco};
 
 use crate::AddrBytes;
 
@@ -311,11 +311,20 @@ impl Bytes for OutputType {
     }
 }
 
-impl Pco for OutputType {
+// SAFETY: The non-transparent conversion validates every decoded discriminant.
+unsafe impl Pco for OutputType {
     type NumberType = u8;
-}
 
-impl TransparentPco<u8> for OutputType {}
+    #[inline(always)]
+    fn to_number(self) -> Self::NumberType {
+        self as u8
+    }
+
+    #[inline(always)]
+    fn from_number(value: Self::NumberType) -> vecdb::Result<Self> {
+        Self::from_bytes(&[value])
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -414,5 +423,15 @@ mod tests {
         assert!(serde_json::from_str::<OutputType>(r#""p2pk""#).is_err());
         assert!(serde_json::from_str::<OutputType>(r#""anchor""#).is_err());
         assert!(serde_json::from_str::<OutputTypeNormalized>(r#""p2a""#).is_err());
+    }
+
+    #[test]
+    fn pco_conversion_rejects_invalid_discriminants() {
+        const { assert!(!OutputType::IS_TRANSPARENT) };
+        assert_eq!(
+            OutputType::from_number(OutputType::Unknown as u8).unwrap(),
+            OutputType::Unknown
+        );
+        assert!(OutputType::from_number(u8::MAX).is_err());
     }
 }

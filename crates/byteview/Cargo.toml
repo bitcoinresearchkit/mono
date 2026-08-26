@@ -1,6 +1,6 @@
 [package]
 name = "brk_byteview"
-description = "BRK-maintained fork of byteview, a thin immutable zero-copy byte slice"
+description = "BRK-maintained fork of byteview 0.10.2, a thin immutable zero-copy byte slice"
 license = "MIT OR Apache-2.0"
 version.workspace = true
 edition.workspace = true

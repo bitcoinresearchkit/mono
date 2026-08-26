@@ -5,12 +5,14 @@ use rawdb::Region;
 
 use crate::{Pages, VecIndex, VecValue, unlikely};
 
-use super::super::inner::{
-    CompressionStrategy, MAX_UNCOMPRESSED_PAGE_SIZE, ReadWriteCompressedVec,
-};
+use super::super::inner::{COMPRESSED_PAGE_SIZE, CompressionStrategy, ReadWriteCompressedVec};
 use super::{CompressedIoSource, CompressedMmapSource};
 
-enum Owner<'a, I, T, S> {
+enum Owner<'a, I, T, S>
+where
+    T: VecValue,
+    S: CompressionStrategy<T>,
+{
     Mmap(CompressedMmapSource<'a, I, T, S>),
     Io(CompressedIoSource<'a, I, T, S>),
 }
@@ -24,7 +26,7 @@ struct CursorState<T> {
 }
 
 impl<T: VecValue> CursorState<T> {
-    const PER_PAGE: usize = MAX_UNCOMPRESSED_PAGE_SIZE / size_of::<T>();
+    const PER_PAGE: usize = COMPRESSED_PAGE_SIZE / size_of::<T>();
     const NO_PAGE: usize = usize::MAX;
 
     fn new(position: usize, end: usize) -> Self {
@@ -140,7 +142,11 @@ impl<T: VecValue> CursorState<T> {
 ///
 /// The declared range lets the cursor choose once between mmap for resident
 /// pages and buffered file I/O for a cold sequential scan.
-pub struct CompressedRangeCursor<'a, I, T, S> {
+pub struct CompressedRangeCursor<'a, I, T, S>
+where
+    T: VecValue,
+    S: CompressionStrategy<T>,
+{
     owner: Owner<'a, I, T, S>,
     state: CursorState<T>,
 }

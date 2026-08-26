@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::Version;
 
-use super::{ColumnId, ReadableColumnarVec};
+use super::{ColumnId, ReadableColumnarVec, schema::validate_column};
 
 /// Lazy scalar projection of one columnar source.
 pub struct LazyColumnVec<S, C>
@@ -14,6 +14,22 @@ where
     pub(super) base_version: Version,
     pub(super) source: S,
     pub(super) column: C,
+}
+
+impl<S, C> LazyColumnVec<S, C>
+where
+    C: ColumnId,
+    S: ReadableColumnarVec<C>,
+{
+    pub(super) fn new(name: &str, version: Version, source: S, column: C) -> Self {
+        validate_column(column);
+        Self {
+            name: name.into(),
+            base_version: version,
+            source,
+            column,
+        }
+    }
 }
 
 impl<S, C> Clone for LazyColumnVec<S, C>

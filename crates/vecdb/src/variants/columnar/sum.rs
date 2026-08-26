@@ -163,13 +163,13 @@ where
         fold_readable(self, from, to, init, f)
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, S::T) -> std::result::Result<B, E>>(
+    fn try_fold_range_at<B, E, F: FnMut(B, S::T) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
         init: B,
         f: F,
-    ) -> std::result::Result<B, E> {
+    ) -> Result<B, E> {
         try_fold_readable(self, from, to, init, f)
     }
 }

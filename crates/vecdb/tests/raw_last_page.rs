@@ -25,7 +25,7 @@ use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{ReadableVec, StoredVec, Version};
 
-const PER_PAGE_U32: usize = 16 * 1024 / size_of::<u32>(); // 4096
+const PER_PAGE_U32: usize = 8 * 1024 / size_of::<u32>();
 
 fn setup_db() -> vecdb::Result<(Database, TempDir)> {
     let temp = TempDir::new()?;

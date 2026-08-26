@@ -13,7 +13,8 @@ use vecdb::{
 };
 
 const COLUMNS: usize = 3;
-const U64S_PER_PAGE: usize = 16 * 1024 / size_of::<u64>();
+const U64S_PER_BLOCK: usize = 64 * 1024 / size_of::<u64>();
+const MULTI_BLOCK_ROWS: usize = U64S_PER_BLOCK * 2 + 10;
 
 macro_rules! column_ids {
     ($name:ident, $count:literal, $version:expr, [$($column:ident),+ $(,)?]) => {
@@ -150,7 +151,7 @@ fn bytes_columnar_roundtrip_and_projection() -> vecdb::Result<()> {
 
     assert_eq!(vec.collect_one_at(2_345), Some(row(2_345)));
     vec.write()?;
-    assert_eq!(vec.region_names().len(), 1);
+    assert_eq!(vec.region_names().len(), COLUMNS);
 
     let second = vec.column("second", Version::ONE, TestColumn::Second);
     assert!(second.region_names().is_empty());
@@ -277,13 +278,42 @@ fn projection_is_isolated_from_pushed_rows_until_write() -> vecdb::Result<()> {
 }
 
 #[test]
+fn existing_views_track_truncation() -> vecdb::Result<()> {
+    type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = V::forced_import(&db, "truncate_views", Version::ONE)?;
+    for index in 0..100 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+
+    let projection = vec.column("second", Version::ONE, TestColumn::Second);
+    let sum = vec.sum_columns(
+        "truncate_views_sum",
+        Version::ONE,
+        [TestColumn::First, TestColumn::Second],
+    );
+    vec.truncate_if_needed_at(40)?;
+
+    assert_eq!(projection.len(), 40);
+    assert_eq!(projection.collect_one_at(39), Some(row(39)[1]));
+    assert_eq!(projection.collect_one_at(40), None);
+    assert_eq!(sum.len(), 40);
+    assert_eq!(sum.collect_one_at(39), Some(row(39)[0] + row(39)[1]));
+    assert_eq!(sum.collect_one_at(40), None);
+    Ok(())
+}
+
+#[test]
 fn lazy_columnar_transform_preserves_rows_and_columns() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;
     let mut vec = V::forced_import(&db, "lazy", Version::ONE)?;
-    for index in 0..5_000 {
+    for index in 0..MULTI_BLOCK_ROWS {
         vec.push(row(index));
     }
     vec.write()?;
@@ -293,7 +323,7 @@ fn lazy_columnar_transform_preserves_rows_and_columns() -> vecdb::Result<()> {
         Version::ONE,
         vec.read_only_clone(),
     );
-    for index in [0, U64S_PER_PAGE - 1, U64S_PER_PAGE, 4_999] {
+    for index in [0, U64S_PER_BLOCK - 1, U64S_PER_BLOCK, MULTI_BLOCK_ROWS - 1] {
         assert_eq!(
             lazy.collect_one_at(index),
             Some(row(index).map(|value| value * 2))
@@ -305,8 +335,8 @@ fn lazy_columnar_transform_preserves_rows_and_columns() -> vecdb::Result<()> {
         );
     }
 
-    let from = U64S_PER_PAGE - 10;
-    let to = U64S_PER_PAGE * 2 + 10;
+    let from = U64S_PER_BLOCK - 10;
+    let to = MULTI_BLOCK_ROWS;
     assert_eq!(
         lazy.collect_range_at(from, to),
         (from..to)
@@ -330,7 +360,7 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;
     let mut vec = V::forced_import(&db, "sum", Version::ONE)?;
-    for index in 0..5_000 {
+    for index in 0..MULTI_BLOCK_ROWS {
         vec.push(row(index));
     }
     vec.write()?;
@@ -393,14 +423,14 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> vecdb::Result<()> {
         [TestColumn::First, TestColumn::Third],
     );
 
-    for index in [0, U64S_PER_PAGE - 1, U64S_PER_PAGE, 4_999] {
+    for index in [0, U64S_PER_BLOCK - 1, U64S_PER_BLOCK, MULTI_BLOCK_ROWS - 1] {
         let expected = row(index)[0] + row(index)[2];
         assert_eq!(stored_sum.collect_one_at(index), Some(expected));
         assert_eq!(lazy_sum.collect_one_at(index), Some(expected * 2));
     }
 
-    let from = U64S_PER_PAGE - 10;
-    let to = U64S_PER_PAGE * 2 + 10;
+    let from = U64S_PER_BLOCK - 10;
+    let to = MULTI_BLOCK_ROWS;
     let expected = (from..to)
         .map(|index| row(index)[0] + row(index)[2])
         .collect::<Vec<_>>();
@@ -416,7 +446,7 @@ fn columnar_sum_accepts_stored_and_lazy_sources() -> vecdb::Result<()> {
 }
 
 #[test]
-fn raw_data_is_column_major_within_each_page_block() -> vecdb::Result<()> {
+fn raw_columns_are_separate_and_contiguous() -> vecdb::Result<()> {
     type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
 
     let temp = tempdir()?;
@@ -427,21 +457,31 @@ fn raw_data_is_column_major_within_each_page_block() -> vecdb::Result<()> {
     }
     vec.write()?;
 
-    let bytes = vec.region().create_reader().read_all().to_vec();
-    let stored = bytes[vecdb::HEADER_OFFSET..]
-        .chunks_exact(size_of::<u64>())
-        .map(|bytes| u64::from_le_bytes(bytes.try_into().unwrap()))
+    let regions = vec
+        .region_names()
+        .iter()
+        .map(|name| db.get_region(name).unwrap())
         .collect::<Vec<_>>();
-    let mut expected = Vec::with_capacity(5_000 * COLUMNS);
-    for block_start in (0..5_000).step_by(U64S_PER_PAGE) {
-        let block_end = (block_start + U64S_PER_PAGE).min(5_000);
-        for column in 0..COLUMNS {
-            for index in block_start..block_end {
-                expected.push(row(index)[column]);
-            }
-        }
+    for pair in regions.windows(2) {
+        assert_eq!(
+            pair[1].meta().start(),
+            pair[0].meta().start() + pair[0].meta().reserved()
+        );
     }
-    assert_eq!(stored, expected);
+    for (column, region) in regions.iter().enumerate() {
+        let bytes = region.create_reader().read_all().to_vec();
+        let (stored, remainder) = bytes[vecdb::HEADER_OFFSET..].as_chunks::<{ size_of::<u64>() }>();
+        assert!(remainder.is_empty());
+        assert_eq!(
+            stored
+                .iter()
+                .map(|bytes| u64::from_le_bytes(*bytes))
+                .collect::<Vec<_>>(),
+            (0..5_000)
+                .map(|index| row(index)[column])
+                .collect::<Vec<_>>()
+        );
+    }
     Ok(())
 }
 
@@ -559,17 +599,67 @@ fn reset_and_rollback_persist() -> vecdb::Result<()> {
         vec.push(row(index));
     }
     vec.stamped_write_with_changes(Stamp::new(2))?;
+    let projection = vec.column("rollback_projection", Version::ONE, TestColumn::Second);
+    let sum = vec.sum_columns(
+        "rollback_sum",
+        Version::ONE,
+        [TestColumn::First, TestColumn::Second],
+    );
     vec.rollback()?;
     assert_eq!(vec.len(), 100);
     assert_eq!(vec.collect_one_at(99), Some(row(99)));
+    assert_eq!(projection.len(), 100);
+    assert_eq!(projection.collect_one_at(100), None);
+    assert_eq!(sum.len(), 100);
+    assert_eq!(sum.collect_one_at(100), None);
 
     vec.stamped_write_with_changes(Stamp::new(2))?;
     vec.reset()?;
+    assert!(projection.is_empty());
+    assert!(sum.is_empty());
     vec.write()?;
     drop(vec);
 
     let vec = V::import_with(options)?;
     assert!(vec.is_empty());
+    Ok(())
+}
+
+#[test]
+fn repeated_writes_after_truncate_and_import_preserve_rows() -> vecdb::Result<()> {
+    type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = V::forced_import(&db, "tail_lifecycle", Version::ONE)?;
+    for index in 0..3_000 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+
+    vec.truncate_if_needed_at(2_500)?;
+    for index in 2_500..2_700 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+
+    vec.truncate_if_needed_at(1_000)?;
+    for index in 1_000..1_200 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+    drop(vec);
+
+    let mut vec = V::import(&db, "tail_lifecycle", Version::ONE)?;
+    for index in 1_200..1_300 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+
+    assert_eq!(
+        vec.collect_range_at(0, 1_300),
+        (0..1_300).map(row).collect::<Vec<_>>()
+    );
     Ok(())
 }
 
@@ -580,9 +670,24 @@ fn initial_capacity_is_reserved_for_every_column() -> vecdb::Result<()> {
     let temp = tempdir()?;
     let db = Database::open(temp.path())?;
     let mut vec = V::forced_import(&db, "capacity", Version::ONE)?;
-    let expected =
-        vecdb::HEADER_OFFSET + CapacityIndex::INITIAL_CAPACITY * COLUMNS * size_of::<u64>();
-    assert!(vec.region().meta().reserved() >= expected);
+    let expected = vecdb::HEADER_OFFSET + CapacityIndex::INITIAL_CAPACITY * size_of::<u64>();
+    let regions = vec
+        .region_names()
+        .iter()
+        .map(|name| db.get_region(name).unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(regions.len(), COLUMNS);
+    assert!(
+        regions
+            .iter()
+            .all(|region| region.meta().reserved() >= expected)
+    );
+    for pair in regions.windows(2) {
+        assert_eq!(
+            pair[1].meta().start(),
+            pair[0].meta().start() + pair[0].meta().reserved()
+        );
+    }
 
     for index in 0..10_000 {
         vec.push(row(index));
@@ -593,6 +698,91 @@ fn initial_capacity_is_reserved_for_every_column() -> vecdb::Result<()> {
     let vec = V::import(&db, "capacity", Version::ONE)?;
     assert_eq!(vec.len(), 10_000);
     assert_eq!(vec.collect_one_at(9_999), Some(row(9_999)));
+    Ok(())
+}
+
+#[test]
+fn every_region_stays_contiguous_after_group_growth() -> vecdb::Result<()> {
+    type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = V::forced_import_with(
+        ImportOptions::new(&db, "group_growth", Version::ONE).with_initial_capacity(1),
+    )?;
+    let initial_start = vec.region().meta().start();
+    for index in 0..5_000 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+    assert_ne!(vec.region().meta().start(), initial_start);
+
+    let names = vec.region_names();
+    let regions = names
+        .iter()
+        .map(|name| db.get_region(name).unwrap())
+        .collect::<Vec<_>>();
+    for pair in regions.windows(2) {
+        assert_eq!(
+            pair[1].meta().start(),
+            pair[0].meta().start() + pair[0].meta().reserved()
+        );
+    }
+    drop(regions);
+    drop(vec);
+    db.flush()?;
+    drop(db);
+
+    let db = Database::open(temp.path())?;
+    let vec = V::import_with(
+        ImportOptions::new(&db, "group_growth", Version::ONE).with_initial_capacity(1),
+    )?;
+    assert_eq!(vec.len(), 5_000);
+    let regions = names
+        .iter()
+        .map(|name| db.get_region(name).unwrap())
+        .collect::<Vec<_>>();
+    for pair in regions.windows(2) {
+        assert_eq!(
+            pair[1].meta().start(),
+            pair[0].meta().start() + pair[0].meta().reserved()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn mismatched_column_lengths_reset_the_complete_vector() -> vecdb::Result<()> {
+    type V = ColumnarVec<BytesVec<usize, u64>, TestColumn>;
+
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = V::forced_import(&db, "equal_lengths", Version::ONE)?;
+    for index in 0..10 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+    let first_region_name = vec.region_names()[0].clone();
+    drop(vec);
+
+    let first = db.get_region(&first_region_name).unwrap();
+    let truncated_len = first.meta().len() - size_of::<u64>();
+    first.truncate(truncated_len)?;
+    drop(first);
+    let mut vec = V::import(&db, "equal_lengths", Version::ONE)?;
+    assert!(vec.is_empty());
+
+    for index in 0..10 {
+        vec.push(row(index));
+    }
+    vec.write()?;
+    drop(vec);
+
+    let first = db.get_region(&first_region_name).unwrap();
+    let truncated_len = first.meta().len() - size_of::<u64>();
+    first.truncate(truncated_len)?;
+    drop(first);
+    assert!(V::forced_import(&db, "equal_lengths", Version::ONE)?.is_empty());
     Ok(())
 }
 
@@ -644,18 +834,31 @@ fn pco_repeated_small_writes_compress_completed_pages_and_keep_tail_raw() -> vec
 
     let pages_region = db.get_region(&vec.region_names()[1]).expect("pages region");
     let bytes = pages_region.create_reader().read_all().to_vec();
-    let pages = bytes
-        .chunks_exact(16)
-        .map(|bytes| u32::from_le_bytes(bytes[12..16].try_into().unwrap()))
-        .collect::<Vec<_>>();
-    // Completed column pages are compressed; only the final physical tail page
-    // is required to remain raw while the logical row block is incomplete.
-    let completed_pages = vec.len() / U64S_PER_PAGE * COLUMNS;
-    for &values in &pages[..completed_pages] {
-        assert_eq!(values & (1 << 31), 0);
-        assert_eq!(values as usize, U64S_PER_PAGE);
+    let mut pages = Vec::new();
+    let mut offset = 0;
+    while offset < bytes.len() {
+        let records = ((bytes.len() - offset - 8) / 8).min(16);
+        offset += 8;
+        for _ in 0..records {
+            pages.push(u32::from_le_bytes(
+                bytes[offset + 4..offset + 8].try_into().unwrap(),
+            ));
+            offset += 8;
+        }
     }
-    assert!(pages.last().is_some_and(|values| values & (1 << 31) != 0));
+    // Every completed physical page is compressed. Only the final incomplete
+    // page remains raw, independently of compression chunk sizing.
+    assert!(!pages.is_empty());
+    assert!(
+        pages[..pages.len() - 1]
+            .iter()
+            .all(|body_and_flags| body_and_flags & (1 << 31) == 0)
+    );
+    assert!(
+        pages
+            .last()
+            .is_some_and(|body_and_flags| body_and_flags & (1 << 31) != 0)
+    );
     Ok(())
 }
 

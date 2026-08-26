@@ -21,6 +21,18 @@ pub enum Error {
     #[error("Region already exists")]
     RegionAlreadyExists,
 
+    #[error("Region group cannot be empty")]
+    EmptyRegionGroup,
+
+    #[error("Region '{id}' already belongs to a group")]
+    RegionAlreadyGrouped { id: String },
+
+    #[error("Region group members must belong to the same database")]
+    RegionGroupDatabaseMismatch,
+
+    #[error("Region is not a member of its registered group")]
+    RegionGroupMemberNotFound,
+
     #[error("Cannot remove region '{id}': still held by {} reference(s)", ref_count - 1)]
     RegionStillReferenced { id: String, ref_count: usize },
 
