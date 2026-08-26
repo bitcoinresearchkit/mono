@@ -74,6 +74,22 @@ where
     }
 
     #[inline]
+    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+        let reader = self.reader();
+        let stored_len = reader.len();
+        let pushed = self.base.pushed();
+
+        out.reserve(indices.len());
+        for &index in indices {
+            if index < stored_len {
+                out.push(reader.get_at(index));
+            } else if let Some(value) = pushed.get(index - stored_len) {
+                out.push(value.clone());
+            }
+        }
+    }
+
+    #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
         self.fold_range_at(from, to, (), |(), v| f(v));
     }

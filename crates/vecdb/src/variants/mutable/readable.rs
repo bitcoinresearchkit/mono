@@ -128,6 +128,21 @@ where
     }
 
     #[inline]
+    fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<V::T>) {
+        if !self.has_mutations() {
+            self.vec.read_sorted_into_at(indices, out);
+            return;
+        }
+
+        out.reserve(indices.len());
+        for &index in indices {
+            if let Some(value) = self.collect_one_at(index) {
+                out.push(value);
+            }
+        }
+    }
+
+    #[inline]
     fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(V::T)) {
         self.fold_range_at(from, to, (), |(), value| f(value));
     }

@@ -316,6 +316,11 @@ macro_rules! impl_vec_wrapper {
                 $crate::ReadableVec::<I, T>::read_into_at(&self.0, from, to, buf)
             }
 
+            #[inline(always)]
+            fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<T>) {
+                $crate::ReadableVec::<I, T>::read_sorted_into_at(&self.0, indices, out)
+            }
+
             #[inline]
             fn for_each_range_dyn_at(&self, from: usize, to: usize, f: &mut dyn FnMut(T)) {
                 $crate::ReadableVec::<I, T>::for_each_range_dyn_at(&self.0, from, to, f)
