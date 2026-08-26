@@ -21,8 +21,8 @@ pub struct QuickMatch<'a> {
     max_word_count: usize,
     max_word_len: usize,
     max_query_len: usize,
-    word_index: FxHashMap<String, FxHashSet<ItemId>>,
-    trigram_index: FxHashMap<[char; 3], FxHashSet<ItemId>>,
+    word_index: FxHashMap<String, Vec<ItemId>>,
+    trigram_index: FxHashMap<[char; 3], Vec<ItemId>>,
 }
 
 impl<'a> QuickMatch<'a> {
@@ -39,8 +39,8 @@ impl<'a> QuickMatch<'a> {
     fn build(items: Vec<Cow<'a, str>>, config: QuickMatchConfig) -> Self {
         assert!(u32::try_from(items.len()).is_ok(), "Too many items");
 
-        let mut word_index: FxHashMap<String, FxHashSet<ItemId>> = FxHashMap::default();
-        let mut trigram_index: FxHashMap<[char; 3], FxHashSet<ItemId>> = FxHashMap::default();
+        let mut word_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
+        let mut trigram_index: FxHashMap<[char; 3], Vec<ItemId>> = FxHashMap::default();
         let mut max_word_len = 0;
         let mut max_query_len = 0;
         let mut max_words = 0;
@@ -57,16 +57,16 @@ impl<'a> QuickMatch<'a> {
                 max_word_len = max_word_len.max(word.len());
 
                 for len in 1..=word.len() {
-                    word_index
-                        .entry(word[..len].to_string())
-                        .or_default()
-                        .insert(id);
+                    Self::insert_word(&mut word_index, &word[..len], id);
                 }
 
                 let mut chars = word.chars();
                 if let (Some(mut a), Some(mut b)) = (chars.next(), chars.next()) {
                     for c in chars {
-                        trigram_index.entry([a, b, c]).or_default().insert(id);
+                        let items = trigram_index.entry([a, b, c]).or_default();
+                        if items.last() != Some(&id) {
+                            items.push(id);
+                        }
                         a = b;
                         b = c;
                     }
@@ -81,10 +81,7 @@ impl<'a> QuickMatch<'a> {
                 max_word_len = max_word_len.max(compound.len());
                 let from = pair[0].len() + 1;
                 for len in from..=compound.len() {
-                    word_index
-                        .entry(compound[..len].to_string())
-                        .or_default()
-                        .insert(id);
+                    Self::insert_word(&mut word_index, &compound[..len], id);
                 }
             }
         }
@@ -117,6 +114,16 @@ impl<'a> QuickMatch<'a> {
             word_index,
             trigram_index,
             config,
+        }
+    }
+
+    fn insert_word(index: &mut FxHashMap<String, Vec<ItemId>>, word: &str, id: ItemId) {
+        if let Some(items) = index.get_mut(word) {
+            if items.last() != Some(&id) {
+                items.push(id);
+            }
+        } else {
+            index.insert(word.to_owned(), vec![id]);
         }
     }
 
@@ -182,23 +189,23 @@ impl<'a> QuickMatch<'a> {
         }
 
         let mut unknown_words: Vec<&str> = vec![];
-        let mut known_sets: Vec<&FxHashSet<ItemId>> = vec![];
+        let mut known_lists: Vec<&[ItemId]> = vec![];
 
         for &word in &query_words {
             if let Some(items) = self.word_index.get(word) {
-                known_sets.push(items)
+                known_lists.push(items)
             } else if word.len() >= 3 && unknown_words.len() < trigram_budget {
                 unknown_words.push(word)
             }
         }
 
-        let pool = Self::intersect_sets(&known_sets);
+        let pool = Self::intersect_lists(&known_lists);
 
         // Try typo matching for unknown words
         if !unknown_words.is_empty() && trigram_budget > 0 {
             let min_len = query.len().saturating_sub(3);
             let (scores, hit_count) =
-                self.score_trigrams(&unknown_words, trigram_budget, pool.as_ref(), min_len);
+                self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(config.min_score());
             let results = self.rank(
                 scores.into_iter().filter(|(_, s)| *s >= min_score),
@@ -218,9 +225,9 @@ impl<'a> QuickMatch<'a> {
         // Rank known candidates (intersection, or union as fallback)
         let candidates = pool.unwrap_or_else(|| {
             if config.union_fallback() {
-                Self::union_sets(&known_sets)
+                Self::union_lists(&known_lists)
             } else {
-                FxHashSet::default()
+                Vec::new()
             }
         });
         self.rank(
@@ -234,33 +241,35 @@ impl<'a> QuickMatch<'a> {
         .collect()
     }
 
-    /// Intersection of all sets, or `None` when there are no sets or no
-    /// overlap. Clones the smallest set, then narrows it against the rest;
-    /// the clone's own source set is skipped since it would change nothing.
-    fn intersect_sets(sets: &[&FxHashSet<ItemId>]) -> Option<FxHashSet<ItemId>> {
-        let (smallest_idx, smallest) = sets
+    /// Intersection of all posting lists, or `None` when there are no lists or
+    /// no overlap. IDs are appended in ascending order while the index builds.
+    fn intersect_lists(lists: &[&[ItemId]]) -> Option<Vec<ItemId>> {
+        let (smallest_index, smallest) = lists
             .iter()
             .copied()
             .enumerate()
-            .min_by_key(|(_, s)| s.len())?;
-        let mut result = smallest.clone();
+            .min_by_key(|(_, items)| items.len())?;
+        let result = smallest
+            .iter()
+            .copied()
+            .filter(|item| {
+                lists.iter().enumerate().all(|(index, items)| {
+                    index == smallest_index || items.binary_search(item).is_ok()
+                })
+            })
+            .collect::<Vec<_>>();
 
-        for (i, set) in sets.iter().enumerate() {
-            if i == smallest_idx {
-                continue;
-            }
-            result.retain(|ptr| set.contains(ptr));
-            if result.is_empty() {
-                return None;
-            }
-        }
-
-        Some(result)
+        (!result.is_empty()).then_some(result)
     }
 
-    /// Union of all sets.
-    fn union_sets(sets: &[&FxHashSet<ItemId>]) -> FxHashSet<ItemId> {
-        sets.iter().flat_map(|s| s.iter().copied()).collect()
+    /// Union of all posting lists.
+    fn union_lists(lists: &[&[ItemId]]) -> Vec<ItemId> {
+        lists
+            .iter()
+            .flat_map(|items| items.iter().copied())
+            .collect::<FxHashSet<_>>()
+            .into_iter()
+            .collect()
     }
 
     /// Bucket by matched-word count, then sort each needed bucket by fuzzy
@@ -286,17 +295,17 @@ impl<'a> QuickMatch<'a> {
             if bucket.is_empty() {
                 continue;
             }
-            bucket.sort_unstable_by(|a, b| {
+            let order = |a: &(ItemId, usize, usize, ItemId), b: &(ItemId, usize, usize, ItemId)| {
                 b.1.cmp(&a.1) // fuzzy score, desc
                     .then(a.2.cmp(&b.2)) // match position, asc
                     .then(a.3.cmp(&b.3)) // item length then text, asc
-            });
-            results.extend(
-                bucket
-                    .iter()
-                    .take(limit - results.len())
-                    .map(|&(id, ..)| (id, matched as u32)),
-            );
+            };
+            let take = (limit - results.len()).min(bucket.len());
+            if take < bucket.len() {
+                bucket.select_nth_unstable_by(take, order);
+            }
+            bucket[..take].sort_unstable_by(order);
+            results.extend(bucket[..take].iter().map(|&(id, ..)| (id, matched as u32)));
             if results.len() >= limit {
                 break;
             }
@@ -317,7 +326,7 @@ impl<'a> QuickMatch<'a> {
         &self,
         unknown_words: &[&str],
         trigram_budget: usize,
-        pool: Option<&FxHashSet<ItemId>>,
+        pool: Option<&[ItemId]>,
         min_len: usize,
     ) -> (FxHashMap<ItemId, usize>, usize) {
         let mut scores: FxHashMap<ItemId, usize> = FxHashMap::default();
