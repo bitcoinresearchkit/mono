@@ -6,6 +6,8 @@ use super::strategy::DayStrategy;
 pub struct RepeatDay;
 
 impl DayStrategy for RepeatDay {
+    const REPEATS_DAY: bool = true;
+
     fn mapping_end(to: usize, _mapping_len: usize) -> usize {
         to
     }

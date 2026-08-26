@@ -2,10 +2,12 @@
 
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{AnyStoredVec, ImportableVec, PcoVec, ReadableVec, StoredVec, Version, WritableVec};
+use vecdb::{
+    AnyStoredVec, ImportableVec, PcoVec, ReadableVec, Result, StoredVec, Version, WritableVec,
+};
 
 #[test]
-fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> vecdb::Result<()> {
+fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     let mut vec = PcoVec::<usize, u8>::import(&db, "u8", Version::ONE)?;
@@ -60,7 +62,7 @@ fn pco_u8_cursor_crosses_page_and_chunk_boundaries() -> vecdb::Result<()> {
 }
 
 #[test]
-fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> vecdb::Result<()> {
+fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
     let mut vec = PcoVec::<usize, u64>::import(&db, "u64", Version::ONE)?;
@@ -77,6 +79,33 @@ fn pco_u64_cursor_crosses_two_page_chunk_boundary() -> vecdb::Result<()> {
     }
     assert_eq!(cursor.get(4_999), Some(4_999_u64 * 37));
     assert_eq!(cursor.get(5_000), None);
+
+    Ok(())
+}
+
+#[test]
+fn cursor_try_fold_resumes_after_a_cross_page_error() -> Result<()> {
+    let temp = TempDir::new()?;
+    let db = Database::open(temp.path())?;
+    let mut vec = PcoVec::<usize, u64>::import(&db, "try_fold", Version::ONE)?;
+
+    for index in 0..5_000 {
+        vec.push(index as u64);
+    }
+    vec.write()?;
+
+    let mut cursor = vec.cursor();
+    cursor.advance(4_090);
+    let result = cursor.try_fold(20, (), |(), value| {
+        if value == 4_097 {
+            return Err(value);
+        }
+        Ok(())
+    });
+
+    assert_eq!(result, Err(4_097));
+    assert_eq!(cursor.position(), 4_098);
+    assert_eq!(cursor.next(), Some(4_098));
 
     Ok(())
 }

@@ -6,6 +6,8 @@ use super::strategy::DayStrategy;
 pub struct LastDay;
 
 impl DayStrategy for LastDay {
+    const REPEATS_DAY: bool = false;
+
     fn mapping_end(to: usize, mapping_len: usize) -> usize {
         to.saturating_add(1).min(mapping_len)
     }

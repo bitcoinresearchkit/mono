@@ -5,12 +5,14 @@ mod strategy;
 #[cfg(test)]
 mod tests;
 
-use std::{marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, iter, marker::PhantomData, sync::Arc};
 
 use bitview_traversable::{Index, SeriesLeaf, SeriesLeafWithSchema, Traversable, TreeNode};
 use brk_types::{Day1, Version};
+use schemars::SchemaGenerator;
+use serde_json::to_value;
 use vecdb::{
-    AnyExportableVec, AnyVec, ReadableBoxedVec, ReadableVec, TypedVec, VecIndex, VecValue,
+    AnyExportableVec, AnyVec, Cursor, ReadableBoxedVec, ReadableVec, TypedVec, VecIndex, VecValue,
     short_type_name,
 };
 
@@ -69,15 +71,9 @@ where
         }
     }
 
-    fn try_fold_values<B, E, F>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        f: F,
-    ) -> std::result::Result<B, E>
+    fn try_fold_values<B, E, F>(&self, from: usize, to: usize, init: B, f: F) -> Result<B, E>
     where
-        F: FnMut(B, Option<T>) -> std::result::Result<B, E>,
+        F: FnMut(B, Option<T>) -> Result<B, E>,
     {
         let mapping_len = self.mapping.len();
         let to = to.min(mapping_len);
@@ -85,18 +81,91 @@ where
             return Ok(init);
         }
 
+        if S::REPEATS_DAY {
+            self.try_fold_repeated(from, to, init, f)
+        } else {
+            self.try_fold_sparse(from, to, mapping_len, init, f)
+        }
+    }
+
+    fn try_fold_repeated<B, E, F>(&self, from: usize, to: usize, init: B, mut f: F) -> Result<B, E>
+    where
+        F: FnMut(B, Option<T>) -> Result<B, E>,
+    {
+        let source_len = self.source.visible_len();
+        let mut mapping = Cursor::new(&*self.mapping);
+        // Leave the first mapping chunk buffered for the sequential fold.
+        let mapped_source_end = mapping
+            .get(to - 1)
+            .map(|day| day.to_usize().saturating_add(1));
+        let source_start = mapping
+            .get(from)
+            .map(|day| day.to_usize())
+            .unwrap_or(source_len)
+            .min(source_len);
+        let source_end = mapped_source_end.unwrap_or(source_start).min(source_len);
+        let values = if source_start < source_end {
+            self.source.collect_range_dyn(source_start, source_end)
+        } else {
+            Vec::new()
+        };
+
+        mapping.advance(from);
+        mapping.try_fold(to - from, init, |acc, day| {
+            let value = day
+                .to_usize()
+                .checked_sub(source_start)
+                .and_then(|index| values.get(index))
+                .cloned();
+            f(acc, value)
+        })
+    }
+
+    fn try_fold_sparse<B, E, F>(
+        &self,
+        from: usize,
+        to: usize,
+        mapping_len: usize,
+        init: B,
+        mut f: F,
+    ) -> Result<B, E>
+    where
+        F: FnMut(B, Option<T>) -> Result<B, E>,
+    {
         let mapping = self
             .mapping
             .collect_range_dyn(from, S::mapping_end(to, mapping_len));
         let source_len = self.source.visible_len();
-        try_fold_mapped(
-            &*self.source,
-            0,
-            to - from,
-            |index| S::source_index(&mapping, index, source_len),
-            init,
-            f,
-        )
+        let mut indices = Vec::with_capacity(to - from);
+        let mut slots: Vec<Option<u32>> = Vec::with_capacity(to - from);
+
+        for output_index in 0..(to - from) {
+            let Some(source_index) = S::source_index(&mapping, output_index, source_len) else {
+                slots.push(None);
+                continue;
+            };
+
+            let slot = match indices.last() {
+                Some(&last) if last == source_index => indices.len() - 1,
+                Some(&last) => {
+                    debug_assert!(last < source_index);
+                    indices.push(source_index);
+                    indices.len() - 1
+                }
+                None => {
+                    indices.push(source_index);
+                    0
+                }
+            };
+            debug_assert!(u32::try_from(slot).is_ok());
+            slots.push(Some(slot as u32));
+        }
+
+        let values = self.source.read_sorted_at(&indices);
+        slots.into_iter().try_fold(init, |acc, slot| match slot {
+            Some(slot) => f(acc, Some(values[slot as usize].clone())),
+            None => f(acc, None),
+        })
     }
 
     fn fold_values<B, F>(&self, from: usize, to: usize, init: B, mut f: F) -> B
@@ -104,7 +173,7 @@ where
         F: FnMut(B, Option<T>) -> B,
     {
         match self.try_fold_values(from, to, init, |acc, value| {
-            Ok::<_, std::convert::Infallible>(f(acc, value))
+            Ok::<_, Infallible>(f(acc, value))
         }) {
             Ok(result) => result,
             Err(error) => match error {},
@@ -181,13 +250,13 @@ where
         self.fold_values(from, to, init, f)
     }
 
-    fn try_fold_range_at<B, E, F: FnMut(B, Option<T>) -> std::result::Result<B, E>>(
+    fn try_fold_range_at<B, E, F: FnMut(B, Option<T>) -> Result<B, E>>(
         &self,
         from: usize,
         to: usize,
         init: B,
         f: F,
-    ) -> std::result::Result<B, E> {
+    ) -> Result<B, E> {
         self.try_fold_values(from, to, init, f)
     }
 
@@ -220,59 +289,13 @@ where
             self.value_type_to_string().to_string(),
             indexes,
         );
-        let schema = schemars::SchemaGenerator::default().into_root_schema_for::<Option<T>>();
-        let schema_json = serde_json::to_value(schema).unwrap_or_default();
+        let schema = SchemaGenerator::default().into_root_schema_for::<Option<T>>();
+        let schema_json = to_value(schema).unwrap_or_default();
 
         TreeNode::Leaf(SeriesLeafWithSchema::new(leaf, schema_json))
     }
 
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        std::iter::once(self as &dyn AnyExportableVec)
+        iter::once(self as &dyn AnyExportableVec)
     }
-}
-
-fn try_fold_mapped<T, S, B, E, F, G>(
-    source: &S,
-    from: usize,
-    to: usize,
-    mut source_index: G,
-    init: B,
-    mut f: F,
-) -> std::result::Result<B, E>
-where
-    T: VecValue,
-    S: ReadableVec<Day1, T> + ?Sized,
-    F: FnMut(B, Option<T>) -> std::result::Result<B, E>,
-    G: FnMut(usize) -> Option<usize>,
-{
-    let mut indices = Vec::with_capacity(to - from);
-    let mut slots: Vec<Option<u32>> = Vec::with_capacity(to - from);
-
-    for output_index in from..to {
-        let Some(source_index) = source_index(output_index) else {
-            slots.push(None);
-            continue;
-        };
-
-        let slot = match indices.last() {
-            Some(&last) if last == source_index => indices.len() - 1,
-            Some(&last) => {
-                debug_assert!(last < source_index);
-                indices.push(source_index);
-                indices.len() - 1
-            }
-            None => {
-                indices.push(source_index);
-                0
-            }
-        };
-        debug_assert!(u32::try_from(slot).is_ok());
-        slots.push(Some(slot as u32));
-    }
-
-    let values = source.read_sorted_at(&indices);
-    slots.into_iter().try_fold(init, |acc, slot| match slot {
-        Some(slot) => f(acc, Some(values[slot as usize].clone())),
-        None => f(acc, None),
-    })
 }
