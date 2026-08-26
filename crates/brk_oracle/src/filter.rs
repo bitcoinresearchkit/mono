@@ -32,6 +32,10 @@ pub struct PaymentFilter {
 }
 
 impl PaymentFilter {
+    // Five leading digits across 10^0..10^18, plus the only 10^19 target that
+    // fits in u64.
+    const COMMON_ROUND_RANGES: [(u64, u64); 96] = Self::common_round_ranges();
+
     /// Pre-modern transaction-output fan-out cap. Above this, the transaction is
     /// a batch payout (exchange sweep, mixer fan-out), not a round-dollar
     /// payment.
@@ -49,6 +53,30 @@ impl PaymentFilter {
     /// Filter for live or otherwise guaranteed-modern transaction streams.
     pub const MODERN: Self = Self::with_fanout_cap(Self::MODERN_TX_OUTPUT_FANOUT_CAP);
 
+    const fn common_round_ranges() -> [(u64, u64); 96] {
+        const LEADING_DIGITS: [u64; 5] = [1, 2, 3, 5, 6];
+
+        let mut ranges = [(0, 0); 96];
+        let mut index = 0;
+        let mut magnitude = 1;
+        while magnitude <= 1_000_000_000_000_000_000 {
+            let mut digit = 0;
+            while digit < LEADING_DIGITS.len() {
+                let round = LEADING_DIGITS[digit] * magnitude;
+                let tolerance = round / 1000;
+                ranges[index] = (round - tolerance, round + tolerance);
+                index += 1;
+                digit += 1;
+            }
+            magnitude *= 10;
+        }
+
+        let round = 10_000_000_000_000_000_000;
+        let tolerance = round / 1000;
+        ranges[index] = (round - tolerance, round + tolerance);
+        ranges
+    }
+
     const fn with_fanout_cap(tx_output_fanout_cap: usize) -> Self {
         Self {
             tx_output_fanout_cap,
@@ -64,6 +92,13 @@ impl PaymentFilter {
         }
     }
 
+    #[inline(always)]
+    fn is_common_round_value(sats: Sats) -> bool {
+        let value = *sats;
+        let index = Self::COMMON_ROUND_RANGES.partition_point(|range| range.1 < value);
+        index < Self::COMMON_ROUND_RANGES.len() && Self::COMMON_ROUND_RANGES[index].0 <= value
+    }
+
     /// Bin index for `(sats, output_type)`, or `None` for an excluded type
     /// (P2TR), dust, a round-BTC value, or an out-of-range bin. The per-output
     /// half of the round-dollar payment filter.
@@ -72,7 +107,7 @@ impl PaymentFilter {
         if EXCLUDED_MASK & (1u16 << output_type as u8) != 0 {
             return None;
         }
-        if *sats < MIN_SATS || sats.is_common_round_value() {
+        if *sats < MIN_SATS || Self::is_common_round_value(sats) {
             return None;
         }
         sats_to_bin(sats).map(|b| b as u16)
@@ -121,6 +156,20 @@ impl PaymentFilter {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn reference_is_common_round_value(value: u64) -> bool {
+        if value == 0 {
+            return false;
+        }
+        let value = u128::from(value);
+        let magnitude = 10u128.pow(value.ilog10());
+        let leading = (value + magnitude / 2) / magnitude;
+        if !matches!(leading, 1 | 2 | 3 | 5 | 6 | 10) {
+            return false;
+        }
+        let round = leading * magnitude;
+        value.abs_diff(round) * 1000 <= round
+    }
 
     fn payment_outputs(len: usize) -> impl ExactSizeIterator<Item = (Sats, OutputType)> + Clone {
         std::iter::repeat_n((Sats::new(12_345), OutputType::P2WPKH), len)
@@ -184,6 +233,40 @@ mod tests {
             emitted_count_modern(PaymentFilter::MODERN_TX_OUTPUT_FANOUT_CAP + 1),
             0
         );
+    }
+
+    #[test]
+    fn common_round_ranges_match_reference() {
+        for &(start, end) in &PaymentFilter::COMMON_ROUND_RANGES {
+            for value in [
+                start.saturating_sub(2),
+                start.saturating_sub(1),
+                start,
+                start.saturating_add(1),
+                end.saturating_sub(1),
+                end,
+                end.saturating_add(1),
+                end.saturating_add(2),
+            ] {
+                assert_eq!(
+                    PaymentFilter::is_common_round_value(Sats::new(value)),
+                    reference_is_common_round_value(value),
+                    "value {value}"
+                );
+            }
+        }
+
+        let mut value = 0x9e37_79b9_7f4a_7c15_u64;
+        for _ in 0..1_000_000 {
+            value = value
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1);
+            assert_eq!(
+                PaymentFilter::is_common_round_value(Sats::new(value)),
+                reference_is_common_round_value(value),
+                "value {value}"
+            );
+        }
     }
 
     #[test]

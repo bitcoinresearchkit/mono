@@ -116,21 +116,6 @@ impl Sats {
     pub fn is_max(&self) -> bool {
         *self == Self::MAX
     }
-
-    /// Check if value is a "round" BTC amount (±0.1% of d × 10^n, d ∈ {1,2,3,5,6}).
-    /// Used to filter out non-price-related transactions.
-    pub fn is_common_round_value(&self) -> bool {
-        if self.0 == 0 {
-            return false;
-        }
-        let mag = 10u64.pow(self.0.ilog10());
-        let leading = (self.0 + mag / 2) / mag;
-        if !matches!(leading, 1 | 2 | 3 | 5 | 6 | 10) {
-            return false;
-        }
-        let round_val = leading * mag;
-        self.0.abs_diff(round_val) * 1000 <= round_val
-    }
 }
 
 impl Add for Sats {
