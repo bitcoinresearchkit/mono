@@ -34,6 +34,7 @@ pub struct Snapshot {
     pub blocks: Vec<Vec<TxIndex>>,
     pub block_stats: Vec<BlockStats>,
     pub fees: RecommendedFees,
+    min_fee: FeeRate,
     /// Content hash of the projected next block. Same value as the
     /// mempool `ETag`.
     pub next_block_hash: NextBlockHash,
@@ -57,6 +58,7 @@ impl Snapshot {
             blocks,
             block_stats,
             fees,
+            min_fee,
             next_block_hash,
             prefix_to_idx,
         }
@@ -128,6 +130,7 @@ impl Snapshot {
             blocks: vec![],
             block_stats: vec![],
             fees: RecommendedFees::default(),
+            min_fee: FeeRate::default(),
             next_block_hash: NextBlockHash::ZERO,
             prefix_to_idx,
         }

@@ -44,7 +44,11 @@ impl Preparer {
         let added = Self::classify_additions(new_entries, new_txs, &state.txs, &state.graveyard);
         let removed = Self::classify_removals(&live, &added, &state.txs);
 
-        TxsPulled { added, removed }
+        TxsPulled {
+            live_len: live.len(),
+            added,
+            removed,
+        }
     }
 
     fn classify_additions(
@@ -124,7 +128,7 @@ impl Preparer {
 #[cfg(test)]
 mod tests {
     use bitcoin::hashes::Hash;
-    use brk_types::{FeeRate, Sats, VSize};
+    use brk_types::{FeeRate, Sats, TxOut, VSize};
 
     use super::*;
     use crate::{
@@ -142,10 +146,7 @@ mod tests {
         let mut altered = tx;
         altered.txid = txid;
         for input in altered.input.iter_mut() {
-            input.prevout = Some(brk_types::TxOut::from((
-                p2wpkh_script(51),
-                Sats::from(1_000u64),
-            )));
+            input.prevout = Some(TxOut::from((p2wpkh_script(51), Sats::from(1_000u64))));
         }
         let info = fake_entry_info(txid, 1_000, 100);
         let entry = TxEntry::new(&info, 100, false);
@@ -232,10 +233,7 @@ mod tests {
         let loser_txid = fake_txid(0x51);
         let replacer_txid = fake_txid(0x52);
         {
-            let prev = Some(brk_types::TxOut::from((
-                p2wpkh_script(80),
-                Sats::from(10_000u64),
-            )));
+            let prev = Some(TxOut::from((p2wpkh_script(80), Sats::from(10_000u64))));
             let mut tx = fake_tx(0x51, &[prev], &[(p2wpkh_script(81), 5_000)]);
             tx.txid = loser_txid;
             tx.input[0].txid = parent_txid;
@@ -272,10 +270,7 @@ mod tests {
         let state = empty_state();
         let gone_txid = fake_txid(0x60);
         {
-            let prev = Some(brk_types::TxOut::from((
-                p2wpkh_script(90),
-                Sats::from(10_000u64),
-            )));
+            let prev = Some(TxOut::from((p2wpkh_script(90), Sats::from(10_000u64))));
             let mut tx = fake_tx(0x60, &[prev], &[(p2wpkh_script(91), 6_000)]);
             tx.txid = gone_txid;
             tx.input[0].txid = fake_txid(0xAA);

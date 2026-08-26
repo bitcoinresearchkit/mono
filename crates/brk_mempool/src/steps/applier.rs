@@ -25,8 +25,14 @@ impl Applier {
         pulled: TxsPulled,
         diff: &mut CycleDiff,
     ) {
-        let TxsPulled { added, removed } = pulled;
+        let TxsPulled {
+            live_len,
+            added,
+            removed,
+        } = pulled;
         let mut state = lock.write();
+        let additional = live_len.saturating_sub(state.txs.len());
+        state.txs.reserve(additional);
         Self::bury_removals(
             &mut state,
             prev_snapshot,
@@ -148,6 +154,7 @@ mod tests {
 
     fn fresh_pulled(addition: TxAddition) -> TxsPulled {
         TxsPulled {
+            live_len: 1,
             added: vec![addition],
             removed: vec![],
         }
@@ -242,6 +249,7 @@ mod tests {
             &lock,
             &snapshot,
             TxsPulled {
+                live_len: 0,
                 added: vec![],
                 removed: vec![(prefix, TxRemoval::Vanished)],
             },
@@ -274,6 +282,7 @@ mod tests {
             &lock,
             &Snapshot::default(),
             TxsPulled {
+                live_len: 0,
                 added: vec![],
                 removed: vec![(prefix, TxRemoval::Vanished)],
             },

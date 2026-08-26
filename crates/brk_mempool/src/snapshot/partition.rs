@@ -3,7 +3,6 @@
 //! is a catch-all (no vsize cap).
 
 use brk_types::{FeeRate, VSize};
-use rustc_hash::FxHashSet;
 
 use super::{SnapTx, TxIndex};
 
@@ -12,7 +11,7 @@ pub struct Partitioner;
 impl Partitioner {
     pub fn partition(
         txs: &[SnapTx],
-        excluded: &FxHashSet<TxIndex>,
+        excluded: &[u8],
         num_remaining_blocks: usize,
     ) -> Vec<Vec<TxIndex>> {
         if num_remaining_blocks == 0 {
@@ -35,19 +34,18 @@ impl Partitioner {
         blocks
     }
 
-    fn sorted_candidates(
-        txs: &[SnapTx],
-        excluded: &FxHashSet<TxIndex>,
-    ) -> Vec<(TxIndex, VSize, FeeRate)> {
+    fn sorted_candidates(txs: &[SnapTx], excluded: &[u8]) -> Vec<(TxIndex, VSize, FeeRate)> {
+        debug_assert_eq!(txs.len(), excluded.len());
         let mut cands: Vec<(TxIndex, VSize, FeeRate)> = txs
             .iter()
+            .zip(excluded)
             .enumerate()
-            .filter_map(|(i, t)| {
+            .filter_map(|(i, (t, &excluded))| {
                 let idx = TxIndex::from(i);
-                (!excluded.contains(&idx)).then_some((idx, t.vsize, t.chunk_rate))
+                (excluded == 0).then_some((idx, t.vsize, t.chunk_rate))
             })
             .collect();
-        cands.sort_by(|(a_idx, _, a_rate), (b_idx, _, b_rate)| {
+        cands.sort_unstable_by(|(a_idx, _, a_rate), (b_idx, _, b_rate)| {
             b_rate
                 .cmp(a_rate)
                 .then_with(|| txs[a_idx.as_usize()].txid.cmp(&txs[b_idx.as_usize()].txid))
@@ -82,14 +80,14 @@ mod tests {
     #[test]
     fn zero_blocks_returns_empty() {
         let txs = vec![snap_tx(1, 100, 100)];
-        let blocks = Partitioner::partition(&txs, &FxHashSet::default(), 0);
+        let blocks = Partitioner::partition(&txs, &[0], 0);
         assert!(blocks.is_empty());
     }
 
     #[test]
     fn higher_chunk_rate_packs_first() {
         let txs = vec![snap_tx(1, 100, 100), snap_tx(2, 1_000, 100)];
-        let blocks = Partitioner::partition(&txs, &FxHashSet::default(), 3);
+        let blocks = Partitioner::partition(&txs, &[0, 0], 3);
         assert_eq!(blocks[0][0], TxIndex::from(1usize));
         assert_eq!(blocks[0][1], TxIndex::from(0usize));
     }
@@ -97,8 +95,7 @@ mod tests {
     #[test]
     fn excluded_txs_are_skipped() {
         let txs = vec![snap_tx(1, 100, 100), snap_tx(2, 1_000, 100)];
-        let mut excluded = FxHashSet::default();
-        excluded.insert(TxIndex::from(1usize));
+        let excluded = [0, 1];
         let blocks = Partitioner::partition(&txs, &excluded, 3);
         let flat: Vec<TxIndex> = blocks.into_iter().flatten().collect();
         assert_eq!(flat, vec![TxIndex::from(0usize)]);
@@ -115,13 +112,14 @@ mod tests {
             snap_tx(2, 900, big),
             snap_tx(3, 800, big),
         ];
-        let one_block = Partitioner::partition(&txs, &FxHashSet::default(), 1);
+        let included = [0, 0, 0];
+        let one_block = Partitioner::partition(&txs, &included, 1);
         assert_eq!(one_block.len(), 1);
         assert_eq!(one_block[0].len(), 3, "final block ignores vsize cap");
 
         // With three slots, the first two get one tx each, last block
         // soaks up the rest.
-        let three_blocks = Partitioner::partition(&txs, &FxHashSet::default(), 3);
+        let three_blocks = Partitioner::partition(&txs, &included, 3);
         assert_eq!(three_blocks[0].len(), 1);
         assert_eq!(three_blocks[1].len(), 1);
         assert_eq!(three_blocks[2].len(), 1);
@@ -135,7 +133,7 @@ mod tests {
             snap_tx(0x10, 100, 100),
             snap_tx(0x30, 100, 100),
         ];
-        let blocks = Partitioner::partition(&txs, &FxHashSet::default(), 1);
+        let blocks = Partitioner::partition(&txs, &[0, 0, 0], 1);
         let txids: Vec<u8> = blocks[0]
             .iter()
             .map(|i| txs[i.as_usize()].txid[0])

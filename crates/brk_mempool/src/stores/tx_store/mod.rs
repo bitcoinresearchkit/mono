@@ -1,23 +1,15 @@
 use brk_oracle::HistogramRaw;
 use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, TxidPrefix, Vin};
-use rustc_hash::{FxHashMap, FxHashSet};
+use indexmap::IndexMap;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use crate::{state::TxEntry, stores::LiveHistograms};
 
+mod tx_record;
+
+pub use tx_record::TxRecord;
+
 const RECENT_CAP: usize = 10;
-
-/// Per-tx record: live tx body and its mempool entry, kept under one key
-/// so a single map probe returns everything readers need.
-pub struct TxRecord {
-    pub tx: Transaction,
-    pub entry: TxEntry,
-}
-
-impl TxRecord {
-    pub fn new(tx: Transaction, entry: TxEntry) -> Self {
-        Self { tx, entry }
-    }
-}
 
 /// Live-pool index keyed by `TxidPrefix`. The full `Txid` lives in
 /// `record.entry.txid`, so callers that only have a `Txid` derive the
@@ -30,7 +22,7 @@ impl TxRecord {
 /// path is a single array clone, not a full pool walk.
 #[derive(Default)]
 pub struct TxStore {
-    records: FxHashMap<TxidPrefix, TxRecord>,
+    records: IndexMap<TxidPrefix, TxRecord, FxBuildHasher>,
     recent: Vec<MempoolRecentTx>,
     unresolved: FxHashSet<TxidPrefix>,
     histograms: LiveHistograms,
@@ -43,6 +35,10 @@ impl TxStore {
 
     pub fn len(&self) -> usize {
         self.records.len()
+    }
+
+    pub fn reserve(&mut self, additional: usize) {
+        self.records.reserve(additional);
     }
 
     pub fn get(&self, txid: &Txid) -> Option<&Transaction> {
@@ -63,9 +59,8 @@ impl TxStore {
         self.records.get(prefix)
     }
 
-    /// `(prefix, record)` pairs in `HashMap` iteration order. Used by
-    /// the snapshot builder to assign a compact `TxIndex` to each
-    /// live tx in one pass.
+    /// `(prefix, record)` pairs in dense storage order. Used by the
+    /// snapshot builder to assign a compact `TxIndex` to each live tx.
     pub fn records(&self) -> impl Iterator<Item = (&TxidPrefix, &TxRecord)> {
         self.records.iter()
     }
@@ -84,7 +79,7 @@ impl TxStore {
         if tx.input.iter().any(|i| i.prevout.is_none()) {
             self.unresolved.insert(prefix);
         }
-        let record = TxRecord::new(tx, entry);
+        let record = TxRecord { tx, entry };
         self.histograms.add(&record);
         self.records.insert(prefix, record);
     }
@@ -101,7 +96,7 @@ impl TxStore {
     /// Remove by prefix and return the full record if present. `recent`
     /// is untouched: it's an "added" window, not a live-set mirror.
     pub fn remove_by_prefix(&mut self, prefix: &TxidPrefix) -> Option<TxRecord> {
-        let record = self.records.remove(prefix)?;
+        let record = self.records.swap_remove(prefix)?;
         self.unresolved.remove(prefix);
         self.histograms.remove(&record);
         Some(record)
@@ -229,6 +224,24 @@ mod tests {
         assert!(!store.unresolved().contains(&prefix));
         assert_eq!(store.len(), 0);
         assert!(store.remove_by_prefix(&prefix).is_none());
+    }
+
+    #[test]
+    fn swap_remove_preserves_remaining_lookups() {
+        let mut store = TxStore::default();
+        let mut prefixes = Vec::new();
+        for seed in 1..=3 {
+            let tx = tx_with_prevouts(seed);
+            let entry = entry_for(&tx, 100, 100);
+            prefixes.push(entry.txid_prefix());
+            store.insert(tx, entry);
+        }
+
+        store.remove_by_prefix(&prefixes[1]).expect("middle record");
+
+        assert!(store.record_by_prefix(&prefixes[0]).is_some());
+        assert!(store.record_by_prefix(&prefixes[1]).is_none());
+        assert!(store.record_by_prefix(&prefixes[2]).is_some());
     }
 
     #[test]

@@ -1307,6 +1307,7 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
+ "indexmap",
  "parking_lot",
  "rustc-hash",
  "smallvec",

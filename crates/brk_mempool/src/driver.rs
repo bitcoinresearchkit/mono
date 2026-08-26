@@ -121,7 +121,12 @@ impl Mempool {
         Applier::apply(state, &prev_snapshot, pulled, &mut diff);
         drop(prev_snapshot);
         Prevouts::fill(state, &mut diff, resolver);
-        rebuilder.tick(state, &block_template_txids, rpc.min_fee);
+        rebuilder.tick(
+            state,
+            &block_template_txids,
+            rpc.min_fee,
+            diff.membership_changed(),
+        );
         let CycleDiff {
             added,
             removed,
@@ -153,7 +158,7 @@ impl Mempool {
 
 #[cfg(test)]
 mod tests {
-    use std::panic::catch_unwind;
+    use std::panic::{catch_unwind, panic_any};
 
     use rustc_hash::FxHashMap;
 
@@ -187,7 +192,7 @@ mod tests {
     fn panic_msg_falls_back_for_non_string_payload() {
         // Payload that isn't &str or String: the helper labels it
         // explicitly instead of dropping it on the floor.
-        let payload = catch_unwind(|| std::panic::panic_any(42u32)).unwrap_err();
+        let payload = catch_unwind(|| panic_any(42u32)).unwrap_err();
         assert_eq!(
             Mempool::panic_msg(payload.as_ref()),
             "<non-string panic payload>"

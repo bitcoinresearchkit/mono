@@ -18,7 +18,7 @@
 //!    GBT payload so block 0 matches Core's selection exactly without
 //!    a follow-up entry fetch that could race the listing.
 //! 2. [`steps::Preparer`] - decode and classify into
-//!    `TxsPulled { added, removed }`. Pure CPU.
+//!    `TxsPulled { live_len, added, removed }`. Pure CPU.
 //! 3. [`steps::Applier`] - apply the diff to [`state::State`] under a
 //!    single write lock.
 //! 4. [`steps::Prevouts::fill`] - fills `prevout: None` inputs in one
@@ -147,7 +147,9 @@ mod test_helpers {
         }
 
         pub(crate) fn test_tick(&self, gbt_txids: &[Txid], min_fee: FeeRate) {
-            self.0.rebuilder.tick(&self.0.state, gbt_txids, min_fee);
+            self.0
+                .rebuilder
+                .tick(&self.0.state, gbt_txids, min_fee, true);
         }
     }
 }
