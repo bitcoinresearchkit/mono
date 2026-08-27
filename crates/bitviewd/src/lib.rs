@@ -9,7 +9,7 @@ use vecdb::{Exit, ReadOnlyClone};
 mod config;
 mod paths;
 
-use crate::config::Config;
+pub use config::Config;
 
 /// Runs the Bitview daemon process with the supplied composition.
 pub fn run<P>(import: impl FnMut(ImportContext<'_>, &Reader) -> Result<P>) -> Result<()>

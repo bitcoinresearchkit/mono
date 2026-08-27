@@ -1,8 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![allow(clippy::type_complexity)]
 
-use std::time::Instant;
-
 use bitview_plugin_bedrock::Vecs as Bedrock;
 use bitview_plugin_blocks::Vecs as Blocks;
 use bitview_plugin_capital_sentiment::Vecs as CapitalSentiment;
@@ -26,12 +24,12 @@ use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
-use tracing::info;
 use vecdb::{Rw, StorageMode};
 
 mod capabilities;
 mod compute;
 mod import;
+mod timing;
 
 #[derive(PluginSet, Traversable)]
 pub struct DefaultPlugins<M: StorageMode = Rw> {
@@ -58,11 +56,4 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     inputs: Box<Inputs<M>>,
     outputs: Box<Outputs<M>>,
     op_return: Box<OpReturn<M>>,
-}
-
-fn timed<T>(label: &str, f: impl FnOnce() -> T) -> T {
-    let start = Instant::now();
-    let result = f();
-    info!("{label} in {:?}", start.elapsed());
-    result
 }

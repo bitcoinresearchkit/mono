@@ -5,8 +5,9 @@ mod format;
 mod hook;
 mod rate_limit;
 
-use std::{io, path::Path, time::Duration};
+use std::{backtrace::Backtrace, env, fs, io, panic, path::Path, time::Duration};
 
+use tracing::Event;
 use tracing_subscriber::{filter::Targets, fmt, layer::SubscriberExt, util::SubscriberInitExt};
 
 use format::Formatter;
@@ -39,9 +40,9 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::R
     tracing_log::LogTracer::init().ok();
     install_panic_hook();
 
-    let level = std::env::var("LOG").unwrap_or_else(|_| default_level.to_string());
+    let level = env::var("LOG").unwrap_or_else(|_| default_level.to_string());
 
-    let directives = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+    let directives = env::var("RUST_LOG").unwrap_or_else(|_| {
         format!(
             "{level},bitcoin=off,corepc=off,tracing=off,aide=off,fjall=off,lsm_tree=off,tower_http=off,rmcp=warn"
         )
@@ -76,7 +77,7 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::R
 }
 
 fn install_panic_hook() {
-    std::panic::set_hook(Box::new(|info| {
+    panic::set_hook(Box::new(|info| {
         let location = info
             .location()
             .map(|l| format!("{}:{}:{}", l.file(), l.line(), l.column()))
@@ -88,22 +89,22 @@ fn install_panic_hook() {
             .map(str::to_owned)
             .or_else(|| payload.downcast_ref::<String>().cloned())
             .unwrap_or_else(|| "Box<dyn Any>".to_owned());
-        let backtrace = std::backtrace::Backtrace::capture();
+        let backtrace = Backtrace::capture();
         tracing::error!(location, backtrace = %backtrace, "panic: {msg}");
     }));
 }
 
-/// Register a hook that gets called for every log message.
+/// Register a hook that receives every tracing event.
 pub fn register_hook<F>(hook: F) -> Result<(), &'static str>
 where
-    F: Fn(&str) + Send + Sync + 'static,
+    F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,
 {
     hook::register(hook)
 }
 
 fn cleanup_old_logs(dir: &Path) {
     let max_age = Duration::from_secs(MAX_LOG_AGE_DAYS * 24 * 60 * 60);
-    let Ok(entries) = std::fs::read_dir(dir) else {
+    let Ok(entries) = fs::read_dir(dir) else {
         return;
     };
 
@@ -121,7 +122,7 @@ fn cleanup_old_logs(dir: &Path) {
             && let Ok(age) = modified.elapsed()
             && age > max_age
         {
-            let _ = std::fs::remove_file(&path);
+            let _ = fs::remove_file(&path);
         }
     }
 }

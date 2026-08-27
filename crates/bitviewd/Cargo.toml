@@ -47,7 +47,6 @@ vecdb = { workspace = true }
 
 [dev-dependencies]
 aide = { workspace = true }
-bitview_bencher = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution = { workspace = true }
@@ -67,19 +66,11 @@ name = "bindgen"
 required-features = ["bindgen", "default"]
 
 [[example]]
-name = "full_bench"
-required-features = ["default"]
-
-[[example]]
 name = "list"
 required-features = ["default"]
 
 [[example]]
 name = "plugin_set"
-required-features = ["default"]
-
-[[example]]
-name = "plugin_set_bench"
 required-features = ["default"]
 
 [[example]]

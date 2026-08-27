@@ -30,6 +30,5 @@ vecdb = { workspace = true }
 
 [dev-dependencies]
 brk_alloc = { workspace = true }
-bitview_bencher = { workspace = true }
 color-eyre = { workspace = true }
 tempfile = { workspace = true }

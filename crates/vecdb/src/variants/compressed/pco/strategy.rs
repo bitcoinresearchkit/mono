@@ -126,7 +126,14 @@ where
         let header_len = bytes.len();
         let mut page_ends = Vec::with_capacity(chunk.n_per_page().len());
         for page_index in 0..chunk.n_per_page().len() {
+            let page_start = bytes.len();
             bytes = chunk.write_page(page_index, bytes)?;
+            // VecDB reserves a zero-length body for unused page records.
+            // PCO can encode constant pages entirely in the chunk header, so
+            // give those valid pages one ignored padding byte.
+            if bytes.len() == page_start {
+                bytes.push(0);
+            }
             page_ends.push(u32::try_from(bytes.len()).map_err(|_| Error::Overflow)?);
         }
         EncodedChunk::new(bytes, header_len, page_ends)

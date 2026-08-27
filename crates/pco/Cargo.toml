@@ -1,5 +1,5 @@
 [package]
-name = "pco"
+name = "brk_pco"
 description = "BRK-maintained fork of PCO 1.0.3, numerical sequence compression"
 version.workspace = true
 edition = "2021"
@@ -28,8 +28,8 @@ release = false
 [dependencies]
 better_io = "0.2.0"
 dtype_dispatch = "0.2.1"
-half = "2.0.0"
-rand_xoshiro = "0.6.0"
+half = "2.7.1"
+rand_xoshiro = "0.8.1"
 
 [dev-dependencies]
-rand = "0.8.4"
+rand = "0.10.2"

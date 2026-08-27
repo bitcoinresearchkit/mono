@@ -1,0 +1,24 @@
+[package]
+name = "bitviewd_bench"
+description = "End-to-end bootstrap benchmark for bitviewd."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+bitview = { workspace = true }
+bitview_default = { workspace = true }
+bitviewd = { workspace = true }
+brk_error = { workspace = true }
+brk_logger = { workspace = true }
+brk_reader = { workspace = true }
+brk_types = { workspace = true }
+parking_lot = { workspace = true }
+tracing = { workspace = true }
+vecdb = { workspace = true }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libproc = "0.14"

@@ -39,7 +39,7 @@ pub fn file_size<L: Latent>(n: usize, paging_spec: &PagingSpec) -> PcoResult<usi
 
 #[cfg(test)]
 mod tests {
-  use rand::Rng;
+  use rand::RngExt;
   use rand_xoshiro::rand_core::SeedableRng;
   use rand_xoshiro::Xoroshiro128PlusPlus;
 
@@ -78,7 +78,7 @@ mod tests {
     let mut rng = Xoroshiro128PlusPlus::seed_from_u64(0);
     let mut nums = Vec::new();
     for _i in 0..300 {
-      nums.push(rng.gen_range(-1.0_f32..1.0));
+      nums.push(rng.random_range(-1.0_f32..1.0));
     }
     let config = ChunkConfig {
       mode_spec: ModeSpec::TryFloatMult(0.1),

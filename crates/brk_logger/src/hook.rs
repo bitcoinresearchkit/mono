@@ -1,37 +1,77 @@
-use std::{fmt::Write, sync::OnceLock};
+use std::sync::OnceLock;
 
-use tracing::{Event, Subscriber, field::Field};
+use tracing::{Event, Subscriber};
+use tracing_subscriber::{Layer, layer::Context};
 
-static LOG_HOOK: OnceLock<Box<dyn Fn(&str) + Send + Sync>> = OnceLock::new();
+type Hook = dyn for<'a> Fn(&Event<'a>) + Send + Sync;
+
+static LOG_HOOK: OnceLock<Box<Hook>> = OnceLock::new();
 
 pub struct HookLayer;
 
-impl<S: Subscriber> tracing_subscriber::Layer<S> for HookLayer {
-    fn on_event(&self, event: &Event<'_>, _: tracing_subscriber::layer::Context<'_, S>) {
+impl<S: Subscriber> Layer<S> for HookLayer {
+    fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
         if let Some(hook) = LOG_HOOK.get() {
-            let mut msg = String::new();
-            event.record(&mut MessageVisitor(&mut msg));
-            hook(&msg);
+            hook(event);
         }
     }
 }
 
 pub fn register<F>(hook: F) -> Result<(), &'static str>
 where
-    F: Fn(&str) + Send + Sync + 'static,
+    F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,
 {
     LOG_HOOK
         .set(Box::new(hook))
         .map_err(|_| "Hook already registered")
 }
 
-struct MessageVisitor<'a>(&'a mut String);
+#[cfg(test)]
+mod tests {
+    use std::{
+        fmt::Debug,
+        sync::{
+            Arc,
+            atomic::{AtomicU64, Ordering},
+        },
+    };
 
-impl tracing::field::Visit for MessageVisitor<'_> {
-    fn record_debug(&mut self, field: &Field, value: &dyn std::fmt::Debug) {
-        if field.name() == "message" {
-            self.0.clear();
-            let _ = write!(self.0, "{value:?}");
+    use tracing::{
+        field::{Field, Visit},
+        info, subscriber,
+    };
+    use tracing_subscriber::{layer::SubscriberExt, registry};
+
+    use super::*;
+
+    struct DurationVisitor<'a>(&'a AtomicU64);
+
+    impl Visit for DurationVisitor<'_> {
+        fn record_u64(&mut self, field: &Field, value: u64) {
+            if field.name() == "duration_ns" {
+                self.0.store(value, Ordering::Relaxed);
+            }
         }
+
+        fn record_debug(&mut self, _field: &Field, _value: &dyn Debug) {}
+    }
+
+    #[test]
+    fn forwards_structured_events() {
+        let duration = Arc::new(AtomicU64::new(0));
+        let hook_duration = Arc::clone(&duration);
+        register(move |event| {
+            if event.metadata().target() == "test_timing" {
+                event.record(&mut DurationVisitor(&hook_duration));
+            }
+        })
+        .unwrap();
+
+        let subscriber = registry().with(HookLayer);
+        subscriber::with_default(subscriber, || {
+            info!(target: "test_timing", phase = "compute", duration_ns = 1_u64);
+        });
+
+        assert_eq!(duration.load(Ordering::Relaxed), 1);
     }
 }

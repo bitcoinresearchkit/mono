@@ -1,5 +1,5 @@
 use half::f16;
-use rand::Rng;
+use rand::RngExt;
 use rand_xoshiro::rand_core::SeedableRng;
 
 use crate::chunk_config::{ChunkConfig, DeltaSpec};
@@ -294,11 +294,7 @@ fn test_64_bit_offsets() -> PcoResult<()> {
 
 #[test]
 fn test_with_int_mult() -> PcoResult<()> {
-  let mut rng = rand_xoshiro::Xoroshiro128PlusPlus::seed_from_u64(0);
-  let mut nums = Vec::new();
-  for _ in 0..300 {
-    nums.push(rng.gen_range(-1000..1000) * 8 - 1);
-  }
+  let nums = (-150..150).map(|x| x * 8 - 1).collect::<Vec<_>>();
   let (compressed, meta) = compress_w_meta(
     &nums,
     &ChunkConfig {
@@ -322,9 +318,9 @@ fn test_sparse_islands() -> PcoResult<()> {
   // sparse - one common island of [0, 8) and one rare of [1000, 1008)
   for _ in 0..20 {
     for _ in 0..99 {
-      nums.push(rng.gen_range(0..8))
+      nums.push(rng.random_range(0..8))
     }
-    nums.push(rng.gen_range(1000..1008))
+    nums.push(rng.random_range(1000..1008))
   }
   assert_recovers(&nums, 4, "sparse islands")
 }
@@ -340,8 +336,8 @@ fn test_decimals() -> PcoResult<()> {
   }
 
   for _ in 0..n {
-    let unadjusted_num = (rng.gen_range(-1..100) as f64) * 0.01;
-    let adj = rng.gen_range(-1..2);
+    let unadjusted_num = (rng.random_range(-1..100) as f64) * 0.01;
+    let adj = rng.random_range(-1..2);
     nums.push(plus_epsilons(unadjusted_num, adj));
   }
   // add some big numbers just to test losslessness
@@ -499,7 +495,7 @@ fn test_conv1_degenerate() -> PcoResult<()> {
   let mut rng = rand_xoshiro::Xoroshiro128PlusPlus::seed_from_u64(0);
   let mut nums = Vec::new();
   for _ in 0..1000 {
-    nums.push(rng.gen_range(0..1000));
+    nums.push(rng.random_range(0..1000));
   }
   check::<u32>(nums, "no trend")?;
 

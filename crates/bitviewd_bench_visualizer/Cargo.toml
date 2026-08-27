@@ -1,0 +1,13 @@
+[package]
+name = "bitviewd_bench_visualizer"
+description = "Charts for bitviewd bootstrap benchmark runs."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+derive_more = { workspace = true }
+plotters = "0.3.7"

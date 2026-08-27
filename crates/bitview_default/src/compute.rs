@@ -2,31 +2,42 @@ use std::{thread, time::Duration};
 
 use bitview_compute::CACHE_BUDGET;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
-use bitview_plugin_blocks::Dependencies as BlocksDependencies;
-use bitview_plugin_capital_sentiment::Dependencies as CapitalSentimentDependencies;
-use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
-use bitview_plugin_cointime::Dependencies as CointimeDependencies;
-use bitview_plugin_distribution::{Dependencies as DistributionDependencies, UTXOStates};
-use bitview_plugin_indicators::Dependencies as IndicatorsDependencies;
-use bitview_plugin_inputs::Dependencies as InputsDependencies;
-use bitview_plugin_mappings::Dependencies as MappingsDependencies;
-use bitview_plugin_market::Dependencies as MarketDependencies;
-use bitview_plugin_mining::Dependencies as MiningDependencies;
-use bitview_plugin_op_return::Dependencies as OpReturnDependencies;
-use bitview_plugin_outputs::Dependencies as OutputsDependencies;
-use bitview_plugin_pools::Dependencies as PoolsDependencies;
-use bitview_plugin_price::Dependencies as PriceDependencies;
-use bitview_plugin_rarity_meter::Dependencies as RarityMeterDependencies;
-use bitview_plugin_supply::Dependencies as SupplyDependencies;
-use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
+use bitview_plugin_bedrock::{Dependencies as BedrockDependencies, ID as BEDROCK_ID};
+use bitview_plugin_blocks::{Dependencies as BlocksDependencies, ID as BLOCKS_ID};
+use bitview_plugin_capital_sentiment::{
+    Dependencies as CapitalSentimentDependencies, ID as CAPITAL_SENTIMENT_ID,
+};
+use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
+use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
+use bitview_plugin_distribution::{
+    Dependencies as DistributionDependencies, ID as DISTRIBUTION_ID, UTXOStates,
+};
+use bitview_plugin_indexer::ID as INDEXER_ID;
+use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
+use bitview_plugin_inputs::{Dependencies as InputsDependencies, ID as INPUTS_ID};
+use bitview_plugin_investing::ID as INVESTING_ID;
+use bitview_plugin_mappings::{Dependencies as MappingsDependencies, ID as MAPPINGS_ID};
+use bitview_plugin_market::{Dependencies as MarketDependencies, ID as MARKET_ID};
+use bitview_plugin_mining::{Dependencies as MiningDependencies, ID as MINING_ID};
+use bitview_plugin_op_return::{Dependencies as OpReturnDependencies, ID as OP_RETURN_ID};
+use bitview_plugin_outputs::{Dependencies as OutputsDependencies, ID as OUTPUTS_ID};
+use bitview_plugin_pools::{Dependencies as PoolsDependencies, ID as POOLS_ID};
+use bitview_plugin_price::{Dependencies as PriceDependencies, ID as PRICE_ID};
+use bitview_plugin_rarity_meter::{Dependencies as RarityMeterDependencies, ID as RARITY_METER_ID};
+use bitview_plugin_supply::{Dependencies as SupplyDependencies, ID as SUPPLY_ID};
+use bitview_plugin_transactions::{
+    Dependencies as TransactionsDependencies, ID as TRANSACTIONS_ID,
+};
 use bitview_runtime::{BootstrapAction, ComputePluginSet};
 use brk_alloc::Mimalloc;
 use brk_error::Result;
 use rayon::join;
 use tracing::info;
 
-use crate::{DefaultPlugins, timed};
+use crate::{
+    DefaultPlugins,
+    timing::{Phase, timed},
+};
 
 const REIMPORT_THRESHOLD: u32 = 10_000;
 
@@ -39,7 +50,9 @@ impl DefaultPlugins {
     }
 
     fn compute_indexer(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        self.indexer.compute((), context)
+        timed(Phase::Compute, INDEXER_ID, || {
+            self.indexer.compute((), context)
+        })
     }
 
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
@@ -47,19 +60,19 @@ impl DefaultPlugins {
 
         let indexer = self.indexer.as_ref();
 
-        timed("Computed mappings", || {
+        timed(Phase::Compute, MAPPINGS_ID, || {
             self.mappings
                 .compute(MappingsDependencies { indexer }, context)
         })?;
 
         thread::scope(|scope| -> Result<()> {
-            timed("Computed blocks", || {
+            timed(Phase::Compute, BLOCKS_ID, || {
                 self.blocks.compute(BlocksDependencies { indexer }, context)
             })?;
 
             let (inputs_result, prices_result) = join(
                 || {
-                    timed("Computed inputs", || {
+                    timed(Phase::Compute, INPUTS_ID, || {
                         self.inputs.compute(
                             InputsDependencies {
                                 indexer,
@@ -70,7 +83,7 @@ impl DefaultPlugins {
                     })
                 },
                 || {
-                    timed("Computed price", || {
+                    timed(Phase::Compute, PRICE_ID, || {
                         self.price.compute(PriceDependencies { indexer }, context)
                     })
                 },
@@ -81,7 +94,7 @@ impl DefaultPlugins {
             // market, outputs, and (transactions → mining + OP_RETURN) are pairwise
             // independent. Run all three in parallel.
             let market = scope.spawn(|| {
-                timed("Computed market", || {
+                timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
                         MarketDependencies {
                             indexer,
@@ -95,7 +108,7 @@ impl DefaultPlugins {
             });
 
             let tx_mining_op_return = scope.spawn(|| -> Result<()> {
-                timed("Computed transactions", || {
+                timed(Phase::Compute, TRANSACTIONS_ID, || {
                     self.transactions.compute(
                         TransactionsDependencies {
                             indexer,
@@ -110,7 +123,7 @@ impl DefaultPlugins {
 
                 let (mining, op_return) = join(
                     || {
-                        timed("Computed mining", || {
+                        timed(Phase::Compute, MINING_ID, || {
                             self.mining.compute(
                                 MiningDependencies {
                                     indexer,
@@ -124,7 +137,7 @@ impl DefaultPlugins {
                         })
                     },
                     || {
-                        timed("Computed OP_RETURN", || {
+                        timed(Phase::Compute, OP_RETURN_ID, || {
                             self.op_return.compute(
                                 OpReturnDependencies {
                                     indexer,
@@ -140,7 +153,7 @@ impl DefaultPlugins {
                 Ok(())
             });
 
-            timed("Computed outputs", || {
+            timed(Phase::Compute, OUTPUTS_ID, || {
                 self.outputs.compute(
                     OutputsDependencies {
                         indexer,
@@ -157,11 +170,13 @@ impl DefaultPlugins {
             Ok(())
         })?;
 
-        self.investing.compute((), context)?;
+        timed(Phase::Compute, INVESTING_ID, || {
+            self.investing.compute((), context)
+        })?;
 
         let utxo_states = thread::scope(|scope| -> Result<UTXOStates> {
             let pools = scope.spawn(|| {
-                timed("Computed pools", || {
+                timed(Phase::Compute, POOLS_ID, || {
                     self.pools.compute(
                         PoolsDependencies {
                             indexer,
@@ -173,7 +188,7 @@ impl DefaultPlugins {
                 })
             });
 
-            let utxo_states = timed("Computed distribution", || {
+            let utxo_states = timed(Phase::Compute, DISTRIBUTION_ID, || {
                 self.distribution.compute(
                     DistributionDependencies {
                         indexer,
@@ -195,7 +210,7 @@ impl DefaultPlugins {
         // Rarity Meter then consume both Cointime and Coinflow.
         thread::scope(|scope| -> Result<()> {
             let indicators = scope.spawn(|| {
-                timed("Computed indicators", || {
+                timed(Phase::Compute, INDICATORS_ID, || {
                     self.indicators.compute(
                         IndicatorsDependencies {
                             indexer,
@@ -208,7 +223,7 @@ impl DefaultPlugins {
                 })
             });
             let capital_sentiment = scope.spawn(|| {
-                timed("Computed capital sentiment", || {
+                timed(Phase::Compute, CAPITAL_SENTIMENT_ID, || {
                     self.capital_sentiment.compute(
                         CapitalSentimentDependencies {
                             indexer,
@@ -224,7 +239,7 @@ impl DefaultPlugins {
 
             let (cointime, coinflow) = join(
                 || {
-                    timed("Computed supply", || {
+                    timed(Phase::Compute, SUPPLY_ID, || {
                         self.supply.compute(
                             SupplyDependencies {
                                 indexer,
@@ -236,7 +251,7 @@ impl DefaultPlugins {
                         )
                     })?;
 
-                    timed("Computed cointime", || {
+                    timed(Phase::Compute, COINTIME_ID, || {
                         self.cointime.compute(
                             CointimeDependencies {
                                 indexer,
@@ -252,7 +267,7 @@ impl DefaultPlugins {
                     })
                 },
                 || {
-                    timed("Computed coinflow", || {
+                    timed(Phase::Compute, COINFLOW_ID, || {
                         self.coinflow.compute(
                             CoinflowDependencies {
                                 indexer,
@@ -267,7 +282,7 @@ impl DefaultPlugins {
             cointime?;
             coinflow?;
 
-            timed("Computed bedrock", || {
+            timed(Phase::Compute, BEDROCK_ID, || {
                 self.bedrock.compute(
                     BedrockDependencies {
                         indexer,
@@ -280,7 +295,7 @@ impl DefaultPlugins {
                     context,
                 )
             })?;
-            timed("Computed rarity meter", || {
+            timed(Phase::Compute, RARITY_METER_ID, || {
                 self.rarity_meter.compute(
                     RarityMeterDependencies {
                         indexer,

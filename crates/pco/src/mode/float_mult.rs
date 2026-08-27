@@ -354,7 +354,7 @@ pub(crate) fn compute_bid<F: Float>(sample: &[F]) -> Option<Bid<F>> {
 mod test {
   use std::f32::consts::TAU;
 
-  use rand::{Rng, SeedableRng};
+  use rand::{RngExt, SeedableRng};
   use rand_xoshiro::Xoroshiro128PlusPlus;
 
   use crate::data_types::number_priv::NumberPriv;
@@ -481,7 +481,7 @@ mod test {
     let mut nums = Vec::new();
     let mut rng = Xoroshiro128PlusPlus::seed_from_u64(0);
     for _ in 0..25 {
-      nums.push(rng.gen_range(0.0..1.0_f32));
+      nums.push(rng.random_range(0.0..1.0_f32));
     }
     assert_eq!(approx_sample_gcd_euclidean(&nums), None);
   }
@@ -602,7 +602,7 @@ mod test {
     let mut rng = rand_xoshiro::Xoroshiro128PlusPlus::seed_from_u64(0);
     let config = FloatMultConfig::from_inv_base(1E7);
     for _ in 0..1000 {
-      nums.push(rng.gen_range(0.0..1.0));
+      nums.push(rng.random_range(0.0..1.0));
     }
     assert!(!better_compression_than_classic(
       config, &nums

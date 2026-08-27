@@ -1,5 +1,5 @@
 use std::{
-    fs, io,
+    env, fs, io,
     net::IpAddr,
     path::{Path, PathBuf},
 };
@@ -132,15 +132,16 @@ impl Config {
     fn parse_args() -> Self {
         let mut config = Self::default();
         let mut parser = lexopt::Parser::from_env();
+        let command = Self::command_name();
 
         while let Some(arg) = parser.next().unwrap() {
             match arg {
                 Short('h') | Long("help") => {
-                    Self::print_help();
+                    Self::print_help(&command);
                     std::process::exit(0);
                 }
                 Short('V') | Long("version") => {
-                    println!("bitviewd {}", env!("CARGO_PKG_VERSION"));
+                    println!("{command} {}", env!("CARGO_PKG_VERSION"));
                     std::process::exit(0);
                 }
                 Long("bitviewdir") => {
@@ -187,15 +188,27 @@ impl Config {
         config
     }
 
-    fn print_help() {
+    fn command_name() -> String {
+        env::args_os()
+            .next()
+            .and_then(|path| {
+                Path::new(&path)
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(str::to_owned)
+            })
+            .unwrap_or_else(|| "bitviewd".to_owned())
+    }
+
+    fn print_help(command: &str) {
         let v = env!("CARGO_PKG_VERSION");
 
-        println!("{} {}", "bitviewd".bold(), v.bright_black());
+        println!("{} {}", command.bold(), v.bright_black());
         println!("Self-hosted Bitcoin data platform built on BRK");
         println!();
         println!("{}", "USAGE:".bold());
         println!(
-            "    {} bitviewd {}",
+            "    {} {command} {}",
             "[ENV]".bright_black(),
             "[OPTIONS]".bright_black()
         );

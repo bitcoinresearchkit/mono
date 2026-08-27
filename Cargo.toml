@@ -37,8 +37,7 @@ aide = { version = "0.16.0-alpha.4", features = ["axum-json", "axum-query"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "tracing"] }
 bitcoin = { version = "0.32.102", features = ["serde"] }
 bitview = { version = "0.11.2", path = "crates/bitview", default-features = false }
-bitviewd = { version = "0.11.2", path = "crates/bitviewd" }
-bitview_bencher = { version = "0.11.2", path = "crates/bitview_bencher" }
+bitviewd = { version = "0.11.2", path = "crates/bitviewd", default-features = false }
 bitview_bindgen = { version = "0.11.2", path = "crates/bitview_bindgen" }
 bitview_cli = { version = "0.11.2", path = "crates/bitview_cli" }
 bitview_client = { version = "0.11.2", path = "crates/bitview_client" }

@@ -38,7 +38,7 @@ pub fn chunk_size<L: Latent>(n: usize) -> usize {
 
 #[cfg(test)]
 mod tests {
-  use rand::Rng;
+  use rand::RngExt;
   use rand_xoshiro::rand_core::SeedableRng;
   use rand_xoshiro::Xoroshiro128PlusPlus;
 
@@ -77,7 +77,7 @@ mod tests {
     let mut rng = Xoroshiro128PlusPlus::seed_from_u64(0);
     let mut nums = Vec::new();
     for _ in 0..100 {
-      nums.push(rng.gen_range(0_u32..u32::MAX));
+      nums.push(rng.random_range(0_u32..u32::MAX));
     }
     let config = ChunkConfig {
       paging_spec: PagingSpec::EqualPagesUpTo(10),
@@ -91,7 +91,7 @@ mod tests {
     let mut rng = Xoroshiro128PlusPlus::seed_from_u64(0);
     let mut nums = Vec::new();
     for _ in 0..300 {
-      nums.push(rng.gen_range(-1.0..1.0));
+      nums.push(rng.random_range(-1.0..1.0));
     }
     let config = ChunkConfig {
       mode_spec: ModeSpec::TryFloatMult(0.1),

@@ -231,7 +231,7 @@ pub fn choose_base<T: Number>(nums: &[T]) -> Option<T::L> {
 
 #[cfg(test)]
 mod tests {
-  use rand::Rng;
+  use rand::RngExt;
   use rand_xoshiro::rand_core::SeedableRng;
 
   use super::*;
@@ -329,7 +329,7 @@ mod tests {
     // even just evens can be useful if the signal is strong enough
     let mut rng = rand_xoshiro::Xoroshiro128PlusPlus::seed_from_u64(0);
     let mut twos = (0_u32..200)
-      .map(|_| rng.gen_range(0_u32..1000) * 2)
+      .map(|_| rng.random_range(0_u32..1000) * 2)
       .collect::<Vec<_>>();
     assert_eq!(
       choose_candidate_base(&mut twos).unwrap().0,
