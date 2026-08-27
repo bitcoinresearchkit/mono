@@ -11,14 +11,20 @@ pub use full::FullBlockIndex;
 pub use two_level::TwoLevelBlockIndex;
 pub use volatile::VolatileBlockIndex;
 
-use super::KeyedBlockHandle;
+use super::{BlockHandle, IndexBlock, KeyedBlockHandle};
+use crate::{
+    Result,
+    table::{
+        block::{BlockType, ParsedItem},
+        util::load_block,
+    },
+};
 
 pub trait BlockIndex {
-    fn forward_reader(&self, needle: &[u8], seqno: u64) -> Option<BlockIndexIterImpl>;
     fn iter(&self) -> BlockIndexIterImpl;
 }
 
-pub trait BlockIndexIter: DoubleEndedIterator<Item = crate::Result<KeyedBlockHandle>> {
+pub trait BlockIndexIter: DoubleEndedIterator<Item = Result<KeyedBlockHandle>> {
     fn seek_lower(&mut self, key: &[u8], seqno: u64) -> bool;
     fn seek_upper(&mut self, key: &[u8], seqno: u64) -> bool;
 }
@@ -48,7 +54,7 @@ impl BlockIndexIter for BlockIndexIterImpl {
 }
 
 impl Iterator for BlockIndexIterImpl {
-    type Item = crate::Result<KeyedBlockHandle>;
+    type Item = Result<KeyedBlockHandle>;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self {
@@ -93,33 +99,86 @@ pub enum BlockIndexImpl {
     TwoLevel(TwoLevelBlockIndex),
 }
 
-impl BlockIndex for BlockIndexImpl {
-    fn forward_reader(&self, needle: &[u8], seqno: u64) -> Option<BlockIndexIterImpl> {
+impl BlockIndexImpl {
+    pub fn point_read<T>(
+        &self,
+        needle: &[u8],
+        seqno: u64,
+        mut read: impl FnMut(&BlockHandle) -> Result<Option<T>>,
+    ) -> Result<Option<T>> {
         match self {
-            Self::Full(index) => index
-                .forward_reader(needle, seqno)
-                .map(BlockIndexIterImpl::Full),
+            Self::Full(index) => Self::search_index(index.inner(), needle, seqno, &mut read),
             Self::VolatileFull(index) => {
-                let mut it = index.iter();
-
-                if it.seek_lower(needle, seqno) {
-                    Some(BlockIndexIterImpl::Volatile(it))
-                } else {
-                    None
-                }
+                let block = load_block(
+                    index.table_id,
+                    &index.path,
+                    &index.file_accessor,
+                    &index.cache,
+                    &index.handle,
+                    BlockType::Index,
+                    index.compression,
+                )?;
+                Self::search_index(&IndexBlock::new(block), needle, seqno, &mut read)
             }
             Self::TwoLevel(index) => {
-                let mut it = index.iter();
-
-                if it.seek_lower(needle, seqno) {
-                    Some(BlockIndexIterImpl::TwoLevel(it))
-                } else {
-                    None
+                let mut top = index.top_level_index.iter();
+                if !top.seek(needle, seqno) {
+                    return Ok(None);
                 }
+
+                for parsed in top {
+                    let lower_handle = BlockHandle::new(parsed.offset, parsed.size);
+                    let block = load_block(
+                        index.table_id,
+                        &index.path,
+                        &index.file_accessor,
+                        &index.cache,
+                        &lower_handle,
+                        BlockType::Index,
+                        index.compression,
+                    )?;
+                    if let Some(value) =
+                        Self::search_index(&IndexBlock::new(block), needle, seqno, &mut read)?
+                    {
+                        return Ok(Some(value));
+                    }
+                    if parsed
+                        .compare_key(needle, index.top_level_index.as_slice())
+                        .is_gt()
+                    {
+                        return Ok(None);
+                    }
+                }
+                Ok(None)
             }
         }
     }
 
+    fn search_index<T>(
+        index: &IndexBlock,
+        needle: &[u8],
+        seqno: u64,
+        read: &mut impl FnMut(&BlockHandle) -> Result<Option<T>>,
+    ) -> Result<Option<T>> {
+        let mut iter = index.iter();
+        if !iter.seek(needle, seqno) {
+            return Ok(None);
+        }
+
+        for parsed in iter {
+            let handle = BlockHandle::new(parsed.offset, parsed.size);
+            if let Some(value) = read(&handle)? {
+                return Ok(Some(value));
+            }
+            if parsed.compare_key(needle, index.as_slice()).is_gt() {
+                return Ok(None);
+            }
+        }
+        Ok(None)
+    }
+}
+
+impl BlockIndex for BlockIndexImpl {
     fn iter(&self) -> BlockIndexIterImpl {
         match self {
             Self::Full(index) => BlockIndexIterImpl::Full(index.iter()),

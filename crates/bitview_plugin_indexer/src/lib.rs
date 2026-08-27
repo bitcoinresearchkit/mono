@@ -50,8 +50,8 @@ use vecs::{
 use state::State;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERSION);
-const EXPORT_INTERVAL: Duration = Duration::from_secs(60);
-const MAX_PENDING_BLOCKS: usize = 10_000;
+const EXPORT_HEIGHT_INTERVAL: usize = 100;
+const MAX_PENDING_RECORDS: usize = 35_000_000;
 pub const ID: PluginId = STORAGE.id();
 
 pub struct Indexer<M: StorageMode = Rw> {
@@ -79,11 +79,11 @@ enum XorMarker {
 }
 
 fn is_export_height(height: Height) -> bool {
-    height != 0 && height % SNAPSHOT_BLOCK_RANGE == 0
+    height != 0 && height % EXPORT_HEIGHT_INTERVAL == 0
 }
 
-fn is_export_due(height: Height, elapsed: Duration, pending_blocks: usize) -> bool {
-    pending_blocks >= MAX_PENDING_BLOCKS || (is_export_height(height) && elapsed >= EXPORT_INTERVAL)
+fn is_export_due(height: Height, pending_records: usize) -> bool {
+    is_export_height(height) && pending_records >= MAX_PENDING_RECORDS
 }
 
 fn read_xor_marker(path: &Path) -> Result<XorMarker> {
@@ -445,7 +445,7 @@ impl IndexerInner<Rw> {
         let mut lengths = starting_lengths;
         let mut pending_export_height = None;
         let mut pending_blocks = 0;
-        let mut last_export = Instant::now();
+        let mut pending_records = 0;
 
         let export =
             move |stores: &mut Stores, vecs: &mut Vecs, completed_height: Height| -> Result<()> {
@@ -544,8 +544,10 @@ impl IndexerInner<Rw> {
             buffers.finish_block(*block.hash());
             pending_export_height = Some(height);
             pending_blocks += 1;
+            pending_records += tx_count + input_count + output_count;
 
-            if is_export_due(height, last_export.elapsed(), pending_blocks) {
+            if is_export_due(height, pending_records) {
+                info!("Export batch: {pending_blocks} blocks, {pending_records} records");
                 drop(readers);
                 export(stores, vecs, height)?;
                 readers = Readers::new(vecs);
@@ -553,7 +555,7 @@ impl IndexerInner<Rw> {
                 // still covers every pending block.
                 pending_export_height = None;
                 pending_blocks = 0;
-                last_export = Instant::now();
+                pending_records = 0;
             }
         }
 
@@ -672,30 +674,16 @@ mod import_tests {
     }
 
     #[test]
-    fn export_is_due_at_the_time_or_block_limit() {
-        let snapshot_height = Height::from(SNAPSHOT_BLOCK_RANGE);
+    fn export_is_due_at_record_limit_on_clean_height() {
+        let export_height = Height::from(EXPORT_HEIGHT_INTERVAL);
 
+        assert!(!is_export_due(Height::ZERO, MAX_PENDING_RECORDS));
         assert!(!is_export_due(
-            Height::ZERO,
-            EXPORT_INTERVAL,
-            MAX_PENDING_BLOCKS - 1
+            export_height.incremented(),
+            MAX_PENDING_RECORDS,
         ));
-        assert!(!is_export_due(
-            snapshot_height.incremented(),
-            EXPORT_INTERVAL,
-            MAX_PENDING_BLOCKS - 1
-        ));
-        assert!(!is_export_due(
-            snapshot_height,
-            EXPORT_INTERVAL - Duration::from_nanos(1),
-            MAX_PENDING_BLOCKS - 1
-        ));
-        assert!(is_export_due(snapshot_height, EXPORT_INTERVAL, 0));
-        assert!(is_export_due(
-            snapshot_height.incremented(),
-            Duration::ZERO,
-            MAX_PENDING_BLOCKS
-        ));
+        assert!(!is_export_due(export_height, MAX_PENDING_RECORDS - 1));
+        assert!(is_export_due(export_height, MAX_PENDING_RECORDS));
     }
 
     #[test]

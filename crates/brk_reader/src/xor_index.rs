@@ -45,7 +45,7 @@ impl XORIndex {
         }
 
         let body_len = (len - i) & !(XOR_LEN - 1);
-        for chunk in bytes[i..i + body_len].chunks_exact_mut(XOR_LEN) {
+        for chunk in bytes[i..i + body_len].as_chunks_mut::<XOR_LEN>().0 {
             for (b, m) in chunk.iter_mut().zip(xb) {
                 *b ^= m;
             }

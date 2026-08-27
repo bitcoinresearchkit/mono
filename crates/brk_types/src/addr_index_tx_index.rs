@@ -10,11 +10,6 @@ use super::{TxIndex, TypeIndex};
 pub struct AddrIndexTxIndex(u64);
 
 impl AddrIndexTxIndex {
-    #[inline]
-    pub(crate) fn to_be_bytes(self) -> [u8; 8] {
-        self.0.to_be_bytes()
-    }
-
     pub fn addr_index(&self) -> u32 {
         (self.0 >> 32) as u32
     }

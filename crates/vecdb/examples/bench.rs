@@ -127,7 +127,7 @@ fn check_cache_eviction() -> bool {
 
 // --- Vec size ---
 
-fn print_vec_size(vec: &dyn AnyStoredVec, label: &str) {
+fn print_vec_size(vec: &impl AnyStoredVec, label: &str) {
     let region_bytes = vec.region().meta().len();
     let logical_bytes = vec.len() * vec.value_type_to_size_of();
     let ratio = if logical_bytes > 0 {

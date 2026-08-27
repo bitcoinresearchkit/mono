@@ -4,7 +4,7 @@
 
 use super::KeyedBlockHandle;
 use crate::{
-    Cache, CompressionType, GlobalTableId, Slice,
+    Cache, CompressionType, GlobalTableId, Result, Slice,
     file_accessor::FileAccessor,
     table::{
         BlockHandle, IndexBlock,
@@ -28,12 +28,6 @@ pub struct VolatileBlockIndex {
 }
 
 impl VolatileBlockIndex {
-    pub fn forward_reader(&self, needle: &[u8], seqno: u64) -> Iter {
-        let mut iter = Iter::new(self);
-        iter.seek_lower(needle, seqno);
-        iter
-    }
-
     pub fn iter(&self) -> Iter {
         Iter::new(self)
     }
@@ -82,7 +76,7 @@ impl BlockIndexIter for Iter {
 }
 
 impl Iterator for Iter {
-    type Item = crate::Result<KeyedBlockHandle>;
+    type Item = Result<KeyedBlockHandle>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(inner) = &mut self.inner {

@@ -1,64 +1,44 @@
-use std::hash::{Hash, Hasher};
+use std::mem;
 
 use byteview::ByteView;
 use serde::Serialize;
 
-use crate::{AddrIndexTxIndex, Vout};
+use super::{OutPoint, TxIndex, TypeIndex, Vout};
 
-use super::{OutPoint, TxIndex, TypeIndex};
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
+pub struct AddrIndexOutPoint([u8; 10]);
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize)]
-#[repr(C)]
-pub struct AddrIndexOutPoint {
-    addr_index_tx_index: AddrIndexTxIndex, // u64
-    vout: Vout,                            // u16
-}
+const _: () = assert!(mem::size_of::<AddrIndexOutPoint>() == 10);
 
 impl AddrIndexOutPoint {
     #[inline]
-    pub(crate) fn to_be_bytes(self) -> [u8; 10] {
-        let mut bytes = [0; 10];
-        bytes[..8].copy_from_slice(&self.addr_index_tx_index.to_be_bytes());
-        bytes[8..].copy_from_slice(&self.vout.to_be_bytes());
-        bytes
-    }
-
-    #[inline]
     pub fn tx_index(&self) -> TxIndex {
-        self.addr_index_tx_index.tx_index()
+        TxIndex::from(u32::from_be_bytes([
+            self.0[4], self.0[5], self.0[6], self.0[7],
+        ]))
     }
 
     #[inline]
     pub fn vout(&self) -> Vout {
-        self.vout
-    }
-}
-
-impl Hash for AddrIndexOutPoint {
-    #[inline]
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.addr_index_tx_index.hash(state);
-        self.vout.hash(state);
+        Vout::from(u16::from_be_bytes([self.0[8], self.0[9]]))
     }
 }
 
 impl From<(TypeIndex, OutPoint)> for AddrIndexOutPoint {
     #[inline]
     fn from((addr_index, outpoint): (TypeIndex, OutPoint)) -> Self {
-        Self {
-            addr_index_tx_index: AddrIndexTxIndex::from((addr_index, outpoint.tx_index())),
-            vout: outpoint.vout(),
-        }
+        let mut bytes = [0; 10];
+        bytes[..4].copy_from_slice(&u32::from(addr_index).to_be_bytes());
+        bytes[4..8].copy_from_slice(&u32::from(outpoint.tx_index()).to_be_bytes());
+        bytes[8..].copy_from_slice(&outpoint.vout().to_be_bytes());
+        Self(bytes)
     }
 }
 
 impl From<ByteView> for AddrIndexOutPoint {
     #[inline]
     fn from(value: ByteView) -> Self {
-        Self {
-            addr_index_tx_index: AddrIndexTxIndex::from(ByteView::new(&value[..8])),
-            vout: Vout::from(u16::from_be_bytes([value[8], value[9]])),
-        }
+        Self(value.as_ref().try_into().unwrap())
     }
 }
 
@@ -68,10 +48,11 @@ impl From<AddrIndexOutPoint> for ByteView {
         ByteView::from(&value)
     }
 }
+
 impl From<&AddrIndexOutPoint> for ByteView {
     #[inline]
     fn from(value: &AddrIndexOutPoint) -> Self {
-        ByteView::from(value.to_be_bytes())
+        ByteView::from(value.0)
     }
 }
 
@@ -93,5 +74,7 @@ mod tests {
             "the LSM key encoding is part of the persisted format",
         );
         assert_eq!(AddrIndexOutPoint::from(bytes), value);
+        assert_eq!(value.tx_index(), TxIndex::new(0x0506_0708));
+        assert_eq!(value.vout(), Vout::from(0x090a_u16));
     }
 }

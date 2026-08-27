@@ -79,7 +79,8 @@ where
                 if puts.remove(&key).is_some() {
                     return;
                 }
-                debug_assert!(dels.insert(key), "double deletion in pending store changes");
+                let inserted = dels.insert(key);
+                debug_assert!(inserted, "double deletion in pending store changes");
             }
             Self::Sequential(changes) => changes.push(Item::Tomb(key)),
         }

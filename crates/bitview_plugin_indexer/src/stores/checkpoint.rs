@@ -148,7 +148,7 @@ fn sync_parent(path: &Path) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use brk_error::Error;
-    use brk_store::{Kind, Mode, Store};
+    use brk_store::{Kind, Store};
     use brk_types::{AddrIndexTxIndex, TxIndex, TypeIndex, Unit, Version};
 
     use super::*;
@@ -158,7 +158,7 @@ mod tests {
     }
 
     fn open_store(db: &Database, path: &Path, name: &str) -> Result<Store<AddrIndexTxIndex, Unit>> {
-        Store::import(db, path, name, Version::ZERO, Mode::Any, Kind::Vec)
+        Store::import(db, path, name, Version::ZERO, Kind::Vec)
     }
 
     #[test]

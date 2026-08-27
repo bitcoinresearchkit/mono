@@ -188,15 +188,15 @@ fn configure_mesh(
     y_format: &YAxisFormat,
     x_labels: usize,
 ) -> Result<(), Box<dyn Error>> {
-    let y_formatter: Box<dyn Fn(&f64) -> String> = match y_format {
-        YAxisFormat::Bytes => Box::new(|y: &f64| {
+    let y_formatter = |y: &f64| match y_format {
+        YAxisFormat::Bytes => {
             if y.fract() == 0.0 {
                 format!("{:.0}", y)
             } else {
                 format!("{:.1}", y)
             }
-        }),
-        YAxisFormat::Number => Box::new(|y: &f64| format::axis_number(*y)),
+        }
+        YAxisFormat::Number => format::axis_number(*y),
     };
 
     chart

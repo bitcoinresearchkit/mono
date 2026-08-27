@@ -435,19 +435,11 @@ impl<T: Traversable> Traversable for Option<T> {
     }
 
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        match self {
-            Some(inner) => Box::new(inner.iter_any_exportable())
-                as Box<dyn Iterator<Item = &dyn AnyExportableVec>>,
-            None => Box::new(std::iter::empty()),
-        }
+        self.iter().flat_map(|inner| inner.iter_any_exportable())
     }
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        match self {
-            Some(inner) => Box::new(inner.iter_any_visible())
-                as Box<dyn Iterator<Item = &dyn AnyExportableVec>>,
-            None => Box::new(std::iter::empty()),
-        }
+        self.iter().flat_map(|inner| inner.iter_any_visible())
     }
 
     fn collect_series_descriptions<'a>(
@@ -471,21 +463,11 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
     }
 
     fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        let mut iter: Box<dyn Iterator<Item = &dyn AnyExportableVec>> =
-            Box::new(std::iter::empty());
-        for v in self.values() {
-            iter = Box::new(iter.chain(v.iter_any_exportable()));
-        }
-        iter
+        self.values().flat_map(|value| value.iter_any_exportable())
     }
 
     fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        let mut iter: Box<dyn Iterator<Item = &dyn AnyExportableVec>> =
-            Box::new(std::iter::empty());
-        for v in self.values() {
-            iter = Box::new(iter.chain(v.iter_any_visible()));
-        }
-        iter
+        self.values().flat_map(|value| value.iter_any_visible())
     }
 
     fn collect_series_descriptions<'a>(

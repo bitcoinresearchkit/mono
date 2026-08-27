@@ -40,7 +40,7 @@ const UPDATE_WAIT_TIMEOUT: Duration = Duration::from_secs(4);
 #[cfg(any(feature = "chain", feature = "series", feature = "urpd"))]
 impl Query {
     #[cfg(feature = "chain")]
-    fn read_plugin(&self, plugin: &dyn Plugin) -> Result<PluginReadGuard> {
+    fn read_plugin(&self, plugin: &impl Plugin) -> Result<PluginReadGuard> {
         plugin
             .gate()
             .read_for(UPDATE_WAIT_TIMEOUT)

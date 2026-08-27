@@ -1,5 +1,5 @@
 use brk_error::Result;
-use brk_store::{Kind, Mode, Store, open_database};
+use brk_store::{Kind, Store, open_database};
 use brk_types::{AddrHash, AddrIndexTxIndex, TxIndex, TypeIndex, Unit, Version};
 
 fn key(address: u32, transaction: u32) -> AddrIndexTxIndex {
@@ -13,14 +13,7 @@ fn owned_ingest_merges_puts_and_tombstones() -> Result<()> {
 
     {
         let db = open_database(path)?;
-        let mut store = Store::import(
-            &db,
-            path,
-            "owned_ingest",
-            Version::ZERO,
-            Mode::Any,
-            Kind::Vec,
-        )?;
+        let mut store = Store::import(&db, path, "owned_ingest", Version::ZERO, Kind::Vec)?;
 
         store.insert(key(1, 1), Unit);
         store.insert(key(2, 2), Unit);
@@ -38,14 +31,8 @@ fn owned_ingest_merges_puts_and_tombstones() -> Result<()> {
 
     {
         let db = open_database(path)?;
-        let store: Store<AddrIndexTxIndex, Unit> = Store::import(
-            &db,
-            path,
-            "owned_ingest",
-            Version::ZERO,
-            Mode::Any,
-            Kind::Vec,
-        )?;
+        let store: Store<AddrIndexTxIndex, Unit> =
+            Store::import(&db, path, "owned_ingest", Version::ZERO, Kind::Vec)?;
 
         assert!(store.get(&key(1, 1))?.is_none());
         assert!(store.get(&key(2, 2))?.is_some());
@@ -61,14 +48,7 @@ fn vector_pending_preserves_insert_remove_semantics() -> Result<()> {
     let dir = tempfile::tempdir()?;
     let path = dir.path();
     let db = open_database(path)?;
-    let mut store = Store::import(
-        &db,
-        path,
-        "vector_pending",
-        Version::ZERO,
-        Mode::Any,
-        Kind::Vec,
-    )?;
+    let mut store = Store::import(&db, path, "vector_pending", Version::ZERO, Kind::Vec)?;
 
     let restored = key(3, 3);
     store.insert(restored, Unit);
@@ -103,14 +83,7 @@ fn pending_tombstone_hides_persisted_point_value() -> Result<()> {
     let dir = tempfile::tempdir()?;
     let path = dir.path();
     let db = open_database(path)?;
-    let mut store = Store::import(
-        &db,
-        path,
-        "pending_tombstone",
-        Version::ZERO,
-        Mode::Any,
-        Kind::Random,
-    )?;
+    let mut store = Store::import(&db, path, "pending_tombstone", Version::ZERO, Kind::Random)?;
     let key = AddrHash::new(42);
 
     store.insert(key, TypeIndex::new(1));

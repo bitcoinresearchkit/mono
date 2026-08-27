@@ -246,24 +246,10 @@ impl Table {
         key: &[u8],
         point_read: impl Fn(&DataBlock, &[u8]) -> Option<T>,
     ) -> Result<Option<T>> {
-        let Some(iter) = self.block_index.forward_reader(key, u64::MAX) else {
-            return Ok(None);
-        };
-
-        for block_handle in iter {
-            let block_handle = block_handle?;
-            let block = self.load_data_block(block_handle.as_ref())?;
-
-            if let Some(item) = point_read(&block, key) {
-                return Ok(Some(item));
-            }
-
-            if block_handle.end_key() > &key {
-                return Ok(None);
-            }
-        }
-
-        Ok(None)
+        self.block_index.point_read(key, u64::MAX, |block_handle| {
+            let block = self.load_data_block(block_handle)?;
+            Ok(point_read(&block, key))
+        })
     }
 
     /// Creates a scanner over the `Table`.

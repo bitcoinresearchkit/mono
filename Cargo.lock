@@ -1224,9 +1224,9 @@ version = "0.11.2"
 dependencies = [
  "bitcoin",
  "brk_fjall",
+ "brk_pco",
  "jiff",
  "jsonrpc",
- "pco",
  "serde_json",
  "thiserror",
  "tokio",
@@ -1330,6 +1330,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "brk_pco"
+version = "0.11.2"
+dependencies = [
+ "better_io",
+ "dtype_dispatch",
+ "half",
+ "rand 0.10.2",
+ "rand_xoshiro",
+]
+
+[[package]]
 name = "brk_reader"
 version = "0.11.2"
 dependencies = [
@@ -1381,10 +1392,10 @@ dependencies = [
  "bitcoin",
  "brk_byteview",
  "brk_error",
+ "brk_pco",
  "derive_more",
  "itoa",
  "jiff",
- "pco",
  "rapidhash",
  "rustc-hash",
  "ryu",
@@ -3132,17 +3143,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pco"
-version = "0.11.2"
-dependencies = [
- "better_io",
- "dtype_dispatch",
- "half",
- "rand 0.10.2",
- "rand_xoshiro",
-]
-
-[[package]]
 name = "percent-encoding"
 version = "2.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4435,12 +4435,12 @@ checksum = "bfa6c38708f6257f1ec2ca7e5a11f9bbf58a27d7060078b6b333624968183d96"
 name = "vecdb"
 version = "0.11.2"
 dependencies = [
+ "brk_pco",
  "itoa",
  "libc",
  "log",
  "lz4_flex",
  "parking_lot",
- "pco",
  "rawdb",
  "rayon",
  "ryu",

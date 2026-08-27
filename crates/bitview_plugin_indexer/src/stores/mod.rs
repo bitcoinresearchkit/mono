@@ -4,7 +4,7 @@ use rustc_hash::FxHashSet;
 
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use brk_error::{Error, OptionData, Result};
-use brk_store::{AnyStore, Kind, Mode, PendingIngest, Store};
+use brk_store::{AnyStore, Kind, PendingIngest, Store};
 use brk_types::{
     AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, BlockHashPrefix, Height, OutPoint, OutputType,
     TxIndex, TxOutIndex, TxidPrefix, TypeIndex, Unit, Version, Vout,
@@ -160,7 +160,6 @@ impl StoresInner {
                 path,
                 &format!("h2i{}", id as usize),
                 version,
-                Mode::PushOnly,
                 Kind::Random,
             )
         };
@@ -171,7 +170,6 @@ impl StoresInner {
                 path,
                 &format!("a2t{}", id as usize),
                 version,
-                Mode::PushOnly,
                 Kind::Vec,
             )
         };
@@ -182,7 +180,6 @@ impl StoresInner {
                 path,
                 &format!("a2u{}", id as usize),
                 version,
-                Mode::Any,
                 Kind::Vec,
             )
         };
@@ -193,19 +190,16 @@ impl StoresInner {
                 path,
                 "blockhash_prefix_to_height",
                 version,
-                Mode::PushOnly,
                 Kind::Random,
             )
         };
         let create_txid_prefix_store = || {
-            Store::import_cached(
+            Store::import(
                 database_ref,
                 path,
                 "txid_prefix_to_tx_index",
                 version,
-                Mode::PushOnly,
                 Kind::Recent,
-                5,
             )
         };
 
@@ -407,8 +401,6 @@ impl StoresInner {
                 }
                 current_index += 1;
             });
-
-        self.txid_prefix_to_tx_index.clear_caches();
     }
 
     fn rollback_outputs_and_inputs(

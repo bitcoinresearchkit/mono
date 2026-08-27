@@ -7,7 +7,7 @@ use super::{
     owned_data_block_iter::OwnedDataBlockIter,
 };
 use crate::{
-    Cache, CompressionType, InternalValue,
+    Cache, CompressionType, InternalValue, Result,
     file_accessor::FileAccessor,
     table::{
         BlockHandle,
@@ -89,7 +89,7 @@ impl Iter {
 }
 
 impl Iterator for Iter {
-    type Item = crate::Result<InternalValue>;
+    type Item = Result<InternalValue>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Always try to keep iterating inside the already-materialized low data block first; this
@@ -166,22 +166,15 @@ impl Iterator for Iter {
             };
             let handle = fail_iter!(handle);
 
-            // Load the next data block referenced by the index handle.  We try the shared block
-            // cache first to avoid hitting the filesystem, and fall back to `load_block` on miss.
-            let block = match self.cache.get_block(self.table_id, handle.offset()) {
-                Some(block) => block,
-                None => {
-                    fail_iter!(load_block(
-                        self.table_id,
-                        &self.path,
-                        &self.file_accessor,
-                        &self.cache,
-                        &BlockHandle::new(handle.offset(), handle.size()),
-                        crate::table::block::BlockType::Data,
-                        self.compression,
-                    ))
-                }
-            };
+            let block = fail_iter!(load_block(
+                self.table_id,
+                &self.path,
+                &self.file_accessor,
+                &self.cache,
+                &BlockHandle::new(handle.offset(), handle.size()),
+                crate::table::block::BlockType::Data,
+                self.compression,
+            ));
             let block = DataBlock::new(block);
 
             let mut reader = create_data_block_reader(block);
@@ -281,22 +274,15 @@ impl DoubleEndedIterator for Iter {
             };
             let handle = fail_iter!(handle);
 
-            // Retrieve the next data block from the cache (or disk on miss) so the high-side reader
-            // can serve entries in reverse order.
-            let block = match self.cache.get_block(self.table_id, handle.offset()) {
-                Some(block) => block,
-                None => {
-                    fail_iter!(load_block(
-                        self.table_id,
-                        &self.path,
-                        &self.file_accessor,
-                        &self.cache,
-                        &BlockHandle::new(handle.offset(), handle.size()),
-                        crate::table::block::BlockType::Data,
-                        self.compression,
-                    ))
-                }
-            };
+            let block = fail_iter!(load_block(
+                self.table_id,
+                &self.path,
+                &self.file_accessor,
+                &self.cache,
+                &BlockHandle::new(handle.offset(), handle.size()),
+                crate::table::block::BlockType::Data,
+                self.compression,
+            ));
             let block = DataBlock::new(block);
 
             let mut reader = create_data_block_reader(block);

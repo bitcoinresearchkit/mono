@@ -5,7 +5,6 @@ use brk_types::{TxIndex, Txid, TxidPrefix, Version};
 // One version for all data sources
 // Increment on **change _OR_ addition**
 pub const VERSION: Version = Version::new(34);
-pub const SNAPSHOT_BLOCK_RANGE: usize = 1_000;
 
 /// Known duplicate Bitcoin transactions (BIP30)
 /// https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki
