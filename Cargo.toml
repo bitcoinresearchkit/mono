@@ -132,5 +132,5 @@ tag-message = "release: v{{version}}"
 allow-branch = ["main", "next"]
 
 [workspace.metadata.release.rate-limit]
-new-packages = 32
+new-packages = 48
 existing-packages = 64
