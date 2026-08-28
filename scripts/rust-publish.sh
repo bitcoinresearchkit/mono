@@ -9,6 +9,7 @@ cd "$ROOT_DIR"
 # bitview_website embeds ignored assets through symlinks, so Cargo requires
 # --allow-dirty even when the Git worktree itself is clean.
 cargo release publish --package brk_logger --execute --no-confirm
+cargo release publish --package importmap --execute --no-confirm
 
 PUBLISH_LOG=$(mktemp -t brk-rust-publish)
 trap 'rm -f "$PUBLISH_LOG"' EXIT
