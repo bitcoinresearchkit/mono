@@ -389,7 +389,7 @@ checksum = "b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da"
 
 [[package]]
 name = "bitview"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_plugin",
  "bitview_plugin_indexer",
@@ -409,7 +409,7 @@ dependencies = [
 
 [[package]]
 name = "bitview-custom-plugin-example"
-version = "0.0.0"
+version = "0.12.0"
 dependencies = [
  "bitview",
  "bitview_default",
@@ -428,7 +428,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_bindgen"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_query",
@@ -444,7 +444,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_cli"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "serde_json",
  "ureq",
@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_client"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_types",
@@ -465,7 +465,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_cohort"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_traversable",
  "brk_error",
@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_compute"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_traversable",
@@ -495,7 +495,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_default"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -532,7 +532,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_mcp"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "axum",
  "base64 0.23.1",
@@ -548,7 +548,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_traversable",
  "brk_error",
@@ -559,7 +559,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_bedrock"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -581,7 +581,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_blocks"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -597,7 +597,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_capital_sentiment"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -614,7 +614,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_coinflow"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -633,7 +633,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_cointime"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -653,7 +653,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_constants"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -664,7 +664,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_distribution"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -691,7 +691,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_indexer"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "bitview_cohort",
@@ -718,7 +718,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_indicators"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -738,7 +738,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_inputs"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -757,7 +757,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_investing"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -773,7 +773,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_mappings"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -790,7 +790,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_market"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -808,7 +808,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_mining"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -826,7 +826,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_op_return"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -843,7 +843,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_outputs"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_cohort",
  "bitview_compute",
@@ -864,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_pools"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_price"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -907,7 +907,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_rarity_meter"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -929,7 +929,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_supply"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -949,7 +949,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_plugin_transactions"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
@@ -970,7 +970,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_query"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "bitview_cohort",
@@ -1010,7 +1010,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_runtime"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_plugin",
  "bitview_runtime_derive",
@@ -1025,7 +1025,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_runtime_derive"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1034,7 +1034,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_server"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "aide",
  "axum",
@@ -1061,7 +1061,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_traversable"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview_traversable_derive",
  "bitview_types",
@@ -1075,7 +1075,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_traversable_derive"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1084,7 +1084,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_types"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_types",
  "derive_more",
@@ -1096,7 +1096,7 @@ dependencies = [
 
 [[package]]
 name = "bitview_website"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "axum",
  "brk_logger",
@@ -1111,7 +1111,7 @@ dependencies = [
 
 [[package]]
 name = "bitviewd"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "aide",
  "bitview",
@@ -1145,7 +1145,7 @@ dependencies = [
 
 [[package]]
 name = "bitviewd_bench"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitview",
  "bitview_default",
@@ -1162,7 +1162,7 @@ dependencies = [
 
 [[package]]
 name = "bitviewd_bench_visualizer"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "derive_more",
  "plotters",
@@ -1170,7 +1170,7 @@ dependencies = [
 
 [[package]]
 name = "blk"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_error",
@@ -1192,7 +1192,7 @@ dependencies = [
 
 [[package]]
 name = "brk"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_error",
  "brk_fetcher",
@@ -1208,7 +1208,7 @@ dependencies = [
 
 [[package]]
 name = "brk_alloc"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "libmimalloc-sys",
  "mimalloc",
@@ -1216,11 +1216,11 @@ dependencies = [
 
 [[package]]
 name = "brk_byteview"
-version = "0.11.2"
+version = "0.12.0"
 
 [[package]]
 name = "brk_error"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_fjall",
@@ -1236,7 +1236,7 @@ dependencies = [
 
 [[package]]
 name = "brk_fetcher"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_error",
  "brk_logger",
@@ -1248,7 +1248,7 @@ dependencies = [
 
 [[package]]
 name = "brk_fjall"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_lsm_tree",
  "flume",
@@ -1258,7 +1258,7 @@ dependencies = [
 
 [[package]]
 name = "brk_iterator"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_error",
@@ -1269,7 +1269,7 @@ dependencies = [
 
 [[package]]
 name = "brk_logger"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "jiff",
  "owo-colors",
@@ -1280,7 +1280,7 @@ dependencies = [
 
 [[package]]
 name = "brk_lsm_tree"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "arc-swap",
  "brk_byteview",
@@ -1303,7 +1303,7 @@ dependencies = [
 
 [[package]]
 name = "brk_mempool"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_error",
@@ -1321,7 +1321,7 @@ dependencies = [
 
 [[package]]
 name = "brk_oracle"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_types",
  "derive_more",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "brk_pco"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "better_io",
  "dtype_dispatch",
@@ -1342,7 +1342,7 @@ dependencies = [
 
 [[package]]
 name = "brk_reader"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_error",
@@ -1358,7 +1358,7 @@ dependencies = [
 
 [[package]]
 name = "brk_rpc"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_error",
@@ -1375,7 +1375,7 @@ dependencies = [
 
 [[package]]
 name = "brk_store"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_byteview",
  "brk_error",
@@ -1387,7 +1387,7 @@ dependencies = [
 
 [[package]]
 name = "brk_types"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "bitcoin",
  "brk_byteview",
@@ -2633,7 +2633,7 @@ dependencies = [
 
 [[package]]
 name = "importmap"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "include_dir",
  "rapidhash",
@@ -2980,7 +2980,7 @@ dependencies = [
 
 [[package]]
 name = "mmpl"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_error",
  "brk_mempool",
@@ -3290,7 +3290,7 @@ dependencies = [
 
 [[package]]
 name = "quickmatch"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "rustc-hash",
 ]
@@ -3382,7 +3382,7 @@ dependencies = [
 
 [[package]]
 name = "rawdb"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "libc",
  "log",
@@ -4444,7 +4444,7 @@ checksum = "bfa6c38708f6257f1ec2ca7e5a11f9bbf58a27d7060078b6b333624968183d96"
 
 [[package]]
 name = "vecdb"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "brk_pco",
  "itoa",
@@ -4467,7 +4467,7 @@ dependencies = [
 
 [[package]]
 name = "vecdb_derive"
-version = "0.11.2"
+version = "0.12.0"
 dependencies = [
  "quote",
  "syn 3.0.4",
