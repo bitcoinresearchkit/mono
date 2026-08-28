@@ -4,8 +4,8 @@ use derive_more::{Deref, DerefMut};
 use vecdb::{DeltaAvg, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
-    AvgCentsToUsd, AvgSatsToBtc, CACHE_BUDGET, CachedWindowStartVec, DerivedResolutions,
-    LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight, Resolutions, Windows,
+    AvgCentsToUsd, AvgSatsToBtc, CachedWindowStartVec, DerivedResolutions, LazyPerBlock,
+    LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight, Resolutions, Windows,
 };
 
 /// Lazy rolling averages for all 4 windows, for Amount (sats + btc + cents + usd), all as f64.
@@ -46,10 +46,9 @@ impl LazyRollingAvgsAmountFromHeight {
                     move || cached.snapshot()
                 },
             );
-            let source = CACHE_BUDGET.wrap(sats_avg.clone());
             let sats_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_sats"),
-                source,
+                sats_avg.clone(),
                 version,
                 indexes,
             );
@@ -80,10 +79,9 @@ impl LazyRollingAvgsAmountFromHeight {
                 starts_version,
                 move || cached.snapshot(),
             );
-            let source = CACHE_BUDGET.wrap(cents_avg.clone());
             let cents_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_cents"),
-                source,
+                cents_avg.clone(),
                 version,
                 indexes,
             );

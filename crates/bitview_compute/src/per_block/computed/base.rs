@@ -9,7 +9,7 @@ use vecdb::{
     ReadableVec, Rw, StorageMode, VecValue,
 };
 
-use crate::{CACHE_BUDGET, Resolutions};
+use crate::Resolutions;
 
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(merge)]
@@ -36,8 +36,8 @@ where
     ) -> Result<Self> {
         let height: EagerVec<PcoVec<Height, T>> = EagerVec::forced_import(db, name, version)?;
 
-        let source = CACHE_BUDGET.wrap(height.read_only_clone());
-        let resolutions = Resolutions::from_height_source(name, source, version, indexes);
+        let resolutions =
+            Resolutions::from_height_source(name, height.read_only_clone(), version, indexes);
 
         Ok(Self {
             height,

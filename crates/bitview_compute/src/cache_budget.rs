@@ -4,7 +4,9 @@ use std::sync::{
 };
 
 use parking_lot::Mutex;
-use vecdb::{CachedVec, CachedVecBudget, ReadableVec, TypedVec};
+use vecdb::{
+    CachedVec, CachedVecBudget, ReadableBoxedVec, ReadableVec, TypedVec, VecIndex, VecValue,
+};
 
 const MAX_BYTES: usize = 2 * 1024 * 1024 * 1024;
 
@@ -61,6 +63,19 @@ impl CacheBudget {
             invalidate: Arc::new(move || invalidated.invalidate()),
         });
         cached
+    }
+
+    /// Adds this budget's cache unless the type-erased source is already cached.
+    pub fn wrap_boxed<I, T>(&'static self, source: ReadableBoxedVec<I, T>) -> ReadableBoxedVec<I, T>
+    where
+        I: VecIndex,
+        T: VecValue,
+    {
+        if source.has_cache_layer() {
+            source
+        } else {
+            ReadableBoxedVec::new(self.wrap(source))
+        }
     }
 
     /// Invalidates every registered vec.

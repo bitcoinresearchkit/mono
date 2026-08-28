@@ -51,6 +51,15 @@ pub const READ_CHUNK_SIZE: usize = 4096;
 /// For maximum throughput on stored vecs, prefer `fold_range` / `for_each_range`
 /// with static dispatch (`&impl ReadableVec` or concrete type).
 pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
+    /// Whether this vec itself is a materialization-cache layer.
+    ///
+    /// This does not report whether a snapshot is currently resident. Consumers
+    /// use it to avoid stacking cache wrappers around the same vec.
+    #[inline]
+    fn has_cache_layer(&self) -> bool {
+        false
+    }
+
     // ── Required ─────────────────────────────────────────────────────
 
     /// Preferred number of values per cursor refill.

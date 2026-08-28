@@ -7,7 +7,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{LazyAggVec, ReadOnlyClone, ReadableBoxedVec, ReadableCloneableVec, VecValue};
 
-use crate::PerResolution;
+use crate::{CACHE_BUDGET, PerResolution};
 
 use super::CoarserIndex;
 
@@ -65,6 +65,8 @@ where
         version: Version,
         indexes: &crate::IndexSources,
     ) -> Self {
+        let height_source = CACHE_BUDGET.wrap_boxed(height_source);
+
         macro_rules! res {
             ($field:expr) => {{
                 let cached = $field.clone();

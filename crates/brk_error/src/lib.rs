@@ -182,7 +182,8 @@ impl Error {
     /// Lock errors are transient and should not trigger data deletion.
     #[cfg(feature = "vecdb")]
     pub fn is_lock_error(&self) -> bool {
-        let is_vecdb_lock = matches!(self, Error::VecDB(e) if e.is_lock_error());
+        let is_vecdb_lock = matches!(self, Error::VecDB(e) if e.is_lock_error())
+            || matches!(self, Error::RawDB(vecdb::RawDBError::TryLock(_)));
         #[cfg(feature = "fjall")]
         {
             is_vecdb_lock || matches!(self, Error::Fjall(fjall::Error::Locked))
@@ -222,6 +223,21 @@ impl Error {
             // Other errors are data/parsing related, not network - treat as transient
             _ => false,
         }
+    }
+}
+
+#[cfg(all(test, feature = "vecdb"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn direct_rawdb_lock_is_classified_as_a_lock_error() {
+        let error = Error::RawDB(vecdb::RawDBError::TryLock(
+            std::fs::TryLockError::WouldBlock,
+        ));
+
+        assert!(error.is_lock_error());
+        assert!(!error.is_data_error());
     }
 }
 

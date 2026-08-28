@@ -4,8 +4,8 @@ use derive_more::{Deref, DerefMut};
 use vecdb::{DeltaSub, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
-    CACHE_BUDGET, CachedWindowStartVec, DerivedResolutions, FiatType, LazyPerBlock,
-    LazyRollingSumFromHeight, Resolutions, Windows,
+    CachedWindowStartVec, DerivedResolutions, FiatType, LazyPerBlock, LazyRollingSumFromHeight,
+    Resolutions, Windows,
 };
 
 use super::LazyRollingSumFiatFromHeight;
@@ -42,9 +42,8 @@ impl<C: FiatType> LazyRollingSumsFiatFromHeight<C> {
                 starts_version,
                 move || cached.snapshot(),
             );
-            let source = CACHE_BUDGET.wrap(height.clone());
             let resolutions =
-                Resolutions::from_height_source(&cents_name, source, version, indexes);
+                Resolutions::from_height_source(&cents_name, height.clone(), version, indexes);
             let cents = LazyRollingSumFromHeight {
                 height,
                 resolutions: Box::new(resolutions),

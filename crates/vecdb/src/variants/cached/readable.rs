@@ -3,6 +3,11 @@ use crate::{ReadableVec, TypedVec};
 use super::CachedVec;
 
 impl<V: TypedVec + ReadableVec<V::I, V::T>> ReadableVec<V::I, V::T> for CachedVec<V> {
+    #[inline(always)]
+    fn has_cache_layer(&self) -> bool {
+        true
+    }
+
     #[inline]
     fn cursor_chunk_size(&self) -> usize {
         self.inner.cursor_chunk_size()

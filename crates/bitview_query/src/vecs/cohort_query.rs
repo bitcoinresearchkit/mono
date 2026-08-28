@@ -153,6 +153,14 @@ mod tests {
         );
         assert_eq!(canonicalize("STH realized price"), "sth realized price");
         assert_eq!(
+            canonicalize(">=10% supply"),
+            "utxos_over_10pct_in_loss supply"
+        );
+        assert_eq!(
+            canonicalize(">10% supply"),
+            "utxos_over_10pct_in_profit supply"
+        );
+        assert_eq!(
             canonicalize("utxos_1y_to_18m_old_realized_price"),
             "utxos 1y_to_18m_old realized price"
         );
@@ -161,7 +169,6 @@ mod tests {
     #[test]
     fn leaves_ambiguous_aliases_unchanged() {
         assert_eq!(canonicalize("all supply"), "all supply");
-        assert_eq!(canonicalize(">=10% supply"), ">=10% supply");
     }
 
     #[test]

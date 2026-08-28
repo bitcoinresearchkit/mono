@@ -4,7 +4,7 @@ use derive_more::{Deref, DerefMut};
 use vecdb::{DeltaSub, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
-    CACHE_BUDGET, CachedWindowStartVec, CentsUnsignedToDollars, DerivedResolutions, LazyPerBlock,
+    CachedWindowStartVec, CentsUnsignedToDollars, DerivedResolutions, LazyPerBlock,
     LazyRollingSumAmountFromHeight, LazyRollingSumFromHeight, Resolutions, SatsToBitcoin, Windows,
 };
 
@@ -46,10 +46,9 @@ impl LazyRollingSumsAmountFromHeight {
                     move || cached.snapshot()
                 },
             );
-            let source = CACHE_BUDGET.wrap(sats_sum.clone());
             let sats_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_sats"),
-                source,
+                sats_sum.clone(),
                 version,
                 indexes,
             );
@@ -80,10 +79,9 @@ impl LazyRollingSumsAmountFromHeight {
                 starts_version,
                 move || cached.snapshot(),
             );
-            let source = CACHE_BUDGET.wrap(cents_sum.clone());
             let cents_resolutions = Resolutions::from_height_source(
                 &format!("{full_name}_cents"),
-                source,
+                cents_sum.clone(),
                 version,
                 indexes,
             );

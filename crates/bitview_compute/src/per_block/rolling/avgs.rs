@@ -4,7 +4,7 @@ use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{DeltaAvg, LazyDeltaVec, ReadOnlyClone, ReadableCloneableVec};
 
-use crate::{CACHE_BUDGET, CachedWindowStartVec, NumericValue, Resolutions, Windows};
+use crate::{CachedWindowStartVec, NumericValue, Resolutions, Windows};
 
 use super::LazyRollingAvgFromHeight;
 
@@ -48,8 +48,8 @@ where
                 starts_version,
                 move || cached.snapshot(),
             );
-            let source = CACHE_BUDGET.wrap(avg.clone());
-            let resolutions = Resolutions::from_height_source(&full_name, source, version, indexes);
+            let resolutions =
+                Resolutions::from_height_source(&full_name, avg.clone(), version, indexes);
             LazyRollingAvgFromHeight {
                 height: avg,
                 resolutions: Box::new(resolutions),

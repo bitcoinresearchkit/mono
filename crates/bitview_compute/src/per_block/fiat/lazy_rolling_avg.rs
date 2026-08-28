@@ -3,7 +3,7 @@ use brk_types::{Dollars, Height, StoredF32, Version};
 use vecdb::{DeltaAvg, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use crate::{
-    AvgCentsToUsd, CACHE_BUDGET, CachedWindowStartVec, DerivedResolutions, FiatType, LazyPerBlock,
+    AvgCentsToUsd, CachedWindowStartVec, DerivedResolutions, FiatType, LazyPerBlock,
     LazyRollingAvgFromHeight, Resolutions,
 };
 
@@ -31,15 +31,15 @@ impl<C: FiatType> LazyRollingAvgFiatFromHeight<C> {
             cached.version(),
             move || cached.snapshot(),
         );
-        let source = CACHE_BUDGET.wrap(average.clone());
+        let resolutions = Resolutions::from_height_source(
+            &format!("{name}_cents"),
+            average.clone(),
+            version,
+            indexes,
+        );
         let cents = LazyRollingAvgFromHeight {
             height: average,
-            resolutions: Box::new(Resolutions::from_height_source(
-                &format!("{name}_cents"),
-                source,
-                version,
-                indexes,
-            )),
+            resolutions: Box::new(resolutions),
         };
         let usd_name = format!("{name}_usd");
         let usd = LazyPerBlock {

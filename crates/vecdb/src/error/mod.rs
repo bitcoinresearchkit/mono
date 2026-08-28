@@ -88,7 +88,10 @@ impl Error {
     /// Returns true if this error is due to a file lock (another process has the database open).
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {
-        matches!(self, Error::TryLockError(_))
+        matches!(
+            self,
+            Error::TryLockError(_) | Error::RawDB(rawdb::Error::TryLock(_))
+        )
     }
 
     /// Returns true if this error indicates data corruption or version incompatibility.
@@ -110,6 +113,19 @@ impl Error {
             | Error::InvalidFormat(_) => true,
             _ => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nested_rawdb_lock_is_classified_as_a_lock_error() {
+        let error = Error::RawDB(rawdb::Error::TryLock(fs::TryLockError::WouldBlock));
+
+        assert!(error.is_lock_error());
+        assert!(!error.is_data_error());
     }
 }
 
