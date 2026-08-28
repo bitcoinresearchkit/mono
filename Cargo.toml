@@ -100,7 +100,7 @@ libc = "0.2"
 log = "0.4.34"
 lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.11.2" }
 lz4_flex = { version = "=0.13.1", default-features = false }
-owo-colors = "4.3.0"
+owo-colors = "4.4.0"
 parking_lot = "0.12.5"
 pco = { package = "brk_pco", path = "crates/pco", version = "0.11.2" }
 quickmatch = { path = "crates/quickmatch", version = "0.11.2" }
