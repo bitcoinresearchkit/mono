@@ -132,5 +132,7 @@ tag-message = "release: v{{version}}"
 allow-branch = ["main", "next"]
 
 [workspace.metadata.release.rate-limit]
+# These are cargo-release selection ceilings, not crates.io pacing controls.
+# scripts/rust-publish.sh honors the registry-provided retry time after a 429.
 new-packages = 48
 existing-packages = 64
