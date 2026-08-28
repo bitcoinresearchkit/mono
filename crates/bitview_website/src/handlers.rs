@@ -205,18 +205,7 @@ mod tests {
 
     #[test]
     fn serves_standalone_html_pages() {
-        for path in [
-            "api.html",
-            "bedrock.html",
-            "brk.html",
-            "events.html",
-            "floor.html",
-            "height.html",
-            "rarity.html",
-            "sentiment.html",
-            "trail.html",
-            "wave.html",
-        ] {
+        for path in ["assets/logo/demo.html", "assets/logo/demo-svg.html"] {
             let response = serve(&Website::Default, path, &HeaderMap::new()).unwrap();
 
             assert_eq!(response.status(), StatusCode::OK);

@@ -45,7 +45,7 @@ echo ""
 
 echo "--- Python ---"
 cd "$ROOT_DIR/packages/bitview_client"
-uv run pytest tests/ --ignore=tests/mempool_compat -s
+uv run python -m pytest tests/ --ignore=tests/mempool_compat -s
 echo ""
 
 # ============================================================================

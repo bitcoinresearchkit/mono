@@ -79,7 +79,7 @@ def test_all_endpoints():
                 print(f"OK: {full_path}")
             except Exception as e:
                 print(f"FAIL: {full_path} -> {e}")
-                return
+                raise
 
     print("\n=== Results ===")
     print(f"Success: {success}")

@@ -33,13 +33,14 @@ fn compute_parameterized_value<S: LanguageSyntax>(
     pattern: &StructuralPattern,
     metadata: &ClientMetadata,
 ) -> String {
-    // Templated child patterns receive acc and disc as separate arguments
+    // Templated child patterns receive acc and disc as separate arguments.
+    // A regular suffix/prefix on the parent is already part of the child's
+    // base path, while a templated parent is passing a true discriminator.
     if let Some(child_pattern) = metadata.find_pattern(&field.rust_type)
         && child_pattern.is_templated()
     {
-        let disc_template = pattern.get_field_part(&field.name).unwrap_or(&field.name);
-        let disc_arg = syntax.disc_arg_expr(disc_template);
-        let acc_arg = syntax.owned_expr("acc");
+        let part = pattern.get_field_part(&field.name).unwrap_or(&field.name);
+        let (acc_arg, disc_arg) = templated_child_args(syntax, pattern, child_pattern, part);
         return syntax.constructor(&field.rust_type, &format!("{acc_arg}, {disc_arg}"));
     }
 
@@ -63,6 +64,36 @@ fn compute_parameterized_value<S: LanguageSyntax>(
         )
     } else {
         syntax.constructor(&field.rust_type, &path_expr)
+    }
+}
+
+fn templated_child_args<S: LanguageSyntax>(
+    syntax: &S,
+    parent: &StructuralPattern,
+    child: &StructuralPattern,
+    part: &str,
+) -> (String, String) {
+    let child_needs_positioned_disc = match &child.mode {
+        Some(PatternMode::Templated { templates }) => templates.values().any(|template| {
+            template == "{disc}" || (template.contains("{disc}") && !template.ends_with("{disc}"))
+        }),
+        _ => false,
+    };
+
+    if child_needs_positioned_disc {
+        return (syntax.owned_expr("acc"), syntax.disc_arg_expr(part));
+    }
+
+    match &parent.mode {
+        Some(PatternMode::Suffix { .. }) => {
+            (syntax.suffix_expr("acc", part), syntax.disc_arg_expr(""))
+        }
+        Some(PatternMode::Prefix { .. }) => {
+            (syntax.prefix_expr(part, "acc"), syntax.disc_arg_expr(""))
+        }
+        Some(PatternMode::Templated { .. }) | None => {
+            (syntax.owned_expr("acc"), syntax.disc_arg_expr(part))
+        }
     }
 }
 
@@ -228,4 +259,96 @@ pub fn generate_leaf_field<S: LanguageSyntax>(
         syntax.field_init(indent, &name, &type_annotation, &value)
     )
     .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use super::templated_child_args;
+    use crate::{JavaScriptSyntax, PatternMode, StructuralPattern};
+
+    fn pattern(name: &str, mode: PatternMode) -> StructuralPattern {
+        StructuralPattern {
+            name: name.to_string(),
+            fields: Vec::new(),
+            mode: Some(mode),
+            is_generic: false,
+        }
+    }
+
+    #[test]
+    fn suffix_parent_moves_its_part_into_templated_child_base() {
+        let parent = pattern(
+            "Parent",
+            PatternMode::Suffix {
+                relatives: BTreeMap::new(),
+            },
+        );
+        let child = pattern(
+            "Child",
+            PatternMode::Templated {
+                templates: [(
+                    "value".to_string(),
+                    "10y_old_transfer_volume{disc}".to_string(),
+                )]
+                .into_iter()
+                .collect(),
+            },
+        );
+
+        assert_eq!(
+            templated_child_args(&JavaScriptSyntax, &parent, &child, "over"),
+            ("_m(acc, 'over')".to_string(), "''".to_string())
+        );
+    }
+
+    #[test]
+    fn templated_parent_forwards_its_part_as_child_discriminator() {
+        let parent = pattern(
+            "Parent",
+            PatternMode::Templated {
+                templates: BTreeMap::new(),
+            },
+        );
+        let child = pattern(
+            "Child",
+            PatternMode::Templated {
+                templates: [("value".to_string(), "value{disc}".to_string())]
+                    .into_iter()
+                    .collect(),
+            },
+        );
+
+        assert_eq!(
+            templated_child_args(&JavaScriptSyntax, &parent, &child, "pct99"),
+            ("acc".to_string(), "'pct99'".to_string())
+        );
+    }
+
+    #[test]
+    fn suffix_parent_forwards_disc_when_child_uses_it_inside_field_parts() {
+        let parent = pattern(
+            "Parent",
+            PatternMode::Suffix {
+                relatives: BTreeMap::new(),
+            },
+        );
+        let child = pattern(
+            "Child",
+            PatternMode::Templated {
+                templates: [
+                    ("price".to_string(), "{disc}".to_string()),
+                    ("ppm".to_string(), "ratio_{disc}_ppm".to_string()),
+                ]
+                .into_iter()
+                .collect(),
+            },
+        );
+
+        assert_eq!(
+            templated_child_args(&JavaScriptSyntax, &parent, &child, "pct99"),
+            ("acc".to_string(), "'pct99'".to_string())
+        );
+    }
 }
