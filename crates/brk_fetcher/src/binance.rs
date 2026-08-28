@@ -83,7 +83,7 @@ impl Binance {
         let agent = &self.agent;
         default_retry(|_| {
             let url = Self::url("interval=1m&limit=1000");
-            info!("Fetching {url} ...");
+            info!("Fetching {url}...");
             let bytes = checked_get(agent, &url)?;
             let json: Value = serde_json::from_slice(&bytes)?;
             Self::parse_ohlc_array(&json)
@@ -112,7 +112,7 @@ impl Binance {
         let agent = &self.agent;
         default_retry(|_| {
             let url = Self::url("interval=1d");
-            info!("Fetching {url} ...");
+            info!("Fetching {url}...");
             let bytes = checked_get(agent, &url)?;
             let json: Value = serde_json::from_slice(&bytes)?;
             Self::parse_date_ohlc_array(&json)
@@ -124,7 +124,7 @@ impl Binance {
             return Err(Error::NotFound("HAR path not configured".into()));
         }
 
-        info!("Reading Binance har file...");
+        info!("Reading Binance HAR file...");
 
         let path = self.path.as_ref().unwrap();
 

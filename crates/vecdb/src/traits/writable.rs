@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
-use log::info;
+use log::debug;
 use rawdb::unlikely;
 
 use crate::{AnyStoredVec, Error, Stamp, VecIndex, VecValue, Version};
@@ -224,7 +224,7 @@ where
         }
 
         if self.is_empty() {
-            info!(
+            debug!(
                 "Computing {}_to_{}...",
                 self.index_type_to_string(),
                 self.name()

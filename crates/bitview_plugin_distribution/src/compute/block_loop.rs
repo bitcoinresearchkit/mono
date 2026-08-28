@@ -251,7 +251,7 @@ pub fn process_blocks(
         let height = Height::from(height);
 
         if unlikely(height.is_multiple_of(100)) {
-            info!("Processing chain at {}...", height);
+            info!("Computing metrics at block {height}...");
         } else {
             debug!("Processing chain at {}...", height);
         }

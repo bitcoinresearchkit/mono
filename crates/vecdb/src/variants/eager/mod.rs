@@ -1,4 +1,4 @@
-use log::info;
+use log::debug;
 
 mod any_stored_vec;
 mod any_vec;
@@ -80,7 +80,7 @@ where
             f(self)?;
             let batch_limit_reached = self.batch_limit_reached();
             if batch_limit_reached {
-                info!("Batch limit reached, saving to disk...");
+                debug!("Batch limit reached, saving to disk...");
             }
             if self.is_dirty() {
                 let _lock = exit.lock();

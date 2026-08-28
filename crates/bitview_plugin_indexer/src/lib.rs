@@ -18,7 +18,7 @@ use bitview_traversable::{Traversable, TreeNode};
 use brk_error::Error;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 use vecdb::{
     AnyExportableVec, AnyVec, Exit, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
     WritableVec, unlikely,
@@ -133,13 +133,14 @@ fn read_block_hash_at(reader: &Reader, position: BlkPosition) -> Result<BlockHas
     Ok(BlockHash::from(header.block_hash()))
 }
 
-fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<()> {
-    match fs::remove_dir_all(path) {
-        Ok(()) => {}
-        Err(err) if err.kind() == ErrorKind::NotFound => {}
+fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<bool> {
+    let removed = match fs::remove_dir_all(path) {
+        Ok(()) => true,
+        Err(err) if err.kind() == ErrorKind::NotFound => false,
         Err(err) => return Err(err.into()),
-    }
-    write_xor_marker(path, source_xor)
+    };
+    write_xor_marker(path, source_xor)?;
+    Ok(removed)
 }
 
 impl<M: StorageMode> Indexer<M> {
@@ -266,18 +267,18 @@ impl IndexerInner<Rw> {
     }
 
     fn import_inner(context: ImportContext<'_>, reader: &Reader, can_retry: bool) -> Result<Self> {
-        info!("Importing indexer...");
+        info!("Loading indexer data...");
 
         let plugin_path = STORAGE.path(context);
 
         let try_import = || -> Result<Self> {
             let i = Instant::now();
             let vecs = Vecs::forced_import(&plugin_path, STORAGE.schema_version())?;
-            info!("Imported vecs in {:?}", i.elapsed());
+            info!("Loaded indexer vectors in {:.2?}", i.elapsed());
 
             let i = Instant::now();
             let stores = Stores::forced_import(&plugin_path, STORAGE.schema_version())?;
-            info!("Imported stores in {:?}", i.elapsed());
+            info!("Loaded indexer state in {:.2?}", i.elapsed());
 
             Ok(Self {
                 reader: reader.clone(),
@@ -299,8 +300,13 @@ impl IndexerInner<Rw> {
             Err(err) if can_retry && err.is_data_error() => {
                 // The failed attempt has returned, so all of its local database
                 // handles have been dropped before the directory is removed.
-                info!("{err:?}, deleting {plugin_path:?} and retrying");
-                recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                if removed {
+                    warn!(
+                        "Removed invalid indexer data at {} after an import failure: {err}",
+                        plugin_path.display()
+                    );
+                }
                 return Self::import_inner(context, reader, false);
             }
             Err(err) => return Err(err),
@@ -313,9 +319,14 @@ impl IndexerInner<Rw> {
                 Ok(indexer)
             }
             ImportValidation::Reset(reason) if can_retry => {
-                info!("{reason}, deleting {plugin_path:?} and retrying");
                 drop(indexer);
-                recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                let removed = recreate_plugin_dir(&plugin_path, reader.xor_bytes())?;
+                if removed {
+                    warn!(
+                        "Removed incompatible indexer data at {}: {reason}",
+                        plugin_path.display()
+                    );
+                }
                 Self::import_inner(context, reader, false)
             }
             ImportValidation::Reset(reason) => Err(Error::Internal(reason)),
@@ -449,7 +460,7 @@ impl IndexerInner<Rw> {
 
         let export =
             move |stores: &mut Stores, vecs: &mut Vecs, completed_height: Height| -> Result<()> {
-                info!("Exporting...");
+                info!("Saving indexer data...");
                 let i = Instant::now();
                 let _lock = exit.lock();
                 let checkpoint = stores.begin_commit(completed_height)?;
@@ -472,7 +483,7 @@ impl IndexerInner<Rw> {
                     persisted.publish()?;
                     Ok(())
                 })?;
-                info!("Exported in {:?}", i.elapsed());
+                info!("Saved indexer data in {:.2?}", i.elapsed());
                 Ok(())
             };
 
@@ -547,7 +558,7 @@ impl IndexerInner<Rw> {
             pending_records += tx_count + input_count + output_count;
 
             if is_export_due(height, pending_records) {
-                info!("Export batch: {pending_blocks} blocks, {pending_records} records");
+                debug!("Export batch: {pending_blocks} blocks, {pending_records} records");
                 drop(readers);
                 export(stores, vecs, height)?;
                 readers = Readers::new(vecs);
@@ -574,7 +585,7 @@ impl IndexerInner<Rw> {
 
             db.bg_sleep(Duration::from_secs(3));
 
-            info!("Exporting...");
+            info!("Saving indexer data...");
             let total_i = Instant::now();
 
             let commit_i = Instant::now();
@@ -585,7 +596,7 @@ impl IndexerInner<Rw> {
             // Keep the checkpoint invalid until the vector write is durable too.
             persisted.publish().map_err(RawDBError::other)?;
 
-            info!("Exported in {:?}", total_i.elapsed());
+            info!("Saved indexer data in {:.2?}", total_i.elapsed());
             Ok(())
         });
 
@@ -694,9 +705,22 @@ mod import_tests {
         fs::write(plugin.join("stale"), b"stale").unwrap();
         let source_xor = XORBytes::from([7_u8; 8]);
 
-        recreate_plugin_dir(&plugin, source_xor).unwrap();
+        assert!(recreate_plugin_dir(&plugin, source_xor).unwrap());
 
         assert!(!plugin.join("stale").exists());
+        assert!(matches!(
+            read_xor_marker(&plugin).unwrap(),
+            XorMarker::Valid(marker) if marker == source_xor
+        ));
+    }
+
+    #[test]
+    fn recreate_does_not_report_removal_for_a_new_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let plugin = plugin_data_path(dir.path());
+        let source_xor = XORBytes::from([7_u8; 8]);
+
+        assert!(!recreate_plugin_dir(&plugin, source_xor).unwrap());
         assert!(matches!(
             read_xor_marker(&plugin).unwrap(),
             XorMarker::Valid(marker) if marker == source_xor

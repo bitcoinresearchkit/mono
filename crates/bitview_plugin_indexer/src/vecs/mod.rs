@@ -5,6 +5,7 @@ use std::path::Path;
 use bitview_traversable::Traversable;
 use brk_types::{AddrHash, Height, OutputType, Version};
 use rayon::prelude::*;
+use tracing::debug;
 use vecdb::{AnyStoredVec, AnyVec, Database, RawDBError, Rw, Stamp, StorageMode};
 
 const PAGE_SIZE: usize = 4096;
@@ -69,9 +70,9 @@ pub trait IndexerVecs: Sized {
 
 impl IndexerVecs for Vecs {
     fn forced_import(parent: &Path, version: Version) -> Result<Self> {
-        tracing::debug!("Opening vecs database...");
+        debug!("Opening vecs database...");
         let db = Database::open(&parent.join("vecs"))?;
-        tracing::debug!("Setting min len...");
+        debug!("Setting min len...");
         db.set_min_len(PAGE_SIZE * 60_000_000)?;
 
         let (

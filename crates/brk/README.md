@@ -50,4 +50,5 @@ brk = { version = "0.11", features = ["full"] }
 
 Indexing, computation, querying, clients, and serving belong to Bitview. The
 complete self-hosted platform and executable are provided by
-[`bitviewd`](https://docs.rs/bitviewd) (`cargo install --locked bitviewd`).
+[`bitviewd`](https://docs.rs/bitviewd); see its installation guide for the
+optimized build command.

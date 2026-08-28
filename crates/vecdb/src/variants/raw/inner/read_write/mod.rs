@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use log::info;
+use log::debug;
 use rawdb::Reader;
 
 mod any_stored_vec;
@@ -56,7 +56,7 @@ where
             | Err(Error::WrongLength { .. })
             | Err(Error::DifferentFormat { .. })
             | Err(Error::DifferentVersion { .. }) => {
-                info!("Resetting {}...", options.name);
+                debug!("Resetting {}...", options.name);
                 options
                     .db
                     .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;

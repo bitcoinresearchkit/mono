@@ -144,7 +144,7 @@ impl AddrStateVecs {
         empty_cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
         funded_cache: &mut AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     ) -> Result<()> {
-        info!("Processing addr updates...");
+        info!("Updating address state...");
         let started = Instant::now();
         let primary_capacities = empty_cache.lengths() + funded_cache.lengths();
         let staged_empty = EmptyAddrUpdates::stage(empty_cache, primary_capacities);
@@ -188,7 +188,7 @@ impl AddrStateVecs {
             AddrState::from_extended_empty,
         );
         self.update_primaries(primaries)?;
-        info!("Processed addr updates in {:?}", started.elapsed());
+        info!("Updated address state in {:.2?}", started.elapsed());
         Ok(())
     }
 

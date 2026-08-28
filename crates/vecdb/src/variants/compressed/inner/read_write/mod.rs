@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use log::info;
+use log::debug;
 use parking_lot::RwLock;
 use rawdb::{Reader, Region, likely, unlikely};
 
@@ -63,7 +63,7 @@ where
             | Err(Error::DifferentFormat { .. })
             | Err(Error::DifferentVersion { .. })
             | Err(Error::CorruptedRegion { .. }) => {
-                info!("Resetting {}...", options.name);
+                debug!("Resetting {}...", options.name);
                 options
                     .db
                     .remove_region_if_exists(&vec_region_name_with::<I>(options.name))?;

@@ -98,7 +98,7 @@ impl TraceMonitor {
 
 impl Visit for Fields {
     fn record_u64(&mut self, field: &Field, value: u64) {
-        if field.name() == "duration_ns" {
+        if field.name() == "internal.duration_ns" {
             self.duration_ns = Some(value);
         }
     }
@@ -106,8 +106,8 @@ impl Visit for Fields {
     fn record_str(&mut self, field: &Field, value: &str) {
         match field.name() {
             "message" => self.message.push_str(value),
-            "phase" => self.phase = Some(value.to_owned()),
-            "plugin" => self.plugin = Some(value.to_owned()),
+            "internal.phase" => self.phase = Some(value.to_owned()),
+            "internal.plugin" => self.plugin = Some(value.to_owned()),
             _ => {}
         }
     }

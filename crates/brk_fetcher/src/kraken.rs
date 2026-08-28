@@ -59,7 +59,7 @@ impl Kraken {
         let agent = &self.agent;
         default_retry(|_| {
             let url = Self::url(1);
-            info!("Fetching {url} ...");
+            info!("Fetching {url}...");
             let bytes = checked_get(agent, &url)?;
             let json: Value = serde_json::from_slice(&bytes)?;
             Self::parse_ohlc_response(&json)
@@ -87,7 +87,7 @@ impl Kraken {
         let agent = &self.agent;
         default_retry(|_| {
             let url = Self::url(1440);
-            info!("Fetching {url} ...");
+            info!("Fetching {url}...");
             let bytes = checked_get(agent, &url)?;
             let json: Value = serde_json::from_slice(&bytes)?;
             Self::parse_date_ohlc_response(&json)

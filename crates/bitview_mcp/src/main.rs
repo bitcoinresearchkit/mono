@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app = server::router(api_bases, catalog, display_name, public_url, pages);
     let (listener, bind) = bind_available(BIND_START).await?;
 
-    info!(%bind, tool_count, "Starting stateless BRK MCP server");
+    info!("BRK MCP server listening on http://{bind} with {tool_count} tools");
     axum::serve(listener, app).await?;
     Ok(())
 }

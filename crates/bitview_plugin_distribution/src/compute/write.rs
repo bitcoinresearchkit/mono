@@ -31,7 +31,7 @@ pub fn write(
     min_supply_modified: Option<Height>,
     with_changes: bool,
 ) -> Result<()> {
-    info!("Writing to disk...");
+    info!("Saving distribution data...");
 
     let i = Instant::now();
 
@@ -66,7 +66,7 @@ pub fn write(
     utxo_states.write(height, cleanup)?;
     addr_states.write(height, cleanup)?;
 
-    info!("Wrote in {:?}", i.elapsed());
+    info!("Saved distribution data in {:.2?}", i.elapsed());
 
     Ok(())
 }

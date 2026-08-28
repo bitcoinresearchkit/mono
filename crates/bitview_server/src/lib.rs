@@ -38,6 +38,8 @@ use tower_http::{
     trace::TraceLayer,
 };
 use tower_layer::Layer;
+#[cfg(feature = "bindgen")]
+use tracing::debug;
 use tracing::{error, info};
 
 mod api;
@@ -228,7 +230,8 @@ impl Server {
             .on_body_chunk(())
             .on_failure(
                 |error: ServerErrorsFailureClass, latency: Duration, _: &tracing::Span| {
-                    error!(?error, ?latency, "request failed");
+                    let latency = format!("{latency:.2?}");
+                    error!(?error, %latency, "Request failed");
                 },
             )
             .on_eos(());
@@ -260,7 +263,7 @@ impl Server {
             .layer(response_time_layer)
             .layer(trace_layer);
 
-        info!("Starting server on http://{address}...");
+        info!("Server listening on http://{address}");
 
         let (router, openapi) = finish_openapi(router);
 
@@ -284,7 +287,7 @@ impl Server {
             }));
 
             match result {
-                Ok(Ok(())) => info!("Generated clients"),
+                Ok(Ok(())) => debug!("Generated clients"),
                 Ok(Err(e)) => error!("Failed to generate clients: {e}"),
                 Err(_) => error!("Client generation panicked"),
             }

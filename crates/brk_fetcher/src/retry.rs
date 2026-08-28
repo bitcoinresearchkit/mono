@@ -1,6 +1,6 @@
 use std::{thread::sleep, time::Duration};
 
-use tracing::info;
+use tracing::warn;
 
 pub fn default_retry<T>(function: impl Fn(usize) -> brk_error::Result<T>) -> brk_error::Result<T> {
     retry(function, 5, 6)
@@ -25,7 +25,7 @@ fn retry<T>(
         if let Err(ref e) = res
             && e.is_network_permanently_blocked()
         {
-            info!("Permanent network error detected (blocked/unreachable), skipping retries");
+            warn!("Request failed with a permanent network error; skipping retries: {e}");
             return res;
         }
 
@@ -33,7 +33,9 @@ fn retry<T>(
             return res;
         }
 
-        info!("Failed, waiting {sleep_in_s} seconds...");
+        if let Err(error) = &res {
+            warn!("Request failed; retrying in {sleep_in_s}s: {error}");
+        }
         sleep(Duration::from_secs(sleep_in_s));
 
         i += 1;

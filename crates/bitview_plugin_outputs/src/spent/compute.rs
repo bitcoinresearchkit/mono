@@ -131,7 +131,7 @@ impl Vecs {
                 let _lock = exit.lock();
                 self.txin_index.write()?;
                 info!(
-                    "TxOuts: {:.2}%",
+                    "Indexing spent outputs: {:.0}%",
                     batch_end_height.to_usize() as f64 / target_height.to_usize() as f64 * 100.0
                 );
             }

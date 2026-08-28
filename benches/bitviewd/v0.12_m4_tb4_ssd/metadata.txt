@@ -1,0 +1,11 @@
+version=0.11.2
+profile=release
+target_os=macos
+target_arch=aarch64
+parallelism=10
+started_at_unix=1787849431
+chain_height=964325
+revision=c044008c33ea43585392421b97aaa0f1decd81c0
+dirty=true
+blocks_path=/Volumes/WD_BLACK3/bitcoin/blocks
+data_path=/Volumes/WD_BLACK3/bitview

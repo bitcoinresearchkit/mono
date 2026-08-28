@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, mem, sync::Arc};
 
-use log::info;
+use log::warn;
 use parking_lot::RwLock;
 use rawdb::{Error as RawDbError, Region, RegionGroup};
 
@@ -84,15 +84,15 @@ where
         }
 
         if let Err(error) = Self::validate_columns(&columns) {
-            info!(
-                "Resetting {} because its columns disagree: {error}",
-                options.name
-            );
             for column in &mut columns {
                 column.reset()?;
                 column.write()?;
             }
             Self::validate_columns(&columns)?;
+            warn!(
+                "Reset {} because its columns disagreed: {error}",
+                options.name
+            );
         }
 
         let db = options.db;

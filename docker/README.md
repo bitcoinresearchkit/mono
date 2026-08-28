@@ -8,7 +8,7 @@ an existing Bitcoin Core node.
 - Docker Engine with Buildx and Docker Compose v2
 - Bitcoin Core with RPC enabled
 - A readable Bitcoin Core data directory containing `blocks/`
-- About 300 GiB for the current Bitview data, plus Bitcoin Core storage and
+- About 290 GiB for the current Bitview data, plus Bitcoin Core storage and
   growth headroom
 - 16 GB of RAM recommended for a full sync
 

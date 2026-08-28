@@ -89,16 +89,14 @@ impl Vecs {
         });
 
         let num_new = total_heights - committed;
-        info!(
-            "Computing oracle prices: {} to {} ({warmup} warmup)",
-            committed, total_heights
-        );
+        info!("Computing {num_new} oracle prices ({warmup} warmup blocks)...");
 
         // Slow cold-start EMA up to START_HEIGHT_FAST, then switch to the fast
         // mature-market EMA. Steady-state runs start past START_HEIGHT_FAST and skip
         // the slow segment entirely.
         {
             let mut processed = 0usize;
+            let mut next_progress = 10u8;
             let mut push_ref_bin = |ref_bin| {
                 self.spot
                     .cents
@@ -108,8 +106,9 @@ impl Vecs {
 
                 processed += 1;
                 let progress = (processed * 100 / num_new) as u8;
-                if processed > 1 && progress > (((processed - 1) * 100 / num_new) as u8) {
-                    info!("Oracle price computation: {}%", progress);
+                while num_new >= 100 && progress >= next_progress {
+                    info!("Oracle price computation: {next_progress}%");
+                    next_progress += 10;
                 }
             };
 
@@ -144,10 +143,7 @@ impl Vecs {
             self.spot.cents.height.inner.write()?;
         }
 
-        info!(
-            "Oracle prices complete: {} committed",
-            self.spot.cents.height.len()
-        );
+        info!("Computed {num_new} oracle prices.");
 
         Ok(())
     }

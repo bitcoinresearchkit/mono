@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use brk_error::Error;
 use brk_types::{Date, Height, OHLCCents, Timestamp};
-use tracing::info;
+use tracing::{info, warn};
 
 /// Default cooldown period for unhealthy sources (5 minutes)
 const DEFAULT_COOLDOWN_SECS: u64 = 5 * 60;
@@ -88,13 +88,13 @@ impl<T: PriceSource> TrackedSource<T> {
         match result {
             Ok(_) => {
                 if self.unhealthy_since.take().is_some() {
-                    info!("{} is back online", self.name());
+                    info!("{} is available again", self.name());
                 }
             }
             Err(e) if e.is_network_permanently_blocked() => {
                 if self.unhealthy_since.is_none() {
-                    info!(
-                        "{} marked unhealthy (blocked/unreachable), recheck in {}s",
+                    warn!(
+                        "{} is unavailable; retrying in {}s: {e}",
                         self.name(),
                         self.cooldown.as_secs()
                     );

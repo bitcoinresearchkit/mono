@@ -91,7 +91,7 @@ The default data directory is `~/.bitview/`:
     `-- ... one directory per active plugin ID
 ```
 
-The current default composition occupies about 300 GiB at the indexed tip.
+The current default composition occupies about 290 GiB at the indexed tip.
 Bitcoin Core storage, filesystem overhead, chain growth, and resync headroom
 are additional. VecDB uses sparse files, so inspect allocated space with
 `du -sh ~/.bitview` rather than logical file sizes reported by `ls` or Finder.

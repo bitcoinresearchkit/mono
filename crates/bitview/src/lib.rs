@@ -3,7 +3,7 @@
 use std::{
     path::PathBuf,
     thread::{self, sleep},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use bitview_query::AsyncQuery;
@@ -100,9 +100,7 @@ where
 
         last_height = client.get_last_height()?;
 
-        info!("{} blocks found.", u32::from(last_height) + 1);
-
-        let total_start = Instant::now();
+        info!("New chain tip: block {last_height}");
 
         update(&mut plugins, update_context)?;
 
@@ -110,7 +108,6 @@ where
             return server_stopped(&runtime, server_handle);
         }
 
-        info!("Total time: {:?}", total_start.elapsed());
         info!("Waiting for new blocks...");
     }
 }

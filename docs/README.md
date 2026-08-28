@@ -72,12 +72,12 @@ hard-coded count. Use `/api/series/search?q=<concept>` to find identifiers.
 ## Self-host Bitview
 
 ```bash
-cargo install --locked bitviewd
+rustup update && RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd
 bitviewd
 ```
 
 The default composition requires Linux or macOS, a Bitcoin Core node with RPC
-and readable `blk*.dat` files, about 300 GiB for Bitview plus Bitcoin Core
+and readable `blk*.dat` files, about 290 GiB for Bitview plus Bitcoin Core
 storage and growth headroom, and 16 GB of RAM recommended for a full sync. The
 website and API listen on [localhost:3110](http://localhost:3110).
 

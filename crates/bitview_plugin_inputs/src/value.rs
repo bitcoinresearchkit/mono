@@ -55,7 +55,7 @@ pub fn compute(value: &mut PcoVec<TxInIndex, Sats>, indexer: &Indexer, exit: &Ex
 
         if batch_end < target {
             info!(
-                "Input values: {:.2}%",
+                "Computing input values: {:.0}%",
                 batch_end as f64 / target as f64 * 100.0
             );
         }

@@ -242,7 +242,7 @@ impl DefaultPlugins {
             Ok((supply.join().unwrap()?, rarity_meter.join().unwrap()?))
         })?;
 
-        info!("Total import time: {:?}", import_start.elapsed());
+        info!("Imported all plugins in {:.2?}", import_start.elapsed());
 
         Ok(Self {
             indexer: Box::new(indexer),

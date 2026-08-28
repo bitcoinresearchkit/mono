@@ -10,7 +10,7 @@ use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use vecdb::{
     AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp, StorageMode,
     WritableVec,
@@ -329,7 +329,7 @@ impl Vecs {
         // Clamp to starting_lengths.height to handle reorg (indexer may require earlier start)
         let resume_target = current_height.min(starting_lengths.height);
         if resume_target < current_height {
-            info!(
+            warn!(
                 "Reorg detected: rolling back from {} to {}",
                 current_height, resume_target
             );
@@ -373,7 +373,7 @@ impl Vecs {
 
         if needs_fresh_start {
             self.reset_state(&mut utxo_states, &mut addr_states)?;
-            info!("State recovery: fresh start");
+            info!("Building distribution history from genesis...");
         }
 
         // Populate price/timestamp caches from the prices module.
@@ -520,7 +520,7 @@ impl Vecs {
         self.inner.tx_index_to_height = tx_index_to_height;
 
         // 5. Compute rest part1 (day1 mappings)
-        info!("Computing rest part 1...");
+        debug!("Computing rest part 1...");
         self.cohorts.compute_rest_part1(&starting_lengths, exit)?;
 
         // 6b. Compute address metrics derived from stored per-type sources.
@@ -560,7 +560,7 @@ impl Vecs {
         )?;
 
         // 7. Compute rest part2 (relative metrics)
-        info!("Computing rest part 2...");
+        debug!("Computing rest part 2...");
         self.cohorts.compute_rest_part2(&starting_lengths, exit)?;
 
         let exit = exit.clone();

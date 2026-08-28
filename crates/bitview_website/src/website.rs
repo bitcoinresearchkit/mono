@@ -81,15 +81,15 @@ impl Website {
     /// Log which website source is being used (call once at startup)
     pub fn log(&self) {
         match self {
-            Self::Disabled => info!("website: disabled"),
+            Self::Disabled => info!("Website disabled"),
             Self::Default => {
                 if let Some(p) = self.filesystem_path() {
-                    info!("website: filesystem ({})", p.display());
+                    info!("Website loaded from {}", p.display());
                 } else {
-                    info!("website: embedded");
+                    info!("Using embedded website");
                 }
             }
-            Self::Filesystem(p) => info!("website: filesystem ({})", p.display()),
+            Self::Filesystem(p) => info!("Website loaded from {}", p.display()),
         }
     }
 

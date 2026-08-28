@@ -9,7 +9,7 @@ use corepc_jsonrpc::{
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use serde_json::value::{RawValue, to_raw_value};
-use tracing::info;
+use tracing::{debug, info, warn};
 
 use crate::Auth;
 
@@ -78,7 +78,7 @@ impl ClientInner {
 
         for attempt in 0..=self.max_retries {
             if attempt > 0 {
-                info!(
+                debug!(
                     "Trying to reconnect to Bitcoin Core (attempt {}/{})",
                     attempt, self.max_retries
                 );
@@ -98,14 +98,14 @@ impl ClientInner {
                 }
                 Err(e) if Self::is_retriable(&e) => {
                     if attempt == 0 {
-                        info!("Lost connection to Bitcoin Core, reconnecting...");
+                        warn!("Lost connection to Bitcoin Core; reconnecting...");
                     }
                 }
                 Err(e) => return Err(e.into()),
             }
         }
 
-        info!(
+        warn!(
             "Could not reconnect to Bitcoin Core after {} attempts",
             self.max_retries + 1
         );

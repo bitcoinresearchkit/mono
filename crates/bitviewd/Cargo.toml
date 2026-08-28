@@ -9,6 +9,15 @@ repository.workspace = true
 readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
+# Cargo ignores this inside the workspace but preserves it for `cargo install`.
+# Keep in sync with the release profile in the workspace Cargo.toml.
+[profile.release]
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+overflow-checks = false
+
 [features]
 default = ["dep:bitview_default", "full-api"]
 full-api = ["bitview/full-api"]

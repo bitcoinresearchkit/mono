@@ -38,7 +38,7 @@ where
     let output = compute(plugins, context)?;
     plugins.commit()?;
     plugins.for_each_plugin(&mut |plugin| plugin.gate().finish_update());
-    info!("Total compute time: {:?}", start.elapsed());
+    info!("Update completed in {:.2?}", start.elapsed());
     Ok(output)
 }
 

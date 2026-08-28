@@ -68,7 +68,7 @@ impl BRK {
                 height,
                 height + CHUNK_SIZE
             );
-            info!("Fetching {url} ...");
+            info!("Fetching {url}...");
 
             let bytes = checked_get(agent, &url)?;
             let body: Value = serde_json::from_slice(&bytes)?;

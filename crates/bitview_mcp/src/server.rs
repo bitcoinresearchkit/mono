@@ -23,7 +23,7 @@ use rmcp::{
 };
 use serde_json::{Value, json};
 use tokio::sync::Semaphore;
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 use crate::{
     manifest::Catalog,
@@ -304,7 +304,7 @@ impl ServerHandler for BrkMcp {
             Err(_) => return Ok(self.tool_error("Bitview API request task failed")),
         };
         if let Some(cache_status) = &response.cache_status {
-            info!(
+            debug!(
                 tool = name.as_ref(),
                 cache_status,
                 cache_age = response.cache_age.as_deref().unwrap_or(""),

@@ -327,9 +327,9 @@ impl ComputePluginSet for DefaultPlugins {
         };
 
         if blocks_behind > REIMPORT_THRESHOLD {
-            info!("---");
-            info!("Indexing {blocks_behind} blocks before computing plugins...");
-            info!("---");
+            info!(
+                "Indexing {blocks_behind} blocks before initializing metrics; starting in 10 seconds..."
+            );
             thread::sleep(Duration::from_secs(10));
 
             self.compute_indexer(context)?;

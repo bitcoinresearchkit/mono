@@ -45,7 +45,6 @@ impl Vecs {
 
                 // If rollbacks are inconsistent, start fresh
                 if consistent_height.is_zero() {
-                    warn!("Rollback consistency check failed: inconsistent heights");
                     return Ok(RecoveredState {
                         starting_height: Height::ZERO,
                     });
@@ -55,7 +54,7 @@ impl Vecs {
                 // But if it lands AHEAD of target, that means rollback failed (missing change files).
                 if consistent_height > height {
                     warn!(
-                        "Rollback failed: still at {} but target was {}, falling back to fresh start",
+                        "Distribution rollback stopped at block {} instead of {}; rebuilding from genesis",
                         consistent_height, height
                     );
                     return Ok(RecoveredState {
@@ -81,7 +80,7 @@ impl Vecs {
         );
         if !utxo_states.import(&self.cohorts, consistent_height)? {
             warn!(
-                "UTXO cohort state import failed at height {}",
+                "Could not restore UTXO distribution state at block {}; rebuilding from genesis",
                 consistent_height
             );
             return Ok(RecoveredState {
@@ -97,7 +96,7 @@ impl Vecs {
         );
         if !addr_states.import(&self.cohorts, &self.addrs.funded, consistent_height)? {
             warn!(
-                "Addr cohort state import failed at height {}",
+                "Could not restore address distribution state at block {}; rebuilding from genesis",
                 consistent_height
             );
             return Ok(RecoveredState {
@@ -143,9 +142,12 @@ fn rollback_states(
     let mut heights: BTreeSet<Height> = BTreeSet::new();
 
     // All rollbacks must succeed - any error means fresh start
-    let Ok(s) = chain_state_rollback else {
-        warn!("chain_state rollback failed: {:?}", chain_state_rollback);
-        return Height::ZERO;
+    let s = match chain_state_rollback {
+        Ok(stamp) => stamp,
+        Err(error) => {
+            warn!("Could not roll back distribution chain state; rebuilding from genesis: {error}");
+            return Height::ZERO;
+        }
     };
     let chain_height = Height::from(s).incremented();
     debug!(
@@ -154,9 +156,14 @@ fn rollback_states(
     );
     heights.insert(chain_height);
 
-    let Ok(stamps) = addr_state_rollbacks else {
-        warn!("addr_state rollback failed: {:?}", addr_state_rollbacks);
-        return Height::ZERO;
+    let stamps = match addr_state_rollbacks {
+        Ok(stamps) => stamps,
+        Err(error) => {
+            warn!(
+                "Could not roll back distribution address state; rebuilding from genesis: {error}"
+            );
+            return Height::ZERO;
+        }
     };
     for (i, s) in stamps.iter().enumerate() {
         let h = Height::from(*s).incremented();
@@ -171,7 +178,7 @@ fn rollback_states(
     if heights.len() == 1 {
         heights.pop_first().unwrap()
     } else {
-        warn!("Rollback heights inconsistent: {:?}", heights);
+        warn!("Distribution rollback checkpoints disagree; rebuilding from genesis");
         Height::ZERO
     }
 }

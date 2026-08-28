@@ -1,0 +1,61 @@
+<svg width="2000" height="1000" viewBox="0 0 2000 1000" xmlns="http://www.w3.org/2000/svg">
+<rect x="0" y="0" width="2000" height="1000" opacity="1" fill="#121218" stroke="none"/>
+<text x="1005" y="25" dy="0.76em" text-anchor="middle" font-family="monospace" font-size="24.193548387096776" opacity="1" fill="#E6E6F0">
+bitviewd — Disk Usage
+</text>
+<text x="967" y="980" dy="-0.5ex" text-anchor="middle" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+Time (h)
+</text>
+<text x="1960" y="492" dy="0.76em" text-anchor="middle" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0" transform="rotate(90, 1960, 492)">
+Disk Usage (GiB)
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="50,930 1884,930 "/>
+<text x="50" y="940" dy="0.76em" text-anchor="middle" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+0
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="50,930 50,935 "/>
+<text x="705" y="940" dy="0.76em" text-anchor="middle" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+1
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="705,930 705,935 "/>
+<text x="1361" y="940" dy="0.76em" text-anchor="middle" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+2
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1361,930 1361,935 "/>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,54 1885,929 "/>
+<text x="1895" y="929" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+0
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,929 1890,929 "/>
+<text x="1895" y="793" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+50
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,793 1890,793 "/>
+<text x="1895" y="657" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+100
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,657 1890,657 "/>
+<text x="1895" y="520" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+150
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,520 1890,520 "/>
+<text x="1895" y="384" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+200
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,384 1890,384 "/>
+<text x="1895" y="248" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+250
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,248 1890,248 "/>
+<text x="1895" y="111" dy="0.5ex" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.7" fill="#E6E6F0">
+300
+</text>
+<polyline fill="none" opacity="0.3" stroke="#E6E6F0" stroke-width="1" points="1885,111 1890,111 "/>
+<polyline fill="none" opacity="1" stroke="#FF6384" stroke-width="1" points="50,929 1837,134 "/>
+<rect x="55" y="59" width="233" height="36" opacity="0.98" fill="#121218" stroke="none"/>
+<rect x="55" y="59" width="233" height="36" opacity="1" fill="none" stroke="#121218"/>
+<text x="95" y="69" dy="0.76em" text-anchor="start" font-family="monospace" font-size="16.129032258064516" opacity="0.9" fill="#E6E6F0">
+v0.12_m3pro_int_ssd
+</text>
+<polyline fill="none" opacity="1" stroke="#FF6384" stroke-width="1" points="65,77 85,77 "/>
+</svg>

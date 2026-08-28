@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use brk_types::{Height, Lengths};
-use tracing::info;
+use tracing::{debug, warn};
 use vecdb::{AnyStoredVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, WritableVec};
 
 use crate::{Stores, Vecs, stores::IndexerStores as _};
@@ -102,7 +102,7 @@ fn read_resume(required_height: Height, vecs: &Vecs, stores: &Stores) -> Result<
         return Ok(None);
     }
     let height = if local > required_height {
-        info!(
+        warn!(
             "Reorg detected: rolling back from {} to {}",
             local, required_height
         );
@@ -179,7 +179,7 @@ fn matching_height(vec_height: Height, store_height: Option<Height>) -> Option<H
     if vec_height == store_height {
         Some(vec_height)
     } else {
-        info!(
+        debug!(
             "Indexer checkpoint mismatch: vectors at {}, stores at {}; full reset required",
             vec_height, store_height
         );

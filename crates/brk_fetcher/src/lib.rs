@@ -5,7 +5,7 @@ use std::{path::Path, thread::sleep, time::Duration};
 
 use brk_error::Error;
 use brk_types::{Date, Height, OHLCCents, Timestamp};
-use tracing::{info, warn};
+use tracing::warn;
 use ureq::Agent;
 
 mod binance;
@@ -172,7 +172,7 @@ How to fix this:
 
             // All sources failed
             if retry < MAX_RETRIES {
-                info!("All sources failed, retrying in 60s...");
+                warn!("All price sources failed; retrying in 60s...");
                 sleep(Duration::from_secs(60));
                 self.clear_caches();
             }

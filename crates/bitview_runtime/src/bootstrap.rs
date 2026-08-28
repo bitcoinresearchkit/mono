@@ -3,7 +3,7 @@ use std::{collections::HashSet, fs, path::Path};
 use bitview_plugin::{ImportContext, PluginId, PluginStorage, UpdateContext};
 use brk_alloc::Mimalloc;
 use brk_error::{Error, Result};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::{BootstrapAction, ComputePluginSet, update::bootstrap_update};
 
@@ -28,12 +28,12 @@ fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = Plugin
         }
 
         let path = entry.path();
-        info!("Removing unused plugin data: {path:?}");
         if entry.file_type()?.is_dir() {
-            fs::remove_dir_all(path)?;
+            fs::remove_dir_all(&path)?;
         } else {
-            fs::remove_file(path)?;
+            fs::remove_file(&path)?;
         }
+        warn!("Removed unused plugin data at {}", path.display());
     }
     Ok(())
 }
@@ -71,7 +71,7 @@ where
             }
         }
 
-        info!("Dropping and reimporting plugins to reclaim memory...");
+        info!("Reloading plugins to release temporary startup memory...");
         drop(plugins);
         Mimalloc::collect();
     }

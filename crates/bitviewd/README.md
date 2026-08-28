@@ -18,7 +18,7 @@ For AI clients, the official stateless, read-only MCP endpoint is
 - Linux or macOS
 - Bitcoin Core with `server=1` in `bitcoin.conf`
 - Access to `blk*.dat` files
-- About 300 GiB of disk space for the current default composition, plus Bitcoin
+- About 290 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
 - 16 GB of RAM recommended for a full sync.
 
@@ -31,12 +31,11 @@ disk usage. Use `du -sh ~/.bitview` to see allocated space.
 ## Install
 
 ```bash
-rustup update && RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd --version $(cargo search bitviewd | head -1 | awk -F'"' '{print $2}')
+rustup update && RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd
 ```
 
-This updates Rust, then builds Bitview with optimizations tuned to your CPU. The
-version lookup selects the newest published release, including prereleases;
-without it, `cargo install` selects the latest stable release.
+This updates Rust, then builds the latest stable Bitview release with
+optimizations tuned to your CPU.
 
 Portable build (without native CPU optimizations):
 
