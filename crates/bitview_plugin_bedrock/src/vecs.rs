@@ -10,7 +10,7 @@ use brk_types::Sats;
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, Rw, StorageMode};
 
-use super::{ModeVecs, Modes, STORAGE};
+use super::{DailyPercentilesVecs, ModeVecs, Modes, STORAGE, WeightedPair};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -20,6 +20,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     #[traversable(skip)]
     states_path: PathBuf,
+
+    pub cost_basis: WeightedPair<DailyPercentilesVecs<M>>,
 
     #[deref]
     #[deref_mut]

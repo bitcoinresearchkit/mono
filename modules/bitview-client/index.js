@@ -9320,6 +9320,7 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Bedrock
+ * @property {SeriesTree_Bedrock_CostBasis} costBasis
  * @property {FloorLevelLossPattern} raw
  * @property {FloorLevelLossPattern} cointime
  * @property {FloorLevelLossPattern} coinflow
@@ -9330,6 +9331,12 @@ function createMatrixPattern(client, acc) {
  * @property {FloorLevelLossPattern} coinflow6m
  * @property {FloorLevelLossPattern} coinflow3m
  * @property {FloorLevelLossPattern} coinflow1m
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
  */
 
 /**
@@ -18351,6 +18358,10 @@ class BitviewClient extends BitviewClientBase {
         })); },
       })); },
       get bedrock() { return _lazy(this, 'bedrock', () => ({
+        get costBasis() { return _lazy(this, 'costBasis', () => ({
+          cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin'),
+          coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin'),
+        })); },
         raw: createFloorLevelLossPattern(client, 'bedrock_raw'),
         cointime: createFloorLevelLossPattern(client, 'bedrock_cointime'),
         coinflow: createFloorLevelLossPattern(client, 'bedrock_coinflow'),

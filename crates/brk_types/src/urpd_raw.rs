@@ -13,7 +13,7 @@ use schemars::JsonSchema;
 use serde::Serialize;
 use vecdb::Bytes;
 
-use crate::{CentsCompact, Date, Sats};
+use crate::{Cents, CentsCompact, Date, PERCENTILES, PERCENTILES_LEN, Sats};
 
 /// Raw on-disk URPD: a map of price (cents) to supply (sats).
 /// Processed into [`crate::Urpd`] for API responses.
@@ -28,6 +28,37 @@ struct DecodedEntries<'a> {
 }
 
 impl UrpdRaw {
+    /// Return sat-weighted price percentiles using the standard 5% increments.
+    pub fn per_coin_percentile_prices(&self) -> [Cents; PERCENTILES_LEN] {
+        let total_sats = self
+            .map
+            .values()
+            .map(|sats| u128::from(u64::from(*sats)))
+            .sum::<u128>();
+        if total_sats == 0 {
+            return [Cents::ZERO; PERCENTILES_LEN];
+        }
+
+        let targets = PERCENTILES
+            .map(|percentile| (total_sats * u128::from(percentile) / 100).saturating_sub(1));
+        let mut prices = [Cents::ZERO; PERCENTILES_LEN];
+        let mut cumulative_sats = 0_u128;
+        let mut target_index = 0;
+
+        for (&price, &sats) in &self.map {
+            cumulative_sats += u128::from(u64::from(sats));
+            while target_index < PERCENTILES_LEN && cumulative_sats > targets[target_index] {
+                prices[target_index] = price.into();
+                target_index += 1;
+            }
+            if target_index == PERCENTILES_LEN {
+                break;
+            }
+        }
+
+        prices
+    }
+
     pub fn dir(states_path: &Path, name: &str) -> PathBuf {
         states_path.join(name).join("urpd")
     }
@@ -179,6 +210,7 @@ impl UrpdRaw {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::PercentileId;
 
     #[test]
     fn file_roundtrip() {
@@ -218,6 +250,29 @@ mod tests {
         assert_eq!(
             raw.apply_weight(0.5).map,
             BTreeMap::from([(CentsCompact::new(100), Sats::from(1_u64))])
+        );
+    }
+
+    #[test]
+    fn per_coin_percentiles_match_distribution_nearest_rank() {
+        let raw = UrpdRaw {
+            map: BTreeMap::from([
+                (CentsCompact::new(100), Sats::from(5_u64)),
+                (CentsCompact::new(200), Sats::from(5_u64)),
+            ]),
+        };
+
+        let prices = raw.per_coin_percentile_prices();
+        assert_eq!(prices[PercentileId::Pct50 as usize], Cents::new(100));
+        assert_eq!(prices[PercentileId::Pct55 as usize], Cents::new(100));
+        assert_eq!(prices[PercentileId::Pct60 as usize], Cents::new(200));
+    }
+
+    #[test]
+    fn empty_per_coin_percentiles_match_distribution_default() {
+        assert_eq!(
+            UrpdRaw::default().per_coin_percentile_prices(),
+            [Cents::ZERO; PERCENTILES_LEN]
         );
     }
 }

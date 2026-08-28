@@ -5,7 +5,10 @@ use brk_types::Version;
 use vecdb::Database;
 
 use super::Vecs;
-use crate::{LossPercentileId, ModeVecs, Modes, PriceBandId, STORAGE, price::LazyColumnPrice};
+use crate::{
+    DailyPercentilesVecs, LossPercentileId, ModeVecs, Modes, PriceBandId, STORAGE, WeightedPair,
+    price::LazyColumnPrice,
+};
 
 impl ModeVecs {
     pub fn forced_import(
@@ -69,10 +72,25 @@ impl Vecs {
             let name = mode.name();
             ModeVecs::forced_import(&db, &format!("bedrock_{name}"), version, &mappings)
         })?;
+        let cost_basis = WeightedPair {
+            cointime: DailyPercentilesVecs::forced_import(
+                &db,
+                "bedrock_cointime_cost_basis_per_coin",
+                version,
+                &mappings,
+            )?,
+            coinflow: DailyPercentilesVecs::forced_import(
+                &db,
+                "bedrock_coinflow_cost_basis_per_coin",
+                version,
+                &mappings,
+            )?,
+        };
         let this = Self {
             plugin_gate: Default::default(),
             db,
             states_path,
+            cost_basis,
             modes,
         };
         STORAGE.finalize_database(&this.db)?;

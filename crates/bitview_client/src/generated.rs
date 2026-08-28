@@ -14395,6 +14395,7 @@ impl SeriesTree_Coinflow_AggregateSources_Horizon {
 
 /// Series tree node.
 pub struct SeriesTree_Bedrock {
+    pub cost_basis: SeriesTree_Bedrock_CostBasis,
     pub raw: FloorLevelLossPattern,
     pub cointime: FloorLevelLossPattern,
     pub coinflow: FloorLevelLossPattern,
@@ -14410,6 +14411,10 @@ pub struct SeriesTree_Bedrock {
 impl SeriesTree_Bedrock {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
+            cost_basis: SeriesTree_Bedrock_CostBasis::new(
+                client.clone(),
+                format!("{base_path}_cost_basis"),
+            ),
             raw: FloorLevelLossPattern::new(client.clone(), "bedrock_raw".to_string()),
             cointime: FloorLevelLossPattern::new(client.clone(), "bedrock_cointime".to_string()),
             coinflow: FloorLevelLossPattern::new(client.clone(), "bedrock_coinflow".to_string()),
@@ -14441,6 +14446,21 @@ impl SeriesTree_Bedrock {
                 client.clone(),
                 "bedrock_coinflow_1m".to_string(),
             ),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Bedrock_CostBasis {
+    pub cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+}
+
+impl SeriesTree_Bedrock_CostBasis {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
+            cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_cointime_cost_basis_per_coin".to_string()),
+            coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_coinflow_cost_basis_per_coin".to_string()),
         }
     }
 }
@@ -38090,7 +38110,7 @@ pub struct BitviewClient {
 
 impl BitviewClient {
     /// Client version.
-    pub const VERSION: &'static str = "v0.11.2";
+    pub const VERSION: &'static str = "v0.12.0";
 
     /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {

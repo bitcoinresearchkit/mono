@@ -1,7 +1,7 @@
 import { brk } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
-import { line, price } from "../series.js";
+import { line, price, pricePercentileSeries } from "../series.js";
 
 const FLOOR_PERCENTILES = /** @type {const} */ ([
   { key: "pct95", name: "P95" },
@@ -88,6 +88,28 @@ function modeChart(mode, ath) {
 }
 
 /**
+ * @param {string} name
+ * @param {PercentilesPattern} percentiles
+ * @param {AnyPricePattern} p100
+ * @returns {PartialChartOption}
+ */
+function costBasisChart(name, percentiles, p100) {
+  return {
+    name,
+    title: `Bitcoin ${name}-Weighted Cost Basis Distribution (BTC-weighted)`,
+    top: [
+      price({
+        series: p100,
+        name: "P100",
+        color: colors.stat.max,
+        defaultActive: false,
+      }),
+      ...pricePercentileSeries(percentiles),
+    ],
+  };
+}
+
+/**
  * Create Bedrock model section.
  * @returns {PartialOptionsGroup}
  */
@@ -128,6 +150,15 @@ export function createBedrockSection() {
 
   return {
     name: "Bedrock",
-    tree: modes.map((mode) => modeChart(mode, market.ath.high)),
+    tree: [
+      ...modes.map((mode) => modeChart(mode, market.ath.high)),
+      {
+        name: "Cost Basis",
+        tree: [
+          costBasisChart("Cointime", bedrock.costBasis.cointime, cohorts.costBasis.all.max),
+          costBasisChart("Coinflow", bedrock.costBasis.coinflow, cohorts.costBasis.all.max),
+        ],
+      },
+    ],
   };
 }

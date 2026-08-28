@@ -11,29 +11,8 @@
  */
 
 import { colors } from "../../utils/colors.js";
-import { entries } from "../../utils/array.js";
-import { price, percentRatio } from "../series.js";
+import { price, percentRatio, pricePercentileSeries } from "../series.js";
 import { mapCohortsWithAll, flatMapCohortsWithAll } from "../shared.js";
-
-const ACTIVE_PCTS = new Set(["pct75", "pct50", "pct25"]);
-
-/**
- * @param {PercentilesPattern} p
- * @param {(name: string) => string} [n]
- * @returns {FetchedPriceSeriesBlueprint[]}
- */
-function percentileSeries(p, n = (x) => x) {
-  return entries(p)
-    .reverse()
-    .map(([key, s], i, arr) =>
-      price({
-        series: s,
-        name: n(key.replace("pct", "P")),
-        color: colors.at(i, arr.length),
-        ...(ACTIVE_PCTS.has(key) ? {} : { defaultActive: false }),
-      }),
-    );
-}
 
 // ============================================================================
 // Single cohort helpers
@@ -71,7 +50,7 @@ function singleWeightFolder({ avgPrice, avgName, inProfit, inLoss, percentiles, 
       top: [
         price({ series: avgPrice, name: avgName, color }),
         ...(max ? [price({ series: max, name: "P100", color: colors.stat.max, defaultActive: false })] : []),
-        ...percentileSeries(percentiles),
+        ...pricePercentileSeries(percentiles),
         ...(min ? [price({ series: min, name: "P0", color: colors.stat.min, defaultActive: false })] : []),
       ],
     },

@@ -7183,10 +7183,18 @@ class SeriesTree_Coinflow:
         self.lth: SeriesTree_Coinflow_Lth = SeriesTree_Coinflow_Lth(client)
         self.aggregate_sources: SeriesTree_Coinflow_AggregateSources = SeriesTree_Coinflow_AggregateSources(client)
 
+class SeriesTree_Bedrock_CostBasis:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin')
+
 class SeriesTree_Bedrock:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cost_basis: SeriesTree_Bedrock_CostBasis = SeriesTree_Bedrock_CostBasis(client)
         self.raw: FloorLevelLossPattern = FloorLevelLossPattern(client, 'bedrock_raw')
         self.cointime: FloorLevelLossPattern = FloorLevelLossPattern(client, 'bedrock_cointime')
         self.coinflow: FloorLevelLossPattern = FloorLevelLossPattern(client, 'bedrock_coinflow')

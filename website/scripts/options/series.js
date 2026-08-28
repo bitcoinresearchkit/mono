@@ -1,6 +1,7 @@
 /** Series helpers for creating chart series blueprints */
 
 import { colors } from "../utils/colors.js";
+import { entries } from "../utils/array.js";
 import { Unit } from "../utils/units.js";
 
 // ============================================================================
@@ -77,6 +78,27 @@ export function price({
       ...options,
     },
   };
+}
+
+const ACTIVE_PRICE_PERCENTILES = new Set(["pct75", "pct50", "pct25"]);
+
+/**
+ * Create P5-P95 price series with quartiles active by default.
+ * @param {PercentilesPattern} percentiles
+ * @param {(name: string) => string} [name]
+ * @returns {FetchedPriceSeriesBlueprint[]}
+ */
+export function pricePercentileSeries(percentiles, name = (value) => value) {
+  return entries(percentiles)
+    .reverse()
+    .map(([key, series], index, all) =>
+      price({
+        series,
+        name: name(key.replace("pct", "P")),
+        color: colors.at(index, all.length),
+        ...(ACTIVE_PRICE_PERCENTILES.has(key) ? {} : { defaultActive: false }),
+      }),
+    );
 }
 
 // ============================================================================
