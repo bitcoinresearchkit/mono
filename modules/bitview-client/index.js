@@ -6910,7 +6910,7 @@ function createCentsSatsPattern(client, acc) {
 function createCentsUsdPattern5(client, acc) {
   return {
     cents: createSeriesPattern1(client, _m(acc, 'cents')),
-    usd: createSeriesPattern1(client, _m(acc, 'usd')),
+    usd: createSeriesPattern1(client, acc),
   };
 }
 

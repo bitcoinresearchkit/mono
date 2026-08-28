@@ -7090,7 +7090,7 @@ impl CentsUsdPattern5 {
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
             cents: SeriesPattern1::new(client.clone(), _m(&acc, "cents")),
-            usd: SeriesPattern1::new(client.clone(), _m(&acc, "usd")),
+            usd: SeriesPattern1::new(client.clone(), acc.clone()),
         }
     }
 }

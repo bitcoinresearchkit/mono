@@ -4904,7 +4904,7 @@ class CentsUsdPattern5:
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
         self.cents: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'cents'))
-        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, _m(acc, 'usd'))
+        self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
 
 class DiscountPremiumPattern:
     """Pattern struct for repeated tree structure."""

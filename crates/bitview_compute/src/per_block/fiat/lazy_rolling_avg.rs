@@ -41,15 +41,14 @@ impl<C: FiatType> LazyRollingAvgFiatFromHeight<C> {
             height: average,
             resolutions: Box::new(resolutions),
         };
-        let usd_name = format!("{name}_usd");
         let usd = LazyPerBlock {
             height: LazyVec::transformed::<AvgCentsToUsd>(
-                &usd_name,
+                name,
                 version,
                 cents.height.read_only_boxed_clone(),
             ),
             resolutions: Box::new(DerivedResolutions::from_derived_computed::<AvgCentsToUsd>(
-                &usd_name,
+                name,
                 version,
                 &cents.resolutions,
             )),
