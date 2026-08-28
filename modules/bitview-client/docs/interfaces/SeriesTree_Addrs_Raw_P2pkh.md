@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_Raw\_P2pkh
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7802](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7802)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7931](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7931)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7802](https://github.
 
 > **bytes**: [`SeriesPattern28`](../type-aliases/SeriesPattern28.md)\<[`U8x20`](../type-aliases/U8x20.md)\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7804](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7804)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7933](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7933)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7804](https://github.
 
 > **firstIndex**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7803](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7803)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7932](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7932)

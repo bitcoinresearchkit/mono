@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_OpReturn\_ByKind
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8306](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8306)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8429](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8429)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8306](https://github.
 
 > **dataBytes**: [`SeriesTree_OpReturn_ByKind_DataBytes`](SeriesTree_OpReturn_ByKind_DataBytes.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8308](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8308)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8431](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8431)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8308](https://github.
 
 > **fees**: [`SeriesTree_OpReturn_ByKind_Fees`](SeriesTree_OpReturn_ByKind_Fees.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8311](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8311)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8434](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8434)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8311](https://github.
 
 > **outputCount**: [`SeriesTree_OpReturn_ByKind_OutputCount`](SeriesTree_OpReturn_ByKind_OutputCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8307](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8307)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8430](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8430)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8307](https://github.
 
 > **txCount**: [`SeriesTree_OpReturn_ByKind_TxCount`](SeriesTree_OpReturn_ByKind_TxCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8309](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8309)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8432](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8432)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8309](https://github.
 
 > **txVsize**: [`SeriesTree_OpReturn_ByKind_TxVsize`](SeriesTree_OpReturn_ByKind_TxVsize.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8310](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8310)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8433](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8433)

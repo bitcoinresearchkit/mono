@@ -6,7 +6,7 @@
 
 # Interface: Transaction
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1323](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1323)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1374](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1374)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1323](https://github.
 
 > **fee**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1333](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1333)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1384](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1384)
 
 Transaction fee in satoshis
 
@@ -24,7 +24,7 @@ Transaction fee in satoshis
 
 > `optional` **index?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1324](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1324)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1375](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1375)
 
 Internal transaction index (brk-specific, not in mempool.space)
 
@@ -34,7 +34,7 @@ Internal transaction index (brk-specific, not in mempool.space)
 
 > **locktime**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1327)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1378](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1378)
 
 Transaction lock time
 
@@ -44,7 +44,7 @@ Transaction lock time
 
 > **sigops**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1332](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1332)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1383](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1383)
 
 Number of signature operations
 
@@ -54,7 +54,7 @@ Number of signature operations
 
 > **size**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1330](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1330)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1381](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1381)
 
 Transaction size in bytes
 
@@ -64,7 +64,7 @@ Transaction size in bytes
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1334](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1334)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1385](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1385)
 
 Confirmation status (confirmed, block height/hash/time)
 
@@ -74,7 +74,7 @@ Confirmation status (confirmed, block height/hash/time)
 
 > **txid**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1325](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1325)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1376](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1376)
 
 Transaction ID
 
@@ -84,7 +84,7 @@ Transaction ID
 
 > **version**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1326)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1377](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1377)
 
 Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
 
@@ -94,7 +94,7 @@ Transaction version (raw i32 from Bitcoin protocol, may contain non-standard val
 
 > **vin**: [`TxIn`](TxIn.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1328](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1328)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1379](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1379)
 
 Transaction inputs
 
@@ -104,7 +104,7 @@ Transaction inputs
 
 > **vout**: [`TxOut`](TxOut.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1329](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1329)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1380](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1380)
 
 Transaction outputs
 
@@ -114,6 +114,6 @@ Transaction outputs
 
 > **weight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1331](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1331)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1382](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1382)
 
 Transaction weight

@@ -6,7 +6,7 @@
 
 # Interface: EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4601](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4601)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4666](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4666)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4601](https://github.
 
 > **empty**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4602](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4602)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4667](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4667)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4602](https://github.
 
 > **p2a**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4603](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4603)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4668](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4668)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4603](https://github.
 
 > **p2ms**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4604](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4604)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4669](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4669)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4604](https://github.
 
 > **p2pk33**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4605](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4605)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4670](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4670)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4605](https://github.
 
 > **p2pk65**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4606](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4606)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4671](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4671)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4606](https://github.
 
 > **p2pkh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4607](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4607)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4672](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4672)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4607](https://github.
 
 > **p2sh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4608](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4608)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4673](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4673)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4608](https://github.
 
 > **p2tr**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4609](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4609)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4674](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4674)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4609](https://github.
 
 > **p2wpkh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4610](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4610)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4675](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4675)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4610](https://github.
 
 > **p2wsh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4611](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4611)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4676](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4676)
 
 ***
 
@@ -94,4 +94,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4611](https://github.
 
 > **unknown**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4612](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4612)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4677](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4677)

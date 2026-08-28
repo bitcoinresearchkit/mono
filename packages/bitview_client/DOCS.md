@@ -25,6 +25,7 @@
     * [PROFIT\_NAMES](#bitview_client.BitviewClient.PROFIT_NAMES)
     * [LOSS\_NAMES](#bitview_client.BitviewClient.LOSS_NAMES)
     * [\_\_init\_\_](#bitview_client.BitviewClient.__init__)
+    * [series](#bitview_client.BitviewClient.series)
     * [series\_endpoint](#bitview_client.BitviewClient.series_endpoint)
     * [index\_to\_date](#bitview_client.BitviewClient.index_to_date)
     * [date\_to\_index](#bitview_client.BitviewClient.date_to_index)
@@ -283,6 +284,15 @@ Main Bitview client with series tree and API methods.
 
 ```python
 def __init__(base_url: str = 'http://localhost:3110', timeout: float = 30.0)
+```
+
+<a id="bitview_client.BitviewClient.series"></a>
+
+#### series
+
+```python
+@cached_property
+def series() -> SeriesTree
 ```
 
 <a id="bitview_client.BitviewClient.series_endpoint"></a>

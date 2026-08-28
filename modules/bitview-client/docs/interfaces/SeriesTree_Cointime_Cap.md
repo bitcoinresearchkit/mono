@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Cap
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8915](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8915)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9038](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9038)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8915](https://github.
 
 > **active**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8919](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8919)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9042](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9042)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8919](https://github.
 
 > **aviv**: [`PpmRatioPattern2`](PpmRatioPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8921](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8921)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9044](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9044)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8921](https://github.
 
 > **cointime**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8920](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8920)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9043](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9043)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8920](https://github.
 
 > **investor**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8917](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8917)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9040](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9040)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8917](https://github.
 
 > **thermo**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8916](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8916)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9039](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9039)
 
 ***
 
@@ -54,4 +54,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8916](https://github.
 
 > **vaulted**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8918](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8918)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9041](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9041)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Supply\_Velocity
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10085](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10085)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10208](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10208)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10085](https://github
 
 > **fiat**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10087](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10087)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10210](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10210)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10087](https://github
 
 > **native**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10086](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10086)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10209](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10209)

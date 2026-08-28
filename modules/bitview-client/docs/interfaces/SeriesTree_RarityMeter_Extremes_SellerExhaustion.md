@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_RarityMeter\_Extremes\_SellerExhaustion
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9268](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9268)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9391](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9391)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9268](https://github.
 
 > **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`[]\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9272](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9272)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9395](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9395)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9272](https://github.
 
 > **rank**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9274](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9274)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9397](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9397)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9274](https://github.
 
 > **tail**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9273](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9273)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9396](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9396)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9273](https://github.
 
 > **thresholdPct0025**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9271](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9271)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9394](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9394)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9271](https://github.
 
 > **thresholdPct005**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9270](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9270)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9393](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9393)
 
 ***
 
@@ -54,4 +54,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9270](https://github.
 
 > **thresholdPct01**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9269](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9269)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9392](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9392)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Coinflow\_AgeRange\_SpendingExposure\_Mobility
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9023](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9023)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9146](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9146)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9023](https://github.
 
 > **\_10yTo12y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9044](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9044)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9167](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9167)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9044](https://github.
 
 > **\_12yTo15y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9045](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9045)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9168](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9168)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9045](https://github.
 
 > **\_18mTo2y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9036](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9036)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9159](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9159)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9036](https://github.
 
 > **\_1dTo1w**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9026](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9026)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9149](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9149)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9026](https://github.
 
 > **\_1hTo1d**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9025](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9025)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9148](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9148)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9025](https://github.
 
 > **\_1mTo2m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9028](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9028)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9151](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9151)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9028](https://github.
 
 > **\_1wTo1m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9027](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9027)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9150](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9150)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9027](https://github.
 
 > **\_1yTo18m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9035](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9035)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9158](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9158)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9035](https://github.
 
 > **\_2mTo3m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9029](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9029)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9152](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9152)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9029](https://github.
 
 > **\_2yTo3y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9037](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9037)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9160](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9160)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9037](https://github.
 
 > **\_3mTo4m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9030](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9030)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9153](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9153)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9030](https://github.
 
 > **\_3yTo4y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9038](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9038)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9161](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9161)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9038](https://github.
 
 > **\_4mTo5m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9031](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9031)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9154](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9154)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9031](https://github.
 
 > **\_4yTo5y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9039](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9039)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9162](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9162)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9039](https://github.
 
 > **\_5mTo6m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9032](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9032)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9155](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9155)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9032](https://github.
 
 > **\_5yTo6y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9040](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9040)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9163](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9163)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9040](https://github.
 
 > **\_6mTo9m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9033](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9033)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9156](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9156)
 
 ***
 
@@ -150,7 +150,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9033](https://github.
 
 > **\_6yTo7y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9041](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9041)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9164](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9164)
 
 ***
 
@@ -158,7 +158,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9041](https://github.
 
 > **\_7yTo8y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9042](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9042)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9165](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9165)
 
 ***
 
@@ -166,7 +166,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9042](https://github.
 
 > **\_8yTo10y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9043](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9043)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9166](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9166)
 
 ***
 
@@ -174,7 +174,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9043](https://github.
 
 > **\_9mTo1y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9034](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9034)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9157](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9157)
 
 ***
 
@@ -182,7 +182,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9034](https://github.
 
 > **over15y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9046](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9046)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9169](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9169)
 
 ***
 
@@ -190,4 +190,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9046](https://github.
 
 > **under1h**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9024](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9024)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9147](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9147)

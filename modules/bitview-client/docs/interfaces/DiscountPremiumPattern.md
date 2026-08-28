@@ -6,7 +6,7 @@
 
 # Interface: DiscountPremiumPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6788](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6788)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6918](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6918)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6788](https://github.
 
 > **discount**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6789](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6789)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6919](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6919)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6789](https://github.
 
 > **premium**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6790](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6790)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6920](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6920)

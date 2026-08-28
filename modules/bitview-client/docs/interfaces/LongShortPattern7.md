@@ -6,7 +6,7 @@
 
 # Interface: LongShortPattern7\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7094](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7094)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7224](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7224)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7094](https://github.
 
 > **long**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7095](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7095)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7225](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7225)
 
 ***
 
@@ -28,4 +28,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7095](https://github.
 
 > **short**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7096](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7096)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7226](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7226)

@@ -6,7 +6,7 @@
 
 # Interface: \_100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4082](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4082)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4147](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4147)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4082](https://github.
 
 > **\_100btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4083](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4083)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4148](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4148)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4083](https://github.
 
 > **\_100kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4084](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4084)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4149](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4149)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4084](https://github.
 
 > **\_100sats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4085](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4085)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4150](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4150)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4085](https://github.
 
 > **\_10btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4086](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4086)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4151](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4151)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4086](https://github.
 
 > **\_10kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4087](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4087)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4152](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4152)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4087](https://github.
 
 > **\_10kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4088](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4088)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4153](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4153)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4088](https://github.
 
 > **\_10mSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4089](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4089)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4154](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4154)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4089](https://github.
 
 > **\_10sats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4090](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4090)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4155](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4155)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4090](https://github.
 
 > **\_1btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4091](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4091)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4156](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4156)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4091](https://github.
 
 > **\_1kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4092](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4092)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4157](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4157)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4092](https://github.
 
 > **\_1kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4093](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4093)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4158](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4158)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4093](https://github.
 
 > **\_1mSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4094](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4094)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4159](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4159)
 
 ***
 
@@ -110,4 +110,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4094](https://github.
 
 > **\_1sat**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4095](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4095)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4160](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4160)

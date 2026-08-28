@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_OpReturn\_Policy
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8455](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8455)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8578](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8578)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8455](https://github.
 
 > **dataBytes**: [`SeriesTree_OpReturn_Policy_DataBytes`](SeriesTree_OpReturn_Policy_DataBytes.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8457](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8457)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8580](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8580)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8457](https://github.
 
 > **fees**: [`SeriesTree_OpReturn_Policy_Fees`](SeriesTree_OpReturn_Policy_Fees.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8460](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8460)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8583](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8583)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8460](https://github.
 
 > **outputCount**: [`SeriesTree_OpReturn_Policy_OutputCount`](SeriesTree_OpReturn_Policy_OutputCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8456](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8456)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8579](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8579)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8456](https://github.
 
 > **txCount**: [`SeriesTree_OpReturn_Policy_TxCount`](SeriesTree_OpReturn_Policy_TxCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8458](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8458)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8581](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8581)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8458](https://github.
 
 > **txVsize**: [`SeriesTree_OpReturn_Policy_TxVsize`](SeriesTree_OpReturn_Policy_TxVsize.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8459](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8459)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8582](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8582)

@@ -6,7 +6,7 @@
 
 # Interface: PoolsSummary
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1005](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1005)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1016](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1016)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1005](https://github.
 
 > **blockCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1007](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1007)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1018](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1018)
 
 Total blocks in the time period
 
@@ -24,7 +24,7 @@ Total blocks in the time period
 
 > **lastEstimatedHashrate**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1008](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1008)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1019](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1019)
 
 Estimated network hashrate (H/s)
 
@@ -34,7 +34,7 @@ Estimated network hashrate (H/s)
 
 > **lastEstimatedHashrate1w**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1010](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1010)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1021](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1021)
 
 Estimated network hashrate over last 1 week (H/s)
 
@@ -44,7 +44,7 @@ Estimated network hashrate over last 1 week (H/s)
 
 > **lastEstimatedHashrate3d**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1009](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1009)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1020](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1020)
 
 Estimated network hashrate over last 3 days (H/s)
 
@@ -54,6 +54,6 @@ Estimated network hashrate over last 3 days (H/s)
 
 > **pools**: [`PoolStats`](PoolStats.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1006](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1006)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1017](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1017)
 
 List of pools sorted by block count descending

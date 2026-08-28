@@ -8,6 +8,6 @@
 
 > **TreeNode** = \{\[`key`: `string`\]: `TreeNode`; \} \| [`SeriesLeafWithSchema`](../interfaces/SeriesLeafWithSchema.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1339](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1339)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1390](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1390)
 
 ## Type Parameters

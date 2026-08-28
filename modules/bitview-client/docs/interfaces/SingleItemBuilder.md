@@ -6,7 +6,7 @@
 
 # Interface: SingleItemBuilder\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1845](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1845)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1896](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1896)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1845](https://github.
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1846](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1846)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1897](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1897)
 
 Fetch the item
 
@@ -44,7 +44,7 @@ Fetch the item
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1847](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1847)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1898](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1898)
 
 Fetch as CSV
 
@@ -64,6 +64,6 @@ Fetch as CSV
 
 > **then**: [`Thenable`](../type-aliases/Thenable.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1848](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1848)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1899](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1899)
 
 Thenable

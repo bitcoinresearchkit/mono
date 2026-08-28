@@ -6,7 +6,7 @@
 
 # Interface: \_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3793](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3793)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3858](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3858)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3793](https://github.
 
 > **\_0sats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3794](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3794)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3859](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3859)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3794](https://github.
 
 > **\_100btcTo1kBtc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3795](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3795)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3860](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3860)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3795](https://github.
 
 > **\_100kSatsTo1mSats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3796](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3796)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3861](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3861)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3796](https://github.
 
 > **\_100satsTo1kSats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3797](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3797)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3862](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3862)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3797](https://github.
 
 > **\_10btcTo100btc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3798](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3798)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3863](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3863)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3798](https://github.
 
 > **\_10kBtcTo100kBtc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3799](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3799)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3864](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3864)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3799](https://github.
 
 > **\_10kSatsTo100kSats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3800](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3800)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3865](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3865)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3800](https://github.
 
 > **\_10mSatsTo1btc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3801](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3801)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3866](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3866)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3801](https://github.
 
 > **\_10satsTo100sats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3802](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3802)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3867](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3867)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3802](https://github.
 
 > **\_1btcTo10btc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3803](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3803)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3868](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3868)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3803](https://github.
 
 > **\_1kBtcTo10kBtc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3804](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3804)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3869](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3869)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3804](https://github.
 
 > **\_1kSatsTo10kSats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3805](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3805)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3870](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3870)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3805](https://github.
 
 > **\_1mSatsTo10mSats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3806](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3806)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3871](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3871)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3806](https://github.
 
 > **\_1satTo10sats**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3807](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3807)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3872](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3872)
 
 ***
 
@@ -126,4 +126,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:3807](https://github.
 
 > **over100kBtc**: [`CentsDeltaUsdPattern`](CentsDeltaUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:3808](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L3808)
+Defined in: [Developer/brk/modules/bitview-client/index.js:3873](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L3873)

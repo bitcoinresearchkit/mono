@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Adjusted
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8933](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8933)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9056](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9056)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8933](https://github.
 
 > **inflationRate**: [`PercentPpmRatioPattern`](PercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8934](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8934)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9057](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9057)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8934](https://github.
 
 > **txVelocityFiat**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8936](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8936)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9059](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9059)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8936](https://github.
 
 > **txVelocityNative**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8935](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8935)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9058](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9058)

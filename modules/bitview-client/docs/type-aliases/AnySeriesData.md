@@ -8,6 +8,6 @@
 
 > **AnySeriesData** = [`SeriesData`](SeriesData.md)\<`any`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1794](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1794)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1845](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1845)
 
 ## Type Parameters

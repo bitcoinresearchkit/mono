@@ -6,188 +6,188 @@
 
 # Interface: \_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern13
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2881](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2881)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2919](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2919)
 
 ## Properties
 
 ### \_10yTo12y
 
-> **\_10yTo12y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_10yTo12y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2882](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2882)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2920](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2920)
 
 ***
 
 ### \_12yTo15y
 
-> **\_12yTo15y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_12yTo15y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2883](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2883)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2921](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2921)
 
 ***
 
 ### \_18mTo2y
 
-> **\_18mTo2y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_18mTo2y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2884](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2884)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2922](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2922)
 
 ***
 
 ### \_1dTo1w
 
-> **\_1dTo1w**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_1dTo1w**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2885](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2885)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2923](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2923)
 
 ***
 
 ### \_1hTo1d
 
-> **\_1hTo1d**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_1hTo1d**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2886](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2886)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2924](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2924)
 
 ***
 
 ### \_1mTo2m
 
-> **\_1mTo2m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_1mTo2m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2887](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2887)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2925](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2925)
 
 ***
 
 ### \_1wTo1m
 
-> **\_1wTo1m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_1wTo1m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2888](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2888)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2926](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2926)
 
 ***
 
 ### \_1yTo18m
 
-> **\_1yTo18m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_1yTo18m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2889](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2889)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2927](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2927)
 
 ***
 
 ### \_2mTo3m
 
-> **\_2mTo3m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_2mTo3m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2890](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2890)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2928](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2928)
 
 ***
 
 ### \_2yTo3y
 
-> **\_2yTo3y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_2yTo3y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2891](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2891)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2929](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2929)
 
 ***
 
 ### \_3mTo4m
 
-> **\_3mTo4m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_3mTo4m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2892](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2892)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2930](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2930)
 
 ***
 
 ### \_3yTo4y
 
-> **\_3yTo4y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_3yTo4y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2893](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2893)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2931](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2931)
 
 ***
 
 ### \_4mTo5m
 
-> **\_4mTo5m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_4mTo5m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2894](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2894)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2932](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2932)
 
 ***
 
 ### \_4yTo5y
 
-> **\_4yTo5y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_4yTo5y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2895](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2895)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2933](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2933)
 
 ***
 
 ### \_5mTo6m
 
-> **\_5mTo6m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_5mTo6m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2896](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2896)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2934](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2934)
 
 ***
 
 ### \_5yTo6y
 
-> **\_5yTo6y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_5yTo6y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2897](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2897)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2935](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2935)
 
 ***
 
 ### \_6mTo9m
 
-> **\_6mTo9m**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_6mTo9m**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2898](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2898)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2936](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2936)
 
 ***
 
 ### \_6yTo7y
 
-> **\_6yTo7y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_6yTo7y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2899](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2899)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2937](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2937)
 
 ***
 
 ### \_7yTo8y
 
-> **\_7yTo8y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_7yTo8y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2900](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2900)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2938](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2938)
 
 ***
 
 ### \_8yTo10y
 
-> **\_8yTo10y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_8yTo10y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2901](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2901)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2939](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2939)
 
 ***
 
 ### \_9mTo1y
 
-> **\_9mTo1y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **\_9mTo1y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2902](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2902)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2940](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2940)
 
 ***
 
 ### over15y
 
-> **over15y**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **over15y**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2903](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2903)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2941](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2941)
 
 ***
 
 ### under1h
 
-> **under1h**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **under1h**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2904](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2904)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2942](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2942)

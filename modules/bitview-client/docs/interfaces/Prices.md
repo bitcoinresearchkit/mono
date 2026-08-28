@@ -6,7 +6,7 @@
 
 # Interface: Prices
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1015](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1015)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1026)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1015](https://github.
 
 > **time**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1016](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1016)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1027)
 
 Unix timestamp
 
@@ -24,6 +24,6 @@ Unix timestamp
 
 > **uSD**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1017](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1017)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1028)
 
 BTC/USD price

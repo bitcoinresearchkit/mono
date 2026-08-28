@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Outputs
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7661](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7661)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7791](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7791)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7661](https://github.
 
 > **byType**: [`SeriesTree_Outputs_ByType`](SeriesTree_Outputs_ByType.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7667](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7667)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7797](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7797)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7667](https://github.
 
 > **count**: [`SeriesTree_Outputs_Count`](SeriesTree_Outputs_Count.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7664](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7664)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7794](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7794)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7664](https://github.
 
 > **perSec**: [`_1m1w1y24hPattern`](1m1w1y24hPattern.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7665](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7665)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7795](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7795)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7665](https://github.
 
 > **raw**: [`SeriesTree_Outputs_Raw`](SeriesTree_Outputs_Raw.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7662](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7662)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7792](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7792)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7662](https://github.
 
 > **spent**: [`SeriesTree_Outputs_Spent`](SeriesTree_Outputs_Spent.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7663](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7663)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7793](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7793)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7663](https://github.
 
 > **unspent**: [`SeriesTree_Outputs_Unspent`](SeriesTree_Outputs_Unspent.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7666](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7666)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7796](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7796)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7666](https://github.
 
 > **value**: [`SeriesTree_Outputs_Value`](SeriesTree_Outputs_Value.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7668](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7668)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7798](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7798)

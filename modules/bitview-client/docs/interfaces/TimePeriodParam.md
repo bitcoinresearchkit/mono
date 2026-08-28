@@ -6,7 +6,7 @@
 
 # Interface: TimePeriodParam
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1306](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1306)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1357](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1357)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1306](https://github.
 
 > **timePeriod**: [`TimePeriod`](../type-aliases/TimePeriod.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1307](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1307)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1358](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1358)

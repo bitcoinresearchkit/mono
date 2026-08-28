@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Prices
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8925](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8925)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9048](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9048)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8925](https://github.
 
 > **active**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8927](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8927)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9050](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9050)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8927](https://github.
 
 > **cointime**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8929](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8929)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9052](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9052)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8929](https://github.
 
 > **trueMarketMean**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8928](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8928)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9051](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9051)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8928](https://github.
 
 > **vaulted**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8926](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8926)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9049](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9049)

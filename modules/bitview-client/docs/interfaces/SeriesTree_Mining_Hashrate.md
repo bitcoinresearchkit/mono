@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining\_Hashrate
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8558](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8558)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8681](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8681)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8558](https://github.
 
 > **price**: [`PhsReboundThsPattern`](PhsReboundThsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8560](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8560)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8683](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8683)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8560](https://github.
 
 > **rate**: [`SeriesTree_Mining_Hashrate_Rate`](SeriesTree_Mining_Hashrate_Rate.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8559](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8559)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8682](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8682)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8559](https://github.
 
 > **value**: [`PhsReboundThsPattern`](PhsReboundThsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8561](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8561)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8684](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8684)

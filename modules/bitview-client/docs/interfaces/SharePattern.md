@@ -6,7 +6,7 @@
 
 # Interface: SharePattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7131](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7131)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7261](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7261)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7131](https://github.
 
 > **share**: [`AllHeightLthSthPattern4`](AllHeightLthSthPattern4.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7132](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7132)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7262](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7262)

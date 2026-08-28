@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Policy
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7555](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7555)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7685](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7685)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7555](https://github.
 
 > **count**: [`SeriesTree_Transactions_Policy_Count`](SeriesTree_Transactions_Policy_Count.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7556](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7556)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7686](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7686)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7556](https://github.
 
 > **isNonstandard**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`boolean`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7557](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7557)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7687](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7687)

@@ -8,6 +8,6 @@
 
 > **TimePeriod** = `"24h"` \| `"3d"` \| `"1w"` \| `"1m"` \| `"3m"` \| `"6m"` \| `"1y"` \| `"2y"` \| `"3y"` \| `"all"`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1301](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1301)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1352](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1352)
 
 ## Type Parameters

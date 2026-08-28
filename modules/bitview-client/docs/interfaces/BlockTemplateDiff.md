@@ -6,7 +6,7 @@
 
 # Interface: BlockTemplateDiff
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:294](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L294)
+Defined in: [Developer/brk/modules/bitview-client/index.js:298](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L298)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:294](https://github.c
 
 > **hash**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:295](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L295)
+Defined in: [Developer/brk/modules/bitview-client/index.js:299](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L299)
 
 Current next-block hash. Use as `since` on the next diff call.
 
@@ -24,7 +24,7 @@ Current next-block hash. Use as `since` on the next diff call.
 
 > **order**: [`BlockTemplateDiffEntry`](../type-aliases/BlockTemplateDiffEntry.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:297](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L297)
+Defined in: [Developer/brk/modules/bitview-client/index.js:301](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L301)
 
 New template in order. Each entry is either an index into the
 prior template's transactions or a full transaction body.
@@ -35,7 +35,7 @@ prior template's transactions or a full transaction body.
 
 > **removed**: `string`[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:299](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L299)
+Defined in: [Developer/brk/modules/bitview-client/index.js:303](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L303)
 
 Txids that left the projected next block since `since`
 (confirmed, evicted, replaced, or pushed past block 0).
@@ -46,6 +46,6 @@ Txids that left the projected next block since `since`
 
 > **since**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:296](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L296)
+Defined in: [Developer/brk/modules/bitview-client/index.js:300](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L300)
 
 Echoed prior hash the diff was computed against.

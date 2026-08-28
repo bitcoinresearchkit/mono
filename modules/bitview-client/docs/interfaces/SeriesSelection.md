@@ -6,7 +6,7 @@
 
 # Interface: SeriesSelection
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1219](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1219)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1270](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1270)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1219](https://github.
 
 > `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1223](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1223)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1274](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1274)
 
 Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
 
@@ -24,7 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1225](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1225)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1276](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1276)
 
 Format of the output
 
@@ -34,7 +34,7 @@ Format of the output
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1221](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1221)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1272](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1272)
 
 Index to query
 
@@ -44,7 +44,7 @@ Index to query
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1224](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1224)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1275](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1275)
 
 Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
 
@@ -54,7 +54,7 @@ Maximum number of values to return (ignored if `end` is set). Aliases: `count`, 
 
 > **series**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1220](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1220)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1271](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1271)
 
 Requested series
 
@@ -64,6 +64,6 @@ Requested series
 
 > `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1222](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1222)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1273](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1273)
 
 Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`

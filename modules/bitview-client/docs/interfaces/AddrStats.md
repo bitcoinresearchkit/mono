@@ -6,7 +6,7 @@
 
 # Interface: AddrStats
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:68](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L68)
+Defined in: [Developer/brk/modules/bitview-client/index.js:77](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L77)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:68](https://github.co
 
 > **address**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:69](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L69)
+Defined in: [Developer/brk/modules/bitview-client/index.js:78](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L78)
 
 Bitcoin address string
 
@@ -24,7 +24,7 @@ Bitcoin address string
 
 > **addrType**: [`OutputType`](../type-aliases/OutputType.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:70](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L70)
+Defined in: [Developer/brk/modules/bitview-client/index.js:79](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L79)
 
 BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
 
@@ -34,7 +34,7 @@ BRK address type (p2pk33, p2pk65, p2pkh, p2sh, p2wpkh, p2wsh, p2tr, etc.)
 
 > **balance**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:73](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L73)
+Defined in: [Developer/brk/modules/bitview-client/index.js:82](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L82)
 
 Total current balance in satoshis, including pending (unconfirmed) mempool changes
 
@@ -44,7 +44,7 @@ Total current balance in satoshis, including pending (unconfirmed) mempool chang
 
 > **chainStats**: [`AddrChainStats`](AddrChainStats.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:71](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L71)
+Defined in: [Developer/brk/modules/bitview-client/index.js:80](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L80)
 
 Statistics for confirmed transactions on the blockchain
 
@@ -54,6 +54,6 @@ Statistics for confirmed transactions on the blockchain
 
 > **mempoolStats**: [`AddrMempoolStats`](AddrMempoolStats.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:72](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L72)
+Defined in: [Developer/brk/modules/bitview-client/index.js:81](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L81)
 
 Statistics for unconfirmed transactions in the mempool

@@ -6,7 +6,7 @@
 
 # Interface: Profit
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1024](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1024)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1035)
 
 ## Properties
 
@@ -14,7 +14,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1024](https://github.
 
 > **\_100pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1035)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1056](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1056)
+
+Uses UTXOs whose represented-block spot price is more than 100% above
+creation price.
 
 ***
 
@@ -22,7 +25,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1035](https://github.
 
 > **\_10pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1026)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1038)
+
+Uses UTXOs whose represented-block spot price is more than 10% above
+creation price.
 
 ***
 
@@ -30,7 +36,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1026](https://github.
 
 > **\_200pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1036)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1058](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1058)
+
+Uses UTXOs whose represented-block spot price is more than 200% above
+creation price.
 
 ***
 
@@ -38,7 +47,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.
 
 > **\_20pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1027)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1040](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1040)
+
+Uses UTXOs whose represented-block spot price is more than 20% above
+creation price.
 
 ***
 
@@ -46,7 +58,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1027](https://github.
 
 > **\_300pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1037](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1037)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1060](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1060)
+
+Uses UTXOs whose represented-block spot price is more than 300% above
+creation price.
 
 ***
 
@@ -54,7 +69,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1037](https://github.
 
 > **\_30pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1028)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1042](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1042)
+
+Uses UTXOs whose represented-block spot price is more than 30% above
+creation price.
 
 ***
 
@@ -62,7 +80,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1028](https://github.
 
 > **\_40pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1029](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1029)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1044](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1044)
+
+Uses UTXOs whose represented-block spot price is more than 40% above
+creation price.
 
 ***
 
@@ -70,7 +91,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1029](https://github.
 
 > **\_500pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1038)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1062](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1062)
+
+Uses UTXOs whose represented-block spot price is more than 500% above
+creation price.
 
 ***
 
@@ -78,7 +102,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1038](https://github.
 
 > **\_50pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1030](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1030)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1046](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1046)
+
+Uses UTXOs whose represented-block spot price is more than 50% above
+creation price.
 
 ***
 
@@ -86,7 +113,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1030](https://github.
 
 > **\_60pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1031](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1031)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1048](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1048)
+
+Uses UTXOs whose represented-block spot price is more than 60% above
+creation price.
 
 ***
 
@@ -94,7 +124,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1031](https://github.
 
 > **\_70pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1032](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1032)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1050](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1050)
+
+Uses UTXOs whose represented-block spot price is more than 70% above
+creation price.
 
 ***
 
@@ -102,7 +135,10 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1032](https://github.
 
 > **\_80pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1033](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1033)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1052](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1052)
+
+Uses UTXOs whose represented-block spot price is more than 80% above
+creation price.
 
 ***
 
@@ -110,12 +146,18 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1033](https://github.
 
 > **\_90pct**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1034](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1034)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1054](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1054)
+
+Uses UTXOs whose represented-block spot price is more than 90% above
+creation price.
 
 ***
 
-### all
+### total
 
-> **all**: `number`
+> **total**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1025](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1025)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1036](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1036)
+
+Uses UTXOs whose creation price is below the represented block's spot
+price.

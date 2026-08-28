@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Inputs
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7585](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7585)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7715](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7715)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7585](https://github.
 
 > **byType**: [`SeriesTree_Inputs_ByType`](SeriesTree_Inputs_ByType.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7590](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7590)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7720](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7720)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7590](https://github.
 
 > **count**: [`CumulativeRollingSumPattern`](CumulativeRollingSumPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7588](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7588)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7718](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7718)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7588](https://github.
 
 > **perSec**: [`_1m1w1y24hPattern`](1m1w1y24hPattern.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7589](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7589)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7719](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7719)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7589](https://github.
 
 > **raw**: [`SeriesTree_Inputs_Raw`](SeriesTree_Inputs_Raw.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7586](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7586)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7716](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7716)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7586](https://github.
 
 > **value**: [`SeriesPattern20`](../type-aliases/SeriesPattern20.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7587](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7587)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7717](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7717)

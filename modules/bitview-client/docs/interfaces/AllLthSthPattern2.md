@@ -6,7 +6,7 @@
 
 # Interface: AllLthSthPattern2
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6062](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6062)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6173](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6173)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6062](https://github.
 
 > **all**: [`_1m1w1y24hHeightPattern`](1m1w1y24hHeightPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6063](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6063)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6174](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6174)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6063](https://github.
 
 > **lth**: [`_1m1w1y24hHeightPattern`](1m1w1y24hHeightPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6064](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6064)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6175](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6175)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6064](https://github.
 
 > **sth**: [`_1m1w1y24hHeightPattern`](1m1w1y24hHeightPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6065](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6065)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6176](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6176)

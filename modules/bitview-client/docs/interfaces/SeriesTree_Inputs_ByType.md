@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Inputs\_ByType
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7604](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7604)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7734](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7734)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7604](https://github.
 
 > **inputCount**: [`SeriesTree_Inputs_ByType_InputCount`](SeriesTree_Inputs_ByType_InputCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7605](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7605)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7735](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7735)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7605](https://github.
 
 > **inputShare**: [`SeriesTree_Inputs_ByType_InputShare`](SeriesTree_Inputs_ByType_InputShare.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7606](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7606)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7736](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7736)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7606](https://github.
 
 > **txCount**: [`SeriesTree_Inputs_ByType_TxCount`](SeriesTree_Inputs_ByType_TxCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7607](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7607)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7737](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7737)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7607](https://github.
 
 > **txShare**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7608](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7608)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7738](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7738)

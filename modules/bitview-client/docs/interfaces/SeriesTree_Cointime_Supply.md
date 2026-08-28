@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Supply
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8892](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8892)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9015](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9015)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8892](https://github.
 
 > **active**: [`SeriesTree_Cointime_Supply_Active`](SeriesTree_Cointime_Supply_Active.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8894](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8894)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9017](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9017)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8894](https://github.
 
 > **vaulted**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8893](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8893)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9016](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9016)

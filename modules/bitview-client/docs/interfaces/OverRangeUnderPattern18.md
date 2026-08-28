@@ -1,0 +1,33 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / OverRangeUnderPattern18
+
+# Interface: OverRangeUnderPattern18
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:6390](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6390)
+
+## Properties
+
+### over
+
+> **over**: [`_100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern8`](100btc100k100sats10btc10k10m10sats1btc1k1m1satPattern8.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:6391](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6391)
+
+***
+
+### range
+
+> **range**: [`_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern8`](0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern8.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:6392](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6392)
+
+***
+
+### under
+
+> **under**: [`_100btc100k100sats10btc10k10m10sats1btc1k1mPattern8`](100btc100k100sats10btc10k10m10sats1btc1k1mPattern8.md)
+
+Defined in: [Developer/brk/modules/bitview-client/index.js:6393](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6393)

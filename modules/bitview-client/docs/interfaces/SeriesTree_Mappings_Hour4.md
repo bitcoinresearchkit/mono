@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Hour4
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9454](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9454)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9577](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9577)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9454](https://github.
 
 > **firstHeight**: [`SeriesPattern6`](../type-aliases/SeriesPattern6.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9455](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9455)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9578](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9578)

@@ -6,7 +6,7 @@
 
 # Interface: CostBasisParams
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:408](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L408)
+Defined in: [Developer/brk/modules/bitview-client/index.js:412](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L412)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:408](https://github.c
 
 > **cohort**: [`Cohort`](../type-aliases/Cohort.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:409](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L409)
+Defined in: [Developer/brk/modules/bitview-client/index.js:413](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L413)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:409](https://github.c
 
 > **date**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:410](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L410)
+Defined in: [Developer/brk/modules/bitview-client/index.js:414](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L414)

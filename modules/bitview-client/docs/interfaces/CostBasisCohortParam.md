@@ -6,7 +6,7 @@
 
 # Interface: CostBasisCohortParam
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:404](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L404)
+Defined in: [Developer/brk/modules/bitview-client/index.js:408](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L408)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:404](https://github.c
 
 > **cohort**: [`Cohort`](../type-aliases/Cohort.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:405](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L405)
+Defined in: [Developer/brk/modules/bitview-client/index.js:409](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L409)

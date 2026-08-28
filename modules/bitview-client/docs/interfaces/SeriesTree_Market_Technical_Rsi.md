@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Technical\_Rsi
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9822](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9822)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9945](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9945)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9822](https://github.
 
 > **\_1m**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9825](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9825)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9948](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9948)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9825](https://github.
 
 > **\_1w**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9824](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9824)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9947](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9947)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9824](https://github.
 
 > **\_24h**: [`RsiStochPattern`](RsiStochPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9823](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9823)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9946](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9946)

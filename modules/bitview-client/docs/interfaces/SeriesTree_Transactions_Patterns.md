@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Patterns
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7540](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7540)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7670](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7670)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7540](https://github.
 
 > **count**: [`SeriesTree_Transactions_Patterns_Count`](SeriesTree_Transactions_Patterns_Count.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7541](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7541)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7671](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7671)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7541](https://github.
 
 > **isBatchPayout**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`boolean`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7544](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7544)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7674](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7674)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7544](https://github.
 
 > **isCoinjoin**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`boolean`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7542](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7542)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7672](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7672)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7542](https://github.
 
 > **isConsolidation**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`boolean`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7543](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7543)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7673](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7673)

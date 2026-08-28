@@ -6,7 +6,7 @@
 
 # Interface: BlockTimestamp
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:320](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L320)
+Defined in: [Developer/brk/modules/bitview-client/index.js:324](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L324)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:320](https://github.c
 
 > **hash**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:322](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L322)
+Defined in: [Developer/brk/modules/bitview-client/index.js:326](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L326)
 
 Block hash
 
@@ -24,7 +24,7 @@ Block hash
 
 > **height**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:321](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L321)
+Defined in: [Developer/brk/modules/bitview-client/index.js:325](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L325)
 
 Block height
 
@@ -34,6 +34,6 @@ Block height
 
 > **timestamp**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:323](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L323)
+Defined in: [Developer/brk/modules/bitview-client/index.js:327](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L327)
 
 Block timestamp in ISO 8601 format

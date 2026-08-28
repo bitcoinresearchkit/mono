@@ -6,7 +6,7 @@
 
 # Interface: TxIndexParam
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1366](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1366)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1417](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1417)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1366](https://github.
 
 > **index**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1367](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1367)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1418)

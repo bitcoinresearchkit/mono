@@ -6,7 +6,7 @@
 
 # Interface: CpfpClusterTx
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:443](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L443)
+Defined in: [Developer/brk/modules/bitview-client/index.js:447](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L447)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:443](https://github.c
 
 > **fee**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:446](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L446)
+Defined in: [Developer/brk/modules/bitview-client/index.js:450](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L450)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:446](https://github.c
 
 > **parents**: `number`[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:447](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L447)
+Defined in: [Developer/brk/modules/bitview-client/index.js:451](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L451)
 
 In-cluster parents of this tx.
 
@@ -32,7 +32,7 @@ In-cluster parents of this tx.
 
 > **txid**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:444](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L444)
+Defined in: [Developer/brk/modules/bitview-client/index.js:448](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L448)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:444](https://github.c
 
 > **weight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:445](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L445)
+Defined in: [Developer/brk/modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L449)

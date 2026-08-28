@@ -6,7 +6,7 @@
 
 # Interface: TxOut
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1370](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1370)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1421](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1421)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1370](https://github.
 
 > **scriptpubkey**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1371](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1371)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1422](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1422)
 
 Script pubkey (locking script), encoded as hexadecimal.
 
@@ -24,7 +24,7 @@ Script pubkey (locking script), encoded as hexadecimal.
 
 > `optional` **scriptpubkeyAddress?**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1374](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1374)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1425](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1425)
 
 Bitcoin address, omitted for scripts without an address.
 
@@ -34,7 +34,7 @@ Bitcoin address, omitted for scripts without an address.
 
 > **scriptpubkeyAsm**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1372](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1372)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1423](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1423)
 
 Script pubkey in assembly format.
 
@@ -44,7 +44,7 @@ Script pubkey in assembly format.
 
 > **scriptpubkeyType**: [`OutputTypeNormalized`](../type-aliases/OutputTypeNormalized.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1373](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1373)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1424](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1424)
 
 Esplora/mempool.space script type.
 
@@ -54,6 +54,6 @@ Esplora/mempool.space script type.
 
 > **value**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1375](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1375)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1426](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1426)
 
 Value of the output in satoshis.

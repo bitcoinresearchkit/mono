@@ -6,7 +6,7 @@
 
 # Interface: HeightLossProfitRangePattern2
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5923](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5923)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6034](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6034)
 
 ## Properties
 
@@ -14,23 +14,23 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5923](https://github.
 
 > **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5924](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5924)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6035](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6035)
 
 ***
 
 ### loss
 
-> **loss**: [`_10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2`](10pct20pct30pct40pct50pct60pct70pct80pctAllPattern2.md)
+> **loss**: [`_10pct20pct30pct40pct50pct60pct70pct80pctTotalPattern2`](10pct20pct30pct40pct50pct60pct70pct80pctTotalPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5925](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5925)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6036](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6036)
 
 ***
 
 ### profit
 
-> **profit**: [`_100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2`](100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctAllPattern2.md)
+> **profit**: [`_100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctTotalPattern2`](100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctTotalPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5926](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5926)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6037](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6037)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5926](https://github.
 
 > **range**: [`_0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2`](0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5927](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5927)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6038](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6038)

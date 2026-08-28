@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Sth
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8839](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8839)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8962](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8962)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8839](https://github.
 
 > **awake**: [`SeriesTree_Cointime_Sth_Awake`](SeriesTree_Cointime_Sth_Awake.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8840](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8840)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8963](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8963)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8840](https://github.
 
 > **dormant**: [`SupplyPattern2`](SupplyPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8841](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8841)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8964](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8964)

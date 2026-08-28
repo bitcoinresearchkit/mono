@@ -6,7 +6,7 @@
 
 # Interface: FloorLevelLossPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6244](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6244)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6355](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6355)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6244](https://github.
 
 > **floor**: [`Pct95Pct98Pct99Pattern`](Pct95Pct98Pct99Pattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6245](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6245)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6356](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6356)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6245](https://github.
 
 > **level**: [`Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern`](Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6246](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6246)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6357](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6357)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6246](https://github.
 
 > **lossThreshold**: [`Pct95Pct98Pct99Pattern2`](Pct95Pct98Pct99Pattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6247](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6247)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6358](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6358)

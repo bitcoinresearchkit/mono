@@ -6,7 +6,7 @@
 
 # Interface: SearchQuery
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1167](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1167)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1217](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1217)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1167](https://github.
 
 > `optional` **limit?**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1169](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1169)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1219](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1219)
 
 Maximum number of results
 
@@ -24,6 +24,6 @@ Maximum number of results
 
 > **q**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1168](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1168)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1218](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1218)
 
 Search query string

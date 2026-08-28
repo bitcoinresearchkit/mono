@@ -6,7 +6,7 @@
 
 # Interface: DifficultyEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:534](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L534)
+Defined in: [Developer/brk/modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L538)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:534](https://github.c
 
 > **adjustment**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L538)
+Defined in: [Developer/brk/modules/bitview-client/index.js:542](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L542)
 
 Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
@@ -24,7 +24,7 @@ Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
 > **difficulty**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:537](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L537)
+Defined in: [Developer/brk/modules/bitview-client/index.js:541](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L541)
 
 Difficulty value
 
@@ -34,7 +34,7 @@ Difficulty value
 
 > **height**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:536](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L536)
+Defined in: [Developer/brk/modules/bitview-client/index.js:540](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L540)
 
 Block height of the adjustment
 
@@ -44,6 +44,6 @@ Block height of the adjustment
 
 > **time**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:535](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L535)
+Defined in: [Developer/brk/modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L539)
 
 Unix timestamp of the difficulty adjustment

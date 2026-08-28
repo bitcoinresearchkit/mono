@@ -6,7 +6,7 @@
 
 # Interface: CpfpCluster
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:426](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L426)
+Defined in: [Developer/brk/modules/bitview-client/index.js:430](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L430)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:426](https://github.c
 
 > **chunkIndex**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:429](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L429)
+Defined in: [Developer/brk/modules/bitview-client/index.js:433](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L433)
 
 Index into `chunks` of the chunk containing the seed tx.
 
@@ -24,7 +24,7 @@ Index into `chunks` of the chunk containing the seed tx.
 
 > **chunks**: [`CpfpClusterChunk`](CpfpClusterChunk.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:428](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L428)
+Defined in: [Developer/brk/modules/bitview-client/index.js:432](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L432)
 
 SFL-emitted chunks ordered by descending feerate.
 
@@ -34,6 +34,6 @@ SFL-emitted chunks ordered by descending feerate.
 
 > **txs**: [`CpfpClusterTx`](CpfpClusterTx.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:427](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L427)
+Defined in: [Developer/brk/modules/bitview-client/index.js:431](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L431)
 
 All txs in the cluster, in topological order (parents before children).

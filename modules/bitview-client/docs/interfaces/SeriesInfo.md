@@ -6,7 +6,7 @@
 
 # Interface: SeriesInfo
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1183](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1183)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1233](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1233)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1183](https://github.
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1184](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1184)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1234](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1234)
 
 Human-readable metric definition, when documented
 
@@ -24,7 +24,7 @@ Human-readable metric definition, when documented
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1185](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1185)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1235](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1235)
 
 Available indexes
 
@@ -34,6 +34,6 @@ Available indexes
 
 > **type**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1186](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1186)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1236](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1236)
 
 Value type (e.g. "f32", "u64", "Sats")

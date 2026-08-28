@@ -8,7 +8,7 @@
 
 > **SeriesPattern35**\<`T`\> = `object`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2588](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2588)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2653](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2653)
 
 ## Type Parameters
 
@@ -22,9 +22,9 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2588](https://github.
 
 > **by**: `object`
 
-#### by.empty\_addr\_index
+#### by.extended\_empty\_addr\_index
 
-> `readonly` **empty\_addr\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+> `readonly` **extended\_empty\_addr\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
 
 ### get
 

@@ -6,7 +6,7 @@
 
 # Interface: RewardStats
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1136](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1136)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1186](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1186)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1136](https://github.
 
 > **endBlock**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1138](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1138)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1188](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1188)
 
 Last block in the range
 
@@ -24,7 +24,7 @@ Last block in the range
 
 > **startBlock**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1137](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1137)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1187](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1187)
 
 First block in the range
 
@@ -34,7 +34,7 @@ First block in the range
 
 > **totalFee**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1140](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1140)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1190](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1190)
 
 Total transaction fees in sats
 
@@ -44,7 +44,7 @@ Total transaction fees in sats
 
 > **totalReward**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1139](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1139)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1189](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1189)
 
 Total coinbase rewards (subsidy + fees) in sats
 
@@ -54,6 +54,6 @@ Total coinbase rewards (subsidy + fees) in sats
 
 > **totalTx**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1141](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1141)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1191](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1191)
 
 Total number of transactions

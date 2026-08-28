@@ -6,7 +6,7 @@
 
 # Interface: LegacySeriesWithIndex
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:711](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L711)
+Defined in: [Developer/brk/modules/bitview-client/index.js:713](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L713)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:711](https://github.c
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:713](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L713)
+Defined in: [Developer/brk/modules/bitview-client/index.js:715](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L715)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:713](https://github.c
 
 > **metric**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:712](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L712)
+Defined in: [Developer/brk/modules/bitview-client/index.js:714](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L714)

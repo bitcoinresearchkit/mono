@@ -6,20 +6,20 @@
 
 # Interface: DiscountPremiumPattern13
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6864](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6864)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6975](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6975)
 
 ## Properties
 
 ### discount
 
-> **discount**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **discount**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6865](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6865)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6976](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6976)
 
 ***
 
 ### premium
 
-> **premium**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **premium**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6866](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L6866)
+Defined in: [Developer/brk/modules/bitview-client/index.js:6977](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6977)

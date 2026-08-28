@@ -6,7 +6,7 @@
 
 # Interface: SupplyState
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1280](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1280)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1331](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1331)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1280](https://github.
 
 > **utxoCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1281](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1281)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1332](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1332)
 
 Number of unspent transaction outputs
 
@@ -24,6 +24,6 @@ Number of unspent transaction outputs
 
 > **value**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1282](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1282)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1333](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1333)
 
 Total value in satoshis

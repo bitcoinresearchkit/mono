@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Outputs\_ByType\_OutputShare
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7722](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7722)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7852](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7852)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7722](https://github.
 
 > **empty**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7733](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7733)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7863](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7863)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7733](https://github.
 
 > **opReturn**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7734](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7734)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7864](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7864)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7734](https://github.
 
 > **p2a**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7731](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7731)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7861](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7861)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7731](https://github.
 
 > **p2ms**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7726](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7726)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7856](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7856)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7726](https://github.
 
 > **p2pk33**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7724](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7724)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7854](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7854)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7724](https://github.
 
 > **p2pk65**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7723](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7723)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7853](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7853)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7723](https://github.
 
 > **p2pkh**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7725](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7725)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7855](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7855)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7725](https://github.
 
 > **p2sh**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7727](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7727)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7857](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7857)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7727](https://github.
 
 > **p2tr**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7730](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7730)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7860](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7860)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7730](https://github.
 
 > **p2wpkh**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7728](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7728)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7858](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7858)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7728](https://github.
 
 > **p2wsh**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7729](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7729)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7859](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7859)
 
 ***
 
@@ -102,4 +102,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7729](https://github.
 
 > **unknown**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7732](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7732)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7862](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7862)

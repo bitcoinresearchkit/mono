@@ -6,7 +6,7 @@
 
 # Interface: SyncStatus
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1287](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1287)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1338](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1338)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1287](https://github.
 
 > **blocksBehind**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1291](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1291)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1342](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1342)
 
 Number of blocks behind the tip
 
@@ -24,7 +24,7 @@ Number of blocks behind the tip
 
 > **computedHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1289](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1289)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1340](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1340)
 
 Height of the last computed block (series)
 
@@ -34,7 +34,7 @@ Height of the last computed block (series)
 
 > **indexedHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1288](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1288)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1339](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1339)
 
 Height of the last indexed block
 
@@ -44,7 +44,7 @@ Height of the last indexed block
 
 > **lastIndexedAt**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1292](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1292)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1343](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1343)
 
 Human-readable timestamp of the last indexed block (ISO 8601)
 
@@ -54,7 +54,7 @@ Human-readable timestamp of the last indexed block (ISO 8601)
 
 > **lastIndexedAtUnix**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1293](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1293)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1344](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1344)
 
 Unix timestamp of the last indexed block
 
@@ -64,6 +64,6 @@ Unix timestamp of the last indexed block
 
 > **tipHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1290](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1290)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1341](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1341)
 
 Height of the chain tip (from Bitcoin node)

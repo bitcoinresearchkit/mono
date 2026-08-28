@@ -8,6 +8,6 @@
 
 > **DifficultyAdjustmentEntry** = `number`[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:529](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L529)
+Defined in: [Developer/brk/modules/bitview-client/index.js:533](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L533)
 
 ## Type Parameters

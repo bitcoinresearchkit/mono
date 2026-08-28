@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Scripts\_Raw
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8253](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8253)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8376](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8376)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8253](https://github.
 
 > **empty**: [`SeriesTree_Scripts_Raw_Empty`](SeriesTree_Scripts_Raw_Empty.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8254](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8254)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8377](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8377)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8254](https://github.
 
 > **p2ms**: [`SeriesTree_Scripts_Raw_P2ms`](SeriesTree_Scripts_Raw_P2ms.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8255](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8255)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8378](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8378)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8255](https://github.
 
 > **unknown**: [`SeriesTree_Scripts_Raw_Unknown`](SeriesTree_Scripts_Raw_Unknown.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8256](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8256)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8379](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8379)

@@ -6,7 +6,7 @@
 
 # Interface: AscribeBareBitproofBlockstackCoinColuCumulativeDocproofEmptyEpobcEternityFactomKomodoMemoOmniOpenPoetRunesStacksStamperyTextUnknownVeriPattern3\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2710](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2710)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2775](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2775)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2710](https://github.
 
 > **ascribe**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2711](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2711)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2776](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2776)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2711](https://github.
 
 > **bareHash**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2712](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2712)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2777](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2777)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2712](https://github.
 
 > **bitproof**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2713](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2713)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2778](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2778)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2713](https://github.
 
 > **blockstack**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2714](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2714)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2779](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2779)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2714](https://github.
 
 > **coinSpark**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2715](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2715)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2780](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2780)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2715](https://github.
 
 > **colu**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2716](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2716)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2781](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2781)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2716](https://github.
 
 > **cumulative**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2717](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2717)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2782](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2782)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2717](https://github.
 
 > **docproof**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2718](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2718)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2783](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2783)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2718](https://github.
 
 > **empty**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2719](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2719)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2784](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2784)
 
 ***
 
@@ -92,7 +92,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2719](https://github.
 
 > **epobc**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2720](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2720)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2785](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2785)
 
 ***
 
@@ -100,7 +100,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2720](https://github.
 
 > **eternityWall**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2721](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2721)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2786](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2786)
 
 ***
 
@@ -108,7 +108,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2721](https://github.
 
 > **factom**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2722](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2722)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2787](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2787)
 
 ***
 
@@ -116,7 +116,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2722](https://github.
 
 > **komodo**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2723](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2723)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2788](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2788)
 
 ***
 
@@ -124,7 +124,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2723](https://github.
 
 > **memo**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2724](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2724)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2789](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2789)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2724](https://github.
 
 > **omni**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2725](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2725)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2790](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2790)
 
 ***
 
@@ -140,7 +140,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2725](https://github.
 
 > **openAssets**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2726](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2726)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2791](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2791)
 
 ***
 
@@ -148,7 +148,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2726](https://github.
 
 > **openTimestamps**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2727](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2727)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2792](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2792)
 
 ***
 
@@ -156,7 +156,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2727](https://github.
 
 > **poet**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2728](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2728)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2793](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2793)
 
 ***
 
@@ -164,7 +164,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2728](https://github.
 
 > **runes**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2729](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2729)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2794](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2794)
 
 ***
 
@@ -172,7 +172,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2729](https://github.
 
 > **stacks**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2730](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2730)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2795](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2795)
 
 ***
 
@@ -180,7 +180,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2730](https://github.
 
 > **stampery**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2731](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2731)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2796](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2796)
 
 ***
 
@@ -188,7 +188,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2731](https://github.
 
 > **text**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2732](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2732)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2797](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2797)
 
 ***
 
@@ -196,7 +196,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2732](https://github.
 
 > **unknown**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2733](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2733)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2798](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2798)
 
 ***
 
@@ -204,4 +204,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:2733](https://github.
 
 > **veriBlock**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2734](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2734)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2799](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2799)

@@ -6,7 +6,7 @@
 
 # Interface: FundedAddrData
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:597](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L597)
+Defined in: [Developer/brk/modules/bitview-client/index.js:600](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L600)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:597](https://github.c
 
 > **fundedTxoCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:602](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L602)
+Defined in: [Developer/brk/modules/bitview-client/index.js:605](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L605)
 
 Number of transaction outputs funded to this address
 
@@ -24,7 +24,7 @@ Number of transaction outputs funded to this address
 
 > **realizedCapRaw**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:600](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L600)
+Defined in: [Developer/brk/modules/bitview-client/index.js:603](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L603)
 
 The realized capitalization: Σ(price × sats)
 
@@ -34,7 +34,7 @@ The realized capitalization: Σ(price × sats)
 
 > **received**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:598](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L598)
+Defined in: [Developer/brk/modules/bitview-client/index.js:601](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L601)
 
 Satoshis received by this address
 
@@ -44,7 +44,7 @@ Satoshis received by this address
 
 > **sent**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:599](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L599)
+Defined in: [Developer/brk/modules/bitview-client/index.js:602](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L602)
 
 Satoshis sent by this address
 
@@ -54,7 +54,7 @@ Satoshis sent by this address
 
 > **spentTxoCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:603](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L603)
+Defined in: [Developer/brk/modules/bitview-client/index.js:606](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L606)
 
 Number of transaction outputs spent by this address
 
@@ -64,6 +64,6 @@ Number of transaction outputs spent by this address
 
 > **txCount**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:601](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L601)
+Defined in: [Developer/brk/modules/bitview-client/index.js:604](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L604)
 
 Total transaction count

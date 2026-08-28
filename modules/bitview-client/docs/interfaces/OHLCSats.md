@@ -6,7 +6,7 @@
 
 # Interface: OHLCSats
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:817](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L817)
+Defined in: [Developer/brk/modules/bitview-client/index.js:828](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L828)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:817](https://github.c
 
 > **close**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:821](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L821)
+Defined in: [Developer/brk/modules/bitview-client/index.js:832](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L832)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:821](https://github.c
 
 > **high**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:819](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L819)
+Defined in: [Developer/brk/modules/bitview-client/index.js:830](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L830)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:819](https://github.c
 
 > **low**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:820](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L820)
+Defined in: [Developer/brk/modules/bitview-client/index.js:831](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L831)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:820](https://github.c
 
 > **open**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:818](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L818)
+Defined in: [Developer/brk/modules/bitview-client/index.js:829](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L829)

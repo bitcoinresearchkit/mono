@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Timestamp
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9529](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9529)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9652](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9652)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9529](https://github.
 
 > **monotonic**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9530](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9530)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9653](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9653)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9530](https://github.
 
 > **resolutions**: [`SeriesPattern2`](../type-aliases/SeriesPattern2.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9531](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9531)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9654](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9654)

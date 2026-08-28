@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Addr
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9325](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9325)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9448](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9448)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9325](https://github.
 
 > **empty**: [`SeriesTree_Mappings_Addr_Empty`](SeriesTree_Mappings_Addr_Empty.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9335](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9335)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9458](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9458)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9335](https://github.
 
 > **opReturn**: [`SeriesTree_Mappings_Addr_OpReturn`](SeriesTree_Mappings_Addr_OpReturn.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9337](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9337)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9460](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9460)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9337](https://github.
 
 > **p2a**: [`SeriesTree_Mappings_Addr_P2a`](SeriesTree_Mappings_Addr_P2a.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9333](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9333)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9456](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9456)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9333](https://github.
 
 > **p2ms**: [`SeriesTree_Mappings_Addr_P2ms`](SeriesTree_Mappings_Addr_P2ms.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9334](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9334)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9457](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9457)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9334](https://github.
 
 > **p2pk33**: [`SeriesTree_Mappings_Addr_P2pk33`](SeriesTree_Mappings_Addr_P2pk33.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9326](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9326)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9449](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9449)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9326](https://github.
 
 > **p2pk65**: [`SeriesTree_Mappings_Addr_P2pk65`](SeriesTree_Mappings_Addr_P2pk65.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9327](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9327)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9450](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9450)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9327](https://github.
 
 > **p2pkh**: [`SeriesTree_Mappings_Addr_P2pkh`](SeriesTree_Mappings_Addr_P2pkh.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9328](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9328)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9451](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9451)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9328](https://github.
 
 > **p2sh**: [`SeriesTree_Mappings_Addr_P2sh`](SeriesTree_Mappings_Addr_P2sh.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9329)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9452](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9452)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9329](https://github.
 
 > **p2tr**: [`SeriesTree_Mappings_Addr_P2tr`](SeriesTree_Mappings_Addr_P2tr.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9330](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9330)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9453](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9453)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9330](https://github.
 
 > **p2wpkh**: [`SeriesTree_Mappings_Addr_P2wpkh`](SeriesTree_Mappings_Addr_P2wpkh.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9331](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9331)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9454](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9454)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9331](https://github.
 
 > **p2wsh**: [`SeriesTree_Mappings_Addr_P2wsh`](SeriesTree_Mappings_Addr_P2wsh.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9332](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9332)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9455](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9455)
 
 ***
 
@@ -102,4 +102,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9332](https://github.
 
 > **unknown**: [`SeriesTree_Mappings_Addr_Unknown`](SeriesTree_Mappings_Addr_Unknown.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9336](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L9336)
+Defined in: [Developer/brk/modules/bitview-client/index.js:9459](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9459)

@@ -6,7 +6,7 @@
 
 # Interface: HashrateSummary
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:617](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L617)
+Defined in: [Developer/brk/modules/bitview-client/index.js:619](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L619)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:617](https://github.c
 
 > **currentDifficulty**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:621](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L621)
+Defined in: [Developer/brk/modules/bitview-client/index.js:623](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L623)
 
 Current network difficulty
 
@@ -24,7 +24,7 @@ Current network difficulty
 
 > **currentHashrate**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:620](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L620)
+Defined in: [Developer/brk/modules/bitview-client/index.js:622](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L622)
 
 Current network hashrate (H/s)
 
@@ -34,7 +34,7 @@ Current network hashrate (H/s)
 
 > **difficulty**: [`DifficultyEntry`](DifficultyEntry.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:619](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L619)
+Defined in: [Developer/brk/modules/bitview-client/index.js:621](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L621)
 
 Historical difficulty adjustments
 
@@ -44,6 +44,6 @@ Historical difficulty adjustments
 
 > **hashrates**: [`HashrateEntry`](HashrateEntry.md)[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:618](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L618)
+Defined in: [Developer/brk/modules/bitview-client/index.js:620](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L620)
 
 Historical hashrate data points

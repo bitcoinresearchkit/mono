@@ -6,7 +6,7 @@
 
 # Interface: CumulativePattern\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7205](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7205)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7335](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7335)
 
 ## Type Parameters
 
@@ -20,4 +20,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7205](https://github.
 
 > **cumulative**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7206](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7206)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7336](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7336)

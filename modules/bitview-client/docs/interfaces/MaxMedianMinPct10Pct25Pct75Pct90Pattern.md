@@ -6,7 +6,7 @@
 
 # Interface: MaxMedianMinPct10Pct25Pct75Pct90Pattern\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5158](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5158)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5223](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5223)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5158](https://github.
 
 > **max**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5159](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5159)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5224](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5224)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5159](https://github.
 
 > **median**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5160](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5160)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5225](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5225)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5160](https://github.
 
 > **min**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5161](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5161)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5226](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5226)
 
 ***
 
@@ -44,7 +44,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5161](https://github.
 
 > **pct10**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5162](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5162)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5227](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5227)
 
 ***
 
@@ -52,7 +52,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5162](https://github.
 
 > **pct25**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5163](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5163)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5228](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5228)
 
 ***
 
@@ -60,7 +60,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5163](https://github.
 
 > **pct75**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5164](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5164)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5229](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5229)
 
 ***
 
@@ -68,4 +68,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5164](https://github.
 
 > **pct90**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5165](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5165)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5230](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5230)

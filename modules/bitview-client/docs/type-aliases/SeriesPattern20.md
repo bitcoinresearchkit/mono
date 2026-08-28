@@ -8,7 +8,7 @@
 
 > **SeriesPattern20**\<`T`\> = `object`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:2543](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L2543)
+Defined in: [Developer/brk/modules/bitview-client/index.js:2608](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L2608)
 
 ## Type Parameters
 

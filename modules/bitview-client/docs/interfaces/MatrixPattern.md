@@ -6,7 +6,7 @@
 
 # Interface: MatrixPattern\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7224](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7224)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7354](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7354)
 
 ## Type Parameters
 
@@ -20,4 +20,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7224](https://github.
 
 > **matrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7225](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L7225)
+Defined in: [Developer/brk/modules/bitview-client/index.js:7355](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7355)

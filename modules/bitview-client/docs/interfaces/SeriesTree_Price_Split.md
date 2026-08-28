@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Price\_Split
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10051](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10051)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10174](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10174)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10051](https://github
 
 > **close**: [`CentsSatsUsdPattern3`](CentsSatsUsdPattern3.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10055](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10055)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10178](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10178)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10055](https://github
 
 > **high**: [`CentsSatsUsdPattern3`](CentsSatsUsdPattern3.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10053](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10053)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10176](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10176)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10053](https://github
 
 > **low**: [`CentsSatsUsdPattern3`](CentsSatsUsdPattern3.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10054](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10054)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10177](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10177)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10054](https://github
 
 > **open**: [`CentsSatsUsdPattern3`](CentsSatsUsdPattern3.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10052](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10052)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10175](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10175)

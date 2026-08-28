@@ -6,7 +6,7 @@
 
 # Interface: \_1m1w1y24hPattern5
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5638](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5638)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5703](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5703)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5638](https://github.
 
 > **\_1m**: [`BtcSatsPattern`](BtcSatsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5639](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5639)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5704](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5704)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5639](https://github.
 
 > **\_1w**: [`BtcSatsPattern`](BtcSatsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5640](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5640)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5705](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5705)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5640](https://github.
 
 > **\_1y**: [`BtcSatsPattern`](BtcSatsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5641](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5641)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5706](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5706)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:5641](https://github.
 
 > **\_24h**: [`BtcSatsPattern`](BtcSatsPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:5642](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L5642)
+Defined in: [Developer/brk/modules/bitview-client/index.js:5707](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L5707)

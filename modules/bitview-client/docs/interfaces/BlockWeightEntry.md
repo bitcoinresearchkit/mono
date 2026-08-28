@@ -6,7 +6,7 @@
 
 # Interface: BlockWeightEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:334](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L334)
+Defined in: [Developer/brk/modules/bitview-client/index.js:338](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L338)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:334](https://github.c
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:335](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L335)
+Defined in: [Developer/brk/modules/bitview-client/index.js:339](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L339)
 
 Average block height in this window
 
@@ -24,7 +24,7 @@ Average block height in this window
 
 > **avgWeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:337](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L337)
+Defined in: [Developer/brk/modules/bitview-client/index.js:341](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L341)
 
 Rolling 24h median block weight (weight units)
 
@@ -34,6 +34,6 @@ Rolling 24h median block weight (weight units)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:336](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L336)
+Defined in: [Developer/brk/modules/bitview-client/index.js:340](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L340)
 
 Unix timestamp at the window midpoint

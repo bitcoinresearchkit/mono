@@ -6,7 +6,7 @@
 
 # Interface: HashrateEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:610](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L610)
+Defined in: [Developer/brk/modules/bitview-client/index.js:612](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L612)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:610](https://github.c
 
 > **avgHashrate**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:612](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L612)
+Defined in: [Developer/brk/modules/bitview-client/index.js:614](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L614)
 
 Average hashrate (H/s)
 
@@ -24,6 +24,6 @@ Average hashrate (H/s)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:611](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L611)
+Defined in: [Developer/brk/modules/bitview-client/index.js:613](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L613)
 
 Unix timestamp

@@ -6,7 +6,7 @@
 
 # Interface: MempoolRecentTx
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:764](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L764)
+Defined in: [Developer/brk/modules/bitview-client/index.js:775](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L775)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:764](https://github.c
 
 > **fee**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:766](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L766)
+Defined in: [Developer/brk/modules/bitview-client/index.js:777](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L777)
 
 Transaction fee (sats)
 
@@ -24,7 +24,7 @@ Transaction fee (sats)
 
 > **txid**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:765](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L765)
+Defined in: [Developer/brk/modules/bitview-client/index.js:776](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L776)
 
 Transaction ID
 
@@ -34,7 +34,7 @@ Transaction ID
 
 > **value**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:768](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L768)
+Defined in: [Developer/brk/modules/bitview-client/index.js:779](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L779)
 
 Total output value (sats)
 
@@ -44,6 +44,6 @@ Total output value (sats)
 
 > **vsize**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:767](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L767)
+Defined in: [Developer/brk/modules/bitview-client/index.js:778](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L778)
 
 Virtual size (vbytes)

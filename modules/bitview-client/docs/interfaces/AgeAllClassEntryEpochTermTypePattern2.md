@@ -6,15 +6,15 @@
 
 # Interface: AgeAllClassEntryEpochTermTypePattern2
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4457](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4457)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4522](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4522)
 
 ## Properties
 
 ### age
 
-> **age**: [`OverRangeUnderPattern21`](OverRangeUnderPattern21.md)
+> **age**: [`OverRangeUnderPattern22`](OverRangeUnderPattern22.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4458](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4458)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4523](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4523)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4458](https://github.
 
 > **ageRangeMatrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4459](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4459)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4524](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4524)
 
 ***
 
@@ -30,15 +30,15 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4459](https://github.
 
 > **all**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4460](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4460)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4525](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4525)
 
 ***
 
 ### class
 
-> **class**: [`_200920102011201220132014201520162017201820192020202120222023202420252026Pattern12`](200920102011201220132014201520162017201820192020202120222023202420252026Pattern12.md)
+> **class**: [`_200920102011201220132014201520162017201820192020202120222023202420252026Pattern13`](200920102011201220132014201520162017201820192020202120222023202420252026Pattern13.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4461](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4461)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4526](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4526)
 
 ***
 
@@ -46,15 +46,15 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4461](https://github.
 
 > **classMatrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4462](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4462)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4527](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4527)
 
 ***
 
 ### entry
 
-> **entry**: [`DiscountPremiumPattern12`](DiscountPremiumPattern12.md)
+> **entry**: [`DiscountPremiumPattern13`](DiscountPremiumPattern13.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4463](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4463)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4528](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4528)
 
 ***
 
@@ -62,15 +62,15 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4463](https://github.
 
 > **entryMatrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4464](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4464)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4529](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4529)
 
 ***
 
 ### epoch
 
-> **epoch**: [`_01234Pattern12`](01234Pattern12.md)
+> **epoch**: [`_01234Pattern13`](01234Pattern13.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4465](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4465)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4530](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4530)
 
 ***
 
@@ -78,15 +78,15 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4465](https://github.
 
 > **epochMatrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4466](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4466)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4531](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4531)
 
 ***
 
 ### term
 
-> **term**: [`LongShortPattern13`](LongShortPattern13.md)
+> **term**: [`LongShortPattern14`](LongShortPattern14.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4467](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4467)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4532](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4532)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4467](https://github.
 
 > **type**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4468](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4468)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4533](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4533)
 
 ***
 
@@ -102,4 +102,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:4468](https://github.
 
 > **typeMatrix**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:4469](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L4469)
+Defined in: [Developer/brk/modules/bitview-client/index.js:4534](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L4534)

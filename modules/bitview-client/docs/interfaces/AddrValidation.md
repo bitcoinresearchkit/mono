@@ -6,7 +6,7 @@
 
 # Interface: AddrValidation
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:78](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L78)
+Defined in: [Developer/brk/modules/bitview-client/index.js:87](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L87)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:78](https://github.co
 
 > `optional` **address?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:80](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L80)
+Defined in: [Developer/brk/modules/bitview-client/index.js:89](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L89)
 
 The validated address
 
@@ -24,7 +24,7 @@ The validated address
 
 > `optional` **error?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:87](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L87)
+Defined in: [Developer/brk/modules/bitview-client/index.js:96](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L96)
 
 Error message for invalid addresses
 
@@ -34,7 +34,7 @@ Error message for invalid addresses
 
 > `optional` **errorLocations?**: `number`[] \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:86](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L86)
+Defined in: [Developer/brk/modules/bitview-client/index.js:95](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L95)
 
 Error locations (empty array for most errors)
 
@@ -44,7 +44,7 @@ Error locations (empty array for most errors)
 
 > `optional` **isscript?**: `boolean` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:82](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L82)
+Defined in: [Developer/brk/modules/bitview-client/index.js:91](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L91)
 
 Whether this is a script address (P2SH)
 
@@ -54,7 +54,7 @@ Whether this is a script address (P2SH)
 
 > **isvalid**: `boolean`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:79](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L79)
+Defined in: [Developer/brk/modules/bitview-client/index.js:88](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L88)
 
 Whether the address is valid
 
@@ -64,7 +64,7 @@ Whether the address is valid
 
 > `optional` **iswitness?**: `boolean` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:83](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L83)
+Defined in: [Developer/brk/modules/bitview-client/index.js:92](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L92)
 
 Whether this is a witness address
 
@@ -74,7 +74,7 @@ Whether this is a witness address
 
 > `optional` **scriptPubKey?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:81](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L81)
+Defined in: [Developer/brk/modules/bitview-client/index.js:90](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L90)
 
 The scriptPubKey in hex
 
@@ -84,7 +84,7 @@ The scriptPubKey in hex
 
 > `optional` **witnessProgram?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:85](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L85)
+Defined in: [Developer/brk/modules/bitview-client/index.js:94](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L94)
 
 Witness program in hex
 
@@ -94,6 +94,6 @@ Witness program in hex
 
 > `optional` **witnessVersion?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:84](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L84)
+Defined in: [Developer/brk/modules/bitview-client/index.js:93](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L93)
 
 Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)

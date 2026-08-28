@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining\_Hashrate\_Rate
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8565](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8565)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8688](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8688)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8565](https://github.
 
 > **ath**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8568](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8568)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8691](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8691)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8568](https://github.
 
 > **base**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8566](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8566)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8689](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8689)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8566](https://github.
 
 > **drawdown**: [`PercentPpmRatioPattern3`](PercentPpmRatioPattern3.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8569](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8569)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8692](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8692)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8569](https://github.
 
 > **sma**: [`SeriesTree_Mining_Hashrate_Rate_Sma`](SeriesTree_Mining_Hashrate_Rate_Sma.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8567](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L8567)
+Defined in: [Developer/brk/modules/bitview-client/index.js:8690](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8690)

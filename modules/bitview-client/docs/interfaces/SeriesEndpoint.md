@@ -6,7 +6,7 @@
 
 # Interface: SeriesEndpoint\<T\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1801](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1801)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1852](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1852)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1801](https://github.
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1807](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1807)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1858](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1858)
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1808](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1808)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1859](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1859)
 
 Fetch all data as CSV
 
@@ -64,7 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1804](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1804)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1855](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1855)
 
 Get first n items
 
@@ -84,7 +84,7 @@ Get first n items
 
 > **get**: (`index`) => [`SingleItemBuilder`](SingleItemBuilder.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1802](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1802)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1853](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1853)
 
 Get single item at index
 
@@ -104,7 +104,7 @@ Get single item at index
 
 > **last**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1805](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1805)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1856](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1856)
 
 Get last n items
 
@@ -124,7 +124,7 @@ Get last n items
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1809](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1809)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1860](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1860)
 
 Get total number of data points
 
@@ -138,7 +138,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1812](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1812)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1863](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1863)
 
 The endpoint path
 
@@ -148,7 +148,7 @@ The endpoint path
 
 > **skip**: (`n`) => [`SkippedBuilder`](SkippedBuilder.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1806](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1806)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1857](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1857)
 
 Skip first n items, chain with take()
 
@@ -168,7 +168,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1803](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1803)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1854](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1854)
 
 Slice by index
 
@@ -192,7 +192,7 @@ Slice by index
 
 > **then**: [`Thenable`](../type-aliases/Thenable.md)\<`T`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1811)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1862](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1862)
 
 Thenable (await endpoint)
 
@@ -202,7 +202,7 @@ Thenable (await endpoint)
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1810](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1810)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1861](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1861)
 
 Get the current version of the series
 

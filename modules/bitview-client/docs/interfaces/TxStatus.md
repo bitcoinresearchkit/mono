@@ -6,7 +6,7 @@
 
 # Interface: TxStatus
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1390](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1390)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1441](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1441)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1390](https://github.
 
 > `optional` **blockHash?**: `string` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1393](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1393)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1444](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1444)
 
 Block hash (only present if confirmed)
 
@@ -24,7 +24,7 @@ Block hash (only present if confirmed)
 
 > `optional` **blockHeight?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1392](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1392)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1443](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1443)
 
 Block height (only present if confirmed)
 
@@ -34,7 +34,7 @@ Block height (only present if confirmed)
 
 > `optional` **blockTime?**: `number` \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1394](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1394)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1445](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1445)
 
 Block timestamp (only present if confirmed)
 
@@ -44,6 +44,6 @@ Block timestamp (only present if confirmed)
 
 > **confirmed**: `boolean`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1391](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1391)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1442](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1442)
 
 Whether the transaction is confirmed

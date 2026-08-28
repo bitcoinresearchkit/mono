@@ -6,7 +6,7 @@
 
 # Interface: BlockFeeRatesEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:144](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L144)
+Defined in: [Developer/brk/modules/bitview-client/index.js:148](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L148)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:144](https://github.c
 
 > **avgFee0**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:147](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L147)
+Defined in: [Developer/brk/modules/bitview-client/index.js:151](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L151)
 
 Minimum fee rate (sat/vB)
 
@@ -24,7 +24,7 @@ Minimum fee rate (sat/vB)
 
 > **avgFee10**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:148](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L148)
+Defined in: [Developer/brk/modules/bitview-client/index.js:152](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L152)
 
 10th percentile fee rate (sat/vB)
 
@@ -34,7 +34,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:148](https://github.c
 
 > **avgFee100**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:153](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L153)
+Defined in: [Developer/brk/modules/bitview-client/index.js:157](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L157)
 
 Maximum fee rate (sat/vB)
 
@@ -44,7 +44,7 @@ Maximum fee rate (sat/vB)
 
 > **avgFee25**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:149](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L149)
+Defined in: [Developer/brk/modules/bitview-client/index.js:153](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L153)
 
 25th percentile fee rate (sat/vB)
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:149](https://github.c
 
 > **avgFee50**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:150](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L150)
+Defined in: [Developer/brk/modules/bitview-client/index.js:154](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L154)
 
 Median fee rate (sat/vB)
 
@@ -64,7 +64,7 @@ Median fee rate (sat/vB)
 
 > **avgFee75**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:151](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L151)
+Defined in: [Developer/brk/modules/bitview-client/index.js:155](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L155)
 
 75th percentile fee rate (sat/vB)
 
@@ -74,7 +74,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:151](https://github.c
 
 > **avgFee90**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:152](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L152)
+Defined in: [Developer/brk/modules/bitview-client/index.js:156](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L156)
 
 90th percentile fee rate (sat/vB)
 
@@ -84,7 +84,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:152](https://github.c
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:145](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L145)
+Defined in: [Developer/brk/modules/bitview-client/index.js:149](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L149)
 
 Average block height in this window
 
@@ -94,6 +94,6 @@ Average block height in this window
 
 > **timestamp**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:146](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L146)
+Defined in: [Developer/brk/modules/bitview-client/index.js:150](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L150)
 
 Unix timestamp at the window midpoint

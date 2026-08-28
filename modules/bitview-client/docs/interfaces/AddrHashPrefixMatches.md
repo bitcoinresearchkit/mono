@@ -6,7 +6,7 @@
 
 # Interface: AddrHashPrefixMatches
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:34](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L34)
+Defined in: [Developer/brk/modules/bitview-client/index.js:34](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L34)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:34](https://github.co
 
 > **addresses**: `string`[]
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:38](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L38)
+Defined in: [Developer/brk/modules/bitview-client/index.js:38](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L38)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:38](https://github.co
 
 > **addrType**: [`OutputType`](../type-aliases/OutputType.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:35](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L35)
+Defined in: [Developer/brk/modules/bitview-client/index.js:35](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L35)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:35](https://github.co
 
 > **prefix**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:36](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L36)
+Defined in: [Developer/brk/modules/bitview-client/index.js:36](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L36)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:36](https://github.co
 
 > **truncated**: `boolean`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:37](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L37)
+Defined in: [Developer/brk/modules/bitview-client/index.js:37](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L37)

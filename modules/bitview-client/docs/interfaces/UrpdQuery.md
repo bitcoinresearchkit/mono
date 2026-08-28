@@ -6,7 +6,7 @@
 
 # Interface: UrpdQuery
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1499](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1499)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1550](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1550)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1499](https://github.
 
 > `optional` **agg?**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1500](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1500)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1551](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1551)
 
 Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 
@@ -24,6 +24,6 @@ Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 
 > `optional` **weight?**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1501](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L1501)
+Defined in: [Developer/brk/modules/bitview-client/index.js:1552](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1552)
 
 Supply weighting. Default: raw (unweighted).

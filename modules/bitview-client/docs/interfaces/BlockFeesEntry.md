@@ -6,7 +6,7 @@
 
 # Interface: BlockFeesEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:158](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L158)
+Defined in: [Developer/brk/modules/bitview-client/index.js:162](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L162)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:158](https://github.c
 
 > **avgFees**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:161](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L161)
+Defined in: [Developer/brk/modules/bitview-client/index.js:165](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L165)
 
 Average fees per block in this window (sats)
 
@@ -24,7 +24,7 @@ Average fees per block in this window (sats)
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:159](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L159)
+Defined in: [Developer/brk/modules/bitview-client/index.js:163](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L163)
 
 Average block height in this window
 
@@ -34,7 +34,7 @@ Average block height in this window
 
 > **timestamp**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:160](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L160)
+Defined in: [Developer/brk/modules/bitview-client/index.js:164](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L164)
 
 Unix timestamp at the window midpoint
 
@@ -44,6 +44,6 @@ Unix timestamp at the window midpoint
 
 > **uSD**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:162](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L162)
+Defined in: [Developer/brk/modules/bitview-client/index.js:166](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L166)
 
 BTC/USD price at this height

@@ -6,7 +6,7 @@
 
 # Interface: BlockSizeEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:250](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L250)
+Defined in: [Developer/brk/modules/bitview-client/index.js:254](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L254)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:250](https://github.c
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:251](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L251)
+Defined in: [Developer/brk/modules/bitview-client/index.js:255](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L255)
 
 Average block height in this window
 
@@ -24,7 +24,7 @@ Average block height in this window
 
 > **avgSize**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:253](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L253)
+Defined in: [Developer/brk/modules/bitview-client/index.js:257](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L257)
 
 Rolling 24h median block size (bytes)
 
@@ -34,6 +34,6 @@ Rolling 24h median block size (bytes)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:252](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L252)
+Defined in: [Developer/brk/modules/bitview-client/index.js:256](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L256)
 
 Unix timestamp at the window midpoint

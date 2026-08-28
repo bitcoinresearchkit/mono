@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Price\_Ohlc
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10059](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10059)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10182](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10182)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10059](https://github
 
 > **cents**: [`SeriesPattern2`](../type-aliases/SeriesPattern2.md)\<[`OHLCCents`](OHLCCents.md)\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10061](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10061)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10184](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10184)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10061](https://github
 
 > **sats**: [`SeriesPattern2`](../type-aliases/SeriesPattern2.md)\<[`OHLCSats`](OHLCSats.md)\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10062](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10062)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10185](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10185)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10062](https://github
 
 > **usd**: [`SeriesPattern2`](../type-aliases/SeriesPattern2.md)\<[`OHLCDollars`](OHLCDollars.md)\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10060](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L10060)
+Defined in: [Developer/brk/modules/bitview-client/index.js:10183](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10183)

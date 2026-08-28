@@ -6,7 +6,7 @@
 
 # Interface: CpfpEntry
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:458](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L458)
+Defined in: [Developer/brk/modules/bitview-client/index.js:462](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L462)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:458](https://github.c
 
 > **fee**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:461](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L461)
+Defined in: [Developer/brk/modules/bitview-client/index.js:465](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L465)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:461](https://github.c
 
 > **txid**: `string`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:459](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L459)
+Defined in: [Developer/brk/modules/bitview-client/index.js:463](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L463)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:459](https://github.c
 
 > **weight**: `number`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:460](https://github.com/bitcoinresearchkit/brk/blob/b971f8d1b413e122481dddc3c9c980b7866ab1d3/modules/bitview-client/index.js#L460)
+Defined in: [Developer/brk/modules/bitview-client/index.js:464](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L464)
