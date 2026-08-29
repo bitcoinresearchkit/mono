@@ -11,7 +11,9 @@ use bitview_cohort::{
     AgeRangeId, ByTerm, TERM_FILTERS, TERM_NAMES, UTXO_ALL_NAME, UTXOAggregate, UTXOAggregateId,
 };
 use bitview_plugin_distribution::{AgeRangeUrpds, UTXOStates};
-use brk_types::{Cents, CentsCompact, Date, PERCENTILES_LEN, Sats, UrpdRaw, UrpdWeight, Version};
+use brk_types::{
+    CentsCompact, CostBasisPercentilePrices, Date, Sats, UrpdRaw, UrpdWeight, Version,
+};
 use vecdb::ColumnId;
 
 use super::{ModeId, ModeWeights, WeightedModeId, WeightedModes, WeightedPair, WeightedUrpdNames};
@@ -62,15 +64,15 @@ impl DayUrpds {
         }
     }
 
-    pub fn all_per_coin_percentile_prices(&self) -> WeightedPair<[Cents; PERCENTILES_LEN]> {
-        Self::per_coin_percentile_prices(self.mode(ModeId::Cointime), self.mode(ModeId::Coinflow))
+    pub fn all_cost_basis_percentile_prices(&self) -> WeightedPair<CostBasisPercentilePrices> {
+        Self::cost_basis_percentile_prices(self.mode(ModeId::Cointime), self.mode(ModeId::Coinflow))
     }
 
-    pub fn read_all_per_coin_percentile_prices_if_exists(
+    pub fn read_all_cost_basis_percentile_prices_if_exists(
         states_path: &Path,
         names: &WeightedUrpdNames,
         date: Date,
-    ) -> Result<Option<WeightedPair<[Cents; PERCENTILES_LEN]>>> {
+    ) -> Result<Option<WeightedPair<CostBasisPercentilePrices>>> {
         let cointime_path = UrpdRaw::path(states_path, &names.all.cointime, date);
         let coinflow_path = UrpdRaw::path(states_path, &names.all.coinflow, date);
         match (cointime_path.try_exists()?, coinflow_path.try_exists()?) {
@@ -88,9 +90,18 @@ impl DayUrpds {
                 .into());
             }
         }
-        let cointime = UrpdRaw::read(states_path, &names.all.cointime, date)?;
-        let coinflow = UrpdRaw::read(states_path, &names.all.coinflow, date)?;
-        Ok(Some(Self::per_coin_percentile_prices(&cointime, &coinflow)))
+        Ok(Some(WeightedPair {
+            cointime: UrpdRaw::read_cost_basis_percentile_prices(
+                states_path,
+                &names.all.cointime,
+                date,
+            )?,
+            coinflow: UrpdRaw::read_cost_basis_percentile_prices(
+                states_path,
+                &names.all.coinflow,
+                date,
+            )?,
+        }))
     }
 
     pub fn names() -> WeightedUrpdNames {
@@ -265,13 +276,13 @@ impl DayUrpds {
         Self::insert_mass(price, &mut distributions.coinflow, masses.coinflow);
     }
 
-    fn per_coin_percentile_prices(
+    fn cost_basis_percentile_prices(
         cointime: &UrpdRaw,
         coinflow: &UrpdRaw,
-    ) -> WeightedPair<[Cents; PERCENTILES_LEN]> {
+    ) -> WeightedPair<CostBasisPercentilePrices> {
         WeightedPair {
-            cointime: cointime.per_coin_percentile_prices(),
-            coinflow: coinflow.per_coin_percentile_prices(),
+            cointime: cointime.cost_basis_percentile_prices(),
+            coinflow: coinflow.cost_basis_percentile_prices(),
         }
     }
 
@@ -363,13 +374,13 @@ mod tests {
     }
 
     #[test]
-    fn persisted_all_percentiles_match_in_memory_percentiles() {
+    fn persisted_all_cost_basis_percentiles_match_in_memory_percentiles() {
         let root = tempfile::tempdir().unwrap();
         let date = Date::new(2026, 8, 28);
         let names = DayUrpds::names();
         let urpds = DayUrpds::repeated([(100, 5), (200, 5)]);
         assert!(
-            DayUrpds::read_all_per_coin_percentile_prices_if_exists(root.path(), &names, date)
+            DayUrpds::read_all_cost_basis_percentile_prices_if_exists(root.path(), &names, date)
                 .unwrap()
                 .is_none()
         );
@@ -381,21 +392,25 @@ mod tests {
         )
         .unwrap();
         assert!(
-            DayUrpds::read_all_per_coin_percentile_prices_if_exists(root.path(), &names, date)
+            DayUrpds::read_all_cost_basis_percentile_prices_if_exists(root.path(), &names, date)
                 .is_err()
         );
         urpds.write(root.path(), &names, date).unwrap();
 
-        let expected = urpds.all_per_coin_percentile_prices();
+        let expected = urpds.all_cost_basis_percentile_prices();
         let actual =
-            DayUrpds::read_all_per_coin_percentile_prices_if_exists(root.path(), &names, date)
+            DayUrpds::read_all_cost_basis_percentile_prices_if_exists(root.path(), &names, date)
                 .unwrap()
                 .expect("persisted pair");
 
         assert_eq!(actual.cointime, expected.cointime);
         assert_eq!(actual.coinflow, expected.coinflow);
         assert_eq!(
-            actual.cointime[PercentileId::Pct60 as usize],
+            actual.cointime.per_coin[PercentileId::Pct60 as usize],
+            Cents::new(200)
+        );
+        assert_eq!(
+            actual.cointime.per_dollar[PercentileId::Pct50 as usize],
             Cents::new(200)
         );
     }

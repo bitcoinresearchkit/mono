@@ -4140,8 +4140,8 @@ class InMaxMinPerSupplyPattern:
     
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.in_loss: PerPattern = PerPattern(client, _m(acc, 'cost_basis_in_loss_per'))
-        self.in_profit: PerPattern = PerPattern(client, _m(acc, 'cost_basis_in_profit_per'))
+        self.in_loss: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_loss_per'))
+        self.in_profit: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_profit_per'))
         self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_max'))
         self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_min'))
         self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin'))
@@ -4906,6 +4906,10 @@ class CentsUsdPattern5:
         self.cents: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'cents'))
         self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
 
+class CoinflowCointimePattern:
+    """Pattern struct for repeated tree structure."""
+    pass
+
 class DiscountPremiumPattern:
     """Pattern struct for repeated tree structure."""
     
@@ -4994,7 +4998,7 @@ class LongShortPattern15:
         self.long: CentsUsdPattern = CentsUsdPattern(client, _p('lth', acc))
         self.short: CentsUsdPattern = CentsUsdPattern(client, _p('sth', acc))
 
-class PerPattern:
+class PerPattern2:
     """Pattern struct for repeated tree structure."""
     
     def __init__(self, client: BitviewClient, acc: str):
@@ -7183,12 +7187,26 @@ class SeriesTree_Coinflow:
         self.lth: SeriesTree_Coinflow_Lth = SeriesTree_Coinflow_Lth(client)
         self.aggregate_sources: SeriesTree_Coinflow_AggregateSources = SeriesTree_Coinflow_AggregateSources(client)
 
-class SeriesTree_Bedrock_CostBasis:
+class SeriesTree_Bedrock_CostBasis_PerCoin:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin')
         self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin')
+
+class SeriesTree_Bedrock_CostBasis_PerDollar:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_dollar')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_dollar')
+
+class SeriesTree_Bedrock_CostBasis:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.per_coin: SeriesTree_Bedrock_CostBasis_PerCoin = SeriesTree_Bedrock_CostBasis_PerCoin(client)
+        self.per_dollar: SeriesTree_Bedrock_CostBasis_PerDollar = SeriesTree_Bedrock_CostBasis_PerDollar(client)
 
 class SeriesTree_Bedrock:
     """Series tree node."""
@@ -12874,8 +12892,8 @@ class SeriesTree_Cohorts_CostBasis_All:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.in_profit: PerPattern = PerPattern(client, 'cost_basis_in_profit_per')
-        self.in_loss: PerPattern = PerPattern(client, 'cost_basis_in_loss_per')
+        self.in_profit: PerPattern2 = PerPattern2(client, 'cost_basis_in_profit_per')
+        self.in_loss: PerPattern2 = PerPattern2(client, 'cost_basis_in_loss_per')
         self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_min')
         self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_max')
         self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin')

@@ -15,6 +15,13 @@ impl<T> WeightedPair<T> {
         }
     }
 
+    pub fn try_from_fn<E>(mut create: impl FnMut(UrpdWeight) -> Result<T, E>) -> Result<Self, E> {
+        Ok(Self {
+            cointime: create(UrpdWeight::Cointime)?,
+            coinflow: create(UrpdWeight::Coinflow)?,
+        })
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = &T> {
         [&self.cointime, &self.coinflow].into_iter()
     }

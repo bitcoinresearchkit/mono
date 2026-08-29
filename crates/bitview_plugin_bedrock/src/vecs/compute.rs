@@ -6,7 +6,9 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_coinflow::HorizonId;
 use bitview_plugin_distribution::UTXOStates;
 use bitview_plugin_indexer::Indexer;
-use brk_types::{Cents, Day1, PERCENTILES_LEN, Sats, StoredF64, Version};
+use brk_types::{
+    Cents, CostBasisPercentilePrices, Day1, PERCENTILES_LEN, Sats, StoredF64, Version,
+};
 use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
 
 use super::Vecs;
@@ -138,7 +140,7 @@ impl Vecs {
         for vec in self.model_stored_vecs_mut() {
             validate_any_computed_version_or_reset(vec, source_version)?;
         }
-        for vec in self.cost_basis_stored_vecs_mut() {
+        for vec in self.cost_basis.stored_vecs_mut() {
             validate_any_computed_version_or_reset(vec, weighted_urpd_source_version)?;
         }
 
@@ -170,7 +172,8 @@ impl Vecs {
             .min(weighted_urpd_start)
             .min(source_end);
         let cost_basis_start = self
-            .cost_basis_minimum_len()
+            .cost_basis
+            .minimum_len()
             .min(recompute_from)
             .min(weighted_urpd_start)
             .min(source_end);
@@ -178,7 +181,7 @@ impl Vecs {
         for vec in self.model_stored_vecs_mut() {
             vec.any_truncate_if_needed_at(model_start)?;
         }
-        for vec in self.cost_basis_stored_vecs_mut() {
+        for vec in self.cost_basis.stored_vecs_mut() {
             vec.any_truncate_if_needed_at(cost_basis_start)?;
         }
 
@@ -233,14 +236,14 @@ impl Vecs {
                         result.evaluate(&urpds, &thresholds);
                     }
                     if needs_cost_basis {
-                        cost_basis_prices = urpds.all_per_coin_percentile_prices();
+                        cost_basis_prices = urpds.all_cost_basis_percentile_prices();
                     }
                 }
             }
             calibration.observe(loss_shares);
 
             if needs_cost_basis {
-                self.push_cost_basis(&cost_basis_prices);
+                self.cost_basis.push(&cost_basis_prices);
             }
 
             for mode in ModeId::ALL {
@@ -255,7 +258,7 @@ impl Vecs {
                     vec.write()?;
                 }
                 if needs_cost_basis {
-                    for vec in self.cost_basis_stored_vecs_mut() {
+                    for vec in self.cost_basis.stored_vecs_mut() {
                         vec.write()?;
                     }
                 }
@@ -287,7 +290,7 @@ impl Vecs {
         for day_index in start..end {
             let day = Day1::from(day_index);
             let prices = if let Some(date) = mappings.day1.date.collect_one(day) {
-                DayUrpds::read_all_per_coin_percentile_prices_if_exists(
+                DayUrpds::read_all_cost_basis_percentile_prices_if_exists(
                     &self.states_path,
                     names,
                     date,
@@ -296,11 +299,11 @@ impl Vecs {
             } else {
                 Self::missing_cost_basis_prices()
             };
-            self.push_cost_basis(&prices);
+            self.cost_basis.push(&prices);
 
             if (day_index + 1).is_multiple_of(WRITE_INTERVAL_DAYS) || day_index + 1 == end {
                 let _lock = exit.lock();
-                for vec in self.cost_basis_stored_vecs_mut() {
+                for vec in self.cost_basis.stored_vecs_mut() {
                     vec.write()?;
                 }
             }
@@ -308,30 +311,15 @@ impl Vecs {
         Ok(())
     }
 
-    fn push_cost_basis(&mut self, prices: &WeightedPair<[Cents; PERCENTILES_LEN]>) {
-        self.cost_basis.cointime.push(&prices.cointime);
-        self.cost_basis.coinflow.push(&prices.coinflow);
-    }
-
-    fn missing_cost_basis_prices() -> WeightedPair<[Cents; PERCENTILES_LEN]> {
-        WeightedPair::from_fn(|_| [Cents::NAN; PERCENTILES_LEN])
-    }
-
-    fn cost_basis_stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.cost_basis
-            .iter_mut()
-            .map(|percentiles| percentiles.stored_mut())
+    fn missing_cost_basis_prices() -> WeightedPair<CostBasisPercentilePrices> {
+        WeightedPair::from_fn(|_| CostBasisPercentilePrices {
+            per_coin: [Cents::NAN; PERCENTILES_LEN],
+            per_dollar: [Cents::NAN; PERCENTILES_LEN],
+        })
     }
 
     fn model_stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.modes.iter_mut().flat_map(ModeVecs::stored_vecs_mut)
-    }
-
-    fn cost_basis_minimum_len(&mut self) -> usize {
-        self.cost_basis_stored_vecs_mut()
-            .map(|vec| vec.len())
-            .min()
-            .unwrap_or_default()
     }
 
     fn model_minimum_len(&mut self) -> usize {

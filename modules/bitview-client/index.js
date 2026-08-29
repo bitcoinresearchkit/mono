@@ -5162,8 +5162,8 @@ function create_1m1y2y3m4y6m8yPattern2(client, acc) {
 
 /**
  * @typedef {Object} InMaxMinPerSupplyPattern
- * @property {PerPattern} inLoss
- * @property {PerPattern} inProfit
+ * @property {PerPattern2} inLoss
+ * @property {PerPattern2} inProfit
  * @property {CentsSatsUsdPattern} max
  * @property {CentsSatsUsdPattern} min
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -5179,8 +5179,8 @@ function create_1m1y2y3m4y6m8yPattern2(client, acc) {
  */
 function createInMaxMinPerSupplyPattern(client, acc) {
   return {
-    inLoss: createPerPattern(client, _m(acc, 'cost_basis_in_loss_per')),
-    inProfit: createPerPattern(client, _m(acc, 'cost_basis_in_profit_per')),
+    inLoss: createPerPattern2(client, _m(acc, 'cost_basis_in_loss_per')),
+    inProfit: createPerPattern2(client, _m(acc, 'cost_basis_in_profit_per')),
     max: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_max')),
     min: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_min')),
     perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin')),
@@ -6915,6 +6915,12 @@ function createCentsUsdPattern5(client, acc) {
 }
 
 /**
+ * @typedef {Object} CoinflowCointimePattern
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ */
+
+/**
  * @typedef {Object} DiscountPremiumPattern
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} discount
  * @property {AverageBlockCumulativeSumPattern<StoredF64>} premium
@@ -7117,18 +7123,18 @@ function createLongShortPattern15(client, acc) {
 }
 
 /**
- * @typedef {Object} PerPattern
+ * @typedef {Object} PerPattern2
  * @property {CentsSatsUsdPattern} perCoin
  * @property {CentsSatsUsdPattern} perDollar
  */
 
 /**
- * Create a PerPattern pattern node
+ * Create a PerPattern2 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {PerPattern}
+ * @returns {PerPattern2}
  */
-function createPerPattern(client, acc) {
+function createPerPattern2(client, acc) {
   return {
     perCoin: createCentsSatsUsdPattern(client, _m(acc, 'coin')),
     perDollar: createCentsSatsUsdPattern(client, _m(acc, 'dollar')),
@@ -9335,6 +9341,18 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Bedrock_CostBasis
+ * @property {SeriesTree_Bedrock_CostBasis_PerCoin} perCoin
+ * @property {SeriesTree_Bedrock_CostBasis_PerDollar} perDollar
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_PerCoin
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_PerDollar
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
  */
@@ -14537,8 +14555,8 @@ function createMatrixPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_CostBasis_All
- * @property {PerPattern} inProfit
- * @property {PerPattern} inLoss
+ * @property {PerPattern2} inProfit
+ * @property {PerPattern2} inLoss
  * @property {CentsSatsUsdPattern} min
  * @property {CentsSatsUsdPattern} max
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -18359,8 +18377,14 @@ class BitviewClient extends BitviewClientBase {
       })); },
       get bedrock() { return _lazy(this, 'bedrock', () => ({
         get costBasis() { return _lazy(this, 'costBasis', () => ({
-          cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin'),
-          coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin'),
+          get perCoin() { return _lazy(this, 'perCoin', () => ({
+            cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin'),
+            coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin'),
+          })); },
+          get perDollar() { return _lazy(this, 'perDollar', () => ({
+            cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_dollar'),
+            coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_dollar'),
+          })); },
         })); },
         raw: createFloorLevelLossPattern(client, 'bedrock_raw'),
         cointime: createFloorLevelLossPattern(client, 'bedrock_cointime'),
@@ -22500,8 +22524,8 @@ class BitviewClient extends BitviewClientBase {
         })); },
         get costBasis() { return _lazy(this, 'costBasis', () => ({
           get all() { return _lazy(this, 'all', () => ({
-            inProfit: createPerPattern(client, 'cost_basis_in_profit_per'),
-            inLoss: createPerPattern(client, 'cost_basis_in_loss_per'),
+            inProfit: createPerPattern2(client, 'cost_basis_in_profit_per'),
+            inLoss: createPerPattern2(client, 'cost_basis_in_loss_per'),
             min: createCentsSatsUsdPattern(client, 'cost_basis_min'),
             max: createCentsSatsUsdPattern(client, 'cost_basis_max'),
             perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin'),

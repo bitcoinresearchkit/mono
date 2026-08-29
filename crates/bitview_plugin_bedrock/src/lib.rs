@@ -36,6 +36,7 @@ macro_rules! impl_named_row_formattable {
 }
 
 mod calibration;
+mod cost_basis_vecs;
 mod daily_percentiles_vecs;
 mod day_result;
 mod day_urpds;
@@ -60,6 +61,7 @@ mod weighted_pair;
 mod weighted_urpd_names;
 
 use calibration::Calibration;
+use cost_basis_vecs::CostBasisVecs;
 use daily_percentiles_vecs::DailyPercentilesVecs;
 use day_result::DayResult;
 use day_urpds::DayUrpds;

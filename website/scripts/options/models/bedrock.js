@@ -89,14 +89,15 @@ function modeChart(mode, ath) {
 
 /**
  * @param {string} name
+ * @param {string} weightLabel
  * @param {PercentilesPattern} percentiles
  * @param {AnyPricePattern} p100
  * @returns {PartialChartOption}
  */
-function costBasisChart(name, percentiles, p100) {
+function costBasisChart(name, weightLabel, percentiles, p100) {
   return {
     name,
-    title: `Bitcoin ${name}-Weighted Cost Basis Distribution (BTC-weighted)`,
+    title: `Bitcoin ${name}-Weighted Cost Basis Distribution (${weightLabel})`,
     top: [
       price({
         series: p100,
@@ -105,6 +106,23 @@ function costBasisChart(name, percentiles, p100) {
         defaultActive: false,
       }),
       ...pricePercentileSeries(percentiles),
+    ],
+  };
+}
+
+/**
+ * @param {string} name
+ * @param {string} weightLabel
+ * @param {{ cointime: PercentilesPattern, coinflow: PercentilesPattern }} distributions
+ * @param {AnyPricePattern} p100
+ * @returns {PartialOptionsGroup}
+ */
+function costBasisGroup(name, weightLabel, distributions, p100) {
+  return {
+    name,
+    tree: [
+      costBasisChart("Cointime", weightLabel, distributions.cointime, p100),
+      costBasisChart("Coinflow", weightLabel, distributions.coinflow, p100),
     ],
   };
 }
@@ -155,8 +173,18 @@ export function createBedrockSection() {
       {
         name: "Cost Basis",
         tree: [
-          costBasisChart("Cointime", bedrock.costBasis.cointime, cohorts.costBasis.all.max),
-          costBasisChart("Coinflow", bedrock.costBasis.coinflow, cohorts.costBasis.all.max),
+          costBasisGroup(
+            "Per Coin",
+            "BTC-weighted",
+            bedrock.costBasis.perCoin,
+            cohorts.costBasis.all.max,
+          ),
+          costBasisGroup(
+            "Per Dollar",
+            "USD-weighted",
+            bedrock.costBasis.perDollar,
+            cohorts.costBasis.all.max,
+          ),
         ],
       },
     ],

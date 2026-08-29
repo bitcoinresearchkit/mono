@@ -5497,8 +5497,8 @@ pub struct AgeAllClassCumulativeEntryEpochTermPattern {
 
 /// Pattern struct for repeated tree structure.
 pub struct InMaxMinPerSupplyPattern {
-    pub in_loss: PerPattern,
-    pub in_profit: PerPattern,
+    pub in_loss: PerPattern2,
+    pub in_profit: PerPattern2,
     pub max: CentsSatsUsdPattern,
     pub min: CentsSatsUsdPattern,
     pub per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
@@ -5510,8 +5510,8 @@ impl InMaxMinPerSupplyPattern {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
-            in_loss: PerPattern::new(client.clone(), _m(&acc, "cost_basis_in_loss_per")),
-            in_profit: PerPattern::new(client.clone(), _m(&acc, "cost_basis_in_profit_per")),
+            in_loss: PerPattern2::new(client.clone(), _m(&acc, "cost_basis_in_loss_per")),
+            in_profit: PerPattern2::new(client.clone(), _m(&acc, "cost_basis_in_profit_per")),
             max: CentsSatsUsdPattern::new(client.clone(), _m(&acc, "cost_basis_max")),
             min: CentsSatsUsdPattern::new(client.clone(), _m(&acc, "cost_basis_min")),
             per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), _m(&acc, "cost_basis_per_coin")),
@@ -7096,6 +7096,12 @@ impl CentsUsdPattern5 {
 }
 
 /// Pattern struct for repeated tree structure.
+pub struct CoinflowCointimePattern {
+    pub coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+}
+
+/// Pattern struct for repeated tree structure.
 pub struct DiscountPremiumPattern {
     pub discount: AverageBlockCumulativeSumPattern<StoredF64>,
     pub premium: AverageBlockCumulativeSumPattern<StoredF64>,
@@ -7268,12 +7274,12 @@ impl LongShortPattern15 {
 }
 
 /// Pattern struct for repeated tree structure.
-pub struct PerPattern {
+pub struct PerPattern2 {
     pub per_coin: CentsSatsUsdPattern,
     pub per_dollar: CentsSatsUsdPattern,
 }
 
-impl PerPattern {
+impl PerPattern2 {
     /// Create a new pattern node with accumulated series name.
     pub fn new(client: Arc<BitviewClientBase>, acc: String) -> Self {
         Self {
@@ -14452,15 +14458,51 @@ impl SeriesTree_Bedrock {
 
 /// Series tree node.
 pub struct SeriesTree_Bedrock_CostBasis {
-    pub cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
-    pub coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub per_coin: SeriesTree_Bedrock_CostBasis_PerCoin,
+    pub per_dollar: SeriesTree_Bedrock_CostBasis_PerDollar,
 }
 
 impl SeriesTree_Bedrock_CostBasis {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
+            per_coin: SeriesTree_Bedrock_CostBasis_PerCoin::new(
+                client.clone(),
+                format!("{base_path}_per_coin"),
+            ),
+            per_dollar: SeriesTree_Bedrock_CostBasis_PerDollar::new(
+                client.clone(),
+                format!("{base_path}_per_dollar"),
+            ),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Bedrock_CostBasis_PerCoin {
+    pub cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+}
+
+impl SeriesTree_Bedrock_CostBasis_PerCoin {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
             cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_cointime_cost_basis_per_coin".to_string()),
             coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_coinflow_cost_basis_per_coin".to_string()),
+        }
+    }
+}
+
+/// Series tree node.
+pub struct SeriesTree_Bedrock_CostBasis_PerDollar {
+    pub cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+    pub coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
+}
+
+impl SeriesTree_Bedrock_CostBasis_PerDollar {
+    pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
+        Self {
+            cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_cointime_cost_basis_per_dollar".to_string()),
+            coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "bedrock_coinflow_cost_basis_per_dollar".to_string()),
         }
     }
 }
@@ -33763,8 +33805,8 @@ impl SeriesTree_Cohorts_CostBasis {
 
 /// Series tree node.
 pub struct SeriesTree_Cohorts_CostBasis_All {
-    pub in_profit: PerPattern,
-    pub in_loss: PerPattern,
+    pub in_profit: PerPattern2,
+    pub in_loss: PerPattern2,
     pub min: CentsSatsUsdPattern,
     pub max: CentsSatsUsdPattern,
     pub per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern,
@@ -33775,8 +33817,8 @@ pub struct SeriesTree_Cohorts_CostBasis_All {
 impl SeriesTree_Cohorts_CostBasis_All {
     pub fn new(client: Arc<BitviewClientBase>, base_path: String) -> Self {
         Self {
-            in_profit: PerPattern::new(client.clone(), "cost_basis_in_profit_per".to_string()),
-            in_loss: PerPattern::new(client.clone(), "cost_basis_in_loss_per".to_string()),
+            in_profit: PerPattern2::new(client.clone(), "cost_basis_in_profit_per".to_string()),
+            in_loss: PerPattern2::new(client.clone(), "cost_basis_in_loss_per".to_string()),
             min: CentsSatsUsdPattern::new(client.clone(), "cost_basis_min".to_string()),
             max: CentsSatsUsdPattern::new(client.clone(), "cost_basis_max".to_string()),
             per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern::new(client.clone(), "cost_basis_per_coin".to_string()),
