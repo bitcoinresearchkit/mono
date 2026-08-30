@@ -5,7 +5,7 @@ import { Unit } from "../utils/units.js";
 import { createChart } from "../utils/chart/index.js";
 import { colors } from "../utils/colors.js";
 import { latestPrice, onPrice } from "../utils/price.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 
 const ONE_BTC_IN_SATS = 100_000_000;
 
@@ -26,7 +26,7 @@ export function init() {
 
   const chart = createChart({
     parent: chartElement,
-    brk,
+    bitview,
   });
 
   const setChoices = chart.setIndexChoices;
@@ -40,7 +40,7 @@ export function init() {
     /** @type {Map<Unit, AnyFetchedSeriesBlueprint[]>} */
     const result = new Map();
 
-    const { ohlc, spot } = brk.series.price;
+    const { ohlc, spot } = bitview.series.price;
 
     result.set(Unit.usd, [
       /** @type {AnyFetchedSeriesBlueprint} */ ({

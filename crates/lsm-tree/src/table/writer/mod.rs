@@ -12,9 +12,8 @@ use super::{
 };
 use crate::{
     CompressionType, InternalValue, Result, ValueType,
-    checksum::ChecksumType,
     coding::Encode,
-    file::fsync_directory,
+    hash::XXH3_TAG,
     table::{
         BlockHandle,
         writer::{
@@ -347,7 +346,7 @@ impl Writer {
     }
 
     // TODO: split meta writing into new function
-    /// Finishes the table, making sure all data is written durably
+    /// Finishes the table and flushes all userspace buffers.
     pub fn finish(mut self) -> Result<Option<u32>> {
         self.spill_block()?;
 
@@ -366,7 +365,7 @@ impl Writer {
         self.filter_writer.finish(&mut self.file_writer)?;
 
         self.file_writer.start("table_version")?;
-        self.file_writer.write_all(&[0x7])?;
+        self.file_writer.write_all(&[0x8])?;
 
         // Write metadata
         self.file_writer.start("meta")?;
@@ -381,7 +380,6 @@ impl Writer {
                     "block_count#data",
                     &(self.meta.data_block_count as u64).to_le_bytes(),
                 ),
-                meta("checksum_type", &[u8::from(ChecksumType::Xxh3)]),
                 meta(
                     "compression#data",
                     &self.data_block_compression.encode_into_vec(),
@@ -391,7 +389,7 @@ impl Writer {
                     &self.index_block_compression.encode_into_vec(),
                 ),
                 meta("file_size", &self.meta.file_pos.to_le_bytes()),
-                meta("filter_hash_type", &[u8::from(ChecksumType::Xxh3)]),
+                meta("filter_hash_type", &[XXH3_TAG]),
                 meta("item_count", &(self.meta.item_count as u64).to_le_bytes()),
                 meta(
                     "key#max",
@@ -429,18 +427,9 @@ impl Writer {
             )?;
         };
 
-        // Write fixed-size trailer
-        // and flush & fsync the table file
-        let writer = self.file_writer.into_inner()?;
-        writer.get_ref().sync_all()?;
-
-        // IMPORTANT: fsync folder on Unix
-
-        #[expect(
-            clippy::expect_used,
-            reason = "if there's no parent folder, something has gone horribly wrong"
-        )]
-        fsync_directory(self.path.parent().expect("should have folder"))?;
+        // Write the fixed-size trailer and flush buffered table bytes. BRK does
+        // not require storage-device barriers for crash or power-loss safety.
+        drop(self.file_writer.into_inner()?);
 
         log::debug!(
             "Written {} items in {} blocks into new table file #{}, written {} MiB",

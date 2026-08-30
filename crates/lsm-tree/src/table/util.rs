@@ -7,7 +7,7 @@ use crate::{
     Cache, CompressionType, KeyRange, Table, file_accessor::FileAccessor, table::block::BlockType,
     version::run::Ranged,
 };
-use std::{mem::size_of, path::Path, sync::Arc};
+use std::{mem::size_of, path::Path};
 
 #[must_use]
 pub fn aggregate_run_key_range(tables: &[Table]) -> KeyRange {
@@ -41,14 +41,7 @@ pub fn load_block(
         return Ok(block);
     }
 
-    let (fd, fd_cache_miss) = if let Some(cached_fd) = file_accessor.access_for_table(table_id) {
-        (cached_fd, false)
-    } else {
-        let fd = std::fs::File::open(path)?;
-
-        (Arc::new(fd), true)
-    };
-
+    let fd = file_accessor.access_or_open(table_id, path)?;
     let block = Block::from_file(&fd, *handle, compression)?;
 
     if block.header.block_type != block_type {
@@ -56,11 +49,6 @@ pub fn load_block(
             "BlockType",
             block.header.block_type.into(),
         )));
-    }
-
-    // Cache FD
-    if fd_cache_miss {
-        file_accessor.insert_for_table(table_id, fd);
     }
 
     cache.insert_block(table_id, handle.offset(), block.clone());

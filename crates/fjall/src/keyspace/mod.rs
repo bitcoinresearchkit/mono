@@ -120,12 +120,6 @@ impl Keyspace {
         Ok(self.iter().next().transpose()?.is_none())
     }
 
-    /// Approximates the number of table entries in constant time.
-    #[must_use]
-    pub fn approximate_len(&self) -> usize {
-        self.inner.tree.approximate_len()
-    }
-
     /// Runs leveled compaction until no eligible work remains.
     #[doc(hidden)]
     pub fn compact(&self) -> crate::Result<()> {

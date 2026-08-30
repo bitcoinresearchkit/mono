@@ -39,8 +39,11 @@ impl RestartIntervalPolicy {
     #[must_use]
     pub fn new(policy: impl Into<Vec<u8>>) -> Self {
         let policy = policy.into();
-        assert!(!policy.is_empty(), "compression policy may not be empty");
-        assert!(policy.len() <= 255, "compression policy is too large");
+        assert!(
+            !policy.is_empty(),
+            "restart-interval policy may not be empty"
+        );
+        assert!(policy.len() <= 255, "restart-interval policy is too large");
         Self(policy)
     }
 }

@@ -1,5 +1,5 @@
 import { entries } from "../utils/array.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { colors } from "../utils/colors.js";
 
 /**
@@ -8,7 +8,7 @@ import { colors } from "../utils/colors.js";
  * Consumers attach their own tree because Distribution, Cointime, and
  * Coinflow expose different metrics for the same ranges.
  */
-export const ageRanges = entries(brk.AGE_RANGE_NAMES).map(
+export const ageRanges = entries(bitview.AGE_RANGE_NAMES).map(
   ([key, names], index, all) => ({
     key,
     name: names.short,

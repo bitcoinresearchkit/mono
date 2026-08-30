@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
 import { line, price, pricePercentileSeries } from "../series.js";
@@ -132,7 +132,7 @@ function costBasisGroup(name, weightLabel, distributions, p100) {
  * @returns {PartialOptionsGroup}
  */
 export function createBedrockSection() {
-  const { market, cohorts, cointime, coinflow, bedrock } = brk.series;
+  const { market, cohorts, cointime, coinflow, bedrock } = bitview.series;
   const horizonModes = /** @type {const} */ ([
     { key: "coinflow8y", horizon: "_8y", name: "Coinflow 8Y" },
     { key: "coinflow4y", horizon: "_4y", name: "Coinflow 4Y" },

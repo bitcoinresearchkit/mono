@@ -14,11 +14,11 @@ export function latestPrice() {
   return _latest;
 }
 
-/** @param {BitviewClient} brk */
-export function initPrice(brk) {
+/** @param {BitviewClient} bitview */
+export function initPrice(bitview) {
   async function poll() {
     try {
-      const price = await brk.getLivePrice();
+      const price = await bitview.getLivePrice();
       if (price !== _latest) {
         _latest = price;
         listeners.forEach((cb) => cb(price));

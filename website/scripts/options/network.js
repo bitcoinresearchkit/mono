@@ -1,7 +1,7 @@
 /** Network section - On-chain activity and health */
 
 import { colors } from "../utils/colors.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { Unit } from "../utils/units.js";
 import {
   line,
@@ -39,7 +39,7 @@ import { createTransactionsSection } from "./network/transactions.js";
  */
 export function createNetworkSection() {
   const { blocks, transactions, inputs, outputs, supply, addrs, cohorts } =
-    brk.series;
+    bitview.series;
 
   const st = colors.scriptType;
 

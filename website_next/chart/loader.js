@@ -1,4 +1,4 @@
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { fetchTimeframe } from "./timeframes.js";
 
 /**
@@ -28,7 +28,7 @@ function loadSeries(chart, timeframe) {
     chart.series.map(async (item) => ({
       series: item,
       color: item.color(),
-      samples: createSamples(await fetchTimeframe(item.metric(brk), timeframe)),
+      samples: createSamples(await fetchTimeframe(item.metric(bitview), timeframe)),
     })),
   );
 }

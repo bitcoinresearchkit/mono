@@ -120,11 +120,11 @@ function getRangePresets() {
 /**
  * @param {Object} args
  * @param {HTMLElement} args.parent
- * @param {BitviewClient} args.brk
+ * @param {BitviewClient} args.bitview
  * @param {true} [args.fitContent]
  */
-export function createChart({ parent, brk, fitContent }) {
-  const baseUrl = brk.baseUrl.replace(/\/$/, "");
+export function createChart({ parent, bitview, fitContent }) {
+  const baseUrl = bitview.baseUrl.replace(/\/$/, "");
 
   /** @type {string} */
   let storageId = "";
@@ -132,8 +132,8 @@ export function createChart({ parent, brk, fitContent }) {
   /** @param {ChartableIndex} idx */
   const getTimeEndpoint = (idx) =>
     idx === "height"
-      ? brk.series.mappings.timestamp.monotonic.by[idx]
-      : brk.series.mappings.timestamp.resolutions.by[idx];
+      ? bitview.series.mappings.timestamp.monotonic.by[idx]
+      : bitview.series.mappings.timestamp.resolutions.by[idx];
 
   const index = {
     /** @type {Set<(index: ChartableIndex) => void>} */

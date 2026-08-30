@@ -7,8 +7,7 @@ use bitview_types::TreeNode;
 
 use crate::{
     ClientMetadata, GenericSyntax, LanguageSyntax, PatternField, RustSyntax, build_child_path,
-    escape_rust_keyword, generate_leaf_field, generate_tree_node_field, prepare_tree_node,
-    to_snake_case,
+    escape_rust_keyword, leaf_field_parts, prepare_tree_node, to_snake_case, tree_node_field_parts,
 };
 
 /// Generate tree structs.
@@ -52,7 +51,12 @@ fn generate_tree_node(
         } else {
             metadata.field_type_annotation(&child.field, false, None, GenericSyntax::RUST)
         };
-        writeln!(output, "    pub {}: {},", field_name, type_annotation).unwrap();
+        writeln!(
+            output,
+            "    pub {}: LazyNode<{}>,",
+            field_name, type_annotation
+        )
+        .unwrap();
     }
 
     writeln!(output, "}}\n").unwrap();
@@ -72,35 +76,23 @@ fn generate_tree_node(
 
         if child.is_leaf {
             if let TreeNode::Leaf(leaf) = child.node {
-                generate_leaf_field(
-                    output,
-                    &syntax,
-                    "client.clone()",
-                    child.name,
-                    leaf,
-                    metadata,
-                    "            ",
-                );
+                let parts = leaf_field_parts(&syntax, "client", child.name, leaf, metadata);
+                generate_lazy_field(output, &parts.name, &parts.value, false);
             }
         } else if child.should_inline {
             // Inline struct type - only for nodes that don't match any pattern
             let path_expr = syntax.path_expr("base_path", &format!("_{}", child.name));
-            writeln!(
-                output,
-                "            {}: {}::new(client.clone(), {}),",
-                field_name, child.inline_type_name, path_expr
-            )
-            .unwrap();
+            let value = format!("{}::new(client, {})", child.inline_type_name, path_expr);
+            generate_lazy_field(output, &field_name, &value, true);
         } else {
-            generate_tree_node_field(
-                output,
+            let parts = tree_node_field_parts(
                 &syntax,
                 &child.field,
                 metadata,
-                "            ",
-                "client.clone()",
+                "client",
                 &child.base_result,
             );
+            generate_lazy_field(output, &parts.name, &parts.value, false);
         }
     }
 
@@ -122,5 +114,26 @@ fn generate_tree_node(
                 generated,
             );
         }
+    }
+}
+
+fn generate_lazy_field(
+    output: &mut String,
+    field_name: &str,
+    value: &str,
+    capture_base_path: bool,
+) {
+    if capture_base_path {
+        writeln!(
+            output,
+            "            {field_name}: lazy_node((client.clone(), base_path.clone()), |(client, base_path)| {value}),"
+        )
+        .unwrap();
+    } else {
+        writeln!(
+            output,
+            "            {field_name}: lazy_node(client.clone(), |client| {value}),"
+        )
+        .unwrap();
     }
 }

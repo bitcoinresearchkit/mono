@@ -1,18 +1,14 @@
 import { createPartialOptions } from "./partial.js";
-import {
-  createAnchorElement,
-  createButtonElement,
-  createSmall,
-} from "../utils/dom.js";
+import { createAnchorElement, createButtonElement } from "../utils/dom.js";
 import { pushHistory, resetParams } from "../utils/url.js";
 import { readStored, writeToStorage } from "../utils/storage.js";
 import { stringToId } from "../utils/format.js";
-import { logUnused } from "./unused.js";
 import { setQr } from "../panes/share.js";
 import { getConstant } from "./constants.js";
 import { colors } from "../utils/colors.js";
 import { Unit } from "../utils/units.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
+import { lazy } from "./lazy.js";
 
 export function initOptions() {
   const LS_SELECTED_KEY = `selected_path`;
@@ -92,24 +88,6 @@ export function initOptions() {
   }
 
   /**
-   * @template T
-   * @param {() => T} fn
-   * @returns {() => T}
-   */
-  function lazy(fn) {
-    /** @type {T | undefined} */
-    let cached;
-    let computed = false;
-    return () => {
-      if (!computed) {
-        computed = true;
-        cached = fn();
-      }
-      return /** @type {T} */ (cached);
-    };
-  }
-
-  /**
    * @param {(AnyFetchedSeriesBlueprint | FetchedPriceSeriesBlueprint)[]} [arr]
    */
   function arrayToMap(arr) {
@@ -180,7 +158,7 @@ export function initOptions() {
       const arr = map.get(unit);
       if (!arr) continue;
       for (const baseValue of values) {
-        const s = getConstant(brk.series.constants, baseValue);
+        const s = getConstant(bitview.series.constants, baseValue);
         arr.push({
           series: s,
           title: `${baseValue}`,
@@ -247,22 +225,17 @@ export function initOptions() {
     }
   }
 
-  /** @type {Option | undefined} */
-  let savedOption;
-
   /**
-   * @typedef {{ type: "group"; name: string; serName: string; path: string[]; pathKey: string; count: number; children: ProcessedNode[] }} ProcessedGroup
+   * @typedef {{ type: "group"; name: string; serName: string; path: string[]; pathKey: string; children: () => ProcessedNode[] }} ProcessedGroup
    * @typedef {{ type: "option"; option: Option; path: string[]; pathKey: string }} ProcessedOption
    * @typedef {ProcessedGroup | ProcessedOption} ProcessedNode
    */
-
-  const savedPathStr = savedPath?.join("/");
 
   /**
    * @param {PartialOptionsTree} partialTree
    * @param {string[]} parentPath
    * @param {string} parentPathStr
-   * @returns {{ nodes: ProcessedNode[], count: number }}
+   * @returns {ProcessedNode[]}
    */
   function processPartialTree(
     partialTree,
@@ -271,7 +244,6 @@ export function initOptions() {
   ) {
     /** @type {ProcessedNode[]} */
     const nodes = [];
-    let totalCount = 0;
 
     for (let i = 0; i < partialTree.length; i++) {
       const anyPartial = partialTree[i];
@@ -279,23 +251,15 @@ export function initOptions() {
         const serName = stringToId(anyPartial.name);
         const pathStr = parentPathStr ? `${parentPathStr}/${serName}` : serName;
         const path = parentPath.concat(serName);
-        const { nodes: children, count } = processPartialTree(
-          anyPartial.tree,
-          path,
-          pathStr,
+        const children = lazy(() =>
+          processPartialTree(anyPartial.tree, path, pathStr),
         );
-
-        // Skip groups with no children
-        if (count === 0) continue;
-
-        totalCount += count;
         nodes.push({
           type: "group",
           name: anyPartial.name,
           serName,
           path,
           pathKey: pathStr,
-          count,
           children,
         });
       } else {
@@ -350,11 +314,6 @@ export function initOptions() {
         }
 
         list.push(option);
-        totalCount++;
-
-        if (savedPathStr && pathStr === savedPathStr) {
-          savedOption = option;
-        }
 
         nodes.push({
           type: "option",
@@ -365,11 +324,10 @@ export function initOptions() {
       }
     }
 
-    return { nodes, count: totalCount };
+    return nodes;
   }
 
-  logUnused(brk.series, partialOptions);
-  const { nodes: processedTree } = processPartialTree(partialOptions);
+  const processedTree = processPartialTree(partialOptions);
 
   /**
    * @param {ProcessedNode[]} nodes
@@ -394,18 +352,16 @@ export function initOptions() {
         details.append(summary);
         summary.append(node.name);
 
-        summary.append(createSmall(`[${node.count.toLocaleString("en-us")}]`));
-
         let built = false;
         if (autoOpen && isOnSelectedPath(node.path)) {
           built = true;
           details.open = true;
-          buildTreeDOM(node.children, details, true);
+          buildTreeDOM(node.children(), details, true);
         }
         details.addEventListener("toggle", () => {
           if (details.open && !built) {
             built = true;
-            buildTreeDOM(node.children, details, false);
+            buildTreeDOM(node.children(), details, false);
           }
           updateHighlight(selected.value);
         });
@@ -433,31 +389,31 @@ export function initOptions() {
     updateHighlight(selected.value);
   }
 
-  const tree = /** @type {OptionsTree} */ (partialOptions);
-
   function resolveUrl() {
     const segments = window.location.pathname.split("/").filter((v) => v);
-    let folder = tree;
-    for (let i = 0; i < segments.length; i++) {
-      const match = folder.find((v) => segments[i] === stringToId(v.name));
+    const target = segments.length ? segments : savedPath;
+    let nodes = processedTree;
+
+    for (let i = 0; i < target.length; i++) {
+      const match = nodes.find((node) => target[i] === node.path.at(-1));
       if (!match) break;
-      if (i < segments.length - 1) {
-        if (!("tree" in match)) break;
-        folder = match.tree;
-      } else if (!("tree" in match)) {
-        selected.set(match);
+      if (i < target.length - 1) {
+        if (match.type !== "group") break;
+        nodes = match.children();
+      } else if (match.type === "option") {
+        selected.set(match.option);
         return;
       } else {
         break;
       }
     }
-    selected.set(!segments.length && savedOption ? savedOption : list[0]);
+    selected.set(list[0]);
   }
 
   resolveUrl();
 
   if (!selected.value) {
-    const option = savedOption || list[0];
+    const option = list[0];
     if (option) {
       selected.set(option);
     }
@@ -466,9 +422,7 @@ export function initOptions() {
   return {
     selected,
     list,
-    tree,
     setParent,
-    createOptionElement,
     selectOption,
     resolveUrl,
   };

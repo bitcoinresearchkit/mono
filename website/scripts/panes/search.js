@@ -3,8 +3,9 @@ import {
   searchLabelElement,
   searchResultsElement,
 } from "../utils/elements.js";
-import { QuickMatch } from "../modules/quickmatch-js/0.5.0/src/index.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
+import { lazy } from "../options/lazy.js";
+import { createChartSearch } from "./search-client.js";
 
 /**
  * @param {Options} options
@@ -12,12 +13,7 @@ import { brk } from "../utils/client.js";
 export function init(options) {
   console.log("search: init");
 
-  const haystack = options.list.map((option) => option.title.toLowerCase());
-  const titleToOption = new Map(
-    options.list.map((option) => [option.title.toLowerCase(), option]),
-  );
-
-  const matcher = new QuickMatch(haystack);
+  const chartSearch = lazy(createChartSearch);
 
   /** @type {HTMLLIElement | undefined} */
   let highlighted;
@@ -32,26 +28,37 @@ export function init(options) {
   const HEX64_RE = /^[0-9a-f]{64}$/i;
   const ADDR_RE = /^([13][a-km-zA-HJ-NP-Z1-9]{25,34}|bc1[a-z0-9]{8,87})$/;
 
-  /** @param {string} label @param {string} href @param {Element | null} [before] */
-  function createResultLink(label, href, before) {
+  /** @param {string} label @param {string} href @param {Element | null} [before] @param {boolean} [blank] */
+  function createResultLink(label, href, before, blank = false) {
     const li = window.document.createElement("li");
     const a = window.document.createElement("a");
     a.href = href;
     a.textContent = label;
     a.title = label;
+    if (blank) {
+      a.target = "_blank";
+      a.rel = "noreferrer";
+    }
     if (href === window.location.pathname) setHighlight(li);
-    a.addEventListener("click", (e) => {
-      e.preventDefault();
-      setHighlight(li);
-      history.pushState(null, "", href);
-      options.resolveUrl();
-    });
+    if (!blank) {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        setHighlight(li);
+        if (href === "/") {
+          options.selectOption(options.list[0]);
+          return;
+        }
+        history.pushState(null, "", href);
+        options.resolveUrl();
+      });
+    }
     li.append(a);
     searchResultsElement.insertBefore(li, before ?? null);
   }
 
   /** @type {AbortController | undefined} */
   let lookupController;
+  let inputVersion = 0;
 
   /** @param {string} needle @param {AbortSignal} signal */
   async function lookup(needle, signal) {
@@ -60,8 +67,8 @@ export function init(options) {
 
     if (HEX64_RE.test(needle)) {
       const [blockRes, txRes] = await Promise.allSettled([
-        brk.getBlock(needle, { signal }),
-        brk.getTx(needle, { signal }),
+        bitview.getBlock(needle, { signal }),
+        bitview.getTx(needle, { signal }),
       ]);
       if (signal.aborted) return;
       if (blockRes.status === "fulfilled")
@@ -70,7 +77,7 @@ export function init(options) {
         results.push(["Transaction", `/tx/${needle}`]);
     } else if (ADDR_RE.test(needle)) {
       try {
-        const { isvalid } = await brk.validateAddress(needle, { signal });
+        const { isvalid } = await bitview.validateAddress(needle, { signal });
         if (signal.aborted || !isvalid) return;
         results.push(["Address", `/address/${needle}`]);
       } catch {
@@ -89,7 +96,8 @@ export function init(options) {
     if (last && !last.querySelector("a")) last.remove();
   }
 
-  function inputEvent() {
+  async function inputEvent() {
+    const version = ++inputVersion;
     const needle = /** @type {string} */ (searchInput.value).trim();
 
     if (lookupController) lookupController.abort();
@@ -100,11 +108,30 @@ export function init(options) {
 
     if (!needle.length) return;
 
-    const matches = matcher.matches(needle);
-
     const indexMatch = needle.match(
       /^(?:(block|b)|(transaction|tx))?\s*#?\s*(\d+)$/i,
     );
+    const isExplorerLookup = Boolean(
+      indexMatch || HEX64_RE.test(needle) || ADDR_RE.test(needle),
+    );
+    /** @type {Array<[title: string, href: string, blank: boolean]>} */
+    let matches = [];
+    if (!isExplorerLookup) {
+      const loading = window.document.createElement("li");
+      loading.textContent = "Loading charts…";
+      loading.style.color = "var(--off-color)";
+      searchResultsElement.appendChild(loading);
+      try {
+        matches = await chartSearch()(needle);
+      } catch (error) {
+        console.error(error);
+        if (version === inputVersion)
+          loading.textContent = "Search unavailable";
+        return;
+      }
+    }
+    if (version !== inputVersion) return;
+    searchResultsElement.innerHTML = "";
 
     if (indexMatch) {
       const num = indexMatch[3];
@@ -125,21 +152,8 @@ export function init(options) {
     lookup(needle, lookupController.signal);
 
     if (matches.length) {
-      matches.forEach((title) => {
-        const option = titleToOption.get(title);
-        if (!option) return;
-
-        const li = window.document.createElement("li");
-        searchResultsElement.appendChild(li);
-
-        if (option === options.selected.value) setHighlight(li);
-
-        const element = options.createOptionElement({
-          option,
-          name: option.title,
-        });
-
-        if (element) li.append(element);
+      matches.forEach(([title, href, blank]) => {
+        createResultLink(title, href, undefined, blank);
       });
     }
 
@@ -169,9 +183,9 @@ export function init(options) {
     setHighlight();
   });
 
-  inputEvent();
+  void inputEvent();
 
-  searchInput.addEventListener("input", inputEvent);
+  searchInput.addEventListener("input", () => void inputEvent());
   const len = searchInput.value.length;
   searchInput.setSelectionRange(len, len);
 }

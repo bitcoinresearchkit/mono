@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
 import { histogram, price } from "../series.js";
@@ -8,8 +8,8 @@ import { histogram, price } from "../series.js";
  * @returns {PartialOptionsGroup}
  */
 export function createCapitalSentimentSection() {
-  const { capitalSentiment, cohorts } = brk.series;
-  const sma = brk.series.market.movingAverage.sma._1y;
+  const { capitalSentiment, cohorts } = bitview.series;
+  const sma = bitview.series.market.movingAverage.sma._1y;
   const references = () => [
     price({
       series: cohorts.realized.capitalizedPrice.all,

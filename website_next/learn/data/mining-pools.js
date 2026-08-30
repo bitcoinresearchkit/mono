@@ -1,9 +1,9 @@
 import { createCohortSeries } from "./cohort-series.js";
 import { createRollingWindowSeries } from "./rolling-windows.js";
 import { colors } from "../../utils/colors.js";
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 
-const poolNames = brk.POOL_ID_TO_POOL_NAME;
+const poolNames = bitview.POOL_ID_TO_POOL_NAME;
 
 /**
  * @template {keyof typeof poolNames} Key
@@ -30,9 +30,9 @@ function createWindowSeries(createMetric) {
   return createRollingWindowSeries((window) => () => createMetric(window));
 }
 
-export const majorPools = createPools(brk.series.pools.major);
+export const majorPools = createPools(bitview.series.pools.major);
 
-export const minorPools = createPools(brk.series.pools.minor);
+export const minorPools = createPools(bitview.series.pools.minor);
 
 export const majorPoolDominanceSeries = createCohortSeries(
   majorPools.map(({ name, pool }) => ({
@@ -102,5 +102,5 @@ export function createMinorPoolBlocksMinedSeries(pool) {
   );
 }
 
-/** @typedef {typeof brk.series.pools.major.unknown} MajorPool */
-/** @typedef {typeof brk.series.pools.minor.blockfills} MinorPool */
+/** @typedef {typeof bitview.series.pools.major.unknown} MajorPool */
+/** @typedef {typeof bitview.series.pools.minor.blockfills} MinorPool */

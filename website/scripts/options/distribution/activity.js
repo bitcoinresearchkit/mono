@@ -27,6 +27,7 @@ import {
   groupedWindowsCumulativeSatsBtcUsd,
 } from "../shared.js";
 import { colors } from "../../utils/colors.js";
+import { lazyGroup } from "../lazy.js";
 
 // ============================================================================
 // Shared Volume Helpers
@@ -184,7 +185,7 @@ function singleRollingSoprTree(ratio, title, prefix = "") {
 }
 
 /**
- * @param {{ valueDestroyed: Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
+ * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
  * @returns {PartialOptionsTree}
  */
 function valueDestroyedTree({ valueDestroyed, title }) {
@@ -201,7 +202,7 @@ function valueDestroyedTree({ valueDestroyed, title }) {
 }
 
 /**
- * @param {{ valueDestroyed: Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
+ * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 function valueDestroyedFolder({ valueDestroyed, title }) {
@@ -212,7 +213,7 @@ function valueDestroyedFolder({ valueDestroyed, title }) {
 }
 
 /**
- * @param {{ valueDestroyed: Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], adjusted: CountPattern<number>, title: (name: string) => string }} args
+ * @param {{ valueDestroyed: Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], adjusted: CountPattern<number>, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 function valueDestroyedFolderWithAdjusted({ valueDestroyed, adjusted, title }) {
@@ -267,18 +268,16 @@ function singleSellSideRiskTree(sellSideRisk, title) {
  * Single activity tree items shared by adjusted and unadjusted full cohorts
  * @param {CohortAll | CohortFull | CohortLongTerm} cohort
  * @param {(name: string) => string} title
- * @param {PartialOptionsGroup} volumeItem
- * @param {PartialOptionsGroup} soprFolder
- * @param {PartialOptionsGroup} valueDestroyedItem
+ * @param {{ volume: () => PartialOptionsGroup, sopr: () => PartialOptionsGroup, valueDestroyed: () => PartialOptionsGroup }} create
  * @returns {PartialOptionsTree}
  */
-function singleFullActivityTree(cohort, title, volumeItem, soprFolder, valueDestroyedItem) {
+function singleFullActivityTree(cohort, title, create) {
   const { tree, color } = cohort;
   return [
-    volumeItem,
-    soprFolder,
-    valueDestroyedItem,
-    {
+    lazyGroup("Volume", create.volume),
+    lazyGroup("SOPR", create.sopr),
+    lazyGroup("Value Destroyed", create.valueDestroyed),
+    lazyGroup("Coindays Destroyed", () => ({
       name: "Coindays Destroyed",
       tree: chartsFromCount({
         pattern: tree.activity.coindaysDestroyed,
@@ -287,8 +286,8 @@ function singleFullActivityTree(cohort, title, volumeItem, soprFolder, valueDest
         unit: Unit.coindays,
         color,
       }),
-    },
-    {
+    })),
+    lazyGroup("Dormancy", () => ({
       name: "Dormancy",
       tree: averagesArray({
         windows: tree.activity.dormancy,
@@ -296,35 +295,48 @@ function singleFullActivityTree(cohort, title, volumeItem, soprFolder, valueDest
         metric: "Dormancy",
         unit: Unit.days,
       }),
-    },
-    {
+    })),
+    lazyGroup("Sell Side Risk", () => ({
       name: "Sell Side Risk",
       tree: singleSellSideRiskTree(tree.realized.sellSideRiskRatio, title),
-    },
+    })),
   ];
 }
 
 /** @param {{ cohort: CohortAll | CohortFull, title: (name: string) => string }} args */
 export function createActivitySectionWithAdjusted({ cohort, title }) {
   const { tree, color } = cohort;
-  const { realized } = tree;
   return {
     name: "Activity",
-    tree: singleFullActivityTree(cohort, title,
-      volumeFolderWithAdjusted(tree.activity, realized.adjustedSopr.transferVolume, color, title),
-      {
+    tree: singleFullActivityTree(cohort, title, {
+      volume: () =>
+        volumeFolderWithAdjusted(
+          tree.activity,
+          tree.realized.adjustedSopr.transferVolume,
+          color,
+          title,
+        ),
+      sopr: () => ({
         name: "SOPR",
         tree: [
-          ...singleRollingSoprTree(soprWindows(realized), title),
-          { name: "Adjusted", tree: singleRollingSoprTree(realized.adjustedSopr.ratio, title, "Adjusted ") },
+          ...singleRollingSoprTree(soprWindows(tree.realized), title),
+          {
+            name: "Adjusted",
+            tree: singleRollingSoprTree(
+              tree.realized.adjustedSopr.ratio,
+              title,
+              "Adjusted ",
+            ),
+          },
         ],
-      },
-      valueDestroyedFolderWithAdjusted({
-        valueDestroyed: realized.sopr.valueDestroyed,
-        adjusted: realized.adjustedSopr.valueDestroyed,
-        title,
       }),
-    ),
+      valueDestroyed: () =>
+        valueDestroyedFolderWithAdjusted({
+          valueDestroyed: tree.realized.sopr.valueDestroyed,
+          adjusted: tree.realized.adjustedSopr.valueDestroyed,
+          title,
+        }),
+    }),
   };
 }
 
@@ -333,14 +345,18 @@ export function createActivitySection({ cohort, title }) {
   const { tree, color } = cohort;
   return {
     name: "Activity",
-    tree: singleFullActivityTree(cohort, title,
-      volumeFolder(tree.activity, color, title),
-      { name: "SOPR", tree: singleRollingSoprTree(soprWindows(tree.realized), title) },
-      valueDestroyedFolder({
-        valueDestroyed: tree.realized.sopr.valueDestroyed,
-        title,
+    tree: singleFullActivityTree(cohort, title, {
+      volume: () => volumeFolder(tree.activity, color, title),
+      sopr: () => ({
+        name: "SOPR",
+        tree: singleRollingSoprTree(soprWindows(tree.realized), title),
       }),
-    ),
+      valueDestroyed: () =>
+        valueDestroyedFolder({
+          valueDestroyed: tree.realized.sopr.valueDestroyed,
+          title,
+        }),
+    }),
   };
 }
 
@@ -553,7 +569,7 @@ function groupedSoprCharts(list, all, getRatio, title, prefix = "") {
 /**
  * @template {{ name: string, color: Color }} T
  * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
+ * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
  * @returns {PartialOptionsTree}
  */
 function groupedValueDestroyedTree({ list, all, title, getValueDestroyed }) {
@@ -568,7 +584,7 @@ function groupedValueDestroyedTree({ list, all, title, getValueDestroyed }) {
 /**
  * @template {{ name: string, color: Color }} T
  * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
+ * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"] }} args
  * @returns {PartialOptionsGroup}
  */
 function groupedValueDestroyedFolder({ list, all, title, getValueDestroyed }) {
@@ -581,7 +597,7 @@ function groupedValueDestroyedFolder({ list, all, title, getValueDestroyed }) {
 /**
  * @template {{ name: string, color: Color }} T
  * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Brk.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], getAdjustedValueDestroyed: (c: T | A) => CountPattern<number> }} args
+ * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], getAdjustedValueDestroyed: (c: T | A) => CountPattern<number> }} args
  * @returns {PartialOptionsGroup}
  */
 function groupedValueDestroyedFolderWithAdjusted({

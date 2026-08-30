@@ -1,5 +1,5 @@
 import { entries } from "../../utils/array.js";
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
 import {
@@ -36,7 +36,7 @@ function createCountFolder({ name, metric, pattern, unit = Unit.count }) {
  * @returns {PartialOptionsGroup}
  */
 export function createTransactionsSection() {
-  const { transactions, supply } = brk.series;
+  const { transactions, supply } = bitview.series;
   const featureCount = transactions.features.count;
 
   return {

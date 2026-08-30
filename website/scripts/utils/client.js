@@ -1,8 +1,8 @@
 import { BitviewClient } from "../modules/bitview-client/index.js";
 
-// const brk = new BitviewClient("https://bitview.space");
-const brk = new BitviewClient("/");
+// const bitview = new BitviewClient("https://bitview.space");
+const bitview = new BitviewClient("/");
 
-console.log(`VERSION = ${brk.VERSION}`);
+console.log(`VERSION = ${bitview.VERSION}`);
 
-export { brk };
+export { bitview };

@@ -1,7 +1,7 @@
 /** Constant helpers for creating price lines and reference lines */
 
 import { colors } from "../utils/colors.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { line } from "./series.js";
 
 /**
@@ -28,7 +28,7 @@ export function getConstant(constants, num) {
 export function priceLine(args) {
   return line({
     ...args,
-    series: getConstant(brk.series.constants, args.number || 0),
+    series: getConstant(bitview.series.constants, args.number || 0),
     name: args.name || `${args.number ?? 0}`,
     color: args.color ?? colors.gray,
     options: {

@@ -1,5 +1,5 @@
 import { initPrice, onPrice } from "./utils/price.js";
-import { brk } from "./utils/client.js";
+import { bitview } from "./utils/client.js";
 import { onFirstIntersection, getElementById, isHidden } from "./utils/dom.js";
 import { initOptions } from "./options/full.js";
 import {
@@ -108,7 +108,7 @@ function initFrameSelectors() {
 }
 initFrameSelectors();
 
-initPrice(brk);
+initPrice(bitview);
 
 onPrice((price) => {
   console.log("close:", price);

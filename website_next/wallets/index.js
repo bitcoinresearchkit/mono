@@ -1,4 +1,4 @@
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { setStatus } from "./dom.js";
 import { createEmpty } from "./empty/index.js";
 import { getErrorMessage } from "./errors.js";
@@ -119,7 +119,7 @@ export function createWalletsPage() {
 
     scanStatus.setPending(panel.status);
     void runtime.load({
-      client: brk,
+      client: bitview,
       onProgress(progress) {
         scanStatus.setProgress(panel.status, progress);
       },
@@ -154,7 +154,7 @@ export function createWalletsPage() {
    * @param {ReturnType<typeof createWalletPanel>} panel
    */
   function renderWalletData(scan, panel) {
-    renderWalletPanel(scan, panel, brk);
+    renderWalletPanel(scan, panel, bitview);
   }
 
   function renderContent() {

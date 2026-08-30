@@ -1,7 +1,7 @@
 /**
  * @import { IChartApi, ISeriesApi as _ISeriesApi, SeriesDefinition, SingleValueData as _SingleValueData, CandlestickData as _CandlestickData, BaselineData as _BaselineData, HistogramData as _HistogramData, SeriesType as LCSeriesType, IPaneApi, LineSeriesPartialOptions as _LineSeriesPartialOptions, HistogramSeriesPartialOptions as _HistogramSeriesPartialOptions, BaselineSeriesPartialOptions as _BaselineSeriesPartialOptions, CandlestickSeriesPartialOptions as _CandlestickSeriesPartialOptions, WhitespaceData, DeepPartial, ChartOptions, Time, LineData as _LineData, createChart as CreateLCChart, LineStyle, createSeriesMarkers as CreateSeriesMarkers, SeriesMarker, ISeriesMarkersPluginApi } from './modules/lightweight-charts/5.2.1/dist/typings.js'
  *
- * @import * as Brk from "./modules/bitview-client/index.js"
+ * @import * as Bitview from "./modules/bitview-client/index.js"
  * @import { BitviewClient, Index, SeriesData, Urpd } from "./modules/bitview-client/index.js"
  *
  * @import { Options } from './options/full.js'
@@ -31,145 +31,145 @@
  * @typedef {ISeriesMarkersPluginApi<Time>} SeriesMarkersPlugin
  * @typedef {SeriesMarker<Time>} TimeSeriesMarker
  *
- * Brk tree types (stable across regenerations)
- * @typedef {Brk.SeriesTree_Cohorts} UtxoCohortTree
- * @typedef {Brk.SeriesTree_Cohorts} AddrCohortTree
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "all">} AllUtxoPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "term.short">} ShortTermPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "term.long">} LongTermPattern
+ * Bitview tree types (stable across regenerations)
+ * @typedef {Bitview.SeriesTree_Cohorts} UtxoCohortTree
+ * @typedef {Bitview.SeriesTree_Cohorts} AddrCohortTree
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "all">} AllUtxoPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "term.short">} ShortTermPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "term.long">} LongTermPattern
  * @typedef {AllUtxoPattern["unrealized"]} AllRelativePattern
- * @typedef {keyof Brk.BtcCentsSatsUsdPattern} BtcSatsUsdKey
- * @typedef {Brk.BtcCentsSatsUsdPattern} SupplyPattern
- * @typedef {Brk.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern} BlockSizePattern
- * @typedef {keyof Brk.SeriesTree_Cohorts_Supply_Total["type"]} SpendableType
- * @typedef {Brk.SpentUnspentPattern} OutputsPattern
- * @typedef {keyof Brk.SeriesTree_Addrs_Raw} AddressableType
+ * @typedef {keyof Bitview.BtcCentsSatsUsdPattern} BtcSatsUsdKey
+ * @typedef {Bitview.BtcCentsSatsUsdPattern} SupplyPattern
+ * @typedef {Bitview.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern} BlockSizePattern
+ * @typedef {keyof Bitview.SeriesTree_Cohorts_Supply_Total["type"]} SpendableType
+ * @typedef {Bitview.SpentUnspentPattern} OutputsPattern
+ * @typedef {keyof Bitview.SeriesTree_Addrs_Raw} AddressableType
  *
- * Brk pattern types (using new pattern names)
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "age.over._1d">} MaxAgePattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "age.range.under1h">} AgeRangePattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "utxoAmount.range._0sats">} UtxoAmountPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "addrBalance.range._0sats">} AddrAmountPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "entry.discount">} BasicUtxoPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "epoch._0">} EpochPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Brk.SeriesTree_Cohorts, "type.empty">} EmptyPattern
- * @typedef {Brk.Dollars} Dollars
- * @typedef {Brk.BlockInfo} BlockInfo
- * @typedef {Brk.Height} Height
- * @typedef {Brk.BlockHash} BlockHash
- * @typedef {Brk.BlockInfoV1} BlockInfoV1
- * @typedef {Brk.Transaction} Transaction
- * @typedef {Brk.Txid} Txid
- * @typedef {Brk.TxIndex} TxIndex
- * @typedef {Brk.AddrStats} AddrStats
- * @typedef {Brk.TxIn} TxIn
- * @typedef {Brk.TxOut} TxOut
- * @typedef {Brk.BlockTemplate} BlockTemplate
- * @typedef {Brk.MempoolBlock} MempoolBlock
- * @typedef {Brk.NextBlockHash} NextBlockHash
+ * Bitview pattern types (using new pattern names)
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "age.over._1d">} MaxAgePattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "age.range.under1h">} AgeRangePattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "utxoAmount.range._0sats">} UtxoAmountPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "addrBalance.range._0sats">} AddrAmountPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "entry.discount">} BasicUtxoPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "epoch._0">} EpochPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "type.empty">} EmptyPattern
+ * @typedef {Bitview.Dollars} Dollars
+ * @typedef {Bitview.BlockInfo} BlockInfo
+ * @typedef {Bitview.Height} Height
+ * @typedef {Bitview.BlockHash} BlockHash
+ * @typedef {Bitview.BlockInfoV1} BlockInfoV1
+ * @typedef {Bitview.Transaction} Transaction
+ * @typedef {Bitview.Txid} Txid
+ * @typedef {Bitview.TxIndex} TxIndex
+ * @typedef {Bitview.AddrStats} AddrStats
+ * @typedef {Bitview.TxIn} TxIn
+ * @typedef {Bitview.TxOut} TxOut
+ * @typedef {Bitview.BlockTemplate} BlockTemplate
+ * @typedef {Bitview.MempoolBlock} MempoolBlock
+ * @typedef {Bitview.NextBlockHash} NextBlockHash
  * AnyRatioPattern: price pattern with a ratio
  * @typedef {AnyPricePattern & { ratio: AnySeriesPattern }} AnyRatioPattern
  * FullValuePattern: block + cumulative + sum + average rolling windows (sats/btc/cents/usd)
- * @typedef {Brk.AverageBlockCumulativeSumPattern2} FullValuePattern
+ * @typedef {Bitview.AverageBlockCumulativeSumPattern2} FullValuePattern
  * RollingWindowSlot: a single rolling window with stats (pct10, pct25, median, pct75, pct90, max, min) per unit
- * @typedef {Brk.MaxMedianMinPct10Pct25Pct75Pct90Pattern<number>} RollingWindowSlot
- * @typedef {Brk.AnySeriesPattern} AnySeriesPattern
- * @typedef {Brk.CentsSatsUsdPattern} ActivePricePattern
- * @typedef {Brk.AnySeriesEndpoint} AnySeriesEndpoint
- * @typedef {Brk.AnySeriesData} AnySeriesData
+ * @typedef {Bitview.MaxMedianMinPct10Pct25Pct75Pct90Pattern<number>} RollingWindowSlot
+ * @typedef {Bitview.AnySeriesPattern} AnySeriesPattern
+ * @typedef {Bitview.CentsSatsUsdPattern} ActivePricePattern
+ * @typedef {Bitview.AnySeriesEndpoint} AnySeriesEndpoint
+ * @typedef {Bitview.AnySeriesData} AnySeriesData
  * Relative patterns by capability:
  * Unrealized patterns by capability level
- * @typedef {Brk.LossNetNuplProfitPattern} BasicRelativePattern
- * @typedef {Brk.CapitalizedGrossInvestedLossNetNuplProfitSentimentPattern2} FullRelativePattern
+ * @typedef {Bitview.LossNetNuplProfitPattern} BasicRelativePattern
+ * @typedef {Bitview.CapitalizedGrossInvestedLossNetNuplProfitSentimentPattern2} FullRelativePattern
  *
  * Profitability bucket pattern (supply + realized_cap + unrealized_pnl + nupl)
- * @typedef {Brk.NuplRealizedSupplyUnrealizedPattern} RealizedSupplyPattern
+ * @typedef {Bitview.NuplRealizedSupplyUnrealizedPattern} RealizedSupplyPattern
  *
  * Realized pattern (full: cap + gross + capitalized + loss + mvrv + net + peak + price + profit + sell + sopr)
- * @typedef {Brk.CapCapitalizedGrossLossMvrvNetPeakPriceProfitSellSoprPattern} RealizedPattern
+ * @typedef {Bitview.CapCapitalizedGrossLossMvrvNetPeakPriceProfitSellSoprPattern} RealizedPattern
  * @typedef {Omit<RealizedPattern, "sopr">} FullRealizedProfitabilityPattern
  *
  * Transfer volume pattern (block + cumulative + inProfit/inLoss + sum windows)
- * @typedef {Brk.AverageBlockCumulativeInSumPattern} TransferVolumePattern
+ * @typedef {Bitview.AverageBlockCumulativeInSumPattern} TransferVolumePattern
  *
  * Realized profit/loss pattern (block + cumulative + sum windows, cents/usd)
- * @typedef {Brk.BlockCumulativeSumPattern} RealizedProfitLossPattern
+ * @typedef {Bitview.BlockCumulativeSumPattern} RealizedProfitLossPattern
  *
  * Full activity pattern (coindays, coinyears, dormancy, transfer volume)
- * @typedef {Brk.CoindaysCoinyearsDormancyTransferPattern} FullActivityPattern
+ * @typedef {Bitview.CoindaysCoinyearsDormancyTransferPattern} FullActivityPattern
  *
  *
  * PPM + percent + ratio pattern
- * @typedef {Brk.PercentPpmRatioPattern2} PercentRatioPattern
+ * @typedef {Bitview.PercentPpmRatioPattern2} PercentRatioPattern
  *
  * Percent + ratio per window + cumulative (mirrors CountPattern but for percent)
- * @typedef {Brk._1m1w1y24hPercentPpmRatioPattern} PercentRatioCumulativePattern
+ * @typedef {Bitview._1m1w1y24hPercentPpmRatioPattern} PercentRatioCumulativePattern
  *
  * PPM + ratio pattern (for NUPL and similar)
- * @typedef {Brk.PpmRatioPattern} NuplPattern
+ * @typedef {Bitview.PpmRatioPattern} NuplPattern
  *
  * Net PnL pattern with change (base + change + cumulative + delta + rel + sum)
- * @typedef {Brk.BlockChangeCumulativeDeltaSumPattern} NetPnlFullPattern
+ * @typedef {Bitview.BlockChangeCumulativeDeltaSumPattern} NetPnlFullPattern
  *
  * Net PnL basic pattern (base + cumulative + delta + sum)
- * @typedef {Brk.BlockCumulativeDeltaSumPattern} NetPnlBasicPattern
+ * @typedef {Bitview.BlockCumulativeDeltaSumPattern} NetPnlBasicPattern
  *
  * Mid realized pattern (cap + loss + MVRV + net + price + profit + SOPR)
- * @typedef {Brk.CapLossMvrvNetPriceProfitSoprPattern} MidRealizedPattern
+ * @typedef {Bitview.CapLossMvrvNetPriceProfitSoprPattern} MidRealizedPattern
  *
  * Basic realized pattern (cap + loss + MVRV + price + profit, no net/sopr)
- * @typedef {Brk.CapLossMvrvPriceProfitPattern} BasicRealizedPattern
- * @typedef {Pick<Brk.CapLossProfitPattern, "profit" | "loss">} BasicRealizedProfitabilityPattern
+ * @typedef {Bitview.CapLossMvrvPriceProfitPattern} BasicRealizedPattern
+ * @typedef {Pick<Bitview.CapLossProfitPattern, "profit" | "loss">} BasicRealizedProfitabilityPattern
  *
  * Moving average price ratio pattern (ppm + cents + ratio + sats + usd)
- * @typedef {Brk.CentsPpmRatioSatsUsdPattern} MaPriceRatioPattern
+ * @typedef {Bitview.CentsPpmRatioSatsUsdPattern} MaPriceRatioPattern
  *
  * Address count pattern (base + delta with absolute + rate)
- * @typedef {Brk.BaseDeltaPattern} AddrCountPattern
+ * @typedef {Bitview.BaseDeltaPattern} AddrCountPattern
  * @typedef {{
- *   utxo: Brk.SeriesTree_Addrs_AvgAmount["utxo"]["all"],
- *   addr: Brk.SeriesTree_Addrs_AvgAmount["addr"]["all"],
+ *   utxo: Bitview.SeriesTree_Addrs_AvgAmount["utxo"]["all"],
+ *   addr: Bitview.SeriesTree_Addrs_AvgAmount["addr"]["all"],
  * }} AvgAmountPattern
- * @typedef {Brk.SeriesTree_Addrs_Exposed} ExposedTree
- * @typedef {Brk.SeriesTree_Addrs_Reused} ReusedTree
- * @typedef {Brk.SeriesTree_Addrs_Respent} RespentTree
+ * @typedef {Bitview.SeriesTree_Addrs_Exposed} ExposedTree
+ * @typedef {Bitview.SeriesTree_Addrs_Reused} ReusedTree
+ * @typedef {Bitview.SeriesTree_Addrs_Respent} RespentTree
  */
 
 /**
  * @template T
- * @typedef {Brk.SeriesEndpoint<T>} SeriesEndpoint
+ * @typedef {Bitview.SeriesEndpoint<T>} SeriesEndpoint
  */
 /**
  * Rolling windows pattern (24h, 1w, 1m, 1y)
  * @template T
- * @typedef {Brk._1m1w1y24hPattern<T>} RollingWindowPattern
+ * @typedef {Bitview._1m1w1y24hPattern<T>} RollingWindowPattern
  */
 /**
  * Sell side risk rolling windows pattern
- * @typedef {Brk._1m1w1y24hPattern8} SellSideRiskPattern
+ * @typedef {Bitview._1m1w1y24hPattern8} SellSideRiskPattern
  */
 /**
  * Stats pattern: min, max, median, percentiles
- * @typedef {Brk.MaxMedianMinPct10Pct25Pct75Pct90Pattern<number>} StatsPattern
+ * @typedef {Bitview.MaxMedianMinPct10Pct25Pct75Pct90Pattern<number>} StatsPattern
  */
 /**
  * Full stats pattern: cumulative, sum, average, min, max, percentiles + rolling
- * @typedef {Brk.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern} FullStatsPattern
+ * @typedef {Bitview.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern} FullStatsPattern
  */
 /**
  * Aggregated pattern: cumulative + rolling (with distribution stats) + sum (no base)
- * @typedef {Brk.CumulativeRollingSumPattern} AggregatedPattern
+ * @typedef {Bitview.CumulativeRollingSumPattern} AggregatedPattern
  */
 /**
  * Count pattern: height, cumulative, and rolling sum windows
  * @template T
- * @typedef {Brk.AverageBlockCumulativeSumPattern<T>} CountPattern
+ * @typedef {Bitview.AverageBlockCumulativeSumPattern<T>} CountPattern
  */
 /**
  * Full per-block pattern: height, cumulative, sum, and distribution stats (all flat)
  * FullPerBlockPattern: cumulative + sum + average + distribution stats (used by chartsFromFull)
  * Note: some callers also have .block but the function doesn't use it
- * @typedef {Omit<Brk.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern, 'block'>} FullPerBlockPattern
+ * @typedef {Omit<Bitview.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern, 'block'>} FullPerBlockPattern
  */
 /**
  * Any stats pattern union
@@ -186,7 +186,7 @@
  */
 /**
  * Dominance pattern: percent/ratio at top level + per rolling window
- * @typedef {Brk._1m1w1y24hPercentPpmRatioPattern} DominancePattern
+ * @typedef {Bitview._1m1w1y24hPercentPpmRatioPattern} DominancePattern
  */
 
 /**
@@ -197,14 +197,14 @@
  * @typedef {keyof PoolIdToPoolName} PoolId
  *
  * Tree branch types
- * @typedef {Brk.SeriesTree_Market} Market
- * @typedef {Brk.SeriesTree_Market_MovingAverage} MarketMovingAverage
- * @typedef {Brk.SeriesTree_Investing} Investing
- * @typedef {Brk._10y2y3y4y5y6y8yPattern} PeriodCagrPattern
+ * @typedef {Bitview.SeriesTree_Market} Market
+ * @typedef {Bitview.SeriesTree_Market_MovingAverage} MarketMovingAverage
+ * @typedef {Bitview.SeriesTree_Investing} Investing
+ * @typedef {Bitview._10y2y3y4y5y6y8yPattern} PeriodCagrPattern
  * @typedef {FullStatsPattern} AnyFullStatsPattern
  *
  * DCA period keys - derived from pattern types
- * @typedef {keyof Brk._10y2y3y4y5y6y8yPattern} LongPeriodKey
+ * @typedef {keyof Bitview._10y2y3y4y5y6y8yPattern} LongPeriodKey
  * @typedef {"_1w" | "_1m" | "_3m" | "_6m" | "_1y"} ShortPeriodKey
  * @typedef {ShortPeriodKey | LongPeriodKey} AllPeriodKey
  *
@@ -230,7 +230,7 @@
  * @typedef {AllUtxoPattern | AgeRangePattern | UtxoAmountPattern} PatternWithCostBasis
  * @typedef {AllUtxoPattern | AgeRangePattern | UtxoAmountPattern} PatternWithActivity
  * @typedef {AllUtxoPattern | AgeRangePattern} PatternWithCostBasisPercentiles
- * @typedef {Brk.Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} PercentilesPattern
+ * @typedef {Bitview.Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} PercentilesPattern
  *
  * Cohort objects with specific pattern capabilities
  * @typedef {{ name: string, title: string, color: Color, tree: PatternWithRealizedPrice }} CohortWithRealizedPrice
@@ -247,10 +247,10 @@
  * @typedef {{ name: string, title: string, list: readonly CohortWithNuplPercentiles[], all: CohortAll }} CohortGroupWithNuplPercentiles
  *
  * Delta patterns with absolute + rate rolling windows
- * @typedef {Brk.AbsoluteRatePattern} DeltaPattern
- * @typedef {Brk.SeriesTree_Cohorts_Realized_Cap["all"]["delta"]} FiatDeltaPattern
- * @typedef {Brk.SeriesTree_Cohorts_Supply_Delta["all"]} AmountDeltaPattern
- * @typedef {Brk.BtcSatsPattern} AmountPattern
+ * @typedef {Bitview.AbsoluteRatePattern} DeltaPattern
+ * @typedef {Bitview.SeriesTree_Cohorts_Realized_Cap["all"]["delta"]} FiatDeltaPattern
+ * @typedef {Bitview.SeriesTree_Cohorts_Supply_Delta["all"]} AmountDeltaPattern
+ * @typedef {Bitview.BtcSatsPattern} AmountPattern
  *
  * Generic tree node type for walking
  * @typedef {null | undefined | string | number | boolean | bigint | symbol} TreePrimitive

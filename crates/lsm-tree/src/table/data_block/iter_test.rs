@@ -1,7 +1,7 @@
 #[expect(clippy::expect_used)]
 mod tests {
     use crate::{
-        Checksum, InternalValue, Slice,
+        InternalValue, Slice,
         ValueType::{Tombstone, Value},
         table::{
             Block, DataBlock,
@@ -63,7 +63,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -137,7 +136,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -211,7 +209,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -263,7 +260,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -298,7 +294,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -337,7 +332,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -377,7 +371,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -458,7 +451,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -499,7 +491,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -539,7 +530,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -642,7 +632,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -713,7 +702,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -750,7 +738,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -790,7 +777,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -830,7 +816,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -867,7 +852,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -900,7 +884,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -988,7 +971,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -1078,7 +1060,6 @@ mod tests {
                 data: bytes.into(),
                 header: Header {
                     block_type: BlockType::Data,
-                    checksum: Checksum::from_raw(0),
                     data_length: 0,
                     uncompressed_length: 0,
                 },
@@ -1177,7 +1158,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -1227,7 +1207,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -1260,7 +1239,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Data,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },

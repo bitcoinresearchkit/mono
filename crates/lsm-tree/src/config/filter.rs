@@ -59,8 +59,8 @@ impl FilterPolicy {
     #[must_use]
     pub fn new(policy: impl Into<Vec<FilterPolicyEntry>>) -> Self {
         let policy = policy.into();
-        assert!(!policy.is_empty(), "compression policy may not be empty");
-        assert!(policy.len() <= 255, "compression policy is too large");
+        assert!(!policy.is_empty(), "filter policy may not be empty");
+        assert!(policy.len() <= 255, "filter policy is too large");
         Self(policy)
     }
 }

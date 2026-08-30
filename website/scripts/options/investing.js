@@ -1,7 +1,7 @@
 /** Investing section - Investment strategy tools and analysis */
 
 import { colors } from "../utils/colors.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { percentRatioBaseline, price } from "./series.js";
 import { satsBtcUsd } from "./shared.js";
 import { periodIdToName } from "../utils/time.js";
@@ -90,7 +90,7 @@ function buildYearEntry(investing, year, i) {
  * @returns {PartialOptionsGroup}
  */
 export function createInvestingSection() {
-  const { market, investing } = brk.series;
+  const { market, investing } = bitview.series;
   const { lookback, returns } = market;
 
   return {

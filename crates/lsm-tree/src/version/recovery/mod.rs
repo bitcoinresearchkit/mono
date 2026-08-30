@@ -3,13 +3,12 @@ mod recovered_table;
 pub use recovered_table::RecoveredTable;
 
 use crate::{
-    Checksum, Error, Result,
+    Error, Result,
     file::{CURRENT_MAGIC, CURRENT_VERSION_FILE},
     version::DEFAULT_LEVEL_COUNT,
 };
-use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt};
 use std::{fs, path::Path};
-use xxhash_rust::xxh3::xxh3_128;
 
 pub struct Recovery {
     pub curr_version_id: u64,
@@ -27,13 +26,10 @@ impl Recovery {
             let version = magic.last().copied().ok_or(Error::Unrecoverable)?;
             return Err(Error::InvalidVersion(version));
         }
-        if bytes.len() < CURRENT_MAGIC.len() + size_of::<u64>() + size_of::<u128>() {
+        if bytes.len() < CURRENT_MAGIC.len() + size_of::<u64>() {
             return Err(Error::Unrecoverable);
         }
-        let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());
-        Checksum::from_raw(xxh3_128(payload))
-            .check(Checksum::from_raw(LittleEndian::read_u128(checksum)))?;
-        let mut reader = payload
+        let mut reader = bytes
             .get(CURRENT_MAGIC.len()..)
             .ok_or(Error::Unrecoverable)?;
         let curr_version_id = reader.read_u64::<LittleEndian>()?;
@@ -52,9 +48,6 @@ impl Recovery {
 
                 for _ in 0..table_count {
                     let id = reader.read_u32::<LittleEndian>()?;
-                    // Retained for compatibility with manifests that stored a whole-table
-                    // checksum here. Block and manifest checksums provide actual validation.
-                    let _legacy_checksum = reader.read_u128::<LittleEndian>()?;
                     run.push(RecoveredTable {
                         id,
                         global_seqno: reader.read_u64::<LittleEndian>()?,
@@ -85,7 +78,7 @@ mod tests {
     use test_log::test;
 
     #[test]
-    fn recovery_ignores_legacy_table_checksum() -> Result<()> {
+    fn recovery_reads_table_entry() -> Result<()> {
         const TABLE_ID: u32 = 42;
         const GLOBAL_SEQNO: u64 = 84;
 
@@ -98,15 +91,12 @@ mod tests {
                 current.write_u8(1)?;
                 current.write_u32::<LittleEndian>(1)?;
                 current.write_u32::<LittleEndian>(TABLE_ID)?;
-                current.write_u128::<LittleEndian>(u128::MAX)?;
                 current.write_u64::<LittleEndian>(GLOBAL_SEQNO)?;
             } else {
                 current.write_u8(0)?;
             }
         }
 
-        let checksum = xxh3_128(&current);
-        current.write_u128::<LittleEndian>(checksum)?;
         fs::write(directory.path().join(CURRENT_VERSION_FILE), current)?;
 
         let recovery = Recovery::load(directory.path())?;

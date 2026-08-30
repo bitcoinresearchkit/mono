@@ -10,6 +10,7 @@
  */
 
 import { Unit } from "../../utils/units.js";
+import { lazyGroup } from "../lazy.js";
 import {
   ROLLING_WINDOWS,
   line,
@@ -44,7 +45,6 @@ function simpleSupplySeries(supply) {
   });
 }
 
-
 /**
  * @param {readonly (UtxoCohortObject | CohortWithoutRelative)[]} list
  * @param {CohortAll} all
@@ -52,15 +52,21 @@ function simpleSupplySeries(supply) {
  */
 function groupedOutputsFolder(list, all, title) {
   const folder = groupedUnspentOutputsFolder(list, all, title);
-  folder.tree.push({
-    name: "Spent",
-    tree: groupedWindowsCumulativeWithAll({
-      list, all, title, metricTitle: "Spent UTXO Count",
-      getWindowSeries: (c, key) => c.tree.outputs.spentCount.sum[key],
-      getCumulativeSeries: (c) => c.tree.outputs.spentCount.cumulative,
-      seriesFn: line, unit: Unit.count,
-    }),
-  });
+  folder.tree.push(
+    lazyGroup("Spent", () => ({
+      name: "Spent",
+      tree: groupedWindowsCumulativeWithAll({
+        list,
+        all,
+        title,
+        metricTitle: "Spent UTXO Count",
+        getWindowSeries: (c, key) => c.tree.outputs.spentCount.sum[key],
+        getCumulativeSeries: (c) => c.tree.outputs.spentCount.cumulative,
+        seriesFn: line,
+        unit: Unit.count,
+      }),
+    })),
+  );
   return folder;
 }
 
@@ -80,10 +86,22 @@ function groupedUnspentOutputsFolder(list, all, title) {
             name: "Count",
             title: title("UTXO Count"),
             bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-              line({ series: tree.outputs.unspentCount.base, name, color, unit: Unit.count }),
+              line({
+                series: tree.outputs.unspentCount.base,
+                name,
+                color,
+                unit: Unit.count,
+              }),
             ),
           },
-          ...groupedDeltaItems(list, all, (c) => c.tree.outputs.unspentCount.delta, Unit.count, title, "UTXO Count"),
+          ...groupedDeltaItems(
+            list,
+            all,
+            (c) => c.tree.outputs.unspentCount.delta,
+            Unit.count,
+            title,
+            "UTXO Count",
+          ),
         ],
       },
     ],
@@ -99,7 +117,7 @@ function groupedUnspentOutputsFolder(list, all, title) {
  */
 function singleDeltaItems(delta, unit, title, name) {
   return [
-    {
+    lazyGroup("Change", () => ({
       ...sumsTreeBaseline({
         windows: delta.absolute,
         title,
@@ -108,15 +126,15 @@ function singleDeltaItems(delta, unit, title, name) {
         legend: "Change",
       }),
       name: "Change",
-    },
-    {
+    })),
+    lazyGroup("Growth Rate", () => ({
       ...rollingPercentRatioTree({
         windows: delta.rate,
         title,
         metric: `${name} Growth Rate`,
       }),
       name: "Growth Rate",
-    },
+    })),
   ];
 }
 
@@ -133,35 +151,35 @@ function singleDeltaItems(delta, unit, title, name) {
  */
 function groupedDeltaItems(list, all, getDelta, unit, title, name) {
   return [
-      {
-        name: "Change",
-        tree: ROLLING_WINDOWS.map((w) => ({
-          name: w.name,
-          title: title(`${w.title} ${name} Change`),
-          bottom: mapCohortsWithAll(list, all, (c) =>
-            baseline({
-              series: getDelta(c).absolute[w.key],
-              name: c.name,
-              color: c.color,
-              unit,
-            }),
-          ),
-        })),
-      },
-      {
-        name: "Growth Rate",
-        tree: ROLLING_WINDOWS.map((w) => ({
-          name: w.name,
-          title: title(`${w.title} ${name} Growth Rate`),
-          bottom: flatMapCohortsWithAll(list, all, (c) =>
-            percentRatioBaseline({
-              pattern: getDelta(c).rate[w.key],
-              name: c.name,
-              color: c.color,
-            }),
-          ),
-        })),
-      },
+    lazyGroup("Change", () => ({
+      name: "Change",
+      tree: ROLLING_WINDOWS.map((w) => ({
+        name: w.name,
+        title: title(`${w.title} ${name} Change`),
+        bottom: mapCohortsWithAll(list, all, (c) =>
+          baseline({
+            series: getDelta(c).absolute[w.key],
+            name: c.name,
+            color: c.color,
+            unit,
+          }),
+        ),
+      })),
+    })),
+    lazyGroup("Growth Rate", () => ({
+      name: "Growth Rate",
+      tree: ROLLING_WINDOWS.map((w) => ({
+        name: w.name,
+        title: title(`${w.title} ${name} Growth Rate`),
+        bottom: flatMapCohortsWithAll(list, all, (c) =>
+          percentRatioBaseline({
+            pattern: getDelta(c).rate[w.key],
+            name: c.name,
+            color: c.color,
+          }),
+        ),
+      })),
+    })),
   ];
 }
 
@@ -174,7 +192,7 @@ function groupedDeltaItems(list, all, getDelta, unit, title, name) {
  */
 function singleAmountDeltaItems(delta, title, name) {
   return [
-    {
+    lazyGroup("Change", () => ({
       ...amountSumsTreeBaseline({
         windows: delta.absolute,
         title,
@@ -182,15 +200,15 @@ function singleAmountDeltaItems(delta, title, name) {
         legend: "Change",
       }),
       name: "Change",
-    },
-    {
+    })),
+    lazyGroup("Growth Rate", () => ({
       ...rollingPercentRatioTree({
         windows: delta.rate,
         title,
         metric: `${name} Growth Rate`,
       }),
       name: "Growth Rate",
-    },
+    })),
   ];
 }
 
@@ -207,7 +225,7 @@ function singleAmountDeltaItems(delta, title, name) {
  */
 function groupedAmountDeltaItems(list, all, getDelta, title, name) {
   return [
-    {
+    lazyGroup("Change", () => ({
       name: "Change",
       tree: ROLLING_WINDOWS.map((w) => ({
         name: w.name,
@@ -220,8 +238,8 @@ function groupedAmountDeltaItems(list, all, getDelta, title, name) {
           }),
         ),
       })),
-    },
-    {
+    })),
+    lazyGroup("Growth Rate", () => ({
       name: "Growth Rate",
       tree: ROLLING_WINDOWS.map((w) => ({
         name: w.name,
@@ -234,7 +252,7 @@ function groupedAmountDeltaItems(list, all, getDelta, title, name) {
           }),
         ),
       })),
-    },
+    })),
   ];
 }
 
@@ -253,10 +271,27 @@ function profitabilityAmountChart(supply, title) {
     name: "Amount",
     title: title("Supply Profitability"),
     bottom: [
-      ...satsBtcUsd({ pattern: supply.total, name: "Total", color: colors.default }),
-      ...satsBtcUsd({ pattern: supply.inProfit, name: "In Profit", color: colors.profit }),
-      ...satsBtcUsd({ pattern: supply.inLoss, name: "In Loss", color: colors.loss }),
-      ...satsBtcUsd({ pattern: supply.half, name: "Halved", color: colors.gray, style: 4 }),
+      ...satsBtcUsd({
+        pattern: supply.total,
+        name: "Total",
+        color: colors.default,
+      }),
+      ...satsBtcUsd({
+        pattern: supply.inProfit,
+        name: "In Profit",
+        color: colors.profit,
+      }),
+      ...satsBtcUsd({
+        pattern: supply.inLoss,
+        name: "In Loss",
+        color: colors.loss,
+      }),
+      ...satsBtcUsd({
+        pattern: supply.half,
+        name: "Halved",
+        color: colors.gray,
+        style: 4,
+      }),
     ],
   };
 }
@@ -272,14 +307,26 @@ function profitabilityCompositionChart(supply, title) {
     name: "Composition",
     title: title("Supply Profitability Composition"),
     bottom: [
-      ...percentRatio({ pattern: supply.inProfit.share, name: "In Profit", color: colors.profit }),
-      ...percentRatio({ pattern: supply.inLoss.share, name: "In Loss", color: colors.loss }),
-      priceLine({ number: 100, color: colors.default, style: 0, unit: Unit.percentage }),
+      ...percentRatio({
+        pattern: supply.inProfit.share,
+        name: "In Profit",
+        color: colors.profit,
+      }),
+      ...percentRatio({
+        pattern: supply.inLoss.share,
+        name: "In Loss",
+        color: colors.loss,
+      }),
+      priceLine({
+        number: 100,
+        color: colors.default,
+        style: 0,
+        unit: Unit.percentage,
+      }),
       priceLine({ number: 50, unit: Unit.percentage }),
     ],
   };
 }
-
 
 /**
  * @param {{ dominance: PercentRatioPattern }} supply
@@ -291,7 +338,11 @@ function dominanceChart(supply, color, title) {
   return {
     name: "Dominance",
     title: title("Supply Dominance"),
-    bottom: percentRatio({ pattern: supply.dominance, name: "Dominance", color }),
+    bottom: percentRatio({
+      pattern: supply.dominance,
+      name: "Dominance",
+      color,
+    }),
   };
 }
 
@@ -305,7 +356,13 @@ function outputsFolder(outputs, color, title) {
   const folder = unspentOutputsFolder(outputs, color, title);
   folder.tree.push({
     name: "Spent",
-    tree: chartsFromCount({ pattern: outputs.spentCount, title, metric: "Spent UTXO Count", unit: Unit.count, color }),
+    tree: chartsFromCount({
+      pattern: outputs.spentCount,
+      title,
+      metric: "Spent UTXO Count",
+      unit: Unit.count,
+      color,
+    }),
   });
   return folder;
 }
@@ -363,21 +420,25 @@ function countFolder(pattern, name, chartTitle, color, title) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSection({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    outputsFolder(cohort.tree.outputs, cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
   ];
 }
 
@@ -386,28 +447,40 @@ export function createHoldingsSection({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionAll({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        {
-          name: "Profitability",
-          tree: [
-            profitabilityAmountChart(supply, title),
-            profitabilityCompositionChart(cohort.tree.relative.supply, title),
-          ],
-        },
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    unspentOutputsFolder(cohort.tree.outputs, cohort.color, title),
-    countFolder(cohort.addressCount, "Addresses", "Address Count", cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          {
+            name: "Profitability",
+            tree: [
+              profitabilityAmountChart(supply, title),
+              profitabilityCompositionChart(cohort.tree.relative.supply, title),
+            ],
+          },
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      unspentOutputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
+    lazyGroup("Addresses", () =>
+      countFolder(
+        cohort.addressCount,
+        "Addresses",
+        "Address Count",
+        cohort.color,
+        title,
+      ),
+    ),
   ];
 }
 
@@ -416,28 +489,32 @@ export function createHoldingsSectionAll({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionWithRelative({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        {
-          name: "Profitability",
-          tree: [
-            profitabilityAmountChart(supply, title),
-            profitabilityCompositionChart(cohort.tree.relative.supply, title),
-          ],
-        },
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    outputsFolder(cohort.tree.outputs, cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          {
+            name: "Profitability",
+            tree: [
+              profitabilityAmountChart(supply, title),
+              profitabilityCompositionChart(cohort.tree.relative.supply, title),
+            ],
+          },
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
   ];
 }
 
@@ -446,25 +523,29 @@ export function createHoldingsSectionWithRelative({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionWithOwnSupply({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        {
-          name: "Profitability",
-          tree: [profitabilityAmountChart(supply, title)],
-        },
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    outputsFolder(cohort.tree.outputs, cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          {
+            name: "Profitability",
+            tree: [profitabilityAmountChart(supply, title)],
+          },
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
   ];
 }
 
@@ -473,25 +554,29 @@ export function createHoldingsSectionWithOwnSupply({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionWithProfitLoss({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        {
-          name: "Profitability",
-          tree: [profitabilityAmountChart(supply, title)],
-        },
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    outputsFolder(cohort.tree.outputs, cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          {
+            name: "Profitability",
+            tree: [profitabilityAmountChart(supply, title)],
+          },
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
   ];
 }
 
@@ -500,26 +585,38 @@ export function createHoldingsSectionWithProfitLoss({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionAddress({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        {
-          name: "Profitability",
-          tree: [profitabilityAmountChart(supply, title)],
-        },
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    outputsFolder(cohort.tree.outputs, cohort.color, title),
-    countFolder(cohort.addressCount, "Addresses", "Address Count", cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          {
+            name: "Profitability",
+            tree: [profitabilityAmountChart(supply, title)],
+          },
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
+    lazyGroup("Addresses", () =>
+      countFolder(
+        cohort.addressCount,
+        "Addresses",
+        "Address Count",
+        cohort.color,
+        title,
+      ),
+    ),
   ];
 }
 
@@ -528,22 +625,34 @@ export function createHoldingsSectionAddress({ cohort, title }) {
  * @returns {PartialOptionsTree}
  */
 export function createHoldingsSectionAddressAmount({ cohort, title }) {
-  const { supply } = cohort.tree;
   return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "Total",
-          title: title("Supply"),
-          bottom: simpleSupplySeries(supply),
-        },
-        dominanceChart(supply, cohort.color, title),
-        ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-      ],
-    },
-    unspentOutputsFolder(cohort.tree.outputs, cohort.color, title),
-    countFolder(cohort.addressCount, "Addresses", "Address Count", cohort.color, title),
+    lazyGroup("Supply", () => {
+      const { supply } = cohort.tree;
+      return {
+        name: "Supply",
+        tree: [
+          {
+            name: "Total",
+            title: title("Supply"),
+            bottom: simpleSupplySeries(supply),
+          },
+          dominanceChart(supply, cohort.color, title),
+          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
+        ],
+      };
+    }),
+    lazyGroup("Outputs", () =>
+      unspentOutputsFolder(cohort.tree.outputs, cohort.color, title),
+    ),
+    lazyGroup("Addresses", () =>
+      countFolder(
+        cohort.addressCount,
+        "Addresses",
+        "Address Count",
+        cohort.color,
+        title,
+      ),
+    ),
   ];
 }
 
@@ -559,7 +668,13 @@ export function createHoldingsSectionAddressAmount({ cohort, title }) {
  * @returns {PartialChartOption}
  */
 function groupedSupplyTotal(list, all, title) {
-  return { name: "Total", title: title("Supply"), bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) => satsBtcUsd({ pattern: tree.supply.total, name, color })) };
+  return {
+    name: "Total",
+    title: title("Supply"),
+    bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) =>
+      satsBtcUsd({ pattern: tree.supply.total, name, color }),
+    ),
+  };
 }
 
 /**
@@ -571,8 +686,20 @@ function groupedSupplyTotal(list, all, title) {
  */
 function groupedSupplyProfitLoss(list, all, title) {
   return [
-    { name: "In Profit", title: title("Supply In Profit"), bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) => satsBtcUsd({ pattern: tree.supply.inProfit, name, color })) },
-    { name: "In Loss", title: title("Supply In Loss"), bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) => satsBtcUsd({ pattern: tree.supply.inLoss, name, color })) },
+    {
+      name: "In Profit",
+      title: title("Supply In Profit"),
+      bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) =>
+        satsBtcUsd({ pattern: tree.supply.inProfit, name, color }),
+      ),
+    },
+    {
+      name: "In Loss",
+      title: title("Supply In Loss"),
+      bottom: flatMapCohortsWithAll(list, all, ({ name, color, tree }) =>
+        satsBtcUsd({ pattern: tree.supply.inLoss, name, color }),
+      ),
+    },
   ];
 }
 
@@ -602,51 +729,78 @@ function groupedDominanceChart(list, title) {
  */
 export function createGroupedHoldingsSectionAddress({ list, all, title }) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        {
+        lazyGroup("Profitability", () => ({
           name: "Profitability",
           tree: groupedSupplyProfitLoss(list, all, title),
-        },
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        })),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedOutputsFolder(list, all, title),
-    {
+    })),
+    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
+    lazyGroup("Addresses", () => ({
       name: "Addresses",
       tree: [
         {
           name: "Count",
           title: title("Address Count"),
-          bottom: mapCohortsWithAll(list, all, ({ name, color, addressCount }) =>
-            line({ series: addressCount.base, name, color, unit: Unit.count }),
+          bottom: mapCohortsWithAll(
+            list,
+            all,
+            ({ name, color, addressCount }) =>
+              line({
+                series: addressCount.base,
+                name,
+                color,
+                unit: Unit.count,
+              }),
           ),
         },
-        ...groupedDeltaItems(list, all, (c) => c.addressCount.delta, Unit.count, title, "Address Count"),
+        ...groupedDeltaItems(
+          list,
+          all,
+          (c) => c.addressCount.delta,
+          Unit.count,
+          title,
+          "Address Count",
+        ),
       ],
-    },
-    {
+    })),
+    lazyGroup("Average Holdings", () => ({
       name: "Average Holdings",
       tree: [
         {
           name: "Per UTXO",
           title: title("Average Holdings per UTXO"),
-          bottom: flatMapCohortsWithAll(list, all, ({ name, color, avgAmount }) =>
-            satsBtcUsd({ pattern: avgAmount.utxo, name, color }),
+          bottom: flatMapCohortsWithAll(
+            list,
+            all,
+            ({ name, color, avgAmount }) =>
+              satsBtcUsd({ pattern: avgAmount.utxo, name, color }),
           ),
         },
         {
           name: "Per Address",
           title: title("Average Holdings per Funded Address"),
-          bottom: flatMapCohortsWithAll(list, all, ({ name, color, avgAmount }) =>
-            satsBtcUsd({ pattern: avgAmount.addr, name, color }),
+          bottom: flatMapCohortsWithAll(
+            list,
+            all,
+            ({ name, color, avgAmount }) =>
+              satsBtcUsd({ pattern: avgAmount.addr, name, color }),
           ),
         },
       ],
-    },
+    })),
   ];
 }
 
@@ -655,83 +809,134 @@ export function createGroupedHoldingsSectionAddress({ list, all, title }) {
  * @param {{ list: readonly AddrCohortObject[], all: CohortAll, title: (name: string) => string }} args
  * @returns {PartialOptionsTree}
  */
-export function createGroupedHoldingsSectionAddressAmount({ list, all, title }) {
+export function createGroupedHoldingsSectionAddressAmount({
+  list,
+  all,
+  title,
+}) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedUnspentOutputsFolder(list, all, title),
-    {
+    })),
+    lazyGroup("Outputs", () => groupedUnspentOutputsFolder(list, all, title)),
+    lazyGroup("Addresses", () => ({
       name: "Addresses",
       tree: [
         {
           name: "Count",
           title: title("Address Count"),
-          bottom: mapCohortsWithAll(list, all, ({ name, color, addressCount }) =>
-            line({ series: addressCount.base, name, color, unit: Unit.count }),
+          bottom: mapCohortsWithAll(
+            list,
+            all,
+            ({ name, color, addressCount }) =>
+              line({
+                series: addressCount.base,
+                name,
+                color,
+                unit: Unit.count,
+              }),
           ),
         },
-        ...groupedDeltaItems(list, all, (c) => c.addressCount.delta, Unit.count, title, "Address Count"),
+        ...groupedDeltaItems(
+          list,
+          all,
+          (c) => c.addressCount.delta,
+          Unit.count,
+          title,
+          "Address Count",
+        ),
       ],
-    },
+    })),
   ];
 }
 
 /** @param {{ list: readonly (UtxoCohortObject | CohortWithoutRelative)[], all: CohortAll, title: (name: string) => string }} args */
 export function createGroupedHoldingsSection({ list, all, title }) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedOutputsFolder(list, all, title),
+    })),
+    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
   ];
 }
 
 /** @param {{ list: readonly CohortWithoutRelative[], all: CohortAll, title: (name: string) => string }} args */
-export function createGroupedHoldingsSectionWithProfitLoss({ list, all, title }) {
+export function createGroupedHoldingsSectionWithProfitLoss({
+  list,
+  all,
+  title,
+}) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        {
+        lazyGroup("Profitability", () => ({
           name: "Profitability",
           tree: groupedSupplyProfitLoss(list, all, title),
-        },
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        })),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedOutputsFolder(list, all, title),
+    })),
+    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
   ];
 }
 
 /** @param {{ list: readonly (CohortCore | CohortAgeRange)[], all: CohortAll, title: (name: string) => string }} args */
-export function createGroupedHoldingsSectionWithOwnSupply({ list, all, title }) {
+export function createGroupedHoldingsSectionWithOwnSupply({
+  list,
+  all,
+  title,
+}) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        {
+        lazyGroup("Profitability", () => ({
           name: "Profitability",
           tree: groupedSupplyProfitLoss(list, all, title),
-        },
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        })),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedOutputsFolder(list, all, title),
+    })),
+    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
   ];
 }
 
@@ -743,27 +948,61 @@ export function createGroupedHoldingsSectionWithOwnSupply({ list, all, title }) 
  */
 export function createGroupedHoldingsSectionWithRelative({ list, all, title }) {
   return [
-    {
+    lazyGroup("Supply", () => ({
       name: "Supply",
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        {
+        lazyGroup("Profitability", () => ({
           name: "Profitability",
           tree: [
             ...groupedSupplyProfitLoss(list, all, title),
             {
               name: "Composition",
               tree: [
-                { name: "In Profit", title: title("Supply In Profit Composition"), bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) => line({ series: tree.relative.supply.inProfit.share.percent, name, color, unit: Unit.percentage })) },
-                { name: "In Loss", title: title("Supply In Loss Composition"), bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) => line({ series: tree.relative.supply.inLoss.share.percent, name, color, unit: Unit.percentage })) },
+                {
+                  name: "In Profit",
+                  title: title("Supply In Profit Composition"),
+                  bottom: mapCohortsWithAll(
+                    list,
+                    all,
+                    ({ name, color, tree }) =>
+                      line({
+                        series: tree.relative.supply.inProfit.share.percent,
+                        name,
+                        color,
+                        unit: Unit.percentage,
+                      }),
+                  ),
+                },
+                {
+                  name: "In Loss",
+                  title: title("Supply In Loss Composition"),
+                  bottom: mapCohortsWithAll(
+                    list,
+                    all,
+                    ({ name, color, tree }) =>
+                      line({
+                        series: tree.relative.supply.inLoss.share.percent,
+                        name,
+                        color,
+                        unit: Unit.percentage,
+                      }),
+                  ),
+                },
               ],
             },
           ],
-        },
-        ...groupedAmountDeltaItems(list, all, (c) => c.tree.supply.delta, title, "Supply"),
+        })),
+        ...groupedAmountDeltaItems(
+          list,
+          all,
+          (c) => c.tree.supply.delta,
+          title,
+          "Supply",
+        ),
       ],
-    },
-    groupedOutputsFolder(list, all, title),
+    })),
+    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
   ];
 }

@@ -21,7 +21,7 @@ import {
   revenueRollingBtcSatsUsd,
   formatCohortTitle,
 } from "./shared.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 
 /** Major pools to show in Compare section (by current hashrate dominance) */
 const MAJOR_POOL_IDS = /** @type {const} */ ([
@@ -57,16 +57,16 @@ const ANTPOOL_AND_FRIENDS_IDS = /** @type {const} */ ([
  * @returns {PartialOptionsGroup}
  */
 export function createMiningSection() {
-  const { blocks, pools, mining } = brk.series;
+  const { blocks, pools, mining } = bitview.series;
 
   const majorPoolData = entries(pools.major).map(([id, pool]) => ({
     id,
-    name: brk.POOL_ID_TO_POOL_NAME[id],
+    name: bitview.POOL_ID_TO_POOL_NAME[id],
     pool,
   }));
   const minorPoolData = entries(pools.minor).map(([id, pool]) => ({
     id,
-    name: brk.POOL_ID_TO_POOL_NAME[id],
+    name: bitview.POOL_ID_TO_POOL_NAME[id],
     pool,
   }));
 

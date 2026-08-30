@@ -44,7 +44,7 @@ export function createChartArtifact(args) {
     if (!value || typeof value !== "object") throw new Error("Invalid chart series");
     const item = /** @type {Record<string, unknown>} */ (value);
     const path = requiredString(item.path, "series path")
-      .replace(/^brk\.series\./, "")
+      .replace(/^bitview\.series\./, "")
       .replace(/^series\./, "");
     const label = requiredString(item.label, "series label");
     const color = item.color === undefined

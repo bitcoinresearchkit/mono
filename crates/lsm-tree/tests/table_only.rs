@@ -69,6 +69,37 @@ fn ingestion_reads_and_recovery() -> lsm_tree::Result<()> {
 }
 
 #[test]
+fn transitive_overlap_preserves_newest_value_after_recovery() -> lsm_tree::Result<()> {
+    let directory = tempfile::tempdir()?;
+    let tree = open(directory.path())?;
+
+    let mut ingestion = tree.ingestion()?;
+    ingestion.write("a", "oldest")?;
+    ingestion.write("c", "oldest")?;
+    ingestion.finish()?;
+
+    let mut ingestion = tree.ingestion()?;
+    ingestion.write("a", "middle")?;
+    ingestion.write("n", "middle")?;
+    ingestion.write("z", "middle")?;
+    ingestion.finish()?;
+
+    let mut ingestion = tree.ingestion()?;
+    ingestion.write("m", "newest")?;
+    ingestion.write("n", "newest")?;
+    ingestion.write("p", "newest")?;
+    ingestion.finish()?;
+
+    assert_eq!(tree.get("n")?.as_deref(), Some(b"newest".as_slice()));
+    drop(tree);
+    assert_eq!(
+        open(directory.path())?.get("n")?.as_deref(),
+        Some(b"newest".as_slice())
+    );
+    Ok(())
+}
+
+#[test]
 fn prefix_and_double_ended_ranges() -> lsm_tree::Result<()> {
     let directory = tempfile::tempdir()?;
     let tree = open(directory.path())?;
@@ -164,7 +195,7 @@ fn empty_ingestion_does_not_publish() -> lsm_tree::Result<()> {
 }
 
 #[test]
-fn recovery_rejects_a_corrupt_manifest() -> lsm_tree::Result<()> {
+fn recovery_rejects_a_truncated_manifest() -> lsm_tree::Result<()> {
     let directory = tempfile::tempdir()?;
     let tree = open(directory.path())?;
     let mut ingestion = tree.ingestion()?;
@@ -174,12 +205,12 @@ fn recovery_rejects_a_corrupt_manifest() -> lsm_tree::Result<()> {
 
     let path = directory.path().join("current");
     let mut bytes = std::fs::read(&path)?;
-    *bytes.get_mut(4).ok_or(lsm_tree::Error::Unrecoverable)? ^= 1;
+    bytes.truncate(5);
     std::fs::write(path, bytes)?;
 
     assert!(matches!(
         open(directory.path()),
-        Err(lsm_tree::Error::ChecksumMismatch { .. })
+        Err(lsm_tree::Error::Unrecoverable)
     ));
     Ok(())
 }
@@ -197,7 +228,7 @@ fn recovery_rejects_an_old_manifest_version() -> lsm_tree::Result<()> {
 
     assert!(matches!(
         open(directory.path()),
-        Err(lsm_tree::Error::InvalidVersion(7))
+        Err(lsm_tree::Error::InvalidVersion(8))
     ));
     Ok(())
 }

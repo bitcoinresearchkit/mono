@@ -5,8 +5,8 @@
 use crate::Slice;
 use std::{fs::File, io::Write, path::Path};
 
-pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', 3];
-pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 8];
+pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', 4];
+pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 9];
 
 pub const TABLES_FOLDER: &str = "tables";
 pub const CURRENT_VERSION_FILE: &str = "current";
@@ -19,8 +19,6 @@ pub fn read_exact(file: &File, offset: u64, size: usize) -> std::io::Result<Slic
     // If that number does not match the slice length, the function errors,
     // so the (partially) uninitialized buffer is discarded
     //
-    // Additionally, generally, block loads furthermore do a checksum check which
-    // would likely catch the buffer being wrong somehow
     #[expect(unsafe_code, reason = "see safety")]
     let mut builder = unsafe { Slice::builder_unzeroed(size) };
 
@@ -122,25 +120,8 @@ pub fn rewrite_atomic(path: &Path, content: &[u8]) -> std::io::Result<()> {
     let mut temp_file = tempfile::NamedTempFile::new_in(folder)?;
     temp_file.write_all(content)?;
     temp_file.flush()?;
-    temp_file.as_file_mut().sync_all()?;
     persist_temp_file(temp_file, path)?;
 
-    #[cfg(not(target_os = "windows"))]
-    fsync_directory(folder)?;
-
-    Ok(())
-}
-
-#[cfg(not(target_os = "windows"))]
-pub fn fsync_directory(path: &Path) -> std::io::Result<()> {
-    let file = std::fs::File::open(path)?;
-    debug_assert!(file.metadata()?.is_dir());
-    file.sync_all()
-}
-
-#[cfg(target_os = "windows")]
-pub fn fsync_directory(path: &Path) -> std::io::Result<()> {
-    // Cannot fsync directory on Windows
     Ok(())
 }
 

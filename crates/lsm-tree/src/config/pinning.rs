@@ -43,8 +43,8 @@ impl PinningPolicy {
     #[must_use]
     pub fn new(policy: impl Into<Vec<bool>>) -> Self {
         let policy = policy.into();
-        assert!(!policy.is_empty(), "compression policy may not be empty");
-        assert!(policy.len() <= 255, "compression policy is too large");
+        assert!(!policy.is_empty(), "pinning policy may not be empty");
+        assert!(policy.len() <= 255, "pinning policy is too large");
         Self(policy)
     }
 }

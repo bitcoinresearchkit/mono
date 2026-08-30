@@ -83,3 +83,8 @@ changing the API, run:
 ```sh
 cargo run -p bitviewd --example bindgen --features bindgen
 ```
+
+The same command generates `server.json` for the official MCP Registry. The
+release script updates its version, validates it, and publishes it after the
+Rust, JavaScript, and Python packages. Registry publication uses the
+`MCP_GITHUB_TOKEN` from the ignored `scripts/.tokens` file.

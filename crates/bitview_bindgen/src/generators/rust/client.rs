@@ -18,7 +18,7 @@ use crate::{{DateSeriesData, FormatResponse}};
 use serde::de::DeserializeOwned;
 use std::ops::{{Bound, RangeBounds}};
 use std::str::FromStr;
-use std::sync::{{Arc, OnceLock}};
+use std::sync::{{Arc, LazyLock, OnceLock}};
 
 "#
     )
@@ -29,7 +29,17 @@ use std::sync::{{Arc, OnceLock}};
 pub fn generate_base_client(output: &mut String) {
     writeln!(
         output,
-        r#"/// Error type for Bitview client operations.
+        r#"/// Lazily initialized typed series-tree node.
+pub type LazyNode<T> = LazyLock<Box<T>, Box<dyn FnOnce() -> Box<T> + Send + Sync>>;
+
+fn lazy_node<T: 'static, A: Send + Sync + 'static>(
+    arg: A,
+    create: impl FnOnce(A) -> T + Send + Sync + 'static,
+) -> LazyNode<T> {{
+    LazyLock::new(Box::new(move || Box::new(create(arg))))
+}}
+
+/// Error type for Bitview client operations.
 #[derive(Debug)]
 pub struct BitviewError {{
     pub message: String,
@@ -264,6 +274,22 @@ pub trait AnySeriesPattern {{
 pub trait SeriesPattern<T>: AnySeriesPattern {{
     /// Get an endpoint builder for a specific index, if supported.
     fn get(&self, index: Index) -> Option<SeriesEndpoint<T>>;
+}}
+
+impl<P: AnySeriesPattern> AnySeriesPattern for LazyNode<P> {{
+    fn name(&self) -> &str {{
+        (**self).name()
+    }}
+
+    fn indexes(&self) -> &'static [Index] {{
+        (**self).indexes()
+    }}
+}}
+
+impl<T, P: SeriesPattern<T>> SeriesPattern<T> for LazyNode<P> {{
+    fn get(&self, index: Index) -> Option<SeriesEndpoint<T>> {{
+        (**self).get(index)
+    }}
 }}
 
 "#

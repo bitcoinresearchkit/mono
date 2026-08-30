@@ -1,4 +1,4 @@
-import { brk } from "../../scripts/utils/client.js";
+import { bitview } from "../../scripts/utils/client.js";
 import { formatCompact } from "./format.js";
 import { createAverageGrid } from "./grid.js";
 import { INFERNO_LUT, logIntensityColor } from "./lut.js";
@@ -109,8 +109,8 @@ async function fetchOraclePoints(mode, date, signal, onPoints) {
 function fetchOracleValues(mode, date, signal, onValue) {
   return (
     mode === "outputs"
-      ? brk.getOracleHistogramOutputs(date, { signal, onValue })
-      : brk.getOracleHistogramPayments(date, { signal, onValue })
+      ? bitview.getOracleHistogramOutputs(date, { signal, onValue })
+      : bitview.getOracleHistogramPayments(date, { signal, onValue })
   );
 }
 

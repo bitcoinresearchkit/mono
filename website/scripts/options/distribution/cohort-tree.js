@@ -101,11 +101,101 @@ function project({ value, path }) {
  */
 export function selectCohortTree({ tree, path }) {
   const root = /** @type {ProjectableRecord} */ (tree);
-  const selected = project({ value: root, path: path.split(".") });
-  if (selected === MISSING || !isObject(selected)) {
-    throw new Error(`Cohort path not found: ${path}`);
+  const segments = path.split(".");
+  /** @type {ProjectableRecord | undefined} */
+  let materialized;
+
+  /**
+   * Resolve one output path without projecting unrelated siblings.
+   *
+   * @param {ProjectableValue} value
+   * @param {readonly string[]} outputPath
+   * @returns {ProjectableValue | typeof MISSING}
+   */
+  function resolve(value, outputPath) {
+    if (!outputPath.length) {
+      if (!isObject(value) || isSeriesPattern(value)) return value;
+      const selectedKey = directKey({ value, path: segments });
+      if (!selectedKey) return value;
+      return selectedKey === segments[0]
+        ? readPath({ value: value[selectedKey], path: segments.slice(1) })
+        : value[selectedKey];
+    }
+    if (!isObject(value) || isSeriesPattern(value)) return MISSING;
+
+    const selectedKey = directKey({ value, path: segments });
+    const selected = selectedKey
+      ? selectedKey === segments[0]
+        ? readPath({ value: value[selectedKey], path: segments.slice(1) })
+        : value[selectedKey]
+      : MISSING;
+    const [key, ...tail] = outputPath;
+    const projected =
+      key !== selectedKey && key in value ? resolve(value[key], tail) : MISSING;
+
+    if (projected !== MISSING) return projected;
+    return selected !== MISSING
+      ? readPath({ value: selected, path: outputPath })
+      : MISSING;
   }
+
+  function materialize() {
+    if (materialized) return materialized;
+    const selected = project({ value: root, path: segments });
+    if (selected === MISSING || !isObject(selected)) {
+      throw new Error(`Cohort path not found: ${path}`);
+    }
+    materialized = selected;
+    return selected;
+  }
+
+  /**
+   * @param {readonly string[]} outputPath
+   * @returns {ProjectableRecord}
+   */
+  function view(outputPath) {
+    /** @type {Map<PropertyKey, ProjectableValue | typeof MISSING>} */
+    const cache = new Map();
+
+    /** @param {PropertyKey} key */
+    function child(key) {
+      if (cache.has(key)) return cache.get(key);
+      if (typeof key !== "string") return MISSING;
+
+      const childPath = [...outputPath, key];
+      const resolved = materialized
+        ? readPath({ value: materialized, path: childPath })
+        : resolve(root, childPath);
+      const value =
+        resolved !== MISSING && isObject(resolved) ? view(childPath) : resolved;
+      cache.set(key, value);
+      return value;
+    }
+
+    return new Proxy(
+      {},
+      {
+        get(_target, key) {
+          const value = child(key);
+          return value === MISSING ? undefined : value;
+        },
+        has(_target, key) {
+          return child(key) !== MISSING;
+        },
+        ownKeys() {
+          const value = readPath({ value: materialize(), path: outputPath });
+          return isObject(value) ? Reflect.ownKeys(value) : [];
+        },
+        getOwnPropertyDescriptor(_target, key) {
+          return child(key) === MISSING
+            ? undefined
+            : { configurable: true, enumerable: true };
+        },
+      },
+    );
+  }
+
   return /** @type {import("./cohort-tree-types.js").ProjectCohortPath<Tree, Path>} */ (
-    selected
+    view([])
   );
 }

@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
 import {
@@ -19,7 +19,7 @@ import {
  * @returns {PartialOptionsGroup}
  */
 export function createRarityMeterSection() {
-  const { rarityMeter, cointime, coinflow, cohorts } = brk.series;
+  const { rarityMeter, cointime, coinflow, cohorts } = bitview.series;
   const components = rarityMeter.components;
   const extremes = /** @type {const} */ ([
     {

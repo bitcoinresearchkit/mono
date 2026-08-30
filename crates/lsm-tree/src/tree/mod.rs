@@ -64,7 +64,7 @@ impl Tree {
     ///
     /// Returns an error when an underlying table cannot be read.
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
-        let version = self.versions.load();
+        let version = self.versions.guard();
         Self::get_from_tables(&version, key.as_ref())
     }
 
@@ -96,24 +96,11 @@ impl Tree {
         self.range(crate::range::prefix_to_range(prefix.as_ref()))
     }
 
-    /// Approximates the number of table entries in constant time.
-    #[must_use]
-    pub fn approximate_len(&self) -> usize {
-        let count = self
-            .versions
-            .load()
-            .iter_tables()
-            .map(|table| table.metadata.item_count)
-            .sum::<u64>();
-
-        usize::try_from(count).unwrap_or(usize::MAX)
-    }
-
     /// Returns the number of disjoint level-zero runs.
     #[must_use]
     pub fn l0_run_count(&self) -> usize {
         self.versions
-            .load()
+            .guard()
             .level(0)
             .map_or(0, crate::version::Level::run_count)
     }
@@ -131,7 +118,7 @@ impl Tree {
     #[doc(hidden)]
     #[must_use]
     pub fn current_version_id(&self) -> u64 {
-        self.versions.load().id()
+        self.versions.guard().id()
     }
 
     fn get_from_tables(version: &Version, key: &[u8]) -> Result<Option<Slice>> {

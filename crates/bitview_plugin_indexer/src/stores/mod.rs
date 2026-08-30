@@ -272,10 +272,8 @@ impl StoresInner {
         &mut self,
         checkpoint: PendingStoresCheckpoint,
     ) -> Result<PersistedStoresCheckpoint> {
-        let db = self.db.clone();
-
         let i = Instant::now();
-        let persisted = checkpoint.persist(&db, || {
+        let persisted = checkpoint.persist(|| {
             self.par_iter_any_mut()
                 .try_for_each(|store| store.ingest_pending())
         })?;

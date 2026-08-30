@@ -1,4 +1,4 @@
-export const BRK_BASE_URL = "https://bitview.space";
+export const BITVIEW_BASE_URL = "https://bitview.space";
 
 const REQUEST_TIMEOUT_MS = 5_000;
 
@@ -12,7 +12,7 @@ export async function fetchBrkJson(path, signal) {
   const signals = [AbortSignal.timeout(REQUEST_TIMEOUT_MS)];
   if (signal) signals.push(signal);
 
-  const response = await fetch(`${BRK_BASE_URL}${path}`, {
+  const response = await fetch(`${BITVIEW_BASE_URL}${path}`, {
     signal: AbortSignal.any(signals),
   });
 

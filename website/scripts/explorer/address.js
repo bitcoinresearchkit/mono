@@ -1,4 +1,4 @@
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { latestPrice } from "../utils/price.js";
 import { createRow, formatBtc, renderTx, showPanel, hidePanel, TX_PAGE_SIZE } from "./render.js";
 
@@ -59,7 +59,7 @@ export async function update(address, signal) {
   while (txSection.children.length > 1) txSection.lastChild?.remove();
 
   try {
-    const stats = await brk.getAddress(address, { signal });
+    const stats = await bitview.getAddress(address, { signal });
     if (signal.aborted || currentAddr !== address) return;
 
     const chain = stats.chainStats;
@@ -114,8 +114,8 @@ export async function update(address, signal) {
       loading = true;
       try {
         const txs = afterTxid
-          ? await brk.getAddressConfirmedTxsAfter(address, afterTxid, { signal })
-          : await brk.getAddressTxs(address, { signal });
+          ? await bitview.getAddressConfirmedTxsAfter(address, afterTxid, { signal })
+          : await bitview.getAddressTxs(address, { signal });
         if (currentAddr !== address) return;
         for (const tx of txs) txSection.append(renderTx(tx));
         pageIndex++;

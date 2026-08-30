@@ -371,7 +371,7 @@ impl Table {
             return Err(Error::Unrecoverable);
         }
         let version = ReadBytesExt::read_u8(&mut table_version.buf_reader(&file_path)?)?;
-        if version != 7 {
+        if version != 8 {
             return Err(Error::InvalidVersion(version));
         }
 

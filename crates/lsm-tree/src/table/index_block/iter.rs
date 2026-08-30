@@ -55,12 +55,9 @@ impl DoubleEndedIterator for Iter<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        Checksum,
-        table::{
-            Block, BlockHandle, BlockOffset, IndexBlock, KeyedBlockHandle,
-            block::{BlockType, Header, ParsedItem},
-        },
+    use crate::table::{
+        Block, BlockHandle, BlockOffset, IndexBlock, KeyedBlockHandle,
+        block::{BlockType, Header, ParsedItem},
     };
     use test_log::test;
 
@@ -86,7 +83,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -130,7 +126,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -172,7 +167,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -217,7 +211,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -259,7 +252,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -301,7 +293,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -346,7 +337,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -388,7 +378,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -420,7 +409,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -523,7 +511,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -573,7 +560,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },
@@ -622,7 +608,6 @@ mod tests {
             data: bytes.into(),
             header: Header {
                 block_type: BlockType::Index,
-                checksum: Checksum::from_raw(0),
                 data_length: 0,
                 uncompressed_length: 0,
             },

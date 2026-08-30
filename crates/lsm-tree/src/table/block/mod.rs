@@ -19,7 +19,7 @@ pub use trailer::{TRAILER_START_MARKER, Trailer};
 pub use r#type::BlockType;
 
 use crate::{
-    Checksum, CompressionType, Slice,
+    CompressionType, Slice,
     coding::{Decode, Encode},
     table::BlockHandle,
 };
@@ -67,8 +67,7 @@ impl Block {
     ) -> crate::Result<Header> {
         let mut header = Header {
             block_type,
-            checksum: Checksum::from_raw(0), // <-- NOTE: Is set later on
-            data_length: 0,                  // <-- NOTE: Is set later on
+            data_length: 0, // <-- NOTE: Is set later on
 
             #[expect(clippy::cast_possible_truncation, reason = "blocks are limited to u32")]
             uncompressed_length: data.len() as u32,
@@ -83,7 +82,6 @@ impl Block {
         #[expect(clippy::cast_possible_truncation, reason = "blocks are limited to u32")]
         {
             header.data_length = data.len() as u32;
-            header.checksum = Checksum::from_raw(crate::hash::hash128(data));
         }
 
         header.encode_into(&mut writer)?;
@@ -106,16 +104,6 @@ impl Block {
     ) -> crate::Result<Self> {
         let header = Header::decode_from(reader)?;
         let raw_data = Slice::from_reader(reader, header.data_length as usize)?;
-
-        let checksum = Checksum::from_raw(crate::hash::hash128(&raw_data));
-
-        checksum.check(header.checksum).inspect_err(|_| {
-            log::error!(
-                "Checksum mismatch for <bufreader>, got={}, expected={}",
-                checksum,
-                header.checksum,
-            );
-        })?;
 
         let data = match compression {
             CompressionType::None => raw_data,
@@ -142,17 +130,6 @@ impl Block {
         let buf = crate::file::read_exact(file, *handle.offset(), handle.size() as usize)?;
 
         let header = Header::decode_from(&mut &buf[..])?;
-
-        #[expect(clippy::indexing_slicing)]
-        let checksum = Checksum::from_raw(crate::hash::hash128(&buf[Header::serialized_len()..]));
-
-        checksum.check(header.checksum).inspect_err(|_| {
-            log::error!(
-                "Checksum mismatch for block {handle:?}, got={}, expected={}",
-                checksum,
-                header.checksum,
-            );
-        })?;
 
         let buf = match compression {
             CompressionType::None => {

@@ -1,4 +1,4 @@
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { onPlainClick } from "../utils/dom.js";
 import { createCube } from "./cube.js";
 import { initMempool, renderMempool } from "./mempool.js";
@@ -161,8 +161,8 @@ function appendNewerBlocks(blocks) {
 async function loadInitial(height) {
   const blocks =
     height != null
-      ? await brk.getBlocksV1FromHeight(height)
-      : await brk.getBlocksV1();
+      ? await bitview.getBlocksV1FromHeight(height)
+      : await bitview.getBlocksV1();
 
   clear();
   for (const b of blocks) prependCube(createBlockCube(b));
@@ -181,7 +181,7 @@ async function resolveHeight(hashOrHeight) {
   if (typeof hashOrHeight === "string") {
     const cached = blocksByHash.get(hashOrHeight);
     if (cached) return cached.height;
-    const block = await brk.getBlockV1(hashOrHeight);
+    const block = await bitview.getBlockV1(hashOrHeight);
     blocksByHash.set(hashOrHeight, block);
     return block.height;
   }
@@ -212,11 +212,11 @@ export async function goToCube(hashOrHeight, { silent } = {}) {
 
 export async function poll() {
   if (!reachedTip) return;
-  brk.getMempoolBlocks()
+  bitview.getMempoolBlocks()
     .then(renderMempool)
     .catch((e) => console.error("mempool poll:", e));
   try {
-    const blocks = await brk.getBlocksV1();
+    const blocks = await bitview.getBlocksV1();
     appendNewerBlocks(blocks);
   } catch (e) {
     console.error("explorer poll:", e);
@@ -227,7 +227,7 @@ async function loadOlder() {
   if (loadingOlder || oldestHeight <= 0) return;
   loadingOlder = true;
   try {
-    const blocks = await brk.getBlocksV1FromHeight(oldestHeight - 1);
+    const blocks = await bitview.getBlocksV1FromHeight(oldestHeight - 1);
     for (const block of blocks) prependCube(createBlockCube(block));
     if (blocks.length) {
       oldestHeight = blocks[blocks.length - 1].height;
@@ -245,7 +245,7 @@ async function loadNewer() {
   loadingNewer = true;
   try {
     const prevNewest = newestHeight;
-    const blocks = await brk.getBlocksV1FromHeight(newestHeight + LOOKAHEAD);
+    const blocks = await bitview.getBlocksV1FromHeight(newestHeight + LOOKAHEAD);
     if (!appendNewerBlocks(blocks) || newestHeight === prevNewest) {
       reachedTip = true;
     }

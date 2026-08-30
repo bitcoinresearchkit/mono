@@ -1,8 +1,8 @@
-import { BRK_BASE_URL, brk } from "../../../utils/client.js";
+import { BITVIEW_BASE_URL, bitview } from "../../../utils/client.js";
 import { WorkerClient } from "../worker-client.js";
 
 const WORKER_URL = import.meta.resolve("./worker.js");
-const SERIES_URL = `${BRK_BASE_URL}/api/series`;
+const SERIES_URL = `${BITVIEW_BASE_URL}/api/series`;
 const FORBIDDEN_KEYS = new Set(["__proto__", "constructor", "prototype"]);
 
 /** @typedef {{ path: string, name: string, endpoint: string, indexes: string[], type: string, suggestedUnit?: string, matchedQuery?: string, matchedTerms?: number, specificity?: number, relevance?: number, score?: number }} CatalogMetric */
@@ -26,7 +26,7 @@ function isMetric(value) {
 function normalizePath(path) {
   const normalized = path
     .trim()
-    .replace(/^brk\.series\./, "")
+    .replace(/^bitview\.series\./, "")
     .replace(/^series\./, "");
   const keys = normalized.split(".").filter(Boolean);
 
@@ -36,7 +36,7 @@ function normalizePath(path) {
   return keys;
 }
 
-/** @param {typeof brk} client @param {string} path */
+/** @param {typeof bitview} client @param {string} path */
 function resolveMetric(client, path) {
   const keys = normalizePath(path);
   /** @type {unknown} */
@@ -55,8 +55,8 @@ function resolveMetric(client, path) {
 
 /** @param {string} path */
 export function createMetric(path) {
-  resolveMetric(brk, path);
-  return (/** @type {typeof brk} */ client) => resolveMetric(client, path);
+  resolveMetric(bitview, path);
+  return (/** @type {typeof bitview} */ client) => resolveMetric(client, path);
 }
 
 const index = new WorkerClient(WORKER_URL, {

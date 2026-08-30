@@ -37,8 +37,8 @@ impl BlockSizePolicy {
     #[must_use]
     pub fn new(policy: impl Into<Vec<u32>>) -> Self {
         let policy = policy.into();
-        assert!(!policy.is_empty(), "compression policy may not be empty");
-        assert!(policy.len() <= 255, "compression policy is too large");
+        assert!(!policy.is_empty(), "block-size policy may not be empty");
+        assert!(policy.len() <= 255, "block-size policy is too large");
         Self(policy)
     }
 }

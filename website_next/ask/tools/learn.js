@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { normalize, relevance, tokenAffinity } from "./text.js";
 
 /** @type {Promise<any[]> | undefined} */
@@ -9,7 +9,7 @@ function record(node, breadcrumbs) {
   if (!node.chart) return undefined;
   const series = node.chart.series.flatMap((/** @type {any} */ entry) => {
     try {
-      const metric = entry.metric(brk);
+      const metric = entry.metric(bitview);
       return metric?.name
         ? [{ name: metric.name, label: entry.label }]
         : [];

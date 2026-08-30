@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { orders } from "./order.js";
 import { scales } from "./scale.js";
 import { timeframes, timeframeOptions } from "./timeframes.js";
@@ -10,7 +10,7 @@ declare global {
     x: ChartX;
     y: number;
   };
-  type ChartMetric = (client: typeof brk) => TimeframeMetric;
+  type ChartMetric = (client: typeof bitview) => TimeframeMetric;
   type ChartOrder = (typeof orders)[number]["value"];
   type ChartPoint = ChartSample & {
     plotX: number;

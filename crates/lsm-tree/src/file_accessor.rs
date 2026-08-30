@@ -4,7 +4,7 @@
 
 use crate::GlobalTableId;
 use crate::descriptor_table::DescriptorTable;
-use std::{fs::File, sync::Arc};
+use std::{fs::File, path::Path, sync::Arc};
 
 /// Allows accessing a table file (either cached or pinned)
 #[derive(Clone)]
@@ -27,17 +27,16 @@ impl FileAccessor {
         }
     }
 
-    #[must_use]
-    pub fn access_for_table(&self, table_id: GlobalTableId) -> Option<Arc<File>> {
+    pub fn access_or_open(
+        &self,
+        table_id: GlobalTableId,
+        path: &Path,
+    ) -> std::io::Result<Arc<File>> {
         match self {
-            Self::File(fd) => Some(fd.clone()),
-            Self::DescriptorTable(descriptor_table) => descriptor_table.access_for_table(table_id),
-        }
-    }
-
-    pub fn insert_for_table(&self, table_id: GlobalTableId, fd: Arc<File>) {
-        if let Self::DescriptorTable(descriptor_table) = self {
-            descriptor_table.insert_for_table(table_id, fd);
+            Self::File(fd) => Ok(fd.clone()),
+            Self::DescriptorTable(descriptor_table) => {
+                descriptor_table.access_or_open(table_id, path)
+            }
         }
     }
 }

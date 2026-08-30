@@ -7,6 +7,11 @@ license.workspace = true
 homepage.workspace = true
 repository.workspace = true
 
+[package.metadata.release]
+pre-release-replacements = [
+    { file = "server.json", search = '"version": "[^"]+"', replace = '"version": "{{version}}"', exactly = 1, prerelease = true },
+]
+
 [dependencies]
 axum = { workspace = true }
 base64 = "0.23.1"

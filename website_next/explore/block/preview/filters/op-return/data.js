@@ -1,12 +1,12 @@
-import { brk } from "../../../../../utils/client.js";
+import { bitview } from "../../../../../utils/client.js";
 import {
   OP_RETURN_KIND_FILTERS,
   OP_RETURN_POLICY_FILTERS,
 } from "./model.js";
 
 const MAX_STANDARD_BYTES = 82;
-const byKind = brk.series.opReturn.byKind;
-const policy = brk.series.opReturn.policy;
+const byKind = bitview.series.opReturn.byKind;
+const policy = bitview.series.opReturn.policy;
 
 export const OP_RETURN_COUNT_SOURCES = [
   ...OP_RETURN_KIND_FILTERS.map(([, kind, clientKey]) => {
@@ -42,7 +42,7 @@ function matchesPolicy(policy, count, oversized) {
  * @param {AbortSignal} signal
  */
 export function createOpReturnFilterData(height, range, signal) {
-  const raw = brk.series.opReturn.raw;
+  const raw = bitview.series.opReturn.raw;
   let rawPromise = /** @type {Promise<OpReturnRows> | null} */ (null);
 
   async function fetchRows() {

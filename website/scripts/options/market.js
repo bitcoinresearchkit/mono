@@ -2,7 +2,7 @@
 
 import { colors } from "../utils/colors.js";
 import { periodIdToName } from "../utils/time.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { includes } from "../utils/array.js";
 import { Unit } from "../utils/units.js";
 import { priceLine, priceLines } from "./constants.js";
@@ -233,8 +233,8 @@ export function createMarketSection() {
     cohorts,
     price: prices,
     indicators,
-  } = brk.series;
-  const { cointime, coinflow, rarityMeter } = brk.series;
+  } = bitview.series;
+  const { cointime, coinflow, rarityMeter } = bitview.series;
   const {
     movingAverage: ma,
     ath,

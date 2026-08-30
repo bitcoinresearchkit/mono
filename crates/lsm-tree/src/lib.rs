@@ -7,6 +7,9 @@
 //! Strictly sorted batches are written directly to immutable tables and
 //! atomically published as a new version. Reads use the latest published table
 //! layout, while leveled compaction bounds read amplification and disk usage.
+//! Userspace buffers are flushed before publication, but storage-device
+//! barriers are intentionally omitted because BRK does not require crash or
+//! power-loss recovery.
 //!
 //! Keys are limited to 65536 bytes, values are limited to 2^32 bytes. As is normal with any kind of storage
 //! engine, larger keys and values have a bigger performance impact.
@@ -58,7 +61,6 @@ mod boxed_iterator;
 #[doc(hidden)]
 mod cache;
 
-mod checksum;
 mod coding;
 
 mod compaction;
@@ -108,7 +110,6 @@ use {
 
 pub use {
     cache::Cache,
-    checksum::Checksum,
     compression::CompressionType,
     config::Config,
     descriptor_table::DescriptorTable,

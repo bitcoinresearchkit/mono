@@ -1,5 +1,5 @@
 import { colors } from "../../../utils/colors.js";
-import { brk } from "../../../utils/client.js";
+import { bitview } from "../../../utils/client.js";
 import { Unit } from "../../../utils/units.js";
 import {
   dots,
@@ -21,8 +21,8 @@ import {
  * @returns {PartialOptionsGroup}
  */
 export function createCointimeSection() {
-  const { cohorts, supply, cointime } = brk.series;
-  const frameworkAgeRange = brk.series.frameworks.cointime.ageRange;
+  const { cohorts, supply, cointime } = bitview.series;
+  const frameworkAgeRange = bitview.series.frameworks.cointime.ageRange;
   const {
     prices: cointimePrices,
     cap,

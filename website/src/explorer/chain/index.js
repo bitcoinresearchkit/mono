@@ -1,4 +1,4 @@
-import { brk } from "../../../scripts/utils/client.js";
+import { bitview } from "../../../scripts/utils/client.js";
 import { onPlainClick } from "../../../scripts/utils/dom.js";
 import {
   createHeightElement,
@@ -163,7 +163,7 @@ export async function poll() {
   if (!reachedTip) return;
   pollProjected();
   try {
-    const blocks = await brk.getBlocksV1();
+    const blocks = await bitview.getBlocksV1();
     appendNewerBlocks(blocks);
   } catch (e) {
     console.error("explorer poll:", e);
@@ -171,7 +171,7 @@ export async function poll() {
 }
 
 function pollProjected() {
-  return brk
+  return bitview
     .getMempoolBlocks()
     .then(renderProjected)
     .catch((e) => console.error("mempool poll:", e));
@@ -243,8 +243,8 @@ function appendNewerBlocks(blocks) {
 async function loadInitial(height) {
   const blocks =
     height != null
-      ? await brk.getBlocksV1FromHeight(height)
-      : await brk.getBlocksV1();
+      ? await bitview.getBlocksV1FromHeight(height)
+      : await bitview.getBlocksV1();
 
   clear();
   for (const b of blocks) prependConfirmed(createConfirmedCube(b));
@@ -267,7 +267,7 @@ async function resolveHeight(hashOrHeight) {
   if (typeof hashOrHeight === "string") {
     const cached = blocksByHash.get(hashOrHeight);
     if (cached) return cached.height;
-    const block = await brk.getBlockV1(hashOrHeight);
+    const block = await bitview.getBlockV1(hashOrHeight);
     blocksByHash.set(hashOrHeight, block);
     return block.height;
   }
@@ -278,7 +278,7 @@ async function loadOlder() {
   if (loadingOlder || oldestHeight <= 0) return;
   loadingOlder = true;
   try {
-    const blocks = await brk.getBlocksV1FromHeight(oldestHeight - 1);
+    const blocks = await bitview.getBlocksV1FromHeight(oldestHeight - 1);
     for (const block of blocks) prependConfirmed(createConfirmedCube(block));
     if (blocks.length) {
       oldestHeight = blocks[blocks.length - 1].height;
@@ -295,7 +295,7 @@ async function loadNewer() {
   loadingNewer = true;
   try {
     const prevNewest = newestHeight;
-    const blocks = await brk.getBlocksV1FromHeight(newestHeight + LOOKAHEAD);
+    const blocks = await bitview.getBlocksV1FromHeight(newestHeight + LOOKAHEAD);
     if (!appendNewerBlocks(blocks) || newestHeight === prevNewest) {
       reachedTip = true;
       await pollProjected();

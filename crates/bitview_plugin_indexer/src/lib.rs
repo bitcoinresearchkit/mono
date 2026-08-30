@@ -4,7 +4,7 @@ use brk_error::Result;
 
 use std::{
     collections::BTreeMap,
-    fs::{self, File},
+    fs,
     io::ErrorKind,
     path::Path,
     thread,
@@ -121,9 +121,7 @@ fn write_xor_marker(path: &Path, source_xor: XORBytes) -> Result<()> {
     fs::create_dir_all(path)?;
     let pending = path.join("xor.pending");
     fs::write(&pending, *source_xor)?;
-    File::open(&pending)?.sync_all()?;
     fs::rename(&pending, path.join("xor.dat"))?;
-    File::open(path)?.sync_all()?;
     Ok(())
 }
 

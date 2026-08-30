@@ -2,7 +2,7 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use crate::{Checksum, CompressionType};
+use crate::CompressionType;
 
 /// Result using the LSM tree's error type.
 pub type Result<T> = std::result::Result<T, Error>;
@@ -22,15 +22,6 @@ pub enum Error {
 
     /// Some required files could not be recovered from disk
     Unrecoverable,
-
-    /// Checksum mismatch
-    ChecksumMismatch {
-        /// Checksum of loaded block
-        got: Checksum,
-
-        /// Checksum that was saved in block header
-        expected: Checksum,
-    },
 
     /// Invalid enum tag
     InvalidTag((&'static str, u8)),
@@ -64,12 +55,9 @@ impl From<sfa::Error> for Error {
     fn from(value: sfa::Error) -> Self {
         match value {
             sfa::Error::Io(e) => Self::from(e),
-            sfa::Error::ChecksumMismatch { got, expected } => {
+            sfa::Error::ChecksumMismatch { .. } => {
                 log::error!("Archive ToC checksum mismatch");
-                Self::ChecksumMismatch {
-                    got: got.into(),
-                    expected: expected.into(),
-                }
+                Self::Unrecoverable
             }
             sfa::Error::InvalidHeader => {
                 log::error!("Invalid archive header");

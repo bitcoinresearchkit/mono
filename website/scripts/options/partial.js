@@ -38,6 +38,7 @@ import {
   cointimeWeightedUrpdHeatmapTree,
   rawUrpdHeatmapTree,
 } from "../../src/heatmap/urpd.js";
+import { lazy, lazyGroup } from "./lazy.js";
 
 // Re-export types for external consumers
 export * from "./types.js";
@@ -47,29 +48,7 @@ export * from "./types.js";
  * @returns {PartialOptionsTree}
  */
 export function createPartialOptions() {
-  // Build cohort data
-  const {
-    cohortAll,
-    termShort,
-    termLong,
-    underAge,
-    overAge,
-    ageRange,
-    epoch,
-    entry,
-    utxosOverAmount,
-    addressesOverAmount,
-    utxosUnderAmount,
-    addressesUnderAmount,
-    utxosAmountRange,
-    addressesAmountRange,
-    typeAddressable,
-    typeOther,
-    class: class_,
-    profitabilityRange,
-    profitabilityProfit,
-    profitabilityLoss,
-  } = buildCohortData();
+  const data = lazy(buildCohortData);
 
   return [
     {
@@ -81,254 +60,380 @@ export function createPartialOptions() {
     {
       name: "Charts",
       tree: [
-        createMarketSection(),
+        lazyGroup("Market", createMarketSection),
 
-        createNetworkSection(),
+        lazyGroup("Network", createNetworkSection),
 
-        createMiningSection(),
+        lazyGroup("Mining", createMiningSection),
 
         {
           name: "Distribution",
           tree: [
-            createCohortFolderAll({ ...cohortAll, name: "Overview" }),
+            lazyGroup("Overview", () =>
+              createCohortFolderAll({
+                ...data().cohortAll,
+                name: "Overview",
+              }),
+            ),
 
-            createGroupedCohortFolderWithNupl({
-              name: "STH vs LTH",
-              title: "STH vs LTH",
-              list: [termShort, termLong],
-              all: cohortAll,
+            lazyGroup("STH vs LTH", () =>
+              createGroupedCohortFolderWithNupl({
+                name: "STH vs LTH",
+                title: "STH vs LTH",
+                list: [data().termShort, data().termLong],
+                all: data().cohortAll,
+              }),
+            ),
+
+            lazyGroup("STH", () => createCohortFolderFull(data().termShort)),
+
+            lazyGroup("LTH", () => createCohortFolderLongTerm(data().termLong)),
+
+            lazyGroup("Entry", () => {
+              const { cohortAll, entry } = data();
+              return {
+                name: "Entry",
+                tree: [
+                  lazyGroup("Compare", () =>
+                    createGroupedCohortFolderCore({
+                      name: "Compare",
+                      title: "Veteran vs Rookie",
+                      list: entry,
+                      all: cohortAll,
+                    }),
+                  ),
+                  ...entry.map((cohort) =>
+                    lazyGroup(cohort.name, () =>
+                      createCohortFolderCore(cohort),
+                    ),
+                  ),
+                ],
+              };
             }),
 
-            createCohortFolderFull(termShort),
-
-            createCohortFolderLongTerm(termLong),
-
-            {
-              name: "Entry",
-              tree: [
-                createGroupedCohortFolderCore({
-                  name: "Compare",
-                  title: "Veteran vs Rookie",
-                  list: entry,
-                  all: cohortAll,
-                }),
-                ...entry.map(createCohortFolderCore),
-              ],
-            },
-
-            {
+            lazyGroup("UTXO Age", () => ({
               name: "UTXO Age",
               tree: [
-                {
-                  name: "Under",
-                  tree: [
-                    createGroupedCohortFolderCore({
-                      name: "Compare",
-                      title: "Under Age",
-                      list: underAge,
-                      all: cohortAll,
-                    }),
-                    ...underAge.map(createCohortFolderCore),
-                  ],
-                },
-                {
-                  name: "Over",
-                  tree: [
-                    createGroupedCohortFolderCore({
-                      name: "Compare",
-                      title: "Over Age",
-                      list: overAge,
-                      all: cohortAll,
-                    }),
-                    ...overAge.map(createCohortFolderCore),
-                  ],
-                },
-                {
-                  name: "Range",
-                  tree: [
-                    createGroupedCohortFolderAgeRangeWithMatured({
-                      name: "Compare",
-                      title: "Age Ranges",
-                      list: ageRange,
-                      all: cohortAll,
-                    }),
-                    ...ageRange.map(createCohortFolderAgeRangeWithMatured),
-                  ],
-                },
+                lazyGroup("Under", () => {
+                  const { cohortAll, underAge } = data();
+                  return {
+                    name: "Under",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderCore({
+                          name: "Compare",
+                          title: "Under Age",
+                          list: underAge,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...underAge.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderCore(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Over", () => {
+                  const { cohortAll, overAge } = data();
+                  return {
+                    name: "Over",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderCore({
+                          name: "Compare",
+                          title: "Over Age",
+                          list: overAge,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...overAge.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderCore(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Range", () => {
+                  const { ageRange, cohortAll } = data();
+                  return {
+                    name: "Range",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderAgeRangeWithMatured({
+                          name: "Compare",
+                          title: "Age Ranges",
+                          list: ageRange,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...ageRange.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderAgeRangeWithMatured(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
               ],
-            },
+            })),
 
-            {
+            lazyGroup("UTXO Size", () => ({
               name: "UTXO Size",
               tree: [
-                {
-                  name: "Under",
-                  tree: [
-                    createGroupedCohortFolderBasicWithMarketCap({
-                      name: "Compare",
-                      title: "Under Amount",
-                      list: utxosUnderAmount,
-                      all: cohortAll,
-                    }),
-                    ...utxosUnderAmount.map(
-                      createCohortFolderBasicWithMarketCap,
-                    ),
-                  ],
-                },
-                {
-                  name: "Over",
-                  tree: [
-                    createGroupedCohortFolderBasicWithMarketCap({
-                      name: "Compare",
-                      title: "Over Amount",
-                      list: utxosOverAmount,
-                      all: cohortAll,
-                    }),
-                    ...utxosOverAmount.map(
-                      createCohortFolderBasicWithMarketCap,
-                    ),
-                  ],
-                },
-                {
-                  name: "Range",
-                  tree: [
-                    createGroupedCohortFolderBasicWithMarketCap({
-                      name: "Compare",
-                      title: "Amount Ranges",
-                      list: utxosAmountRange,
-                      all: cohortAll,
-                    }),
-                    ...utxosAmountRange.map(
-                      createCohortFolderBasicWithMarketCap,
-                    ),
-                  ],
-                },
+                lazyGroup("Under", () => {
+                  const { cohortAll, utxosUnderAmount } = data();
+                  return {
+                    name: "Under",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderBasicWithMarketCap({
+                          name: "Compare",
+                          title: "Under Amount",
+                          list: utxosUnderAmount,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...utxosUnderAmount.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderBasicWithMarketCap(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Over", () => {
+                  const { cohortAll, utxosOverAmount } = data();
+                  return {
+                    name: "Over",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderBasicWithMarketCap({
+                          name: "Compare",
+                          title: "Over Amount",
+                          list: utxosOverAmount,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...utxosOverAmount.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderBasicWithMarketCap(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Range", () => {
+                  const { cohortAll, utxosAmountRange } = data();
+                  return {
+                    name: "Range",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedCohortFolderBasicWithMarketCap({
+                          name: "Compare",
+                          title: "Amount Ranges",
+                          list: utxosAmountRange,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...utxosAmountRange.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createCohortFolderBasicWithMarketCap(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
               ],
-            },
+            })),
 
-            createUtxoProfitabilitySection({
-              range: profitabilityRange,
-              profit: profitabilityProfit,
-              loss: profitabilityLoss,
-            }),
+            lazyGroup("UTXO Profitability", () =>
+              createUtxoProfitabilitySection({
+                range: data().profitabilityRange,
+                profit: data().profitabilityProfit,
+                loss: data().profitabilityLoss,
+              }),
+            ),
 
-            {
+            lazyGroup("Address Balance", () => ({
               name: "Address Balance",
               tree: [
-                {
-                  name: "Under",
-                  tree: [
-                    createGroupedAddressCohortFolder({
-                      name: "Compare",
-                      title: "Under Balance",
-                      list: addressesUnderAmount,
-                      all: cohortAll,
-                    }),
-                    ...addressesUnderAmount.map(createAddressCohortFolder),
-                  ],
-                },
-                {
-                  name: "Over",
-                  tree: [
-                    createGroupedAddressCohortFolder({
-                      name: "Compare",
-                      title: "Over Balance",
-                      list: addressesOverAmount,
-                      all: cohortAll,
-                    }),
-                    ...addressesOverAmount.map(createAddressCohortFolder),
-                  ],
-                },
-                {
-                  name: "Range",
-                  tree: [
-                    createGroupedAddressCohortFolder({
-                      name: "Compare",
-                      title: "Balance Ranges",
-                      list: addressesAmountRange,
-                      all: cohortAll,
-                    }),
-                    ...addressesAmountRange.map(createAddressCohortFolder),
-                  ],
-                },
+                lazyGroup("Under", () => {
+                  const { addressesUnderAmount, cohortAll } = data();
+                  return {
+                    name: "Under",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedAddressCohortFolder({
+                          name: "Compare",
+                          title: "Under Balance",
+                          list: addressesUnderAmount,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...addressesUnderAmount.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createAddressCohortFolder(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Over", () => {
+                  const { addressesOverAmount, cohortAll } = data();
+                  return {
+                    name: "Over",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedAddressCohortFolder({
+                          name: "Compare",
+                          title: "Over Balance",
+                          list: addressesOverAmount,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...addressesOverAmount.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createAddressCohortFolder(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
+                lazyGroup("Range", () => {
+                  const { addressesAmountRange, cohortAll } = data();
+                  return {
+                    name: "Range",
+                    tree: [
+                      lazyGroup("Compare", () =>
+                        createGroupedAddressCohortFolder({
+                          name: "Compare",
+                          title: "Balance Ranges",
+                          list: addressesAmountRange,
+                          all: cohortAll,
+                        }),
+                      ),
+                      ...addressesAmountRange.map((cohort) =>
+                        lazyGroup(cohort.name, () =>
+                          createAddressCohortFolder(cohort),
+                        ),
+                      ),
+                    ],
+                  };
+                }),
                 createAddressBalanceGiniLeaf(),
               ],
-            },
+            })),
 
-            {
-              name: "Script Type",
-              tree: [
-                createGroupedCohortFolderAddress({
-                  name: "Compare",
-                  title: "Script Type",
-                  list: typeAddressable,
-                  all: cohortAll,
-                }),
-                .../** @satisfies {readonly SpendableType[]} */ ([
-                  "p2a",
-                  "p2tr",
-                  "p2wsh",
-                  "p2wpkh",
-                  "p2sh",
-                  "p2ms",
-                  "p2pkh",
-                  "p2pk33",
-                  "p2pk65",
-                  "empty",
-                  "unknown",
-                ]).flatMap((key) => {
-                  const addr = typeAddressable.find((t) => t.key === key);
-                  if (addr) return [createCohortFolderAddress(addr)];
-                  const other = typeOther.find((t) => t.key === key);
-                  if (other) return [createCohortFolderWithoutRelative(other)];
-                  return [];
-                }),
-              ],
-            },
+            lazyGroup("Script Type", () => {
+              const { cohortAll, typeAddressable, typeOther } = data();
+              return {
+                name: "Script Type",
+                tree: [
+                  lazyGroup("Compare", () =>
+                    createGroupedCohortFolderAddress({
+                      name: "Compare",
+                      title: "Script Type",
+                      list: typeAddressable,
+                      all: cohortAll,
+                    }),
+                  ),
+                  .../** @satisfies {readonly SpendableType[]} */ ([
+                    "p2a",
+                    "p2tr",
+                    "p2wsh",
+                    "p2wpkh",
+                    "p2sh",
+                    "p2ms",
+                    "p2pkh",
+                    "p2pk33",
+                    "p2pk65",
+                    "empty",
+                    "unknown",
+                  ]).flatMap((key) => {
+                    const addr = typeAddressable.find((t) => t.key === key);
+                    if (addr)
+                      return [
+                        lazyGroup(addr.name, () =>
+                          createCohortFolderAddress(addr),
+                        ),
+                      ];
+                    const other = typeOther.find((t) => t.key === key);
+                    if (other)
+                      return [
+                        lazyGroup(other.name, () =>
+                          createCohortFolderWithoutRelative(other),
+                        ),
+                      ];
+                    return [];
+                  }),
+                ],
+              };
+            }),
 
-            {
-              name: "Epoch",
-              tree: [
-                createGroupedCohortFolderCore({
-                  name: "Compare",
-                  title: "Epoch",
-                  list: epoch,
-                  all: cohortAll,
-                }),
-                ...epoch.map(createCohortFolderCore),
-              ],
-            },
+            lazyGroup("Epoch", () => {
+              const { cohortAll, epoch } = data();
+              return {
+                name: "Epoch",
+                tree: [
+                  lazyGroup("Compare", () =>
+                    createGroupedCohortFolderCore({
+                      name: "Compare",
+                      title: "Epoch",
+                      list: epoch,
+                      all: cohortAll,
+                    }),
+                  ),
+                  ...epoch.map((cohort) =>
+                    lazyGroup(cohort.name, () =>
+                      createCohortFolderCore(cohort),
+                    ),
+                  ),
+                ],
+              };
+            }),
 
-            {
-              name: "Class",
-              tree: [
-                createGroupedCohortFolderCore({
-                  name: "Compare",
-                  title: "Class",
-                  list: class_,
-                  all: cohortAll,
-                }),
-                ...class_.map(createCohortFolderCore),
-              ],
-            },
+            lazyGroup("Class", () => {
+              const { class: class_, cohortAll } = data();
+              return {
+                name: "Class",
+                tree: [
+                  lazyGroup("Compare", () =>
+                    createGroupedCohortFolderCore({
+                      name: "Compare",
+                      title: "Class",
+                      list: class_,
+                      all: cohortAll,
+                    }),
+                  ),
+                  ...class_.map((cohort) =>
+                    lazyGroup(cohort.name, () =>
+                      createCohortFolderCore(cohort),
+                    ),
+                  ),
+                ],
+              };
+            }),
           ],
         },
 
-        createInvestingSection(),
+        lazyGroup("Investing", createInvestingSection),
 
-        {
+        lazyGroup("Frameworks", () => ({
           name: "Frameworks",
           tree: [createCointimeSection(), createCoinflowSection()],
-        },
+        })),
 
-        {
+        lazyGroup("Models", () => ({
           name: "Models",
           tree: [
             createBedrockSection(),
             createRarityMeterSection(),
             createCapitalSentimentSection(),
           ],
-        },
+        })),
       ],
     },
 

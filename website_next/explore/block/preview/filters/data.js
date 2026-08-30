@@ -1,12 +1,12 @@
-import { brk } from "../../../../utils/client.js";
+import { bitview } from "../../../../utils/client.js";
 import { FILTERS } from "./model.js";
 import {
   createOpReturnFilterData,
   OP_RETURN_COUNT_SOURCES,
 } from "./op-return/data.js";
 
-const tx = brk.series.transactions;
-const txIndexes = brk.series.indexes.txIndex;
+const tx = bitview.series.transactions;
+const txIndexes = bitview.series.indexes.txIndex;
 
 /** @param {unknown} expected */
 const equals = (expected) => (/** @type {unknown} */ value) => value === expected;

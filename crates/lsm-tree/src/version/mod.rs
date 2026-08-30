@@ -246,7 +246,13 @@ impl Version {
             if level_idx == dest_level
                 && let Some(run) = Run::new(new_tables.to_vec())
             {
-                runs.insert(0, run);
+                if dest_level == 0 {
+                    // An intra-L0 result represents older inputs. Keep any run published while
+                    // compaction was in flight ahead of it so point reads still see newest first.
+                    runs.push(run);
+                } else {
+                    runs.insert(0, run);
+                }
             }
 
             let runs = optimize_runs(runs);
@@ -323,8 +329,6 @@ impl Version {
                 // Tables
                 for table in run.iter() {
                     writer.write_u32::<LittleEndian>(table.id())?;
-                    // Reserved legacy whole-table checksum slot.
-                    writer.write_u128::<LittleEndian>(0)?;
                     writer.write_u64::<LittleEndian>(table.global_seqno())?;
                 }
             }

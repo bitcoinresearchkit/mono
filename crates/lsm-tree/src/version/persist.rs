@@ -12,8 +12,6 @@ impl Version {
         let mut current = CURRENT_MAGIC.to_vec();
         current.write_u64::<LittleEndian>(self.id())?;
         self.encode_into(&mut current)?;
-        let checksum = xxhash_rust::xxh3::xxh3_128(&current);
-        current.write_u128::<LittleEndian>(checksum)?;
         rewrite_atomic(&folder.join(CURRENT_VERSION_FILE), &current)?;
 
         Ok(())

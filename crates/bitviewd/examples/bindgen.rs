@@ -13,7 +13,10 @@ use brk_rpc::{Auth, Client};
 use color_eyre::eyre::{Result, bail};
 
 const GENERATED_OUTPUTS: &[(&str, &str)] = &[
-    ("server.json", "server.json"),
+    (
+        "crates/bitview_mcp/server.json",
+        "crates/bitview_mcp/server.json",
+    ),
     (
         "crates/bitview_client/src/generated.rs",
         "crates/bitview_client/src/generated.rs",
@@ -115,12 +118,13 @@ fn output_paths(root: &Path) -> bitview_bindgen::ClientOutputPaths {
 }
 
 fn generate_registry_manifest(root: &Path) -> Result<()> {
-    let path = root.join("server.json");
+    let path = root.join("crates/bitview_mcp/server.json");
+    fs::create_dir_all(path.parent().unwrap())?;
     let mut contents = serde_json::to_string_pretty(&serde_json::json!({
         "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "name": "io.github.bitcoinresearchkit/bitview",
         "title": "Bitview",
-        "description": "Read-only Bitcoin blockchain, mempool, market, and on-chain analytics.",
+        "description": "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.",
         "version": env!("CARGO_PKG_VERSION"),
         "websiteUrl": "https://mcp.bitview.space/",
         "icons": [{
@@ -129,8 +133,10 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
             "sizes": ["512x512"]
         }],
         "repository": {
-            "url": "https://github.com/bitcoinresearchkit/brk",
-            "source": "github"
+            "url": env!("CARGO_PKG_REPOSITORY"),
+            "source": "github",
+            "id": "824866280",
+            "subfolder": "crates/bitview_mcp"
         },
         "remotes": [{
             "type": "streamable-http",
@@ -202,10 +208,17 @@ mod tests {
 
         generate_registry_manifest(&root).unwrap();
         let manifest: serde_json::Value =
-            serde_json::from_slice(&fs::read(root.join("server.json")).unwrap()).unwrap();
+            serde_json::from_slice(&fs::read(root.join("crates/bitview_mcp/server.json")).unwrap())
+                .unwrap();
 
         assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
         assert_eq!(manifest["name"], "io.github.bitcoinresearchkit/bitview");
+        assert_eq!(
+            manifest["repository"]["url"],
+            "https://github.com/bitcoinresearchkit/mono"
+        );
+        assert_eq!(manifest["repository"]["id"], "824866280");
+        assert_eq!(manifest["repository"]["subfolder"], "crates/bitview_mcp");
         assert_eq!(manifest["remotes"][0]["type"], "streamable-http");
         assert_eq!(manifest["remotes"][0]["url"], "https://mcp.bitview.space/");
         fs::remove_dir_all(root).unwrap();

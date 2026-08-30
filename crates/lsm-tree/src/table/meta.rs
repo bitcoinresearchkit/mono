@@ -1,7 +1,5 @@
 use super::{Block, BlockHandle, DataBlock};
-use crate::{
-    CompressionType, KeyRange, checksum::ChecksumType, coding::Decode, table::block::BlockType,
-};
+use crate::{CompressionType, KeyRange, coding::Decode, hash::XXH3_TAG, table::block::BlockType};
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::fs::File;
 
@@ -30,7 +28,6 @@ impl ParsedMeta {
         let block = DataBlock::new(block);
 
         Self::validate_hash(&block, b"filter_hash_type")?;
-        Self::validate_hash(&block, b"checksum_type")?;
 
         Ok(Self {
             id: Self::read_u32(&block, b"table_id")?,
@@ -72,11 +69,11 @@ impl ParsedMeta {
 
     fn validate_hash(block: &DataBlock, name: &[u8]) -> crate::Result<()> {
         let hash = Self::read(block, name);
-        if hash.as_ref() == [u8::from(ChecksumType::Xxh3)] {
+        if hash.as_ref() == [XXH3_TAG] {
             Ok(())
         } else {
             Err(crate::Error::InvalidTag((
-                "ChecksumType",
+                "HashType",
                 hash.first().copied().unwrap_or_default(),
             )))
         }

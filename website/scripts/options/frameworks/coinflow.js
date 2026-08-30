@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
 import { ageRanges } from "../age-ranges.js";
@@ -63,7 +63,7 @@ function ageRangeSupplyChart(ranges, key, name) {
  * @returns {PartialOptionsGroup}
  */
 export function createCoinflowSection() {
-  const { coinflow } = brk.series;
+  const { coinflow } = bitview.series;
   const ranges = ageRanges.map(({ key, ...range }) => ({
     ...range,
     tree: {

@@ -19,7 +19,7 @@ import { formatValue } from "./data.js";
  * @property {number} [endLine]
  */
 
-const SOURCE_URL = "https://github.com/bitcoinresearchkit/brk/blob";
+const SOURCE_URL = "https://github.com/bitcoinresearchkit/bitview/blob";
 
 /** @param {SourceEvidence} source */
 function sourceKey(source) {

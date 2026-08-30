@@ -23,7 +23,7 @@ pub use any::*;
 pub use kind::*;
 pub use pending_ingest::PendingIngest;
 
-const MAJOR_FJALL_VERSION: Version = Version::new(6);
+const MAJOR_FJALL_VERSION: Version = Version::new(7);
 const BLOCK_CACHE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 pub fn open_database(path: &Path) -> Result<Database> {
@@ -197,10 +197,6 @@ where
             .range(start..end)
             .map(|result| result.unwrap())
             .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
-    }
-
-    pub fn approximate_len(&self) -> usize {
-        self.keyspace.approximate_len()
     }
 
     fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()>

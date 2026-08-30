@@ -1,5 +1,5 @@
 import { explorerElement } from "../utils/elements.js";
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import {
   initChain,
   goToCube,
@@ -132,7 +132,7 @@ async function load() {
     if (kind === "tx" && value) {
       const txid = await resolveTxid(value, { signal });
       if (signal.aborted) return;
-      const tx = await brk.getTx(txid, { signal });
+      const tx = await bitview.getTx(txid, { signal });
       if (signal.aborted) return;
       await goToCube(tx.status?.blockHash ?? tx.status?.blockHeight ?? null, { silent: true });
       updateTx(tx);
@@ -164,7 +164,7 @@ async function navigateToBlock(hashOrHeight) {
 /** @param {Txid | TxIndex} value @param {{ signal?: AbortSignal }} [options] */
 async function resolveTxid(value, { signal } = {}) {
   return typeof value === "number" || /^\d+$/.test(value)
-    ? await brk.getTxByIndex(Number(value), { signal })
+    ? await bitview.getTxByIndex(Number(value), { signal })
     : value;
 }
 
@@ -176,7 +176,7 @@ async function navigateToTx(txidOrIndex) {
   try {
     const txid = await resolveTxid(txidOrIndex, { signal });
     if (signal.aborted) return;
-    const tx = await brk.getTx(txid, { signal });
+    const tx = await bitview.getTx(txid, { signal });
     if (signal.aborted) return;
     await goToCube(tx.status?.blockHash ?? tx.status?.blockHeight ?? null, { silent: true });
     updateTx(tx);

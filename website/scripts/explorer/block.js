@@ -1,4 +1,4 @@
-import { brk } from "../utils/client.js";
+import { bitview } from "../utils/client.js";
 import { createPersistedValue } from "../utils/persisted.js";
 import { createRow, formatFeeRate, formatHeightPrefix, renderTx, showPanel, hidePanel, TX_PAGE_SIZE } from "./render.js";
 
@@ -199,7 +199,7 @@ async function loadTxPage(page, pushUrl = true) {
   if (pushUrl) txPageParam.setImmediate(page);
   updateTxNavs(page);
   try {
-    const txs = await brk.getBlockTxsFromIndex(block.id, page * TX_PAGE_SIZE);
+    const txs = await bitview.getBlockTxsFromIndex(block.id, page * TX_PAGE_SIZE);
     txList.innerHTML = "";
     const ascii = block.extras.coinbaseSignatureAscii;
     for (const tx of txs) txList.append(renderTx(tx, ascii));

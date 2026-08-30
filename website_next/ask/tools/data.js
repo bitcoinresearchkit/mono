@@ -1,4 +1,4 @@
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { unitFromType } from "./metrics/unit.js";
 
 const RANGE_POINTS = 120;
@@ -45,7 +45,7 @@ export async function readMetric(metric, action) {
 
   if (mode === "at") {
     if (at === undefined) throw new Error("A block height or date is required");
-    response = await brk.getSeries(
+    response = await bitview.getSeries(
       metric.name,
       /** @type {any} */ (index),
       /** @type {any} */ (at),
@@ -54,7 +54,7 @@ export async function readMetric(metric, action) {
     );
   } else if (mode === "range") {
     const points = Math.min(Number(action.points) || RANGE_POINTS, RANGE_POINTS);
-    response = await brk.getSeries(
+    response = await bitview.getSeries(
       metric.name,
       /** @type {any} */ (index),
       /** @type {any} */ (action.start ?? -points),
@@ -62,7 +62,7 @@ export async function readMetric(metric, action) {
       points,
     );
   } else {
-    response = await brk.getSeries(
+    response = await bitview.getSeries(
       metric.name,
       /** @type {any} */ (index),
       -1,

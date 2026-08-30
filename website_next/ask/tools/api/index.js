@@ -1,8 +1,8 @@
-import { BRK_BASE_URL } from "../../../utils/client.js";
+import { BITVIEW_BASE_URL } from "../../../utils/client.js";
 import { WorkerClient } from "../worker-client.js";
 
 const WORKER_URL = import.meta.resolve("./worker.js");
-const OPENAPI_URL = `${BRK_BASE_URL}/openapi.json`;
+const OPENAPI_URL = `${BITVIEW_BASE_URL}/openapi.json`;
 
 /**
  * @typedef {Object} ApiParameter

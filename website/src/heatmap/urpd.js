@@ -1,4 +1,4 @@
-import { brk } from "../../scripts/utils/client.js";
+import { bitview } from "../../scripts/utils/client.js";
 import { numberToShortUSFormat } from "../../scripts/utils/format.js";
 import { formatCompact } from "./format.js";
 import { createAverageGrid } from "./grid.js";
@@ -11,8 +11,8 @@ import {
 } from "./lut.js";
 import { defaultTooltip } from "./tooltip/index.js";
 
-/** @typedef {Brk.Cohort} UrpdCohort */
-/** @typedef {Brk.UrpdWeight} UrpdWeight */
+/** @typedef {Bitview.Cohort} UrpdCohort */
+/** @typedef {Bitview.UrpdWeight} UrpdWeight */
 /**
  * @typedef {Object} UrpdMetric
  * @property {string} name
@@ -273,7 +273,7 @@ async function fetchUrpdPoints({
 }) {
   /** @type {HeatmapPoints | undefined} */
   let points;
-  const urpd = await brk.getUrpdAt(
+  const urpd = await bitview.getUrpdAt(
     cohort,
     date,
     AGGREGATION,

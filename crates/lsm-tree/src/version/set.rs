@@ -27,6 +27,12 @@ impl Set {
         self.latest.load_full()
     }
 
+    /// Borrows the currently published version for a short operation.
+    #[must_use]
+    pub fn guard(&self) -> arc_swap::Guard<std::sync::Arc<Version>> {
+        self.latest.load()
+    }
+
     /// Persists and atomically publishes a version transition.
     pub fn publish(
         &self,

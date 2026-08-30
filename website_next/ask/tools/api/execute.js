@@ -1,4 +1,4 @@
-import { brk } from "../../../utils/client.js";
+import { bitview } from "../../../utils/client.js";
 
 const MAX_TEXT = 2_000;
 const MAX_ARRAY = 8;
@@ -102,7 +102,7 @@ export async function executeApi(operation, arguments_, signal) {
   if (/\{[^}]+\}/.test(path)) throw new Error("A required path parameter is missing");
   if (query.size) path += `?${query}`;
 
-  const response = await brk.get(path, { signal });
+  const response = await bitview.get(path, { signal });
   const contentType = response.headers.get("content-type") ?? operation.response.contentType;
   const raw = contentType.includes("json") ? await response.json() : await response.text();
   const state = { truncated: false };

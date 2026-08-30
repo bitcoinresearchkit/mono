@@ -1,6 +1,6 @@
 [package]
 name = "brk_fjall"
-description = "BRK-maintained fork of Fjall 3.1.8, an embeddable log-structured key-value storage engine"
+description = "BRK-maintained fork of Fjall 3.1.9, an embeddable log-structured key-value storage engine"
 license.workspace = true
 version.workspace = true
 edition.workspace = true

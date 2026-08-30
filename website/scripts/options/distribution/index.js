@@ -28,7 +28,8 @@ import {
 } from "../series.js";
 import { Unit } from "../../utils/units.js";
 import { colors } from "../../utils/colors.js";
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
+import { lazyGroup } from "../lazy.js";
 
 // Section builders
 import {
@@ -105,12 +106,22 @@ export function createCohortFolderAll(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionAll({ cohort, title }),
-      createValuationSectionFull({ cohort, title }),
-      createPricesSectionFull({ cohort, title }),
-      createCostBasisSectionWithPercentiles({ cohort, title }),
-      createProfitabilitySectionAll({ cohort, title }),
-      createActivitySectionWithAdjusted({ cohort, title }),
-      avgHoldingsSubtree(cohort.avgAmount, title),
+      lazyGroup("Capitalization", () =>
+        createValuationSectionFull({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionFull({ cohort, title })),
+      lazyGroup("Cost Basis", () =>
+        createCostBasisSectionWithPercentiles({ cohort, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionAll({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionWithAdjusted({ cohort, title }),
+      ),
+      lazyGroup("Average Holdings", () =>
+        avgHoldingsSubtree(cohort.avgAmount, title),
+      ),
     ],
   };
 }
@@ -126,11 +137,19 @@ export function createCohortFolderFull(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionWithRelative({ cohort, title }),
-      createValuationSectionFull({ cohort, title }),
-      createPricesSectionFull({ cohort, title }),
-      createCostBasisSectionWithPercentiles({ cohort, title }),
-      createProfitabilitySectionFull({ cohort, title }),
-      createActivitySectionWithAdjusted({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSectionFull({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionFull({ cohort, title })),
+      lazyGroup("Cost Basis", () =>
+        createCostBasisSectionWithPercentiles({ cohort, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionFull({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionWithAdjusted({ cohort, title }),
+      ),
     ],
   };
 }
@@ -146,10 +165,16 @@ export function createCohortFolderCore(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionWithOwnSupply({ cohort, title }),
-      createValuationSection({ cohort, title }),
-      createPricesSectionBasic({ cohort, title }),
-      createProfitabilitySectionWithInvestedCapitalPct({ cohort, title }),
-      createActivitySectionWithActivity({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSection({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionWithInvestedCapitalPct({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionWithActivity({ cohort, title }),
+      ),
     ],
   };
 }
@@ -165,11 +190,17 @@ export function createCohortFolderLongTerm(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionWithRelative({ cohort, title }),
-      createValuationSectionFull({ cohort, title }),
-      createPricesSectionFull({ cohort, title }),
-      createCostBasisSectionWithPercentiles({ cohort, title }),
-      createProfitabilitySectionLongTerm({ cohort, title }),
-      createActivitySection({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSectionFull({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionFull({ cohort, title })),
+      lazyGroup("Cost Basis", () =>
+        createCostBasisSectionWithPercentiles({ cohort, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionLongTerm({ cohort, title }),
+      ),
+      lazyGroup("Activity", () => createActivitySection({ cohort, title })),
     ],
   };
 }
@@ -185,10 +216,16 @@ export function createCohortFolderAgeRange(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionWithOwnSupply({ cohort, title }),
-      createValuationSection({ cohort, title }),
-      createPricesSectionBasic({ cohort, title }),
-      createProfitabilitySectionWithInvestedCapitalPct({ cohort, title }),
-      createActivitySectionWithActivity({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSection({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionWithInvestedCapitalPct({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionWithActivity({ cohort, title }),
+      ),
     ],
   };
 }
@@ -201,14 +238,16 @@ export function createCohortFolderAgeRange(cohort) {
 export function createCohortFolderAgeRangeWithMatured(cohort) {
   const folder = createCohortFolderAgeRange(cohort);
   const title = formatCohortTitle(cohort.title);
-  folder.tree.push({
-    name: "Matured",
-    tree: satsBtcUsdFullTree({
-      pattern: cohort.matured,
-      title,
-      metric: "Matured Supply",
-    }),
-  });
+  folder.tree.push(
+    lazyGroup("Matured", () => ({
+      name: "Matured",
+      tree: satsBtcUsdFullTree({
+        pattern: cohort.matured,
+        title,
+        metric: "Matured Supply",
+      }),
+    })),
+  );
   return folder;
 }
 
@@ -223,14 +262,19 @@ export function createCohortFolderBasicWithMarketCap(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSection({ cohort, title }),
-      createValuationSection({ cohort, title }),
-      createPricesSectionBasic({ cohort, title }),
-      createProfitabilitySection({ cohort, title }),
-      createActivitySectionMinimal({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSection({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySection({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionMinimal({ cohort, title }),
+      ),
     ],
   };
 }
-
 
 /**
  * Address folder: like basic but with address count
@@ -243,13 +287,25 @@ export function createCohortFolderAddress(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionAddress({ cohort, title }),
-      createValuationSection({ cohort, title }),
-      createPricesSectionBasic({ cohort, title }),
-      createProfitabilitySectionWithProfitLoss({ cohort, title }),
-      createActivitySectionMinimal({ cohort, title }),
-      avgHoldingsSubtree(cohort.avgAmount, title),
-      reusedSubtree(cohort.reused, cohort.respent, cohort.key, title),
-      exposedSubtree(cohort.exposed, cohort.key, title),
+      lazyGroup("Capitalization", () =>
+        createValuationSection({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionWithProfitLoss({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionMinimal({ cohort, title }),
+      ),
+      lazyGroup("Average Holdings", () =>
+        avgHoldingsSubtree(cohort.avgAmount, title),
+      ),
+      lazyGroup("Reused", () =>
+        reusedSubtree(cohort.reused, cohort.respent, cohort.key, title),
+      ),
+      lazyGroup("Exposed", () =>
+        exposedSubtree(cohort.exposed, cohort.key, title),
+      ),
     ],
   };
 }
@@ -265,10 +321,16 @@ export function createCohortFolderWithoutRelative(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionWithProfitLoss({ cohort, title }),
-      createValuationSection({ cohort, title }),
-      createPricesSectionBasic({ cohort, title }),
-      createProfitabilitySectionWithProfitLoss({ cohort, title }),
-      createActivitySectionMinimal({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSection({ cohort, title }),
+      ),
+      lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionWithProfitLoss({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionMinimal({ cohort, title }),
+      ),
     ],
   };
 }
@@ -284,9 +346,15 @@ export function createAddressCohortFolder(cohort) {
     name: cohort.name || "all",
     tree: [
       ...createHoldingsSectionAddressAmount({ cohort, title }),
-      createValuationSectionBase({ cohort, title }),
-      createProfitabilitySectionRealized({ cohort, title }),
-      createActivitySectionMinimal({ cohort, title }),
+      lazyGroup("Capitalization", () =>
+        createValuationSectionBase({ cohort, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createProfitabilitySectionRealized({ cohort, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createActivitySectionMinimal({ cohort, title }),
+      ),
     ],
   };
 }
@@ -310,14 +378,22 @@ export function createGroupedCohortFolderCore({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSectionWithOwnSupply({ list, all, title }),
-      createGroupedValuationSection({ list, all, title }),
-      createGroupedPricesSection({ list, all, title }),
-      createGroupedProfitabilitySectionWithInvestedCapitalPct({
-        list,
-        all,
-        title,
-      }),
-      createGroupedActivitySectionWithActivity({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSection({ list, all, title }),
+      ),
+      lazyGroup("Prices", () =>
+        createGroupedPricesSection({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySectionWithInvestedCapitalPct({
+          list,
+          all,
+          title,
+        }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySectionWithActivity({ list, all, title }),
+      ),
     ],
   };
 }
@@ -337,11 +413,21 @@ export function createGroupedCohortFolderWithNupl({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSectionWithRelative({ list, all, title }),
-      createGroupedValuationSectionWithOwnMarketCap({ list, all, title }),
-      createGroupedPricesSectionFull({ list, all, title }),
-      createGroupedCostBasisSectionWithPercentiles({ list, all, title }),
-      createGroupedProfitabilitySectionWithNupl({ list, all, title }),
-      createGroupedActivitySection({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSectionWithOwnMarketCap({ list, all, title }),
+      ),
+      lazyGroup("Prices", () =>
+        createGroupedPricesSectionFull({ list, all, title }),
+      ),
+      lazyGroup("Cost Basis", () =>
+        createGroupedCostBasisSectionWithPercentiles({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySectionWithNupl({ list, all, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySection({ list, all, title }),
+      ),
     ],
   };
 }
@@ -361,14 +447,22 @@ export function createGroupedCohortFolderAgeRange({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSectionWithOwnSupply({ list, all, title }),
-      createGroupedValuationSection({ list, all, title }),
-      createGroupedPricesSection({ list, all, title }),
-      createGroupedProfitabilitySectionWithInvestedCapitalPct({
-        list,
-        all,
-        title,
-      }),
-      createGroupedActivitySectionWithActivity({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSection({ list, all, title }),
+      ),
+      lazyGroup("Prices", () =>
+        createGroupedPricesSection({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySectionWithInvestedCapitalPct({
+          list,
+          all,
+          title,
+        }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySectionWithActivity({ list, all, title }),
+      ),
     ],
   };
 }
@@ -390,20 +484,22 @@ export function createGroupedCohortFolderAgeRangeWithMatured({
     all,
   });
   const title = formatCohortTitle(groupTitle);
-  folder.tree.push({
-    name: "Matured",
-    tree: ROLLING_WINDOWS.map((w) => ({
-      name: w.name,
-      title: title(`${w.title} Matured Supply`),
-      bottom: list.flatMap((cohort) =>
-        satsBtcUsd({
-          pattern: cohort.matured.sum[w.key],
-          name: cohort.name,
-          color: cohort.color,
-        }),
-      ),
+  folder.tree.push(
+    lazyGroup("Matured", () => ({
+      name: "Matured",
+      tree: ROLLING_WINDOWS.map((w) => ({
+        name: w.name,
+        title: title(`${w.title} Matured Supply`),
+        bottom: list.flatMap((cohort) =>
+          satsBtcUsd({
+            pattern: cohort.matured.sum[w.key],
+            name: cohort.name,
+            color: cohort.color,
+          }),
+        ),
+      })),
     })),
-  });
+  );
   return folder;
 }
 
@@ -422,14 +518,21 @@ export function createGroupedCohortFolderBasicWithMarketCap({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSection({ list, all, title }),
-      createGroupedValuationSection({ list, all, title }),
-      createGroupedPricesSection({ list, all, title }),
-      createGroupedProfitabilitySection({ list, all, title }),
-      createGroupedActivitySectionMinimal({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSection({ list, all, title }),
+      ),
+      lazyGroup("Prices", () =>
+        createGroupedPricesSection({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySection({ list, all, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySectionMinimal({ list, all, title }),
+      ),
     ],
   };
 }
-
 
 /**
  * @param {CohortGroupAddr} args
@@ -446,14 +549,22 @@ export function createGroupedCohortFolderAddress({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSectionAddress({ list, all, title }),
-      createGroupedValuationSection({ list, all, title }),
-      createGroupedPricesSection({ list, all, title }),
-      createGroupedProfitabilitySectionWithProfitLoss({
-        list,
-        all,
-        title,
-      }),
-      createGroupedActivitySectionMinimal({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSection({ list, all, title }),
+      ),
+      lazyGroup("Prices", () =>
+        createGroupedPricesSection({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySectionWithProfitLoss({
+          list,
+          all,
+          title,
+        }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySectionMinimal({ list, all, title }),
+      ),
     ],
   };
 }
@@ -473,9 +584,15 @@ export function createGroupedAddressCohortFolder({
     name: name || "all",
     tree: [
       ...createGroupedHoldingsSectionAddressAmount({ list, all, title }),
-      createGroupedValuationSectionBase({ list, all, title }),
-      createGroupedProfitabilitySectionRealized({ list, all, title }),
-      createGroupedActivitySectionMinimal({ list, all, title }),
+      lazyGroup("Capitalization", () =>
+        createGroupedValuationSectionBase({ list, all, title }),
+      ),
+      lazyGroup("Profitability", () =>
+        createGroupedProfitabilitySectionRealized({ list, all, title }),
+      ),
+      lazyGroup("Activity", () =>
+        createGroupedActivitySectionMinimal({ list, all, title }),
+      ),
     ],
   };
 }
@@ -741,7 +858,7 @@ export function createAddressBalanceGiniLeaf() {
     name: "Gini",
     title: "Address Balance Gini Coefficient",
     bottom: percentRatio({
-      pattern: brk.series.indicators.gini,
+      pattern: bitview.series.indicators.gini,
       name: "Gini",
       color: colors.loss,
     }),

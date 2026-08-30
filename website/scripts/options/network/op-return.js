@@ -1,5 +1,5 @@
 import { colors } from "../../utils/colors.js";
-import { brk } from "../../utils/client.js";
+import { bitview } from "../../utils/client.js";
 import { Unit } from "../../utils/units.js";
 import {
   ROLLING_WINDOWS,
@@ -71,14 +71,14 @@ const METRICS = /** @type {const} */ ([
 
 /**
  * @typedef {Object} OpReturnMetrics
- * @property {typeof brk.series.opReturn.byKind.outputCount.runes} outputCount
- * @property {typeof brk.series.opReturn.byKind.dataBytes.runes} dataBytes
- * @property {typeof brk.series.opReturn.byKind.txCount.runes} txCount
- * @property {typeof brk.series.opReturn.byKind.txVsize.runes} txVsize
- * @property {typeof brk.series.opReturn.byKind.fees.runes} fees
- * @property {typeof brk.series.opReturn.byKind.dataBytes.runes.dataShare} dataShare
- * @property {typeof brk.series.opReturn.byKind.dataBytes.runes.chainShare} chainShare
- * @property {typeof brk.series.opReturn.byKind.fees.runes.feeShare} feeShare
+ * @property {typeof bitview.series.opReturn.byKind.outputCount.runes} outputCount
+ * @property {typeof bitview.series.opReturn.byKind.dataBytes.runes} dataBytes
+ * @property {typeof bitview.series.opReturn.byKind.txCount.runes} txCount
+ * @property {typeof bitview.series.opReturn.byKind.txVsize.runes} txVsize
+ * @property {typeof bitview.series.opReturn.byKind.fees.runes} fees
+ * @property {typeof bitview.series.opReturn.byKind.dataBytes.runes.dataShare} dataShare
+ * @property {typeof bitview.series.opReturn.byKind.dataBytes.runes.chainShare} chainShare
+ * @property {typeof bitview.series.opReturn.byKind.fees.runes.feeShare} feeShare
  */
 
 /**
@@ -266,8 +266,8 @@ function createBreakdown({ name, list, category }) {
 
 /** @returns {PartialOptionsGroup} */
 export function createOpReturnSection() {
-  const opReturn = brk.series.opReturn;
-  const outputCount = brk.series.outputs.byType.outputCount.opReturn;
+  const opReturn = bitview.series.opReturn;
+  const outputCount = bitview.series.outputs.byType.outputCount.opReturn;
   const types = TYPE_DEFINITIONS.map((type, index) => ({
     ...type,
     color: colors.at(index, TYPE_DEFINITIONS.length),

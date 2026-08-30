@@ -233,9 +233,32 @@ impl ByteView {
     }
 
     /// Fuses two byte slices into a single byteview.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the combined length does not fit in a [`usize`].
     #[must_use]
     pub fn fused(left: &[u8], right: &[u8]) -> Self {
-        let len = left.len() + right.len();
+        let Some(len) = left.len().checked_add(right.len()) else {
+            panic!("byte slice too long");
+        };
+        if len <= INLINE_SIZE {
+            let mut data = [0; INLINE_SIZE];
+            let (left_target, remaining) = data.split_at_mut(left.len());
+            let (right_target, _) = remaining.split_at_mut(right.len());
+            left_target.copy_from_slice(left);
+            right_target.copy_from_slice(right);
+            return Self {
+                trailer: Trailer {
+                    short: ManuallyDrop::new(ShortRepr {
+                        #[allow(clippy::cast_possible_truncation)]
+                        len: len as u32,
+                        data,
+                    }),
+                },
+            };
+        }
+
         let mut builder = unsafe { Self::builder_unzeroed(len) };
         let (left_target, right_target) = builder.split_at_mut(left.len());
         left_target.copy_from_slice(left);
@@ -282,8 +305,9 @@ impl ByteView {
                     reason = "the allocation uses HeapAllocationHeader alignment"
                 )]
                 let heap_region = heap_ptr.cast::<HeapAllocationHeader>();
-                let heap_region = &*heap_region;
-                heap_region.ref_count.store(1, Ordering::Release);
+                heap_region.write(HeapAllocationHeader {
+                    ref_count: AtomicU64::new(1),
+                });
 
                 Self {
                     trailer: Trailer {
@@ -667,6 +691,7 @@ mod tests {
     fn fuse_two() {
         let bytes = ByteView::fused(b"abc", b"def");
         assert_eq!(&*bytes, b"abcdef");
+        assert!(bytes.is_inline());
     }
 
     #[test]
