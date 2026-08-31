@@ -15663,7 +15663,7 @@ function createMatrixPattern(client, acc) {
  * @extends BitviewClientBase
  */
 class BitviewClient extends BitviewClientBase {
-  VERSION = "v0.12.0";
+  VERSION = "v0.12.1";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

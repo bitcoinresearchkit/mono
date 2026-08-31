@@ -14286,7 +14286,7 @@ class SeriesTree:
 class BitviewClient(BitviewClientBase):
     """Main Bitview client with series tree and API methods."""
 
-    VERSION = "v0.12.0"
+    VERSION = "v0.12.1"
 
     INDEXES = [
       "minute10",

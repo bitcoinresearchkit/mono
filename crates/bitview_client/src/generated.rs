@@ -45602,7 +45602,7 @@ pub struct BitviewClient {
 
 impl BitviewClient {
     /// Client version.
-    pub const VERSION: &'static str = "v0.12.0";
+    pub const VERSION: &'static str = "v0.12.1";
 
     /// Create a new client with the given base URL.
     pub fn new(base_url: impl Into<String>) -> Self {
