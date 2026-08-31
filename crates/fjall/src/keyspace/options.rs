@@ -106,7 +106,6 @@ impl CreateOptions {
 
         config.data_block_compression_policy(CompressionPolicy::new([
             CompressionType::None,
-            CompressionType::None,
             CompressionType::Lz4,
         ]))
     }
