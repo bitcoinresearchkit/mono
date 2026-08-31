@@ -1,0 +1,11 @@
+version=0.12.1
+profile=release
+target_os=macos
+target_arch=aarch64
+parallelism=12
+started_at_unix=1788185759
+chain_height=964888
+revision=2738d5c003278d7debf9bb444cc0866f6b3824a2
+dirty=true
+blocks_path=/Users/k/Library/Application Support/Bitcoin/blocks
+data_path=/Users/k/.bitview

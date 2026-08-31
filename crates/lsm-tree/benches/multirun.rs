@@ -104,14 +104,12 @@ fn multirun(criterion: &mut Criterion) {
     group.finish();
 }
 
-fn maintenance_workload(reads_per_generation: u32, compressed: bool) {
+fn maintenance_workload(reads_per_generation: u32, first_compressed_level: usize) {
     let directory = tempfile::tempdir().expect("temporary directory");
-    let config = Config::new(directory.path());
-    let config = if compressed {
-        config.data_block_compression_policy(CompressionPolicy::all(CompressionType::Lz4))
-    } else {
-        config
-    };
+    let mut compression_policy = vec![CompressionType::None; first_compressed_level];
+    compression_policy.push(CompressionType::Lz4);
+    let config = Config::new(directory.path())
+        .data_block_compression_policy(CompressionPolicy::new(compression_policy));
     let tree = Tree::open(config).expect("tree");
     let missing_key = MAINTENANCE_ROWS / 2;
 
@@ -149,16 +147,22 @@ fn maintenance_workload(reads_per_generation: u32, compressed: bool) {
 fn maintenance(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("multirun-maintenance");
     group.bench_function("write-only", |bencher| {
-        bencher.iter(|| maintenance_workload(0, false));
+        bencher.iter(|| maintenance_workload(0, 1));
+    });
+    group.bench_function("l1-uncompressed-write-only", |bencher| {
+        bencher.iter(|| maintenance_workload(0, 2));
     });
     group.bench_function("compressed-write-only", |bencher| {
-        bencher.iter(|| maintenance_workload(0, true));
+        bencher.iter(|| maintenance_workload(0, 0));
     });
     group.bench_function("read-heavy", |bencher| {
-        bencher.iter(|| maintenance_workload(10_000, false));
+        bencher.iter(|| maintenance_workload(10_000, 1));
+    });
+    group.bench_function("l1-uncompressed-read-heavy", |bencher| {
+        bencher.iter(|| maintenance_workload(10_000, 2));
     });
     group.bench_function("read-dominant", |bencher| {
-        bencher.iter(|| maintenance_workload(100_000, false));
+        bencher.iter(|| maintenance_workload(100_000, 1));
     });
     group.finish();
 }
