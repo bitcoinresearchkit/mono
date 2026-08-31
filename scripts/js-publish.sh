@@ -31,4 +31,13 @@ else
     NPM_TAG="latest"
 fi
 
-npm publish --access public --tag "$NPM_TAG"
+if [ -z "${NPM_CONFIG_OTP:-}" ] && [ -t 0 ]; then
+    read -r -s -p "npm OTP (leave blank for a bypass-2FA token): " NPM_OTP
+    echo ""
+fi
+
+if [ -n "${NPM_OTP:-}" ]; then
+    NPM_CONFIG_OTP="$NPM_OTP" npm publish --access public --tag "$NPM_TAG"
+else
+    npm publish --access public --tag "$NPM_TAG"
+fi
