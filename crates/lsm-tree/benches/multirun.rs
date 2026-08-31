@@ -1,5 +1,5 @@
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
-use lsm_tree::{Config, Tree};
+use lsm_tree::{CompressionType, Config, Tree, config::CompressionPolicy};
 
 const ROWS: u32 = 100_000;
 const GENERATIONS: u32 = 4;
@@ -104,9 +104,15 @@ fn multirun(criterion: &mut Criterion) {
     group.finish();
 }
 
-fn maintenance_workload(reads_per_generation: u32) {
+fn maintenance_workload(reads_per_generation: u32, compressed: bool) {
     let directory = tempfile::tempdir().expect("temporary directory");
-    let tree = Tree::open(Config::new(directory.path())).expect("tree");
+    let config = Config::new(directory.path());
+    let config = if compressed {
+        config.data_block_compression_policy(CompressionPolicy::all(CompressionType::Lz4))
+    } else {
+        config
+    };
+    let tree = Tree::open(config).expect("tree");
     let missing_key = MAINTENANCE_ROWS / 2;
 
     for generation in 0..MAINTENANCE_GENERATIONS {
@@ -143,13 +149,16 @@ fn maintenance_workload(reads_per_generation: u32) {
 fn maintenance(criterion: &mut Criterion) {
     let mut group = criterion.benchmark_group("multirun-maintenance");
     group.bench_function("write-only", |bencher| {
-        bencher.iter(|| maintenance_workload(0));
+        bencher.iter(|| maintenance_workload(0, false));
+    });
+    group.bench_function("compressed-write-only", |bencher| {
+        bencher.iter(|| maintenance_workload(0, true));
     });
     group.bench_function("read-heavy", |bencher| {
-        bencher.iter(|| maintenance_workload(10_000));
+        bencher.iter(|| maintenance_workload(10_000, false));
     });
     group.bench_function("read-dominant", |bencher| {
-        bencher.iter(|| maintenance_workload(100_000));
+        bencher.iter(|| maintenance_workload(100_000, false));
     });
     group.finish();
 }
