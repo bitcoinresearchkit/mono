@@ -1,9 +1,10 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
-use vecdb::{Database, Exit, ReadableCloneableVec, ReadableVec, Rw, StorageMode, TypedVec};
+use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, TypedVec};
 
 use crate::{
     CachedWindowStartVec, Identity, LazyPerBlock, LazyPreviousDeltaVec, NumericValue,

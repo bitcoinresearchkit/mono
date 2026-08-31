@@ -1,11 +1,12 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
-use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use crate::{
     ComputedVecValue, DistributionStats, NumericValue, RollingWindows, WindowStarts,

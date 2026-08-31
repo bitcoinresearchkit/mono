@@ -7,9 +7,9 @@ use std::{
 
 use bitview::{ImportContext, UpdateContext, bootstrap, update};
 use bitview_default::DefaultPlugins;
+use brk_exit::Exit;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
-use vecdb::Exit;
 
 pub fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;

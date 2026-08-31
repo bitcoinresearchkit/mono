@@ -5,12 +5,13 @@ use bitview_cohort::{
     UTXOAggregate, UTXOAggregateId, UTXOAllAndSth, UTXOGroups, UTXOGroupsWithoutAmountOrType,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{
     Cents, CentsSats, CentsSigned, CentsSquaredSats, Height, PartsPerMillion32, PartsPerMillion64,
     PartsPerMillionSigned64, StoredF32, Version,
 };
 use vecdb::{
-    AnyStoredVec, BinaryTransform, CachedBoxedVec, ColumnId, Database, Exit, LazyVec,
+    AnyStoredVec, BinaryTransform, CachedBoxedVec, ColumnId, Database, LazyVec,
     ReadableCloneableVec, ReadableVec, Rw, StorageMode,
 };
 

@@ -1,4 +1,4 @@
-use vecdb::Exit;
+use brk_exit::Exit;
 
 /// Shared control state for one complete plugin-composition update.
 #[derive(Clone, Copy)]

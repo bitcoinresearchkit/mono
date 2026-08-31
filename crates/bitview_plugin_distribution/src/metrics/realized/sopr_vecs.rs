@@ -7,9 +7,10 @@ use bitview_cohort::{
     UTXOGroupsWithoutAmountOrType, UnderAge, UnderAgeId,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, StoredF32, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, PcoVec, ReadOnlyColumnarVec,
+    AnyStoredVec, BinaryTransform, ColumnId, Database, PcoVec, ReadOnlyColumnarVec,
     ReadableCloneableVec, Rw, StorageMode,
 };
 

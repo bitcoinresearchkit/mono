@@ -2,8 +2,9 @@ use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, RARITY_PERCENTILES_LEN, RarityPercentileId, StoredI8, Version};
-use vecdb::{AnyVec, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyVec, ColumnId, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use bitview_compute::{ColumnarPerBlock, LazyColumnPerBlock, PerBlock, Price};
 

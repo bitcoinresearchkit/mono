@@ -2,9 +2,10 @@ use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{PartsPerMillion32, PoolSlug};
 use derive_more::{Deref, DerefMut};
-use vecdb::{BinaryTransform, Database, Exit, Rw, StorageMode, Version};
+use vecdb::{BinaryTransform, Database, Rw, StorageMode, Version};
 
 use bitview_compute::{
     CachedWindowStartVec, LazyPercentRollingWindows, MaskSats, ValuePerBlockCumulativeRolling,

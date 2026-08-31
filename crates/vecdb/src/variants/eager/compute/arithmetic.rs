@@ -1,6 +1,7 @@
 use std::ops::{Add, Div, Mul, Sub};
 
-use crate::{CheckedSub, Exit, ReadableVec, StoredVec, VecValue};
+use crate::{CheckedSub, ReadableVec, StoredVec, VecValue};
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 

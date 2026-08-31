@@ -85,7 +85,7 @@ mod tests {
     };
 
     use bitview_plugin::PluginId;
-    use vecdb::Exit;
+    use brk_exit::Exit;
 
     use super::*;
 

@@ -1,8 +1,8 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::PartsPerMillion32;
-use vecdb::Exit;
 
 use super::RsiChain;
 pub fn compute(

@@ -48,6 +48,7 @@ urpd = [
 bindgen = ["bitview_server/bindgen"]
 
 [dependencies]
+brk_exit = { workspace = true }
 bitview_query = { workspace = true, features = ["tokio"] }
 bitview_runtime = { workspace = true }
 bitview_server = { workspace = true }
@@ -55,7 +56,6 @@ brk_error = { workspace = true, features = ["tokio", "vecdb"] }
 brk_mempool = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
-brk_types = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }

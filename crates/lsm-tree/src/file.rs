@@ -6,7 +6,9 @@ use crate::Slice;
 use std::{fs::File, io::Write, path::Path};
 
 pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', 4];
-pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 9];
+pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 10];
+// Accepted only so databases written by the immediately preceding BRK format can be upgraded.
+pub const CHECKSUMLESS_CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 9];
 
 pub const TABLES_FOLDER: &str = "tables";
 pub const CURRENT_VERSION_FILE: &str = "current";

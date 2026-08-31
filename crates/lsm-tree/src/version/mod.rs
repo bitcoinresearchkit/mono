@@ -20,9 +20,46 @@ use crate::{Error, Result, Table};
 use byteorder::{LittleEndian, WriteBytesExt};
 use inner::Inner;
 use optimize::optimize_runs;
+use rustc_hash::FxHashSet;
 use std::{io::Write, ops::Deref, sync::Arc};
 
 pub const DEFAULT_LEVEL_COUNT: u8 = 7;
+
+fn level_contains_any(level: &Level, ids: &FxHashSet<u32>) -> bool {
+    level
+        .iter()
+        .flat_map(|run| run.iter())
+        .any(|table| ids.contains(&table.id()))
+}
+
+fn rebuild_level(
+    level: &Level,
+    removed_ids: &FxHashSet<u32>,
+    new_run: Option<Run<Table>>,
+    append_new_run: bool,
+) -> Level {
+    let mut runs = level
+        .iter()
+        .filter_map(|run| {
+            Run::new(
+                run.iter()
+                    .filter(|table| !removed_ids.contains(&table.id()))
+                    .cloned()
+                    .collect(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if let Some(new_run) = new_run {
+        if append_new_run {
+            runs.push(new_run);
+        } else {
+            runs.insert(0, new_run);
+        }
+    }
+
+    Level::from_runs(optimize_runs(runs).into_iter().map(Arc::new).collect())
+}
 
 /// A version is an immutable, point-in-time view of a tree's structure
 ///
@@ -198,27 +235,18 @@ impl Version {
     )]
     pub fn with_dropped(&self, ids: &[u32]) -> Result<Self> {
         let id = self.id + 1;
-
-        let mut levels = vec![];
-
-        for level in &self.levels {
-            let runs = level
-                .runs
-                .iter()
-                .map(|run| {
-                    // TODO: don't clone Arc inner if we don't need to modify
-                    let mut run: Run<_> = run.deref().clone();
-
-                    run.retain(|x| !ids.contains(&x.metadata.id));
-                    run
-                })
-                .filter(|x| !x.is_empty())
-                .collect::<Vec<_>>();
-
-            let runs = optimize_runs(runs);
-
-            levels.push(Level::from_runs(runs.into_iter().map(Arc::new).collect()));
-        }
+        let ids = ids.iter().copied().collect::<FxHashSet<_>>();
+        let levels = self
+            .levels
+            .iter()
+            .map(|level| {
+                if level_contains_any(level, &ids) {
+                    rebuild_level(level, &ids, None, false)
+                } else {
+                    level.clone()
+                }
+            })
+            .collect();
 
         Ok(Self {
             inner: Arc::new(Inner { id, levels }),
@@ -227,38 +255,34 @@ impl Version {
 
     pub fn with_merge(&self, old_ids: &[u32], new_tables: &[Table], dest_level: usize) -> Self {
         let id = self.id + 1;
+        let old_ids = old_ids.iter().copied().collect::<FxHashSet<_>>();
+        let levels = self
+            .levels
+            .iter()
+            .enumerate()
+            .map(|(level_idx, level)| {
+                let is_destination = level_idx == dest_level && !new_tables.is_empty();
 
-        let mut levels = vec![];
+                if !is_destination && !level_contains_any(level, &old_ids) {
+                    return level.clone();
+                }
 
-        for (level_idx, level) in self.levels.iter().enumerate() {
-            let mut runs = level
-                .runs
-                .iter()
-                .map(|run| {
-                    // TODO: don't clone Arc inner if we don't need to modify
-                    let mut run: Run<_> = run.deref().clone();
-                    run.retain(|x| !old_ids.contains(&x.metadata.id));
-                    run
-                })
-                .filter(|x| !x.is_empty())
-                .collect::<Vec<_>>();
-
-            if level_idx == dest_level
-                && let Some(run) = Run::new(new_tables.to_vec())
-            {
-                if dest_level == 0 {
+                rebuild_level(
+                    level,
+                    &old_ids,
+                    is_destination.then(|| {
+                        #[expect(
+                            clippy::expect_used,
+                            reason = "the destination run is known to contain tables"
+                        )]
+                        Run::new(new_tables.to_vec()).expect("new run should not be empty")
+                    }),
                     // An intra-L0 result represents older inputs. Keep any run published while
                     // compaction was in flight ahead of it so point reads still see newest first.
-                    runs.push(run);
-                } else {
-                    runs.insert(0, run);
-                }
-            }
-
-            let runs = optimize_runs(runs);
-
-            levels.push(Level::from_runs(runs.into_iter().map(Arc::new).collect()));
-        }
+                    dest_level == 0,
+                )
+            })
+            .collect();
 
         Self {
             inner: Arc::new(Inner { id, levels }),
@@ -267,40 +291,42 @@ impl Version {
 
     pub fn with_moved(&self, ids: &[u32], dest_level: usize) -> Self {
         let id = self.id + 1;
+        let id_count = ids.len();
+        let ids = ids.iter().copied().collect::<FxHashSet<_>>();
 
         let affected_tables = self
             .iter_tables()
-            .filter(|x| ids.contains(&x.id()))
+            .filter(|table| ids.contains(&table.id()))
             .cloned()
             .collect::<Vec<_>>();
 
-        assert_eq!(affected_tables.len(), ids.len(), "invalid table IDs");
+        assert_eq!(affected_tables.len(), id_count, "invalid table IDs");
 
-        let mut levels = vec![];
+        let levels = self
+            .levels
+            .iter()
+            .enumerate()
+            .map(|(level_idx, level)| {
+                let is_destination = level_idx == dest_level && !affected_tables.is_empty();
 
-        for (level_idx, level) in self.levels.iter().enumerate() {
-            let mut runs = level
-                .runs
-                .iter()
-                .map(|run| {
-                    // TODO: don't clone Arc inner if we don't need to modify
-                    let mut run: Run<_> = run.deref().clone();
-                    run.retain(|x| !ids.contains(&x.metadata.id));
-                    run
-                })
-                .filter(|x| !x.is_empty())
-                .collect::<Vec<_>>();
+                if !is_destination && !level_contains_any(level, &ids) {
+                    return level.clone();
+                }
 
-            if level_idx == dest_level
-                && let Some(run) = Run::new(affected_tables.clone())
-            {
-                runs.insert(0, run);
-            }
-
-            let runs = optimize_runs(runs);
-
-            levels.push(Level::from_runs(runs.into_iter().map(Arc::new).collect()));
-        }
+                rebuild_level(
+                    level,
+                    &ids,
+                    is_destination.then(|| {
+                        #[expect(
+                            clippy::expect_used,
+                            reason = "the destination run is known to contain tables"
+                        )]
+                        Run::new(affected_tables.clone()).expect("moved run should not be empty")
+                    }),
+                    false,
+                )
+            })
+            .collect();
 
         Self {
             inner: Arc::new(Inner { id, levels }),

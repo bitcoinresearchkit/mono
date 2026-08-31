@@ -11,8 +11,9 @@ mod typed;
 mod writable;
 
 use crate::{
-    AnyStoredVec, AnyVec, Exit, StoredVec, Version, WritableVec, traits::writable::MAX_CACHE_SIZE,
+    AnyStoredVec, AnyVec, StoredVec, Version, WritableVec, traits::writable::MAX_CACHE_SIZE,
 };
+use brk_exit::Exit;
 
 /// Wrapper for computing and storing derived values from source vectors.
 ///

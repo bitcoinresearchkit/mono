@@ -6,11 +6,11 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, Database, Exit, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
-    WritableVec,
+    AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, VecIndex, VecValue, WritableVec,
 };
 
 use super::lazy_cumulative_rolling::lazy_parts;

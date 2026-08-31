@@ -1,0 +1,13 @@
+[package]
+name = "brk_exit"
+description = "Graceful process shutdown coordination for BRK"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+libc = { workspace = true }
+log = { workspace = true }
+parking_lot = { workspace = true }

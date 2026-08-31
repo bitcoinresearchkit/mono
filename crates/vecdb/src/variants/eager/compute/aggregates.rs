@@ -1,9 +1,10 @@
 use std::ops::Add;
 
 use crate::{
-    AnyVec, CheckedSub, Error, Exit, ReadableVec, SaturatingAdd, StoredVec, VecIndex, VecValue,
-    Version, WritableVec, unlikely,
+    AnyVec, CheckedSub, Error, ReadableVec, SaturatingAdd, StoredVec, VecIndex, VecValue, Version,
+    WritableVec, unlikely,
 };
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 

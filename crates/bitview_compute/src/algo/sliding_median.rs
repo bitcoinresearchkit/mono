@@ -1,8 +1,7 @@
 use brk_error::Result;
 
-use vecdb::{
-    AnyVec, EagerVec, Exit, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, WritableVec,
-};
+use brk_exit::Exit;
+use vecdb::{AnyVec, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, WritableVec};
 
 use super::sliding_window::SlidingWindowSorted;
 

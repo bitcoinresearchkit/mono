@@ -1,9 +1,10 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use crate::{
     DistributionStats, ValuePerBlock, WindowStarts, Windows,

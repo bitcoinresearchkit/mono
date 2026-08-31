@@ -1,6 +1,5 @@
-use crate::{
-    AnyVec, CheckedSub, Error, Exit, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec,
-};
+use crate::{AnyVec, CheckedSub, Error, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec};
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 

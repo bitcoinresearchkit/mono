@@ -5,11 +5,11 @@ use std::{
 };
 
 use crate::{
-    AnyVec, CheckedSub, Error, Exit, ReadableVec, StoredVec, VecIndex, VecValue, Version,
-    WritableVec,
+    AnyVec, CheckedSub, Error, ReadableVec, StoredVec, VecIndex, VecValue, Version, WritableVec,
 };
 #[cfg(feature = "pco")]
 use crate::{ColumnId, ColumnarVec, PcoVec, PcoVecValue};
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 
@@ -1252,9 +1252,10 @@ where
 #[cfg(all(test, feature = "pco"))]
 mod columnar_tests {
     use crate::{
-        AnyStoredVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec,
-        PcoVec, ReadableVec, VecValue, Version, WritableVec,
+        AnyStoredVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, ImportableVec, PcoVec,
+        ReadableVec, VecValue, Version, WritableVec,
     };
+    use brk_exit::Exit;
 
     use super::*;
 

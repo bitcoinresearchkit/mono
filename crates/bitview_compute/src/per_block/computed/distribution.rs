@@ -3,12 +3,13 @@ use brk_error::Result;
 use std::collections::VecDeque;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, StoredU64, VSize, get_percentile, get_weighted_percentile};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, CheckedSub, Database, Exit, ReadableVec, Rw, StorageMode, VecIndex,
-    VecValue, Version, WritableVec,
+    AnyStoredVec, AnyVec, CheckedSub, Database, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
+    Version, WritableVec,
 };
 
 use crate::{ComputedVecValue, DistributionStats, NumericValue, PerBlock};

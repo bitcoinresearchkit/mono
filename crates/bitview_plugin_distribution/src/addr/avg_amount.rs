@@ -2,11 +2,12 @@ use brk_error::Result;
 
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, StoredU64, Version};
 use rayon::prelude::*;
 use vecdb::{
-    AnyStoredVec, CachedBoxedVec, Database, Exit, ReadOnlyClone, ReadableCloneableVec, ReadableVec,
-    Rw, StorageMode, WritableVec,
+    AnyStoredVec, CachedBoxedVec, Database, ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw,
+    StorageMode, WritableVec,
 };
 
 use crate::AllChainSources;

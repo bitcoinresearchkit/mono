@@ -1,8 +1,9 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Lengths, StoredF32, Version};
-use vecdb::{Database, Exit, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::{FixedRatio, LazyPerBlock, PerBlock};
 

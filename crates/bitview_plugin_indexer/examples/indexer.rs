@@ -8,10 +8,10 @@ use std::{
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use brk_alloc::Mimalloc;
+use brk_exit::Exit;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tracing::{debug, info};
-use vecdb::Exit;
 
 fn main() -> color_eyre::Result<()> {
     color_eyre::install()?;

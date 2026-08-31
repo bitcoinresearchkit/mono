@@ -7,9 +7,10 @@ use bitview_compute::{
 };
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::{Indexer, Lengths};
+use brk_exit::Exit;
 use brk_types::{Bitcoin, Cents, Height, Sats, StoredF64, Timestamp, Version};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use vecdb::{AnyStoredVec, ColumnId, Exit, ReadableVec, VecValue, WritableVec};
+use vecdb::{AnyStoredVec, ColumnId, ReadableVec, VecValue, WritableVec};
 
 use super::Vecs;
 use crate::{AGE_COHORT_COUNT, AggregateSources, Dependencies, HorizonId, Horizons};

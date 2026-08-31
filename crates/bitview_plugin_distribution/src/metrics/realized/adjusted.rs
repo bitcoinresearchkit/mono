@@ -4,10 +4,9 @@ use bitview_cohort::{
     CohortContext, Filter, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAllAndSth, UTXOAllAndSthId,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, StoredF32, Version};
-use vecdb::{
-    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode,
-};
+use vecdb::{AnyStoredVec, BinaryTransform, ColumnId, Database, ReadableVec, Rw, StorageMode};
 
 use bitview_compute::{
     CachedWindowStartVec, ColumnarPerBlockCumulativeRolling, ColumnarRollingWindows,

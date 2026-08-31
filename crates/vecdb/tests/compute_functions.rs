@@ -3,11 +3,10 @@
 //! These tests run against any type implementing `StoredVec`, ensuring
 //! consistent compute behavior across all vec types.
 
+use brk_exit::Exit;
 use rawdb::Database;
 use tempfile::TempDir;
-use vecdb::{
-    AnyStoredVec, EagerVec, Exit, ImportableVec, ReadableVec, StoredVec, Version, WritableVec,
-};
+use vecdb::{AnyStoredVec, EagerVec, ImportableVec, ReadableVec, StoredVec, Version, WritableVec};
 
 // ============================================================================
 // Test Setup

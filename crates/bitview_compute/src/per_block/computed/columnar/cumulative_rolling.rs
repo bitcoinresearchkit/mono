@@ -1,10 +1,11 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec, PcoVec,
+    AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, ImportableVec, PcoVec,
     ReadOnlyClone, ReadOnlyColumnarVec, ReadableVec, Rw, StorageMode, VecValue, WritableVec,
 };
 
@@ -215,10 +216,11 @@ where
 
 #[cfg(test)]
 mod tests {
+    use brk_exit::Exit;
     use brk_types::{Height, StoredU64, Version};
     use vecdb::{
-        AnyStoredVec, ColumnId, Database, EagerVec, Exit, ImportableVec, PcoVec, ReadableVec,
-        VecValue, WritableVec,
+        AnyStoredVec, ColumnId, Database, EagerVec, ImportableVec, PcoVec, ReadableVec, VecValue,
+        WritableVec,
     };
 
     use super::ColumnarPerBlockCumulativeRolling;

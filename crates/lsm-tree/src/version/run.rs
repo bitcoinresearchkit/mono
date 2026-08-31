@@ -34,11 +34,15 @@ impl<T: Ranged> Run<T> {
         &mut self.0
     }
 
-    pub fn push(&mut self, item: T) {
-        self.0.push(item);
-
+    pub(crate) fn into_inner(self) -> Vec<T> {
         self.0
-            .sort_by(|a, b| a.key_range().min().cmp(b.key_range().min()));
+    }
+
+    pub fn push(&mut self, item: T) {
+        let index = self
+            .0
+            .partition_point(|existing| existing.key_range().min() < item.key_range().min());
+        self.0.insert(index, item);
     }
 
     pub fn extend(&mut self, items: Vec<T>) {

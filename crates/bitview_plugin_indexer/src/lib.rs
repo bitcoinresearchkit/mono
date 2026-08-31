@@ -16,11 +16,12 @@ use bitview_plugin::{
 };
 use bitview_traversable::{Traversable, TreeNode};
 use brk_error::Error;
+use brk_exit::Exit;
 use brk_reader::{Reader, XOR_LEN, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
 use tracing::{debug, error, info, warn};
 use vecdb::{
-    AnyExportableVec, AnyVec, Exit, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
+    AnyExportableVec, AnyVec, RawDBError, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
     WritableVec, unlikely,
 };
 mod constants;

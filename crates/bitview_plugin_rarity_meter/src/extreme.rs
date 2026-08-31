@@ -4,12 +4,12 @@ use std::{collections::VecDeque, iter::repeat_n};
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, StoredU8, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, ColumnId, Database, Exit, ReadableVec, Rw, StorageMode, VecIndex,
-    WritableVec,
+    AnyStoredVec, AnyVec, ColumnId, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec,
 };
 
 use crate::threshold_vecs::{ExtremeThresholdId, ThresholdVecs};

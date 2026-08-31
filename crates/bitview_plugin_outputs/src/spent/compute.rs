@@ -1,9 +1,10 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::{Exit, ExitGuard};
 use brk_types::{Height, TxInIndex, TxOutIndex};
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Exit, ExitGuard, ReadableVec, Stamp, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex, WritableVec};
 
 use super::Vecs;
 

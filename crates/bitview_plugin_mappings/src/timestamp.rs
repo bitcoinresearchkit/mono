@@ -3,13 +3,14 @@ mod boundary;
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{
     BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, Day1, Day3, Epoch, Halving, Height, Hour1, Hour4,
     Hour12, Minute10, Minute30, Month1, Month3, Month6, Timestamp, Week1, Year1, Year10,
 };
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    AnyVec, CachedVec, Database, EagerVec, Exit, ImportableVec, LazyVec, PcoVec, ReadableBoxedVec,
+    AnyVec, CachedVec, Database, EagerVec, ImportableVec, LazyVec, PcoVec, ReadableBoxedVec,
     ReadableVec, Rw, StorageMode, Version,
 };
 

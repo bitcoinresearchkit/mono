@@ -1,9 +1,10 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats, Version};
 use vecdb::{
-    AnyVec, Database, Exit, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
+    AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex, VecValue,
 };
 
 use crate::{CachedPerBlock, CentsUnsignedToDollars, LazyPerBlock, PerBlock, SatsToBitcoin};

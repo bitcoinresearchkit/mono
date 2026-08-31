@@ -4,12 +4,13 @@ use std::ops::Range;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::{Indexer, Lengths};
+use brk_exit::Exit;
 use brk_oracle::{
     Config, Oracle, PaymentFilter, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
 };
 use brk_types::{Cents, OutputType, Sats, TxIndex, TxOutIndex};
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, StorageMode, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, StorageMode, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::Dependencies;

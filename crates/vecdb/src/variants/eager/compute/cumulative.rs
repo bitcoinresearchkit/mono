@@ -1,6 +1,7 @@
 use std::ops::{Add, AddAssign};
 
-use crate::{AnyVec, Exit, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec};
+use crate::{AnyVec, ReadableVec, StoredVec, VecIndex, VecValue, WritableVec};
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 

@@ -5,9 +5,10 @@ use std::{
     thread,
 };
 
+use brk_exit::Exit;
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportOptions,
+    AnyStoredVec, AnyVec, BytesVec, ColumnId, ColumnarVec, Database, EagerVec, ImportOptions,
     ImportableVec, LazyColumnSumVec, LazyColumnarVec, PrintableIndex, ReadableColumnarVec,
     ReadableVec, Stamp, StoredVec, UnaryTransform, VecIndex, VecValue, Version, WritableVec,
 };

@@ -6,11 +6,10 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Lengths, TxIndex, VSize};
 use schemars::JsonSchema;
-use vecdb::{
-    Database, EagerVec, Exit, ImportableVec, PcoVec, ReadableVec, Rw, StorageMode, Version,
-};
+use vecdb::{Database, EagerVec, ImportableVec, PcoVec, ReadableVec, Rw, StorageMode, Version};
 
 use crate::{ComputedVecValue, NumericValue, TxDerivedDistribution};
 

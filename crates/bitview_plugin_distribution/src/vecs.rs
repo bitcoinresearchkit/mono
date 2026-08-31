@@ -8,11 +8,12 @@ use bitview_plugin::{
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_oracle::VERSION as ORACLE_VERSION;
 use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info, warn};
 use vecdb::{
-    AnyVec, BytesVec, Exit, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp, StorageMode,
+    AnyVec, BytesVec, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp, StorageMode,
     WritableVec,
 };
 

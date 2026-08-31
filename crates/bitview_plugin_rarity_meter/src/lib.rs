@@ -21,8 +21,9 @@ use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginGate, PluginId, PluginStorage, UpdateContext,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Exit, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use band::Band;
 use component::Component;

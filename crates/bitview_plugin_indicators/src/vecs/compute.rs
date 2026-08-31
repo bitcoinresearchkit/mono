@@ -3,9 +3,9 @@ use brk_error::Result;
 use bitview_compute::RatioDollars;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Dollars, PartsPerMillion64, StoredF32};
 use rayon::join;
-use vecdb::Exit;
 
 use super::Vecs;
 use crate::{Dependencies, gini};

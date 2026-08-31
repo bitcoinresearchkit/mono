@@ -3,7 +3,7 @@ use rayon::join;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
-use vecdb::Exit;
+use brk_exit::Exit;
 
 use super::Vecs;
 use crate::Dependencies;

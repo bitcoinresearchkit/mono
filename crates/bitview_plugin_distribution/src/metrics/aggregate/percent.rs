@@ -4,9 +4,10 @@ use bitview_cohort::{
     CohortContext, UTXO_AGGREGATE_FILTERS, UTXO_AGGREGATE_NAMES, UTXOAggregate, UTXOAggregateId,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, Database, Exit, ReadableVec, Rw, StorageMode, VecValue};
+use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecValue};
 
 use bitview_compute::{ColumnarPerBlock, FixedRatio, LazyColumnPercentPerBlock};
 

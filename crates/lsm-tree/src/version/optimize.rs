@@ -5,23 +5,19 @@
 use super::run::Ranged;
 use crate::version::Run;
 
-pub fn optimize_runs<T: Clone + Ranged>(runs: Vec<Run<T>>) -> Vec<Run<T>> {
+pub fn optimize_runs<T: Ranged>(runs: Vec<Run<T>>) -> Vec<Run<T>> {
     if runs.len() <= 1 {
         runs
     } else {
-        let mut new_runs: Vec<Run<T>> = Vec::new();
+        let mut new_runs: Vec<Run<T>> = Vec::with_capacity(runs.len());
 
-        for run in &runs {
-            for table in run.iter() {
+        for run in runs {
+            for table in run.into_inner() {
                 // A table must remain behind every newer run that overlaps it;
                 // otherwise point reads can find an older value first.
-                let last_overlap = new_runs.iter().rposition(|existing_run| {
-                    existing_run.iter().any(|existing| {
-                        table
-                            .key_range()
-                            .overlaps_with_key_range(existing.key_range())
-                    })
-                });
+                let last_overlap = new_runs
+                    .iter()
+                    .rposition(|run| !run.get_overlapping(table.key_range()).is_empty());
 
                 let target = match last_overlap {
                     Some(index) => new_runs.get_mut(index + 1),
@@ -29,13 +25,13 @@ pub fn optimize_runs<T: Clone + Ranged>(runs: Vec<Run<T>>) -> Vec<Run<T>> {
                 };
 
                 if let Some(target) = target {
-                    target.push(table.clone());
+                    target.push(table);
                 } else {
                     #[expect(
                         clippy::expect_used,
                         reason = "we pass in a table, so the run cannot be None"
                     )]
-                    new_runs.push(Run::new(vec![table.clone()]).expect("run should not be empty"));
+                    new_runs.push(Run::new(vec![table]).expect("run should not be empty"));
                 }
             }
         }

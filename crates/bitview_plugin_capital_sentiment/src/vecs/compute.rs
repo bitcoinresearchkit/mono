@@ -3,8 +3,9 @@ use brk_error::Result;
 use bitview_compute::db_utils::validate_any_computed_version_or_reset;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{CapitalSentimentPhase, Cents, Day1, Height, StoredBool, StoredU8, Version};
-use vecdb::{AnyStoredVec, AnyVec, Exit, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::Dependencies;

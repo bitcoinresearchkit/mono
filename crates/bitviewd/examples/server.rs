@@ -5,11 +5,11 @@ use bitview_default::DefaultPlugins;
 use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig, Website};
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use tracing::info;
-use vecdb::Exit;
 
 pub fn main() -> Result<()> {
     brk_logger::init(Some(Path::new(".log")))?;

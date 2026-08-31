@@ -6,10 +6,11 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_coinflow::HorizonId;
 use bitview_plugin_distribution::UTXOStates;
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{
     Cents, CostBasisPercentilePrices, Day1, PERCENTILES_LEN, Sats, StoredF64, Version,
 };
-use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, VecValue};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, ReadableVec, VecValue};
 
 use super::Vecs;
 use crate::{

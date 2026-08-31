@@ -3,7 +3,8 @@ use brk_error::Result;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use vecdb::{AnyVec, Exit};
+use brk_exit::Exit;
+use vecdb::AnyVec;
 
 use super::{Vecs, batch::Batch};
 use crate::Dependencies;

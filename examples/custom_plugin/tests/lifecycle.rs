@@ -7,8 +7,9 @@ use bitview_query::Vecs as QueryVecs;
 use bitview_runtime::{ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
+use brk_exit::Exit;
 use brk_types::{Height, Index, Version, Weight};
-use vecdb::{AnyStoredVec, Database, Exit, ImportableVec, PAGE_SIZE, PcoVec, WritableVec};
+use vecdb::{AnyStoredVec, Database, ImportableVec, PAGE_SIZE, PcoVec, WritableVec};
 
 #[derive(PluginSet, Traversable)]
 struct TestPlugins {

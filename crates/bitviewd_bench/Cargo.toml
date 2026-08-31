@@ -9,6 +9,7 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+brk_exit = { workspace = true }
 bitview = { workspace = true }
 bitview_default = { workspace = true }
 bitviewd = { workspace = true }
@@ -18,7 +19,6 @@ brk_reader = { workspace = true }
 brk_types = { workspace = true }
 parking_lot = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 libproc = "0.14"

@@ -7,12 +7,13 @@ use bitview_plugin::{
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, POOL_ATTRIBUTION_VERSION, PoolSlug, Pools, TxOutIndex, pools};
 use rayon::prelude::{
     IndexedParallelIterator, IntoParallelIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
 use vecdb::{
-    AnyStoredVec, AnyVec, BytesVec, Database, Exit, ImportableVec, ReadableVec, Rw, StorageMode,
+    AnyStoredVec, AnyVec, BytesVec, Database, ImportableVec, ReadableVec, Rw, StorageMode,
     VecIndex, Version, WritableVec,
 };
 

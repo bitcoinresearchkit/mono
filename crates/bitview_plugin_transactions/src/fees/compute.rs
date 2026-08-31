@@ -2,8 +2,9 @@ use brk_error::Result;
 use rayon::prelude::*;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Sats, StoredBool, StoredU64, TxInIndex, TxIndex};
-use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, PcoVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 use super::super::size;
 use super::{CpfpRoleId, Vecs};

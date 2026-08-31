@@ -2,8 +2,9 @@ use bitview_cohort::OutputTypeId;
 use bitview_compute::{CoinbasePolicy, walk_blocks};
 use bitview_plugin_indexer::Indexer;
 use brk_error::{OptionData, Result};
+use brk_exit::Exit;
 use brk_types::{StoredU16, StoredU64};
-use vecdb::{AnyVec, ColumnId, Exit, ReadableVec, VecIndex};
+use vecdb::{AnyVec, ColumnId, ReadableVec, VecIndex};
 
 use super::Vecs;
 

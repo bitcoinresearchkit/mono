@@ -4,7 +4,7 @@ use std::thread;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
-use vecdb::Exit;
+use brk_exit::Exit;
 
 use super::{Vecs, interval::Compute as _, lookback::Invalidate as _, size::Compute as _};
 use crate::Dependencies;

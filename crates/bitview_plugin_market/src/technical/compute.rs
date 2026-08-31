@@ -1,12 +1,12 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Dollars, PartsPerMillion32};
 use rayon::{
     join,
     prelude::{IntoParallelIterator, ParallelIterator},
 };
-use vecdb::Exit;
 
 use super::{super::moving_average, Vecs, macd, rsi_chain};
 use bitview_compute::RatioDollars;

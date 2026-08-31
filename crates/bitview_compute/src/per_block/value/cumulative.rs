@@ -1,10 +1,11 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
-    AnyVec, BinaryTransform, Database, EagerVec, Exit, PcoVec, ReadableVec, Rw, StorageMode,
-    VecIndex, VecValue, WritableVec,
+    AnyVec, BinaryTransform, Database, EagerVec, PcoVec, ReadableVec, Rw, StorageMode, VecIndex,
+    VecValue, WritableVec,
 };
 
 use crate::{LazyValueBlock, SatsToCents, ValuePerBlock};

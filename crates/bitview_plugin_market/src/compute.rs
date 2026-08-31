@@ -2,8 +2,8 @@ use brk_error::Result;
 
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use rayon::join;
-use vecdb::Exit;
 
 use super::Vecs;
 use crate::Dependencies;

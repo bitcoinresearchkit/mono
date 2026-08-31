@@ -1,7 +1,8 @@
 use brk_error::Result;
 
+use brk_exit::Exit;
 use vecdb::{
-    AnyStoredVec, AnyVec, EagerVec, Exit, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue,
+    AnyStoredVec, AnyVec, EagerVec, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue,
     WritableVec,
 };
 

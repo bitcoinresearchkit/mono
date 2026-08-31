@@ -31,7 +31,7 @@ done
 
 if [ ! -f "$MANIFEST" ]; then
     echo "Missing $MANIFEST"
-    echo "Generate it with: cargo run -p bitviewd --example bindgen --features bindgen"
+    echo "Generate it with: cargo run -p bitviewd --bin bitview-bindgen --features bindgen"
     exit 1
 fi
 

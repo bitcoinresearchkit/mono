@@ -13,6 +13,7 @@ pub use bitview_runtime::{
 };
 use bitview_server::{Server, ServerConfig};
 use brk_error::{Error, Result};
+use brk_exit::Exit;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
@@ -21,7 +22,7 @@ use tokio::{
     task::JoinHandle,
 };
 use tracing::info;
-use vecdb::{Exit, ReadOnlyClone};
+use vecdb::ReadOnlyClone;
 
 /// The Bitview project website.
 pub const HOMEPAGE: &str = "https://bitview.dev";

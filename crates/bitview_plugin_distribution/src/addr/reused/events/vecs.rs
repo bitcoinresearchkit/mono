@@ -3,9 +3,10 @@ use brk_error::Result;
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{PartsPerMillion32, StoredF32, StoredU32, StoredU64, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, Database, Exit, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, Database, Rw, StorageMode, WritableVec};
 
 use bitview_compute::{
     CachedBlockCountReader, CachedWindowStartVec, ColumnarPerBlockCumulativeRolling,

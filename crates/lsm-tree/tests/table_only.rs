@@ -185,6 +185,31 @@ fn compaction_preserves_latest_values_and_open_readers() -> lsm_tree::Result<()>
 }
 
 #[test]
+fn compaction_bounds_overlapping_l0_runs() -> lsm_tree::Result<()> {
+    let directory = tempfile::tempdir()?;
+    let tree = open(directory.path())?;
+
+    for generation in 0..4_u8 {
+        let mut ingestion = tree.ingestion()?;
+        for key in 0..64_u8 {
+            ingestion.write([key], [generation])?;
+        }
+        ingestion.finish()?;
+    }
+
+    assert_eq!(4, tree.l0_run_count());
+    let version = tree.current_version_id();
+    tree.compact()?;
+
+    assert!(tree.current_version_id() > version);
+    assert!(tree.l0_run_count() < 4);
+    for key in 0..64_u8 {
+        assert_eq!(tree.get([key])?.as_deref(), Some([3_u8].as_slice()));
+    }
+    Ok(())
+}
+
+#[test]
 fn empty_ingestion_does_not_publish() -> lsm_tree::Result<()> {
     let directory = tempfile::tempdir()?;
     let tree = open(directory.path())?;
@@ -216,6 +241,32 @@ fn recovery_rejects_a_truncated_manifest() -> lsm_tree::Result<()> {
 }
 
 #[test]
+fn recovery_upgrades_a_checksumless_v9_manifest() -> lsm_tree::Result<()> {
+    let directory = tempfile::tempdir()?;
+    let tree = open(directory.path())?;
+    let mut ingestion = tree.ingestion()?;
+    ingestion.write("a", "1")?;
+    ingestion.finish()?;
+    drop(tree);
+
+    let path = directory.path().join("current");
+    let mut bytes = std::fs::read(&path)?;
+    *bytes.get_mut(3).ok_or(lsm_tree::Error::Unrecoverable)? = 9;
+    bytes.truncate(bytes.len() - size_of::<u128>());
+    std::fs::write(&path, bytes)?;
+
+    let tree = open(directory.path())?;
+    assert_eq!(tree.get("a")?.as_deref(), Some(b"1".as_slice()));
+    let mut ingestion = tree.ingestion()?;
+    ingestion.write("b", "2")?;
+    ingestion.finish()?;
+
+    let upgraded = std::fs::read(path)?;
+    assert_eq!(upgraded.get(3), Some(&10));
+    Ok(())
+}
+
+#[test]
 fn recovery_rejects_an_old_manifest_version() -> lsm_tree::Result<()> {
     let directory = tempfile::tempdir()?;
     let tree = open(directory.path())?;
@@ -223,7 +274,7 @@ fn recovery_rejects_an_old_manifest_version() -> lsm_tree::Result<()> {
 
     let path = directory.path().join("current");
     let mut bytes = std::fs::read(&path)?;
-    *bytes.get_mut(3).ok_or(lsm_tree::Error::Unrecoverable)? -= 1;
+    *bytes.get_mut(3).ok_or(lsm_tree::Error::Unrecoverable)? = 8;
     std::fs::write(path, bytes)?;
 
     assert!(matches!(

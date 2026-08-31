@@ -2,8 +2,8 @@ use bitview_cohort::AmountRange;
 use bitview_compute::PercentPerBlock;
 use bitview_plugin_distribution::Vecs as DistributionVecs;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, Sats, StoredU64};
-use vecdb::Exit;
 
 pub fn compute(
     gini: &mut PercentPerBlock<PartsPerMillion32>,

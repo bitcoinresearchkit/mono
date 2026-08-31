@@ -20,4 +20,5 @@ vecdb = { version = "0.12.0", path = "../../crates/vecdb", features = ["pco", "s
 
 [dev-dependencies]
 bitview_query = { version = "0.12.0", path = "../../crates/bitview_query", default-features = false }
+brk_exit = { version = "0.12.0", path = "../../crates/brk_exit" }
 tempfile = "3.27.0"

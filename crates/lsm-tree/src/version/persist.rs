@@ -12,6 +12,8 @@ impl Version {
         let mut current = CURRENT_MAGIC.to_vec();
         current.write_u64::<LittleEndian>(self.id())?;
         self.encode_into(&mut current)?;
+        let checksum = xxhash_rust::xxh3::xxh3_128(&current);
+        current.write_u128::<LittleEndian>(checksum)?;
         rewrite_atomic(&folder.join(CURRENT_VERSION_FILE), &current)?;
 
         Ok(())
@@ -21,6 +23,7 @@ impl Version {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use byteorder::ByteOrder;
     use test_log::test;
 
     #[test]
@@ -33,6 +36,11 @@ mod tests {
 
         let current = std::fs::read(directory.path().join(CURRENT_VERSION_FILE))?;
         assert_ne!(b"partial".as_slice(), current.as_slice());
+        let (payload, checksum) = current.split_at(current.len() - size_of::<u128>());
+        assert_eq!(
+            xxhash_rust::xxh3::xxh3_128(payload),
+            byteorder::LittleEndian::read_u128(checksum),
+        );
         Ok(())
     }
 }

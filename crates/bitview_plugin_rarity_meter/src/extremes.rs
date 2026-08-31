@@ -2,8 +2,9 @@ use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars, Height, StoredF32, Version};
-use vecdb::{Database, Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
 use super::extreme::Extreme;
 const VERSION: Version = Version::new(7);

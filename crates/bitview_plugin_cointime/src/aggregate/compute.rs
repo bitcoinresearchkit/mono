@@ -2,8 +2,9 @@ use brk_error::Result;
 
 use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, TERM_FILTERS, UTXOAggregate};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, StoredF64, Version};
-use vecdb::{AnyStoredVec, AnyVec, ColumnId, Exit, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ColumnId, ReadableVec, WritableVec};
 
 use super::{Sources, Vecs};
 use bitview_compute::{

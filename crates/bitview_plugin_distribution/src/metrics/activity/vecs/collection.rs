@@ -5,10 +5,9 @@ use bitview_cohort::{
     UTXOAggregate, UTXOAggregateId,
 };
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
-use vecdb::{
-    AnyStoredVec, BinaryTransform, ColumnId, Database, Exit, Rw, StorageMode, UnaryTransform,
-};
+use vecdb::{AnyStoredVec, BinaryTransform, ColumnId, Database, Rw, StorageMode, UnaryTransform};
 
 use crate::metrics::UTXORows;
 use bitview_compute::{

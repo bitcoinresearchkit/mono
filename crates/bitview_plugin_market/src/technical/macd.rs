@@ -1,7 +1,7 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
-use vecdb::Exit;
+use brk_exit::Exit;
 
 use super::MacdChain;
 #[allow(clippy::too_many_arguments)]

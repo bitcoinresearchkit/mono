@@ -48,7 +48,7 @@ bitview-cli get-series-data help
 ## Regenerate
 
 ```bash
-cargo run -p bitviewd --example bindgen --features bindgen
+cargo run -p bitviewd --bin bitview-bindgen --features bindgen
 ```
 
 `src/generated.rs` is generated and must not be edited by hand.

@@ -1,8 +1,9 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{CheckedSub, Timestamp};
-use vecdb::{Exit, ReadableVec};
+use vecdb::ReadableVec;
 
 use super::Vecs;
 

@@ -77,6 +77,7 @@ bitview_types = { version = "0.12.0", path = "crates/bitview_types" }
 bitview_website = { version = "0.12.0", path = "crates/bitview_website" }
 brk_alloc = { version = "0.12.0", path = "crates/brk_alloc" }
 brk_error = { version = "0.12.0", path = "crates/brk_error" }
+brk_exit = { version = "0.12.0", path = "crates/brk_exit" }
 brk_fetcher = { version = "0.12.0", path = "crates/brk_fetcher" }
 brk_iterator = { version = "0.12.0", path = "crates/brk_iterator" }
 brk_logger = { version = "0.12.0", path = "crates/brk_logger" }

@@ -47,3 +47,8 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 name = "table_only"
 harness = false
 path = "benches/table_only.rs"
+
+[[bench]]
+name = "multirun"
+harness = false
+path = "benches/multirun.rs"

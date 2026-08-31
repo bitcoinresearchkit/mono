@@ -4,11 +4,11 @@ use bitview::ImportContext;
 use bitview_default::DefaultPlugins;
 use bitview_query::Query;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
 use brk_types::Addr;
-use vecdb::Exit;
 
 pub fn main() -> Result<()> {
     let bitcoin_dir = Client::default_bitcoin_path();

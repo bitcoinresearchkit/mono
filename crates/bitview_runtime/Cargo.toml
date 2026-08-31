@@ -14,9 +14,10 @@ bitview_runtime_derive = { workspace = true }
 brk_alloc = { workspace = true }
 brk_error = { workspace = true }
 tracing = { workspace = true }
-vecdb = { workspace = true }
 
 [dev-dependencies]
 bitview_traversable = { workspace = true }
+brk_exit = { workspace = true }
 brk_types = { workspace = true }
 tempfile = { workspace = true }
+vecdb = { workspace = true }

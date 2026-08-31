@@ -1,10 +1,11 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, StoredF32, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{
-    BinaryTransform, Database, EagerVec, Exit, PcoVec, ReadableCloneableVec, ReadableVec, Rw,
+    BinaryTransform, Database, EagerVec, PcoVec, ReadableCloneableVec, ReadableVec, Rw,
     StorageMode, VecValue,
 };
 

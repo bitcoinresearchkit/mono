@@ -9,6 +9,7 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+brk_exit = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_error = { workspace = true }
 brk_types = { workspace = true }

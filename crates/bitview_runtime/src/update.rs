@@ -52,8 +52,8 @@ mod tests {
     use bitview_plugin::{Plugin, PluginGate, PluginId, PluginReadGuard, PluginStorage};
     use bitview_traversable::Traversable;
     use brk_error::Error;
+    use brk_exit::Exit;
     use brk_types::Version;
-    use vecdb::Exit;
 
     use super::*;
 

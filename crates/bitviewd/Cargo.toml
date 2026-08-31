@@ -9,6 +9,18 @@ repository.workspace = true
 readme = "README.md"
 keywords = ["bitcoin", "analytics", "blockchain", "data", "self-hosted"]
 
+[package.metadata.release]
+pre-release-hook = [
+    "cargo",
+    "run",
+    "-p",
+    "bitviewd",
+    "--bin",
+    "bitview-bindgen",
+    "--features",
+    "bindgen",
+]
+
 # Cargo ignores this inside the workspace but preserves it for `cargo install`.
 # Keep in sync with the release profile in the workspace Cargo.toml.
 [profile.release]
@@ -36,21 +48,33 @@ transactions = ["bitview/transactions"]
 chain = ["bitview/chain"]
 series = ["bitview/series"]
 urpd = ["bitview/urpd"]
-bindgen = ["dep:bitview_bindgen", "bitview/bindgen"]
+bindgen = [
+    "dep:aide",
+    "dep:bitview_bindgen",
+    "dep:bitview_query",
+    "dep:color-eyre",
+    "dep:serde_json",
+    "bitview/bindgen",
+]
 
 [dependencies]
+aide = { workspace = true, optional = true }
+brk_exit = { workspace = true }
 bitview = { workspace = true }
 bitview_bindgen = { workspace = true, optional = true }
 bitview_default = { workspace = true, optional = true }
+bitview_query = { workspace = true, optional = true }
 bitview_server = { workspace = true }
 brk_error = { workspace = true }
 brk_logger = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
+color-eyre = { workspace = true, optional = true }
 lexopt = "0.3"
 owo-colors = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true, optional = true }
 toml = "1.1.4"
 vecdb = { workspace = true }
 
@@ -70,8 +94,9 @@ tempfile = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 
-[[example]]
-name = "bindgen"
+[[bin]]
+name = "bitview-bindgen"
+path = "src/bin/bindgen.rs"
 required-features = ["bindgen", "default"]
 
 [[example]]

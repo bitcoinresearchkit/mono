@@ -20,6 +20,7 @@ zerocopy = ["dep:zerocopy"]
 zstd = ["dep:zstd"]
 
 [dependencies]
+brk_exit = { workspace = true }
 itoa = "1.0.18"
 libc = { workspace = true }
 log = { workspace = true }

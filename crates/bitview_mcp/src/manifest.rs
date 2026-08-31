@@ -63,7 +63,7 @@ impl Catalog {
         }
         if manifest.operations.is_empty() {
             return Err(
-                "generated LLM manifest is empty; run `cargo run -p bitviewd --example bindgen --features bindgen` first".to_string(),
+                "generated LLM manifest is empty; run `cargo run -p bitviewd --bin bitview-bindgen --features bindgen` first".to_string(),
             );
         }
 

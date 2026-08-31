@@ -3,8 +3,9 @@ use rayon::prelude::*;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::Version;
-use vecdb::{Database, Exit, Rw, StorageMode};
+use vecdb::{Database, Rw, StorageMode};
 
 use super::{Component, component};
 #[derive(Traversable)]

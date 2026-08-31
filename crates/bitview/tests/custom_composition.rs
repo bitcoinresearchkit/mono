@@ -18,8 +18,9 @@ use bitview_plugin::ComputePlugin;
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 use bitview_traversable::Traversable;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_reader::Reader;
-use vecdb::{Exit, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
 #[derive(PluginSet, Traversable)]
 struct Plugins<M: StorageMode = Rw> {

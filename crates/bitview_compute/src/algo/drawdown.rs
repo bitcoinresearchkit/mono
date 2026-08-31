@@ -1,7 +1,8 @@
 use brk_error::Result;
 
+use brk_exit::Exit;
 use brk_types::PartsPerMillionSigned32;
-use vecdb::{EagerVec, Exit, PcoVec, ReadableVec, VecIndex, VecValue};
+use vecdb::{EagerVec, PcoVec, ReadableVec, VecIndex, VecValue};
 
 pub trait ComputeDrawdown<I: VecIndex> {
     fn compute_drawdown<C, A>(

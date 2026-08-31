@@ -3,8 +3,9 @@
 use brk_error::Result;
 
 use bitview::{ComputePluginSet, ImportContext, QueryPluginSet};
+use brk_exit::Exit;
 use brk_reader::Reader;
-use vecdb::{Exit, ReadOnlyClone};
+use vecdb::ReadOnlyClone;
 
 mod config;
 mod paths;

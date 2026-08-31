@@ -1,8 +1,8 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Lengths;
+use brk_exit::Exit;
 use brk_types::{Height, StoredU64};
-use vecdb::Exit;
 
 use super::Vecs;
 use crate::{ByTypeVecs, CountVecs};

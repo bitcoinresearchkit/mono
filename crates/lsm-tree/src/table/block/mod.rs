@@ -25,6 +25,28 @@ use crate::{
 };
 use std::fs::File;
 
+const MAX_LZ4_EXPANSION_RATIO: usize = 256;
+
+fn validate_lengths(header: &Header, compression: CompressionType) -> crate::Result<()> {
+    let data_length = usize::try_from(header.data_length)
+        .map_err(|_| crate::Error::InvalidHeader("Block length"))?;
+    let uncompressed_length = usize::try_from(header.uncompressed_length)
+        .map_err(|_| crate::Error::InvalidHeader("Block length"))?;
+
+    let valid = match compression {
+        CompressionType::None => data_length == uncompressed_length,
+        CompressionType::Lz4 => {
+            uncompressed_length <= data_length.saturating_mul(MAX_LZ4_EXPANSION_RATIO)
+        }
+    };
+
+    if !valid {
+        return Err(crate::Error::InvalidHeader("Block length"));
+    }
+
+    Ok(())
+}
+
 fn decompress_lz4(raw_data: &[u8], uncompressed_len: usize) -> crate::Result<Slice> {
     #[expect(
         unsafe_code,
@@ -103,6 +125,7 @@ impl Block {
         compression: CompressionType,
     ) -> crate::Result<Self> {
         let header = Header::decode_from(reader)?;
+        validate_lengths(&header, compression)?;
         let raw_data = Slice::from_reader(reader, header.data_length as usize)?;
 
         let data = match compression {
@@ -130,6 +153,14 @@ impl Block {
         let buf = crate::file::read_exact(file, *handle.offset(), handle.size() as usize)?;
 
         let header = Header::decode_from(&mut &buf[..])?;
+        validate_lengths(&header, compression)?;
+
+        let expected_length = Header::serialized_len()
+            .checked_add(header.data_length as usize)
+            .ok_or(crate::Error::InvalidHeader("Block length"))?;
+        if expected_length != buf.len() {
+            return Err(crate::Error::InvalidHeader("Block length"));
+        }
 
         let buf = match compression {
             CompressionType::None => {
@@ -160,6 +191,7 @@ impl Block {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::coding::Encode;
     use test_log::test;
 
     // TODO: Block::from_file roundtrips
@@ -201,5 +233,59 @@ mod tests {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn block_from_file_rejects_handle_size_mismatch() -> crate::Result<()> {
+        let directory = tempfile::tempdir()?;
+        let path = directory.path().join("block");
+        let mut bytes = Vec::new();
+        Block::write_into(
+            &mut bytes,
+            b"abcdef",
+            BlockType::Data,
+            CompressionType::None,
+        )?;
+        bytes.push(0);
+        std::fs::write(&path, &bytes)?;
+
+        let handle = BlockHandle::new(BlockOffset(0), bytes.len() as u32);
+        assert!(matches!(
+            Block::from_file(&File::open(path)?, handle, CompressionType::None),
+            Err(crate::Error::InvalidHeader("Block length"))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn block_rejects_invalid_uncompressed_length() {
+        let header = Header {
+            block_type: BlockType::Data,
+            data_length: 1,
+            uncompressed_length: 2,
+        };
+        let mut bytes = header.encode_into_vec();
+        bytes.push(0);
+
+        assert!(matches!(
+            Block::from_reader(&mut &bytes[..], CompressionType::None),
+            Err(crate::Error::InvalidHeader("Block length"))
+        ));
+    }
+
+    #[test]
+    fn block_rejects_impossible_lz4_expansion_before_allocating() {
+        let header = Header {
+            block_type: BlockType::Data,
+            data_length: 1,
+            uncompressed_length: 257,
+        };
+        let mut bytes = header.encode_into_vec();
+        bytes.push(0);
+
+        assert!(matches!(
+            Block::from_reader(&mut &bytes[..], CompressionType::Lz4),
+            Err(crate::Error::InvalidHeader("Block length"))
+        ));
     }
 }

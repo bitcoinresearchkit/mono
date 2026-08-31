@@ -1,9 +1,10 @@
 use brk_error::Result;
 
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{
-    BinaryTransform, CachedBoxedVec, Database, Exit, ReadOnlyClone, ReadableVec, Rw, StorageMode,
+    BinaryTransform, CachedBoxedVec, Database, ReadOnlyClone, ReadableVec, Rw, StorageMode,
     VecIndex, VecValue,
 };
 

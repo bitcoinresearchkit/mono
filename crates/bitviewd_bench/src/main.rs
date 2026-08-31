@@ -2,9 +2,9 @@ use bitview::{Config as RunnerConfig, ImportContext, UpdateContext, bootstrap};
 use bitview_default::DefaultPlugins;
 use bitviewd::Config;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_reader::Reader;
 use tracing::info;
-use vecdb::Exit;
 
 mod benchmark;
 

@@ -8,6 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+brk_exit = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution = { workspace = true }

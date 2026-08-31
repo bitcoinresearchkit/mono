@@ -22,12 +22,13 @@ use bitview_plugin::{
 };
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{
     Day1, Day3, Epoch, Halving, Height, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
     Month6, StoredU64, TxInIndex, TxIndex, TxOutIndex, Version, Week1, Year1, Year10,
 };
 use vecdb::{
-    AnyVec, CachedBoxedVec, CachedVec, Database, Exit, ReadableBoxedVec, ReadableCloneableVec, Rw,
+    AnyVec, CachedBoxedVec, CachedVec, Database, ReadableBoxedVec, ReadableCloneableVec, Rw,
     StorageMode, VecIndex,
 };
 

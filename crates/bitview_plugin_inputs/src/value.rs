@@ -1,10 +1,11 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Sats, TxInIndex, TxOutIndex};
 use rayon::prelude::*;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, Exit, PcoVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 const SORT_MEMORY_BUDGET: usize = 2 * 1024 * 1024 * 1024;
 const BATCH_SIZE: usize = SORT_MEMORY_BUDGET / (size_of::<Entry>() + size_of::<Sats>());

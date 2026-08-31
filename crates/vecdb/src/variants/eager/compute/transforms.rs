@@ -1,9 +1,10 @@
 use std::ops::Range;
 
 use crate::{
-    AnyStoredVec, AnyVec, BinaryTransform, Cursor, Error, Exit, ReadableVec, StoredVec, VecIndex,
+    AnyStoredVec, AnyVec, BinaryTransform, Cursor, Error, ReadableVec, StoredVec, VecIndex,
     VecValue, Version, WritableVec,
 };
+use brk_exit::Exit;
 
 use super::super::EagerVec;
 

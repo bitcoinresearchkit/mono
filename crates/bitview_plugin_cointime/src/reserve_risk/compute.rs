@@ -1,8 +1,8 @@
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::StoredF64;
-use vecdb::Exit;
 
 use super::{super::value, Vecs};
 use bitview_compute::algo::ComputeRollingMedianFromStarts;

@@ -2,9 +2,10 @@ use brk_error::Result;
 
 use bitview_cohort::{AddrTypeId, ByAddrType};
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, Sats, Version};
 use vecdb::{
-    AnyStoredVec, BinaryTransform, CachedBoxedVec, Database, Exit, ReadOnlyClone, ReadableVec, Rw,
+    AnyStoredVec, BinaryTransform, CachedBoxedVec, Database, ReadOnlyClone, ReadableVec, Rw,
     StorageMode, WritableVec,
 };
 

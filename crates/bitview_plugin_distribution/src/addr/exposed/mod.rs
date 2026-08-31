@@ -38,9 +38,10 @@ use brk_error::Result;
 use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, CachedBoxedVec, Database, Exit, ReadableVec, Rw, StorageMode};
+use vecdb::{AnyStoredVec, CachedBoxedVec, Database, ReadableVec, Rw, StorageMode};
 
 use super::{
     count::AddrCountFundedTotalVecs,

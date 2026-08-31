@@ -2,8 +2,9 @@ use brk_error::Result;
 
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{Bitcoin, Height, Sats, StoredF64, Version};
-use vecdb::{AnyVec, CheckedSub, ColumnId, Exit, ReadableVec, StoredVec, WritableVec};
+use vecdb::{AnyVec, CheckedSub, ColumnId, ReadableVec, StoredVec, WritableVec};
 
 use super::Vecs;
 use bitview_compute::WeightedCohortState;

@@ -81,7 +81,7 @@ The tool catalog is generated from the canonical OpenAPI document by
 changing the API, run:
 
 ```sh
-cargo run -p bitviewd --example bindgen --features bindgen
+cargo run -p bitviewd --bin bitview-bindgen --features bindgen
 ```
 
 The same command generates `server.json` for the official MCP Registry. The

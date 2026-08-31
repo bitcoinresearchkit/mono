@@ -4,13 +4,14 @@ use std::time::{Duration, Instant};
 
 use bitview_cohort::{ByAddrType, EntryPrice, Filter, Term};
 use bitview_plugin_indexer::Indexer;
+use brk_exit::Exit;
 use brk_types::{
     Cents, Date, Height, ONE_DAY_IN_SEC, OutputType, RangeMap, Sats, StoredF64, Timestamp, TxIndex,
     TypeIndex,
 };
 use rayon::prelude::*;
 use tracing::{debug, info};
-use vecdb::{AnyVec, Exit, ReadableVec, VecIndex, unlikely};
+use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
 use crate::{
     addr::{AddrMetricsState, FundedAddrCountsVecs},

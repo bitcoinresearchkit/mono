@@ -2,12 +2,13 @@ use brk_error::Result;
 
 use bitview_plugin_indexer::Lengths;
 use bitview_traversable::Traversable;
+use brk_exit::Exit;
 use brk_types::{
     Cents, Height, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
     RarityPercentileId, StoredF32, Version,
 };
 use vecdb::{
-    AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, Exit, ImportableVec, PcoVec,
+    AnyStoredVec, AnyVec, ColumnId, ColumnarVec, Database, EagerVec, ImportableVec, PcoVec,
     ReadOnlyClone, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
 };
 
