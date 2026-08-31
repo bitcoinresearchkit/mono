@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Relative\_Unrealized\_Loss
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14577](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14577)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14602](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14602)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14577](https://github
 
 > **toMcap**: [`AllLthSthPattern6`](AllLthSthPattern6.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14578](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14578)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14603](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14603)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14578](https://github
 
 > **toOwnGrossPnl**: [`AllLthSthPattern6`](AllLthSthPattern6.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14580](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14580)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14605](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14605)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14580](https://github
 
 > **toOwnMcap**: [`SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap`](SeriesTree_Cohorts_Relative_Unrealized_Loss_ToOwnMcap.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14579](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14579)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14604](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14604)

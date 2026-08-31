@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Outputs\_Count
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7815](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7815)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7821](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7821)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7815](https://github.
 
 > **total**: [`CumulativeRollingSumPattern`](CumulativeRollingSumPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7816](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7816)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7822](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7822)

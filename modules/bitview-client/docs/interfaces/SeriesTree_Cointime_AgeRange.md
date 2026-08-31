@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_AgeRange
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8731](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8731)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8737](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8737)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8731](https://github.
 
 > **activity**: [`SeriesTree_Cointime_AgeRange_Activity`](SeriesTree_Cointime_AgeRange_Activity.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8734](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8734)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8740](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8740)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8734](https://github.
 
 > **coindaysConsumed**: [`SeriesTree_Cointime_AgeRange_CoindaysConsumed`](SeriesTree_Cointime_AgeRange_CoindaysConsumed.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8732](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8732)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8738](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8738)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8732](https://github.
 
 > **coindaysStored**: [`SeriesTree_Cointime_AgeRange_CoindaysStored`](SeriesTree_Cointime_AgeRange_CoindaysStored.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8733](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8733)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8739](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8739)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8733](https://github.
 
 > **supply**: [`SeriesTree_Cointime_AgeRange_Supply`](SeriesTree_Cointime_AgeRange_Supply.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8735](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8735)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8741](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8741)

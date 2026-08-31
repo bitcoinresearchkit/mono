@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Coinflow\_AgeRange\_Supply
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9173](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9173)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9179](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9179)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9173](https://github.
 
 > **immobile**: [`SeriesTree_Coinflow_AgeRange_Supply_Immobile`](SeriesTree_Coinflow_AgeRange_Supply_Immobile.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9175](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9175)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9181](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9181)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9175](https://github.
 
 > **mobile**: [`SeriesTree_Coinflow_AgeRange_Supply_Mobile`](SeriesTree_Coinflow_AgeRange_Supply_Mobile.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9174](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9174)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9180](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9180)

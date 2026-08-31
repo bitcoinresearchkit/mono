@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Outputs
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11101](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L11101)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11126](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11126)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11101](https://github
 
 > **spentCount**: [`SeriesTree_Cohorts_Outputs_SpentCount`](SeriesTree_Cohorts_Outputs_SpentCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11103](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L11103)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11128](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11128)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:11103](https://github
 
 > **unspentCount**: [`SeriesTree_Cohorts_Outputs_UnspentCount`](SeriesTree_Cohorts_Outputs_UnspentCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:11102](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L11102)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11127](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11127)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Outputs\_ByType
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7825](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7825)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7831](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7831)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7825](https://github.
 
 > **outputCount**: [`SeriesTree_Outputs_ByType_OutputCount`](SeriesTree_Outputs_ByType_OutputCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7826](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7826)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7832](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7832)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7826](https://github.
 
 > **outputShare**: [`SeriesTree_Outputs_ByType_OutputShare`](SeriesTree_Outputs_ByType_OutputShare.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7828](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7828)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7834](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7834)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7828](https://github.
 
 > **spendableOutputCount**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7827](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7827)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7833](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7833)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7827](https://github.
 
 > **txCount**: [`SeriesTree_Outputs_ByType_TxCount`](SeriesTree_Outputs_ByType_TxCount.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7829](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7829)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7835](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7835)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7829](https://github.
 
 > **txShare**: [`EmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2`](EmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7830](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7830)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7836](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7836)

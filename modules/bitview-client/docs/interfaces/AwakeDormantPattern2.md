@@ -6,7 +6,7 @@
 
 # Interface: AwakeDormantPattern2
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6703](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6703)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6703](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L6703)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6703](https://github.
 
 > **awake**: [`CapPriceSupplyPattern`](CapPriceSupplyPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6704](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6704)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6704](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L6704)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:6704](https://github.
 
 > **dormant**: [`SupplyPattern2`](SupplyPattern2.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:6705](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L6705)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6705](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L6705)

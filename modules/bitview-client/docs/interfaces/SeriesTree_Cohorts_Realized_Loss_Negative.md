@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Loss\_Negative
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12786](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12786)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12811](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12811)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12786](https://github
 
 > **age**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Age`](SeriesTree_Cohorts_Realized_Loss_Negative_Age.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12788](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12788)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12813](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12813)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12788](https://github
 
 > **all**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12787](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12787)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12812](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12812)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12787](https://github
 
 > **class**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Class`](SeriesTree_Cohorts_Realized_Loss_Negative_Class.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12790](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12790)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12815](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12815)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12790](https://github
 
 > **entry**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Entry`](SeriesTree_Cohorts_Realized_Loss_Negative_Entry.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12791](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12791)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12816](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12816)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12791](https://github
 
 > **epoch**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Epoch`](SeriesTree_Cohorts_Realized_Loss_Negative_Epoch.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12789](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12789)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12814](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12814)
 
 ***
 
@@ -54,4 +54,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:12789](https://github
 
 > **term**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Term`](SeriesTree_Cohorts_Realized_Loss_Negative_Term.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:12792](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L12792)
+Defined in: [Developer/mono/modules/bitview-client/index.js:12817](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L12817)

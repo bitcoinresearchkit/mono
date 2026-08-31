@@ -6,7 +6,7 @@
 
 # Interface: FundedTotalPattern
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7013](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7013)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7019](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7019)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7013](https://github.
 
 > **funded**: [`AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7014](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7014)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7020](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7020)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:7014](https://github.
 
 > **total**: [`AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern`](AllHeightP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:7015](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L7015)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7021](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L7021)

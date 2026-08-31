@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Frameworks
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15594](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15594)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15619](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15619)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15594](https://github
 
 > **cointime**: [`SeriesTree_Frameworks_Cointime`](SeriesTree_Frameworks_Cointime.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15595](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15595)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15620](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15620)

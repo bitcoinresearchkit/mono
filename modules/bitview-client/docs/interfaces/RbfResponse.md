@@ -6,7 +6,7 @@
 
 # Interface: RbfResponse
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1138](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1138)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1138](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L1138)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1138](https://github.
 
 > `optional` **replacements?**: [`ReplacementNode`](ReplacementNode.md) \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1139](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1139)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1139](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L1139)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:1139](https://github.
 
 > `optional` **replaces?**: `string`[] \| `null`
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:1140](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L1140)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1140](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L1140)

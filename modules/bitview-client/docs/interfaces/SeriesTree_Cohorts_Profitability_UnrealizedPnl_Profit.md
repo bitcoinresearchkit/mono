@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Profitability\_UnrealizedPnl\_Profit
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15334](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15334)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15359](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15359)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15334](https://github
 
 > **\_100pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_100pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15345](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15345)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15370](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15370)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15345](https://github
 
 > **\_10pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_10pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15336](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15336)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15361](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15361)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15336](https://github
 
 > **\_200pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_200pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15346](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15346)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15371](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15371)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15346](https://github
 
 > **\_20pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_20pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15337](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15337)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15362](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15362)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15337](https://github
 
 > **\_300pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_300pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15347](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15347)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15372](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15372)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15347](https://github
 
 > **\_30pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_30pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15338](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15338)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15363](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15363)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15338](https://github
 
 > **\_40pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_40pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15339](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15339)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15364](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15364)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15339](https://github
 
 > **\_500pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_500pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15348](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15348)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15373](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15373)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15348](https://github
 
 > **\_50pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_50pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15340](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15340)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15365](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15365)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15340](https://github
 
 > **\_60pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_60pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15341](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15341)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15366](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15366)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15341](https://github
 
 > **\_70pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_70pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15342](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15342)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15367](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15367)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15342](https://github
 
 > **\_80pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_80pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15343](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15343)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15368](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15368)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15343](https://github
 
 > **\_90pct**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_90pct.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15344](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15344)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15369](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15369)
 
 ***
 
@@ -118,4 +118,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15344](https://github
 
 > **total**: [`SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total`](SeriesTree_Cohorts_Profitability_UnrealizedPnl_Profit_Total.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15335](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15335)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15360](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15360)

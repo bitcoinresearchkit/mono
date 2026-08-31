@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_Loss\_Negative
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14002](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14002)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14027](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14027)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14002](https://github
 
 > **age**: [`SeriesTree_Cohorts_Unrealized_Loss_Negative_Age`](SeriesTree_Cohorts_Unrealized_Loss_Negative_Age.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14004](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14004)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14029](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14029)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14004](https://github
 
 > **all**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14003](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14003)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14028](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14028)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14003](https://github
 
 > **class**: [`SeriesTree_Cohorts_Unrealized_Loss_Negative_Class`](SeriesTree_Cohorts_Unrealized_Loss_Negative_Class.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14006](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14006)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14031](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14031)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14006](https://github
 
 > **entry**: [`DiscountPremiumPattern7`](DiscountPremiumPattern7.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14007](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14007)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14032](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14032)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14007](https://github
 
 > **epoch**: [`SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch`](SeriesTree_Cohorts_Unrealized_Loss_Negative_Epoch.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14005](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14005)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14030](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14030)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14005](https://github
 
 > **term**: [`LongShortPattern7`](LongShortPattern7.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14008](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14008)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14033](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14033)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14008](https://github
 
 > **type**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern6.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14009](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14009)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14034](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14034)

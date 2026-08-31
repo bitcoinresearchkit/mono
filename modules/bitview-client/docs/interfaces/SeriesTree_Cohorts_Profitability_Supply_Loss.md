@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Profitability\_Supply\_Loss
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14705](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14705)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14730](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14730)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14705](https://github
 
 > **\_10pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14707](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14707)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14732](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14732)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14707](https://github
 
 > **\_20pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14708](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14708)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14733](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14733)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14708](https://github
 
 > **\_30pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14709](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14709)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14734](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14734)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14709](https://github
 
 > **\_40pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14710](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14710)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14735](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14735)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14710](https://github
 
 > **\_50pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14711](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14711)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14736](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14736)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14711](https://github
 
 > **\_60pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14712](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14712)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14737](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14737)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14712](https://github
 
 > **\_70pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14713](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14713)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14738](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14738)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14713](https://github
 
 > **\_80pct**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14714](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14714)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14739](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14739)
 
 ***
 
@@ -78,4 +78,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14714](https://github
 
 > **total**: [`AllLthSthPattern5`](AllLthSthPattern5.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14706](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14706)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14731](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14731)

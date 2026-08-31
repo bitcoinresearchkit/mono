@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Pools\_Minor
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10019](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10019)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10044](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10044)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10019](https://github
 
 > **aaopool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10113](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10113)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10138](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10138)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10113](https://github
 
 > **arkpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10115](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10115)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10140](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10140)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10115](https://github
 
 > **asicminer**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10032](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10032)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10057](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10057)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10032](https://github
 
 > **axbt**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10031](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10031)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10056](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10056)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10031](https://github
 
 > **batpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10082](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10082)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10107](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10107)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10082](https://github
 
 > **bcmonster**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10077](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10077)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10102](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10102)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10077](https://github
 
 > **bcpoolio**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10057](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10057)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10082](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10082)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10057](https://github
 
 > **bitalo**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10049](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10049)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10074](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10074)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10049](https://github
 
 > **bitclub**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10063](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10063)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10088](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10088)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10063](https://github
 
 > **bitcoinaffiliatenetwork**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10064](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10064)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10089](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10089)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10064](https://github
 
 > **bitcoincom**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10028](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10028)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10053](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10053)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10028](https://github
 
 > **bitcoinindia**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10088](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10088)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10113](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10113)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10088](https://github
 
 > **bitcoinindiapool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10136](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10136)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10161](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10161)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10136](https://github
 
 > **bitcoinrussia**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10034](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10034)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10059](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10059)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10034](https://github
 
 > **bitcoinukraine**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10100](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10100)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10125](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10125)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10100](https://github
 
 > **bitfarms**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10024](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10024)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10049](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10049)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10024](https://github
 
 > **bitfufupool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10150](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10150)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10175](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10175)
 
 ***
 
@@ -150,7 +150,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10150](https://github
 
 > **bitminter**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10033](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10033)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10058](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10058)
 
 ***
 
@@ -158,7 +158,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10033](https://github
 
 > **bitparking**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10045](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10045)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10070](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10070)
 
 ***
 
@@ -166,7 +166,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10045](https://github
 
 > **bitsolo**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10066](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10066)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10091](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10091)
 
 ***
 
@@ -174,7 +174,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10066](https://github
 
 > **bixin**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10079](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10079)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10104](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10104)
 
 ***
 
@@ -182,7 +182,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10079](https://github
 
 > **blockfills**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10020](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10020)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10045](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10045)
 
 ***
 
@@ -190,7 +190,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10020](https://github
 
 > **braiinssolo**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10160](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10160)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10185](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10185)
 
 ***
 
@@ -198,7 +198,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10160](https://github
 
 > **bravomining**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10074](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10074)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10099](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10099)
 
 ***
 
@@ -206,7 +206,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10074](https://github
 
 > **btcdig**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10129](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10129)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10154](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10154)
 
 ***
 
@@ -214,7 +214,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10129](https://github
 
 > **btclab**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10156](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10156)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10181](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10181)
 
 ***
 
@@ -222,7 +222,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10156](https://github
 
 > **btcmp**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10131](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10131)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10156](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10156)
 
 ***
 
@@ -230,7 +230,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10131](https://github
 
 > **btcnuggets**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10122](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10122)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10147](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10147)
 
 ***
 
@@ -238,7 +238,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10122](https://github
 
 > **btcpoolparty**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10126](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10126)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10151](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10151)
 
 ***
 
@@ -246,7 +246,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10126](https://github
 
 > **btcserv**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10035](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10035)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10060](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10060)
 
 ***
 
@@ -254,7 +254,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10035](https://github
 
 > **btpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10086](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10086)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10111](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10111)
 
 ***
 
@@ -262,7 +262,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10086](https://github
 
 > **bytepool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10107](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10107)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10132](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10132)
 
 ***
 
@@ -270,7 +270,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10107](https://github
 
 > **canoe**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10138](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10138)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10163](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10163)
 
 ***
 
@@ -278,7 +278,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10138](https://github
 
 > **canoepool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10027](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10027)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10052](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10052)
 
 ***
 
@@ -286,7 +286,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10027](https://github
 
 > **carbonnegative**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10145](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10145)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10170](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10170)
 
 ***
 
@@ -294,7 +294,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10145](https://github
 
 > **ckpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10061](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10061)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10086](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10086)
 
 ***
 
@@ -302,7 +302,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10061](https://github
 
 > **cloudhashing**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10123](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10123)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10148](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10148)
 
 ***
 
@@ -310,7 +310,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10123](https://github
 
 > **coinlab**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10041](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10041)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10066](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10066)
 
 ***
 
@@ -318,7 +318,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10041](https://github
 
 > **cointerra**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10058](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10058)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10083](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10083)
 
 ***
 
@@ -326,7 +326,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10058](https://github
 
 > **connectbtc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10081](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10081)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10106](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10106)
 
 ***
 
@@ -334,7 +334,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10081](https://github
 
 > **dcex**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10085](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10085)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10110](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10110)
 
 ***
 
@@ -342,7 +342,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10085](https://github
 
 > **dcexploration**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10084](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10084)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10109](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10109)
 
 ***
 
@@ -350,7 +350,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10084](https://github
 
 > **digitalbtc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10068](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10068)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10093](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10093)
 
 ***
 
@@ -358,7 +358,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10068](https://github
 
 > **digitalxmintsy**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10124](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10124)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10149](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10149)
 
 ***
 
@@ -366,7 +366,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10124](https://github
 
 > **dmnd**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10163](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10163)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10188](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10188)
 
 ***
 
@@ -374,7 +374,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10163](https://github
 
 > **dpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10096](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10096)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10121](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10121)
 
 ***
 
@@ -382,7 +382,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10096](https://github
 
 > **eclipsemc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10038](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10038)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10063](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10063)
 
 ***
 
@@ -390,7 +390,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10038](https://github
 
 > **eightbaochi**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10069](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10069)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10094](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10094)
 
 ***
 
@@ -398,7 +398,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10069](https://github
 
 > **ekanembtc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10137](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10137)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10162](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10162)
 
 ***
 
@@ -406,7 +406,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10137](https://github
 
 > **emcdpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10114](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10114)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10139](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10139)
 
 ***
 
@@ -414,7 +414,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10114](https://github
 
 > **entrustcharitypool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10118](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10118)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10143](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10143)
 
 ***
 
@@ -422,7 +422,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10118](https://github
 
 > **eobot**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10132](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10132)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10157](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10157)
 
 ***
 
@@ -430,7 +430,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10132](https://github
 
 > **est3lar**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10159](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10159)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10184](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10184)
 
 ***
 
@@ -438,7 +438,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10159](https://github
 
 > **exxbw**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10065](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10065)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10090](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10090)
 
 ***
 
@@ -446,7 +446,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10065](https://github
 
 > **fiftyeightcoin**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10087](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10087)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10112](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10112)
 
 ***
 
@@ -454,7 +454,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10087](https://github
 
 > **futurebitapollosolo**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10144](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10144)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10169](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10169)
 
 ***
 
@@ -462,7 +462,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10144](https://github
 
 > **gbminers**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10030](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10030)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10055](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10055)
 
 ***
 
@@ -470,7 +470,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10030](https://github
 
 > **gdpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10151](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10151)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10176](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10176)
 
 ***
 
@@ -478,7 +478,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10151](https://github
 
 > **ghashio**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10043](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10043)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10068](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10068)
 
 ***
 
@@ -486,7 +486,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10043](https://github
 
 > **givemecoins**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10055](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10055)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10080](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10080)
 
 ***
 
@@ -494,7 +494,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10055](https://github
 
 > **gogreenlight**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10135](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10135)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10160](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10160)
 
 ***
 
@@ -502,7 +502,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10135](https://github
 
 > **haominer**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10098](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10098)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10123](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10123)
 
 ***
 
@@ -510,7 +510,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10098](https://github
 
 > **haozhuzhu**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10092](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10092)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10117](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10117)
 
 ***
 
@@ -518,7 +518,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10092](https://github
 
 > **hashbx**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10095](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10095)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10120](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10120)
 
 ***
 
@@ -526,7 +526,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10095](https://github
 
 > **hashpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10072](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10072)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10097](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10097)
 
 ***
 
@@ -534,7 +534,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10072](https://github
 
 > **helix**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10099](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10099)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10124](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10124)
 
 ***
 
@@ -542,7 +542,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10099](https://github
 
 > **hhtt**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10050](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10050)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10075](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10075)
 
 ***
 
@@ -550,7 +550,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10050](https://github
 
 > **hotpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10075](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10075)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10100](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10100)
 
 ***
 
@@ -558,7 +558,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10075](https://github
 
 > **hummerpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10105](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10105)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10130](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10130)
 
 ***
 
@@ -566,7 +566,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10105](https://github
 
 > **huobipool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10025](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10025)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10050](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10050)
 
 ***
 
@@ -574,7 +574,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10025](https://github
 
 > **innopolistech**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10155](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10155)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10180](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10180)
 
 ***
 
@@ -582,7 +582,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10155](https://github
 
 > **kanopool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10059](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10059)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10084](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10084)
 
 ***
 
@@ -590,7 +590,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10059](https://github
 
 > **kncminer**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10048](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10048)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10073](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10073)
 
 ***
 
@@ -598,7 +598,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10048](https://github
 
 > **kucoinpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10117](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10117)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10142](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10142)
 
 ***
 
@@ -606,7 +606,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10117](https://github
 
 > **lubiancom**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10111](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10111)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10136](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10136)
 
 ***
 
@@ -614,7 +614,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10111](https://github
 
 > **maxbtc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10039](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10039)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10064](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10064)
 
 ***
 
@@ -622,7 +622,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10039](https://github
 
 > **maxipool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10149](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10149)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10174](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10174)
 
 ***
 
@@ -630,7 +630,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10149](https://github
 
 > **megabigpower**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10051](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10051)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10076](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10076)
 
 ***
 
@@ -638,7 +638,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10051](https://github
 
 > **minerium**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10110](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10110)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10135](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10135)
 
 ***
 
@@ -646,7 +646,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10110](https://github
 
 > **miningcity**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10109](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10109)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10134](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10134)
 
 ***
 
@@ -654,7 +654,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10109](https://github
 
 > **miningdutch**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10152](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10152)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10177](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10177)
 
 ***
 
@@ -662,7 +662,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10152](https://github
 
 > **miningkings**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10094](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10094)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10119](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10119)
 
 ***
 
@@ -670,7 +670,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10094](https://github
 
 > **miningsquared**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10154](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10154)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10179](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10179)
 
 ***
 
@@ -678,7 +678,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10154](https://github
 
 > **mmpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10046](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10046)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10071](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10071)
 
 ***
 
@@ -686,7 +686,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10046](https://github
 
 > **mtred**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10052](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10052)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10077](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10077)
 
 ***
 
@@ -694,7 +694,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10052](https://github
 
 > **multicoinco**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10056](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10056)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10081](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10081)
 
 ***
 
@@ -702,7 +702,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10056](https://github
 
 > **multipool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10127](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10127)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10152](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10152)
 
 ***
 
@@ -710,7 +710,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10127](https://github
 
 > **mybtccoinpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10070](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10070)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10095](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10095)
 
 ***
 
@@ -718,7 +718,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10070](https://github
 
 > **neopool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10148](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10148)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10173](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10173)
 
 ***
 
@@ -726,7 +726,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10148](https://github
 
 > **nexious**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10073](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10073)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10098](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10098)
 
 ***
 
@@ -734,7 +734,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10073](https://github
 
 > **nicehash**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10062](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10062)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10087](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10087)
 
 ***
 
@@ -742,7 +742,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10062](https://github
 
 > **nmcbit**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10053](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10053)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10078](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10078)
 
 ***
 
@@ -750,7 +750,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10053](https://github
 
 > **noderunners**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10162](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10162)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10187](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10187)
 
 ***
 
@@ -758,7 +758,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10162](https://github
 
 > **novablock**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10108](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10108)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10133](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10133)
 
 ***
 
@@ -766,7 +766,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10108](https://github
 
 > **okexpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10076](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10076)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10101](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10101)
 
 ***
 
@@ -774,7 +774,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10076](https://github
 
 > **okkong**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10112](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10112)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10137](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10137)
 
 ***
 
@@ -782,7 +782,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10112](https://github
 
 > **okminer**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10119](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10119)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10144](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10144)
 
 ***
 
@@ -790,7 +790,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10119](https://github
 
 > **okpooltop**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10104](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10104)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10129](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10129)
 
 ***
 
@@ -798,7 +798,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10104](https://github
 
 > **onehash**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10078](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10078)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10103](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10103)
 
 ***
 
@@ -806,7 +806,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10078](https://github
 
 > **onem1x**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10140](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10140)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10165](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10165)
 
 ***
 
@@ -814,7 +814,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10140](https://github
 
 > **onethash**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10023](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10023)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10048](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10048)
 
 ***
 
@@ -822,7 +822,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10023](https://github
 
 > **ozcoin**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10037](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10037)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10062](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10062)
 
 ***
 
@@ -830,7 +830,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10037](https://github
 
 > **parasite**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10157](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10157)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10182](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10182)
 
 ***
 
@@ -838,7 +838,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10157](https://github
 
 > **patels**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10134](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10134)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10159](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10159)
 
 ***
 
@@ -846,7 +846,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10134](https://github
 
 > **pegapool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10121](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10121)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10146](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10146)
 
 ***
 
@@ -854,7 +854,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10121](https://github
 
 > **phashio**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10090](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10090)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10115](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10115)
 
 ***
 
@@ -862,7 +862,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10090](https://github
 
 > **phoenix**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10147](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10147)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10172](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10172)
 
 ***
 
@@ -870,7 +870,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10147](https://github
 
 > **polmine**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10047](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10047)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10072](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10072)
 
 ***
 
@@ -878,7 +878,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10047](https://github
 
 > **pool175btc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10029](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10029)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10054](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10054)
 
 ***
 
@@ -886,7 +886,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10029](https://github
 
 > **pool50btc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10042](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10042)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10067](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10067)
 
 ***
 
@@ -894,7 +894,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10042](https://github
 
 > **portlandhodl**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10146](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10146)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10171](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10171)
 
 ***
 
@@ -902,7 +902,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10146](https://github
 
 > **publicpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10153](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10153)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10178](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10178)
 
 ***
 
@@ -910,7 +910,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10153](https://github
 
 > **purebtccom**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10116](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10116)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10141](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10141)
 
 ***
 
@@ -918,7 +918,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10116](https://github
 
 > **rawpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10097](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10097)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10122](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10122)
 
 ***
 
@@ -926,7 +926,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10097](https://github
 
 > **redrockpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10158](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10158)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10183](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10183)
 
 ***
 
@@ -934,7 +934,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10158](https://github
 
 > **rigpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10091](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10091)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10116](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10116)
 
 ***
 
@@ -942,7 +942,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10091](https://github
 
 > **secretsuperstar**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10101](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10101)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10126](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10126)
 
 ***
 
@@ -950,7 +950,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10101](https://github
 
 > **sevenpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10093](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10093)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10118](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10118)
 
 ***
 
@@ -958,7 +958,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10093](https://github
 
 > **shawnp0wers**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10089](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10089)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10114](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10114)
 
 ***
 
@@ -966,7 +966,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10089](https://github
 
 > **sigmapoolcom**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10103](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10103)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10128](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10128)
 
 ***
 
@@ -974,7 +974,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10103](https://github
 
 > **simplecoinus**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10036](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10036)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10061](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10061)
 
 ***
 
@@ -982,7 +982,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10036](https://github
 
 > **solock**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10060](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10060)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10085](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10085)
 
 ***
 
@@ -990,7 +990,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10060](https://github
 
 > **solopool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10161](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10161)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10186](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10186)
 
 ***
 
@@ -998,7 +998,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10161](https://github
 
 > **stminingcorp**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10044](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10044)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10069](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10069)
 
 ***
 
@@ -1006,7 +1006,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10044](https://github
 
 > **tangpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10106](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10106)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10131](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10131)
 
 ***
 
@@ -1014,7 +1014,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10106](https://github
 
 > **tatmaspool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10080](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10080)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10105](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10105)
 
 ***
 
@@ -1022,7 +1022,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10080](https://github
 
 > **tbdice**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10071](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10071)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10096](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10096)
 
 ***
 
@@ -1030,7 +1030,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10071](https://github
 
 > **telco214**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10125](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10125)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10150](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10150)
 
 ***
 
@@ -1038,7 +1038,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10125](https://github
 
 > **terrapool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10022](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10022)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10047](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10047)
 
 ***
 
@@ -1046,7 +1046,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10022](https://github
 
 > **tiger**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10139](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10139)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10164](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10164)
 
 ***
 
@@ -1054,7 +1054,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10139](https://github
 
 > **tigerpoolnet**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10102](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10102)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10127](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10127)
 
 ***
 
@@ -1062,7 +1062,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10102](https://github
 
 > **titan**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10120](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10120)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10145](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10145)
 
 ***
 
@@ -1070,7 +1070,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10120](https://github
 
 > **transactioncoinmining**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10128](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10128)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10153](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10153)
 
 ***
 
@@ -1078,7 +1078,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10128](https://github
 
 > **trickysbtcpool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10130](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10130)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10155](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10155)
 
 ***
 
@@ -1086,7 +1086,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10130](https://github
 
 > **triplemining**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10040](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10040)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10065](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10065)
 
 ***
 
@@ -1094,7 +1094,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10040](https://github
 
 > **twentyoneinc**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10067](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10067)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10092](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10092)
 
 ***
 
@@ -1102,7 +1102,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10067](https://github
 
 > **ultimuspool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10021](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10021)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10046](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10046)
 
 ***
 
@@ -1110,7 +1110,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10021](https://github
 
 > **unomp**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10133](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10133)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10158](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10158)
 
 ***
 
@@ -1118,7 +1118,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10133](https://github
 
 > **waterhole**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10083](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10083)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10108](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10108)
 
 ***
 
@@ -1126,7 +1126,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10083](https://github
 
 > **wayicn**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10026](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10026)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10051](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10051)
 
 ***
 
@@ -1134,7 +1134,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10026](https://github
 
 > **wiz**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10142](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10142)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10167](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10167)
 
 ***
 
@@ -1142,7 +1142,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10142](https://github
 
 > **wk057**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10143](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10143)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10168](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10168)
 
 ***
 
@@ -1150,7 +1150,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10143](https://github
 
 > **yourbtcnet**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10054](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10054)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10079](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10079)
 
 ***
 
@@ -1158,4 +1158,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10054](https://github
 
 > **zulupool**: [`BlocksDominancePattern`](BlocksDominancePattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10141](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10141)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10166](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10166)

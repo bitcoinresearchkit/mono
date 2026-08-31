@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Relative\_InvestedCapital\_InLoss
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14629](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14629)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14654](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14654)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14629](https://github
 
 > **share**: [`SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share`](SeriesTree_Cohorts_Relative_InvestedCapital_InLoss_Share.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14630](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14630)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14655](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14655)

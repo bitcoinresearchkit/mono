@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Frameworks\_Cointime
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15599](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15599)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15624](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15624)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:15599](https://github
 
 > **ageRange**: [`SeriesTree_Frameworks_Cointime_AgeRange`](SeriesTree_Frameworks_Cointime_AgeRange.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:15600](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L15600)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15625](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15625)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_AgeRange\_Activity
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8795](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8795)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8801](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8801)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8795](https://github.
 
 > **dormancy**: [`SeriesTree_Cointime_AgeRange_Activity_Dormancy`](SeriesTree_Cointime_AgeRange_Activity_Dormancy.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8797](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8797)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8803](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8803)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8797](https://github.
 
 > **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8799](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8799)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8805](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8805)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8799](https://github.
 
 > **wakefulness**: [`SeriesTree_Cointime_AgeRange_Activity_Wakefulness`](SeriesTree_Cointime_AgeRange_Activity_Wakefulness.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8796](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8796)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8802](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8802)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:8796](https://github.
 
 > **wakefulnessToDormancy**: [`SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy`](SeriesTree_Cointime_AgeRange_Activity_WakefulnessToDormancy.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:8798](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L8798)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8804](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8804)

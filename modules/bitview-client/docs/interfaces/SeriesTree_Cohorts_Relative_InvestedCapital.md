@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Relative\_InvestedCapital
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14610](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14610)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14635](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14635)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14610](https://github
 
 > **inLoss**: [`SeriesTree_Cohorts_Relative_InvestedCapital_InLoss`](SeriesTree_Cohorts_Relative_InvestedCapital_InLoss.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14612](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14612)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14637](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14637)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:14612](https://github
 
 > **inProfit**: [`SeriesTree_Cohorts_Relative_InvestedCapital_InProfit`](SeriesTree_Cohorts_Relative_InvestedCapital_InProfit.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:14611](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L14611)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14636](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14636)

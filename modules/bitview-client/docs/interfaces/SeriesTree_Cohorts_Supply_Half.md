@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Supply\_Half
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10413](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10413)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10438](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10438)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10413](https://github
 
 > **age**: [`SeriesTree_Cohorts_Supply_Half_Age`](SeriesTree_Cohorts_Supply_Half_Age.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10415](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10415)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10440](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10440)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10415](https://github
 
 > **all**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10414](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10414)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10439](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10439)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10414](https://github
 
 > **class**: [`SeriesTree_Cohorts_Supply_Half_Class`](SeriesTree_Cohorts_Supply_Half_Class.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10417](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10417)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10442](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10442)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10417](https://github
 
 > **entry**: [`DiscountPremiumPattern13`](DiscountPremiumPattern13.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10418](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10418)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10443](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10443)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10418](https://github
 
 > **epoch**: [`SeriesTree_Cohorts_Supply_Half_Epoch`](SeriesTree_Cohorts_Supply_Half_Epoch.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10416](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10416)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10441](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10441)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10416](https://github
 
 > **term**: [`LongShortPattern14`](LongShortPattern14.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10419](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10419)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10444](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10444)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:10419](https://github
 
 > **type**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:10420](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L10420)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10445](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L10445)

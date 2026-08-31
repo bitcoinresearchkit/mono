@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Returns
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9804](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9804)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9829](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9829)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9804](https://github.
 
 > **cagr**: [`_10y2y3y4y5y6y8yPattern`](10y2y3y4y5y6y8yPattern.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9806](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9806)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9831](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9831)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9806](https://github.
 
 > **periods**: [`SeriesTree_Market_Returns_Periods`](SeriesTree_Market_Returns_Periods.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9805](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9805)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9830](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9830)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/brk/modules/bitview-client/index.js:9805](https://github.
 
 > **sd24h**: [`SeriesTree_Market_Returns_Sd24h`](SeriesTree_Market_Returns_Sd24h.md)
 
-Defined in: [Developer/brk/modules/bitview-client/index.js:9807](https://github.com/bitcoinresearchkit/brk/blob/a6ece0db382228669ac4d1a9c673190fe7a4897b/modules/bitview-client/index.js#L9807)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9832](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9832)
