@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_RarityMeter\_Extremes
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9397](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9397)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9397](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9397)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9397](https://github
 
 > **capitulation**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9400](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9400)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9400](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9400)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9400](https://github
 
 > **coinsInLoss**: [`SeriesTree_RarityMeter_Extremes_CoinsInLoss`](SeriesTree_RarityMeter_Extremes_CoinsInLoss.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9398](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9398)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9398](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9398)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9398](https://github
 
 > **peakRegret**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9401](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9401)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9401](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9401)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9401](https://github
 
 > **profitTaking**: [`HeightRankTailThresholdPattern`](HeightRankTailThresholdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9399](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9399)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9399](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9399)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9399](https://github
 
 > **sellerExhaustion**: [`SeriesTree_RarityMeter_Extremes_SellerExhaustion`](SeriesTree_RarityMeter_Extremes_SellerExhaustion.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9402](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9402)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9402](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9402)

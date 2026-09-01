@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_SoprRatioExtended
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13560](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13560)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13560](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13560)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13560](https://githu
 
 > **all**: [`_1m1w1yHeightPattern`](1m1w1yHeightPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13561](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13561)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13561](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13561)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13561](https://githu
 
 > **lth**: [`_1m1w1yHeightPattern`](1m1w1yHeightPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13563](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13563)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13563](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13563)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13563](https://githu
 
 > **sth**: [`_1m1w1yHeightPattern`](1m1w1yHeightPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13562](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13562)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13562](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13562)

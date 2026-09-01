@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_Nupl\_Age\_Range
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14357](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14357)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14357](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14357)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14357](https://githu
 
 > **\_10yTo12y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14378](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14378)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14378](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14378)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14378](https://githu
 
 > **\_12yTo15y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14379](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14379)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14379](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14379)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14379](https://githu
 
 > **\_18mTo2y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14370](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14370)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14370](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14370)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14370](https://githu
 
 > **\_1dTo1w**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14360](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14360)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14360](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14360)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14360](https://githu
 
 > **\_1hTo1d**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14359](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14359)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14359](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14359)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14359](https://githu
 
 > **\_1mTo2m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14362](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14362)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14362](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14362)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14362](https://githu
 
 > **\_1wTo1m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14361](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14361)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14361](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14361)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14361](https://githu
 
 > **\_1yTo18m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14369](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14369)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14369](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14369)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14369](https://githu
 
 > **\_2mTo3m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14363](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14363)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14363](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14363)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14363](https://githu
 
 > **\_2yTo3y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14371](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14371)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14371](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14371)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14371](https://githu
 
 > **\_3mTo4m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14364](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14364)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14364](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14364)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14364](https://githu
 
 > **\_3yTo4y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14372](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14372)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14372](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14372)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14372](https://githu
 
 > **\_4mTo5m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14365](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14365)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14365](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14365)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14365](https://githu
 
 > **\_4yTo5y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14373](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14373)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14373](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14373)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14373](https://githu
 
 > **\_5mTo6m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14366](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14366)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14366](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14366)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14366](https://githu
 
 > **\_5yTo6y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14374](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14374)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14374](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14374)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14374](https://githu
 
 > **\_6mTo9m**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14367](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14367)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14367](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14367)
 
 ***
 
@@ -150,7 +150,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14367](https://githu
 
 > **\_6yTo7y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14375](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14375)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14375](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14375)
 
 ***
 
@@ -158,7 +158,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14375](https://githu
 
 > **\_7yTo8y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14376](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14376)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14376](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14376)
 
 ***
 
@@ -166,7 +166,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14376](https://githu
 
 > **\_8yTo10y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14377](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14377)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14377](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14377)
 
 ***
 
@@ -174,7 +174,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14377](https://githu
 
 > **\_9mTo1y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14368](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14368)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14368](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14368)
 
 ***
 
@@ -182,7 +182,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14368](https://githu
 
 > **over15y**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14380](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14380)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14380](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14380)
 
 ***
 
@@ -190,4 +190,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14380](https://githu
 
 > **under1h**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14358](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L14358)
+Defined in: [Developer/mono/modules/bitview-client/index.js:14358](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L14358)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_AgeRange\_Supply
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8890](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8890)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8890](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8890)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8890](https://github
 
 > **awake**: [`SeriesTree_Cointime_AgeRange_Supply_Awake`](SeriesTree_Cointime_AgeRange_Supply_Awake.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8891](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8891)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8891](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8891)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8891](https://github
 
 > **dormant**: [`SeriesTree_Cointime_AgeRange_Supply_Dormant`](SeriesTree_Cointime_AgeRange_Supply_Dormant.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8892](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8892)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8892](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8892)

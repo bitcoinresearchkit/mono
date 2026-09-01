@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Profitability\_Nupl
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:15551](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15551)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15551](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L15551)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:15551](https://githu
 
 > **height**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:15555](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15555)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15555](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L15555)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:15555](https://githu
 
 > **loss**: [`SeriesTree_Cohorts_Profitability_Nupl_Loss`](SeriesTree_Cohorts_Profitability_Nupl_Loss.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:15554](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15554)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15554](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L15554)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:15554](https://githu
 
 > **profit**: [`SeriesTree_Cohorts_Profitability_Nupl_Profit`](SeriesTree_Cohorts_Profitability_Nupl_Profit.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:15553](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15553)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15553](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L15553)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:15553](https://githu
 
 > **range**: [`SeriesTree_Cohorts_Profitability_Nupl_Range`](SeriesTree_Cohorts_Profitability_Nupl_Range.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:15552](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L15552)
+Defined in: [Developer/mono/modules/bitview-client/index.js:15552](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L15552)

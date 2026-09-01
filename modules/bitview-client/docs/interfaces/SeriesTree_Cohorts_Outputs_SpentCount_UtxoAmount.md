@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Outputs\_SpentCount\_UtxoAmount
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11543](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11543)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11543](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L11543)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11543](https://githu
 
 > **over**: [`SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over`](SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Over.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11546](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11546)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11546](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L11546)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11546](https://githu
 
 > **range**: [`SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range`](SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Range.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11544](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11544)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11544](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L11544)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11544](https://githu
 
 > **under**: [`SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under`](SeriesTree_Cohorts_Outputs_SpentCount_UtxoAmount_Under.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11545](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L11545)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11545](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L11545)

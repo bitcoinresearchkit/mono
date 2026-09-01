@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_AdjustedSopr\_Ratio
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13501](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13501)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13501](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13501)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13501](https://githu
 
 > **all**: [`_1m1w1y24hHeightPattern`](1m1w1y24hHeightPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13502](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13502)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13502](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13502)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13502](https://githu
 
 > **sth**: [`_1m1w1y24hHeightPattern`](1m1w1y24hHeightPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13503](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L13503)
+Defined in: [Developer/mono/modules/bitview-client/index.js:13503](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L13503)

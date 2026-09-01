@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Bedrock
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9328](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9328)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9328](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9328)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9328](https://github
 
 > **coinflow**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9332](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9332)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9332](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9332)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9332](https://github
 
 > **coinflow1m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9339](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9339)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9339](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9339)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9339](https://github
 
 > **coinflow1y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9336](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9336)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9336](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9336)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9336](https://github
 
 > **coinflow2y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9335](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9335)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9335](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9335)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9335](https://github
 
 > **coinflow3m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9338](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9338)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9338](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9338)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9338](https://github
 
 > **coinflow4y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9334](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9334)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9334](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9334)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9334](https://github
 
 > **coinflow6m**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9337](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9337)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9337](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9337)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9337](https://github
 
 > **coinflow8y**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9333](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9333)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9333](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9333)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9333](https://github
 
 > **cointime**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9331](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9331)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9331](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9331)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9331](https://github
 
 > **costBasis**: [`SeriesTree_Bedrock_CostBasis`](SeriesTree_Bedrock_CostBasis.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9329)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9329)
 
 ***
 
@@ -94,4 +94,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9329](https://github
 
 > **raw**: [`FloorLevelLossPattern`](FloorLevelLossPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9330](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L9330)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9330](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L9330)

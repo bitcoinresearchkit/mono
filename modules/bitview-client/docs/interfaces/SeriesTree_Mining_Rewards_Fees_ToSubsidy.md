@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining\_Rewards\_Fees\_ToSubsidy
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8679](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8679)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8679](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8679)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8679](https://github
 
 > **\_1m**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8682](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8682)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8682](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8682)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8682](https://github
 
 > **\_1w**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8681](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8681)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8681](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8681)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8681](https://github
 
 > **\_1y**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8683](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8683)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8683](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8683)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8683](https://github
 
 > **\_24h**: [`PercentPpmRatioPattern5`](PercentPpmRatioPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8680](https://github.com/bitcoinresearchkit/brk/blob/2470b9cb6cd0af501e879a2573eeea5f2a3f3bd0/modules/bitview-client/index.js#L8680)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8680](https://github.com/bitcoinresearchkit/brk/blob/5fc2a239df8aa10fda5a85d6a97dfb7da3f00c2f/modules/bitview-client/index.js#L8680)
