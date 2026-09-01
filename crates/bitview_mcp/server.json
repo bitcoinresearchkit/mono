@@ -3,7 +3,7 @@
   "name": "io.github.bitcoinresearchkit/bitview",
   "title": "Bitview",
   "description": "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.",
-  "version": "0.12.1",
+  "version": "0.12.2",
   "websiteUrl": "https://mcp.bitview.space/",
   "icons": [
     {
