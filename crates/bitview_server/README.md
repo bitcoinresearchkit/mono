@@ -69,6 +69,12 @@ directive whose stable tier is selected by `CdnCacheMode` (`Live` revalidates
 every request; `Aggressive` caches up to a year as `immutable` and requires a
 purge on deploy).
 
+Errors deliberately have no ETag: a conditional request must receive the error
+status again rather than `304`. Unknown-resource and other recoverable client
+errors use a one-second, must-revalidate policy; permanently invalid address,
+network, and transaction-ID inputs are immutable; authorization,
+service-unavailable, and server errors use `no-store`.
+
 ## Configuration
 
 Binds exactly to `0.0.0.0:3110` by default. Set `ServerConfig::bind` and

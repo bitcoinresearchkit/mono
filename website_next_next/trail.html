@@ -715,6 +715,7 @@
         const PROGRESS_PAINT_INTERVAL = 350;
         const MAX_CANVAS_PIXELS = 6_000_000;
         const TERRAIN_CHUNK_SIZE = 64;
+        const HEIGHT_LOG_STRENGTH = 24;
         const SETTINGS_KEY = "satoshi-trail:settings";
         const COMPARISON_OFFSETS = {
           "1w": 1,
@@ -902,10 +903,8 @@
               ...bars.map((value) => Math.abs(value)),
               1,
             );
-            const normalized = bars.map(
-              (value) =>
-                Math.sign(value) *
-                (Math.asinh((Math.abs(value) / peak) * 24) / Math.asinh(24)),
+            const normalized = bars.map((value) =>
+              heightFromRelativeValue(value / peak),
             );
             const baseline =
               tinySettings.mode === "value"
@@ -1083,6 +1082,7 @@
           minLog: Math.log10(60),
           maxLog: Math.log10(260_000),
           maxPrice: 260_000,
+          valueScale: 1,
           projectionCache: null,
           cache: new Map(),
           dateCache: new Map(),
@@ -1120,6 +1120,23 @@
 
         function lerp(start, end, amount) {
           return start + (end - start) * amount;
+        }
+
+        function heightFromRelativeValue(value) {
+          const magnitude = clamp(Math.abs(value), 0, 1);
+          const height =
+            Math.log1p(magnitude * HEIGHT_LOG_STRENGTH) /
+            Math.log1p(HEIGHT_LOG_STRENGTH);
+          return Math.sign(value) * height;
+        }
+
+        function relativeValueFromHeight(height) {
+          const magnitude = clamp(Math.abs(height), 0, 1);
+          const value =
+            Math.expm1(
+              magnitude * Math.log1p(HEIGHT_LOG_STRENGTH),
+            ) / HEIGHT_LOG_STRENGTH;
+          return Math.sign(height) * value;
         }
 
         function hasOption(select, value) {
@@ -1573,16 +1590,6 @@
           return profile?.supplies;
         }
 
-        function metricTotal(profile) {
-          if (state.metric === "realized_cap") {
-            return profile?.totalRealizedCap;
-          }
-          if (state.metric === "unrealized_pnl") {
-            return profile?.totalAbsolutePnl;
-          }
-          return profile?.totalSupply;
-        }
-
         function sampleProfile(profile, comparisonProfile = null) {
           const sampleKey = [
             state.metric,
@@ -1596,25 +1603,15 @@
             state.minLog,
             state.maxLog,
           ].join(":");
-          if (profile.sampleKey === sampleKey) return profile.sampled;
+          if (profile.sampleKey === sampleKey) {
+            return profile.sampledRaw;
+          }
 
           const values = new Float32Array(state.binCount);
-          const currentTotal = Number(metricTotal(profile)) || 0;
-          const comparisonTotal =
-            Number(metricTotal(comparisonProfile)) || 0;
-          const totalValue =
-            state.mode !== "value"
-              ? (currentTotal + comparisonTotal) * 0.5
-              : currentTotal;
-          if (
-            !(totalValue > 0) ||
-            (state.mode !== "value" && !comparisonProfile)
-          ) {
+          if (state.mode !== "value" && !comparisonProfile) {
             profile.sampleKey = sampleKey;
-            profile.sampled = values;
-            profile.sampledRaw = values.slice();
-            profile.sampledPeak = 0;
-            profile.sampledTotalValue = totalValue;
+            profile.sampledRaw = values;
+            profile.sampledRawPeak = 0;
             return values;
           }
           const grid = state.grid;
@@ -1653,42 +1650,60 @@
             addProfile(comparisonProfile, -1);
           }
 
-          profile.sampledRaw = values.slice();
-          const denominator = Math.asinh(200);
           let peak = 0;
           for (let index = 0; index < values.length; index++) {
-            let density;
-            let densityScale;
-            if (grid.kind === "log") {
-              density =
-                Math.abs(values[index]) /
-                totalValue /
-                (1 / grid.size);
-              densityScale =
-                state.mode === "value" ? 0.01 : 0.001;
-            } else {
-              density =
-                Math.abs(values[index]) / totalValue / grid.size;
-              densityScale =
-                state.mode === "value" ? 0.000001 : 0.0000001;
-            }
-            const height = clamp(
-              Math.asinh(density / densityScale) / denominator,
-              0,
-              1,
-            );
-            const signedHeight =
-              Math.sign(values[index]) * height;
-            values[index] =
-              state.mode === "value" ? height : signedHeight;
-            peak = Math.max(peak, height);
+            peak = Math.max(peak, Math.abs(values[index]));
           }
 
           profile.sampleKey = sampleKey;
-          profile.sampled = values;
-          profile.sampledPeak = peak;
-          profile.sampledTotalValue = totalValue;
+          profile.sampledRaw = values;
+          profile.sampledRawPeak = peak;
           return values;
+        }
+
+        function normalizeProfile(profile, valueScale) {
+          const normalizedKey = `${profile.sampleKey}:${valueScale}`;
+          if (profile.normalizedKey === normalizedKey) {
+            return profile.sampled;
+          }
+
+          const raw = profile.sampledRaw;
+          const values = new Float32Array(raw?.length ?? 0);
+          if (raw && valueScale > 0) {
+            for (let index = 0; index < raw.length; index++) {
+              values[index] = heightFromRelativeValue(
+                raw[index] / valueScale,
+              );
+            }
+          }
+          profile.normalizedKey = normalizedKey;
+          profile.sampled = values;
+          profile.sampledPeak = heightFromRelativeValue(
+            (profile.sampledRawPeak ?? 0) / valueScale,
+          );
+          return values;
+        }
+
+        function updateValueScale(start, end) {
+          let maximumValue = 0;
+          for (let dateIndex = start; dateIndex <= end; dateIndex++) {
+            const profile = getProfile(dateIndex);
+            const comparisonProfile = getComparisonProfile(dateIndex);
+            if (
+              !profile ||
+              (state.mode !== "value" &&
+                comparisonIndex(dateIndex) >= 0 &&
+                !comparisonProfile)
+            ) {
+              continue;
+            }
+            sampleProfile(profile, comparisonProfile);
+            maximumValue = Math.max(
+              maximumValue,
+              profile.sampledRawPeak ?? 0,
+            );
+          }
+          state.valueScale = maximumValue > 0 ? maximumValue : 1;
         }
 
         function geometry() {
@@ -1724,11 +1739,11 @@
             available *
             (signed
               ? mobile
-                ? 0.14
-                : 0.17
+                ? 0.23
+                : 0.28
               : mobile
-                ? 0.2
-                : 0.23) *
+                ? 0.33
+                : 0.38) *
             (Math.cos(angleRadians) / Math.cos(Math.PI / 6));
           const footprint = Math.max(tiny ? 48 : 120, state.width - margin * 2);
           const totalTimeExtent = Math.max(
@@ -1967,19 +1982,26 @@
         }
 
         function surfaceColorHeight(height, localPeak) {
-          const relativeHeight =
-            localPeak > 0 ? height / localPeak : 0;
-          const prominenceHeight =
-            height * 0.45 + relativeHeight * 0.55;
-          const prominenceMix = clamp(
-            (height - 0.2) / 0.12,
-            0,
-            1,
-          );
+          const peakValue = relativeValueFromHeight(localPeak);
+          return peakValue > 0
+            ? clamp(
+                relativeValueFromHeight(height) / peakValue,
+                0,
+                1,
+              )
+            : 0;
+        }
+
+        function surfaceColorBetween(
+          firstHeight,
+          firstPeak,
+          secondHeight,
+          secondPeak,
+        ) {
           return (
-            height +
-            (prominenceHeight - height) * prominenceMix
-          );
+            surfaceColorHeight(Math.abs(firstHeight), firstPeak) +
+            surfaceColorHeight(Math.abs(secondHeight), secondPeak)
+          ) * 0.5;
         }
 
         function surfaceShade(
@@ -2232,31 +2254,8 @@
               : "USD / $1K";
         }
 
-        function profileTotalValue(profile) {
-          if (state.mode !== "value") {
-            return profile?.sampledTotalValue;
-          }
-          return metricTotal(profile);
-        }
-
-        function valueAtTerrainHeight(profile, height) {
-          const totalValue = profileTotalValue(profile);
-          if (!(totalValue > 0)) return 0;
-          const densityScale =
-            state.grid.kind === "log"
-              ? state.mode === "value"
-                ? 0.01
-                : 0.001
-              : state.mode === "value"
-                ? 0.000001
-                : 0.0000001;
-          const bucketShare =
-            Math.sinh(height * Math.asinh(200)) *
-            densityScale *
-            (state.grid.kind === "log"
-              ? 1 / state.grid.size
-              : state.grid.size);
-          return bucketShare * totalValue;
+        function valueAtTerrainHeight(_profile, height) {
+          return relativeValueFromHeight(height) * state.valueScale;
         }
 
         function nicePriceStep(maximum, targetCount) {
@@ -2452,8 +2451,7 @@
           }
 
           const selectedProfile = getProfile(axisEnd);
-          const totalValue = profileTotalValue(selectedProfile);
-          if (totalValue > 0) {
+          if (selectedProfile && state.valueScale > 0) {
             const valueSide = frontMin.x < state.width * 0.5 ? -1 : 1;
             const valueTickCount = mobile ? 2 : 4;
             const firstValueTick =
@@ -3004,7 +3002,8 @@
           edgeIndex,
           binIndex,
           overlapDates,
-          localPeak,
+          firstPeak,
+          secondPeak,
           topShade,
         ) {
           const firstHeight = first[binIndex];
@@ -3070,11 +3069,11 @@
               sign > 0
                 ? Math.max(secondHeight, 0)
                 : Math.max(-secondHeight, 0);
-            const colorHeight = surfaceColorHeight(
-              firstMagnitude > 0.0001
-                ? firstMagnitude
-                : secondMagnitude,
-              localPeak,
+            const colorHeight = surfaceColorBetween(
+              firstMagnitude,
+              firstPeak,
+              secondMagnitude,
+              secondPeak,
             );
             const path = new Path2D();
             appendPolygon(path, clipped);
@@ -3306,10 +3305,8 @@
             const nearBinIndex = 0;
             const farEdgeIndex = state.binCount;
             const farBinIndex = state.binCount - 1;
-            const localPeak = Math.max(
-              firstProfile?.sampledPeak ?? 0,
-              secondProfile?.sampledPeak ?? 0,
-            );
+            const firstPeak = firstProfile?.sampledPeak ?? 0;
+            const secondPeak = secondProfile?.sampledPeak ?? 0;
             const firstOffset = dateIndex - state.viewIndex;
             const secondOffset =
               dateIndex + 1 + overlapDates - state.viewIndex;
@@ -3330,7 +3327,8 @@
               farEdgeIndex,
               farBinIndex,
               overlapDates,
-              localPeak,
+              firstPeak,
+              secondPeak,
               surfaceShade(
                 first[farBinIndex],
                 second[farBinIndex],
@@ -3343,6 +3341,7 @@
               state.metric,
               state.mode,
               state.shape,
+              state.valueScale,
               state.projectionCache?.key,
               sceneStart,
               sceneEnd,
@@ -3428,10 +3427,11 @@
                     secondHeight,
                     endAmount,
                   );
-                  const colorHeight = surfaceColorHeight(
-                    (Math.abs(startHeight) + Math.abs(endHeight)) *
-                      0.5,
-                    localPeak,
+                  const colorHeight = surfaceColorBetween(
+                    startHeight,
+                    lerp(firstPeak, secondPeak, startAmount),
+                    endHeight,
+                    lerp(firstPeak, secondPeak, endAmount),
                   );
                   const shade = surfaceShade(
                     startHeight,
@@ -3654,11 +3654,11 @@
                             -secondNearHeight,
                             0,
                           );
-                    const colorHeight = surfaceColorHeight(
-                      firstMagnitude > 0.0001
-                        ? firstMagnitude
-                        : secondMagnitude,
-                      localPeak,
+                    const colorHeight = surfaceColorBetween(
+                      firstMagnitude,
+                      firstPeak,
+                      secondMagnitude,
+                      secondPeak,
                     );
                     const fill = elevationColor(
                       colorHeight,
@@ -3708,7 +3708,8 @@
               nearEdgeIndex,
               nearBinIndex,
               overlapDates,
-              localPeak,
+              firstPeak,
+              secondPeak,
               surfaceShade(
                 first[nearBinIndex],
                 second[nearBinIndex],
@@ -3746,6 +3747,7 @@
             state.metric,
             state.mode,
             state.shape,
+            state.valueScale,
             state.projectionCache?.key,
             start,
             end,
@@ -3825,9 +3827,13 @@
               return null;
             }
             profiles[index] = profile;
-            rows[index] = sampleProfile(
+            sampleProfile(
               profile,
               comparisonProfile,
+            );
+            rows[index] = normalizeProfile(
+              profile,
+              state.valueScale,
             );
           }
 
@@ -3877,8 +3883,9 @@
           const generation = state.chunkGeneration;
           const layout = geometry();
           prepareProjection(layout);
-          const key = terrainChunkKey();
           const { start, end } = visibleRange();
+          updateValueScale(start, end);
+          const key = terrainChunkKey();
           const first =
             Math.ceil(start / TERRAIN_CHUNK_SIZE) *
             TERRAIN_CHUNK_SIZE;
@@ -4137,6 +4144,7 @@
           const { start, end } = visibleRange();
           drawGround(layout, start, end);
 
+          updateValueScale(start, end);
           const rows = new Array(end + 1);
           const profiles = new Array(end + 1);
           for (let dateIndex = start; dateIndex <= end; dateIndex++) {
@@ -4150,9 +4158,13 @@
                 comparisonProfile)
             ) {
               profiles[dateIndex] = profile;
-              rows[dateIndex] = sampleProfile(
+              sampleProfile(
                 profile,
                 comparisonProfile,
+              );
+              rows[dateIndex] = normalizeProfile(
+                profile,
+                state.valueScale,
               );
             }
           }
@@ -4283,7 +4295,6 @@
             totalRealizedCap += Math.max(0, realizedCaps[bucketIndex]);
             totalAbsolutePnl += Math.abs(unrealizedPnls[bucketIndex]);
             if (
-              bucketIndex > 0 &&
               supplies[bucketIndex] > 0 &&
               prices[bucketIndex] > maxPrice
             ) {

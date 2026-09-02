@@ -2,11 +2,12 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
     http::HeaderMap,
+    response::IntoResponse,
 };
 use brk_types::{AddrHashPrefixMatches, AddrStats, AddrValidation, Transaction, Utxo, Version};
 
 use crate::{
-    AppState, CacheStrategy,
+    AppState, CacheStrategy, Error,
     extended::TransformResponseExtended,
     params::{AddrAfterTxidParam, AddrHashPrefixParam, AddrParam, Empty, ValidateAddrParam},
 };
@@ -55,7 +56,10 @@ impl AddrRoutes for ApiRouter<AppState> {
                 _: Empty,
                 State(state): State<AppState>
             | {
-                let strategy = state.addr_strategy(Version::ONE, &path.addr, false, None);
+                let strategy = match state.addr_stats_strategy(Version::ONE, &path.addr) {
+                    Ok(strategy) => strategy,
+                    Err(error) => return Error::from(error).into_response(),
+                };
                 state.respond_json(&headers, strategy, move |q| q.addr(path.addr)).await
             }, |op| op
                 .id("get_address")

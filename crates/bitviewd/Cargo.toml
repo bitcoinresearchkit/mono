@@ -1,6 +1,7 @@
 [package]
 name = "bitviewd"
 description = "The self-hostable Bitview Bitcoin data daemon"
+default-run = "bitviewd"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

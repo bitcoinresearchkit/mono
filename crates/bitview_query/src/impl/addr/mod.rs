@@ -5,3 +5,5 @@ mod resolve;
 mod stats;
 mod txs;
 mod utxos;
+
+pub use stats::AddrStatsPreflight;

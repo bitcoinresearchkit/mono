@@ -70,6 +70,8 @@ mod r#impl;
 
 #[cfg(feature = "tokio")]
 pub use r#async::*;
+#[cfg(feature = "chain")]
+pub use r#impl::AddrStatsPreflight;
 #[cfg(feature = "series")]
 pub use r#impl::ResolvedQuery;
 pub use output::*;

@@ -14,6 +14,7 @@ mod strategy;
 
 pub use mode::CdnCacheMode;
 pub use params::CacheParams;
+pub(crate) use params::ErrorCachePolicy;
 pub use strategy::CacheStrategy;
 
 pub use mode::init;

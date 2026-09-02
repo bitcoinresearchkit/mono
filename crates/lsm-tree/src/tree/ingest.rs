@@ -140,5 +140,6 @@ impl<'a> Ingestion<'a> {
     }
 
     #[cfg(not(debug_assertions))]
+    #[allow(clippy::unused_self, clippy::needless_pass_by_ref_mut)]
     fn validate_key(&mut self, _key: &Slice) {}
 }

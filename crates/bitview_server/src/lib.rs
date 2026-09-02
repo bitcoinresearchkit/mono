@@ -38,9 +38,7 @@ use tower_http::{
     trace::TraceLayer,
 };
 use tower_layer::Layer;
-#[cfg(feature = "bindgen")]
-use tracing::debug;
-use tracing::{error, info};
+use tracing::{debug, error, info};
 
 mod api;
 mod cache;
@@ -219,10 +217,16 @@ impl Server {
                         .get::<axum::http::Method>()
                         .unwrap_or(&unknown_method);
                     match response.status() {
-                        StatusCode::OK => info!(%method, status, %uri, ?latency),
-                        StatusCode::NOT_MODIFIED
-                        | StatusCode::TEMPORARY_REDIRECT
-                        | StatusCode::PERMANENT_REDIRECT => info!(%method, status, %uri, ?latency),
+                        StatusCode::NOT_MODIFIED | StatusCode::BAD_REQUEST => {
+                            debug!(%method, status, %uri, ?latency)
+                        }
+                        status_code
+                            if status_code.is_informational()
+                                || status_code.is_success()
+                                || status_code.is_redirection() =>
+                        {
+                            info!(%method, status, %uri, ?latency)
+                        }
                         _ => error!(%method, status, %uri, ?latency),
                     }
                 },

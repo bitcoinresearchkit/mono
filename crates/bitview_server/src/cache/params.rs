@@ -12,9 +12,29 @@ use super::{
 // check before use" (not "don't cache"); ETag makes the check cheap.
 const CC: &str = "public, no-cache, stale-if-error=86400";
 
-// Errors: short, must-revalidate, no `stale-if-error` (we don't want a 24h-old
-// error served when origin recovers). Same string for browser and CDN.
-const CC_ERROR: &str = "public, max-age=1, must-revalidate";
+// Revalidating errors are briefly cacheable, but never served stale. Permanent
+// input errors can be cached indefinitely. Transient and private errors are
+// never stored. Browser and CDN policies intentionally match for errors.
+const CC_ERROR_REVALIDATE: &str = "public, max-age=1, must-revalidate";
+const CC_ERROR_IMMUTABLE: &str = "public, max-age=31536000, immutable";
+const CC_ERROR_NO_STORE: &str = "no-store";
+
+#[derive(Clone, Copy)]
+pub(crate) enum ErrorCachePolicy {
+    Revalidate,
+    Immutable,
+    NoStore,
+}
+
+impl ErrorCachePolicy {
+    fn cache_control(self) -> &'static str {
+        match self {
+            Self::Revalidate => CC_ERROR_REVALIDATE,
+            Self::Immutable => CC_ERROR_IMMUTABLE,
+            Self::NoStore => CC_ERROR_NO_STORE,
+        }
+    }
+}
 
 /// Resolved cache parameters: an ETag plus the two Cache-Control directives.
 pub struct CacheParams {
@@ -104,21 +124,12 @@ impl CacheParams {
         }
     }
 
-    /// Error response: keeps the originating ETag (so retries can 304),
-    /// uses [`CC_ERROR`] for both browser and CDN.
-    pub fn error(etag: Etag) -> Self {
-        Self {
-            etag,
-            cache_control: CC_ERROR,
-            cdn_cache_control: CC_ERROR,
-        }
-    }
-
-    /// Apply error cache-control headers without an ETag. Used for synthesized
-    /// errors (panics, fallback handlers) that have no resource etag.
-    pub fn apply_error_cache_control(headers: &mut HeaderMap) {
-        headers.insert_cache_control(CC_ERROR);
-        headers.insert_cdn_cache_control(CC_ERROR);
+    /// Apply an error cache policy. Error responses deliberately have no ETag:
+    /// a conditional error request must receive the error status again, not 304.
+    pub(crate) fn apply_error_cache_control(headers: &mut HeaderMap, policy: ErrorCachePolicy) {
+        let cache_control = policy.cache_control();
+        headers.insert_cache_control(cache_control);
+        headers.insert_cdn_cache_control(cache_control);
     }
 
     pub fn matches_etag(&self, headers: &HeaderMap) -> bool {

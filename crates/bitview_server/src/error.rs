@@ -1,4 +1,7 @@
-use crate::{cache::CacheParams, error_body::ErrorBody, etag::Etag};
+use crate::{
+    cache::{CacheParams, ErrorCachePolicy},
+    error_body::ErrorBody,
+};
 use aide::OperationOutput;
 use axum::{
     http::{HeaderValue, StatusCode, header},
@@ -118,8 +121,17 @@ impl Error {
         Self::new(StatusCode::INTERNAL_SERVER_ERROR, "internal_error", msg)
     }
 
-    fn into_response_with_etag(self, etag: Etag) -> Response {
-        let params = CacheParams::error(etag);
+    fn cache_policy(&self) -> ErrorCachePolicy {
+        match self.code {
+            "invalid_addr" | "invalid_network" | "invalid_txid" => ErrorCachePolicy::Immutable,
+            _ => match self.status {
+                StatusCode::BAD_REQUEST | StatusCode::NOT_FOUND => ErrorCachePolicy::Revalidate,
+                _ => ErrorCachePolicy::NoStore,
+            },
+        }
+    }
+
+    fn build_response(self) -> Response {
         let body = build_error_body(self.status, self.code, self.message);
         let mut response = (
             self.status,
@@ -127,7 +139,6 @@ impl Error {
             body,
         )
             .into_response();
-        params.apply_to(response.headers_mut());
         apply_retry_after(self.code, &mut response);
         response
     }
@@ -135,10 +146,6 @@ impl Error {
 
 pub fn new(status: StatusCode, code: &'static str, msg: impl Into<String>) -> Error {
     Error::new(status, code, msg)
-}
-
-pub fn into_response_with_etag(error: Error, etag: Etag) -> Response {
-    error.into_response_with_etag(etag)
 }
 
 impl From<BrkError> for Error {
@@ -157,15 +164,9 @@ impl OperationOutput for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let body = build_error_body(self.status, self.code, self.message);
-        let mut response = (
-            self.status,
-            [(header::CONTENT_TYPE, "application/problem+json")],
-            body,
-        )
-            .into_response();
-        CacheParams::apply_error_cache_control(response.headers_mut());
-        apply_retry_after(self.code, &mut response);
+        let policy = self.cache_policy();
+        let mut response = self.build_response();
+        CacheParams::apply_error_cache_control(response.headers_mut(), policy);
         response
     }
 }
@@ -173,6 +174,36 @@ impl IntoResponse for Error {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::http::{
+        HeaderName,
+        header::{CACHE_CONTROL, ETAG},
+    };
+
+    fn assert_cache_control(response: &Response, expected: &'static str) {
+        let expected = HeaderValue::from_static(expected);
+        assert_eq!(response.headers().get(CACHE_CONTROL), Some(&expected));
+        assert_eq!(
+            response
+                .headers()
+                .get(HeaderName::from_static("cdn-cache-control")),
+            Some(&expected)
+        );
+        assert!(!response.headers().contains_key(ETAG));
+    }
+
+    #[test]
+    fn unknown_address_is_briefly_cacheable_without_a_validator() {
+        let response = Error::from(BrkError::UnknownAddr).into_response();
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
+        assert_cache_control(&response, "public, max-age=1, must-revalidate");
+    }
+
+    #[test]
+    fn invalid_address_is_immutable_without_a_validator() {
+        let response = Error::from(BrkError::InvalidAddr).into_response();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_cache_control(&response, "public, max-age=31536000, immutable");
+    }
 
     #[test]
     fn state_updating_is_a_retryable_service_unavailable_response() {
@@ -186,5 +217,6 @@ mod tests {
             response.headers().get(header::RETRY_AFTER),
             Some(&HeaderValue::from_static("1"))
         );
+        assert_cache_control(&response, "no-store");
     }
 }

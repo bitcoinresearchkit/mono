@@ -3,7 +3,10 @@ use std::{path::PathBuf, time::Instant};
 use axum::{
     body::{Body, Bytes},
     http::{HeaderMap, HeaderValue, Response, header},
+    response::IntoResponse,
 };
+#[cfg(feature = "chain")]
+use bitview_query::AddrStatsPreflight;
 use bitview_query::AsyncQuery;
 use brk_error::Result;
 #[cfg(feature = "chain")]
@@ -14,10 +17,7 @@ use jiff::Timestamp;
 use serde::Serialize;
 use vecdb::ReadableVec;
 
-use crate::{
-    CacheParams, CacheStrategy, Error, Website, error::into_response_with_etag,
-    extended::ResponseExtended,
-};
+use crate::{CacheParams, CacheStrategy, Error, Website, extended::ResponseExtended};
 
 #[derive(Clone, Deref)]
 pub struct AppState {
@@ -94,8 +94,8 @@ impl AppState {
                 return CacheStrategy::MempoolHash(mempool_hash);
             }
             q.addr_last_activity_height(addr, before_txid)
-                .and_then(|h| {
-                    let block_hash = q.block_hash_by_height(h)?;
+                .and_then(|height| {
+                    let block_hash = q.block_hash_by_height(height)?;
                     Ok(CacheStrategy::BlockBound(
                         version,
                         BlockHashPrefix::from(&block_hash),
@@ -103,6 +103,24 @@ impl AppState {
                 })
                 .unwrap_or(CacheStrategy::Tip)
         })
+    }
+
+    /// Resolve address-stats caching and fail before dispatching a blocking
+    /// response task when the guarded stats lookup already found an error.
+    #[cfg(feature = "chain")]
+    pub(crate) fn addr_stats_strategy(
+        &self,
+        version: Version,
+        addr: &Addr,
+    ) -> std::result::Result<CacheStrategy, brk_error::Error> {
+        match self.sync(|q| q.addr_stats_preflight(addr)) {
+            AddrStatsPreflight::Mempool(hash) => Ok(CacheStrategy::MempoolHash(hash)),
+            AddrStatsPreflight::Chain(block_hash) => Ok(block_hash
+                .map(|hash| CacheStrategy::BlockBound(version, BlockHashPrefix::from(&hash)))
+                .unwrap_or(CacheStrategy::Tip)),
+            AddrStatsPreflight::Reject(error) => Err(error),
+            AddrStatsPreflight::Updating => Ok(CacheStrategy::Tip),
+        }
     }
 
     /// `Immutable` if the block is >6 deep (status stable), `Tip` otherwise.
@@ -184,7 +202,7 @@ impl AppState {
                 params.apply_to(headers);
                 response
             }
-            Err(error) => into_response_with_etag(Error::from(error), params.etag.clone()),
+            Err(error) => Error::from(error).into_response(),
         }
     }
 
@@ -277,17 +295,19 @@ impl AppState {
 
         let request_headers = headers.clone();
         let outcome = self
-            .run(move |query| {
-                let (value, strategy) = match f(query) {
-                    Ok((value, strategy)) => (Ok(value), strategy),
-                    Err(error) => (Err(error), CacheStrategy::Tip),
-                };
-                let params = CacheParams::resolve(&strategy, tip);
-                if params.matches_etag(&request_headers) {
-                    return Ok((params, None));
+            .run(move |query| match f(query) {
+                Ok((value, strategy)) => {
+                    let params = CacheParams::resolve(&strategy, tip);
+                    if params.matches_etag(&request_headers) {
+                        return Ok((params, None));
+                    }
+                    let body = Bytes::from(serde_json::to_vec(&value).unwrap());
+                    Ok((params, Some(Ok(body))))
                 }
-                let body = value.map(|value| Bytes::from(serde_json::to_vec(&value).unwrap()));
-                Ok((params, Some(body)))
+                Err(error) => {
+                    let params = CacheParams::resolve(&CacheStrategy::Tip, tip);
+                    Ok((params, Some(Err(error))))
+                }
             })
             .await;
 
@@ -296,9 +316,6 @@ impl AppState {
             Ok((params, Some(result))) => (params, result),
             Err(error) => {
                 let params = CacheParams::resolve(&CacheStrategy::Tip, tip);
-                if params.matches_etag(headers) {
-                    return ResponseExtended::new_not_modified(&params);
-                }
                 (params, Err(error))
             }
         };

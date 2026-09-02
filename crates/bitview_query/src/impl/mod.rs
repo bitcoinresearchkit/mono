@@ -31,6 +31,8 @@ use brk_error::{Error, Result};
 #[cfg(any(feature = "chain", feature = "series", feature = "urpd"))]
 use crate::Query;
 
+#[cfg(feature = "chain")]
+pub use addr::AddrStatsPreflight;
 #[cfg(feature = "series")]
 pub use series::ResolvedQuery;
 
@@ -45,6 +47,11 @@ impl Query {
             .gate()
             .read_for(UPDATE_WAIT_TIMEOUT)
             .ok_or(Error::StateUpdating)
+    }
+
+    #[cfg(feature = "chain")]
+    fn try_read_plugin(&self, plugin: &impl Plugin) -> Option<PluginReadGuard> {
+        plugin.gate().try_read()
     }
 
     #[cfg(any(feature = "series", feature = "urpd"))]

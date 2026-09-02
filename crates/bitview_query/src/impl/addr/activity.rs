@@ -1,5 +1,5 @@
-use brk_error::Error;
-use brk_types::{Addr, Height, Txid};
+use brk_error::{Error, Result};
+use brk_types::{Addr, Height, OutputType, Txid, TypeIndex};
 
 use crate::Query;
 
@@ -12,13 +12,22 @@ impl Query {
         &self,
         addr: &Addr,
         before_txid: Option<&Txid>,
-    ) -> brk_error::Result<Height> {
+    ) -> Result<Height> {
         let (output_type, type_index) = super::resolve::resolve_addr(self, addr)?;
+        self.addr_last_activity_height_for(output_type, type_index, before_txid)
+    }
+
+    pub(super) fn addr_last_activity_height_for(
+        &self,
+        output_type: OutputType,
+        type_index: TypeIndex,
+        before_txid: Option<&Txid>,
+    ) -> Result<Height> {
         let stores = self.indexer().stores();
         let tx_index_len = self.safe_lengths().tx_index;
         let last_tx_index = match before_txid {
             Some(txid) => {
-                let before_tx_index = crate::r#impl::tx::resolve_tx_index(self, txid)?;
+                let before_tx_index = super::super::tx::resolve_tx_index(self, txid)?;
                 stores
                     .addr_tx_indexes_before(output_type, type_index, before_tx_index)?
                     .rev()
@@ -31,6 +40,6 @@ impl Query {
                 .find(|tx_index| *tx_index < tx_index_len)
                 .ok_or(Error::UnknownAddr)?,
         };
-        crate::r#impl::tx::confirmed_status_height(self, last_tx_index)
+        super::super::tx::confirmed_status_height(self, last_tx_index)
     }
 }
