@@ -122,6 +122,8 @@ impl Server {
                 mining_pools_body,
                 #[cfg(feature = "chain")]
                 mining_block_fees_cache: TipJsonCache::default(),
+                #[cfg(feature = "chain")]
+                mining_block_fee_rates_cache: TipJsonCache::default(),
                 data_path: config.data_path,
                 website: config.website,
                 started_at: jiff::Timestamp::now(),

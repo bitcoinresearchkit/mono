@@ -46,6 +46,8 @@ pub struct AppState {
     pub(crate) mining_pools_body: Bytes,
     #[cfg(feature = "chain")]
     pub(crate) mining_block_fees_cache: TipJsonCache<TimePeriod>,
+    #[cfg(feature = "chain")]
+    pub(crate) mining_block_fee_rates_cache: TipJsonCache<TimePeriod>,
     pub data_path: PathBuf,
     pub website: Website,
     pub started_at: Timestamp,

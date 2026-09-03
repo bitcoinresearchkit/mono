@@ -310,7 +310,13 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/blocks/fee-rates/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, state.tip_strategy(), move |q| q.block_fee_rates(path.time_period)).await
+                    let time_period = path.time_period;
+                    state.respond_json_tip_cached(
+                        &headers,
+                        &state.mining_block_fee_rates_cache,
+                        time_period,
+                        move |q| q.block_fee_rates(time_period),
+                    ).await
                 },
                 |op| {
                     op.id("get_block_fee_rates")
