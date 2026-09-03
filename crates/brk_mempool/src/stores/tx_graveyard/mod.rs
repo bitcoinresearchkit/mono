@@ -5,6 +5,7 @@ use std::{
 
 use brk_types::{FeeRate, Transaction, Txid};
 use rustc_hash::FxHashMap;
+use smallvec::SmallVec;
 
 mod tombstone;
 
@@ -19,6 +20,7 @@ const RETENTION: Duration = Duration::from_hours(1);
 #[derive(Default)]
 pub struct TxGraveyard {
     tombstones: FxHashMap<Txid, TxTombstone>,
+    predecessors_by_replacer: FxHashMap<Txid, SmallVec<[Txid; 1]>>,
     order: VecDeque<(Instant, Txid)>,
 }
 
@@ -62,9 +64,11 @@ impl TxGraveyard {
         &'a self,
         replacer: &'a Txid,
     ) -> impl Iterator<Item = (&'a Txid, &'a TxTombstone)> {
-        self.tombstones.iter().filter_map(move |(txid, ts)| {
-            (ts.replaced_by() == Some(replacer)).then_some((txid, ts))
-        })
+        self.predecessors_by_replacer
+            .get(replacer)
+            .into_iter()
+            .flatten()
+            .filter_map(|txid| self.tombstones.get(txid).map(|tombstone| (txid, tombstone)))
     }
 
     /// Every `Replaced` tombstone, yielded as (`predecessor_txid`,
@@ -93,22 +97,47 @@ impl TxGraveyard {
     ) {
         let txid = entry.txid;
         let removed_at = Instant::now();
-        self.tombstones.insert(
-            txid,
-            TxTombstone {
-                tx,
-                entry,
-                chunk_rate,
-                removal,
-                removed_at,
-            },
-        );
+        let tombstone = TxTombstone {
+            tx,
+            entry,
+            chunk_rate,
+            removal,
+            removed_at,
+        };
+        let replacer = tombstone.replaced_by().copied();
+        if let Some(previous) = self.tombstones.insert(txid, tombstone) {
+            self.remove_predecessor(&txid, &previous);
+        }
+        if let Some(replacer) = replacer {
+            self.predecessors_by_replacer
+                .entry(replacer)
+                .or_default()
+                .push(txid);
+        }
         self.order.push_back((removed_at, txid));
+    }
+
+    fn remove_predecessor(&mut self, txid: &Txid, tombstone: &TxTombstone) {
+        let Some(replacer) = tombstone.replaced_by() else {
+            return;
+        };
+        let remove_entry =
+            self.predecessors_by_replacer
+                .get_mut(replacer)
+                .is_some_and(|predecessors| {
+                    predecessors.retain(|predecessor| predecessor != txid);
+                    predecessors.is_empty()
+                });
+        if remove_entry {
+            self.predecessors_by_replacer.remove(replacer);
+        }
     }
 
     /// Remove and return the tombstone, e.g. when the tx comes back to life.
     pub fn exhume(&mut self, txid: &Txid) -> Option<TxTombstone> {
-        self.tombstones.remove(txid)
+        let tombstone = self.tombstones.remove(txid)?;
+        self.remove_predecessor(txid, &tombstone);
+        Some(tombstone)
     }
 
     /// Drop tombstones older than RETENTION. O(k) in the number of evictions.
@@ -122,10 +151,13 @@ impl TxGraveyard {
                 break;
             }
             let (_, txid) = self.order.pop_front().unwrap();
-            if let Some(ts) = self.tombstones.get(&txid)
-                && ts.removed_at == t
-            {
-                self.tombstones.remove(&txid);
+            let should_remove = self
+                .tombstones
+                .get(&txid)
+                .is_some_and(|tombstone| tombstone.removed_at == t);
+            if should_remove {
+                let tombstone = self.tombstones.remove(&txid).unwrap();
+                self.remove_predecessor(&txid, &tombstone);
             }
         }
     }
@@ -240,6 +272,48 @@ mod tests {
         assert_eq!(preds, expected);
 
         assert_eq!(g.predecessors_of(&fake_txid(123)).count(), 0);
+
+        g.exhume(&a).unwrap();
+        assert_eq!(g.predecessors_of(&replacer).count(), 1);
+        assert_eq!(
+            g.predecessors_of(&replacer).next().map(|(t, _)| *t),
+            Some(b)
+        );
+    }
+
+    #[test]
+    fn re_bury_moves_predecessor_to_new_replacer() {
+        let mut g = TxGraveyard::default();
+        let (tx, entry, rate) = tomb_inputs(20);
+        let predecessor = entry.txid;
+        let first = fake_txid(21);
+        let second = fake_txid(22);
+
+        g.bury(
+            tx.clone(),
+            entry.clone(),
+            rate,
+            TxRemoval::Replaced { by: first },
+        );
+        g.bury(tx, entry, rate, TxRemoval::Replaced { by: second });
+
+        assert_eq!(g.predecessors_of(&first).count(), 0);
+        assert_eq!(
+            g.predecessors_of(&second).next().map(|(t, _)| *t),
+            Some(predecessor)
+        );
+    }
+
+    #[test]
+    fn eviction_removes_predecessor_index_entry() {
+        let mut g = TxGraveyard::default();
+        let (tx, entry, rate) = tomb_inputs(23);
+        let replacer = fake_txid(24);
+        g.bury(tx, entry, rate, TxRemoval::Replaced { by: replacer });
+        g.shift_oldest_back(1);
+        g.evict_old();
+
+        assert_eq!(g.predecessors_of(&replacer).count(), 0);
     }
 
     #[test]

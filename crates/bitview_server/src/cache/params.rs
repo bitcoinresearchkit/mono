@@ -68,6 +68,14 @@ impl CacheParams {
         }
     }
 
+    fn activity_bound(version: Version, prefix: BlockHashPrefix) -> Self {
+        Self {
+            etag: format!("a{version}-{:x}", *prefix).into(),
+            cache_control: CC,
+            cdn_cache_control: CDN_LIVE,
+        }
+    }
+
     /// Deploy-tied response: etag from the build version. Used directly
     /// by static handlers (OpenAPI spec, scalar bundle) that don't have
     /// a [`CacheStrategy`] context.
@@ -79,9 +87,9 @@ impl CacheParams {
         }
     }
 
-    fn mempool_hash(hash: u64) -> Self {
+    fn live_hash(hash: u64) -> Self {
         Self {
-            etag: format!("m{hash:x}").into(),
+            etag: format!("l{hash:x}").into(),
             cache_control: CC,
             cdn_cache_control: CDN_LIVE,
         }
@@ -143,13 +151,14 @@ impl CacheParams {
         headers.insert_cdn_cache_control(self.cdn_cache_control);
     }
 
-    pub fn resolve(strategy: &CacheStrategy, tip: BlockHashPrefix) -> Self {
+    pub fn resolve(strategy: &CacheStrategy) -> Self {
         match strategy {
-            CacheStrategy::Tip => Self::tip(tip),
+            CacheStrategy::Tip(tip) => Self::tip(*tip),
             CacheStrategy::Immutable(v) => Self::immutable(*v),
             CacheStrategy::BlockBound(v, prefix) => Self::block_bound(*v, *prefix),
+            CacheStrategy::ActivityBound(v, prefix) => Self::activity_bound(*v, *prefix),
             CacheStrategy::Deploy => Self::deploy(),
-            CacheStrategy::MempoolHash(hash) => Self::mempool_hash(*hash),
+            CacheStrategy::LiveHash(hash) => Self::live_hash(*hash),
         }
     }
 }
@@ -164,6 +173,27 @@ mod tests {
 
     fn h(n: u64) -> BlockHashPrefix {
         BlockHashPrefix::from(n)
+    }
+
+    #[test]
+    fn activity_bound_has_a_distinct_etag_and_live_cdn_policy() {
+        let p = CacheParams::activity_bound(v(1), h(0xabcd));
+        assert_eq!(p.etag.as_str(), "a1-abcd");
+        assert_eq!(p.cdn_cache_control, CDN_LIVE);
+    }
+
+    #[test]
+    fn tip_uses_the_hash_bound_into_its_strategy() {
+        let p = CacheParams::resolve(&CacheStrategy::Tip(h(0xabcd)));
+        assert_eq!(p.etag.as_str(), "tabcd");
+        assert_eq!(p.cdn_cache_control, CDN_LIVE);
+    }
+
+    #[test]
+    fn live_hash_uses_hash_and_live_cdn_policy() {
+        let p = CacheParams::resolve(&CacheStrategy::LiveHash(0xabcd));
+        assert_eq!(p.etag.as_str(), "labcd");
+        assert_eq!(p.cdn_cache_control, CDN_LIVE);
     }
 
     #[test]

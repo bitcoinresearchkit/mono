@@ -1,3 +1,5 @@
+use std::result::Result as StdResult;
+
 use crate::{
     cache::{CacheParams, ErrorCachePolicy},
     error_body::ErrorBody,
@@ -10,6 +12,8 @@ use axum::{
 use brk_error::Error as BrkError;
 
 const DOC_URL: &str = "/api";
+
+pub(crate) type RouteResult<T> = StdResult<T, Error>;
 
 fn error_type(status: StatusCode) -> &'static str {
     match status {

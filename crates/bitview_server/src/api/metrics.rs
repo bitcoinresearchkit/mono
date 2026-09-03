@@ -14,10 +14,9 @@ use brk_types::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{CacheStrategy, Error, extended::TransformResponseExtended, params::Empty};
+use crate::{Error, error::RouteResult, extended::TransformResponseExtended, params::Empty};
 
-use super::AppState;
-use super::series_legacy;
+use super::{AppState, series, series_legacy};
 
 /// Legacy path parameter for `/api/metric/{metric}`
 #[derive(Deserialize, JsonSchema)]
@@ -44,7 +43,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
             "/api/metrics",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_catalog())).await
+                    series::serve_catalog(state, headers)
                 },
                 |op| op
                     .id("get_metrics_tree_deprecated")
@@ -67,7 +66,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_count())).await
+                    series::serve_count(state, headers)
                 },
                 |op| op
                     .id("get_metrics_count_deprecated")
@@ -90,7 +89,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.indexes())).await
+                    series::serve_indexes(state, headers)
                 },
                 |op| op
                     .id("get_indexes_deprecated")
@@ -113,7 +112,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                     State(state): State<AppState>,
                     Query(pagination): Query<Pagination>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.series_list(pagination))).await
+                    series::serve_list(state, headers, pagination).await
                 },
                 |op| op
                     .id("list_metrics_deprecated")
@@ -136,7 +135,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                     State(state): State<AppState>,
                     Query(query): Query<SearchQuery>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.search_series(&query))).await
+                    series::serve_search(state, headers, query).await
                 },
                 |op| op
                     .id("search_metrics_deprecated")
@@ -183,10 +182,8 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>,
                     Path(path): Path<LegacySeriesParam>
-                | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| {
-                        q.series_info(&path.metric).ok_or_else(|| q.series_not_found_error(&path.metric))
-                    }).await
+                | -> RouteResult<Response> {
+                    series::serve_series_info(state, headers, path.metric).await
                 },
                 |op| op
                     .id("get_metric_info_deprecated")
@@ -266,11 +263,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.latest(&path.metric, path.index)
-                        })
-                        .await
+                    series::serve_latest(state, headers, path.metric, path.index).await
                 },
                 |op| op
                     .id("get_metric_latest_deprecated")
@@ -292,11 +285,7 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<LegacySeriesWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.len(&path.metric, path.index)
-                        })
-                        .await
+                    series::serve_len(state, headers, path.metric, path.index).await
                 },
                 |op| op
                     .id("get_metric_len_deprecated")
@@ -317,12 +306,9 @@ impl ApiMetricsLegacyRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        _: Empty,
                        State(state): State<AppState>,
-                       Path(path): Path<LegacySeriesWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.version(&path.metric, path.index)
-                        })
-                        .await
+                       Path(path): Path<LegacySeriesWithIndex>|
+                       -> RouteResult<Response> {
+                    series::serve_version(state, headers, path.metric, path.index).await
                 },
                 |op| op
                     .id("get_metric_version_deprecated")

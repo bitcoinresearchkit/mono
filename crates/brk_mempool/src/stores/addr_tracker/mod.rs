@@ -1,10 +1,7 @@
-use std::{
-    collections::hash_map::Entry as MapEntry,
-    hash::{Hash, Hasher},
-};
+use std::collections::hash_map::Entry as MapEntry;
 
 use brk_types::{AddrBytes, AddrMempoolStats, Transaction, TxOut, Txid};
-use rustc_hash::{FxHashMap, FxHasher};
+use rustc_hash::FxHashMap;
 
 use crate::cycle::AddrTransitions;
 
@@ -50,16 +47,6 @@ impl AddrTracker {
                 self.apply_remove(transitions, bytes, txid, |stats| stats.received(txout));
             }
         }
-    }
-
-    /// Hash of an address's per-mempool stats, `None` if the address
-    /// has no live mempool activity. Stable while the address is
-    /// unchanged. Cheaper to recompute than to track invalidation.
-    pub fn stats_hash(&self, addr: &AddrBytes) -> Option<u64> {
-        let entry = self.0.get(addr)?;
-        let mut hasher = FxHasher::default();
-        entry.stats.hash(&mut hasher);
-        Some(hasher.finish())
     }
 
     /// Fold a single newly-resolved input into the per-address stats.
@@ -226,44 +213,5 @@ mod tests {
         // Only one enter, even though two txs landed on the addr.
         let (enters, _) = transitions.into_vecs();
         assert_eq!(enters.len(), 1);
-    }
-
-    #[test]
-    fn stats_hash_is_none_for_untracked_addr() {
-        let tracker = AddrTracker::default();
-        let bytes = addr_of(&p2wpkh_script(5));
-        assert!(tracker.stats_hash(&bytes).is_none());
-    }
-
-    #[test]
-    fn stats_hash_stable_for_repeat_reads() {
-        let mut tracker = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let script = p2wpkh_script(6);
-        let tx = fake_tx(5, &[], &[(script.clone(), 3_333)]);
-        tracker.add_tx(&mut transitions, &tx);
-
-        let bytes = addr_of(&script);
-        let first = tracker.stats_hash(&bytes).expect("addr tracked");
-        let second = tracker.stats_hash(&bytes).expect("addr tracked");
-        assert_eq!(first, second);
-    }
-
-    #[test]
-    fn stats_hash_changes_after_a_mutation() {
-        let mut tracker = AddrTracker::default();
-        let mut transitions = AddrTransitions::default();
-        let script = p2wpkh_script(7);
-        let bytes = addr_of(&script);
-        let tx_a = fake_tx(6, &[], &[(script.clone(), 1_111)]);
-        tracker.add_tx(&mut transitions, &tx_a);
-        let before = tracker.stats_hash(&bytes).expect("tracked after first add");
-
-        let tx_b = fake_tx(7, &[], &[(script, 2_222)]);
-        tracker.add_tx(&mut transitions, &tx_b);
-        let after = tracker
-            .stats_hash(&bytes)
-            .expect("tracked after second add");
-        assert_ne!(before, after, "second funding tx must shift the hash");
     }
 }

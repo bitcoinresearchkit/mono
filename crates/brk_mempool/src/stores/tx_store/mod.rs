@@ -1,7 +1,9 @@
+use std::hash::{Hash, Hasher};
+
 use brk_oracle::HistogramRaw;
 use brk_types::{MempoolRecentTx, Transaction, TxOut, Txid, TxidPrefix, Vin};
 use indexmap::IndexMap;
-use rustc_hash::{FxBuildHasher, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashSet, FxHasher};
 
 use crate::{state::TxEntry, stores::LiveHistograms};
 
@@ -23,6 +25,8 @@ const RECENT_CAP: usize = 10;
 #[derive(Default)]
 pub struct TxStore {
     records: IndexMap<TxidPrefix, TxRecord, FxBuildHasher>,
+    txids_hash: u64,
+    content_revision: u64,
     recent: Vec<MempoolRecentTx>,
     unresolved: FxHashSet<TxidPrefix>,
     histograms: LiveHistograms,
@@ -30,7 +34,7 @@ pub struct TxStore {
 
 impl TxStore {
     pub fn contains(&self, txid: &Txid) -> bool {
-        self.records.contains_key(&TxidPrefix::from(txid))
+        self.get(txid).is_some()
     }
 
     pub fn len(&self) -> usize {
@@ -42,11 +46,16 @@ impl TxStore {
     }
 
     pub fn get(&self, txid: &Txid) -> Option<&Transaction> {
-        self.records.get(&TxidPrefix::from(txid)).map(|r| &r.tx)
+        self.record(txid).map(|record| &record.tx)
     }
 
     pub fn entry(&self, txid: &Txid) -> Option<&TxEntry> {
-        self.records.get(&TxidPrefix::from(txid)).map(|r| &r.entry)
+        self.record(txid).map(|record| &record.entry)
+    }
+
+    pub fn record(&self, txid: &Txid) -> Option<&TxRecord> {
+        let record = self.records.get(&TxidPrefix::from(txid))?;
+        (record.entry.txid == *txid).then_some(record)
     }
 
     pub fn entry_by_prefix(&self, prefix: &TxidPrefix) -> Option<&TxEntry> {
@@ -69,12 +78,30 @@ impl TxStore {
         self.records.values().map(|r| &r.entry.txid)
     }
 
+    pub fn txids_hash(&self) -> u64 {
+        self.txids_hash
+    }
+
+    /// Process-local revision for every mutation that can change serialized tx bodies.
+    pub fn content_revision(&self) -> u64 {
+        self.content_revision
+    }
+
+    fn txid_position_hash(txid: &Txid, position: usize) -> u64 {
+        let mut hasher = FxHasher::default();
+        (position as u64).hash(&mut hasher);
+        txid.hash(&mut hasher);
+        hasher.finish()
+    }
+
     pub fn insert(&mut self, tx: Transaction, entry: TxEntry) {
         let prefix = entry.txid_prefix();
         debug_assert!(
             !self.records.contains_key(&prefix),
             "TxidPrefix collision: {prefix:?} already mapped. Birthday-rare on SHA-256d."
         );
+        let position = self.records.len();
+        let txid = entry.txid;
         self.sample_recent(&entry.txid, &tx);
         if tx.input.iter().any(|i| i.prevout.is_none()) {
             self.unresolved.insert(prefix);
@@ -82,6 +109,8 @@ impl TxStore {
         let record = TxRecord { tx, entry };
         self.histograms.add(&record);
         self.records.insert(prefix, record);
+        self.txids_hash ^= Self::txid_position_hash(&txid, position);
+        self.bump_content_revision();
     }
 
     fn sample_recent(&mut self, txid: &Txid, tx: &Transaction) {
@@ -96,9 +125,17 @@ impl TxStore {
     /// Remove by prefix and return the full record if present. `recent`
     /// is untouched: it's an "added" window, not a live-set mirror.
     pub fn remove_by_prefix(&mut self, prefix: &TxidPrefix) -> Option<TxRecord> {
-        let record = self.records.swap_remove(prefix)?;
+        let last_position = self.records.len().checked_sub(1)?;
+        let last_txid = self.records.last()?.1.entry.txid;
+        let (position, _, record) = self.records.swap_remove_full(prefix)?;
+        self.txids_hash ^= Self::txid_position_hash(&record.entry.txid, position);
+        if position != last_position {
+            self.txids_hash ^= Self::txid_position_hash(&last_txid, last_position);
+            self.txids_hash ^= Self::txid_position_hash(&last_txid, position);
+        }
         self.unresolved.remove(prefix);
         self.histograms.remove(&record);
+        self.bump_content_revision();
         Some(record)
     }
 
@@ -140,7 +177,12 @@ impl TxStore {
         if record.tx.input.iter().all(|i| i.prevout.is_some()) {
             self.unresolved.remove(prefix);
         }
+        self.bump_content_revision();
         applied
+    }
+
+    fn bump_content_revision(&mut self) {
+        self.content_revision = self.content_revision.wrapping_add(1);
     }
 
     fn write_prevouts(tx: &mut Transaction, fills: Vec<(Vin, TxOut)>) -> Vec<TxOut> {
@@ -159,7 +201,7 @@ impl TxStore {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::ScriptBuf;
+    use bitcoin::{ScriptBuf, hashes::Hash};
     use brk_types::{MempoolEntryInfo, Sats, Timestamp, VSize, Weight};
 
     use super::*;
@@ -184,6 +226,12 @@ mod tests {
     fn tx_with_prevouts(seed: u8) -> Transaction {
         let prev = Some(TxOut::from((p2wpkh_script(2), Sats::from(2_000u64))));
         fake_tx(seed, &[prev], &[(p2wpkh_script(3), 500)])
+    }
+
+    fn recompute_txids_hash(store: &TxStore) -> u64 {
+        store.txids().enumerate().fold(0, |hash, (position, txid)| {
+            hash ^ TxStore::txid_position_hash(txid, position)
+        })
     }
 
     #[test]
@@ -242,6 +290,93 @@ mod tests {
         assert!(store.record_by_prefix(&prefixes[0]).is_some());
         assert!(store.record_by_prefix(&prefixes[1]).is_none());
         assert!(store.record_by_prefix(&prefixes[2]).is_some());
+    }
+
+    #[test]
+    fn txids_hash_tracks_inserts_and_swap_removals() {
+        let mut store = TxStore::default();
+        let mut prefixes = Vec::new();
+        assert_eq!(store.txids_hash(), recompute_txids_hash(&store));
+
+        for seed in 4..=6 {
+            let tx = tx_with_prevouts(seed);
+            let entry = entry_for(&tx, 100, 100);
+            prefixes.push(entry.txid_prefix());
+            store.insert(tx, entry);
+            assert_eq!(store.txids_hash(), recompute_txids_hash(&store));
+        }
+
+        store.remove_by_prefix(&prefixes[1]).expect("middle record");
+        assert_eq!(store.txids_hash(), recompute_txids_hash(&store));
+
+        store.remove_by_prefix(&prefixes[2]).expect("last record");
+        assert_eq!(store.txids_hash(), recompute_txids_hash(&store));
+
+        store.remove_by_prefix(&prefixes[0]).expect("final record");
+        assert_eq!(store.txids_hash(), 0);
+    }
+
+    #[test]
+    fn content_revision_tracks_serialized_body_changes() {
+        let mut store = TxStore::default();
+        let tx = tx_without_prevouts(7);
+        let entry = entry_for(&tx, 100, 100);
+        let prefix = entry.txid_prefix();
+        assert_eq!(store.content_revision(), 0);
+
+        store.insert(tx, entry);
+        assert_eq!(store.content_revision(), 1);
+
+        assert!(store.apply_fills(&prefix, Vec::new()).is_empty());
+        assert_eq!(store.content_revision(), 1);
+
+        let prevout = TxOut::from((p2wpkh_script(8), Sats::from(2_000u64)));
+        let applied = store.apply_fills(&prefix, vec![(Vin::from(0usize), prevout)]);
+        assert_eq!(applied.len(), 1);
+        assert_eq!(applied[0].value, Sats::from(2_000u64));
+        assert_eq!(store.content_revision(), 2);
+
+        assert!(
+            store
+                .apply_fills(
+                    &prefix,
+                    vec![(
+                        Vin::from(0usize),
+                        TxOut::from((p2wpkh_script(9), Sats::from(3_000u64))),
+                    )],
+                )
+                .is_empty()
+        );
+        assert_eq!(store.content_revision(), 2);
+
+        store.remove_by_prefix(&prefix).expect("stored record");
+        assert_eq!(store.content_revision(), 3);
+        assert!(store.remove_by_prefix(&prefix).is_none());
+        assert_eq!(store.content_revision(), 3);
+    }
+
+    #[test]
+    fn full_txid_lookups_reject_prefix_collisions() {
+        let mut store = TxStore::default();
+        let tx = tx_with_prevouts(9);
+        let stored_txid = tx.txid;
+        let entry = entry_for(&tx, 100, 100);
+        store.insert(tx, entry);
+
+        let mut bytes = bitcoin::Txid::from(&stored_txid).to_byte_array();
+        bytes[8] ^= 1;
+        let colliding_txid = Txid::from(bitcoin::Txid::from_byte_array(bytes));
+        assert_eq!(
+            TxidPrefix::from(&stored_txid),
+            TxidPrefix::from(&colliding_txid)
+        );
+
+        assert!(store.contains(&stored_txid));
+        assert!(store.get(&stored_txid).is_some());
+        assert!(store.entry(&stored_txid).is_some());
+        assert!(!store.contains(&colliding_txid));
+        assert!(store.get(&colliding_txid).is_none());
+        assert!(store.entry(&colliding_txid).is_none());
     }
 
     #[test]

@@ -71,6 +71,10 @@ impl Height {
         self != Self::ZERO
     }
 
+    pub fn is_deeply_confirmed(self, current_height: Self) -> bool {
+        (*current_height).saturating_sub(*self) > 6
+    }
+
     pub fn left_before_next_diff_adj(self) -> u32 {
         BLOCKS_PER_DIFF_EPOCHS - (*self % BLOCKS_PER_DIFF_EPOCHS)
     }

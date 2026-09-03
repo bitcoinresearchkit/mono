@@ -113,11 +113,12 @@ impl Query {
     }
 
     /// Tip oracle warmed over the last `window_size` committed blocks, seeded
-    /// from the last committed price. Cached per tip height; rebuilt on advance
-    /// or reorg.
+    /// from the last committed price. Memoized by canonical tip hash.
     fn cached_oracle(&self) -> brk_error::Result<Arc<Oracle>> {
+        let plugins = self.plugins();
+        let _guard = self.read_plugins(&[plugins.indexer, plugins.price])?;
         let safe = self.safe_lengths();
-        let height = safe.height;
+        let tip = self.tip_blockhash();
 
         if let Some(oracle) = self
             .0
@@ -125,26 +126,20 @@ impl Query {
             .read()
             .unwrap()
             .as_ref()
-            .filter(|(h, _)| *h == height)
-            .map(|(_, o)| o.clone())
+            .filter(|(hash, _)| *hash == tip)
+            .map(|(_, oracle)| oracle.clone())
         {
             return Ok(oracle);
         }
 
-        let last = self
-            .plugins()
-            .price
-            .spot
-            .cents
-            .height
-            .len()
-            .saturating_sub(1);
+        let height = safe.height;
+        let last = height.to_usize().saturating_sub(1);
         let seed_bin = self.seed_bin_at(last)?;
         let oracle = Arc::new(self.warm_oracle(seed_bin, height.to_usize(), &safe));
 
         let mut cache = self.0.live_oracle.write().unwrap();
-        if cache.as_ref().is_none_or(|(h, _)| *h != height) {
-            *cache = Some((height, oracle.clone()));
+        if cache.as_ref().is_none_or(|(hash, _)| *hash != tip) {
+            *cache = Some((tip, oracle.clone()));
         }
         Ok(oracle)
     }

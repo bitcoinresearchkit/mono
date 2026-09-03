@@ -1,23 +1,24 @@
-use brk_error::{Error, OptionData};
+use brk_error::{OptionData, Result};
 use brk_types::{BlockHash, Height};
 use vecdb::ReadableVec;
 
+use super::ResolvedBlock;
 use crate::Query;
 
 impl Query {
-    pub fn block_raw(&self, hash: &BlockHash) -> brk_error::Result<Vec<u8>> {
-        let height = self.height_by_hash(hash)?;
-        self.block_raw_by_height(height)
+    pub fn block_raw(&self, hash: &BlockHash) -> Result<Vec<u8>> {
+        let block = self.resolve_block(hash)?;
+        self.block_raw_at_height(block.height())
     }
 
-    fn block_raw_by_height(&self, height: Height) -> brk_error::Result<Vec<u8>> {
-        let bound = self.safe_lengths().height;
-        if height >= bound {
-            return Err(Error::OutOfRange(
-                format!("Block height {height} out of range (tip {})", self.height()).into(),
-            ));
-        }
+    /// Raw bytes for a block previously resolved by exact hash. Returns
+    /// `NotFound` if the block was displaced before this read.
+    pub fn block_raw_resolved(&self, block: ResolvedBlock) -> Result<Vec<u8>> {
+        let height = self.revalidate_block(block)?;
+        self.block_raw_at_height(height)
+    }
 
+    fn block_raw_at_height(&self, height: Height) -> Result<Vec<u8>> {
         let indexer = self.indexer();
         let position = indexer.vecs().blocks.position.collect_one(height).data()?;
         let size = indexer.vecs().blocks.total.collect_one(height).data()?;

@@ -32,7 +32,7 @@ pub struct Rebuilder {
     /// Past block-0 txid lists keyed by `next_block_hash`, oldest first.
     /// Ordered so `block_template_diff` can emit `Retained(prior_index)`
     /// entries that line up with the client's cached prior template.
-    history: RwLock<VecDeque<(NextBlockHash, Vec<Txid>)>>,
+    history: RwLock<VecDeque<(NextBlockHash, Arc<[Txid]>)>>,
     rebuild_count: AtomicU64,
 }
 
@@ -52,7 +52,7 @@ impl Rebuilder {
         }
 
         let snap = Self::build_snapshot(lock, gbt_txids, min_fee);
-        let block0: Vec<Txid> = snap.block0_txids().collect();
+        let block0: Arc<[Txid]> = snap.block0_txids().collect::<Vec<_>>().into();
         let next_hash = snap.next_block_hash;
 
         let mut hist = self.history.write();
@@ -81,7 +81,7 @@ impl Rebuilder {
     /// Past block-0 ordered txid list for `hash`, or `None` if it has
     /// aged out (or was never seen). Used by `block_template_diff` to
     /// decide 200 vs 404 and to resolve `Retained(prior_index)` entries.
-    pub fn historical_block0(&self, hash: NextBlockHash) -> Option<Vec<Txid>> {
+    pub fn historical_block0(&self, hash: NextBlockHash) -> Option<Arc<[Txid]>> {
         self.history
             .read()
             .iter()

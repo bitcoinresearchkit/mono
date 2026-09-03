@@ -51,11 +51,12 @@ server.serve().await?;
 
 ## Caching
 
-ETag-based revalidation. Five strategies pick the etag scheme:
+ETag-based revalidation. Six strategies pick the etag scheme:
 
 - **Tip**: chain-state, etag = tip hash prefix (invalidates per block + reorgs)
 - **Immutable**: deeply-confirmed data, etag = format version
-- **BlockBound**: data tied to a specific block hash (reorg-safe)
+- **BlockBound**: immutable content tied to a specific block hash
+- **ActivityBound**: mutable state anchored to its latest relevant block
 - **Deploy**: catalog/static data, etag = build version
 - **MempoolHash**: mempool data, etag = the relevant mempool-state hash
 

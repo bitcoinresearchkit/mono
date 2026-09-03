@@ -2,13 +2,14 @@ use std::io::Read;
 
 use bitcoin::consensus::Decodable;
 use bitcoin::hex::DisplayHex;
-use brk_error::{Error, OptionData};
+use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    BlockExtras, BlockHash, BlockHashPrefix, BlockHeader, BlockInfo, BlockInfoV1, BlockPool,
-    FeeRate, Height, PoolSlug, Sats, Timestamp, TxIndex, VSize, pools,
+    BlockExtras, BlockHash, BlockHeader, BlockInfo, BlockInfoV1, BlockPool, FeeRate, Height,
+    PoolSlug, Sats, Timestamp, TxIndex, VSize, pools,
 };
 use vecdb::{ReadableVec, VecIndex};
 
+use super::ResolvedBlock;
 use crate::Query;
 
 const HEADER_SIZE: usize = 80;
@@ -38,16 +39,27 @@ struct Coinbase {
 
 impl Query {
     /// Block by hash. Unknown hash → 404 via `height_by_hash`.
-    pub fn block(&self, hash: &BlockHash) -> brk_error::Result<BlockInfo> {
-        let height = self.height_by_hash(hash)?;
-        self.block_by_height(height)
+    pub fn block(&self, hash: &BlockHash) -> Result<BlockInfo> {
+        let block = self.resolve_block(hash)?;
+        self.block_at_height(block.height())
+    }
+
+    /// Block previously resolved by exact hash. Revalidates the cheap
+    /// hash-at-height pair before reading the body.
+    pub fn block_resolved(&self, block: ResolvedBlock) -> Result<BlockInfo> {
+        let height = self.revalidate_block(block)?;
+        self.block_at_height(height)
     }
 
     /// Block by height. Height past tip (or pre-genesis) → `OutOfRange`.
-    pub fn block_by_height(&self, height: Height) -> brk_error::Result<BlockInfo> {
+    pub fn block_by_height(&self, height: Height) -> Result<BlockInfo> {
         if height >= self.safe_lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
+        self.block_at_height(height)
+    }
+
+    fn block_at_height(&self, height: Height) -> Result<BlockInfo> {
         let h = height.to_usize();
         self.blocks_range(h, h + 1)?
             .pop()
@@ -56,10 +68,21 @@ impl Query {
 
     /// V1 block by height. The safe ceiling covers every plugin series read by
     /// `blocks_v1_range`, including pools, fees, and supply state.
-    pub fn block_by_height_v1(&self, height: Height) -> brk_error::Result<BlockInfoV1> {
+    pub fn block_by_height_v1(&self, height: Height) -> Result<BlockInfoV1> {
         if height >= self.safe_lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
+        self.block_v1_at_height(height)
+    }
+
+    /// V1 block previously resolved by exact hash. Returns `NotFound` if the
+    /// block no longer occupies its resolved best-chain height.
+    pub fn block_resolved_v1(&self, block: ResolvedBlock) -> Result<BlockInfoV1> {
+        let height = self.revalidate_block(block)?;
+        self.block_v1_at_height(height)
+    }
+
+    fn block_v1_at_height(&self, height: Height) -> Result<BlockInfoV1> {
         let h = height.to_usize();
         self.blocks_v1_range(h, h + 1)?
             .pop()
@@ -68,11 +91,19 @@ impl Query {
 
     /// Hex-encoded 80-byte block header. Decode-then-encode roundtrip
     /// doubles as a corruption check on the on-disk bytes.
-    pub fn block_header_hex(&self, hash: &BlockHash) -> brk_error::Result<String> {
-        let height = self.height_by_hash(hash)?;
-        if height >= self.safe_lengths().height {
-            return Err(Error::OutOfRange("Block height out of range".into()));
-        }
+    pub fn block_header_hex(&self, hash: &BlockHash) -> Result<String> {
+        let block = self.resolve_block(hash)?;
+        self.block_header_hex_at_height(block.height())
+    }
+
+    /// Header for a block previously resolved by exact hash. Returns
+    /// `NotFound` if the block was displaced before this read.
+    pub fn block_header_hex_resolved(&self, block: ResolvedBlock) -> Result<String> {
+        let height = self.revalidate_block(block)?;
+        self.block_header_hex_at_height(height)
+    }
+
+    fn block_header_hex_at_height(&self, height: Height) -> Result<String> {
         let header = self.read_block_header(height)?;
         Ok(bitcoin::consensus::encode::serialize_hex(&header))
     }
@@ -80,7 +111,7 @@ impl Query {
     /// Block hash by height. Cheap typed-index read with a semantic
     /// bounds gate (`OutOfRange` for past-tip, `Internal` if the data
     /// is unexpectedly missing inside the gate).
-    pub fn block_hash_by_height(&self, height: Height) -> brk_error::Result<BlockHash> {
+    pub fn block_hash_by_height(&self, height: Height) -> Result<BlockHash> {
         if height >= self.safe_lengths().height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
@@ -89,22 +120,14 @@ impl Query {
 
     /// Most recent `count` blocks ending at `start_height` (default tip),
     /// returned in descending-height order.
-    pub fn blocks(
-        &self,
-        start_height: Option<Height>,
-        count: u32,
-    ) -> brk_error::Result<Vec<BlockInfo>> {
+    pub fn blocks(&self, start_height: Option<Height>, count: u32) -> Result<Vec<BlockInfo>> {
         let (begin, end) = self.resolve_block_range(start_height, count, self.height());
         self.blocks_range(begin, end)
     }
 
     /// V1 most recent `count` blocks with extras ending at `start_height`
     /// (default tip), returned in descending-height order.
-    pub fn blocks_v1(
-        &self,
-        start_height: Option<Height>,
-        count: u32,
-    ) -> brk_error::Result<Vec<BlockInfoV1>> {
+    pub fn blocks_v1(&self, start_height: Option<Height>, count: u32) -> Result<Vec<BlockInfoV1>> {
         let (begin, end) = self.resolve_block_range(start_height, count, self.height());
         self.blocks_v1_range(begin, end)
     }
@@ -114,7 +137,7 @@ impl Query {
     /// Build `BlockInfo` rows for `[begin, end)` in descending-height order.
     /// `end` is re-clamped to `safe.height` (single snapshot) so two-snapshot
     /// tearing under a concurrent reorg cannot short-read past the loop guards.
-    fn blocks_range(&self, begin: usize, end: usize) -> brk_error::Result<Vec<BlockInfo>> {
+    fn blocks_range(&self, begin: usize, end: usize) -> Result<Vec<BlockInfo>> {
         let safe = self.safe_lengths();
         let height_len = safe.height.to_usize();
         let tx_index_len = safe.tx_index.to_usize();
@@ -205,7 +228,7 @@ impl Query {
     /// indexer-stamped and plugins-stamped vecs, since `safe_lengths` only
     /// advances after compute). Returns `Internal` on per-block header read
     /// failures.
-    fn blocks_v1_range(&self, begin: usize, end: usize) -> brk_error::Result<Vec<BlockInfoV1>> {
+    fn blocks_v1_range(&self, begin: usize, end: usize) -> Result<Vec<BlockInfoV1>> {
         let safe = self.safe_lengths();
         let height_len = safe.height.to_usize();
         let tx_index_len = safe.tx_index.to_usize();
@@ -524,32 +547,11 @@ impl Query {
 
     // === Helper methods ===
 
-    /// Hash to height, clamped to the safe-lengths snapshot. The prefix
-    /// store keys on the first 8 bytes of the hash, so the resolved
-    /// height is verified against the full `blockhash[height]` before
-    /// being returned. Prefix collisions, unknown hashes, and hashes
-    /// past the snapshot all surface as `NotFound`.
-    pub fn height_by_hash(&self, hash: &BlockHash) -> brk_error::Result<Height> {
-        let indexer = self.indexer();
-        let prefix = BlockHashPrefix::from(hash);
-        let height = indexer
-            .stores()
-            .block_height(&prefix)?
-            .ok_or(Error::NotFound("Block not found".into()))?;
-        if height >= self.safe_lengths().height {
-            return Err(Error::NotFound("Block not found".into()));
-        }
-        match indexer.vecs().blocks.blockhash.get(height) {
-            Some(stored) if &stored == hash => Ok(height),
-            _ => Err(Error::NotFound("Block not found".into())),
-        }
-    }
-
     /// Read the on-disk 80-byte header at `height` and decode it.
     /// Caller must bounds-check `height` (no `OutOfRange` mapping here).
     /// Returns `bitcoin::block::Header` because callers feed it into
     /// upstream consensus-encoding APIs (`serialize_hex`, `MerkleBlock`).
-    pub fn read_block_header(&self, height: Height) -> brk_error::Result<bitcoin::block::Header> {
+    pub fn read_block_header(&self, height: Height) -> Result<bitcoin::block::Header> {
         let position = self
             .indexer()
             .vecs()
@@ -586,7 +588,7 @@ impl Query {
     /// Consensus-decodes 80 raw header bytes into the crate's `BlockHeader`.
     /// Failure means on-disk corruption (the bytes already passed indexer
     /// validation), so it surfaces as `Error::Internal`, not `OutOfRange`.
-    fn decode_header(bytes: &[u8]) -> brk_error::Result<BlockHeader> {
+    fn decode_header(bytes: &[u8]) -> Result<BlockHeader> {
         let raw = bitcoin::block::Header::consensus_decode(&mut &bytes[..])
             .map_err(|_| Error::Internal("Failed to decode block header"))?;
         Ok(BlockHeader::from(raw))
@@ -739,10 +741,6 @@ impl Query {
 }
 
 #[inline]
-pub fn blocks_v1_range(
-    query: &Query,
-    begin: usize,
-    end: usize,
-) -> brk_error::Result<Vec<BlockInfoV1>> {
+pub fn blocks_v1_range(query: &Query, begin: usize, end: usize) -> Result<Vec<BlockInfoV1>> {
     query.blocks_v1_range(begin, end)
 }

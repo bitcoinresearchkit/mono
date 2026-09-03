@@ -1,4 +1,4 @@
-use brk_error::{Error, OptionData};
+use brk_error::{Error, OptionData, Result};
 use brk_types::{BlockTimestamp, Date, Day1, Height, Timestamp};
 use jiff::Timestamp as JiffTimestamp;
 use vecdb::ReadableVec;
@@ -10,6 +10,26 @@ use crate::Query;
 /// have `ts ≤ target` (its median floor would already exceed `target`).
 const MTP_TERMINAL_STREAK: usize = 11;
 
+/// A timestamp lookup plus its chain-finality proof and snapshot height.
+pub struct ResolvedBlockTimestamp {
+    block: BlockTimestamp,
+    terminal_height: Option<Height>,
+    tip_height: Height,
+}
+
+impl ResolvedBlockTimestamp {
+    #[inline]
+    pub fn is_final(&self) -> bool {
+        self.terminal_height
+            .is_some_and(|height| height.is_deeply_confirmed(self.tip_height))
+    }
+
+    #[inline]
+    pub fn into_value(self) -> BlockTimestamp {
+        self.block
+    }
+}
+
 impl Query {
     /// Most recent block with `timestamp ≤ ts`. Backs mempool.space's
     /// `GET /api/v1/mining/blocks/timestamp/{ts}`. Future timestamps return
@@ -19,14 +39,27 @@ impl Query {
     /// linear scan bounded by the BIP113 MTP rule (see `MTP_TERMINAL_STREAK`).
     /// Symmetric backward scan handles targets earlier than the seeded day's
     /// first block.
-    pub fn block_by_timestamp(&self, timestamp: Timestamp) -> brk_error::Result<BlockTimestamp> {
+    pub fn block_by_timestamp(&self, timestamp: Timestamp) -> Result<BlockTimestamp> {
+        self.resolve_block_by_timestamp(timestamp)
+            .map(ResolvedBlockTimestamp::into_value)
+    }
+
+    /// Resolve the timestamp lookup and the first height at which BIP113 makes
+    /// the selected block terminal on this chain. [`ResolvedBlockTimestamp::is_final`]
+    /// additionally requires that proof height to be beyond the reorg window.
+    pub fn resolve_block_by_timestamp(
+        &self,
+        timestamp: Timestamp,
+    ) -> Result<ResolvedBlockTimestamp> {
         let indexer = self.indexer();
         let plugins = self.plugins();
+        let _guard = self.read_plugin(indexer)?;
 
-        if self.safe_lengths().height == Height::ZERO {
-            return Err(Error::NotFound("No blocks indexed".into()));
-        }
-        let tip: usize = self.height().into();
+        let tip_height = self
+            .safe_lengths()
+            .last_height()
+            .ok_or_else(|| Error::NotFound("No blocks indexed".into()))?;
+        let tip: usize = tip_height.into();
 
         let target = timestamp;
         let date = Date::from(target);
@@ -45,6 +78,7 @@ impl Query {
         let mut best: Option<(usize, Timestamp)> = None;
 
         let mut above_streak = 0usize;
+        let mut terminal_height = None;
         for h in start..=tip {
             let block_ts = ts_cursor.get(h).data()?;
             if block_ts <= target {
@@ -55,6 +89,7 @@ impl Query {
             } else {
                 above_streak += 1;
                 if above_streak >= MTP_TERMINAL_STREAK {
+                    terminal_height = Some(Height::from(h));
                     break;
                 }
             }
@@ -89,10 +124,14 @@ impl Query {
             .map(|t| t.strftime("%Y-%m-%dT%H:%M:%S%.3fZ").to_string())
             .unwrap_or_else(|_| best_ts.to_string());
 
-        Ok(BlockTimestamp {
-            height,
-            hash: blockhash,
-            timestamp: iso_timestamp,
+        Ok(ResolvedBlockTimestamp {
+            block: BlockTimestamp {
+                height,
+                hash: blockhash,
+                timestamp: iso_timestamp,
+            },
+            terminal_height,
+            tip_height,
         })
     }
 }

@@ -85,6 +85,11 @@ impl Snapshot {
         self.prefix_to_idx.get(prefix).copied()
     }
 
+    fn idx_of_txid(&self, txid: &Txid) -> Option<TxIndex> {
+        let index = self.idx_of(&TxidPrefix::from(txid))?;
+        (self.tx(index)?.txid == *txid).then_some(index)
+    }
+
     /// Txids of `blocks[0]` (Core's `getblocktemplate` selection),
     /// in template order. Empty for a default snapshot.
     pub fn block0_txids(&self) -> impl Iterator<Item = Txid> + '_ {
@@ -95,11 +100,11 @@ impl Snapshot {
             .map(|idx| self.txs[idx.as_usize()].txid)
     }
 
-    /// Linearized chunk rate for a live tx by prefix. Recomputed each
+    /// Linearized chunk rate for a live tx. Recomputed each
     /// snapshot, package-aware (CPFP lifts apply), equals `fee/vsize`
     /// for singletons.
-    pub fn chunk_rate_for(&self, prefix: &TxidPrefix) -> Option<FeeRate> {
-        let idx = self.idx_of(prefix)?;
+    pub fn chunk_rate_for(&self, txid: &Txid) -> Option<FeeRate> {
+        let idx = self.idx_of_txid(txid)?;
         Some(self.txs[idx.as_usize()].chunk_rate)
     }
 
@@ -217,5 +222,25 @@ mod tests {
             Snapshot::hash_next_block(&blocks, &txs),
             NextBlockHash::ZERO
         );
+    }
+
+    #[test]
+    fn full_txid_lookup_rejects_prefix_collision() {
+        let indexed = snap_tx(1).txid;
+        let mut bytes = [0u8; 32];
+        bytes[0] = 1;
+        bytes[8] = 1;
+        let collision = Txid::from(bitcoin::Txid::from_byte_array(bytes));
+        assert_eq!(TxidPrefix::from(&indexed), TxidPrefix::from(&collision));
+
+        let snapshot = Snapshot::for_test_with_chunk_rates(&[(
+            TxidPrefix::from(&indexed),
+            FeeRate::default(),
+            indexed,
+        )]);
+        assert_eq!(snapshot.idx_of_txid(&indexed), Some(TxIndex::from(0usize)));
+        assert_eq!(snapshot.idx_of_txid(&collision), None);
+        assert_eq!(snapshot.chunk_rate_for(&indexed), Some(FeeRate::default()));
+        assert_eq!(snapshot.chunk_rate_for(&collision), None);
     }
 }

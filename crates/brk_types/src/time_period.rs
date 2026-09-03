@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Used to specify the lookback window for pool statistics, hashrate calculations,
 /// and other time-based mining series.
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 pub enum TimePeriod {
     #[default]
     #[serde(rename = "24h")]

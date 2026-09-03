@@ -24,7 +24,8 @@ use serde::{Deserialize, Serialize};
 use vecdb::ReadableOptionVec;
 
 use crate::{
-    AppState, CacheStrategy,
+    AppState,
+    error::RouteResult,
     extended::{HeaderMapExtended, TransformResponseExtended},
     params::Empty,
 };
@@ -38,7 +39,7 @@ pub async fn handler(
     headers: HeaderMap,
     Query(params): Query<SeriesSelection>,
     State(state): State<AppState>,
-) -> std::result::Result<Response, crate::Error> {
+) -> RouteResult<Response> {
     let mut response = super::series::serve(state, headers, params, legacy_bytes).await?;
     if response.status() == StatusCode::OK {
         response.headers_mut().insert_deprecation(SUNSET);
@@ -140,9 +141,7 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
             "/api/series/cost-basis",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Deploy, |q| q.urpd_cohorts())
-                        .await
+                    super::urpd::serve_cohorts(state, headers)
                 },
                 |op| {
                     op.id("get_cost_basis_cohorts")
@@ -155,7 +154,6 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
                         )
                         .json_response::<Vec<Cohort>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -167,7 +165,7 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
                        _: Empty,
                        State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
+                        .respond_json(&headers, state.tip_strategy(), move |q| {
                             q.urpd_dates(&params.cohort)
                         })
                         .await
@@ -194,9 +192,10 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(params): Path<CostBasisParams>,
                        Query(query): Query<CostBasisQuery>,
-                       State(state): State<AppState>| {
-                    let strategy = state.date_strategy(Version::ONE, params.date);
-                    state
+                       State(state): State<AppState>|
+                       -> RouteResult<Response> {
+                    let strategy = state.date_strategy(Version::ONE, params.date).await?;
+                    Ok(state
                         .respond_json(&headers, strategy, move |q| {
                             cost_basis_formatted(
                                 q,
@@ -206,7 +205,7 @@ impl ApiSeriesLegacyRoutes for ApiRouter<AppState> {
                                 query.value,
                             )
                         })
-                        .await
+                        .await)
                 },
                 |op| {
                     op.id("get_cost_basis")

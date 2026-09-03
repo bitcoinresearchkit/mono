@@ -15,16 +15,108 @@ use bitview_query::{Output, Query as BrkQuery, ResolvedQuery, SeriesOutput};
 use bitview_traversable::TreeNode;
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
-    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
+    SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_error::Result;
-use brk_types::Version;
+use brk_types::{Index, Version};
 
 use crate::{
     AppState, CacheParams, CacheStrategy, Error,
+    error::RouteResult,
     extended::{HeaderMapExtended, TransformResponseExtended},
     params::{Empty, SeriesParam},
 };
+
+pub(super) fn serve_catalog(state: AppState, headers: HeaderMap) -> Response {
+    state.respond_json_bytes_value(
+        &headers,
+        CacheStrategy::Deploy,
+        state.series_bodies.catalog(),
+    )
+}
+
+pub(super) fn serve_count(state: AppState, headers: HeaderMap) -> Response {
+    state.respond_json_bytes_value(&headers, CacheStrategy::Deploy, state.series_bodies.count())
+}
+
+pub(super) fn serve_indexes(state: AppState, headers: HeaderMap) -> Response {
+    state.respond_json_bytes_value(
+        &headers,
+        CacheStrategy::Deploy,
+        state.series_bodies.indexes(),
+    )
+}
+
+pub(super) async fn serve_list(
+    state: AppState,
+    headers: HeaderMap,
+    pagination: Pagination,
+) -> Response {
+    state
+        .respond_json(&headers, CacheStrategy::Deploy, move |query| {
+            Ok(query.series_list(pagination))
+        })
+        .await
+}
+
+pub(super) async fn serve_search(
+    state: AppState,
+    headers: HeaderMap,
+    search: SearchQuery,
+) -> Response {
+    state
+        .respond_json(&headers, CacheStrategy::Deploy, move |query| {
+            Ok(query.search_series(&search))
+        })
+        .await
+}
+
+pub(super) async fn serve_series_info(
+    state: AppState,
+    headers: HeaderMap,
+    series: SeriesName,
+) -> RouteResult<Response> {
+    if let Some(info) = state.sync(|q| q.series_info(&series)) {
+        return Ok(state.respond_json_value(&headers, CacheStrategy::Deploy, info));
+    }
+
+    let error = state
+        .run(move |q| -> Result<_> { Ok(q.missing_series_error(&series)) })
+        .await?;
+    Err(error.into())
+}
+
+pub(super) async fn serve_latest(
+    state: AppState,
+    headers: HeaderMap,
+    series: SeriesName,
+    index: Index,
+) -> Response {
+    state
+        .respond_json_content(&headers, move |q| q.latest(&series, index))
+        .await
+}
+
+pub(super) async fn serve_len(
+    state: AppState,
+    headers: HeaderMap,
+    series: SeriesName,
+    index: Index,
+) -> Response {
+    state
+        .respond_json_content(&headers, move |q| q.len(&series, index))
+        .await
+}
+
+pub(super) async fn serve_version(
+    state: AppState,
+    headers: HeaderMap,
+    series: SeriesName,
+    index: Index,
+) -> RouteResult<Response> {
+    let version = state.run(move |q| q.version(&series, index)).await?;
+    Ok(state.respond_json_value(&headers, CacheStrategy::Deploy, version))
+}
 
 /// Shared response pipeline for every series endpoint.
 ///
@@ -113,7 +205,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
             "/api/series",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_catalog())).await
+                    serve_catalog(state, headers)
                 },
                 |op| op
                     .id("get_series_tree")
@@ -136,7 +228,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.series_count())).await
+                    serve_count(state, headers)
                 },
                 |op| op
                     .id("get_series_count")
@@ -155,7 +247,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.indexes())).await
+                    serve_indexes(state, headers)
                 },
                 |op| op
                     .id("get_indexes")
@@ -176,7 +268,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     State(state): State<AppState>,
                     Query(pagination): Query<Pagination>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.series_list(pagination))).await
+                    serve_list(state, headers, pagination).await
                 },
                 |op| op
                     .id("list_series")
@@ -195,7 +287,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     State(state): State<AppState>,
                     Query(query): Query<SearchQuery>
                 | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| Ok(q.search_series(&query))).await
+                    serve_search(state, headers, query).await
                 },
                 |op| op
                     .id("search_series")
@@ -215,10 +307,8 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                     _: Empty,
                     State(state): State<AppState>,
                     Path(path): Path<SeriesParam>
-                | {
-                    state.respond_json(&headers, CacheStrategy::Deploy, move |q| {
-                        q.series_info(&path.series).ok_or_else(|| q.series_not_found_error(&path.series))
-                    }).await
+                | -> RouteResult<Response> {
+                    serve_series_info(state, headers, path.series).await
                 },
                 |op| op
                     .id("get_series_info")
@@ -302,11 +392,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<SeriesNameWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.latest(&path.series, path.index)
-                        })
-                        .await
+                    serve_latest(state, headers, path.series, path.index).await
                 },
                 |op| op
                     .id("get_series_latest")
@@ -327,11 +413,7 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                        _: Empty,
                        State(state): State<AppState>,
                        Path(path): Path<SeriesNameWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.len(&path.series, path.index)
-                        })
-                        .await
+                    serve_len(state, headers, path.series, path.index).await
                 },
                 |op| op
                     .id("get_series_len")
@@ -349,12 +431,9 @@ impl ApiSeriesRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        _: Empty,
                        State(state): State<AppState>,
-                       Path(path): Path<SeriesNameWithIndex>| {
-                    state
-                        .respond_json(&headers, CacheStrategy::Tip, move |q| {
-                            q.version(&path.series, path.index)
-                        })
-                        .await
+                       Path(path): Path<SeriesNameWithIndex>|
+                       -> RouteResult<Response> {
+                    serve_version(state, headers, path.series, path.index).await
                 },
                 |op| op
                     .id("get_series_version")

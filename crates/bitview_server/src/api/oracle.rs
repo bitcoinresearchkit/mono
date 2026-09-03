@@ -2,16 +2,27 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
     http::HeaderMap,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 use brk_oracle::{HistogramEmaCompact, HistogramRaw};
 use brk_types::{Day1, Dollars, Version};
 
 use crate::{
     AppState,
+    error::RouteResult,
     extended::TransformResponseExtended,
     params::{Empty, HeightOrDate, HeightOrDateParam},
 };
+
+pub(super) async fn serve_live_price(
+    headers: HeaderMap,
+    _: Empty,
+    State(state): State<AppState>,
+) -> Response {
+    state
+        .respond_json_content(&headers, |query| query.live_price())
+        .await
+}
 
 pub trait OracleRoutes {
     fn add_oracle_routes(self) -> Self;
@@ -21,36 +32,27 @@ impl OracleRoutes for ApiRouter<AppState> {
     fn add_oracle_routes(self) -> Self {
         self.api_route(
             "/api/oracle/price",
-            get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.live_price())
-                        .await
-                },
-                |op| {
-                    op.id("get_oracle_price")
-                        .oracle_tag()
-                        .mcp_ignore()
-                        .summary("Live BTC/USD price")
-                        .description(
-                            "Current BTC/USD price in dollars. Same value as \
+            get_with(serve_live_price, |op| {
+                op.id("get_oracle_price")
+                    .oracle_tag()
+                    .mcp_ignore()
+                    .summary("Live BTC/USD price")
+                    .description(
+                        "Current BTC/USD price in dollars. Same value as \
                             `GET /api/mempool/price`. Confirmed per-height history is available at \
                             `GET /api/series/price/height`.",
-                        )
-                        .json_response::<Dollars>()
-                        .not_modified()
-                        .server_error()
-                },
-            ),
+                    )
+                    .json_response::<Dollars>()
+                    .not_modified()
+                    .server_error()
+            }),
         )
         .api_route(
             "/api/oracle/histogram/payments/live",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.live_payment_histogram()
-                        })
+                        .respond_json_content(&headers, |query| query.live_payment_histogram())
                         .await
                 },
                 |op| {
@@ -75,26 +77,27 @@ impl OracleRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightOrDateParam>,
                        _: Empty,
-                       State(state): State<AppState>| {
+                       State(state): State<AppState>|
+                       -> RouteResult<Response> {
                     let version = Version::new(brk_oracle::VERSION);
                     match path.resolve() {
                         Ok(HeightOrDate::Date(date)) => {
-                            let strategy = state.date_strategy(version, date);
-                            state
+                            let strategy = state.date_strategy(version, date).await?;
+                            Ok(state
                                 .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_payment_histogram_day(Day1::try_from(date)?)
                                 })
-                                .await
+                                .await)
                         }
                         Ok(HeightOrDate::Height(height)) => {
                             let strategy = state.height_strategy(version, height);
-                            state
+                            Ok(state
                                 .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_payment_histogram(usize::from(height))
                                 })
-                                .await
+                                .await)
                         }
-                        Err(e) => e.into_response(),
+                        Err(e) => Ok(e.into_response()),
                     }
                 },
                 |op| {
@@ -121,9 +124,7 @@ impl OracleRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.live_output_histogram()
-                        })
+                        .respond_json_content(&headers, |query| query.live_output_histogram())
                         .await
                 },
                 |op| {
@@ -148,27 +149,28 @@ impl OracleRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightOrDateParam>,
                        _: Empty,
-                       State(state): State<AppState>| {
+                       State(state): State<AppState>|
+                       -> RouteResult<Response> {
                     let version = Version::new(brk_oracle::VERSION);
 
                     match path.resolve() {
                         Ok(HeightOrDate::Date(date)) => {
-                            let strategy = state.date_strategy(version, date);
-                            state
+                            let strategy = state.date_strategy(version, date).await?;
+                            Ok(state
                                 .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_output_histogram_day(Day1::try_from(date)?)
                                 })
-                                .await
+                                .await)
                         }
                         Ok(HeightOrDate::Height(height)) => {
                             let strategy = state.height_strategy(version, height);
-                            state
+                            Ok(state
                                 .respond_json(&headers, strategy, move |q| {
                                     q.confirmed_output_histogram(usize::from(height))
                                 })
-                                .await
+                                .await)
                         }
-                        Err(e) => e.into_response(),
+                        Err(e) => Ok(e.into_response()),
                     }
                 },
                 |op| {

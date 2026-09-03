@@ -24,6 +24,7 @@ mod series_entry;
 use index_to_vec::IndexToVec;
 
 pub use series_entry::SeriesEntry;
+pub(crate) use series_entry::SeriesEntryLookup;
 
 pub struct Vecs<'a> {
     by_series: FxHashMap<&'a str, IndexToVec<'a>>,
@@ -214,12 +215,6 @@ impl<'a> Vecs<'a> {
         &self.indexes
     }
 
-    pub fn series_indexes(&self, series: &SeriesName) -> Option<Vec<Index>> {
-        self.by_series
-            .get(series.normalize().as_ref())
-            .map(|index_to_vec| index_to_vec.indexes().collect())
-    }
-
     pub fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
         let normalized = series.normalize();
         let name = normalized.as_ref();
@@ -254,6 +249,20 @@ impl<'a> Vecs<'a> {
                 .into_iter()
                 .map(|(id, _)| self.series_names[id as usize])
                 .collect();
+        }
+
+        self.matches_after_exact_miss(series, limit)
+    }
+
+    /// Continue fuzzy matching after the caller established that the exact
+    /// normalized series name is absent.
+    pub(crate) fn matches_after_exact_miss(
+        &self,
+        series: &SeriesName,
+        limit: Limit,
+    ) -> Vec<&'_ str> {
+        if limit.is_zero() {
+            return Vec::new();
         }
 
         let query = cohort_query::expand(series);
@@ -316,7 +325,7 @@ impl<'a> Vecs<'a> {
         let descriptions = self
             .description_search
             .matcher
-            .matches_with_ids_and_matched_words(
+            .matches_best_with_ids_and_matched_words(
                 &query.semantic,
                 &QuickMatchConfig::new()
                     .with_limit(self.description_search.series_by_description.len()),
@@ -331,11 +340,6 @@ impl<'a> Vecs<'a> {
                 *limit,
             );
         }
-        let best_matched_words = descriptions[0].1;
-        let descriptions = descriptions
-            .into_iter()
-            .take_while(|(_, matched_words)| *matched_words == best_matched_words)
-            .collect::<Vec<_>>();
         let described_series = descriptions
             .iter()
             .map(|(description_id, _)| {
@@ -360,10 +364,15 @@ impl<'a> Vecs<'a> {
         )
     }
 
-    pub fn entry(&self, series: &SeriesName, index: Index) -> Option<SeriesEntry<'a>> {
-        self.by_series
-            .get(series.normalize().as_ref())
-            .and_then(|index_to_vec| index_to_vec.get(index).copied())
+    pub(crate) fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
+        let Some(index_to_vec) = self.by_series.get(series.normalize().as_ref()) else {
+            return SeriesEntryLookup::Missing;
+        };
+
+        match index_to_vec.get(index).copied() {
+            Some(entry) => SeriesEntryLookup::Found(entry),
+            None => SeriesEntryLookup::Unsupported(index_to_vec.indexes().collect()),
+        }
     }
 
     fn series_position(&self, name: &str) -> Option<usize> {

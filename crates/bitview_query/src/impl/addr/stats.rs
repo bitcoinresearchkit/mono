@@ -2,26 +2,12 @@ use std::str::FromStr;
 
 use brk_error::{Error, Result};
 use brk_types::{
-    Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, BlockHash, DecodedAddrState, Dollars,
-    OutputType, TypeIndex,
+    Addr, AddrBytes, AddrChainStats, AddrHash, AddrStats, DecodedAddrState, Dollars, OutputType,
+    TypeIndex,
 };
 use vecdb::ReadableVec;
 
 use crate::Query;
-
-/// Non-blocking address-stats resolution against one published snapshot.
-#[derive(Debug)]
-pub enum AddrStatsPreflight {
-    /// Mempool activity determines the ETag; use the normal stats query.
-    Mempool(u64),
-    /// The address resolves against published stats. The optional block hash
-    /// is present when block-bound caching could also be resolved.
-    Chain(Option<BlockHash>),
-    /// The normal stats query would fail with this error.
-    Reject(Error),
-    /// An update owns the publication gate; use the normal blocking query path.
-    Updating,
-}
 
 impl Query {
     pub fn addr(&self, addr: Addr) -> Result<AddrStats> {
@@ -31,36 +17,16 @@ impl Query {
         self.addr_stats(addr, bytes, output_type, type_index)
     }
 
-    /// Resolve the cache inputs for address stats while the distribution
-    /// snapshot is stable. An error is returned only when the address-stats
-    /// lookup itself would fail during address resolution at this snapshot.
-    ///
-    /// Mempool-active addresses keep the existing response path. For addresses
-    /// without mempool activity, a missing activity height merely disables
-    /// block-bound caching and does not replace the eventual stats result.
-    pub fn addr_stats_preflight(&self, addr: &Addr) -> AddrStatsPreflight {
-        let bytes = match AddrBytes::from_str(addr) {
-            Ok(bytes) => bytes,
-            Err(error) => return AddrStatsPreflight::Reject(error),
-        };
-
-        if let Some(hash) = self.mempool().and_then(|m| m.addr_state_hash(&bytes)) {
-            return AddrStatsPreflight::Mempool(hash);
-        }
-
+    /// Resolve complete address stats without waiting for an in-flight
+    /// distribution update. `None` asks the caller to use the blocking path.
+    pub fn addr_stats_preflight(&self, addr: &Addr) -> Result<Option<AddrStats>> {
+        let bytes = AddrBytes::from_str(addr)?;
         let Some(_guard) = self.try_read_plugin(self.plugins().distribution) else {
-            return AddrStatsPreflight::Updating;
+            return Ok(None);
         };
-        let (output_type, type_index) = match self.resolve_addr_stats(&bytes) {
-            Ok(resolved) => resolved,
-            Err(error) => return AddrStatsPreflight::Reject(error),
-        };
-        let block_hash = self
-            .addr_last_activity_height_for(output_type, type_index, None)
-            .and_then(|height| self.block_hash_by_height(height))
-            .ok();
-
-        AddrStatsPreflight::Chain(block_hash)
+        let (output_type, type_index) = self.resolve_addr_stats(&bytes)?;
+        self.addr_stats(addr.clone(), bytes, output_type, type_index)
+            .map(Some)
     }
 
     fn resolve_addr_stats(&self, bytes: &AddrBytes) -> Result<(OutputType, TypeIndex)> {

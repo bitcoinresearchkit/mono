@@ -1,8 +1,17 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{extract::State, http::HeaderMap};
+use axum::{extract::State, http::HeaderMap, response::Response};
 use brk_types::{MempoolBlock, RecommendedFees};
 
-use crate::{AppState, extended::TransformResponseExtended, params::Empty};
+use crate::{AppState, error::RouteResult, extended::TransformResponseExtended, params::Empty};
+
+async fn serve_recommended_fees(
+    headers: HeaderMap,
+    _: Empty,
+    State(state): State<AppState>,
+) -> RouteResult<Response> {
+    let fees = state.recommended_fees()?;
+    Ok(state.respond_json_content_value(&headers, fees))
+}
 
 pub trait FeesRoutes {
     fn add_fees_routes(self) -> Self;
@@ -13,12 +22,12 @@ impl FeesRoutes for ApiRouter<AppState> {
         self.api_route(
             "/api/v1/fees/mempool-blocks",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.mempool_blocks()
-                        })
-                        .await
+                async |headers: HeaderMap,
+                       _: Empty,
+                       State(state): State<AppState>|
+                       -> RouteResult<Response> {
+                    let blocks = state.mempool_blocks()?;
+                    Ok(state.respond_json_content_value(&headers, blocks))
                 },
                 |op| {
                     op.id("get_mempool_blocks")
@@ -34,13 +43,7 @@ impl FeesRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/fees/recommended",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.recommended_fees()
-                        })
-                        .await
-                },
+                serve_recommended_fees,
                 |op| {
                     op.id("get_recommended_fees")
                         .fees_tag()
@@ -56,13 +59,7 @@ impl FeesRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/fees/precise",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.recommended_fees()
-                        })
-                        .await
-                },
+                serve_recommended_fees,
                 |op| {
                     op.id("get_precise_fees")
                         .fees_tag()

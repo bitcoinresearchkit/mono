@@ -7,6 +7,9 @@ use std::sync::RwLock;
 #[cfg(feature = "indexer")]
 use std::{path::Path, sync::Arc};
 
+#[cfg(feature = "chain")]
+use r#impl::{AddrMempoolTxsCache, AddrTxsCache, BlockTemplateCache};
+
 #[cfg(feature = "bedrock")]
 use bitview_plugin_bedrock::Vecs as Bedrock;
 #[cfg(feature = "blocks")]
@@ -61,6 +64,7 @@ mod output;
 mod query_plugin_set;
 #[cfg(feature = "indexer")]
 mod query_plugins;
+mod representation_id;
 mod series_output;
 mod series_output_legacy;
 mod vecs;
@@ -70,10 +74,17 @@ mod r#impl;
 
 #[cfg(feature = "tokio")]
 pub use r#async::*;
-#[cfg(feature = "chain")]
-pub use r#impl::AddrStatsPreflight;
+#[cfg(feature = "price")]
+pub use r#impl::ResolvedHistoricalPrice;
 #[cfg(feature = "series")]
 pub use r#impl::ResolvedQuery;
+#[cfg(feature = "chain")]
+pub use r#impl::{
+    AddrMempoolTxsPreflight, AddrTxsPreflight, BlockTemplateDiffPreflight, ResolvedAddrChainTxs,
+    ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlock,
+    ResolvedBlockTimestamp, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
+    ResolvedRawTransaction, ResolvedRbf, ResolvedTransaction,
+};
 pub use output::*;
 #[cfg(feature = "indexer")]
 pub use query_plugin_set::{
@@ -82,6 +93,7 @@ pub use query_plugin_set::{
     SupportsOutputs, SupportsPools, SupportsPrice, SupportsSeriesQueries, SupportsTransactions,
     SupportsUrpdQueries,
 };
+pub use representation_id::RepresentationId;
 pub use series_output::*;
 pub use series_output_legacy::*;
 pub use vecs::Vecs;
@@ -97,8 +109,14 @@ struct QueryInner<'a> {
     vecs: &'a Vecs<'a>,
     plugins: QueryPlugins<'a>,
     mempool: Option<Mempool>,
+    #[cfg(feature = "chain")]
+    addr_mempool_txs_cache: AddrMempoolTxsCache,
+    #[cfg(feature = "chain")]
+    addr_txs_cache: AddrTxsCache,
+    #[cfg(feature = "chain")]
+    block_template_cache: BlockTemplateCache,
     #[cfg(feature = "price")]
-    live_oracle: RwLock<Option<(Height, Arc<Oracle>)>>,
+    live_oracle: RwLock<Option<(BlockHash, Arc<Oracle>)>>,
 }
 
 #[cfg(feature = "indexer")]
@@ -122,6 +140,12 @@ impl Query {
             vecs,
             plugins,
             mempool,
+            #[cfg(feature = "chain")]
+            addr_mempool_txs_cache: AddrMempoolTxsCache::default(),
+            #[cfg(feature = "chain")]
+            addr_txs_cache: AddrTxsCache::default(),
+            #[cfg(feature = "chain")]
+            block_template_cache: BlockTemplateCache::default(),
             #[cfg(feature = "price")]
             live_oracle: RwLock::new(None),
         }))
@@ -211,10 +235,21 @@ impl Query {
         BlockHashPrefix::from(&self.tip_blockhash())
     }
 
-    /// Build sync status with the given tip height. Both indexed and computed
-    /// heights use the safely published pipeline ceiling.
+    /// Build sync status entirely from one safely published local snapshot.
+    pub fn local_sync_status(&self) -> Result<SyncStatus> {
+        let safe = self.safe_lengths();
+        let indexed_height = safe.last_height().unwrap_or_default();
+        self.sync_status_from(safe, indexed_height)
+    }
+
+    /// Build sync status with the given external tip height. Both indexed and
+    /// computed heights use one safely published pipeline snapshot.
     pub fn sync_status(&self, tip_height: Height) -> Result<SyncStatus> {
         let safe = self.safe_lengths();
+        self.sync_status_from(safe, tip_height)
+    }
+
+    fn sync_status_from(&self, safe: Lengths, tip_height: Height) -> Result<SyncStatus> {
         let indexed_height = safe.last_height().unwrap_or_default();
         let blocks_behind = Height::from(tip_height.saturating_sub(*indexed_height));
         let last_indexed_at_unix = self
@@ -310,12 +345,7 @@ impl Query {
     }
 
     #[inline]
-    #[cfg(any(
-        feature = "chain",
-        feature = "series",
-        feature = "urpd",
-        feature = "price"
-    ))]
+    #[cfg(feature = "mappings")]
     fn plugins(&self) -> &QueryPlugins<'static> {
         &self.0.plugins
     }

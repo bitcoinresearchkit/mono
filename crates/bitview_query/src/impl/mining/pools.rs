@@ -1,8 +1,8 @@
 use std::{borrow::Cow, cmp::Reverse};
 
-use brk_error::{Error, OptionData};
+use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    BlockInfoV1, Day1, Height, Pool, PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo,
+    Day1, Height, Pool, PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo,
     PoolHashrateEntry, PoolInfo, PoolSlug, PoolStats, PoolsSummary, StoredF64, StoredU64,
     TimePeriod, pools,
 };
@@ -32,7 +32,7 @@ impl Query {
     /// when no blocks have been indexed. The window start uses the
     /// timestamp-based lookback vecs (`_24h`, `_3d`, ...) rather than
     /// block-count math; `TimePeriod::All` walks from genesis.
-    pub fn mining_pools(&self, time_period: TimePeriod) -> brk_error::Result<PoolsSummary> {
+    pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
         let plugins = self.plugins();
         let current_height = self.height();
 
@@ -125,7 +125,7 @@ impl Query {
     /// (minor pools don't track per-pool reward sums); under stamp lag on a
     /// major pool's reward vec this errors rather than silently reporting
     /// `None`.
-    pub fn pool_detail(&self, slug: PoolSlug) -> brk_error::Result<PoolDetail> {
+    pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
         let plugins = self.plugins();
         let current_height = self.height();
         let end = current_height.to_usize();
@@ -225,52 +225,11 @@ impl Query {
         })
     }
 
-    /// Page of blocks mined by `slug`, in descending height order, capped at
-    /// `limit`. `before_height` is the inclusive upper bound to paginate from
-    /// (defaults to tip). Returns an empty `Vec` if the pool has no recorded
-    /// blocks. Heights come from a sorted-ascending per-pool index, so the
-    /// page is computed via `partition_point` then reversed; consecutive
-    /// runs are merged into a single bulk read of `blocks_v1_range`.
-    pub fn pool_blocks(
-        &self,
-        slug: PoolSlug,
-        before_height: Option<Height>,
-        limit: usize,
-    ) -> brk_error::Result<Vec<BlockInfoV1>> {
-        let plugins = self.plugins();
-        let tip = self.height().to_usize();
-        let upper = before_height.map(|h| h.to_usize()).unwrap_or(tip);
-        let end = upper.min(tip);
-
-        let heights: Vec<usize> = plugins
-            .pools
-            .heights
-            .latest_heights(slug, Height::from(end), limit)
-            .into_iter()
-            .map(|height| height.to_usize())
-            .collect();
-
-        // Group consecutive descending heights into ranges for batch reads.
-        let mut blocks = Vec::with_capacity(heights.len());
-        let mut i = 0;
-        while i < heights.len() {
-            let hi = heights[i];
-            while i + 1 < heights.len() && heights[i + 1] + 1 == heights[i] {
-                i += 1;
-            }
-            let mut v = crate::r#impl::block::blocks_v1_range(self, heights[i], hi + 1)?;
-            blocks.append(&mut v);
-            i += 1;
-        }
-
-        Ok(blocks)
-    }
-
     /// Weekly-sampled hashrate series for a single pool over the full chain.
     /// Each point's hashrate is `network_hashrate(day) * pool_share_over_7d`,
     /// where the share is the pool's last-7-days block count divided by the
     /// network's last-7-days block count.
-    pub fn pool_hashrate(&self, slug: PoolSlug) -> brk_error::Result<Vec<PoolHashrateEntry>> {
+    pub fn pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
         let pool_name = pools().get(slug).name;
         let shared = self.hashrate_shared_data(0)?;
         let pool_cum = self.pool_daily_cumulative(slug, shared.start_day, shared.end_day)?;
@@ -291,7 +250,7 @@ impl Query {
     pub fn pools_hashrate(
         &self,
         time_period: Option<TimePeriod>,
-    ) -> brk_error::Result<Vec<PoolHashrateEntry>> {
+    ) -> Result<Vec<PoolHashrateEntry>> {
         let start_height = match time_period {
             Some(tp) => super::start_height(self, tp)?.to_usize(),
             None => 0,
@@ -320,7 +279,7 @@ impl Query {
     /// day index of `start_height` and `end_day` is the day index of the
     /// current tip plus one (exclusive). Reused across pools so the network
     /// series is read only once per request.
-    fn hashrate_shared_data(&self, start_height: usize) -> brk_error::Result<HashrateSharedData> {
+    fn hashrate_shared_data(&self, start_height: usize) -> Result<HashrateSharedData> {
         let plugins = self.plugins();
         let current_height = self.height();
         let start_day = plugins
@@ -371,7 +330,7 @@ impl Query {
         slug: PoolSlug,
         start_day: usize,
         end_day: usize,
-    ) -> brk_error::Result<Vec<Option<StoredU64>>> {
+    ) -> Result<Vec<Option<StoredU64>>> {
         let plugins = self.plugins();
         plugins
             .pools

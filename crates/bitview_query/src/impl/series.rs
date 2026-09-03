@@ -16,7 +16,8 @@ use parking_lot::RwLock;
 use vecdb::{AnyExportableVec, AnySerializableVec, ReadBounds, ReadableVec};
 
 use crate::{
-    LegacyValue, Output, OutputLegacy, Query, SeriesOutput, SeriesOutputLegacy, vecs::SeriesEntry,
+    LegacyValue, Output, OutputLegacy, Query, SeriesOutput, SeriesOutputLegacy,
+    vecs::{SeriesEntry, SeriesEntryLookup},
 };
 
 /// Monotonic block timestamps → height. Lazily extended as new blocks are indexed.
@@ -67,22 +68,9 @@ impl Query {
         self.vecs().matches(&query.q, query.limit)
     }
 
-    /// Returns the error for a missing series: `SeriesUnsupportedIndex` if the name
-    /// exists at other indexes, else `SeriesNotFound` with fuzzy-match suggestions.
-    pub fn series_not_found_error(&self, series: &SeriesName) -> Error {
-        if let Some(indexes) = self.vecs().series_indexes(series) {
-            let supported = indexes
-                .iter()
-                .map(|i| format!("/api/series/{series}/{}", i.name()))
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Error::SeriesUnsupportedIndex {
-                series: brk_error::truncate_series_name(series.to_string()),
-                supported,
-            };
-        }
-
-        let matches = self.vecs().matches(series, Limit::DEFAULT);
+    /// Build the fuzzy not-found error after an exact series lookup failed.
+    pub fn missing_series_error(&self, series: &SeriesName) -> Error {
+        let matches = self.vecs().matches_after_exact_miss(series, Limit::DEFAULT);
         let total_matches = matches.len();
         let suggestions = matches.into_iter().take(3).collect();
         Error::SeriesNotFound(brk_error::SeriesNotFound::new(
@@ -141,9 +129,21 @@ impl Query {
     }
 
     fn get_entry(&self, series: &SeriesName, index: Index) -> Result<SeriesEntry<'static>> {
-        self.vecs()
-            .entry(series, index)
-            .ok_or_else(|| self.series_not_found_error(series))
+        match self.vecs().lookup_entry(series, index) {
+            SeriesEntryLookup::Found(entry) => Ok(entry),
+            SeriesEntryLookup::Unsupported(indexes) => {
+                let supported = indexes
+                    .iter()
+                    .map(|index| format!("/api/series/{series}/{}", index.name()))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                Err(Error::SeriesUnsupportedIndex {
+                    series: brk_error::truncate_series_name(series.to_string()),
+                    supported,
+                })
+            }
+            SeriesEntryLookup::Missing => Err(self.missing_series_error(series)),
+        }
     }
 
     /// Returns the latest value for a single series as a JSON value.
@@ -200,8 +200,8 @@ impl Query {
         vecs.iter().map(|v| v.range_weight(from, to)).sum()
     }
 
-    /// Resolve query metadata without formatting (cheap).
-    /// Use with `format` for lazy formatting after ETag check.
+    /// Resolve query metadata without formatting (cheap), so callers can
+    /// decide whether the representation body is needed before formatting.
     pub fn resolve(&self, params: SeriesSelection, max_weight: usize) -> Result<ResolvedQuery> {
         let entries = self.search_entries(&params)?;
         let plugin_guard = self.mutable_series_guard(&entries)?;
@@ -286,16 +286,14 @@ impl Query {
         }
     }
 
-    /// Count of leading entries provably immutable across a 6-block reorg, used
-    /// to gate the historical-branch series ETag.
+    /// Count of leading entries provably immutable across a 6-block reorg.
     ///
     /// - Bucketed indexes: `total - margin`.
     /// - Entity indexes: `first_X_index[tip_height - 6]`, falling back to 0 if
     ///   the tip is shallower than 6 blocks. Clamped to `total` so a query
     ///   whose vecs are shorter than the entity-type's own count never marks
     ///   its live tail as stable.
-    /// - Mutable (Funded/Empty addr): `None`. No immutable region exists, so
-    ///   the caller must use the tip-bound ETag for every range.
+    /// - Mutable (Funded/Empty addr): `None`. No immutable region exists.
     pub fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> Option<usize> {
         match index.cache_class() {
             CacheClass::Bucket { margin } => Some(total.saturating_sub(margin)),
@@ -339,7 +337,6 @@ impl Query {
     }
 
     /// Format a resolved query (expensive).
-    /// Call after ETag/cache checks to avoid unnecessary work.
     #[inline]
     pub fn format(&self, resolved: ResolvedQuery) -> Result<SeriesOutput> {
         self.format_json_shape::<false>(resolved)

@@ -1,14 +1,14 @@
-use brk_error::OptionData;
+use brk_error::{OptionData, Result};
 use brk_types::{
     CPFP_CHAIN_LIMIT, ChunkInput, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry,
-    CpfpInfo, FeeRate, Height, Sats, TxInIndex, TxIndex, Txid, VSize, Weight, find_seed_chunk,
-    linearize,
+    CpfpInfo, FeeRate, Height, Sats, SigOps, TxInIndex, TxIndex, Txid, VSize, Weight,
+    find_seed_chunk, linearize,
 };
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use smallvec::SmallVec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::Query;
+use crate::{Query, ResolvedConfirmedTx};
 
 struct WalkResult {
     members: Vec<(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)>,
@@ -26,9 +26,18 @@ struct Member {
 }
 
 impl Query {
-    fn confirmed_cpfp(&self, txid: &Txid) -> brk_error::Result<CpfpInfo> {
-        let seed = crate::r#impl::tx::resolve_tx_index(self, txid)?;
-        let height = crate::r#impl::tx::confirmed_status_height(self, seed)?;
+    pub(super) fn confirmed_cpfp_resolved(
+        &self,
+        transaction: ResolvedConfirmedTx,
+    ) -> Result<CpfpInfo> {
+        let (_, seed, height) = self.revalidate_confirmed_tx(transaction)?;
+        let _guard = self.read_plugin(self.plugins().outputs)?;
+        let info = self.confirmed_cpfp_at(seed, height)?;
+        self.revalidate_confirmed_tx(transaction)?;
+        Ok(info)
+    }
+
+    fn confirmed_cpfp_at(&self, seed: TxIndex, height: Height) -> Result<CpfpInfo> {
         let walk = self.walk_same_block_cluster(seed, height)?;
         let members = self.resolve_members(&walk.members)?;
         let ancestors = self.resolve_entries(&walk.ancestors)?;
@@ -53,7 +62,7 @@ impl Query {
     fn resolve_members(
         &self,
         members: &[(TxIndex, SmallVec<[CpfpClusterTxIndex; 2]>)],
-    ) -> brk_error::Result<Vec<Member>> {
+    ) -> Result<Vec<Member>> {
         let indexer = self.indexer();
         let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
@@ -76,7 +85,7 @@ impl Query {
             .collect()
     }
 
-    fn resolve_entries(&self, indexes: &[TxIndex]) -> brk_error::Result<Vec<CpfpEntry>> {
+    fn resolve_entries(&self, indexes: &[TxIndex]) -> Result<Vec<CpfpEntry>> {
         let indexer = self.indexer();
         let plugins = self.plugins();
         let mut weight = indexer.vecs().transactions.weight.cursor();
@@ -96,11 +105,7 @@ impl Query {
             .collect()
     }
 
-    fn walk_same_block_cluster(
-        &self,
-        seed: TxIndex,
-        height: Height,
-    ) -> brk_error::Result<WalkResult> {
+    fn walk_same_block_cluster(&self, seed: TxIndex, height: Height) -> Result<WalkResult> {
         let indexer = self.indexer();
         let plugins = self.plugins();
         let safe = self.safe_lengths();
@@ -126,7 +131,7 @@ impl Query {
         let spent = plugins.outputs.spent.txin_index.reader().cursor();
         let mut spending_tx = indexer.vecs().inputs.tx_index.cursor();
 
-        let mut parents_of = |tx: TxIndex| -> brk_error::Result<SmallVec<[TxIndex; 2]>> {
+        let mut parents_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
             let position = tx.to_usize();
             let first = usize::from(first_txin.get(position).data()?);
             let count = u64::from(input_count.get(position).data()?) as usize;
@@ -145,7 +150,7 @@ impl Query {
             Ok(parents)
         };
 
-        let mut children_of = |tx: TxIndex| -> brk_error::Result<SmallVec<[TxIndex; 2]>> {
+        let mut children_of = |tx: TxIndex| -> Result<SmallVec<[TxIndex; 2]>> {
             let position = tx.to_usize();
             let first = usize::from(first_txout.get(position).data()?);
             let count = u64::from(output_count.get(position).data()?) as usize;
@@ -186,7 +191,7 @@ impl Query {
                     .collect();
                 Ok((tx, parents))
             })
-            .collect::<brk_error::Result<_>>()?;
+            .collect::<Result<_>>()?;
 
         Ok(WalkResult {
             members,
@@ -197,17 +202,12 @@ impl Query {
     }
 }
 
-#[inline]
-pub fn confirmed_cpfp(query: &Query, txid: &Txid) -> brk_error::Result<CpfpInfo> {
-    query.confirmed_cpfp(txid)
-}
-
 fn walk_component(
     seed: TxIndex,
-    parents: &mut impl FnMut(TxIndex) -> brk_error::Result<SmallVec<[TxIndex; 2]>>,
-    children: &mut impl FnMut(TxIndex) -> brk_error::Result<SmallVec<[TxIndex; 2]>>,
+    parents: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
+    children: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
     limit: usize,
-) -> brk_error::Result<Vec<TxIndex>> {
+) -> Result<Vec<TxIndex>> {
     let mut visited = FxHashSet::with_capacity_and_hasher(limit, FxBuildHasher);
     visited.insert(seed);
     let mut members = Vec::with_capacity(limit);
@@ -230,9 +230,9 @@ fn walk_component(
 
 fn walk_direction(
     seed: TxIndex,
-    next: &mut impl FnMut(TxIndex) -> brk_error::Result<SmallVec<[TxIndex; 2]>>,
+    next: &mut impl FnMut(TxIndex) -> Result<SmallVec<[TxIndex; 2]>>,
     limit: usize,
-) -> brk_error::Result<Vec<TxIndex>> {
+) -> Result<Vec<TxIndex>> {
     let mut visited = FxHashSet::with_capacity_and_hasher(limit + 1, FxBuildHasher);
     visited.insert(seed);
     let mut members = Vec::with_capacity(limit);
@@ -256,7 +256,7 @@ fn build_cpfp_info(
     seed_local: CpfpClusterTxIndex,
     ancestors: Vec<CpfpEntry>,
     descendants: Vec<CpfpEntry>,
-    sigops: brk_types::SigOps,
+    sigops: SigOps,
 ) -> CpfpInfo {
     let seed_position = u32::from(seed_local) as usize;
     let seed = &members[seed_position];
@@ -313,15 +313,14 @@ fn build_cpfp_info(
 
 #[cfg(test)]
 mod tests {
+    use brk_error::Result;
     use brk_types::TxIndex;
+    use smallvec::SmallVec;
     use vecdb::VecIndex;
 
     use super::{walk_component, walk_direction};
 
-    fn adjacent(
-        graph: &[Vec<usize>],
-        tx: TxIndex,
-    ) -> brk_error::Result<smallvec::SmallVec<[TxIndex; 2]>> {
+    fn adjacent(graph: &[Vec<usize>], tx: TxIndex) -> Result<SmallVec<[TxIndex; 2]>> {
         Ok(graph[tx.to_usize()]
             .iter()
             .copied()

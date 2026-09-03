@@ -3,6 +3,7 @@ use axum::{
     extract::{Query, State},
     http::HeaderMap,
 };
+use bitview_query::RepresentationId;
 use brk_types::{DifficultyAdjustment, HistoricalPrice, Prices, Timestamp, Version};
 
 use crate::{
@@ -22,7 +23,7 @@ impl GeneralRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, CacheStrategy::Tip, |q| {
+                        .respond_json(&headers, state.tip_strategy(), |q| {
                             q.difficulty_adjustment()
                         })
                         .await
@@ -43,11 +44,14 @@ impl GeneralRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            Ok(Prices {
+                        .respond_json_bound(&headers, Version::ONE, |q| {
+                            let prices = Prices {
                                 time: Timestamp::now(),
                                 usd: q.live_price()?,
-                            })
+                            };
+                            let bytes = serde_json::to_vec(&prices).unwrap();
+                            let identity = RepresentationId::content(&bytes);
+                            Ok((bytes, identity))
                         })
                         .await
                 },
@@ -68,15 +72,29 @@ impl GeneralRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Query(params): Query<OptionalTimestampParam>,
                        State(state): State<AppState>| {
-                    let strategy = params
-                        .timestamp
-                        .map(|ts| state.timestamp_strategy(Version::ONE, ts))
-                        .unwrap_or(CacheStrategy::Tip);
-                    state
-                        .respond_json(&headers, strategy, move |q| {
-                            q.historical_price(params.timestamp)
-                        })
-                        .await
+                    match params.timestamp {
+                        Some(timestamp) => {
+                            let version = Version::ONE;
+                            state
+                                .respond_json_adaptive(&headers, None, move |q, tip| {
+                                    let resolved = q.resolve_historical_price(timestamp)?;
+                                    let strategy = if resolved.is_stable() {
+                                        CacheStrategy::Immutable(version)
+                                    } else {
+                                        CacheStrategy::Tip(tip)
+                                    };
+                                    Ok((resolved.into_value(), strategy))
+                                })
+                                .await
+                        }
+                        None => {
+                            state
+                                .respond_json(&headers, state.tip_strategy(), |q| {
+                                    q.historical_price(None)
+                                })
+                                .await
+                        }
+                    }
                 },
                 |op| {
                     op.id("get_historical_price")

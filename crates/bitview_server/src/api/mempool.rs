@@ -2,14 +2,18 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
     http::HeaderMap,
+    response::Response,
 };
+use bitview_query::BlockTemplateDiffPreflight;
 use brk_types::{
     BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash,
-    ReplacementNode, Txid,
+    ReplacementNode, Txid, Version,
 };
 
 use crate::{
-    AppState,
+    AppState, CacheStrategy,
+    api::oracle::serve_live_price,
+    error::RouteResult,
     extended::TransformResponseExtended,
     params::{Empty, NextBlockHashParam},
 };
@@ -25,7 +29,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_info())
+                        .respond_json_bound(&headers, Version::ONE, |q| q.mempool_info_json())
                         .await
                 },
                 |op| {
@@ -42,10 +46,9 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/hash",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_hash())
-                        .await
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| -> RouteResult<Response> {
+                    let (hash, strategy) = state.mempool_hash_preflight()?;
+                    Ok(state.respond_json_value(&headers, strategy, hash))
                 },
                 |op| {
                     op.id("get_mempool_hash")
@@ -61,10 +64,14 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/txids",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_txids())
-                        .await
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| -> RouteResult<Response> {
+                    let strategy = state.mempool_txids_strategy()?;
+                    Ok(state
+                        .respond_json_adaptive(&headers, Some(strategy), |q, _| {
+                            let (txids, hash) = q.mempool_txids_with_hash()?;
+                            Ok((txids, CacheStrategy::LiveHash(hash)))
+                        })
+                        .await)
                 },
                 |op| {
                     op.id("get_mempool_txids")
@@ -83,7 +90,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.mempool_recent())
+                        .respond_json_bound(&headers, Version::ONE, |q| q.mempool_recent_json())
                         .await
                 },
                 |op| {
@@ -102,8 +109,8 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.recent_replacements(false)
+                        .respond_json_bound(&headers, Version::ONE, |q| {
+                            q.recent_replacements_json(false)
                         })
                         .await
                 },
@@ -123,8 +130,8 @@ impl MempoolRoutes for ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                     state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.recent_replacements(true)
+                        .respond_json_bound(&headers, Version::ONE, |q| {
+                            q.recent_replacements_json(true)
                         })
                         .await
                 },
@@ -142,12 +149,13 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/mempool/block-template",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| {
-                            q.block_template()
+                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| -> RouteResult<Response> {
+                    let cached = state.block_template_preflight()?;
+                    Ok(state
+                        .respond_json_cached(&headers, Version::ONE, cached, |q| {
+                            q.block_template_json()
                         })
-                        .await
+                        .await)
                 },
                 |op| {
                     op.id("get_block_template")
@@ -167,12 +175,21 @@ impl MempoolRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<NextBlockHashParam>,
                        _: Empty,
-                       State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), move |q| {
-                            q.block_template_diff(path.hash)
-                        })
-                        .await
+                       State(state): State<AppState>| -> RouteResult<Response> {
+                    match state.block_template_diff_preflight(path.hash)? {
+                        BlockTemplateDiffPreflight::Cached(bytes, binding) => Ok(state
+                            .respond_json_cached_value(
+                                &headers,
+                                Version::ONE,
+                                bytes,
+                                binding,
+                            )),
+                        BlockTemplateDiffPreflight::Resolved(resolved) => Ok(state
+                            .respond_json_cached(&headers, Version::ONE, None, move |q| {
+                                q.block_template_diff_json_resolved(resolved)
+                            })
+                            .await),
+                    }
                 },
                 |op| {
                     op.id("get_block_template_diff")
@@ -190,11 +207,7 @@ impl MempoolRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/mempool/price",
             get_with(
-                async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.mempool_strategy(), |q| q.live_price())
-                        .await
-                },
+                serve_live_price,
                 |op| {
                     op.id("get_live_price")
                         .mempool_tag()

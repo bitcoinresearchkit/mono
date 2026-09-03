@@ -1,4 +1,4 @@
-use std::{borrow::Cow, iter};
+use std::{borrow::Cow, cmp::Ordering, iter};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -8,6 +8,21 @@ pub use config::*;
 
 #[derive(Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct ItemId(u32);
+
+type RankedItem = (ItemId, usize, usize, ItemId);
+
+fn ranked_item_order(a: &RankedItem, b: &RankedItem) -> Ordering {
+    b.1.cmp(&a.1) // fuzzy score, desc
+        .then(a.2.cmp(&b.2)) // match position, asc
+        .then(a.3.cmp(&b.3)) // item length then text, asc
+}
+
+fn select_and_sort(bucket: &mut [RankedItem], take: usize) {
+    if take < bucket.len() {
+        bucket.select_nth_unstable_by(take, ranked_item_order);
+    }
+    bucket[..take].sort_unstable_by(ranked_item_order);
+}
 
 /// Instant search over a list of strings.
 ///
@@ -159,6 +174,24 @@ impl<'a> QuickMatch<'a> {
         query: &str,
         config: &QuickMatchConfig,
     ) -> Vec<(u32, u32)> {
+        self.matches_with_ids_and_matched_words_inner::<false>(query, config)
+    }
+
+    /// Matches and returns only the highest matched-query-word tier, with each
+    /// result's compact zero-based position in the original item slice.
+    pub fn matches_best_with_ids_and_matched_words(
+        &self,
+        query: &str,
+        config: &QuickMatchConfig,
+    ) -> Vec<(u32, u32)> {
+        self.matches_with_ids_and_matched_words_inner::<true>(query, config)
+    }
+
+    fn matches_with_ids_and_matched_words_inner<const BEST_ONLY: bool>(
+        &self,
+        query: &str,
+        config: &QuickMatchConfig,
+    ) -> Vec<(u32, u32)> {
         let limit = config.limit().min(self.items.len());
         let trigram_budget = config.trigram_budget();
 
@@ -209,7 +242,7 @@ impl<'a> QuickMatch<'a> {
             let (scores, hit_count) =
                 self.score_trigrams(&unknown_words, trigram_budget, pool.as_deref(), min_len);
             let min_score = hit_count.div_ceil(2).max(config.min_score());
-            let results = self.rank(
+            let results = self.rank::<BEST_ONLY>(
                 scores.into_iter().filter(|(_, s)| *s >= min_score),
                 &query_words,
                 &sep,
@@ -232,7 +265,7 @@ impl<'a> QuickMatch<'a> {
                 Vec::new()
             }
         });
-        self.rank(
+        self.rank::<BEST_ONLY>(
             candidates.into_iter().map(|id| (id, 0)),
             &query_words,
             &sep,
@@ -276,15 +309,18 @@ impl<'a> QuickMatch<'a> {
 
     /// Bucket by matched-word count, then sort each needed bucket by fuzzy
     /// score, match position, and length.
-    fn rank(
+    fn rank<const BEST_ONLY: bool>(
         &self,
         candidates: impl IntoIterator<Item = (ItemId, usize)>,
         query_words: &[&str],
         sep: &[bool; 256],
         limit: usize,
     ) -> Vec<(ItemId, u32)> {
-        let mut buckets: Vec<Vec<(ItemId, usize, usize, ItemId)>> =
-            vec![vec![]; query_words.len() + 1];
+        if BEST_ONLY {
+            return self.rank_best(candidates, query_words, sep, limit);
+        }
+
+        let mut buckets: Vec<Vec<RankedItem>> = vec![vec![]; query_words.len() + 1];
 
         for (item, fuzzy) in candidates {
             let s = self.item(item);
@@ -297,16 +333,8 @@ impl<'a> QuickMatch<'a> {
             if bucket.is_empty() {
                 continue;
             }
-            let order = |a: &(ItemId, usize, usize, ItemId), b: &(ItemId, usize, usize, ItemId)| {
-                b.1.cmp(&a.1) // fuzzy score, desc
-                    .then(a.2.cmp(&b.2)) // match position, asc
-                    .then(a.3.cmp(&b.3)) // item length then text, asc
-            };
             let take = (limit - results.len()).min(bucket.len());
-            if take < bucket.len() {
-                bucket.select_nth_unstable_by(take, order);
-            }
-            bucket[..take].sort_unstable_by(order);
+            select_and_sort(bucket, take);
             results.extend(bucket[..take].iter().map(|&(id, ..)| (id, matched as u32)));
             if results.len() >= limit {
                 break;
@@ -314,6 +342,39 @@ impl<'a> QuickMatch<'a> {
         }
 
         results
+    }
+
+    fn rank_best(
+        &self,
+        candidates: impl IntoIterator<Item = (ItemId, usize)>,
+        query_words: &[&str],
+        sep: &[bool; 256],
+        limit: usize,
+    ) -> Vec<(ItemId, u32)> {
+        let candidates = candidates.into_iter();
+        let mut best_matched = 0;
+        let mut bucket = Vec::with_capacity(candidates.size_hint().1.unwrap_or(0).min(limit));
+
+        for (item, fuzzy) in candidates {
+            let s = self.item(item);
+            let (matched, position) = word_match(s, query_words, sep);
+            if matched < best_matched {
+                continue;
+            }
+            if matched > best_matched {
+                best_matched = matched;
+                bucket.clear();
+            }
+            bucket.push((item, fuzzy, position, self.item_rank[item.0 as usize]));
+        }
+
+        let take = limit.min(bucket.len());
+        select_and_sort(&mut bucket, take);
+        bucket
+            .into_iter()
+            .take(take)
+            .map(|(id, ..)| (id, best_matched as u32))
+            .collect()
     }
 
     fn item(&self, id: ItemId) -> &str {
@@ -552,6 +613,64 @@ mod tests {
                 .matches_with("alpha beta", &intersection_only)
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn best_matched_word_tier_matches_full_ranking_then_filtering() {
+        let items = [
+            "short term holder realized capitalization",
+            "long term holder realized capitalization",
+            "realized capitalization adjusted by entity",
+            "address count with positive balance",
+            "supply held by short term holders",
+            "supply held by long term holders",
+            "realized profit and realized loss",
+            "market capitalization divided by realized capitalization",
+            "coin days destroyed",
+            "bitcoin closing price",
+        ];
+        let matcher = QuickMatch::new(&items);
+
+        for config in [
+            QuickMatchConfig::new().with_limit(items.len()),
+            QuickMatchConfig::new().with_limit(2),
+            QuickMatchConfig::new()
+                .with_limit(items.len())
+                .with_trigram_budget(0),
+            QuickMatchConfig::new()
+                .with_limit(items.len())
+                .with_union_fallback(false),
+        ] {
+            for query in [
+                "short term holder capitalization",
+                "long term price",
+                "address supply",
+                "market cap",
+                "coin days",
+                "realized proft loss",
+                "bitcoin price",
+                "capitalization holder",
+                "missing",
+                "",
+            ] {
+                let full = matcher.matches_with_ids_and_matched_words(query, &config);
+                let expected = full
+                    .first()
+                    .map(|(_, best)| {
+                        full.iter()
+                            .copied()
+                            .take_while(|(_, matched)| matched == best)
+                            .collect::<Vec<_>>()
+                    })
+                    .unwrap_or_default();
+
+                assert_eq!(
+                    matcher.matches_best_with_ids_and_matched_words(query, &config),
+                    expected,
+                    "best-only ranking changed results for {query:?}"
+                );
+            }
+        }
     }
 
     #[test]

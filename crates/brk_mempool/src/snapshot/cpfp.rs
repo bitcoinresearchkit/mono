@@ -8,7 +8,7 @@
 
 use brk_types::{
     CPFP_CHAIN_LIMIT, CpfpCluster, CpfpClusterTx, CpfpClusterTxIndex, CpfpEntry, CpfpInfo, FeeRate,
-    SigOps, TxidPrefix, VSize, find_seed_chunk,
+    SigOps, Txid, VSize, find_seed_chunk,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
@@ -22,12 +22,12 @@ impl Mempool {
     /// confirmed path. The snapshot can lag `state.txs` by up to one
     /// cycle: if the seed is in the snapshot but no longer in live
     /// state we return `None` rather than a half-stale report.
-    pub fn cpfp_info(&self, prefix: &TxidPrefix) -> Option<CpfpInfo> {
+    pub fn cpfp_info(&self, txid: &Txid) -> Option<CpfpInfo> {
         let snapshot = self.snapshot();
-        let seed_idx = snapshot.idx_of(prefix)?;
+        let seed_idx = snapshot.idx_of_txid(txid)?;
         let seed = snapshot.tx(seed_idx)?;
 
-        let sigops = self.read().txs.get(&seed.txid)?.total_sigop_cost;
+        let sigops = self.read().txs.get(txid)?.total_sigop_cost;
 
         Some(snapshot.cpfp_info_at(seed_idx, seed, sigops))
     }
@@ -186,9 +186,7 @@ mod tests {
         let txid = insert_with_depends(&mempool, 0xB0, 10_000, 100, &[]);
         mempool.test_tick(&[txid], FeeRate::new(1.0));
 
-        let info = mempool
-            .cpfp_info(&TxidPrefix::from(&txid))
-            .expect("tx is in mempool");
+        let info = mempool.cpfp_info(&txid).expect("tx is in mempool");
         assert!(info.cluster.is_none(), "singletons emit no cluster");
         assert!(info.ancestors.is_empty());
         assert!(info.descendants.is_empty());
@@ -204,7 +202,7 @@ mod tests {
         let child = insert_with_depends(&mempool, 0xB2, 1_900, 100, &[parent]);
         mempool.test_tick(&[parent, child], FeeRate::new(1.0));
 
-        let parent_info = mempool.cpfp_info(&TxidPrefix::from(&parent)).unwrap();
+        let parent_info = mempool.cpfp_info(&parent).unwrap();
         let cluster = parent_info.cluster.expect("two-tx cluster present");
         assert_eq!(cluster.txs.len(), 2);
         // Topological order: parent first.
@@ -216,7 +214,7 @@ mod tests {
         let parent_isolated = FeeRate::from((parent_info.fee, parent_info.vsize));
         assert!(parent_info.effective_fee_per_vsize > parent_isolated);
         // Same package -> child's reported chunk rate matches parent's.
-        let child_info = mempool.cpfp_info(&TxidPrefix::from(&child)).unwrap();
+        let child_info = mempool.cpfp_info(&child).unwrap();
         assert_eq!(
             parent_info.effective_fee_per_vsize,
             child_info.effective_fee_per_vsize
@@ -233,7 +231,7 @@ mod tests {
         mempool.test_tick(&[a, b, c], FeeRate::new(1.0));
 
         // B sees A as an ancestor and C as a descendant.
-        let info_b = mempool.cpfp_info(&TxidPrefix::from(&b)).unwrap();
+        let info_b = mempool.cpfp_info(&b).unwrap();
         let ancestor_ids: Vec<_> = info_b.ancestors.iter().map(|e| e.txid).collect();
         let descendant_ids: Vec<_> = info_b.descendants.iter().map(|e| e.txid).collect();
         assert_eq!(ancestor_ids, vec![a]);
@@ -246,7 +244,6 @@ mod tests {
     fn cpfp_info_returns_none_for_unknown_txid() {
         let mempool = Mempool::for_test();
         mempool.test_tick(&[], FeeRate::new(1.0));
-        let bogus = TxidPrefix::from(&Txid::COINBASE);
-        assert!(mempool.cpfp_info(&bogus).is_none());
+        assert!(mempool.cpfp_info(&Txid::COINBASE).is_none());
     }
 }

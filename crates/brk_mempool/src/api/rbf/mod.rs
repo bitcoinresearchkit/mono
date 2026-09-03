@@ -3,36 +3,21 @@
 //! drops: enriching under the lock re-enters `Mempool` and would
 //! recursively acquire the same read lock.
 
-use brk_types::{Sats, Timestamp, Transaction, Txid, TxidPrefix, VSize};
+use brk_types::{FeeRate, Sats, Transaction, Txid};
 use rustc_hash::FxHashSet;
 
 use crate::{
     Mempool,
+    snapshot::Snapshot,
     state::TxEntry,
     stores::{TxGraveyard, TxStore},
 };
 
-#[derive(Debug, Clone)]
-pub struct RbfNode {
-    pub txid: Txid,
-    pub fee: Sats,
-    pub vsize: VSize,
-    pub value: Sats,
-    pub first_seen: Timestamp,
-    /// BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
-    pub rbf: bool,
-    /// `true` iff any predecessor in this subtree was non-signaling.
-    pub full_rbf: bool,
-    pub replaces: Vec<RbfNode>,
-}
+mod for_tx;
+mod node;
 
-#[derive(Debug, Clone, Default)]
-pub struct RbfForTx {
-    /// Tree rooted at the terminal replacer. `None` if `txid` is unknown.
-    pub root: Option<RbfNode>,
-    /// Direct predecessors of the requested tx (txids only).
-    pub replaces: Vec<Txid>,
-}
+pub use for_tx::RbfForTx;
+pub use node::RbfNode;
 
 impl Mempool {
     /// Walk forward through `Replaced { by }` to the terminal replacer
@@ -40,16 +25,21 @@ impl Mempool {
     /// direct predecessors. Single read-lock window.
     #[must_use]
     pub fn rbf_for_tx(&self, txid: &Txid) -> RbfForTx {
-        let state = self.read();
-
-        let root_txid = state.graveyard.replacement_root_of(*txid);
-        let replaces: Vec<Txid> = state
-            .graveyard
-            .predecessors_of(txid)
-            .map(|(p, _)| *p)
-            .collect();
-        let root = Self::build_rbf_node(&root_txid, &state.txs, &state.graveyard);
-        RbfForTx { root, replaces }
+        let mut rbf = {
+            let state = self.read();
+            let root_txid = state.graveyard.replacement_root_of(*txid);
+            let replaces = state
+                .graveyard
+                .predecessors_of(txid)
+                .map(|(predecessor, _)| *predecessor)
+                .collect();
+            let root = Self::build_rbf_node(&root_txid, &state.txs, &state.graveyard);
+            RbfForTx { root, replaces }
+        };
+        if let Some(root) = rbf.root.as_mut() {
+            Self::apply_snapshot_rates(root, &self.snapshot());
+        }
+        rbf
     }
 
     /// Recent terminal-replacer trees, most-recent first, deduplicated
@@ -57,28 +47,36 @@ impl Mempool {
     /// non-signaling predecessor.
     #[must_use]
     pub fn recent_rbf_trees(&self, full_rbf_only: bool, limit: usize) -> Vec<RbfNode> {
-        let state = self.read();
-
-        let mut seen: FxHashSet<Txid> = FxHashSet::default();
-        state
-            .graveyard
-            .replaced_iter_recent_first()
-            .filter_map(|(_, by)| {
-                let root = state.graveyard.replacement_root_of(*by);
-                seen.insert(root).then_some(root)
-            })
-            .filter_map(|root| Self::build_rbf_node(&root, &state.txs, &state.graveyard))
-            .filter(|n| !full_rbf_only || n.full_rbf)
-            .take(limit)
-            .collect()
+        let mut trees: Vec<RbfNode> = {
+            let state = self.read();
+            let mut seen: FxHashSet<Txid> = FxHashSet::default();
+            state
+                .graveyard
+                .replaced_iter_recent_first()
+                .filter_map(|(_, by)| {
+                    let root = state.graveyard.replacement_root_of(*by);
+                    seen.insert(root).then_some(root)
+                })
+                .filter_map(|root| Self::build_rbf_node(&root, &state.txs, &state.graveyard))
+                .filter(|node| !full_rbf_only || node.full_rbf)
+                .take(limit)
+                .collect()
+        };
+        if !trees.is_empty() {
+            let snapshot = self.snapshot();
+            for root in &mut trees {
+                Self::apply_snapshot_rates(root, &snapshot);
+            }
+        }
+        trees
     }
 
     fn build_rbf_node(txid: &Txid, txs: &TxStore, graveyard: &TxGraveyard) -> Option<RbfNode> {
-        let (tx, entry) = Self::resolve_rbf_node(txid, txs, graveyard)?;
+        let (tx, entry, rate, in_mempool) = Self::resolve_rbf_node(txid, txs, graveyard)?;
 
         let replaces: Vec<RbfNode> = graveyard
             .predecessors_of(txid)
-            .filter_map(|(pred, _)| Self::build_rbf_node(pred, txs, graveyard))
+            .filter_map(|(predecessor, _)| Self::build_rbf_node(predecessor, txs, graveyard))
             .collect();
 
         let full_rbf = replaces.iter().any(|c| !c.rbf || c.full_rbf);
@@ -90,6 +88,8 @@ impl Mempool {
             vsize: entry.vsize,
             value,
             first_seen: entry.first_seen,
+            rate,
+            in_mempool,
             rbf: entry.rbf,
             full_rbf,
             replaces,
@@ -100,16 +100,31 @@ impl Mempool {
         txid: &Txid,
         txs: &'a TxStore,
         graveyard: &'a TxGraveyard,
-    ) -> Option<(&'a Transaction, &'a TxEntry)> {
-        txs.record_by_prefix(&TxidPrefix::from(txid))
-            .map(|r| (&r.tx, &r.entry))
-            .or_else(|| graveyard.get(txid).map(|t| (&t.tx, &t.entry)))
+    ) -> Option<(&'a Transaction, &'a TxEntry, FeeRate, bool)> {
+        if let Some(record) = txs.record(txid) {
+            return Some((&record.tx, &record.entry, record.entry.fee_rate(), true));
+        }
+        graveyard
+            .get(txid)
+            .map(|tombstone| (&tombstone.tx, &tombstone.entry, tombstone.chunk_rate, false))
+    }
+
+    fn apply_snapshot_rates(node: &mut RbfNode, snapshot: &Snapshot) {
+        if node.in_mempool
+            && let Some(rate) = snapshot.chunk_rate_for(&node.txid)
+        {
+            node.rate = rate;
+        }
+        for predecessor in &mut node.replaces {
+            Self::apply_snapshot_rates(predecessor, snapshot);
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use brk_types::FeeRate;
+    use bitcoin::hashes::Hash;
+    use brk_types::{FeeRate, TxidPrefix};
 
     use super::*;
     use crate::{
@@ -160,6 +175,8 @@ mod tests {
         let rbf = mempool.rbf_for_tx(&pred);
         let root = rbf.root.expect("terminal replacer reachable");
         assert_eq!(root.txid, live);
+        assert!(root.in_mempool);
+        assert!(!root.replaces[0].in_mempool);
         let replaced_txids: Vec<Txid> = root.replaces.iter().map(|n| n.txid).collect();
         assert_eq!(replaced_txids, vec![pred]);
         // Convenience list: direct predecessors of the requested tx.
@@ -193,6 +210,18 @@ mod tests {
         let rbf = mempool.rbf_for_tx(&bogus);
         assert!(rbf.root.is_none());
         assert!(rbf.replaces.is_empty());
+    }
+
+    #[test]
+    fn rbf_for_tx_rejects_live_prefix_collision() {
+        let (mempool, live, _) = build_rbf_world(0xCA, &[]);
+        let mut bytes = [0u8; 32];
+        bytes.copy_from_slice(live.as_slice());
+        bytes[8] ^= 1;
+        let collision = Txid::from(bitcoin::Txid::from_byte_array(bytes));
+        assert_eq!(TxidPrefix::from(&live), TxidPrefix::from(&collision));
+
+        assert!(mempool.rbf_for_tx(&collision).is_empty());
     }
 
     #[test]

@@ -11,6 +11,12 @@ pub struct SeriesEntry<'a> {
     requires_gate: bool,
 }
 
+pub(crate) enum SeriesEntryLookup<'a> {
+    Found(SeriesEntry<'a>),
+    Unsupported(Vec<Index>),
+    Missing,
+}
+
 impl<'a> SeriesEntry<'a> {
     pub fn new(
         index: Index,

@@ -2,6 +2,7 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     extract::{Path, State},
     http::HeaderMap,
+    response::Response,
 };
 use brk_types::{
     BlockFeeRatesEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry, BlockSizesWeights,
@@ -11,6 +12,7 @@ use brk_types::{
 
 use crate::{
     AppState, CacheStrategy,
+    error::RouteResult,
     extended::TransformResponseExtended,
     params::{BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, TimePeriodParam},
 };
@@ -28,8 +30,11 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/pools",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    // Pool list is compiled-in, only changes on deploy
-                    state.respond_json(&headers, CacheStrategy::Deploy, |q| Ok(q.all_pools())).await
+                    state.respond_json_bytes_value(
+                        &headers,
+                        CacheStrategy::Deploy,
+                        &state.mining_pools_body,
+                    )
                 },
                 |op| {
                     op.id("get_pools")
@@ -38,7 +43,6 @@ impl MiningRoutes for ApiRouter<AppState> {
                         .description("Get list of all known mining pools with their identifiers.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*")
                         .json_response::<Vec<PoolInfo>>()
                         .not_modified()
-                        .server_error()
                 },
             ),
         )
@@ -46,7 +50,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/pools/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.mining_pools(path.time_period)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.mining_pools(path.time_period)).await
                 },
                 |op| {
                     op.id("get_pool_stats")
@@ -64,7 +68,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/pool/{slug}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.pool_detail(path.slug)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.pool_detail(path.slug)).await
                 },
                 |op| {
                     op.id("get_pool")
@@ -82,7 +86,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/hashrate/pools",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, |q| q.pools_hashrate(None)).await
+                    state.respond_json(&headers, state.tip_strategy(), |q| q.pools_hashrate(None)).await
                 },
                 |op| {
                     op.id("get_pools_hashrate")
@@ -99,7 +103,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/hashrate/pools/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.pools_hashrate(Some(path.time_period))).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.pools_hashrate(Some(path.time_period))).await
                 },
                 |op| {
                     op.id("get_pools_hashrate_by_period")
@@ -117,7 +121,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/pool/{slug}/hashrate",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.pool_hashrate(path.slug)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.pool_hashrate(path.slug)).await
                 },
                 |op| {
                     op.id("get_pool_hashrate")
@@ -134,9 +138,13 @@ impl MiningRoutes for ApiRouter<AppState> {
         .api_route(
             "/api/v1/mining/pool/{slug}/blocks",
             get_with(
-                async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, State(state): State<AppState>| {
-                    let strategy = state.pool_blocks_strategy(Version::ONE, path.slug);
-                    state.respond_json(&headers, strategy, move |q| q.pool_blocks(path.slug, None, POOL_BLOCKS_LIMIT)).await
+                async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, State(state): State<AppState>| -> RouteResult<Response> {
+                    let (blocks, strategy) = state.pool_blocks_preflight(
+                        Version::ONE,
+                        path.slug,
+                        POOL_BLOCKS_LIMIT,
+                    )?;
+                    Ok(state.respond_json(&headers, strategy, move |q| q.pool_blocks_resolved(blocks)).await)
                 },
                 |op| {
                     op.id("get_pool_blocks")
@@ -172,7 +180,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/hashrate",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, |q| q.hashrate(None, HASHRATE_MAX_POINTS)).await
+                    state.respond_json(&headers, state.tip_strategy(), |q| q.hashrate(None, HASHRATE_MAX_POINTS)).await
                 },
                 |op| {
                     op.id("get_hashrate")
@@ -189,7 +197,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/hashrate/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.hashrate(Some(path.time_period), HASHRATE_MAX_POINTS)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.hashrate(Some(path.time_period), HASHRATE_MAX_POINTS)).await
                 },
                 |op| {
                     op.id("get_hashrate_by_period")
@@ -207,7 +215,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/difficulty-adjustments",
             get_with(
                 async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, |q| q.difficulty_adjustments(None)).await
+                    state.respond_json(&headers, state.tip_strategy(), |q| q.difficulty_adjustments(None)).await
                 },
                 |op| {
                     op.id("get_difficulty_adjustments")
@@ -224,7 +232,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/difficulty-adjustments/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.difficulty_adjustments(Some(path.time_period))).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.difficulty_adjustments(Some(path.time_period))).await
                 },
                 |op| {
                     op.id("get_difficulty_adjustments_by_period")
@@ -242,7 +250,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/reward-stats/{block_count}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<BlockCountParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.reward_stats(path.block_count)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.reward_stats(path.block_count)).await
                 },
                 |op| {
                     op.id("get_reward_stats")
@@ -260,7 +268,13 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/blocks/fees/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.block_fees(path.time_period)).await
+                    let time_period = path.time_period;
+                    state.respond_json_tip_cached(
+                        &headers,
+                        &state.mining_block_fees_cache,
+                        time_period,
+                        move |q| q.block_fees(time_period),
+                    ).await
                 },
                 |op| {
                     op.id("get_block_fees")
@@ -278,7 +292,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/blocks/rewards/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.block_rewards(path.time_period)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.block_rewards(path.time_period)).await
                 },
                 |op| {
                     op.id("get_block_rewards")
@@ -296,7 +310,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/blocks/fee-rates/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.block_fee_rates(path.time_period)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.block_fee_rates(path.time_period)).await
                 },
                 |op| {
                     op.id("get_block_fee_rates")
@@ -314,7 +328,7 @@ impl MiningRoutes for ApiRouter<AppState> {
             "/api/v1/mining/blocks/sizes-weights/{time_period}",
             get_with(
                 async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, State(state): State<AppState>| {
-                    state.respond_json(&headers, CacheStrategy::Tip, move |q| q.block_sizes_weights(path.time_period)).await
+                    state.respond_json(&headers, state.tip_strategy(), move |q| q.block_sizes_weights(path.time_period)).await
                 },
                 |op| {
                     op.id("get_block_sizes_weights")

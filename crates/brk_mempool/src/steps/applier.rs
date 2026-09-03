@@ -67,10 +67,10 @@ impl Applier {
         reason: TxRemoval,
     ) -> Option<TxRemoved> {
         let record = state.txs.remove_by_prefix(prefix)?;
-        let chunk_rate = prev_snapshot
-            .chunk_rate_for(prefix)
-            .unwrap_or_else(|| record.entry.fee_rate());
         let txid = record.entry.txid;
+        let chunk_rate = prev_snapshot
+            .chunk_rate_for(&txid)
+            .unwrap_or_else(|| record.entry.fee_rate());
         state.info.remove(&record.tx, record.entry.fee);
         state.addrs.remove_tx(transitions, &record.tx);
         state.outpoint_spends.remove_spends(&record.tx, *prefix);

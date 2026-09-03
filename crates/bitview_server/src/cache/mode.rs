@@ -11,7 +11,7 @@ pub const CDN_LIVE: &str = "public, max-age=1, stale-if-error=300";
 const CDN_AGGRESSIVE: &str = "public, max-age=31536000, immutable";
 
 /// CDN caching strategy for stable responses (immutable / deploy / block-bound /
-/// historical series). Live-tier responses (`Tip`, `MempoolHash`, tail series)
+/// historical series). Live-tier responses (`Tip`, `LiveHash`, tail series)
 /// are unaffected.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum CdnCacheMode {

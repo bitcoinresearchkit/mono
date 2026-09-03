@@ -1,6 +1,6 @@
 //! Fee reads: tier recommendations, projected-block stats, per-tx rates.
 
-use brk_types::{FeeRate, RecommendedFees, Txid, TxidPrefix};
+use brk_types::{FeeRate, RecommendedFees, Txid};
 
 use crate::{Mempool, snapshot::BlockStats};
 
@@ -18,14 +18,11 @@ impl Mempool {
     /// Effective fee rate for a live tx: snapshot's linearized chunk
     /// rate. Falls back to `fee/vsize` for txs added since the latest
     /// snapshot was built (apply -> same-cycle tick gap).
-    pub fn live_effective_fee_rate(&self, prefix: &TxidPrefix) -> Option<FeeRate> {
-        if let Some(rate) = self.snapshot().chunk_rate_for(prefix) {
+    pub fn live_effective_fee_rate(&self, txid: &Txid) -> Option<FeeRate> {
+        if let Some(rate) = self.snapshot().chunk_rate_for(txid) {
             return Some(rate);
         }
-        self.read()
-            .txs
-            .entry_by_prefix(prefix)
-            .map(|e| e.fee_rate())
+        self.read().txs.entry(txid).map(|entry| entry.fee_rate())
     }
 
     /// Linearized chunk rate captured at burial - same value

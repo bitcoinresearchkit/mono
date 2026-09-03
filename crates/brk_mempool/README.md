@@ -40,7 +40,7 @@ Readers access the latest published state without driving a rebuild:
   recent template hash.
 - `contains_txid`, `with_tx`, `lookup_spender`, and `recent_txs` query live
   transactions.
-- `addr_stats`, `addr_txs`, and `addr_state_hash` query address activity.
+- `addr_stats` and `addr_txs` query address activity.
 - `rbf_for_tx` and `recent_rbf_trees` expose replacement relationships.
 
 The full next-block template follows the transaction order returned by Bitcoin

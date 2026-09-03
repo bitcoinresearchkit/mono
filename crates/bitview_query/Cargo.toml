@@ -76,6 +76,7 @@ jiff = { workspace = true }
 parking_lot = { workspace = true }
 quickmatch = { workspace = true }
 rustc-hash = { workspace = true }
+serde = { workspace = true }
 smallvec = { workspace = true }
 tokio = { workspace = true, optional = true }
 serde_json = { workspace = true }

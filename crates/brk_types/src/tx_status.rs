@@ -39,4 +39,32 @@ impl TxStatus {
             block_time: Some(block_time),
         }
     }
+
+    pub fn is_deeply_confirmed(&self, current_height: Height) -> bool {
+        self.confirmed
+            && self
+                .block_height
+                .is_some_and(|height| height.is_deeply_confirmed(current_height))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deeply_confirmed_requires_more_than_six_blocks() {
+        let mut status = TxStatus {
+            confirmed: true,
+            block_height: Some(Height::new(100)),
+            block_hash: None,
+            block_time: None,
+        };
+
+        assert!(!status.is_deeply_confirmed(Height::new(106)));
+        assert!(status.is_deeply_confirmed(Height::new(107)));
+
+        status.confirmed = false;
+        assert!(!status.is_deeply_confirmed(Height::new(107)));
+    }
 }

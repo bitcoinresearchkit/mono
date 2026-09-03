@@ -74,7 +74,7 @@ mod stores;
 #[cfg(test)]
 mod test_support;
 
-pub use api::{RbfForTx, RbfNode};
+pub use api::{BlockTemplateSource, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
 pub use cycle::{AddedKind, Cycle, TxAdded, TxRemoved};
 pub use diagnostics::MempoolStats;
 pub use snapshot::Snapshot;

@@ -6,4 +6,8 @@ mod stats;
 mod txs;
 mod utxos;
 
-pub use stats::AddrStatsPreflight;
+pub(crate) use mempool::AddrMempoolTxsCache;
+pub use mempool::{AddrMempoolTxsPreflight, ResolvedAddrMempoolTxs};
+pub(crate) use txs::AddrTxsCache;
+pub use txs::{AddrTxsPreflight, ResolvedAddrChainTxs, ResolvedAddrTxs};
+pub use utxos::ResolvedAddrUtxos;

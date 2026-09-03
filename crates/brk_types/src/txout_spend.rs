@@ -36,7 +36,6 @@ impl TxOutspend {
             && self
                 .status
                 .as_ref()
-                .and_then(|s| s.block_height)
-                .is_some_and(|h| (*current_height).saturating_sub(*h) > 6)
+                .is_some_and(|status| status.is_deeply_confirmed(current_height))
     }
 }

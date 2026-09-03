@@ -1,31 +1,32 @@
 //! CPFP queries shared by live mempool and confirmed transactions.
 
 mod confirmed;
+mod resolved;
 
-use brk_error::Error;
-use brk_types::{FeeRate, Txid, TxidPrefix};
+pub use resolved::ResolvedCpfp;
+
+use brk_error::{Error, Result};
+use brk_types::{CpfpInfo, FeeRate, Txid};
 use vecdb::ReadableVec;
 
 use crate::Query;
 
+use resolved::CpfpSource;
+
 impl Query {
     /// Returns live mempool information when available, otherwise
     /// reconstructs the confirmed same-block cluster from indexed data.
-    pub fn cpfp(&self, txid: &Txid) -> brk_error::Result<brk_types::CpfpInfo> {
-        let prefix = TxidPrefix::from(txid);
-        if let Some(info) = self.mempool().and_then(|m| m.cpfp_info(&prefix)) {
-            return Ok(info);
+    pub fn cpfp(&self, txid: &Txid) -> Result<CpfpInfo> {
+        match self.resolve_cpfp_source(txid)? {
+            CpfpSource::Memory(info) => Ok(info),
+            CpfpSource::Chain(transaction) => self.confirmed_cpfp_resolved(transaction),
         }
-        let _guard = self.read_plugin(self.plugins().outputs)?;
-        confirmed::confirmed_cpfp(self, txid)
     }
 
     /// Effective SFL chunk rate for live, confirmed, or replaced transactions.
-    pub fn effective_fee_rate(&self, txid: &Txid) -> brk_error::Result<FeeRate> {
-        let prefix = TxidPrefix::from(txid);
-
+    pub fn effective_fee_rate(&self, txid: &Txid) -> Result<FeeRate> {
         if let Some(mempool) = self.mempool()
-            && let Some(rate) = mempool.live_effective_fee_rate(&prefix)
+            && let Some(rate) = mempool.live_effective_fee_rate(txid)
         {
             return Ok(rate);
         }

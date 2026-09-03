@@ -1,7 +1,7 @@
 use std::io::Cursor;
 
 use bitcoin::consensus::Decodable;
-use brk_error::{Error, OptionData};
+use brk_error::{Error, OptionData, Result};
 use brk_types::{
     BlkPosition, BlockHash, BlockTxIndex, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps,
     StoredU32, Transaction, TxIn, TxInIndex, TxIndex, TxOut, TxStatus, Txid, TypeIndex, Vout,
@@ -10,6 +10,7 @@ use brk_types::{
 use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex};
 
+use super::ResolvedBlock;
 use crate::Query;
 
 impl Query {
@@ -17,8 +18,14 @@ impl Query {
     /// `NotFound` if the hash is unknown (or only collides on the 8-byte
     /// prefix), `OutOfRange` if the resolved height is past the indexed tip.
     /// Unpaginated by design.
-    pub fn block_txids(&self, hash: &BlockHash) -> brk_error::Result<Vec<Txid>> {
-        let height = self.height_by_hash(hash)?;
+    pub fn block_txids(&self, hash: &BlockHash) -> Result<Vec<Txid>> {
+        let block = self.resolve_block(hash)?;
+        self.block_txids_by_height(block.height())
+    }
+
+    /// Transaction IDs for a block previously resolved by exact hash.
+    pub fn block_txids_resolved(&self, block: ResolvedBlock) -> Result<Vec<Txid>> {
+        let height = self.revalidate_block(block)?;
         self.block_txids_by_height(height)
     }
 
@@ -30,8 +37,28 @@ impl Query {
         hash: &BlockHash,
         start_index: BlockTxIndex,
         count: u32,
-    ) -> brk_error::Result<Vec<Transaction>> {
-        let height = self.height_by_hash(hash)?;
+    ) -> Result<Vec<Transaction>> {
+        let block = self.resolve_block(hash)?;
+        self.block_txs_at_height(block.height(), start_index, count)
+    }
+
+    /// A transaction page for a block previously resolved by exact hash.
+    pub fn block_txs_resolved(
+        &self,
+        block: ResolvedBlock,
+        start_index: BlockTxIndex,
+        count: u32,
+    ) -> Result<Vec<Transaction>> {
+        let height = self.revalidate_block(block)?;
+        self.block_txs_at_height(height, start_index, count)
+    }
+
+    fn block_txs_at_height(
+        &self,
+        height: Height,
+        start_index: BlockTxIndex,
+        count: u32,
+    ) -> Result<Vec<Transaction>> {
         let (first, tx_count) = self.block_tx_range(height)?;
         let start: usize = start_index.into();
         if start >= tx_count {
@@ -50,12 +77,18 @@ impl Query {
     /// 0 = coinbase). `NotFound` if the hash is unknown or only collides on
     /// the 8-byte prefix; `OutOfRange` if `index` is past the last tx in
     /// the block.
-    pub fn block_txid_at_index(
+    pub fn block_txid_at_index(&self, hash: &BlockHash, index: BlockTxIndex) -> Result<Txid> {
+        let block = self.resolve_block(hash)?;
+        self.block_txid_at_index_by_height(block.height(), index.into())
+    }
+
+    /// One transaction ID from a block previously resolved by exact hash.
+    pub fn block_txid_at_index_resolved(
         &self,
-        hash: &BlockHash,
+        block: ResolvedBlock,
         index: BlockTxIndex,
-    ) -> brk_error::Result<Txid> {
-        let height = self.height_by_hash(hash)?;
+    ) -> Result<Txid> {
+        let height = self.revalidate_block(block)?;
         self.block_txid_at_index_by_height(height, index.into())
     }
 
@@ -66,7 +99,7 @@ impl Query {
     /// the stamp-before-data race or short-returns. Used by both the
     /// hash-keyed and height-keyed entry points so they share bounds
     /// semantics.
-    fn block_txids_by_height(&self, height: Height) -> brk_error::Result<Vec<Txid>> {
+    fn block_txids_by_height(&self, height: Height) -> Result<Vec<Txid>> {
         let (first, tx_count) = self.block_tx_range(height)?;
         let txids = self
             .indexer()
@@ -83,11 +116,7 @@ impl Query {
     /// Single txid at an in-block offset. `OutOfRange` when `index` is past
     /// the last tx in the block. `Internal` if the underlying read finds
     /// the stamp-before-data race (`first_tx_index` flushed ahead of `txid`).
-    fn block_txid_at_index_by_height(
-        &self,
-        height: Height,
-        index: usize,
-    ) -> brk_error::Result<Txid> {
+    fn block_txid_at_index_by_height(&self, height: Height, index: usize) -> Result<Txid> {
         let (first, tx_count) = self.block_tx_range(height)?;
         if index >= tx_count {
             return Err(Error::OutOfRange("Transaction index out of range".into()));
@@ -115,10 +144,7 @@ impl Query {
     /// The final `unwrap` is provably safe: `order` is a permutation of
     /// `0..len`, Phase 1 produces exactly one `DecodedTx` per position, and
     /// Phase 3 assigns each `txs[pos]` once before the collect.
-    pub fn transactions_by_indices(
-        &self,
-        indices: &[TxIndex],
-    ) -> brk_error::Result<Vec<Transaction>> {
+    pub fn transactions_by_indices(&self, indices: &[TxIndex]) -> Result<Vec<Transaction>> {
         if indices.is_empty() {
             return Ok(Vec::new());
         }
@@ -285,7 +311,7 @@ impl Query {
                         inner_witness_script_asm: (),
                     })
                 })
-                .collect::<brk_error::Result<_>>()?;
+                .collect::<Result<_>>()?;
 
             let weight = Weight::from(dtx.decoded.weight());
 
@@ -321,7 +347,7 @@ impl Query {
     /// stamp-before-data race. The tip-of-safe block falls back to
     /// `safe.tx_index` (not live `txid.len()`, which can be ahead of the
     /// writer's stamped boundary mid-block).
-    fn block_tx_range(&self, height: Height) -> brk_error::Result<(usize, usize)> {
+    fn block_tx_range(&self, height: Height) -> Result<(usize, usize)> {
         let safe = self.safe_lengths();
         if height >= safe.height {
             return Err(Error::OutOfRange("Block height out of range".into()));
@@ -339,6 +365,6 @@ impl Query {
 }
 
 #[inline]
-pub fn block_txids_by_height(query: &Query, height: Height) -> brk_error::Result<Vec<Txid>> {
+pub fn block_txids_by_height(query: &Query, height: Height) -> Result<Vec<Txid>> {
     query.block_txids_by_height(height)
 }

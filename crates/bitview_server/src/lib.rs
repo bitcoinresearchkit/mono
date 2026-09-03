@@ -10,11 +10,13 @@ use std::{
 use std::path::PathBuf;
 
 use aide::axum::ApiRouter;
+#[cfg(any(feature = "chain", feature = "urpd"))]
+use axum::body::Bytes;
 use axum::{
     Extension, ServiceExt,
     body::Body,
     http::{
-        Request, Response, StatusCode, Uri,
+        Request, Response, StatusCode,
         header::{ALLOW, CONTENT_TYPE},
     },
     middleware::Next,
@@ -27,7 +29,6 @@ use brk_error::Result;
 use tokio::net::TcpListener;
 use tower_http::{
     catch_panic::CatchPanicLayer,
-    classify::ServerErrorsFailureClass,
     compression::{
         CompressionLayer, CompressionLevel,
         predicate::{DefaultPredicate, Predicate, SizeAbove},
@@ -35,7 +36,6 @@ use tower_http::{
     cors::CorsLayer,
     normalize_path::NormalizePathLayer,
     timeout::TimeoutLayer,
-    trace::TraceLayer,
 };
 use tower_layer::Layer;
 use tracing::{debug, error, info};
@@ -48,6 +48,8 @@ mod error_body;
 mod etag;
 mod extended;
 mod params;
+#[cfg(feature = "series")]
+mod series_bodies;
 mod state;
 
 pub use api::ApiRoutes;
@@ -55,9 +57,13 @@ use api::*;
 pub use bitview_website::Website;
 pub use brk_types::Port;
 pub use cache::CdnCacheMode;
+#[cfg(feature = "chain")]
+use cache::TipJsonCache;
 use cache::{CacheParams, CacheStrategy};
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
 pub use error::Error;
+#[cfg(feature = "series")]
+use series_bodies::SeriesBodies;
 use state::*;
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -94,9 +100,28 @@ impl Server {
         config.website.log();
         cache::init(config.cdn_cache_mode);
 
+        #[cfg(feature = "series")]
+        let series_bodies = SeriesBodies::new(query);
+        #[cfg(feature = "urpd")]
+        let urpd_cohorts_body = {
+            let cohorts = query.run(|query| query.urpd_cohorts()).await?;
+            Bytes::from(serde_json::to_vec(&cohorts)?)
+        };
+        #[cfg(feature = "chain")]
+        let mining_pools_body =
+            Bytes::from(serde_json::to_vec(&query.sync(|query| query.all_pools()))?);
+
         Ok(Self {
             state: AppState {
                 query: query.clone(),
+                #[cfg(feature = "series")]
+                series_bodies,
+                #[cfg(feature = "urpd")]
+                urpd_cohorts_body,
+                #[cfg(feature = "chain")]
+                mining_pools_body,
+                #[cfg(feature = "chain")]
+                mining_block_fees_cache: TipJsonCache::default(),
                 data_path: config.data_path,
                 website: config.website,
                 started_at: jiff::Timestamp::now(),
@@ -130,13 +155,27 @@ impl Server {
                 let method = request.method().clone();
                 let start = Instant::now();
                 let mut response = next.run(request).await;
-                response.extensions_mut().insert(uri);
-                response.extensions_mut().insert(method);
+                let latency = start.elapsed();
+                let status_code = response.status();
+                let status = status_code.as_u16();
+
+                match status_code {
+                    StatusCode::NOT_MODIFIED | StatusCode::BAD_REQUEST => {
+                        debug!(%method, status, %uri, ?latency)
+                    }
+                    status_code
+                        if status_code.is_informational()
+                            || status_code.is_success()
+                            || status_code.is_redirection() =>
+                    {
+                        info!(%method, status, %uri, ?latency)
+                    }
+                    _ => error!(%method, status, %uri, ?latency),
+                }
+
                 response.headers_mut().insert(
                     "X-Response-Time",
-                    format!("{}us", start.elapsed().as_micros())
-                        .parse()
-                        .unwrap(),
+                    format!("{}us", latency.as_micros()).parse().unwrap(),
                 );
                 response
             },
@@ -204,42 +243,6 @@ impl Server {
             },
         );
 
-        let trace_layer = TraceLayer::new_for_http()
-            .on_request(())
-            .on_response(
-                |response: &Response<Body>, latency: Duration, _: &tracing::Span| {
-                    let status = response.status().as_u16();
-                    let unknown_uri = Uri::from_static("/unknown");
-                    let unknown_method = axum::http::Method::default();
-                    let uri = response.extensions().get::<Uri>().unwrap_or(&unknown_uri);
-                    let method = response
-                        .extensions()
-                        .get::<axum::http::Method>()
-                        .unwrap_or(&unknown_method);
-                    match response.status() {
-                        StatusCode::NOT_MODIFIED | StatusCode::BAD_REQUEST => {
-                            debug!(%method, status, %uri, ?latency)
-                        }
-                        status_code
-                            if status_code.is_informational()
-                                || status_code.is_success()
-                                || status_code.is_redirection() =>
-                        {
-                            info!(%method, status, %uri, ?latency)
-                        }
-                        _ => error!(%method, status, %uri, ?latency),
-                    }
-                },
-            )
-            .on_body_chunk(())
-            .on_failure(
-                |error: ServerErrorsFailureClass, latency: Duration, _: &tracing::Span| {
-                    let latency = format!("{latency:.2?}");
-                    error!(?error, %latency, "Request failed");
-                },
-            )
-            .on_eos(());
-
         let website_router = bitview_website::router(state.website.clone());
         let mut router = ApiRouter::new()
             .add_api_routes()
@@ -264,8 +267,7 @@ impl Server {
                     .unwrap_or("Unknown panic");
                 Error::internal(msg).into_response()
             }))
-            .layer(response_time_layer)
-            .layer(trace_layer);
+            .layer(response_time_layer);
 
         info!("Server listening on http://{address}");
 
