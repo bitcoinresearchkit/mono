@@ -1,4 +1,4 @@
-use std::{future::Future, hash::Hash, sync::Arc};
+use std::{collections::VecDeque, future::Future, hash::Hash, sync::Arc};
 
 use axum::body::Bytes;
 use brk_error::Result;
@@ -10,6 +10,9 @@ use tokio::sync::Mutex;
 struct TipEntries<K> {
     tip: Option<BlockHashPrefix>,
     values: FxHashMap<K, Bytes>,
+    value_order: VecDeque<K>,
+    value_bytes: usize,
+    max_value_bytes: Option<usize>,
     builds: FxHashMap<K, Arc<Mutex<()>>>,
 }
 
@@ -18,8 +21,46 @@ impl<K> Default for TipEntries<K> {
         Self {
             tip: None,
             values: FxHashMap::default(),
+            value_order: VecDeque::new(),
+            value_bytes: 0,
+            max_value_bytes: None,
             builds: FxHashMap::default(),
         }
+    }
+}
+
+impl<K> TipEntries<K>
+where
+    K: Clone + Eq + Hash,
+{
+    fn insert(&mut self, key: K, bytes: Bytes) {
+        if let Some(max_value_bytes) = self.max_value_bytes {
+            if bytes.len() > max_value_bytes {
+                return;
+            }
+            while self.value_bytes > max_value_bytes - bytes.len() {
+                let evicted_key = self
+                    .value_order
+                    .pop_front()
+                    .expect("cached byte count requires a cached key");
+                let evicted = self
+                    .values
+                    .remove(&evicted_key)
+                    .expect("cached key order must match cached values");
+                self.value_bytes -= evicted.len();
+            }
+            self.value_bytes += bytes.len();
+            self.value_order.push_back(key.clone());
+        }
+        self.values.insert(key, bytes);
+    }
+
+    fn reset(&mut self, tip: BlockHashPrefix) {
+        self.tip = Some(tip);
+        self.values.clear();
+        self.value_order.clear();
+        self.value_bytes = 0;
+        self.builds.clear();
     }
 }
 
@@ -40,6 +81,19 @@ impl<K> TipJsonCache<K>
 where
     K: Clone + Eq + Hash,
 {
+    /// Create a cache whose retained response bodies cannot exceed `max_value_bytes`.
+    pub(crate) fn with_max_value_bytes(max_value_bytes: usize) -> Self {
+        assert!(
+            max_value_bytes > 0,
+            "tip JSON cache byte limit must be positive"
+        );
+        let entries = TipEntries {
+            max_value_bytes: Some(max_value_bytes),
+            ..TipEntries::default()
+        };
+        Self(Arc::new(RwLock::new(entries)))
+    }
+
     pub(crate) fn current(&self, key: &K, tip: BlockHashPrefix) -> Option<Bytes> {
         let entries = self.0.read();
         if entries.tip != Some(tip) {
@@ -51,9 +105,7 @@ where
     fn build_lock(&self, key: &K, tip: BlockHashPrefix) -> Arc<Mutex<()>> {
         let mut entries = self.0.write();
         if entries.tip != Some(tip) {
-            entries.tip = Some(tip);
-            entries.values.clear();
-            entries.builds.clear();
+            entries.reset(tip);
         }
         Arc::clone(
             entries
@@ -86,7 +138,7 @@ where
         let bytes = build().await?;
         let mut entries = self.0.write();
         if entries.tip == Some(tip) {
-            entries.values.insert(key, bytes.clone());
+            entries.insert(key, bytes.clone());
         }
         Ok(bytes)
     }
@@ -250,5 +302,30 @@ mod tests {
             .unwrap();
         assert_eq!(recovered, Bytes::from_static(b"recovered"));
         assert_eq!(builds.load(Ordering::Relaxed), 3);
+    }
+
+    #[tokio::test]
+    async fn bounded_cache_evicts_old_values_and_skips_oversized_values() {
+        let cache = TipJsonCache::with_max_value_bytes(5);
+
+        cache
+            .get_or_try_insert_with(1, tip(1), || async { Ok(Bytes::from_static(b"one")) })
+            .await
+            .unwrap();
+        cache
+            .get_or_try_insert_with(2, tip(1), || async { Ok(Bytes::from_static(b"two")) })
+            .await
+            .unwrap();
+
+        assert!(cache.current(&1, tip(1)).is_none());
+        assert_eq!(cache.current(&2, tip(1)).unwrap(), b"two"[..]);
+
+        let oversized = cache
+            .get_or_try_insert_with(3, tip(1), || async { Ok(Bytes::from_static(b"123456")) })
+            .await
+            .unwrap();
+        assert_eq!(oversized, Bytes::from_static(b"123456"));
+        assert!(cache.current(&3, tip(1)).is_none());
+        assert_eq!(cache.current(&2, tip(1)).unwrap(), b"two"[..]);
     }
 }

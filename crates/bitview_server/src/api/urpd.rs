@@ -16,7 +16,11 @@ use crate::{
 use super::AppState;
 
 pub(super) fn serve_cohorts(state: AppState, headers: HeaderMap) -> Response {
-    state.respond_json_bytes_value(&headers, CacheStrategy::Deploy, &state.urpd_cohorts_body)
+    state.respond_json_bytes_value(
+        &headers,
+        CacheStrategy::Deploy,
+        state.urpd_caches.cohorts_body(),
+    )
 }
 
 pub trait ApiUrpdRoutes {
@@ -78,16 +82,24 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(params): Path<UrpdCohortParam>,
                        Query(query): Query<UrpdQuery>,
-                       State(state): State<AppState>| {
-                    state
-                        .respond_json(&headers, state.tip_strategy(), move |q| {
-                            q.urpd_latest_with_weight(
-                                &params.cohort,
-                                query.aggregation,
-                                query.weight,
-                            )
-                        })
-                        .await
+                       State(state): State<AppState>|
+                       -> RouteResult<Response> {
+                    let cohort = params.cohort;
+                    let aggregation = query.aggregation;
+                    let weight = query.weight;
+                    let cohort_index = state.urpd_caches.cohort_index(&cohort)?;
+                    let key = (cohort_index, aggregation, weight);
+
+                    Ok(state
+                        .respond_json_tip_cached(
+                            &headers,
+                            state.urpd_caches.latest(),
+                            key,
+                            move |query| {
+                                query.urpd_latest_with_weight(&cohort, aggregation, weight)
+                            },
+                        )
+                        .await)
                 },
                 |op| {
                     op.id("get_urpd")

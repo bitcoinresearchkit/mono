@@ -390,7 +390,12 @@ impl BlockRoutes for ApiRouter<AppState> {
                 get_with(
                     async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                         state
-                            .respond_json(&headers, state.tip_strategy(), move |q| q.blocks(None, 10))
+                            .respond_json_tip_cached(
+                                &headers,
+                                &state.block_caches.recent,
+                                (),
+                                move |q| q.blocks(None, 10),
+                            )
                             .await
                     },
                     |op| {
@@ -431,7 +436,12 @@ impl BlockRoutes for ApiRouter<AppState> {
                 get_with(
                     async |headers: HeaderMap, _: Empty, State(state): State<AppState>| {
                         state
-                            .respond_json(&headers, state.tip_strategy(), move |q| q.blocks_v1(None, 15))
+                            .respond_json_tip_cached(
+                                &headers,
+                                &state.block_caches.recent_v1,
+                                (),
+                                move |q| q.blocks_v1(None, 15),
+                            )
                             .await
                     },
                     |op| {

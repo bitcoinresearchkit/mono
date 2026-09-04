@@ -10,7 +10,7 @@ use std::{
 use std::path::PathBuf;
 
 use aide::axum::ApiRouter;
-#[cfg(any(feature = "chain", feature = "urpd"))]
+#[cfg(feature = "chain")]
 use axum::body::Bytes;
 use axum::{
     Extension, ServiceExt,
@@ -57,8 +57,10 @@ use api::*;
 pub use bitview_website::Website;
 pub use brk_types::Port;
 pub use cache::CdnCacheMode;
+#[cfg(feature = "urpd")]
+use cache::UrpdCaches;
 #[cfg(feature = "chain")]
-use cache::TipJsonCache;
+use cache::{BlockCaches, MiningCaches};
 use cache::{CacheParams, CacheStrategy};
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
 pub use error::Error;
@@ -103,9 +105,9 @@ impl Server {
         #[cfg(feature = "series")]
         let series_bodies = SeriesBodies::new(query);
         #[cfg(feature = "urpd")]
-        let urpd_cohorts_body = {
+        let urpd_caches = {
             let cohorts = query.run(|query| query.urpd_cohorts()).await?;
-            Bytes::from(serde_json::to_vec(&cohorts)?)
+            UrpdCaches::new(cohorts)?
         };
         #[cfg(feature = "chain")]
         let mining_pools_body =
@@ -117,13 +119,13 @@ impl Server {
                 #[cfg(feature = "series")]
                 series_bodies,
                 #[cfg(feature = "urpd")]
-                urpd_cohorts_body,
+                urpd_caches,
                 #[cfg(feature = "chain")]
                 mining_pools_body,
                 #[cfg(feature = "chain")]
-                mining_block_fees_cache: TipJsonCache::default(),
+                mining_caches: MiningCaches::default(),
                 #[cfg(feature = "chain")]
-                mining_block_fee_rates_cache: TipJsonCache::default(),
+                block_caches: BlockCaches::default(),
                 data_path: config.data_path,
                 website: config.website,
                 started_at: jiff::Timestamp::now(),

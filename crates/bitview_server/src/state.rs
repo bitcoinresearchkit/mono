@@ -1,7 +1,9 @@
 use std::{path::PathBuf, time::Instant};
 
+#[cfg(any(feature = "chain", feature = "urpd"))]
+use std::hash::Hash;
 #[cfg(feature = "chain")]
-use std::{hash::Hash, sync::Arc};
+use std::sync::Arc;
 
 use axum::{
     body::{Body, Bytes},
@@ -18,8 +20,8 @@ use bitview_query::{AsyncQuery, RepresentationId};
 use brk_error::{Error as BrkError, Result};
 #[cfg(feature = "chain")]
 use brk_types::{
-    Addr, AddrStats, BlockHash, MempoolBlock, NextBlockHash, PoolSlug, RecommendedFees, TimePeriod,
-    TxIndex, TxStatus, Txid, TxidPrefix,
+    Addr, AddrStats, BlockHash, MempoolBlock, NextBlockHash, PoolSlug, RecommendedFees, TxIndex,
+    TxStatus, Txid, TxidPrefix,
 };
 use brk_types::{BlockHashPrefix, Height, Version};
 #[cfg(feature = "mappings")]
@@ -28,8 +30,12 @@ use derive_more::Deref;
 use jiff::Timestamp;
 use serde::Serialize;
 
-#[cfg(feature = "chain")]
+#[cfg(any(feature = "chain", feature = "urpd"))]
 use crate::cache::TipJsonCache;
+#[cfg(feature = "urpd")]
+use crate::cache::UrpdCaches;
+#[cfg(feature = "chain")]
+use crate::cache::{BlockCaches, MiningCaches};
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
 use crate::{CacheParams, CacheStrategy, Error, Website, extended::ResponseExtended};
@@ -41,13 +47,13 @@ pub struct AppState {
     #[cfg(feature = "series")]
     pub(crate) series_bodies: SeriesBodies,
     #[cfg(feature = "urpd")]
-    pub(crate) urpd_cohorts_body: Bytes,
+    pub(crate) urpd_caches: UrpdCaches,
     #[cfg(feature = "chain")]
     pub(crate) mining_pools_body: Bytes,
     #[cfg(feature = "chain")]
-    pub(crate) mining_block_fees_cache: TipJsonCache<TimePeriod>,
+    pub(crate) mining_caches: MiningCaches,
     #[cfg(feature = "chain")]
-    pub(crate) mining_block_fee_rates_cache: TipJsonCache<TimePeriod>,
+    pub(crate) block_caches: BlockCaches,
     pub data_path: PathBuf,
     pub website: Website,
     pub started_at: Timestamp,
@@ -585,7 +591,7 @@ impl AppState {
     }
 
     /// Serve one serialized JSON representation per key and exact chain tip.
-    #[cfg(feature = "chain")]
+    #[cfg(any(feature = "chain", feature = "urpd"))]
     pub(crate) async fn respond_json_tip_cached<K, T, F>(
         &self,
         headers: &HeaderMap,
