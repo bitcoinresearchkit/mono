@@ -56,6 +56,62 @@ pub fn forced_import(
         all,
         sth,
         lth,
+        under_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "under_4m_awake_price",
+            version,
+            &sources.under_4m_awake_price,
+            mappings,
+            spot_price,
+        ),
+        under_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "under_4m_awake_capitalized_price",
+            version,
+            &sources.under_4m_awake_capitalized_price,
+            mappings,
+            spot_price,
+        ),
+        under_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "under_6m_awake_price",
+            version,
+            &sources.under_6m_awake_price,
+            mappings,
+            spot_price,
+        ),
+        under_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "under_6m_awake_capitalized_price",
+            version,
+            &sources.under_6m_awake_capitalized_price,
+            mappings,
+            spot_price,
+        ),
+        over_4m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "over_4m_awake_price",
+            version,
+            &sources.over_4m_awake_price,
+            mappings,
+            spot_price,
+        ),
+        over_4m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "over_4m_awake_capitalized_price",
+            version,
+            &sources.over_4m_awake_capitalized_price,
+            mappings,
+            spot_price,
+        ),
+        over_6m_awake_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "over_6m_awake_price",
+            version,
+            &sources.over_6m_awake_price,
+            mappings,
+            spot_price,
+        ),
+        over_6m_awake_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+            "over_6m_awake_capitalized_price",
+            version,
+            &sources.over_6m_awake_capitalized_price,
+            mappings,
+            spot_price,
+        ),
         sources,
     })
 }
@@ -64,6 +120,30 @@ impl Sources {
     pub fn forced_import(db: &Database, version: Version) -> Result<Self> {
         let version = version + Version::ONE;
         Ok(Self {
+            under_4m_awake_price: import_cached(db, "under_4m_awake_price_cents", version)?,
+            under_4m_awake_capitalized_price: import_cached(
+                db,
+                "under_4m_awake_capitalized_price_cents",
+                version,
+            )?,
+            under_6m_awake_price: import_cached(db, "under_6m_awake_price_cents", version)?,
+            under_6m_awake_capitalized_price: import_cached(
+                db,
+                "under_6m_awake_capitalized_price_cents",
+                version,
+            )?,
+            over_4m_awake_price: import_cached(db, "over_4m_awake_price_cents", version)?,
+            over_4m_awake_capitalized_price: import_cached(
+                db,
+                "over_4m_awake_capitalized_price_cents",
+                version,
+            )?,
+            over_6m_awake_price: import_cached(db, "over_6m_awake_price_cents", version)?,
+            over_6m_awake_capitalized_price: import_cached(
+                db,
+                "over_6m_awake_capitalized_price_cents",
+                version,
+            )?,
             awake_supply: import_aggregate(db, "awake_supply_sats", version)?,
             dormant_supply: import_aggregate(db, "dormant_supply_sats", version)?,
             awake_cap: import_aggregate(db, "awake_cap_cents", version)?,

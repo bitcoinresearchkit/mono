@@ -7488,6 +7488,14 @@ function createTermPattern(client, acc) {
  * @property {SupplyPattern2} dormant
  * @property {SeriesTree_Cointime_Sth} sth
  * @property {SeriesTree_Cointime_Lth} lth
+ * @property {CentsPpmRatioSatsUsdPattern} under4mAwakePrice
+ * @property {CentsPpmRatioSatsUsdPattern} under4mAwakeCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} under6mAwakePrice
+ * @property {CentsPpmRatioSatsUsdPattern} under6mAwakeCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over4mAwakePrice
+ * @property {CentsPpmRatioSatsUsdPattern} over4mAwakeCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over6mAwakePrice
+ * @property {CentsPpmRatioSatsUsdPattern} over6mAwakeCapitalizedPrice
  * @property {SeriesTree_Cointime_Supply} supply
  * @property {SeriesTree_Cointime_Value} value
  * @property {SeriesTree_Cointime_Cap} cap
@@ -7855,6 +7863,14 @@ function createTermPattern(client, acc) {
  * @property {CentsPpmRatioSatsUsdPattern} capitalizedPrice
  * @property {SeriesTree_Coinflow_Sth} sth
  * @property {SeriesTree_Coinflow_Lth} lth
+ * @property {CentsPpmRatioSatsUsdPattern} under4mPrice
+ * @property {CentsPpmRatioSatsUsdPattern} under4mCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} under6mPrice
+ * @property {CentsPpmRatioSatsUsdPattern} under6mCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over4mPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over4mCapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over6mPrice
+ * @property {CentsPpmRatioSatsUsdPattern} over6mCapitalizedPrice
  */
 
 /**
@@ -13835,6 +13851,14 @@ class BitviewClient extends BitviewClientBase {
           })); },
           dormant: createSupplyPattern2(client, 'lth_dormant_supply'),
         })); },
+        under4mAwakePrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_price'),
+        under4mAwakeCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_capitalized_price'),
+        under6mAwakePrice: createCentsPpmRatioSatsUsdPattern(client, 'under_6m_awake_price'),
+        under6mAwakeCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_6m_awake_capitalized_price'),
+        over4mAwakePrice: createCentsPpmRatioSatsUsdPattern(client, 'over_4m_awake_price'),
+        over4mAwakeCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_4m_awake_capitalized_price'),
+        over6mAwakePrice: createCentsPpmRatioSatsUsdPattern(client, 'over_6m_awake_price'),
+        over6mAwakeCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_6m_awake_capitalized_price'),
         get supply() { return _lazy(this, 'supply', () => ({
           vaulted: createBtcCentsSatsUsdPattern(client, 'vaulted_supply'),
           get active() { return _lazy(this, 'active', () => ({
@@ -14057,6 +14081,14 @@ class BitviewClient extends BitviewClientBase {
           price: createCentsPpmRatioSatsUsdPattern(client, 'lth_coinflow_price'),
           capitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'lth_coinflow_capitalized_price'),
         })); },
+        under4mPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_coinflow_price'),
+        under4mCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_coinflow_capitalized_price'),
+        under6mPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_6m_coinflow_price'),
+        under6mCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_6m_coinflow_capitalized_price'),
+        over4mPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_4m_coinflow_price'),
+        over4mCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_4m_coinflow_capitalized_price'),
+        over6mPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_price'),
+        over6mCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_capitalized_price'),
       })); },
       get bedrock() { return _lazy(this, 'bedrock', () => ({
         get costBasis() { return _lazy(this, 'costBasis', () => ({

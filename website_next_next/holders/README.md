@@ -19,4 +19,4 @@ node generate.mjs
 
 Optional arguments: `--api http://localhost:3110/api` and `--start 2011-01-01`.
 
-The generator includes today's partial data and validates all four inputs before atomically replacing the embedded snapshot. Shared validation and snapshot-writing code lives in `scripts/cloud-snapshot.mjs`, also used by the STH generator.
+The generator includes today's partial data and validates all four inputs before atomically replacing the embedded snapshot. The generator is self-contained and uses only Node.js built-in modules.

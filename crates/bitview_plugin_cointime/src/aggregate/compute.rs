@@ -143,24 +143,55 @@ impl Sources {
 
             for offset in 0..chunk_end - chunk_start {
                 let mut terms = ByTerm::<WeightedCohortState>::default();
+                let mut under_4m = WeightedCohortState::default();
+                let mut under_6m = WeightedCohortState::default();
+                let mut over_4m = WeightedCohortState::default();
+                let mut over_6m = WeightedCohortState::default();
                 for &id in AgeRangeId::ALL {
                     let term = if id.term() == Term::Sth {
                         &mut terms.short
                     } else {
                         &mut terms.long
                     };
-                    term.capitalized_price.add(
+                    let mut contribution = WeightedCohortState::default();
+                    contribution.capitalized_price.add(
                         id.select(&raw_batches)[offset],
                         id.select(&capitalized_batches)[offset],
                         id.select(&weight_batch)[offset],
                     );
-                    term.add(
+                    contribution.add(
                         id.select(&supply_batches)[offset],
                         id.select(&loss_batches)[offset],
                         id.select(&cap_batches)[offset],
                         id.select(&weight_batch)[offset],
                     );
+                    *term = term.merged(contribution);
+                    if id >= AgeRangeId::From4MTo5M {
+                        over_4m = over_4m.merged(contribution);
+                    }
+                    if id >= AgeRangeId::From6MTo9M {
+                        over_6m = over_6m.merged(contribution);
+                    }
+                    // AgeRangeId::ALL is ordered youngest to oldest. Capture
+                    // exact aggregate states at the two additional cutoffs.
+                    if id == AgeRangeId::From3MTo4M {
+                        under_4m = terms.short;
+                    } else if id == AgeRangeId::From5MTo6M {
+                        under_6m = terms.short.merged(terms.long);
+                    }
                 }
+                self.under_4m_awake_price.push(under_4m.realized_price());
+                self.under_4m_awake_capitalized_price
+                    .push(under_4m.capitalized_price.value());
+                self.under_6m_awake_price.push(under_6m.realized_price());
+                self.under_6m_awake_capitalized_price
+                    .push(under_6m.capitalized_price.value());
+                self.over_4m_awake_price.push(over_4m.realized_price());
+                self.over_4m_awake_capitalized_price
+                    .push(over_4m.capitalized_price.value());
+                self.over_6m_awake_price.push(over_6m.realized_price());
+                self.over_6m_awake_capitalized_price
+                    .push(over_6m.capitalized_price.value());
                 let all = terms.short.merged(terms.long);
                 all_supply_in_loss_share.push(all.supply_in_loss.value());
                 self.push(terms, all);
@@ -222,6 +253,14 @@ impl Sources {
 
     fn primary_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
+            &mut self.over_4m_awake_price,
+            &mut self.over_4m_awake_capitalized_price,
+            &mut self.over_6m_awake_price,
+            &mut self.over_6m_awake_capitalized_price,
+            &mut self.under_4m_awake_price,
+            &mut self.under_4m_awake_capitalized_price,
+            &mut self.under_6m_awake_price,
+            &mut self.under_6m_awake_capitalized_price,
             &mut self.awake_supply.all,
             &mut self.awake_supply.sth,
             &mut self.awake_supply.lth,
@@ -251,6 +290,143 @@ mod tests {
     use vecdb::{BytesVec, Database, ImportableVec};
 
     use super::*;
+
+    #[test]
+    fn age_threshold_prices_use_exact_membership_and_backfill() {
+        init_cache();
+        let directory = tempdir().unwrap();
+        let db = Database::open(directory.path()).unwrap();
+        let mut sources = Sources::forced_import(&db, Version::ONE).unwrap();
+        let mut loss_share = EagerVec::<PcoVec<Height, BoundedRatio>>::forced_import(
+            &db,
+            "loss_share",
+            Version::ONE,
+        )
+        .unwrap();
+        let mut supply =
+            PcoVec::<Height, Sats>::forced_import(&db, "supply", Version::ONE).unwrap();
+        let mut weight =
+            PcoVec::<Height, BoundedRatio>::forced_import(&db, "weight", Version::ONE).unwrap();
+        supply.push(Sats::from(100_000_000_u64));
+        weight.push(BoundedRatio::ONE);
+        supply.write().unwrap();
+        weight.write().unwrap();
+        let caps = AgeRange::from_fn(|id| {
+            let mut value = PcoVec::<Height, Cents>::forced_import(
+                &db,
+                &format!("cap_{}", id.index()),
+                Version::ONE,
+            )
+            .unwrap();
+            value.push(Cents::new((id.index() as u64 + 1) * 100));
+            value.write().unwrap();
+            value
+        });
+        let raw = AgeRange::from_fn(|id| {
+            let mut value = BytesVec::<Height, CentsSats>::forced_import(
+                &db,
+                &format!("raw_{}", id.index()),
+                Version::ONE,
+            )
+            .unwrap();
+            value.push(CentsSats::new(
+                (id.index() as u128 + 1) * 100 * Sats::ONE_BTC_U128,
+            ));
+            value.write().unwrap();
+            value
+        });
+        let squared = AgeRange::from_fn(|id| {
+            let mut value = BytesVec::<Height, CentsSquaredSats>::forced_import(
+                &db,
+                &format!("squared_{}", id.index()),
+                Version::ONE,
+            )
+            .unwrap();
+            value.push(CentsSquaredSats::new(
+                ((id.index() as u128 + 1) * 100).pow(2) * Sats::ONE_BTC_U128,
+            ));
+            value.write().unwrap();
+            value
+        });
+        for start in [0_usize, 1] {
+            sources
+                .over_6m_awake_price
+                .truncate_if_needed_at(0)
+                .unwrap();
+            sources
+                .compute_primary(
+                    Height::from(start),
+                    &AgeRange::from_fn(|_| &supply),
+                    &AgeRange::from_fn(|_| &supply),
+                    &AgeRange::from_fn(|id| id.select(&caps)),
+                    &AgeRange::from_fn(|id| id.select(&raw)),
+                    &AgeRange::from_fn(|id| id.select(&squared)),
+                    &AgeRange::from_fn(|_| &weight),
+                    &mut loss_share,
+                    &Exit::default(),
+                )
+                .unwrap();
+            // Seven, eight, and nine disjoint age ranges below 120/150/180 days.
+            for (price, capitalized, count) in [
+                (
+                    &sources.under_4m_awake_price,
+                    &sources.under_4m_awake_capitalized_price,
+                    7_u64,
+                ),
+                (
+                    &sources.awake_price.sth,
+                    &sources.awake_capitalized_price.sth,
+                    8,
+                ),
+                (
+                    &sources.under_6m_awake_price,
+                    &sources.under_6m_awake_capitalized_price,
+                    9,
+                ),
+            ] {
+                assert_eq!(price.len(), 1);
+                assert_eq!(
+                    price.collect_one_at(0),
+                    Some(Cents::new(100 * (count + 1) / 2))
+                );
+                assert_eq!(
+                    capitalized.collect_one_at(0),
+                    Some(Cents::new(100 * (2 * count + 1) / 3))
+                );
+            }
+            for (price, capitalized, first) in [
+                (
+                    &sources.over_4m_awake_price,
+                    &sources.over_4m_awake_capitalized_price,
+                    8_u64,
+                ),
+                (
+                    &sources.awake_price.lth,
+                    &sources.awake_capitalized_price.lth,
+                    9,
+                ),
+                (
+                    &sources.over_6m_awake_price,
+                    &sources.over_6m_awake_capitalized_price,
+                    10,
+                ),
+            ] {
+                let last = AgeRangeId::ALL.len() as u64;
+                let sum: u64 = (first..=last).sum();
+                let squared: u64 = (first..=last).map(|value| value * value).sum();
+                assert_eq!(price.len(), 1);
+                assert_eq!(capitalized.len(), 1);
+                assert_eq!(
+                    price.collect_one_at(0),
+                    Some(Cents::new(100 * sum / (last - first + 1)))
+                );
+                assert_eq!(
+                    capitalized.collect_one_at(0),
+                    Some(Cents::new(100 * squared / sum))
+                );
+            }
+        }
+    }
 
     #[test]
     fn shared_batches_cover_boundaries_short_inputs_and_rewrites() {

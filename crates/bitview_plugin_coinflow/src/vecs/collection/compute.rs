@@ -235,6 +235,10 @@ impl PrimaryBatch {
             AgeRange::from_fn(|age| AgeBand::horizon_mobility(&hazards, age, horizon, bounds))
         });
         let mut terms = ByTerm::<AggregateState>::default();
+        let mut under_4m = WeightedCohortState::default();
+        let mut under_6m = WeightedCohortState::default();
+        let mut over_4m = WeightedCohortState::default();
+        let mut over_6m = WeightedCohortState::default();
 
         for &id in AgeRangeId::ALL {
             let mobility = *id.select(&mobilities);
@@ -247,12 +251,13 @@ impl PrimaryBatch {
             } else {
                 &mut terms.long
             };
-            term.weighted.capitalized_price.add(
+            let mut contribution = AggregateState::default();
+            contribution.weighted.capitalized_price.add(
                 id.select(&self.cap_raw)[offset],
                 id.select(&self.capitalized_cap_raw)[offset],
                 mobility,
             );
-            term.add(
+            contribution.add(
                 total_supply,
                 loss_supply,
                 total_cap,
@@ -260,12 +265,29 @@ impl PrimaryBatch {
                 &horizon_mobilities,
                 id,
             );
+            *term = term.merged(contribution);
+            if id >= AgeRangeId::From4MTo5M {
+                over_4m = over_4m.merged(contribution.weighted);
+            }
+            if id >= AgeRangeId::From6MTo9M {
+                over_6m = over_6m.merged(contribution.weighted);
+            }
+            // AgeRangeId::ALL is ordered youngest to oldest.
+            if id == AgeRangeId::From3MTo4M {
+                under_4m = terms.short.weighted;
+            } else if id == AgeRangeId::From5MTo6M {
+                under_6m = terms.short.weighted.merged(terms.long.weighted);
+            }
         }
 
         PrimaryValues {
             spending_rate: AgeRange::from_fn(|id| StoredF64::from(*id.select(&hazards))),
             spending_exposure: AgeRange::from_fn(|id| StoredF64::from(*id.select(&exposures))),
             mobility: mobilities,
+            under_4m,
+            under_6m,
+            over_4m,
+            over_6m,
             terms,
         }
     }
@@ -286,6 +308,10 @@ struct PrimaryValues {
     spending_exposure: AgeRange<StoredF64>,
     mobility: AgeRange<BoundedRatio>,
     terms: ByTerm<AggregateState>,
+    under_4m: WeightedCohortState,
+    under_6m: WeightedCohortState,
+    over_4m: WeightedCohortState,
+    over_6m: WeightedCohortState,
 }
 
 impl Vecs {
@@ -408,6 +434,30 @@ impl Vecs {
             target.push(*value);
         }
 
+        self.aggregate_sources
+            .under_4m_price
+            .push(values.under_4m.realized_price());
+        self.aggregate_sources
+            .under_4m_capitalized_price
+            .push(values.under_4m.capitalized_price.value());
+        self.aggregate_sources
+            .under_6m_price
+            .push(values.under_6m.realized_price());
+        self.aggregate_sources
+            .under_6m_capitalized_price
+            .push(values.under_6m.capitalized_price.value());
+        self.aggregate_sources
+            .over_4m_price
+            .push(values.over_4m.realized_price());
+        self.aggregate_sources
+            .over_4m_capitalized_price
+            .push(values.over_4m.capitalized_price.value());
+        self.aggregate_sources
+            .over_6m_price
+            .push(values.over_6m.realized_price());
+        self.aggregate_sources
+            .over_6m_capitalized_price
+            .push(values.over_6m.capitalized_price.value());
         let all = values.terms.short.merged(values.terms.long);
         self.aggregate_sources.push(values.terms, all);
     }
@@ -468,6 +518,14 @@ impl AggregateSources {
             cap,
             price,
             capitalized_price,
+            under_4m_price,
+            under_4m_capitalized_price,
+            under_6m_price,
+            under_6m_capitalized_price,
+            over_4m_price,
+            over_4m_capitalized_price,
+            over_6m_price,
+            over_6m_capitalized_price,
         } = self;
         let Horizons {
             _8y,
@@ -497,6 +555,14 @@ impl AggregateSources {
             &mut capitalized_price.all,
             &mut capitalized_price.sth,
             &mut capitalized_price.lth,
+            under_4m_price,
+            under_4m_capitalized_price,
+            under_6m_price,
+            under_6m_capitalized_price,
+            over_4m_price,
+            over_4m_capitalized_price,
+            over_6m_price,
+            over_6m_capitalized_price,
         ]
         .into_iter()
         .chain(
@@ -764,6 +830,77 @@ mod tests {
         assert_eq!(all.weighted_supply, expected.weighted_supply);
         assert_eq!(all.complement_supply, expected.complement_supply);
         assert_eq!(all.weighted_cap, expected.weighted_cap);
+    }
+
+    #[test]
+    fn age_threshold_prices_follow_bounded_mobility_and_exact_cutoffs() {
+        let bounds = AgeBand::all();
+        let batch = PrimaryBatch {
+            timestamps: vec![Timestamp::from(20 * 365 * 86_400_u32)],
+            transfer_volumes: AgeRange::from_fn(|id| {
+                vec![Sats::from(100_000_000_u64 / (id.index() as u64 + 1))]
+            }),
+            coindays_created: AgeRange::from_fn(|_| vec![StoredF64::from(100.0)]),
+            supplies: AgeRange::from_fn(|_| vec![Sats::from(100_000_000_u64)]),
+            loss_supplies: AgeRange::from_fn(|_| vec![Sats::ZERO]),
+            realized_caps: AgeRange::from_fn(|id| vec![Cents::new((id.index() as u64 + 1) * 100)]),
+            cap_raw: AgeRange::from_fn(|id| {
+                vec![CentsSats::new(
+                    (id.index() as u128 + 1) * 100 * Sats::ONE_BTC_U128,
+                )]
+            }),
+            capitalized_cap_raw: AgeRange::from_fn(|id| {
+                vec![CentsSquaredSats::new(
+                    ((id.index() as u128 + 1) * 100).pow(2) * Sats::ONE_BTC_U128,
+                )]
+            }),
+        };
+        let values = batch.primary_values(0, Timestamp::ZERO, &bounds);
+        for (days, older, actual) in [
+            (120, false, values.under_4m),
+            (150, false, values.terms.short.weighted),
+            (180, false, values.under_6m),
+            (120, true, values.over_4m),
+            (150, true, values.terms.long.weighted),
+            (180, true, values.over_6m),
+        ] {
+            let mut expected = WeightedCohortState::default();
+            for &id in AgeRangeId::ALL {
+                let included = if older {
+                    id.bounds().start >= days * 24
+                } else {
+                    id.bounds().end <= days * 24
+                };
+                if !included {
+                    continue;
+                }
+                let weight = *id.select(&values.mobility);
+                expected.add(
+                    id.select(&batch.supplies)[0],
+                    Sats::ZERO,
+                    id.select(&batch.realized_caps)[0],
+                    weight,
+                );
+                expected.capitalized_price.add(
+                    id.select(&batch.cap_raw)[0],
+                    id.select(&batch.capitalized_cap_raw)[0],
+                    weight,
+                );
+            }
+            assert_eq!(actual.realized_price(), expected.realized_price());
+            assert_eq!(
+                actual.capitalized_price.value(),
+                expected.capitalized_price.value()
+            );
+        }
+        assert_ne!(
+            values.under_4m.realized_price(),
+            values.under_6m.realized_price()
+        );
+        assert_ne!(
+            values.under_4m.capitalized_price.value(),
+            values.under_6m.capitalized_price.value()
+        );
     }
 
     #[test]

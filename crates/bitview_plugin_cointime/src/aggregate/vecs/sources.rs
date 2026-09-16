@@ -28,4 +28,12 @@ pub struct Sources<M: StorageMode = Rw> {
     /// multiplied by wakefulness divided by the sum of total supply multiplied
     /// by wakefulness. Returns NaN when the weighted supply is zero.
     pub supply_in_loss_share: ByTerm<CachedSeries<Height, BoundedRatio, M>>,
+    pub under_4m_awake_price: CachedSeries<Height, Cents, M>,
+    pub under_4m_awake_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub under_6m_awake_price: CachedSeries<Height, Cents, M>,
+    pub under_6m_awake_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub over_4m_awake_price: CachedSeries<Height, Cents, M>,
+    pub over_4m_awake_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub over_6m_awake_price: CachedSeries<Height, Cents, M>,
+    pub over_6m_awake_capitalized_price: CachedSeries<Height, Cents, M>,
 }

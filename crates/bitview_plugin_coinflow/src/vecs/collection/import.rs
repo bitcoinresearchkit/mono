@@ -21,6 +21,30 @@ use crate::{
 impl AggregateSources {
     fn forced_import(db: &Database, version: Version) -> Result<Self> {
         Ok(Self {
+            under_4m_price: import_cached(db, "under_4m_coinflow_price_cents", version)?,
+            under_4m_capitalized_price: import_cached(
+                db,
+                "under_4m_coinflow_capitalized_price_cents",
+                version,
+            )?,
+            under_6m_price: import_cached(db, "under_6m_coinflow_price_cents", version)?,
+            under_6m_capitalized_price: import_cached(
+                db,
+                "under_6m_coinflow_capitalized_price_cents",
+                version,
+            )?,
+            over_4m_price: import_cached(db, "over_4m_coinflow_price_cents", version)?,
+            over_4m_capitalized_price: import_cached(
+                db,
+                "over_4m_coinflow_capitalized_price_cents",
+                version,
+            )?,
+            over_6m_price: import_cached(db, "over_6m_coinflow_price_cents", version)?,
+            over_6m_capitalized_price: import_cached(
+                db,
+                "over_6m_coinflow_capitalized_price_cents",
+                version,
+            )?,
             supply: MobilityId::try_from_fn(|side| {
                 import_aggregate(
                     db,
@@ -237,6 +261,62 @@ impl Vecs {
             all,
             sth,
             lth,
+            under_4m_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_4m_coinflow_price",
+                version,
+                &aggregate_sources.under_4m_price,
+                mappings,
+                &spot_price,
+            ),
+            under_4m_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_4m_coinflow_capitalized_price",
+                version,
+                &aggregate_sources.under_4m_capitalized_price,
+                mappings,
+                &spot_price,
+            ),
+            under_6m_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_6m_coinflow_price",
+                version,
+                &aggregate_sources.under_6m_price,
+                mappings,
+                &spot_price,
+            ),
+            under_6m_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "under_6m_coinflow_capitalized_price",
+                version,
+                &aggregate_sources.under_6m_capitalized_price,
+                mappings,
+                &spot_price,
+            ),
+            over_4m_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_4m_coinflow_price",
+                version,
+                &aggregate_sources.over_4m_price,
+                mappings,
+                &spot_price,
+            ),
+            over_4m_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_4m_coinflow_capitalized_price",
+                version,
+                &aggregate_sources.over_4m_capitalized_price,
+                mappings,
+                &spot_price,
+            ),
+            over_6m_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_6m_coinflow_price",
+                version,
+                &aggregate_sources.over_6m_price,
+                mappings,
+                &spot_price,
+            ),
+            over_6m_capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(
+                "over_6m_coinflow_capitalized_price",
+                version,
+                &aggregate_sources.over_6m_capitalized_price,
+                mappings,
+                &spot_price,
+            ),
             aggregate_sources,
         };
         STORAGE.finalize_database(&this.db)?;

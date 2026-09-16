@@ -33,4 +33,12 @@ pub struct AggregateSources<M: StorageMode = Rw> {
     /// sum(weight × creation price² × sats) / sum(weight × creation price × sats).
     /// Uses raw cost-basis moments; returns zero when weighted invested value is zero.
     pub capitalized_price: UTXOAggregate<CachedSeries<Height, Cents, M>>,
+    pub under_4m_price: CachedSeries<Height, Cents, M>,
+    pub under_4m_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub under_6m_price: CachedSeries<Height, Cents, M>,
+    pub under_6m_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub over_4m_price: CachedSeries<Height, Cents, M>,
+    pub over_4m_capitalized_price: CachedSeries<Height, Cents, M>,
+    pub over_6m_price: CachedSeries<Height, Cents, M>,
+    pub over_6m_capitalized_price: CachedSeries<Height, Cents, M>,
 }

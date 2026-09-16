@@ -3,6 +3,7 @@ mod import;
 
 use bitview_plugin::{Plugin, PluginStorage};
 use bitview_traversable::Traversable;
+use bitview_vecs::LazyPriceWithRatioPerBlock;
 use vecdb::{Database, Rw, StorageMode};
 
 use super::{AgeRangeVecs, AggregateSources, AggregateVecs};
@@ -27,6 +28,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Long-term-holder Coinflow aggregates use UTXO age ranges at least 150
     /// days old and weight them by estimated future spending probability.
     pub lth: AggregateVecs,
+    /// Coinflow-weighted realized price below 4 months.
+    pub under_4m_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted capitalized price below 4 months.
+    pub under_4m_capitalized_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted realized price below 6 months.
+    pub under_6m_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted capitalized price below 6 months.
+    pub under_6m_capitalized_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted realized price of UTXOs at least 120 days old.
+    pub over_4m_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted capitalized price of UTXOs at least 120 days old.
+    pub over_4m_capitalized_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted realized price of UTXOs at least 180 days old.
+    pub over_6m_price: LazyPriceWithRatioPerBlock,
+    /// Coinflow-weighted capitalized price of UTXOs at least 180 days old.
+    pub over_6m_capitalized_price: LazyPriceWithRatioPerBlock,
     /// Height-indexed source stored for all, short-term-holder, and
     /// long-term-holder Coinflow aggregates.
     #[traversable(hidden)]
