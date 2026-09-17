@@ -1,6 +1,7 @@
-import { QuickMatch } from "../modules/quickmatch-js/0.5.0/src/index.js";
+import { QuickMatch } from "../modules/quickmatch-js/src/index.js";
 
-const index = loadIndex();
+/** @type {ReturnType<typeof loadIndex> | undefined} */
+let index;
 
 async function loadIndex() {
   const response = await fetch(
@@ -24,12 +25,7 @@ async function loadIndex() {
   const haystack = entries.map(([title]) => title.toLowerCase());
   return {
     matcher: new QuickMatch(haystack),
-    titleToLink: new Map(
-      entries.map(([title, href, blank]) => [
-        title.toLowerCase(),
-        /** @type {[string, boolean]} */ ([href, blank]),
-      ]),
-    ),
+    entries,
   };
 }
 
@@ -39,11 +35,9 @@ self.addEventListener("message", async (event) => {
   );
 
   try {
-    const { matcher, titleToLink } = await index;
-    const results = matcher.matches(needle).map((title) => {
-      const [href, blank] = titleToLink.get(title) || ["", false];
-      return /** @type {[string, string, boolean]} */ ([title, href, blank]);
-    });
+    const { matcher, entries } = await (index ??= loadIndex());
+    const results = matcher.matchesWithIdsAndMatchedWords(needle)
+      .map(([index]) => entries[index]);
     self.postMessage({ id, results });
   } catch (error) {
     self.postMessage({

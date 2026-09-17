@@ -80,3 +80,11 @@ export function readParam(key) {
   const params = new URLSearchParams(window.location.search);
   return params.get(key);
 }
+/** @param {string} segment */
+export function decodePathSegment(segment) {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}

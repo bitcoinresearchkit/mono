@@ -1,7 +1,8 @@
+import { createSupplyDensityFolders } from "./bedrock/supply-density.js";
 import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
-import { line, percentRatio, price, pricePercentileSeries } from "../series.js";
+import { line, price, pricePercentileSeries } from "../series.js";
 
 const FLOOR_PERCENTILES = /** @type {const} */ ([
   { key: "pct95", name: "P95" },
@@ -208,47 +209,7 @@ export function createBedrockSection() {
             bedrock.costBasis.perDollar,
             cohorts.costBasis.all.max,
           ),
-          ...[
-            {
-              band: 5,
-              name: "Supply Density",
-              densities: bedrock.costBasis.supplyDensity,
-            },
-            {
-              band: 10,
-              name: "Supply Density (±10%)",
-              densities: bedrock.costBasis.supplyDensity10pct,
-            },
-          ].map(({ band, name, densities }) => ({
-            name,
-            tree: /** @type {const} */ ([
-              { key: "cointime", name: "Cointime" },
-              { key: "coinflow", name: "Coinflow" },
-            ]).map(({ key, name }) => {
-              const density = densities[key];
-              return {
-                name,
-                title: `Bitcoin ${name}-Weighted Supply Density (±${band}%)`,
-                bottom: [
-                  ...percentRatio({
-                    pattern: density.total,
-                    name: `Total (±${band}%)`,
-                    color: colors.bitcoin,
-                  }),
-                  ...percentRatio({
-                    pattern: density.inProfit,
-                    name: `In Profit (−${band}% to Spot)`,
-                    color: colors.profit,
-                  }),
-                  ...percentRatio({
-                    pattern: density.inLoss,
-                    name: `In Loss (Spot to +${band}%)`,
-                    color: colors.loss,
-                  }),
-                ],
-              };
-            }),
-          })),
+          ...createSupplyDensityFolders(),
         ],
       },
     ],

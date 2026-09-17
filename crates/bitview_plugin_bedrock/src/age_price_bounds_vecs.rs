@@ -7,7 +7,7 @@ use brk_exit::Exit;
 use brk_types::{Cents, Date, Day1, Version};
 use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
-use crate::{AgePriceBounds, PriceBounds, WRITE_INTERVAL_DAYS};
+use crate::{AgeCutoffs, PriceBounds, WRITE_INTERVAL_DAYS};
 
 #[derive(Traversable)]
 pub struct AgePriceBoundsVecs<M: StorageMode = Rw> {
@@ -15,9 +15,9 @@ pub struct AgePriceBoundsVecs<M: StorageMode = Rw> {
     /// and missing snapshots are undefined. The current day uses live state
     /// with the same price-bucket rounding as saved snapshots.
     #[traversable(flatten)]
-    pub series: AgePriceBounds<PriceBounds<LazyDailyPrice>>,
+    pub series: AgeCutoffs<PriceBounds<LazyDailyPrice>>,
     #[traversable(hidden)]
-    pub stored: AgePriceBounds<PriceBounds<CachedSeries<Day1, Cents, M>>>,
+    pub stored: AgeCutoffs<PriceBounds<CachedSeries<Day1, Cents, M>>>,
 }
 
 impl AgePriceBoundsVecs {
@@ -27,7 +27,7 @@ impl AgePriceBoundsVecs {
         mappings: &DailyMappings,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let stored = AgePriceBounds::try_from_fn(|age| {
+        let stored = AgeCutoffs::try_from_fn(|age| {
             let import = |side| {
                 import_cached(
                     db,
@@ -54,7 +54,7 @@ impl AgePriceBoundsVecs {
                 max: build("max", &bounds.max),
             }
         };
-        let series = AgePriceBounds {
+        let series = AgeCutoffs {
             under_4m: view("under_4m", &stored.under_4m),
             under_5m: view("under_5m", &stored.under_5m),
             under_6m: view("under_6m", &stored.under_6m),
@@ -79,7 +79,7 @@ impl AgePriceBoundsVecs {
         Ok(start)
     }
 
-    pub fn push(&mut self, values: &AgePriceBounds<PriceBounds<Cents>>) {
+    pub fn push(&mut self, values: &AgeCutoffs<PriceBounds<Cents>>) {
         for (target, value) in self.stored.iter_mut().zip(values.iter()) {
             target.min.push(value.min);
             target.max.push(value.max);
@@ -96,8 +96,8 @@ impl AgePriceBoundsVecs {
     ) -> Result<()> {
         for day in start..end {
             let bounds = match dates.collect_one(Day1::from(day)) {
-                Some(date) => AgePriceBounds::read_if_exists(states_path, date)?,
-                None => AgePriceBounds::default(),
+                Some(date) => AgeCutoffs::read_if_exists(states_path, date)?,
+                None => AgeCutoffs::default(),
             };
             self.push(&bounds);
             if (day + 1).is_multiple_of(WRITE_INTERVAL_DAYS) || day + 1 == end {

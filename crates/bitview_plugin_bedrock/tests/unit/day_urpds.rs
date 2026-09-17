@@ -95,8 +95,8 @@ fn current_entries_build_raw_and_weighted_urpds() {
 
     assert_eq!(urpds.raw.map[&price], Sats::from(8_u64));
     assert_eq!(urpds.all.cointime.map[&price], Sats::from(4_u64));
-    assert_eq!(urpds.term.short.cointime.map[&price], Sats::from(1_u64));
-    assert_eq!(urpds.term.long.cointime.map[&price], Sats::from(2_u64));
+    assert_eq!(urpds.age.under_5m.cointime.map[&price], Sats::from(1_u64));
+    assert_eq!(urpds.long.cointime.map[&price], Sats::from(2_u64));
 }
 
 #[test]
@@ -263,7 +263,7 @@ fn final_maps_floor_combined_mass_and_omit_zero_buckets_in_every_mode() {
     let entries = [
         (AgeRangeId::Under1H, 200, 1),
         (AgeRangeId::From5MTo6M, 100, 1),
-        (AgeRangeId::Under1H, 100, 1),
+        (AgeRangeId::Under1H, 100, 1_u64),
         (AgeRangeId::From5MTo6M, 200, 0),
     ]
     .map(|(age, price, sats)| (age, CentsCompact::new(price), Sats::from(sats as u64)));
@@ -272,7 +272,7 @@ fn final_maps_floor_combined_mass_and_omit_zero_buckets_in_every_mode() {
         assert_eq!(mode.map.len(), 1);
         assert_eq!(mode.map[&CentsCompact::new(100)], Sats::_1);
     }
-    for mode in urpds.term.short.iter().chain(urpds.term.long.iter()) {
+    for mode in urpds.age.under_5m.iter().chain(urpds.long.iter()) {
         assert!(mode.map.is_empty());
     }
     assert_eq!(urpds.raw.map[&CentsCompact::new(100)], Sats::from(2_u64));
@@ -284,4 +284,86 @@ fn final_maps_floor_combined_mass_and_omit_zero_buckets_in_every_mode() {
     let empty = DayUrpds::from_age_entries([], &weights);
     assert!(empty.raw.map.is_empty());
     assert!(empty.all.iter().all(|mode| mode.map.is_empty()));
+}
+
+#[test]
+fn age_densities_use_exclusive_cutoffs_and_each_cohorts_weighted_denominator() {
+    let mut weights = ModeWeights::from_fn(|_| None);
+    weights.cointime = Some(AgeRange::from_fn(|age| {
+        if age == AgeRangeId::Under1H { 1.0 } else { 0.5 }
+    }));
+    weights.coinflow = Some(AgeRange::from_fn(|age| {
+        if age == AgeRangeId::Under1H { 0.5 } else { 1.0 }
+    }));
+    let urpds = DayUrpds::from_age_entries(
+        [
+            (AgeRangeId::Under1H, 100, 20_u64),
+            (AgeRangeId::From3MTo4M, 110, 20),
+            (AgeRangeId::From4MTo5M, 105, 20),
+            (AgeRangeId::From5MTo6M, 200, 20),
+            (AgeRangeId::From6MTo9M, 100, 1000),
+        ]
+        .map(|(age, price, sats)| (age, CentsCompact::new(price), Sats::from(sats))),
+        &weights,
+    );
+    let densities = urpds.age_densities(Cents::new(100));
+    for (actual, expected) in densities.iter().zip([
+        [(2.0 / 3.0, 1.0), (1.0 / 3.0, 1.0)],
+        [(0.75, 1.0), (0.6, 1.0)],
+        [(0.6, 0.8), (3.0 / 7.0, 5.0 / 7.0)],
+    ]) {
+        for (mode, (five, ten)) in actual.iter().zip(expected) {
+            assert!((f64::from(mode.supply_density.total) - five).abs() <= 1e-6);
+            assert!((f64::from(mode.supply_density_10pct.total) - ten).abs() <= 1e-6);
+            for band in mode.iter() {
+                assert!(
+                    (f64::from(band.total) - f64::from(band.in_profit) - f64::from(band.in_loss))
+                        .abs()
+                        <= 1e-6
+                );
+            }
+        }
+    }
+    // The standard STH cohort is exactly the <5m distribution, not a second aggregate.
+    assert_eq!(
+        urpds
+            .age
+            .under_5m
+            .cointime
+            .map
+            .values()
+            .map(|s| u64::from(*s))
+            .sum::<u64>(),
+        40
+    );
+}
+
+#[test]
+fn age_density_floors_after_combining_ages_and_missing_weights_stay_undefined() {
+    let mut weights = ModeWeights::from_fn(|_| None);
+    weights.cointime = Some(AgeRange::from_fn(|_| 0.6));
+    let urpds = DayUrpds::from_age_entries(
+        [
+            (AgeRangeId::Under1H, 100, 1_u64),
+            (AgeRangeId::From3MTo4M, 100, 1),
+            (AgeRangeId::From4MTo5M, 200, 2),
+        ]
+        .map(|(age, price, sats)| (age, CentsCompact::new(price), Sats::from(sats))),
+        &weights,
+    );
+    let densities = urpds.age_densities(Cents::new(100));
+    assert_eq!(
+        densities.under_4m.cointime.supply_density.total.inner(),
+        1_000_000
+    );
+    assert_eq!(
+        densities.under_5m.cointime.supply_density.total.inner(),
+        500_000
+    );
+    for cohort in densities.iter() {
+        assert!(cohort.coinflow.supply_density.total.is_nan());
+    }
+    for cohort in urpds.age_densities(Cents::ZERO).iter() {
+        assert!(cohort.cointime.supply_density.total.is_nan());
+    }
 }

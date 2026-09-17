@@ -1,6 +1,6 @@
 import { createPartialOptions } from "./partial.js";
 import { createAnchorElement, createButtonElement } from "../utils/dom.js";
-import { pushHistory, resetParams } from "../utils/url.js";
+import { decodePathSegment, pushHistory, resetParams } from "../utils/url.js";
 import { readStored, writeToStorage } from "../utils/storage.js";
 import { stringToId } from "../utils/format.js";
 import { setQr } from "../panes/share.js";
@@ -391,11 +391,11 @@ export function initOptions() {
 
   function resolveUrl() {
     const segments = window.location.pathname.split("/").filter((v) => v);
-    const target = segments.length ? segments : savedPath;
+    const target = (segments.length ? segments : savedPath).map(decodePathSegment);
     let nodes = processedTree;
 
     for (let i = 0; i < target.length; i++) {
-      const match = nodes.find((node) => target[i] === node.path.at(-1));
+      const match = nodes.find((node) => target[i] === decodePathSegment(node.path.at(-1) || ""));
       if (!match) break;
       if (i < target.length - 1) {
         if (match.type !== "group") break;

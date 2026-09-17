@@ -9,7 +9,7 @@ use crate::{DayUrpds, ModeWeights};
 
 #[test]
 fn cutoffs_are_exclusive_and_only_occupied_buckets_count() {
-    let mut bounds = AgePriceBounds::default();
+    let mut bounds = AgeCutoffs::default();
     for (age, price, sats) in [
         (AgeRangeId::Under1H, 200, 1),
         (AgeRangeId::From3MTo4M, 100, 1),
@@ -60,7 +60,7 @@ fn saved_and_live_urpds_agree_and_rewrites_replace_extremes() {
     let saved = DayUrpds::read_if_exists(root.path(), date, &weights)
         .unwrap()
         .unwrap();
-    let backfill = AgePriceBounds::read_if_exists(root.path(), date).unwrap();
+    let backfill = AgeCutoffs::read_if_exists(root.path(), date).unwrap();
     for ((live, saved), backfill) in live
         .age_price_bounds
         .iter()
@@ -83,7 +83,7 @@ fn saved_and_live_urpds_agree_and_rewrites_replace_extremes() {
     utxos.apply_pending();
     utxos.write_urpds(date, root.path()).unwrap();
     assert_eq!(
-        AgePriceBounds::read_if_exists(root.path(), date)
+        AgeCutoffs::read_if_exists(root.path(), date)
             .unwrap()
             .under_4m
             .min,
@@ -95,7 +95,7 @@ fn saved_and_live_urpds_agree_and_rewrites_replace_extremes() {
 fn missing_and_empty_are_undefined_but_corrupt_snapshots_are_errors() {
     let root = tempdir().unwrap();
     let date = Date::new(2026, 9, 14);
-    for range in AgePriceBounds::read_if_exists(root.path(), date)
+    for range in AgeCutoffs::read_if_exists(root.path(), date)
         .unwrap()
         .iter()
     {
@@ -104,12 +104,12 @@ fn missing_and_empty_are_undefined_but_corrupt_snapshots_are_errors() {
     let mut utxos = UTXOStates::new(root.path());
     utxos.reset().unwrap();
     utxos.write_urpds(date, root.path()).unwrap();
-    for range in AgePriceBounds::read_if_exists(root.path(), date)
+    for range in AgeCutoffs::read_if_exists(root.path(), date)
         .unwrap()
         .iter()
     {
         assert!(range.min.is_nan() && range.max.is_nan());
     }
     fs::write(AgeRangeUrpds::path(root.path(), date), b"broken").unwrap();
-    assert!(AgePriceBounds::read_if_exists(root.path(), date).is_err());
+    assert!(AgeCutoffs::read_if_exists(root.path(), date).is_err());
 }

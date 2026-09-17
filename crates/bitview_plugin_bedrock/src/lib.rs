@@ -35,6 +35,8 @@ macro_rules! impl_named_row_formattable {
     };
 }
 
+mod age_cutoffs;
+mod age_density_vecs;
 mod age_price_bounds;
 mod age_price_bounds_vecs;
 mod calibration;
@@ -44,6 +46,7 @@ mod cost_basis_data;
 mod cost_basis_vecs;
 mod day_result;
 mod day_urpds;
+mod density_bands;
 mod dependencies;
 mod has;
 mod level_id;
@@ -66,7 +69,8 @@ mod weighted;
 mod weighted_pair;
 mod weighted_urpd_names;
 
-use age_price_bounds::AgePriceBounds;
+use age_cutoffs::AgeCutoffs;
+use age_density_vecs::AgeDensityVecs;
 use age_price_bounds_vecs::AgePriceBoundsVecs;
 use bitview_vecs::DailyPercentilesVecs;
 use calibration::Calibration;
@@ -75,6 +79,7 @@ use cost_basis_data::CostBasisData;
 use cost_basis_vecs::CostBasisVecs;
 use day_result::DayResult;
 use day_urpds::DayUrpds;
+use density_bands::DensityBands;
 pub use dependencies::Dependencies;
 pub use has::HasBedrock;
 use level_id::{LEVEL_COUNT, LEVEL_IDS, LevelId};

@@ -2,7 +2,7 @@ use brk_types::{
     Cents, CentsCompact, CostBasisByPercentile, PERCENTILES_LEN, PartsPerMillion32, Sats, UrpdRaw,
 };
 
-use crate::SupplyDensity;
+use crate::{DensityBands, SupplyDensity};
 
 #[derive(Debug, PartialEq)]
 pub struct CostBasisData {
@@ -16,10 +16,14 @@ impl CostBasisData {
         entries: impl Iterator<Item = (CentsCompact, Sats)> + Clone,
         spot: Cents,
     ) -> Self {
+        let DensityBands {
+            supply_density,
+            supply_density_10pct,
+        } = DensityBands::from_entries(entries.clone(), spot);
         Self {
-            prices: UrpdRaw::cost_basis_percentile_prices_from_entries(entries.clone()),
-            supply_density: SupplyDensity::from_entries::<5>(entries.clone(), spot),
-            supply_density_10pct: SupplyDensity::from_entries::<10>(entries, spot),
+            prices: UrpdRaw::cost_basis_percentile_prices_from_entries(entries),
+            supply_density,
+            supply_density_10pct,
         }
     }
 }

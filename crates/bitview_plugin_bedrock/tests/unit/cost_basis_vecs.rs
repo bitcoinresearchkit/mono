@@ -1,6 +1,6 @@
 use std::{collections::BTreeSet, sync::Once};
 
-use bitview_cohort::AgeRangeId;
+use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_plugin_distribution::UTXOStates;
 use bitview_traversable::Traversable;
 use bitview_vecs::DailyMappings;
@@ -12,7 +12,10 @@ use vecdb::{
     ReadableCloneableVec, ReadableVec, VecIndex, WritableVec,
 };
 
-use crate::{AgePriceBounds, AgePriceBoundsVecs, CostBasisVecs, DayUrpds, WeightedPair};
+use crate::{
+    AgeCutoffs, AgeDensityVecs, AgePriceBoundsVecs, CostBasisVecs, DayUrpds, ModeWeights,
+    WeightedPair,
+};
 
 fn mapping<I: VecIndex, T: PcoVecValue>(db: &Database, name: &str) -> LazyVec<I, Day1, I, T> {
     let source: EagerVec<PcoVec<I, T>> = EagerVec::forced_import(db, name, Version::ONE).unwrap();
@@ -205,7 +208,7 @@ fn age_bounds_backfill_persist_rewind_and_reset_together() {
     );
     utxos.apply_pending();
     utxos.write_urpds(first, root.path()).unwrap();
-    let expected = AgePriceBounds::read_if_exists(root.path(), first).unwrap();
+    let expected = AgeCutoffs::read_if_exists(root.path(), first).unwrap();
     let import = || AgePriceBoundsVecs::forced_import(&db, Version::ONE, &mappings).unwrap();
     let mut vecs = import();
     assert_eq!(vecs.prepare(Version::ONE, 2, 2).unwrap(), 0);
@@ -242,7 +245,7 @@ fn age_bounds_backfill_persist_rewind_and_reset_together() {
         );
     }
     assert_eq!(vecs.prepare(Version::ONE, 1, 2).unwrap(), 1);
-    let mut updated = AgePriceBounds::default();
+    let mut updated = AgeCutoffs::default();
     updated.include(
         AgeRangeId::Under1H,
         CentsCompact::new(700),
@@ -266,6 +269,111 @@ fn age_bounds_backfill_persist_rewind_and_reset_together() {
     vecs.stored.under_5m.min.truncate_if_needed_at(0).unwrap();
     assert_eq!(vecs.prepare(Version::ONE, 2, 2).unwrap(), 0);
     vecs.push(&updated);
+    assert_eq!(vecs.prepare(Version::TWO, 2, 2).unwrap(), 0);
+    for vec in vecs.stored_vecs_mut() {
+        assert_eq!(vec.len(), 0);
+    }
+}
+
+#[test]
+fn age_density_live_and_saved_inputs_persist_rewind_and_reset_together() {
+    let root = tempdir().unwrap();
+    let db = Database::open(&root.path().join("vecs")).unwrap();
+    let mappings = daily_mappings(&db);
+    let date = Date::new(2026, 9, 16);
+    let mut utxos = UTXOStates::new(root.path());
+    utxos.reset().unwrap();
+    for (age, price, sats) in [
+        (AgeRangeId::Under1H, 10000, 30_u64),
+        (AgeRangeId::From3MTo4M, 11000, 20),
+        (AgeRangeId::From4MTo5M, 10500, 20),
+        (AgeRangeId::From5MTo6M, 20000, 40),
+        (AgeRangeId::From6MTo9M, 10000, 100),
+    ] {
+        age.select_mut(&mut utxos.age_range).receive_utxo(
+            &SupplyState {
+                value: Sats::from(sats),
+                ..Default::default()
+            },
+            Cents::new(price),
+        );
+    }
+    utxos.apply_pending();
+    utxos.write_urpds(date, root.path()).unwrap();
+    let weights = ModeWeights::from_fn(|_| Some(AgeRange::from_fn(|_| 0.6)));
+    let expected = DayUrpds::current(&utxos, &weights).age_densities(Cents::new(10000));
+    let saved = DayUrpds::read_if_exists(root.path(), date, &weights)
+        .unwrap()
+        .unwrap()
+        .age_densities(Cents::new(10000));
+    for (live, saved) in expected.iter().zip(saved.iter()) {
+        assert_eq!(live.cointime, saved.cointime);
+        assert_eq!(live.coinflow, saved.coinflow);
+    }
+    let import = || AgeDensityVecs::forced_import(&db, Version::ONE, &mappings).unwrap();
+    let mut vecs = import();
+    assert_eq!(vecs.prepare(Version::ONE, 2, 2).unwrap(), 0);
+    vecs.push(&saved);
+    vecs.push(&AgeCutoffs::default());
+    for vec in vecs.stored_vecs_mut() {
+        vec.write().unwrap();
+    }
+    drop(vecs);
+    let mut vecs = import();
+    let names = vecs
+        .iter_any_visible()
+        .map(|v| v.name())
+        .collect::<BTreeSet<_>>();
+    for age in ["under_4m", "under_5m", "under_6m"] {
+        for mode in ["cointime", "coinflow"] {
+            for band in ["", "_10pct"] {
+                for side in ["", "_in_profit", "_in_loss"] {
+                    for unit in ["", "_ratio", "_ppm"] {
+                        assert!(
+                            names.contains(
+                                format!("bedrock_{mode}_{age}_supply_density{band}{side}{unit}")
+                                    .as_str()
+                            )
+                        );
+                    }
+                }
+            }
+        }
+    }
+    let views = vecs
+        .series
+        .iter()
+        .flat_map(WeightedPair::iter)
+        .flat_map(|bands| bands.iter());
+    let values = expected
+        .iter()
+        .flat_map(WeightedPair::iter)
+        .flat_map(|bands| bands.iter());
+    for (view, expected) in views.zip(values) {
+        assert_eq!(
+            view.series
+                .total
+                .ppm
+                .day1
+                .collect_one(Day1::from(0_usize))
+                .unwrap(),
+            expected.total
+        );
+        assert!(
+            view.series
+                .total
+                .ppm
+                .day1
+                .collect_one(Day1::from(1_usize))
+                .unwrap()
+                .is_nan()
+        );
+    }
+    assert_eq!(vecs.prepare(Version::ONE, 1, 2).unwrap(), 1);
+    vecs.push(&expected);
+    for vec in vecs.stored_vecs_mut() {
+        assert_eq!(vec.len(), 2);
+    }
     assert_eq!(vecs.prepare(Version::TWO, 2, 2).unwrap(), 0);
     for vec in vecs.stored_vecs_mut() {
         assert_eq!(vec.len(), 0);

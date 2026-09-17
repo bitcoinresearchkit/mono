@@ -12,7 +12,7 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecValue, WritableVec};
 
 use super::Vecs;
 use crate::{
-    AgePriceBounds, Calibration, DayResult, DayUrpds, Dependencies, LossPercentileId, ModeId,
+    AgeCutoffs, Calibration, DayResult, DayUrpds, Dependencies, LossPercentileId, ModeId,
     ModeResult, ModeVecs, ModeWeights, PriceBandId, WRITE_INTERVAL_DAYS, WeightedModeId,
     WeightedModes, WeightedPair, WeightedUrpdNames,
 };
@@ -241,30 +241,42 @@ impl ComputePlugin for Vecs {
             )?;
         }
 
+        let age_density_start = self.cost_basis.age_density.prepare(
+            weighted_urpd_source_version + spot.version(),
+            recompute_from.min(weighted_urpd_start),
+            source_end,
+        )?;
+
         let mut calibration =
             Calibration::from_sources(raw_loss_share, &weighted_loss_shares, model_start);
         let bounds = AgeBand::all();
 
-        for day_index in model_start..source_end {
+        // Earlier dates only backfill age densities; the other independent groups
+        // have already been brought up to model_start above.
+        for day_index in model_start.min(age_density_start)..source_end {
             let day = Day1::from(day_index);
             let loss_shares = Calibration::loss_shares(raw_loss_share, &weighted_loss_shares, day);
             let thresholds = calibration.thresholds(&loss_shares);
             let mut result = DayResult::from_thresholds(&thresholds);
             let mut cost_basis_data = WeightedPair::default();
             let mut capitalized_prices = Self::missing_capitalized_prices();
-            let mut age_price_bounds = AgePriceBounds::default();
+            let mut age_price_bounds = AgeCutoffs::default();
 
-            let needs_evaluation = thresholds.iter().any(Option::is_some);
+            let needs_model = day_index >= model_start;
+            let needs_evaluation = needs_model && thresholds.iter().any(Option::is_some);
+            let needs_age_density = day_index >= age_density_start;
+            let mut age_density = AgeCutoffs::default();
             let needs_rebuild = !weighted_urpd_is_current || day_index >= recompute_from;
-            let needs_cost_basis = day_index >= cost_basis_start;
-            let needs_capitalized = day_index >= capitalized_start;
-            let needs_age_bounds = day_index >= age_bounds_start;
+            let needs_cost_basis = needs_model && day_index >= cost_basis_start;
+            let needs_capitalized = needs_model && day_index >= capitalized_start;
+            let needs_age_bounds = needs_model && day_index >= age_bounds_start;
             if let Some(date) = mappings.day1.date.collect_one(day)
                 && (needs_rebuild
                     || needs_evaluation
                     || needs_cost_basis
                     || needs_capitalized
-                    || needs_age_bounds)
+                    || needs_age_bounds
+                    || needs_age_density)
             {
                 let weights = Self::mode_weights(
                     day,
@@ -292,12 +304,21 @@ impl ComputePlugin for Vecs {
                         cost_basis_data =
                             urpds.cost_basis(spot.collect_one(day).flatten().unwrap_or(Cents::NAN));
                     }
+                    if needs_age_density {
+                        age_density = urpds
+                            .age_densities(spot.collect_one(day).flatten().unwrap_or(Cents::NAN));
+                    }
                     if needs_capitalized {
                         capitalized_prices = urpds.capitalized_prices();
                     }
                 }
             }
-            calibration.observe(loss_shares);
+            if needs_model {
+                calibration.observe(loss_shares);
+            }
+            if needs_age_density {
+                self.cost_basis.age_density.push(&age_density);
+            }
 
             if needs_age_bounds {
                 self.cost_basis.age_bounds.push(&age_price_bounds);
@@ -309,16 +330,25 @@ impl ComputePlugin for Vecs {
                 self.capitalized_price.push(&capitalized_prices);
             }
 
-            for mode in ModeId::ALL {
-                self.modes
-                    .select_mut(mode)
-                    .push(result.by_mode.select(mode));
+            if needs_model {
+                for mode in ModeId::ALL {
+                    self.modes
+                        .select_mut(mode)
+                        .push(result.by_mode.select(mode));
+                }
             }
 
             if (day_index + 1).is_multiple_of(WRITE_INTERVAL_DAYS) || day_index + 1 == source_end {
                 let _lock = exit.lock();
-                for vec in self.model_stored_vecs_mut() {
-                    vec.write()?;
+                if needs_model {
+                    for vec in self.model_stored_vecs_mut() {
+                        vec.write()?;
+                    }
+                }
+                if needs_age_density {
+                    for vec in self.cost_basis.age_density.stored_vecs_mut() {
+                        vec.write()?;
+                    }
                 }
                 if needs_age_bounds {
                     for vec in self.cost_basis.age_bounds.stored_vecs_mut() {

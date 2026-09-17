@@ -3659,13 +3659,13 @@ class _1m1y2y3m4y6m8yPattern:
 
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self._1m: SupplyPattern = SupplyPattern(client, _m(acc, '1m_supply_in_loss_share'))
-        self._1y: SupplyPattern = SupplyPattern(client, _m(acc, '1y_supply_in_loss_share'))
-        self._2y: SupplyPattern = SupplyPattern(client, _m(acc, '2y_supply_in_loss_share'))
-        self._3m: SupplyPattern = SupplyPattern(client, _m(acc, '3m_supply_in_loss_share'))
-        self._4y: SupplyPattern = SupplyPattern(client, _m(acc, '4y_supply_in_loss_share'))
-        self._6m: SupplyPattern = SupplyPattern(client, _m(acc, '6m_supply_in_loss_share'))
-        self._8y: SupplyPattern = SupplyPattern(client, _m(acc, '8y_supply_in_loss_share'))
+        self._1m: SupplyPattern2 = SupplyPattern2(client, _m(acc, '1m_supply_in_loss_share'))
+        self._1y: SupplyPattern2 = SupplyPattern2(client, _m(acc, '1y_supply_in_loss_share'))
+        self._2y: SupplyPattern2 = SupplyPattern2(client, _m(acc, '2y_supply_in_loss_share'))
+        self._3m: SupplyPattern2 = SupplyPattern2(client, _m(acc, '3m_supply_in_loss_share'))
+        self._4y: SupplyPattern2 = SupplyPattern2(client, _m(acc, '4y_supply_in_loss_share'))
+        self._6m: SupplyPattern2 = SupplyPattern2(client, _m(acc, '6m_supply_in_loss_share'))
+        self._8y: SupplyPattern2 = SupplyPattern2(client, _m(acc, '8y_supply_in_loss_share'))
 
 class ActiveInputOutputSpendablePattern:
     """Pattern struct for repeated tree structure."""
@@ -4398,13 +4398,17 @@ class CentsUsdPattern5:
         self.cents: SeriesPattern1[StoredF32] = SeriesPattern1(client, _m(acc, 'cents'))
         self.usd: SeriesPattern1[Dollars] = SeriesPattern1(client, acc)
 
-class CoinflowCointimePattern2:
+class CoinflowCointimePattern3:
     """Pattern struct for repeated tree structure."""
 
     def __init__(self, client: BitviewClient, acc: str, disc: str):
         """Create pattern node with accumulated series name."""
         self.coinflow: InTotalPattern = InTotalPattern(client, _m(_m(acc, 'coinflow_supply_density'), disc))
         self.cointime: InTotalPattern = InTotalPattern(client, _m(_m(acc, 'cointime_supply_density'), disc))
+
+class CoinflowCointimePattern2:
+    """Pattern struct for repeated tree structure."""
+    pass
 
 class CoinflowCointimePattern:
     """Pattern struct for repeated tree structure."""
@@ -4554,6 +4558,14 @@ class SdSmaPattern:
     """Pattern struct for repeated tree structure."""
     pass
 
+class SupplyPattern:
+    """Pattern struct for repeated tree structure."""
+
+    def __init__(self, client: BitviewClient, acc: str):
+        """Create pattern node with accumulated series name."""
+        self.supply_density: InTotalPattern = InTotalPattern(client, acc)
+        self.supply_density_10pct: InTotalPattern = InTotalPattern(client, _m(acc, '10pct'))
+
 class DiscountPremiumPattern7(Generic[T]):
     """Pattern struct for repeated tree structure."""
 
@@ -4599,14 +4611,14 @@ class SharePattern2:
         """Create pattern node with accumulated series name."""
         self.share: SeriesPattern1[StoredF64] = SeriesPattern1(client, acc)
 
-class SupplyPattern2:
+class SupplyPattern3:
     """Pattern struct for repeated tree structure."""
 
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
         self.supply: BtcCentsSatsUsdPattern = BtcCentsSatsUsdPattern(client, acc)
 
-class SupplyPattern:
+class SupplyPattern2:
     """Pattern struct for repeated tree structure."""
 
     def __init__(self, client: BitviewClient, acc: str):
@@ -6017,7 +6029,7 @@ class SeriesTree_Cointime_Sth:
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.awake: SeriesTree_Cointime_Sth_Awake = SeriesTree_Cointime_Sth_Awake(client)
-        self.dormant: SupplyPattern2 = SupplyPattern2(client, 'sth_dormant_supply')
+        self.dormant: SupplyPattern3 = SupplyPattern3(client, 'sth_dormant_supply')
 
 class SeriesTree_Cointime_Lth_Awake_Supply:
     """Series tree node."""
@@ -6043,7 +6055,7 @@ class SeriesTree_Cointime_Lth:
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.awake: SeriesTree_Cointime_Lth_Awake = SeriesTree_Cointime_Lth_Awake(client)
-        self.dormant: SupplyPattern2 = SupplyPattern2(client, 'lth_dormant_supply')
+        self.dormant: SupplyPattern3 = SupplyPattern3(client, 'lth_dormant_supply')
 
 class SeriesTree_Cointime_Supply_Active_InLoss_Share:
     """Series tree node."""
@@ -6127,7 +6139,7 @@ class SeriesTree_Cointime:
         self.activity: SeriesTree_Cointime_Activity = SeriesTree_Cointime_Activity(client)
         self.age_range: SeriesTree_Cointime_AgeRange = SeriesTree_Cointime_AgeRange(client)
         self.awake: SeriesTree_Cointime_Awake = SeriesTree_Cointime_Awake(client)
-        self.dormant: SupplyPattern2 = SupplyPattern2(client, 'dormant_supply')
+        self.dormant: SupplyPattern3 = SupplyPattern3(client, 'dormant_supply')
         self.sth: SeriesTree_Cointime_Sth = SeriesTree_Cointime_Sth(client)
         self.lth: SeriesTree_Cointime_Lth = SeriesTree_Cointime_Lth(client)
         self.under_4m_awake_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_price')
@@ -6393,6 +6405,35 @@ class SeriesTree_Coinflow:
         self.over_6m_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_price')
         self.over_6m_capitalized_price: CentsPpmRatioSatsUsdPattern = CentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_capitalized_price')
 
+class SeriesTree_Bedrock_CostBasis_AgeDensity_Under4m:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: SupplyPattern = SupplyPattern(client, 'bedrock_cointime_under_4m_supply_density')
+        self.coinflow: SupplyPattern = SupplyPattern(client, 'bedrock_coinflow_under_4m_supply_density')
+
+class SeriesTree_Bedrock_CostBasis_AgeDensity_Under5m:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: SupplyPattern = SupplyPattern(client, 'bedrock_cointime_under_5m_supply_density')
+        self.coinflow: SupplyPattern = SupplyPattern(client, 'bedrock_coinflow_under_5m_supply_density')
+
+class SeriesTree_Bedrock_CostBasis_AgeDensity_Under6m:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: SupplyPattern = SupplyPattern(client, 'bedrock_cointime_under_6m_supply_density')
+        self.coinflow: SupplyPattern = SupplyPattern(client, 'bedrock_coinflow_under_6m_supply_density')
+
+class SeriesTree_Bedrock_CostBasis_AgeDensity:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.under_4m: SeriesTree_Bedrock_CostBasis_AgeDensity_Under4m = SeriesTree_Bedrock_CostBasis_AgeDensity_Under4m(client)
+        self.under_5m: SeriesTree_Bedrock_CostBasis_AgeDensity_Under5m = SeriesTree_Bedrock_CostBasis_AgeDensity_Under5m(client)
+        self.under_6m: SeriesTree_Bedrock_CostBasis_AgeDensity_Under6m = SeriesTree_Bedrock_CostBasis_AgeDensity_Under6m(client)
+
 class SeriesTree_Bedrock_CostBasis_AgeBounds:
     """Series tree node."""
 
@@ -6426,11 +6467,12 @@ class SeriesTree_Bedrock_CostBasis:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.age_density: SeriesTree_Bedrock_CostBasis_AgeDensity = SeriesTree_Bedrock_CostBasis_AgeDensity(client)
         self.age_bounds: SeriesTree_Bedrock_CostBasis_AgeBounds = SeriesTree_Bedrock_CostBasis_AgeBounds(client)
         self.per_coin: SeriesTree_Bedrock_CostBasis_PerCoin = SeriesTree_Bedrock_CostBasis_PerCoin(client)
         self.per_dollar: SeriesTree_Bedrock_CostBasis_PerDollar = SeriesTree_Bedrock_CostBasis_PerDollar(client)
         self.supply_density: SeriesTree_Bedrock_CostBasis_SupplyDensity = SeriesTree_Bedrock_CostBasis_SupplyDensity(client)
-        self.supply_density_10pct: CoinflowCointimePattern2 = CoinflowCointimePattern2(client, 'bedrock', '10pct')
+        self.supply_density_10pct: CoinflowCointimePattern3 = CoinflowCointimePattern3(client, 'bedrock', '10pct')
 
 class SeriesTree_Bedrock_CapitalizedPrice:
     """Series tree node."""

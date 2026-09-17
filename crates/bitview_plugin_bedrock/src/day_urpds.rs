@@ -5,37 +5,40 @@ use std::{
     path::Path,
 };
 
-use bitview_cohort::{
-    AgeRangeId, ByTerm, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAggregate, UTXOAggregateId,
-};
+use bitview_cohort::{AgeRangeId, TERM_NAMES, Term, UTXO_ALL_NAME, UTXOAggregate, UTXOAggregateId};
 use bitview_plugin_distribution::{AgeRangeUrpds, UTXOStates};
 use brk_error::Result;
-use brk_types::{Cents, CentsCompact, Date, Sats, UrpdRaw, UrpdWeight, Version};
+use brk_types::{Cents, CentsCompact, Date, PartsPerMillion32, Sats, UrpdRaw, UrpdWeight, Version};
 
 use super::{ModeId, ModeWeights, WeightedModeId, WeightedModes, WeightedPair, WeightedUrpdNames};
-use crate::{AgePriceBounds, CostBasisData, PriceBounds, capitalized_price};
+use crate::{
+    AgeCutoffs, CostBasisData, DensityBands, PriceBounds, SupplyDensity, capitalized_price,
+};
 
 const VERSION_FILE: &str = "bedrock_urpd.version";
 
 struct WeightedMasses {
     all: WeightedModes<f64>,
-    term: ByTerm<WeightedPair<f64>>,
+    age: AgeCutoffs<WeightedPair<f64>>,
+    long: WeightedPair<f64>,
 }
 
 impl Default for WeightedMasses {
     fn default() -> Self {
         Self {
             all: WeightedModes::from_fn(|_| 0.0),
-            term: ByTerm::default(),
+            age: AgeCutoffs::default(),
+            long: WeightedPair::default(),
         }
     }
 }
 
 pub struct DayUrpds {
-    pub age_price_bounds: AgePriceBounds<PriceBounds<Cents>>,
+    pub age_price_bounds: AgeCutoffs<PriceBounds<Cents>>,
     raw: UrpdRaw,
     all: WeightedModes<UrpdRaw>,
-    term: ByTerm<WeightedPair<UrpdRaw>>,
+    age: AgeCutoffs<WeightedPair<UrpdRaw>>,
+    long: WeightedPair<UrpdRaw>,
 }
 
 impl DayUrpds {
@@ -49,12 +52,12 @@ impl DayUrpds {
                 coinflow: price(&self.all.coinflow),
             },
             sth: WeightedPair {
-                cointime: price(&self.term.short.cointime),
-                coinflow: price(&self.term.short.coinflow),
+                cointime: price(&self.age.under_5m.cointime),
+                coinflow: price(&self.age.under_5m.coinflow),
             },
             lth: WeightedPair {
-                cointime: price(&self.term.long.cointime),
-                coinflow: price(&self.term.long.coinflow),
+                cointime: price(&self.long.cointime),
+                coinflow: price(&self.long.coinflow),
             },
         }
     }
@@ -110,7 +113,7 @@ impl DayUrpds {
             .into_iter()
             .map(|(price, sats)| (CentsCompact::new(price), Sats::from(sats)))
             .collect::<BTreeMap<_, _>>();
-        let mut age_price_bounds = AgePriceBounds::default();
+        let mut age_price_bounds = AgeCutoffs::default();
         for (&price, &sats) in &map {
             age_price_bounds.include(AgeRangeId::Under1H, price, sats);
         }
@@ -118,10 +121,8 @@ impl DayUrpds {
             age_price_bounds,
             raw: UrpdRaw { map: map.clone() },
             all: WeightedModes::from_fn(|_| UrpdRaw { map: map.clone() }),
-            term: ByTerm {
-                short: WeightedPair::from_fn(|_| UrpdRaw { map: map.clone() }),
-                long: WeightedPair::from_fn(|_| UrpdRaw { map: map.clone() }),
-            },
+            age: AgeCutoffs::from_fn(|| WeightedPair::from_fn(|_| UrpdRaw { map: map.clone() })),
+            long: WeightedPair::from_fn(|_| UrpdRaw { map: map.clone() }),
         }
     }
 
@@ -139,6 +140,26 @@ impl DayUrpds {
         WeightedPair {
             cointime: compute(&self.all.cointime),
             coinflow: compute(&self.all.coinflow),
+        }
+    }
+
+    pub fn age_densities(
+        &self,
+        spot: Cents,
+    ) -> AgeCutoffs<WeightedPair<DensityBands<SupplyDensity<PartsPerMillion32>>>> {
+        let compute = |pair: &WeightedPair<UrpdRaw>| {
+            let bands = |urpd: &UrpdRaw| {
+                DensityBands::from_entries(urpd.map.iter().map(|(&p, &s)| (p, s)), spot)
+            };
+            WeightedPair {
+                cointime: bands(&pair.cointime),
+                coinflow: bands(&pair.coinflow),
+            }
+        };
+        AgeCutoffs {
+            under_4m: compute(&self.age.under_4m),
+            under_5m: compute(&self.age.under_5m),
+            under_6m: compute(&self.age.under_6m),
         }
     }
 
@@ -208,7 +229,7 @@ impl DayUrpds {
         let sources = AgeRangeUrpds::read(distribution_states_path, date)?;
         let raw = sources.aggregate(UTXOAggregateId::All)?;
         let mut weighted = BTreeMap::new();
-        let mut age_price_bounds = AgePriceBounds::default();
+        let mut age_price_bounds = AgeCutoffs::default();
 
         for &age in AgeRangeId::ALL {
             let is_short = age.term() == Term::Sth;
@@ -239,7 +260,7 @@ impl DayUrpds {
     ) -> Self {
         let mut raw = UrpdRaw::default();
         let mut weighted = BTreeMap::new();
-        let mut age_price_bounds = AgePriceBounds::default();
+        let mut age_price_bounds = AgeCutoffs::default();
 
         for (age, price, sats) in entries {
             age_price_bounds.include(age, price, sats);
@@ -263,15 +284,15 @@ impl DayUrpds {
             states_path,
             &names.sth,
             date,
-            &self.term.short.cointime,
-            &self.term.short.coinflow,
+            &self.age.under_5m.cointime,
+            &self.age.under_5m.coinflow,
         )?;
         Self::write_pair(
             states_path,
             &names.lth,
             date,
-            &self.term.long.cointime,
-            &self.term.long.coinflow,
+            &self.long.cointime,
+            &self.long.coinflow,
         )
     }
 
@@ -313,15 +334,19 @@ impl DayUrpds {
             if let Some(mode_weights) = weights.select(mode) {
                 let weighted_mass = mass * *age.select(mode_weights);
                 *bucket.all.select_mut(id) += weighted_mass;
-                let term = if is_short {
-                    &mut bucket.term.short
-                } else {
-                    &mut bucket.term.long
-                };
-                match mode {
-                    ModeId::Cointime => term.cointime += weighted_mass,
-                    ModeId::Coinflow => term.coinflow += weighted_mass,
-                    _ => {}
+                if !matches!(mode, ModeId::Cointime | ModeId::Coinflow) {
+                    continue;
+                }
+                for cohort in bucket
+                    .age
+                    .containing_mut(age)
+                    .chain((!is_short).then_some(&mut bucket.long))
+                {
+                    match mode {
+                        ModeId::Cointime => cohort.cointime += weighted_mass,
+                        ModeId::Coinflow => cohort.coinflow += weighted_mass,
+                        _ => {}
+                    }
                 }
             }
         }
@@ -330,26 +355,27 @@ impl DayUrpds {
     fn finalize(
         raw: UrpdRaw,
         weighted: BTreeMap<CentsCompact, WeightedMasses>,
-        age_price_bounds: AgePriceBounds<PriceBounds<Cents>>,
+        age_price_bounds: AgeCutoffs<PriceBounds<Cents>>,
     ) -> Self {
         let all = WeightedModes::from_fn(|id| {
             Self::collect_mass(&weighted, |masses| *masses.all.select(id))
         });
-        let term = ByTerm {
-            short: WeightedPair {
-                cointime: Self::collect_mass(&weighted, |masses| masses.term.short.cointime),
-                coinflow: Self::collect_mass(&weighted, |masses| masses.term.short.coinflow),
-            },
-            long: WeightedPair {
-                cointime: Self::collect_mass(&weighted, |masses| masses.term.long.cointime),
-                coinflow: Self::collect_mass(&weighted, |masses| masses.term.long.coinflow),
-            },
+        let pair = |select: fn(&WeightedMasses) -> &WeightedPair<f64>| WeightedPair {
+            cointime: Self::collect_mass(&weighted, |masses| select(masses).cointime),
+            coinflow: Self::collect_mass(&weighted, |masses| select(masses).coinflow),
         };
+        let age = AgeCutoffs {
+            under_4m: pair(|masses| &masses.age.under_4m),
+            under_5m: pair(|masses| &masses.age.under_5m),
+            under_6m: pair(|masses| &masses.age.under_6m),
+        };
+        let long = pair(|masses| &masses.long);
 
         Self {
             raw,
             all,
-            term,
+            age,
+            long,
             age_price_bounds,
         }
     }

@@ -11,6 +11,15 @@ export function createChartSearch() {
   let nextId = 0;
   /** @type {Map<number, { resolve: (results: Array<[string, string, boolean]>) => void, reject: (error: Error) => void }>} */
   const pending = new Map();
+  /** @type {Error | undefined} */
+  let failure;
+
+  worker.addEventListener("error", (event) => {
+    failure = new Error(event.message || "Failed to start chart search");
+    for (const request of pending.values()) request.reject(failure);
+    pending.clear();
+    worker.terminate();
+  });
 
   worker.addEventListener("message", (event) => {
     const { id, results, error } =
@@ -29,6 +38,10 @@ export function createChartSearch() {
 
   return (needle) =>
     new Promise((resolve, reject) => {
+      if (failure) {
+        reject(failure);
+        return;
+      }
       const id = nextId++;
       pending.set(id, { resolve, reject });
       worker.postMessage({ id, needle });
