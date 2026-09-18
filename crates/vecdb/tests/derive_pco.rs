@@ -1,3 +1,5 @@
+#![cfg(all(feature = "derive", feature = "pco"))]
+
 use tempfile::TempDir;
 use vecdb::{
     AnyStoredVec, AnyVec, Bytes, Database, ImportableVec, Pco, PcoVec, ReadableVec, Result,

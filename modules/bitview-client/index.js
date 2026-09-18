@@ -4226,8 +4226,8 @@ function create_1m1y2y3m4y6m8yPattern(client, acc) {
 
 /**
  * @typedef {Object} InMaxMinPerSupplyPattern
- * @property {PerPattern} inLoss
- * @property {PerPattern} inProfit
+ * @property {PerPattern2} inLoss
+ * @property {PerPattern2} inProfit
  * @property {CentsSatsUsdPattern} max
  * @property {CentsSatsUsdPattern} min
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -4243,8 +4243,8 @@ function create_1m1y2y3m4y6m8yPattern(client, acc) {
  */
 function createInMaxMinPerSupplyPattern(client, acc) {
   return {
-    inLoss: createPerPattern(client, _m(acc, 'cost_basis_in_loss_per')),
-    inProfit: createPerPattern(client, _m(acc, 'cost_basis_in_profit_per')),
+    inLoss: createPerPattern2(client, _m(acc, 'cost_basis_in_loss_per')),
+    inProfit: createPerPattern2(client, _m(acc, 'cost_basis_in_profit_per')),
     max: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_max')),
     min: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_min')),
     perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin')),
@@ -6203,23 +6203,29 @@ function createMaxMinPattern(client, acc) {
 }
 
 /**
- * @typedef {Object} PerPattern
+ * @typedef {Object} PerPattern2
  * @property {CentsSatsUsdPattern} perCoin
  * @property {CentsSatsUsdPattern} perDollar
  */
 
 /**
- * Create a PerPattern pattern node
+ * Create a PerPattern2 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {PerPattern}
+ * @returns {PerPattern2}
  */
-function createPerPattern(client, acc) {
+function createPerPattern2(client, acc) {
   return {
     perCoin: createCentsSatsUsdPattern(client, _m(acc, 'coin')),
     perDollar: createCentsSatsUsdPattern(client, _m(acc, 'dollar')),
   };
 }
+
+/**
+ * @typedef {Object} PerPattern
+ * @property {CoinflowCointimePattern2} perCoin
+ * @property {CoinflowCointimePattern2} perDollar
+ */
 
 /**
  * @typedef {Object} PpmRatioPattern2
@@ -8130,6 +8136,8 @@ function createTermPattern(client, acc) {
  * @typedef {Object} SeriesTree_Bedrock_CostBasis
  * @property {SeriesTree_Bedrock_CostBasis_AgeDensity} ageDensity
  * @property {SeriesTree_Bedrock_CostBasis_AgeBounds} ageBounds
+ * @property {SeriesTree_Bedrock_CostBasis_Sth} sth
+ * @property {SeriesTree_Bedrock_CostBasis_Lth} lth
  * @property {SeriesTree_Bedrock_CostBasis_PerCoin} perCoin
  * @property {SeriesTree_Bedrock_CostBasis_PerDollar} perDollar
  * @property {SeriesTree_Bedrock_CostBasis_SupplyDensity} supplyDensity
@@ -8166,6 +8174,42 @@ function createTermPattern(client, acc) {
  * @property {MaxMinPattern} under4m
  * @property {MaxMinPattern} under5m
  * @property {MaxMinPattern} under6m
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth
+ * @property {SeriesTree_Bedrock_CostBasis_Sth_PerCoin} perCoin
+ * @property {SeriesTree_Bedrock_CostBasis_Sth_PerDollar} perDollar
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth_PerCoin
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth_PerDollar
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth
+ * @property {SeriesTree_Bedrock_CostBasis_Lth_PerCoin} perCoin
+ * @property {SeriesTree_Bedrock_CostBasis_Lth_PerDollar} perDollar
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth_PerCoin
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth_PerDollar
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
  */
 
 /**
@@ -8237,6 +8281,14 @@ function createTermPattern(client, acc) {
  * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} cointimeMedianPriceUsdWeighted
  * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} coinflowMedianPriceBtcWeighted
  * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} coinflowMedianPriceUsdWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} sthCointimeMedianPriceBtcWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} sthCointimeMedianPriceUsdWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} lthCointimeMedianPriceBtcWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} lthCointimeMedianPriceUsdWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} sthCoinflowMedianPriceBtcWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} sthCoinflowMedianPriceUsdWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} lthCoinflowMedianPriceBtcWeighted
+ * @property {CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern} lthCoinflowMedianPriceUsdWeighted
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern} sthRealizedPrice
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern} sthCapitalizedPrice
  * @property {Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern} lthRealizedPrice
@@ -11552,8 +11604,8 @@ function createTermPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_CostBasis_All
- * @property {PerPattern} inProfit
- * @property {PerPattern} inLoss
+ * @property {PerPattern2} inProfit
+ * @property {PerPattern2} inLoss
  * @property {CentsSatsUsdPattern} min
  * @property {CentsSatsUsdPattern} max
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -14162,6 +14214,26 @@ class BitviewClient extends BitviewClientBase {
             under5m: createMaxMinPattern(client, 'bedrock_under_5m_cost_basis'),
             under6m: createMaxMinPattern(client, 'bedrock_under_6m_cost_basis'),
           })); },
+          get sth() { return _lazy(this, 'sth', () => ({
+            get perCoin() { return _lazy(this, 'perCoin', () => ({
+              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_coin'),
+              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_coin'),
+            })); },
+            get perDollar() { return _lazy(this, 'perDollar', () => ({
+              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_dollar'),
+              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_dollar'),
+            })); },
+          })); },
+          get lth() { return _lazy(this, 'lth', () => ({
+            get perCoin() { return _lazy(this, 'perCoin', () => ({
+              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_coin'),
+              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_coin'),
+            })); },
+            get perDollar() { return _lazy(this, 'perDollar', () => ({
+              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_dollar'),
+              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_dollar'),
+            })); },
+          })); },
           get perCoin() { return _lazy(this, 'perCoin', () => ({
             cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin'),
             coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin'),
@@ -14219,6 +14291,14 @@ class BitviewClient extends BitviewClientBase {
           cointimeMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'cointime_median_price_usd_weighted'),
           coinflowMedianPriceBtcWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_btc_weighted'),
           coinflowMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_usd_weighted'),
+          sthCointimeMedianPriceBtcWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_btc_weighted'),
+          sthCointimeMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_usd_weighted'),
+          lthCointimeMedianPriceBtcWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_btc_weighted'),
+          lthCointimeMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_usd_weighted'),
+          sthCoinflowMedianPriceBtcWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_btc_weighted'),
+          sthCoinflowMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_usd_weighted'),
+          lthCoinflowMedianPriceBtcWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_btc_weighted'),
+          lthCoinflowMedianPriceUsdWeighted: createCentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_usd_weighted'),
           sthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_realized_price'),
           sthCapitalizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_capitalized_price'),
           lthRealizedPrice: createPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'lth_realized_price'),
@@ -16819,8 +16899,8 @@ class BitviewClient extends BitviewClientBase {
         })); },
         get costBasis() { return _lazy(this, 'costBasis', () => ({
           get all() { return _lazy(this, 'all', () => ({
-            inProfit: createPerPattern(client, 'cost_basis_in_profit_per'),
-            inLoss: createPerPattern(client, 'cost_basis_in_loss_per'),
+            inProfit: createPerPattern2(client, 'cost_basis_in_profit_per'),
+            inLoss: createPerPattern2(client, 'cost_basis_in_loss_per'),
             min: createCentsSatsUsdPattern(client, 'cost_basis_min'),
             max: createCentsSatsUsdPattern(client, 'cost_basis_max'),
             perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin'),

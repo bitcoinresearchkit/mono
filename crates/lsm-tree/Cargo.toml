@@ -29,7 +29,6 @@ varint-rs = "2.2.1"
 xxhash-rust = { version = "0.8.18", features = ["xxh3"] }
 
 [dev-dependencies]
-criterion = { version = "0.8.2", features = ["html_reports"] }
 nanoid = "0.5.0"
 strum = { version = "0.28.0", features = ["derive"] }
 test-log = "0.2.21"
@@ -42,13 +41,3 @@ path = "tests/table_only.rs"
 unexpected_cfgs = { level = "warn", check-cfg = [
   'cfg(coverage,coverage_nightly)',
 ] }
-
-[[bench]]
-name = "table_only"
-harness = false
-path = "benches/table_only.rs"
-
-[[bench]]
-name = "multirun"
-harness = false
-path = "benches/multirun.rs"

@@ -93,12 +93,13 @@ function modeChart(mode, ath) {
  * @param {string} weightLabel
  * @param {PercentilesPattern} percentiles
  * @param {AnyPricePattern} p100
+ * @param {string} [cohort]
  * @returns {PartialChartOption}
  */
-function costBasisChart(name, weightLabel, percentiles, p100) {
+function costBasisChart(name, weightLabel, percentiles, p100, cohort = "") {
   return {
     name,
-    title: `Bitcoin ${name}-Weighted Cost Basis Distribution (${weightLabel})`,
+    title: `Bitcoin ${cohort ? `${cohort} ` : ""}${name}-Weighted Cost Basis Distribution (${weightLabel})`,
     top: [
       price({
         series: p100,
@@ -116,14 +117,15 @@ function costBasisChart(name, weightLabel, percentiles, p100) {
  * @param {string} weightLabel
  * @param {{ cointime: PercentilesPattern, coinflow: PercentilesPattern }} distributions
  * @param {AnyPricePattern} p100
+ * @param {string} [cohort]
  * @returns {PartialOptionsGroup}
  */
-function costBasisGroup(name, weightLabel, distributions, p100) {
+function costBasisGroup(name, weightLabel, distributions, p100, cohort = "") {
   return {
     name,
     tree: [
-      costBasisChart("Cointime", weightLabel, distributions.cointime, p100),
-      costBasisChart("Coinflow", weightLabel, distributions.coinflow, p100),
+      costBasisChart("Cointime", weightLabel, distributions.cointime, p100, cohort),
+      costBasisChart("Coinflow", weightLabel, distributions.coinflow, p100, cohort),
     ],
   };
 }
@@ -197,18 +199,25 @@ export function createBedrockSection() {
               ],
             })),
           },
-          costBasisGroup(
-            "Per Coin",
-            "BTC-weighted",
-            bedrock.costBasis.perCoin,
-            cohorts.costBasis.all.max,
-          ),
-          costBasisGroup(
-            "Per Dollar",
-            "USD-weighted",
-            bedrock.costBasis.perDollar,
-            cohorts.costBasis.all.max,
-          ),
+          ...(/** @type {const} */ ([
+            { key: "perCoin", name: "Per Coin", label: "BTC-weighted" },
+            { key: "perDollar", name: "Per Dollar", label: "USD-weighted" },
+          ])).map(({ key, name, label }) => ({
+            name,
+            tree: [
+              ...costBasisGroup(name, label, bedrock.costBasis[key], cohorts.costBasis.all.max).tree,
+              ...(/** @type {const} */ ([
+                { key: "sth", name: "STH" },
+                { key: "lth", name: "LTH" },
+              ])).map((cohort) => costBasisGroup(
+                cohort.name,
+                label,
+                bedrock.costBasis[cohort.key][key],
+                cohorts.costBasis[cohort.key].max,
+                cohort.name,
+              )),
+            ],
+          })),
           ...createSupplyDensityFolders(),
         ],
       },

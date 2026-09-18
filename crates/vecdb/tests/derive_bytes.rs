@@ -1,3 +1,5 @@
+#![cfg(feature = "derive")]
+
 use tempfile::TempDir;
 use vecdb::{
     AnyStoredVec, AnyVec, Bytes, BytesVec, Database, HEADER_OFFSET, ImportableVec, ReadableVec,

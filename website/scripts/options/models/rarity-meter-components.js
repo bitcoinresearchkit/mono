@@ -41,9 +41,33 @@ export function createRarityMeterComponents() {
       color: colors.cointime,
     },
     {
+      name: "STH Cointime",
+      btc: components.sthCointimeMedianPriceBtcWeighted,
+      usd: components.sthCointimeMedianPriceUsdWeighted,
+      color: colors.cointime,
+    },
+    {
+      name: "LTH Cointime",
+      btc: components.lthCointimeMedianPriceBtcWeighted,
+      usd: components.lthCointimeMedianPriceUsdWeighted,
+      color: colors.cointime,
+    },
+    {
       name: "Coinflow",
       btc: components.coinflowMedianPriceBtcWeighted,
       usd: components.coinflowMedianPriceUsdWeighted,
+      color: colors.coinflow,
+    },
+    {
+      name: "STH Coinflow",
+      btc: components.sthCoinflowMedianPriceBtcWeighted,
+      usd: components.sthCoinflowMedianPriceUsdWeighted,
+      color: colors.coinflow,
+    },
+    {
+      name: "LTH Coinflow",
+      btc: components.lthCoinflowMedianPriceBtcWeighted,
+      usd: components.lthCoinflowMedianPriceUsdWeighted,
       color: colors.coinflow,
     },
   ];

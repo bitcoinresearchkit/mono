@@ -1,3 +1,5 @@
+#![cfg(all(feature = "derive", feature = "pco"))]
+
 use vecdb::{Bytes, Pco};
 
 #[derive(Debug, Clone, Copy, PartialEq, Bytes)]

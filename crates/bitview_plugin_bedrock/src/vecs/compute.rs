@@ -258,7 +258,7 @@ impl ComputePlugin for Vecs {
             let loss_shares = Calibration::loss_shares(raw_loss_share, &weighted_loss_shares, day);
             let thresholds = calibration.thresholds(&loss_shares);
             let mut result = DayResult::from_thresholds(&thresholds);
-            let mut cost_basis_data = WeightedPair::default();
+            let mut cost_basis_data = UTXOAggregate::default();
             let mut capitalized_prices = Self::missing_capitalized_prices();
             let mut age_price_bounds = AgeCutoffs::default();
 
@@ -433,7 +433,7 @@ impl Vecs {
                 )?
                 .unwrap_or_default()
             } else {
-                WeightedPair::default()
+                UTXOAggregate::default()
             };
             self.cost_basis.push(&prices);
 

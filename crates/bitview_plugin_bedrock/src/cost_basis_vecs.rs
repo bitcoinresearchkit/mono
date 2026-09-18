@@ -1,20 +1,25 @@
+use bitview_cohort::UTXOAggregate;
 use bitview_traversable::Traversable;
 use bitview_vecs::DailyMappings;
 use brk_error::Result;
 use brk_types::Version;
+use derive_more::Deref;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use crate::{
-    AgeDensityVecs, AgePriceBoundsVecs, CostBasisData, DailyPercentilesVecs, SupplyDensityVecs,
-    WeightedPair,
+    AgeDensityVecs, AgePriceBoundsVecs, CostBasisData, CostBasisDistributionVecs,
+    SupplyDensityVecs, WeightedPair,
 };
 
-#[derive(Traversable)]
+#[derive(Deref, Traversable)]
 pub struct CostBasisVecs<M: StorageMode = Rw> {
     pub age_density: AgeDensityVecs<M>,
     pub age_bounds: AgePriceBoundsVecs<M>,
-    pub per_coin: WeightedPair<DailyPercentilesVecs<M>>,
-    pub per_dollar: WeightedPair<DailyPercentilesVecs<M>>,
+    pub sth: CostBasisDistributionVecs<M>,
+    pub lth: CostBasisDistributionVecs<M>,
+    #[deref]
+    #[traversable(flatten)]
+    pub distribution: CostBasisDistributionVecs<M>,
     /// Daily density of each mode-weighted URPD within ±5% of closing spot. Undefined
     /// for missing snapshots, empty distributions, or non-positive spot prices.
     pub supply_density: WeightedPair<SupplyDensityVecs<M>>,
@@ -25,22 +30,6 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
 }
 
 impl CostBasisVecs {
-    fn import_weighting(
-        db: &Database,
-        weighting: &str,
-        version: Version,
-        mappings: &DailyMappings,
-    ) -> Result<WeightedPair<DailyPercentilesVecs>> {
-        WeightedPair::try_from_fn(|weight| {
-            DailyPercentilesVecs::forced_import(
-                db,
-                &format!("bedrock_{}_cost_basis_{weighting}", weight.as_str()),
-                version,
-                mappings,
-            )
-        })
-    }
-
     pub fn forced_import(
         db: &Database,
         version: Version,
@@ -59,22 +48,19 @@ impl CostBasisVecs {
         Ok(Self {
             age_density: AgeDensityVecs::forced_import(db, version, mappings)?,
             age_bounds: AgePriceBoundsVecs::forced_import(db, version, mappings)?,
-            per_coin: Self::import_weighting(db, "per_coin", version, mappings)?,
-            per_dollar: Self::import_weighting(db, "per_dollar", version, mappings)?,
+            sth: CostBasisDistributionVecs::forced_import(db, "_sth", version, mappings)?,
+            lth: CostBasisDistributionVecs::forced_import(db, "_lth", version, mappings)?,
+            distribution: CostBasisDistributionVecs::forced_import(db, "", version, mappings)?,
             supply_density: import_density("")?,
             supply_density_10pct: import_density("_10pct")?,
         })
     }
 
-    pub fn push(&mut self, data: &WeightedPair<CostBasisData>) {
-        self.per_coin.cointime.push(&data.cointime.prices.per_coin);
-        self.per_coin.coinflow.push(&data.coinflow.prices.per_coin);
-        self.per_dollar
-            .cointime
-            .push(&data.cointime.prices.per_dollar);
-        self.per_dollar
-            .coinflow
-            .push(&data.coinflow.prices.per_dollar);
+    pub fn push(&mut self, data: &UTXOAggregate<WeightedPair<CostBasisData>>) {
+        self.sth.push(&data.sth);
+        self.lth.push(&data.lth);
+        let data = &data.all;
+        self.distribution.push(data);
         self.supply_density
             .cointime
             .push(&data.cointime.supply_density);
@@ -90,10 +76,10 @@ impl CostBasisVecs {
     }
 
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.per_coin
-            .iter_mut()
-            .chain(self.per_dollar.iter_mut())
-            .flat_map(DailyPercentilesVecs::collect_vecs_mut)
+        self.distribution
+            .stored_vecs_mut()
+            .chain(self.sth.stored_vecs_mut())
+            .chain(self.lth.stored_vecs_mut())
             .chain(
                 self.supply_density
                     .iter_mut()

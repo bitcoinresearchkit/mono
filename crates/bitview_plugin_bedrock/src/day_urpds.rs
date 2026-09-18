@@ -133,13 +133,23 @@ impl DayUrpds {
         }
     }
 
-    pub fn cost_basis(&self, spot: Cents) -> WeightedPair<CostBasisData> {
+    pub fn cost_basis(&self, spot: Cents) -> UTXOAggregate<WeightedPair<CostBasisData>> {
         let compute = |urpd: &UrpdRaw| {
             CostBasisData::from_entries(urpd.map.iter().map(|(&p, &s)| (p, s)), spot)
         };
-        WeightedPair {
-            cointime: compute(&self.all.cointime),
-            coinflow: compute(&self.all.coinflow),
+        UTXOAggregate {
+            all: WeightedPair {
+                cointime: compute(&self.all.cointime),
+                coinflow: compute(&self.all.coinflow),
+            },
+            sth: WeightedPair {
+                cointime: compute(&self.age.under_5m.cointime),
+                coinflow: compute(&self.age.under_5m.coinflow),
+            },
+            lth: WeightedPair {
+                cointime: compute(&self.long.cointime),
+                coinflow: compute(&self.long.coinflow),
+            },
         }
     }
 
@@ -168,32 +178,45 @@ impl DayUrpds {
         names: &WeightedUrpdNames,
         date: Date,
         spot: Cents,
-    ) -> Result<Option<WeightedPair<CostBasisData>>> {
-        let cointime_path = UrpdRaw::path(states_path, &names.all.cointime, date);
-        let coinflow_path = UrpdRaw::path(states_path, &names.all.coinflow, date);
-        match (cointime_path.try_exists()?, coinflow_path.try_exists()?) {
-            (false, false) => return Ok(None),
-            (true, true) => {}
-            _ => {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    format!(
-                        "Incomplete weighted URPD pair: '{}' and '{}'",
-                        cointime_path.display(),
-                        coinflow_path.display()
-                    ),
-                )
-                .into());
+    ) -> Result<Option<UTXOAggregate<WeightedPair<CostBasisData>>>> {
+        let read = |names: &WeightedPair<String>| -> Result<Option<WeightedPair<CostBasisData>>> {
+            let cointime_path = UrpdRaw::path(states_path, &names.cointime, date);
+            let coinflow_path = UrpdRaw::path(states_path, &names.coinflow, date);
+            match (cointime_path.try_exists()?, coinflow_path.try_exists()?) {
+                (false, false) => return Ok(None),
+                (true, true) => {}
+                _ => {
+                    return Err(Error::new(
+                        ErrorKind::NotFound,
+                        format!(
+                            "Incomplete weighted URPD pair: '{}' and '{}'",
+                            cointime_path.display(),
+                            coinflow_path.display()
+                        ),
+                    )
+                    .into());
+                }
             }
-        }
-        let read = |name: &str| -> Result<CostBasisData> {
-            let bytes = UrpdRaw::read_bytes(states_path, name, date)?;
-            let entries = UrpdRaw::deserialize_entries(&bytes)?;
-            Ok(CostBasisData::from_entries(entries.iter().copied(), spot))
+            let read = |name: &str| -> Result<CostBasisData> {
+                let bytes = UrpdRaw::read_bytes(states_path, name, date)?;
+                let entries = UrpdRaw::deserialize_entries(&bytes)?;
+                Ok(CostBasisData::from_entries(entries.iter().copied(), spot))
+            };
+            Ok(Some(WeightedPair {
+                cointime: read(&names.cointime)?,
+                coinflow: read(&names.coinflow)?,
+            }))
         };
-        Ok(Some(WeightedPair {
-            cointime: read(&names.all.cointime)?,
-            coinflow: read(&names.all.coinflow)?,
+        let all = read(&names.all)?;
+        let sth = read(&names.sth)?;
+        let lth = read(&names.lth)?;
+        if all.is_none() && sth.is_none() && lth.is_none() {
+            return Ok(None);
+        }
+        Ok(Some(UTXOAggregate {
+            all: all.unwrap_or_default(),
+            sth: sth.unwrap_or_default(),
+            lth: lth.unwrap_or_default(),
         }))
     }
 

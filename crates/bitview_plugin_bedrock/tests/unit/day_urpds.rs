@@ -136,14 +136,14 @@ fn persisted_all_cost_basis_percentiles_match_in_memory_percentiles() {
         .unwrap()
         .expect("persisted pair");
 
-    assert_eq!(actual.cointime, expected.cointime);
-    assert_eq!(actual.coinflow, expected.coinflow);
+    assert_eq!(actual.all.cointime, expected.all.cointime);
+    assert_eq!(actual.all.coinflow, expected.all.coinflow);
     assert_eq!(
-        actual.cointime.prices.per_coin[PercentileId::Pct60 as usize],
+        actual.all.cointime.prices.per_coin[PercentileId::Pct60 as usize],
         Cents::new(200)
     );
     assert_eq!(
-        actual.cointime.prices.per_dollar[PercentileId::Pct50 as usize],
+        actual.all.cointime.prices.per_dollar[PercentileId::Pct50 as usize],
         Cents::new(200)
     );
 }
@@ -189,8 +189,8 @@ fn density_uses_mode_weights_and_backfills_at_the_represented_spot() {
     );
     let spot = Cents::new(100);
     let actual = urpds.cost_basis(spot);
-    let cointime = &actual.cointime.supply_density;
-    let coinflow = &actual.coinflow.supply_density;
+    let cointime = &actual.all.cointime.supply_density;
+    let coinflow = &actual.all.coinflow.supply_density;
     assert!((f64::from(cointime.total) - 0.75).abs() < 1e-9);
     assert!((f64::from(cointime.in_profit) - 0.5).abs() < 1e-9);
     assert!((f64::from(cointime.in_loss) - 0.25).abs() < 1e-9);
@@ -201,13 +201,13 @@ fn density_uses_mode_weights_and_backfills_at_the_represented_spot() {
     let saved = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, spot)
         .unwrap()
         .unwrap();
-    assert_eq!(actual.cointime, saved.cointime);
-    assert_eq!(actual.coinflow, saved.coinflow);
+    assert_eq!(actual.all.cointime, saved.all.cointime);
+    assert_eq!(actual.all.coinflow, saved.all.coinflow);
     let repriced = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, Cents::new(200))
         .unwrap()
         .unwrap();
-    assert!((f64::from(repriced.cointime.supply_density.total) - 0.25).abs() < 1e-9);
-    assert_eq!(repriced.cointime.prices, actual.cointime.prices);
+    assert!((f64::from(repriced.all.cointime.supply_density.total) - 0.25).abs() < 1e-9);
+    assert_eq!(repriced.all.cointime.prices, actual.all.cointime.prices);
 
     DayUrpds::repeated([(100, 10)])
         .write(root.path(), &names, date)
@@ -215,8 +215,14 @@ fn density_uses_mode_weights_and_backfills_at_the_represented_spot() {
     let rewritten = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, spot)
         .unwrap()
         .unwrap();
-    assert_eq!(f64::from(rewritten.cointime.supply_density.in_profit), 1.0);
-    assert_eq!(f64::from(rewritten.coinflow.supply_density.in_loss), 0.0);
+    assert_eq!(
+        f64::from(rewritten.all.cointime.supply_density.in_profit),
+        1.0
+    );
+    assert_eq!(
+        f64::from(rewritten.all.coinflow.supply_density.in_loss),
+        0.0
+    );
 }
 
 #[test]
@@ -236,7 +242,7 @@ fn ten_percent_density_has_inclusive_boundaries_and_matches_saved_snapshots() {
         (111, 10),
     ]);
     let data = urpds.cost_basis(Cents::new(100));
-    for mode in data.iter() {
+    for mode in data.all.iter() {
         assert_eq!(mode.supply_density.total.inner(), 400_000);
         assert_eq!(mode.supply_density_10pct.total.inner(), 800_000);
         assert_eq!(mode.supply_density_10pct.in_profit.inner(), 500_000);
@@ -246,13 +252,13 @@ fn ten_percent_density_has_inclusive_boundaries_and_matches_saved_snapshots() {
     let saved = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, Cents::new(100))
         .unwrap()
         .unwrap();
-    assert_eq!(saved.cointime, data.cointime);
-    assert_eq!(saved.coinflow, data.coinflow);
+    assert_eq!(saved.all.cointime, data.all.cointime);
+    assert_eq!(saved.all.coinflow, data.all.coinflow);
     // Fractional lower boundary: 90% of 101 is 90.9, so the 90-cent bucket is excluded.
     let fractional =
         DayUrpds::repeated([(90, 10), (91, 10), (111, 10), (112, 10)]).cost_basis(Cents::new(101));
     assert_eq!(
-        fractional.cointime.supply_density_10pct.total.inner(),
+        fractional.all.cointime.supply_density_10pct.total.inner(),
         500_000
     );
 }

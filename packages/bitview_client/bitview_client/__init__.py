@@ -3680,8 +3680,8 @@ class InMaxMinPerSupplyPattern:
 
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
-        self.in_loss: PerPattern = PerPattern(client, _m(acc, 'cost_basis_in_loss_per'))
-        self.in_profit: PerPattern = PerPattern(client, _m(acc, 'cost_basis_in_profit_per'))
+        self.in_loss: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_loss_per'))
+        self.in_profit: PerPattern2 = PerPattern2(client, _m(acc, 'cost_basis_in_profit_per'))
         self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_max'))
         self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'cost_basis_min'))
         self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin'))
@@ -4530,13 +4530,17 @@ class MaxMinPattern:
         self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'max'))
         self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'min'))
 
-class PerPattern:
+class PerPattern2:
     """Pattern struct for repeated tree structure."""
 
     def __init__(self, client: BitviewClient, acc: str):
         """Create pattern node with accumulated series name."""
         self.per_coin: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'coin'))
         self.per_dollar: CentsSatsUsdPattern = CentsSatsUsdPattern(client, _m(acc, 'dollar'))
+
+class PerPattern:
+    """Pattern struct for repeated tree structure."""
+    pass
 
 class PpmRatioPattern2:
     """Pattern struct for repeated tree structure."""
@@ -6442,6 +6446,48 @@ class SeriesTree_Bedrock_CostBasis_AgeBounds:
         self.under_5m: MaxMinPattern = MaxMinPattern(client, 'bedrock_under_5m_cost_basis')
         self.under_6m: MaxMinPattern = MaxMinPattern(client, 'bedrock_under_6m_cost_basis')
 
+class SeriesTree_Bedrock_CostBasis_Sth_PerCoin:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_coin')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_coin')
+
+class SeriesTree_Bedrock_CostBasis_Sth_PerDollar:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_dollar')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_dollar')
+
+class SeriesTree_Bedrock_CostBasis_Sth:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.per_coin: SeriesTree_Bedrock_CostBasis_Sth_PerCoin = SeriesTree_Bedrock_CostBasis_Sth_PerCoin(client)
+        self.per_dollar: SeriesTree_Bedrock_CostBasis_Sth_PerDollar = SeriesTree_Bedrock_CostBasis_Sth_PerDollar(client)
+
+class SeriesTree_Bedrock_CostBasis_Lth_PerCoin:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_coin')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_coin')
+
+class SeriesTree_Bedrock_CostBasis_Lth_PerDollar:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.cointime: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_dollar')
+        self.coinflow: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_dollar')
+
+class SeriesTree_Bedrock_CostBasis_Lth:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.per_coin: SeriesTree_Bedrock_CostBasis_Lth_PerCoin = SeriesTree_Bedrock_CostBasis_Lth_PerCoin(client)
+        self.per_dollar: SeriesTree_Bedrock_CostBasis_Lth_PerDollar = SeriesTree_Bedrock_CostBasis_Lth_PerDollar(client)
+
 class SeriesTree_Bedrock_CostBasis_PerCoin:
     """Series tree node."""
 
@@ -6469,6 +6515,8 @@ class SeriesTree_Bedrock_CostBasis:
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.age_density: SeriesTree_Bedrock_CostBasis_AgeDensity = SeriesTree_Bedrock_CostBasis_AgeDensity(client)
         self.age_bounds: SeriesTree_Bedrock_CostBasis_AgeBounds = SeriesTree_Bedrock_CostBasis_AgeBounds(client)
+        self.sth: SeriesTree_Bedrock_CostBasis_Sth = SeriesTree_Bedrock_CostBasis_Sth(client)
+        self.lth: SeriesTree_Bedrock_CostBasis_Lth = SeriesTree_Bedrock_CostBasis_Lth(client)
         self.per_coin: SeriesTree_Bedrock_CostBasis_PerCoin = SeriesTree_Bedrock_CostBasis_PerCoin(client)
         self.per_dollar: SeriesTree_Bedrock_CostBasis_PerDollar = SeriesTree_Bedrock_CostBasis_PerDollar(client)
         self.supply_density: SeriesTree_Bedrock_CostBasis_SupplyDensity = SeriesTree_Bedrock_CostBasis_SupplyDensity(client)
@@ -6534,6 +6582,14 @@ class SeriesTree_RarityMeter_Components:
         self.cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'cointime_median_price_usd_weighted')
         self.coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_btc_weighted')
         self.coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'coinflow_median_price_usd_weighted')
+        self.sth_cointime_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_btc_weighted')
+        self.sth_cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_cointime_median_price_usd_weighted')
+        self.lth_cointime_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_btc_weighted')
+        self.lth_cointime_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_cointime_median_price_usd_weighted')
+        self.sth_coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_btc_weighted')
+        self.sth_coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'sth_coinflow_median_price_usd_weighted')
+        self.lth_coinflow_median_price_btc_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_btc_weighted')
+        self.lth_coinflow_median_price_usd_weighted: CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern = CentsPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99PpmRatioSatsUsdPattern(client, 'lth_coinflow_median_price_usd_weighted')
         self.sth_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_realized_price')
         self.sth_capitalized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'sth_capitalized_price')
         self.lth_realized_price: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern = Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern(client, 'lth_realized_price')
@@ -10205,8 +10261,8 @@ class SeriesTree_Cohorts_CostBasis_All:
     """Series tree node."""
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
-        self.in_profit: PerPattern = PerPattern(client, 'cost_basis_in_profit_per')
-        self.in_loss: PerPattern = PerPattern(client, 'cost_basis_in_loss_per')
+        self.in_profit: PerPattern2 = PerPattern2(client, 'cost_basis_in_profit_per')
+        self.in_loss: PerPattern2 = PerPattern2(client, 'cost_basis_in_loss_per')
         self.min: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_min')
         self.max: CentsSatsUsdPattern = CentsSatsUsdPattern(client, 'cost_basis_max')
         self.per_coin: Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern = Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin')

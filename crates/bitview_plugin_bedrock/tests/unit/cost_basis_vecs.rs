@@ -1,11 +1,11 @@
-use std::{collections::BTreeSet, sync::Once};
+use std::{collections::BTreeSet, fs, sync::Once};
 
-use bitview_cohort::{AgeRange, AgeRangeId};
+use bitview_cohort::{AgeRange, AgeRangeId, UTXOAggregate};
 use bitview_plugin_distribution::UTXOStates;
 use bitview_traversable::Traversable;
 use bitview_vecs::DailyMappings;
 use brk_exit::Exit;
-use brk_types::{Cents, CentsCompact, Date, Day1, Height, Sats, SupplyState, Version};
+use brk_types::{Cents, CentsCompact, Date, Day1, Height, Sats, SupplyState, UrpdRaw, Version};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, EagerVec, ImportableVec, LazyVec, PcoVec, PcoVecValue,
@@ -66,7 +66,7 @@ fn density_series_persist_reopen_rewind_and_expose_normal_percent_units() {
     let data = DayUrpds::repeated([(95, 20), (100, 30), (105, 10), (110, 20), (200, 20)])
         .cost_basis(Cents::new(100));
     vecs.push(&data);
-    vecs.push(&WeightedPair::default());
+    vecs.push(&UTXOAggregate::default());
     assert_eq!(vecs.minimum_len(), 2);
     let names = vecs
         .supply_density
@@ -378,4 +378,116 @@ fn age_density_live_and_saved_inputs_persist_rewind_and_reset_together() {
     for vec in vecs.stored_vecs_mut() {
         assert_eq!(vec.len(), 0);
     }
+}
+
+#[test]
+fn term_distributions_keep_cohort_and_weighting_separate_through_backfill_and_storage() {
+    let root = tempdir().unwrap();
+    let db = Database::open(&root.path().join("vecs")).unwrap();
+    let mappings = daily_mappings(&db);
+    let date = Date::new(2026, 9, 17);
+    let names = DayUrpds::names();
+    let mut utxos = UTXOStates::new(root.path());
+    utxos.reset().unwrap();
+    for (age, price) in [
+        (AgeRangeId::Under1H, 100),
+        (AgeRangeId::From3MTo4M, 200),
+        (AgeRangeId::From5MTo6M, 400),
+        (AgeRangeId::From6MTo9M, 800),
+    ] {
+        age.select_mut(&mut utxos.age_range).receive_utxo(
+            &SupplyState {
+                value: Sats::from(10_u64),
+                ..Default::default()
+            },
+            Cents::new(price),
+        );
+    }
+    utxos.apply_pending();
+    let mut weights = ModeWeights::from_fn(|_| None);
+    weights.cointime = Some(AgeRange::from_fn(|_| 1.0));
+    weights.coinflow = Some(AgeRange::from_fn(|age| {
+        if matches!(age, AgeRangeId::Under1H | AgeRangeId::From5MTo6M) {
+            0.1
+        } else {
+            1.0
+        }
+    }));
+    let urpds = DayUrpds::current(&utxos, &weights);
+    let live = urpds.cost_basis(Cents::new(200));
+    urpds.write(root.path(), &names, date).unwrap();
+    let saved = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, Cents::new(200))
+        .unwrap()
+        .unwrap();
+    for (live, saved) in live.iter().zip(saved.iter()) {
+        assert_eq!(live.cointime, saved.cointime);
+        assert_eq!(live.coinflow, saved.coinflow);
+    }
+    let import = || CostBasisVecs::forced_import(&db, Version::ONE, &mappings).unwrap();
+    let mut vecs = import();
+    assert_eq!(vecs.minimum_len(), 0);
+    vecs.push(&saved);
+    vecs.push(&UTXOAggregate::default());
+    for vec in vecs.stored_vecs_mut() {
+        vec.write().unwrap();
+    }
+    drop(vecs);
+    let mut vecs = import();
+    assert_eq!(vecs.minimum_len(), 2);
+    for (cohort, name, low, high) in [(&vecs.sth, "sth", 100, 200), (&vecs.lth, "lth", 400, 800)] {
+        for (weighting, pairs, expected) in [
+            ("per_coin", &cohort.per_coin, [low, high]),
+            ("per_dollar", &cohort.per_dollar, [high, high]),
+        ] {
+            for ((mode, prices), expected) in ["cointime", "coinflow"]
+                .into_iter()
+                .zip(pairs.iter())
+                .zip(expected)
+            {
+                assert_eq!(
+                    prices.pct50.cents.day1.collect_one(Day1::from(0_usize)),
+                    Some(Cents::new(expected))
+                );
+                assert!(
+                    prices
+                        .pct50
+                        .cents
+                        .day1
+                        .collect_one(Day1::from(1_usize))
+                        .unwrap()
+                        .is_nan()
+                );
+                assert!(prices.iter_any_visible().any(|vec| vec.name()
+                    == format!("bedrock_{mode}_{name}_cost_basis_{weighting}_pct50_cents")));
+            }
+        }
+    }
+    // Missing cohort histories must trigger backfill even when all-holder data exists.
+    for vec in vecs.sth.stored_vecs_mut() {
+        vec.any_truncate_if_needed_at(0).unwrap();
+    }
+    assert_eq!(vecs.minimum_len(), 0);
+    for vec in vecs.stored_vecs_mut() {
+        vec.any_validate_computed_version_or_reset(Version::new(99))
+            .unwrap();
+        assert_eq!(vec.len(), 0);
+    }
+    fs::remove_file(UrpdRaw::path(root.path(), &names.sth.coinflow, date)).unwrap();
+    assert!(
+        DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, Cents::new(200)).is_err()
+    );
+    fs::remove_file(UrpdRaw::path(root.path(), &names.sth.cointime, date)).unwrap();
+    let missing = DayUrpds::read_cost_basis_if_exists(root.path(), &names, date, Cents::new(200))
+        .unwrap()
+        .unwrap();
+    assert!(
+        missing
+            .sth
+            .cointime
+            .prices
+            .per_coin
+            .iter()
+            .all(|v| v.is_nan())
+    );
+    assert_eq!(missing.lth.cointime, live.lth.cointime);
 }

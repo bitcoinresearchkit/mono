@@ -16,7 +16,3 @@ proc-macro = true
 [dependencies]
 syn = "3.0"
 quote = "1.0"
-
-[dev-dependencies]
-vecdb = { path = "../vecdb", features = ["derive", "pco"] }
-tempfile = { workspace = true }

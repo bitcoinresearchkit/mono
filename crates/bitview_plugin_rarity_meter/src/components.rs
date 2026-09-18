@@ -54,6 +54,22 @@ pub struct Components<M: StorageMode = Rw> {
     /// Rarity Meter component using the coinflow-weighted median creation price,
     /// weighted by creation-date USD value.
     pub coinflow_median_price_usd_weighted: MedianComponent<M>,
+    /// STH cointime-weighted median creation price, per coin.
+    pub sth_cointime_median_price_btc_weighted: MedianComponent<M>,
+    /// STH cointime-weighted median creation price, per dollar.
+    pub sth_cointime_median_price_usd_weighted: MedianComponent<M>,
+    /// LTH cointime-weighted median creation price, per coin.
+    pub lth_cointime_median_price_btc_weighted: MedianComponent<M>,
+    /// LTH cointime-weighted median creation price, per dollar.
+    pub lth_cointime_median_price_usd_weighted: MedianComponent<M>,
+    /// STH coinflow-weighted median creation price, per coin.
+    pub sth_coinflow_median_price_btc_weighted: MedianComponent<M>,
+    /// STH coinflow-weighted median creation price, per dollar.
+    pub sth_coinflow_median_price_usd_weighted: MedianComponent<M>,
+    /// LTH coinflow-weighted median creation price, per coin.
+    pub lth_coinflow_median_price_btc_weighted: MedianComponent<M>,
+    /// LTH coinflow-weighted median creation price, per dollar.
+    pub lth_coinflow_median_price_usd_weighted: MedianComponent<M>,
     /// Rarity Meter component using the satoshi-weighted mean creation price of
     /// UTXOs younger than 150 days as its reference.
     pub sth_realized_price: Component<M>,
@@ -208,6 +224,62 @@ pub fn forced_import(
             mappings,
             &weighted.per_dollar.coinflow.pct50.cents.views.height,
         )?,
+        sth_cointime_median_price_btc_weighted: MedianComponent::forced_import_daily(
+            db,
+            "sth_cointime_median_price_btc_weighted",
+            version,
+            mappings,
+            &weighted.sth.per_coin.cointime.pct50.cents.views.height,
+        )?,
+        sth_cointime_median_price_usd_weighted: MedianComponent::forced_import_daily(
+            db,
+            "sth_cointime_median_price_usd_weighted",
+            version,
+            mappings,
+            &weighted.sth.per_dollar.cointime.pct50.cents.views.height,
+        )?,
+        lth_cointime_median_price_btc_weighted: MedianComponent::forced_import_daily(
+            db,
+            "lth_cointime_median_price_btc_weighted",
+            version,
+            mappings,
+            &weighted.lth.per_coin.cointime.pct50.cents.views.height,
+        )?,
+        lth_cointime_median_price_usd_weighted: MedianComponent::forced_import_daily(
+            db,
+            "lth_cointime_median_price_usd_weighted",
+            version,
+            mappings,
+            &weighted.lth.per_dollar.cointime.pct50.cents.views.height,
+        )?,
+        sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import_daily(
+            db,
+            "sth_coinflow_median_price_btc_weighted",
+            version,
+            mappings,
+            &weighted.sth.per_coin.coinflow.pct50.cents.views.height,
+        )?,
+        sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import_daily(
+            db,
+            "sth_coinflow_median_price_usd_weighted",
+            version,
+            mappings,
+            &weighted.sth.per_dollar.coinflow.pct50.cents.views.height,
+        )?,
+        lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import_daily(
+            db,
+            "lth_coinflow_median_price_btc_weighted",
+            version,
+            mappings,
+            &weighted.lth.per_coin.coinflow.pct50.cents.views.height,
+        )?,
+        lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import_daily(
+            db,
+            "lth_coinflow_median_price_usd_weighted",
+            version,
+            mappings,
+            &weighted.lth.per_dollar.coinflow.pct50.cents.views.height,
+        )?,
         sth_realized_price: import!("sth_realized_price", realized_price.term.short),
         sth_capitalized_price: import!("sth_capitalized_price", capitalized_price.sth),
         lth_realized_price: import!("lth_realized_price", realized_price.term.long),
@@ -260,6 +332,14 @@ pub fn compute(
         &mut components.cointime_median_price_usd_weighted,
         &mut components.coinflow_median_price_btc_weighted,
         &mut components.coinflow_median_price_usd_weighted,
+        &mut components.sth_cointime_median_price_btc_weighted,
+        &mut components.sth_cointime_median_price_usd_weighted,
+        &mut components.lth_cointime_median_price_btc_weighted,
+        &mut components.lth_cointime_median_price_usd_weighted,
+        &mut components.sth_coinflow_median_price_btc_weighted,
+        &mut components.sth_coinflow_median_price_usd_weighted,
+        &mut components.lth_coinflow_median_price_btc_weighted,
+        &mut components.lth_coinflow_median_price_usd_weighted,
     ]
     .into_par_iter()
     .try_for_each(|median| median.compute(&starting_lengths, spot, exit))?;
