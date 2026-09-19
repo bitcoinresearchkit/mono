@@ -25,7 +25,7 @@ function label(value) {
   return value.replaceAll("_", " ");
 }
 
-/** @param {any[]} values @param {(value: any) => string} key */
+/** @template T @param {T[]} values @param {(value: T) => string} key */
 function unique(values, key) {
   const seen = new Set();
   return values.filter((value) => {
@@ -174,7 +174,7 @@ async function sourceMetricSubject(metric) {
  *
  * @param {Object} options
  * @param {string} options.question
- * @param {any} options.context
+ * @param {Awaited<ReturnType<typeof import("./context.js").loadSessionContext>>} options.context
  * @param {import("../refs.js").AskRefs} options.refs
  * @param {(status: string) => void} options.onStatus
  */

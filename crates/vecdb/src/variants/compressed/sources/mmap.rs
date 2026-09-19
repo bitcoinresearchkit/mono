@@ -52,10 +52,8 @@ where
         let page = self.pages.get(page_index)?;
         let header = self
             .reader
-            .unchecked_read(page.header_start as usize, page.header_len());
-        let body = self
-            .reader
-            .unchecked_read(page.start as usize, page.bytes as usize);
+            .read(page.header_start as usize, page.header_len());
+        let body = self.reader.read(page.start as usize, page.bytes as usize);
         let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
         self.decoder
             .decode_into(page, header, body, expected_len, &mut self.page_buf)

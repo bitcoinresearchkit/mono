@@ -1,0 +1,904 @@
+{
+  "date": "2026-09-19",
+  "baseline": "Working-tree rawdb after removing PendingFlush, before simplifying allocation boundary checks and the ordered-batch loop",
+  "before_source_sha256": "a3ac1227aad32b21566c76d3e722ffd5f4bee83a43d86de32ec56de8c8581804",
+  "after_source_sha256": "d4c827bc784707b09d6fbdee3fb8fc1cbb2d282596f84968daef9612c27640b0",
+  "source_hash_method": "SHA256 over sorted recursive Rust source relative paths followed by their bytes, excluding tests",
+  "benchmark_sha256": "5529bf58457bf32e9a13cc9ad54621362b7a2176fdd8e0970bd421cdd7397b81",
+  "hardware": "Apple M3 Pro, 36 GiB RAM, Darwin 27.0.0",
+  "hardware_provenance": "Chip and RAM from preceding local audit benchmark record; not independently re-read in this run.",
+  "toolchain": "Rust 1.98.1, MacOSX26.5.sdk, release, fat LTO, codegen-units=1, target-cpu=native, default panic=unwind, default rawdb features",
+  "method": "Identical standalone harness sources and Cargo.lock files. Five warmup samples per version, then four interleaved rounds alternating version order, five samples per version per round. No audit builds run during timing.",
+  "round_order": [
+    [
+      "before",
+      "after"
+    ],
+    [
+      "after",
+      "before"
+    ],
+    [
+      "before",
+      "after"
+    ],
+    [
+      "after",
+      "before"
+    ]
+  ],
+  "workloads": {
+    "append_ms": "Append 64 MiB in 64 KiB blocks",
+    "batch_ms": "One million ordered u64 writes",
+    "scoped_ms": "100,000 scoped one-byte reads",
+    "scan_ms": "Eight sequential byte-sum scans of 64 MiB",
+    "flush_ms": "Flush after append and batch writes",
+    "allocation_ms": "Reuse 2,048 holes/slots among 4,096 regions",
+    "small_append_ms": "100,000 eight-byte appends",
+    "growth_ms": "Grow 1,024 regions into adjacent reusable holes, then relocate them with a second growth; pre-sized mapping, eight initialized bytes per region, excluding setup and flush",
+    "fragmented_ms": "8,192 strided writes then full overwrite",
+    "all_dirty_flush_ms": "Overwrite and flush all 1,024 regions; time flush only, excluding setup/writes",
+    "sparse_dirty_flush_ms": "Overwrite and flush 64 regions among 1,024; time flush only, excluding setup/writes",
+    "clean_flush_ms": "32 consecutive clean flushes with 1,024 regions after all-dirty flush"
+  },
+  "limits": "Local temporary files and microbenchmarks; fsync timings include filesystem noise. No physical disk-failure simulation, full-indexer, cross-platform, cold-cache, or allocator-profile claim.",
+  "warmup_samples_ms": {
+    "before": [
+      {
+        "append_ms": 6.658,
+        "batch_ms": 0.301,
+        "scoped_ms": 0.821,
+        "scan_ms": 15.516,
+        "flush_ms": 23.255,
+        "allocation_ms": 1.983,
+        "growth_ms": 2.279,
+        "small_append_ms": 2.167,
+        "fragmented_ms": 0.139,
+        "all_dirty_flush_ms": 9.782,
+        "sparse_dirty_flush_ms": 5.225,
+        "clean_flush_ms": 0.084
+      },
+      {
+        "append_ms": 6.543,
+        "batch_ms": 0.308,
+        "scoped_ms": 0.843,
+        "scan_ms": 9.844,
+        "flush_ms": 22.424,
+        "allocation_ms": 1.853,
+        "growth_ms": 1.978,
+        "small_append_ms": 2.267,
+        "fragmented_ms": 0.16,
+        "all_dirty_flush_ms": 9.733,
+        "sparse_dirty_flush_ms": 5.203,
+        "clean_flush_ms": 0.091
+      },
+      {
+        "append_ms": 5.989,
+        "batch_ms": 0.313,
+        "scoped_ms": 0.836,
+        "scan_ms": 9.933,
+        "flush_ms": 24.711,
+        "allocation_ms": 2.704,
+        "growth_ms": 1.904,
+        "small_append_ms": 2.145,
+        "fragmented_ms": 0.149,
+        "all_dirty_flush_ms": 9.716,
+        "sparse_dirty_flush_ms": 6.496,
+        "clean_flush_ms": 0.089
+      },
+      {
+        "append_ms": 5.432,
+        "batch_ms": 0.307,
+        "scoped_ms": 0.821,
+        "scan_ms": 10.715,
+        "flush_ms": 24.264,
+        "allocation_ms": 2.021,
+        "growth_ms": 1.941,
+        "small_append_ms": 2.16,
+        "fragmented_ms": 0.141,
+        "all_dirty_flush_ms": 8.638,
+        "sparse_dirty_flush_ms": 5.238,
+        "clean_flush_ms": 0.096
+      },
+      {
+        "append_ms": 5.992,
+        "batch_ms": 0.308,
+        "scoped_ms": 0.844,
+        "scan_ms": 11.481,
+        "flush_ms": 24.966,
+        "allocation_ms": 3.531,
+        "growth_ms": 2.086,
+        "small_append_ms": 2.304,
+        "fragmented_ms": 0.16,
+        "all_dirty_flush_ms": 9.842,
+        "sparse_dirty_flush_ms": 5.209,
+        "clean_flush_ms": 0.092
+      }
+    ],
+    "after": [
+      {
+        "append_ms": 12.444,
+        "batch_ms": 0.855,
+        "scoped_ms": 0.894,
+        "scan_ms": 22.706,
+        "flush_ms": 25.163,
+        "allocation_ms": 3.001,
+        "growth_ms": 2.036,
+        "small_append_ms": 2.217,
+        "fragmented_ms": 0.158,
+        "all_dirty_flush_ms": 9.633,
+        "sparse_dirty_flush_ms": 5.165,
+        "clean_flush_ms": 0.085
+      },
+      {
+        "append_ms": 6.335,
+        "batch_ms": 0.81,
+        "scoped_ms": 0.824,
+        "scan_ms": 19.519,
+        "flush_ms": 22.652,
+        "allocation_ms": 2.062,
+        "growth_ms": 2.322,
+        "small_append_ms": 2.261,
+        "fragmented_ms": 0.161,
+        "all_dirty_flush_ms": 9.606,
+        "sparse_dirty_flush_ms": 5.161,
+        "clean_flush_ms": 0.085
+      },
+      {
+        "append_ms": 5.871,
+        "batch_ms": 0.828,
+        "scoped_ms": 0.835,
+        "scan_ms": 10.767,
+        "flush_ms": 24.563,
+        "allocation_ms": 1.918,
+        "growth_ms": 1.993,
+        "small_append_ms": 2.286,
+        "fragmented_ms": 0.163,
+        "all_dirty_flush_ms": 9.811,
+        "sparse_dirty_flush_ms": 5.19,
+        "clean_flush_ms": 0.09
+      },
+      {
+        "append_ms": 5.563,
+        "batch_ms": 0.828,
+        "scoped_ms": 0.831,
+        "scan_ms": 9.829,
+        "flush_ms": 24.07,
+        "allocation_ms": 1.903,
+        "growth_ms": 1.813,
+        "small_append_ms": 2.279,
+        "fragmented_ms": 0.156,
+        "all_dirty_flush_ms": 8.834,
+        "sparse_dirty_flush_ms": 5.184,
+        "clean_flush_ms": 0.087
+      },
+      {
+        "append_ms": 5.397,
+        "batch_ms": 0.814,
+        "scoped_ms": 0.816,
+        "scan_ms": 13.413,
+        "flush_ms": 23.527,
+        "allocation_ms": 1.752,
+        "growth_ms": 1.865,
+        "small_append_ms": 2.273,
+        "fragmented_ms": 0.16,
+        "all_dirty_flush_ms": 9.796,
+        "sparse_dirty_flush_ms": 5.098,
+        "clean_flush_ms": 0.087
+      }
+    ]
+  },
+  "samples_ms": {
+    "before": [
+      {
+        "append_ms": 5.565,
+        "batch_ms": 0.308,
+        "scoped_ms": 0.818,
+        "scan_ms": 12.954,
+        "flush_ms": 23.216,
+        "allocation_ms": 1.933,
+        "growth_ms": 2.198,
+        "small_append_ms": 2.236,
+        "fragmented_ms": 0.161,
+        "all_dirty_flush_ms": 8.625,
+        "sparse_dirty_flush_ms": 5.104,
+        "clean_flush_ms": 0.09
+      },
+      {
+        "append_ms": 5.272,
+        "batch_ms": 0.305,
+        "scoped_ms": 0.818,
+        "scan_ms": 9.566,
+        "flush_ms": 19.897,
+        "allocation_ms": 1.868,
+        "growth_ms": 2.309,
+        "small_append_ms": 2.26,
+        "fragmented_ms": 0.154,
+        "all_dirty_flush_ms": 8.786,
+        "sparse_dirty_flush_ms": 5.23,
+        "clean_flush_ms": 0.093
+      },
+      {
+        "append_ms": 5.534,
+        "batch_ms": 0.313,
+        "scoped_ms": 0.843,
+        "scan_ms": 10.025,
+        "flush_ms": 23.016,
+        "allocation_ms": 1.909,
+        "growth_ms": 1.927,
+        "small_append_ms": 2.286,
+        "fragmented_ms": 0.151,
+        "all_dirty_flush_ms": 9.835,
+        "sparse_dirty_flush_ms": 5.176,
+        "clean_flush_ms": 0.089
+      },
+      {
+        "append_ms": 5.801,
+        "batch_ms": 0.305,
+        "scoped_ms": 0.816,
+        "scan_ms": 12.423,
+        "flush_ms": 21.556,
+        "allocation_ms": 1.828,
+        "growth_ms": 2.261,
+        "small_append_ms": 2.309,
+        "fragmented_ms": 0.14,
+        "all_dirty_flush_ms": 9.753,
+        "sparse_dirty_flush_ms": 5.161,
+        "clean_flush_ms": 0.098
+      },
+      {
+        "append_ms": 5.359,
+        "batch_ms": 0.313,
+        "scoped_ms": 0.834,
+        "scan_ms": 12.499,
+        "flush_ms": 23.995,
+        "allocation_ms": 1.899,
+        "growth_ms": 1.872,
+        "small_append_ms": 2.264,
+        "fragmented_ms": 0.158,
+        "all_dirty_flush_ms": 9.979,
+        "sparse_dirty_flush_ms": 5.189,
+        "clean_flush_ms": 0.096
+      },
+      {
+        "append_ms": 5.438,
+        "batch_ms": 0.308,
+        "scoped_ms": 0.817,
+        "scan_ms": 9.606,
+        "flush_ms": 21.422,
+        "allocation_ms": 2.548,
+        "growth_ms": 1.876,
+        "small_append_ms": 2.252,
+        "fragmented_ms": 0.162,
+        "all_dirty_flush_ms": 9.132,
+        "sparse_dirty_flush_ms": 4.181,
+        "clean_flush_ms": 0.097
+      },
+      {
+        "append_ms": 5.414,
+        "batch_ms": 0.303,
+        "scoped_ms": 0.816,
+        "scan_ms": 11.903,
+        "flush_ms": 34.7,
+        "allocation_ms": 2.284,
+        "growth_ms": 2.136,
+        "small_append_ms": 2.347,
+        "fragmented_ms": 0.149,
+        "all_dirty_flush_ms": 9.807,
+        "sparse_dirty_flush_ms": 5.257,
+        "clean_flush_ms": 0.096
+      },
+      {
+        "append_ms": 5.377,
+        "batch_ms": 0.304,
+        "scoped_ms": 0.817,
+        "scan_ms": 12.91,
+        "flush_ms": 28.519,
+        "allocation_ms": 1.787,
+        "growth_ms": 1.804,
+        "small_append_ms": 2.228,
+        "fragmented_ms": 0.164,
+        "all_dirty_flush_ms": 8.474,
+        "sparse_dirty_flush_ms": 4.991,
+        "clean_flush_ms": 0.094
+      },
+      {
+        "append_ms": 5.701,
+        "batch_ms": 0.313,
+        "scoped_ms": 0.838,
+        "scan_ms": 9.8,
+        "flush_ms": 20.876,
+        "allocation_ms": 1.842,
+        "growth_ms": 2.3,
+        "small_append_ms": 2.232,
+        "fragmented_ms": 0.155,
+        "all_dirty_flush_ms": 10.0,
+        "sparse_dirty_flush_ms": 5.245,
+        "clean_flush_ms": 0.096
+      },
+      {
+        "append_ms": 5.757,
+        "batch_ms": 0.308,
+        "scoped_ms": 0.835,
+        "scan_ms": 9.758,
+        "flush_ms": 28.403,
+        "allocation_ms": 1.827,
+        "growth_ms": 2.3,
+        "small_append_ms": 2.268,
+        "fragmented_ms": 0.145,
+        "all_dirty_flush_ms": 10.77,
+        "sparse_dirty_flush_ms": 5.124,
+        "clean_flush_ms": 0.092
+      },
+      {
+        "append_ms": 5.582,
+        "batch_ms": 0.304,
+        "scoped_ms": 0.818,
+        "scan_ms": 14.276,
+        "flush_ms": 22.219,
+        "allocation_ms": 2.32,
+        "growth_ms": 1.916,
+        "small_append_ms": 2.214,
+        "fragmented_ms": 0.156,
+        "all_dirty_flush_ms": 9.55,
+        "sparse_dirty_flush_ms": 4.96,
+        "clean_flush_ms": 0.089
+      },
+      {
+        "append_ms": 5.909,
+        "batch_ms": 0.319,
+        "scoped_ms": 0.84,
+        "scan_ms": 9.698,
+        "flush_ms": 25.116,
+        "allocation_ms": 1.766,
+        "growth_ms": 1.922,
+        "small_append_ms": 2.152,
+        "fragmented_ms": 0.154,
+        "all_dirty_flush_ms": 9.193,
+        "sparse_dirty_flush_ms": 5.184,
+        "clean_flush_ms": 0.101
+      },
+      {
+        "append_ms": 5.546,
+        "batch_ms": 0.302,
+        "scoped_ms": 0.817,
+        "scan_ms": 9.791,
+        "flush_ms": 21.731,
+        "allocation_ms": 1.956,
+        "growth_ms": 1.979,
+        "small_append_ms": 2.318,
+        "fragmented_ms": 0.149,
+        "all_dirty_flush_ms": 9.785,
+        "sparse_dirty_flush_ms": 5.142,
+        "clean_flush_ms": 0.097
+      },
+      {
+        "append_ms": 5.303,
+        "batch_ms": 0.301,
+        "scoped_ms": 0.815,
+        "scan_ms": 10.588,
+        "flush_ms": 21.174,
+        "allocation_ms": 2.111,
+        "growth_ms": 2.034,
+        "small_append_ms": 2.257,
+        "fragmented_ms": 0.199,
+        "all_dirty_flush_ms": 9.553,
+        "sparse_dirty_flush_ms": 4.061,
+        "clean_flush_ms": 0.095
+      },
+      {
+        "append_ms": 5.406,
+        "batch_ms": 0.299,
+        "scoped_ms": 0.8,
+        "scan_ms": 9.856,
+        "flush_ms": 21.428,
+        "allocation_ms": 1.919,
+        "growth_ms": 1.992,
+        "small_append_ms": 2.152,
+        "fragmented_ms": 0.155,
+        "all_dirty_flush_ms": 10.325,
+        "sparse_dirty_flush_ms": 4.107,
+        "clean_flush_ms": 0.094
+      },
+      {
+        "append_ms": 5.423,
+        "batch_ms": 0.303,
+        "scoped_ms": 0.828,
+        "scan_ms": 9.942,
+        "flush_ms": 23.903,
+        "allocation_ms": 2.033,
+        "growth_ms": 2.046,
+        "small_append_ms": 2.261,
+        "fragmented_ms": 0.148,
+        "all_dirty_flush_ms": 10.517,
+        "sparse_dirty_flush_ms": 4.168,
+        "clean_flush_ms": 0.093
+      },
+      {
+        "append_ms": 5.554,
+        "batch_ms": 0.313,
+        "scoped_ms": 0.841,
+        "scan_ms": 9.907,
+        "flush_ms": 26.214,
+        "allocation_ms": 2.56,
+        "growth_ms": 1.912,
+        "small_append_ms": 2.322,
+        "fragmented_ms": 0.153,
+        "all_dirty_flush_ms": 10.593,
+        "sparse_dirty_flush_ms": 5.238,
+        "clean_flush_ms": 0.091
+      },
+      {
+        "append_ms": 6.034,
+        "batch_ms": 0.306,
+        "scoped_ms": 0.821,
+        "scan_ms": 9.881,
+        "flush_ms": 25.817,
+        "allocation_ms": 2.007,
+        "growth_ms": 2.006,
+        "small_append_ms": 2.264,
+        "fragmented_ms": 0.148,
+        "all_dirty_flush_ms": 9.455,
+        "sparse_dirty_flush_ms": 5.061,
+        "clean_flush_ms": 0.093
+      },
+      {
+        "append_ms": 5.79,
+        "batch_ms": 0.32,
+        "scoped_ms": 0.852,
+        "scan_ms": 11.257,
+        "flush_ms": 24.674,
+        "allocation_ms": 2.019,
+        "growth_ms": 1.961,
+        "small_append_ms": 2.28,
+        "fragmented_ms": 0.143,
+        "all_dirty_flush_ms": 10.879,
+        "sparse_dirty_flush_ms": 4.623,
+        "clean_flush_ms": 0.096
+      },
+      {
+        "append_ms": 6.265,
+        "batch_ms": 0.312,
+        "scoped_ms": 0.836,
+        "scan_ms": 9.967,
+        "flush_ms": 24.21,
+        "allocation_ms": 2.001,
+        "growth_ms": 2.164,
+        "small_append_ms": 2.364,
+        "fragmented_ms": 0.153,
+        "all_dirty_flush_ms": 9.789,
+        "sparse_dirty_flush_ms": 4.997,
+        "clean_flush_ms": 0.098
+      }
+    ],
+    "after": [
+      {
+        "append_ms": 5.564,
+        "batch_ms": 0.831,
+        "scoped_ms": 0.817,
+        "scan_ms": 11.102,
+        "flush_ms": 19.78,
+        "allocation_ms": 1.848,
+        "growth_ms": 1.963,
+        "small_append_ms": 2.164,
+        "fragmented_ms": 0.145,
+        "all_dirty_flush_ms": 9.652,
+        "sparse_dirty_flush_ms": 4.544,
+        "clean_flush_ms": 0.087
+      },
+      {
+        "append_ms": 5.461,
+        "batch_ms": 0.842,
+        "scoped_ms": 0.847,
+        "scan_ms": 9.779,
+        "flush_ms": 21.765,
+        "allocation_ms": 1.69,
+        "growth_ms": 1.881,
+        "small_append_ms": 2.232,
+        "fragmented_ms": 0.158,
+        "all_dirty_flush_ms": 8.829,
+        "sparse_dirty_flush_ms": 5.15,
+        "clean_flush_ms": 0.085
+      },
+      {
+        "append_ms": 5.943,
+        "batch_ms": 0.832,
+        "scoped_ms": 0.845,
+        "scan_ms": 9.759,
+        "flush_ms": 21.764,
+        "allocation_ms": 1.852,
+        "growth_ms": 2.238,
+        "small_append_ms": 2.268,
+        "fragmented_ms": 0.158,
+        "all_dirty_flush_ms": 7.83,
+        "sparse_dirty_flush_ms": 5.135,
+        "clean_flush_ms": 0.091
+      },
+      {
+        "append_ms": 5.359,
+        "batch_ms": 0.831,
+        "scoped_ms": 0.835,
+        "scan_ms": 9.808,
+        "flush_ms": 21.093,
+        "allocation_ms": 2.133,
+        "growth_ms": 1.997,
+        "small_append_ms": 2.309,
+        "fragmented_ms": 0.154,
+        "all_dirty_flush_ms": 9.789,
+        "sparse_dirty_flush_ms": 5.143,
+        "clean_flush_ms": 0.085
+      },
+      {
+        "append_ms": 5.483,
+        "batch_ms": 0.831,
+        "scoped_ms": 0.83,
+        "scan_ms": 9.648,
+        "flush_ms": 20.68,
+        "allocation_ms": 1.888,
+        "growth_ms": 2.178,
+        "small_append_ms": 2.24,
+        "fragmented_ms": 0.157,
+        "all_dirty_flush_ms": 8.779,
+        "sparse_dirty_flush_ms": 5.242,
+        "clean_flush_ms": 0.085
+      },
+      {
+        "append_ms": 5.936,
+        "batch_ms": 0.834,
+        "scoped_ms": 0.821,
+        "scan_ms": 9.741,
+        "flush_ms": 22.478,
+        "allocation_ms": 1.829,
+        "growth_ms": 2.024,
+        "small_append_ms": 2.259,
+        "fragmented_ms": 0.152,
+        "all_dirty_flush_ms": 8.632,
+        "sparse_dirty_flush_ms": 5.231,
+        "clean_flush_ms": 0.089
+      },
+      {
+        "append_ms": 5.341,
+        "batch_ms": 0.812,
+        "scoped_ms": 0.818,
+        "scan_ms": 13.612,
+        "flush_ms": 25.352,
+        "allocation_ms": 1.876,
+        "growth_ms": 2.09,
+        "small_append_ms": 2.259,
+        "fragmented_ms": 0.157,
+        "all_dirty_flush_ms": 8.79,
+        "sparse_dirty_flush_ms": 5.154,
+        "clean_flush_ms": 0.083
+      },
+      {
+        "append_ms": 5.584,
+        "batch_ms": 0.842,
+        "scoped_ms": 0.847,
+        "scan_ms": 13.917,
+        "flush_ms": 22.621,
+        "allocation_ms": 2.265,
+        "growth_ms": 2.163,
+        "small_append_ms": 2.265,
+        "fragmented_ms": 0.153,
+        "all_dirty_flush_ms": 8.872,
+        "sparse_dirty_flush_ms": 5.143,
+        "clean_flush_ms": 0.087
+      },
+      {
+        "append_ms": 5.702,
+        "batch_ms": 0.847,
+        "scoped_ms": 0.839,
+        "scan_ms": 12.033,
+        "flush_ms": 21.182,
+        "allocation_ms": 3.464,
+        "growth_ms": 2.008,
+        "small_append_ms": 2.281,
+        "fragmented_ms": 0.149,
+        "all_dirty_flush_ms": 8.892,
+        "sparse_dirty_flush_ms": 5.184,
+        "clean_flush_ms": 0.089
+      },
+      {
+        "append_ms": 5.502,
+        "batch_ms": 0.828,
+        "scoped_ms": 0.832,
+        "scan_ms": 9.719,
+        "flush_ms": 21.994,
+        "allocation_ms": 1.816,
+        "growth_ms": 1.873,
+        "small_append_ms": 2.165,
+        "fragmented_ms": 0.163,
+        "all_dirty_flush_ms": 9.876,
+        "sparse_dirty_flush_ms": 5.094,
+        "clean_flush_ms": 0.093
+      },
+      {
+        "append_ms": 5.396,
+        "batch_ms": 0.809,
+        "scoped_ms": 0.82,
+        "scan_ms": 13.334,
+        "flush_ms": 21.705,
+        "allocation_ms": 2.441,
+        "growth_ms": 1.911,
+        "small_append_ms": 2.25,
+        "fragmented_ms": 0.155,
+        "all_dirty_flush_ms": 9.675,
+        "sparse_dirty_flush_ms": 5.199,
+        "clean_flush_ms": 0.098
+      },
+      {
+        "append_ms": 5.453,
+        "batch_ms": 0.828,
+        "scoped_ms": 0.833,
+        "scan_ms": 12.565,
+        "flush_ms": 21.476,
+        "allocation_ms": 1.809,
+        "growth_ms": 2.328,
+        "small_append_ms": 2.163,
+        "fragmented_ms": 0.177,
+        "all_dirty_flush_ms": 9.424,
+        "sparse_dirty_flush_ms": 4.111,
+        "clean_flush_ms": 0.095
+      },
+      {
+        "append_ms": 5.668,
+        "batch_ms": 0.827,
+        "scoped_ms": 0.816,
+        "scan_ms": 9.645,
+        "flush_ms": 21.967,
+        "allocation_ms": 2.052,
+        "growth_ms": 1.771,
+        "small_append_ms": 2.315,
+        "fragmented_ms": 0.162,
+        "all_dirty_flush_ms": 10.043,
+        "sparse_dirty_flush_ms": 5.19,
+        "clean_flush_ms": 0.093
+      },
+      {
+        "append_ms": 5.207,
+        "batch_ms": 0.83,
+        "scoped_ms": 0.816,
+        "scan_ms": 10.24,
+        "flush_ms": 20.952,
+        "allocation_ms": 1.871,
+        "growth_ms": 1.989,
+        "small_append_ms": 2.308,
+        "fragmented_ms": 0.148,
+        "all_dirty_flush_ms": 9.727,
+        "sparse_dirty_flush_ms": 5.136,
+        "clean_flush_ms": 0.092
+      },
+      {
+        "append_ms": 5.408,
+        "batch_ms": 0.849,
+        "scoped_ms": 0.835,
+        "scan_ms": 9.587,
+        "flush_ms": 20.312,
+        "allocation_ms": 1.868,
+        "growth_ms": 1.956,
+        "small_append_ms": 2.302,
+        "fragmented_ms": 0.155,
+        "all_dirty_flush_ms": 9.508,
+        "sparse_dirty_flush_ms": 4.899,
+        "clean_flush_ms": 0.091
+      },
+      {
+        "append_ms": 5.301,
+        "batch_ms": 0.838,
+        "scoped_ms": 0.824,
+        "scan_ms": 9.99,
+        "flush_ms": 23.658,
+        "allocation_ms": 2.302,
+        "growth_ms": 2.432,
+        "small_append_ms": 2.276,
+        "fragmented_ms": 0.161,
+        "all_dirty_flush_ms": 9.234,
+        "sparse_dirty_flush_ms": 5.202,
+        "clean_flush_ms": 0.086
+      },
+      {
+        "append_ms": 5.638,
+        "batch_ms": 0.851,
+        "scoped_ms": 0.837,
+        "scan_ms": 11.041,
+        "flush_ms": 22.155,
+        "allocation_ms": 1.951,
+        "growth_ms": 2.082,
+        "small_append_ms": 2.24,
+        "fragmented_ms": 0.162,
+        "all_dirty_flush_ms": 9.78,
+        "sparse_dirty_flush_ms": 5.181,
+        "clean_flush_ms": 0.081
+      },
+      {
+        "append_ms": 5.418,
+        "batch_ms": 0.828,
+        "scoped_ms": 0.835,
+        "scan_ms": 9.847,
+        "flush_ms": 21.883,
+        "allocation_ms": 1.919,
+        "growth_ms": 1.914,
+        "small_append_ms": 2.249,
+        "fragmented_ms": 0.154,
+        "all_dirty_flush_ms": 9.482,
+        "sparse_dirty_flush_ms": 3.837,
+        "clean_flush_ms": 0.087
+      },
+      {
+        "append_ms": 5.58,
+        "batch_ms": 0.809,
+        "scoped_ms": 0.815,
+        "scan_ms": 10.144,
+        "flush_ms": 23.608,
+        "allocation_ms": 1.869,
+        "growth_ms": 2.007,
+        "small_append_ms": 2.363,
+        "fragmented_ms": 0.151,
+        "all_dirty_flush_ms": 10.857,
+        "sparse_dirty_flush_ms": 5.278,
+        "clean_flush_ms": 0.091
+      },
+      {
+        "append_ms": 5.469,
+        "batch_ms": 0.811,
+        "scoped_ms": 0.816,
+        "scan_ms": 11.217,
+        "flush_ms": 24.884,
+        "allocation_ms": 3.355,
+        "growth_ms": 1.898,
+        "small_append_ms": 2.154,
+        "fragmented_ms": 0.146,
+        "all_dirty_flush_ms": 9.834,
+        "sparse_dirty_flush_ms": 5.335,
+        "clean_flush_ms": 0.09
+      }
+    ]
+  },
+  "summary_ms": {
+    "append_ms": {
+      "before": {
+        "median": 5.550000000000001,
+        "min": 5.272,
+        "max": 6.265
+      },
+      "after": {
+        "median": 5.476,
+        "min": 5.207,
+        "max": 5.943
+      }
+    },
+    "batch_ms": {
+      "before": {
+        "median": 0.307,
+        "min": 0.299,
+        "max": 0.32
+      },
+      "after": {
+        "median": 0.831,
+        "min": 0.809,
+        "max": 0.851
+      }
+    },
+    "scoped_ms": {
+      "before": {
+        "median": 0.8194999999999999,
+        "min": 0.8,
+        "max": 0.852
+      },
+      "after": {
+        "median": 0.831,
+        "min": 0.815,
+        "max": 0.847
+      }
+    },
+    "scan_ms": {
+      "before": {
+        "median": 9.9545,
+        "min": 9.566,
+        "max": 14.276
+      },
+      "after": {
+        "median": 10.067,
+        "min": 9.587,
+        "max": 13.917
+      }
+    },
+    "flush_ms": {
+      "before": {
+        "median": 23.5595,
+        "min": 19.897,
+        "max": 34.7
+      },
+      "after": {
+        "median": 21.823999999999998,
+        "min": 19.78,
+        "max": 25.352
+      }
+    },
+    "allocation_ms": {
+      "before": {
+        "median": 1.9445000000000001,
+        "min": 1.766,
+        "max": 2.56
+      },
+      "after": {
+        "median": 1.882,
+        "min": 1.69,
+        "max": 3.464
+      }
+    },
+    "growth_ms": {
+      "before": {
+        "median": 1.9989999999999999,
+        "min": 1.804,
+        "max": 2.309
+      },
+      "after": {
+        "median": 2.0020000000000002,
+        "min": 1.771,
+        "max": 2.432
+      }
+    },
+    "small_append_ms": {
+      "before": {
+        "median": 2.2625,
+        "min": 2.152,
+        "max": 2.364
+      },
+      "after": {
+        "median": 2.259,
+        "min": 2.154,
+        "max": 2.363
+      }
+    },
+    "fragmented_ms": {
+      "before": {
+        "median": 0.1535,
+        "min": 0.14,
+        "max": 0.199
+      },
+      "after": {
+        "median": 0.155,
+        "min": 0.145,
+        "max": 0.177
+      }
+    },
+    "all_dirty_flush_ms": {
+      "before": {
+        "median": 9.786999999999999,
+        "min": 8.474,
+        "max": 10.879
+      },
+      "after": {
+        "median": 9.495,
+        "min": 7.83,
+        "max": 10.857
+      }
+    },
+    "sparse_dirty_flush_ms": {
+      "before": {
+        "median": 5.114,
+        "min": 4.061,
+        "max": 5.257
+      },
+      "after": {
+        "median": 5.152,
+        "min": 3.837,
+        "max": 5.335
+      }
+    },
+    "clean_flush_ms": {
+      "before": {
+        "median": 0.0945,
+        "min": 0.089,
+        "max": 0.101
+      },
+      "after": {
+        "median": 0.089,
+        "min": 0.081,
+        "max": 0.098
+      }
+    }
+  },
+  "decision": "Rejected chained ordered-batch loop: median 0.307 ms before versus 0.831 ms after. Retest with the original first-item closure/loop restored; other allocation and flush changes remain."
+}

@@ -87,9 +87,6 @@ fn empty_search(headers: &HeaderMap, cdn_cache_mode: CdnCacheMode) -> Response {
 #[cfg(test)]
 #[path = "../../../tests/unit/series_format.rs"]
 mod tests;
-#[cfg(test)]
-#[path = "../../../benches/unit/series_timestamp.rs"]
-mod timestamp_bench;
 
 pub async fn serve_series_info(
     state: AppState,

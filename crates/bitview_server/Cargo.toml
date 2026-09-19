@@ -57,14 +57,11 @@ bitview_query = { workspace = true, default-features = false, features = ["tokio
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-bitview_traversable = { workspace = true }
 bitview_website = { workspace = true }
 derive_more = { workspace = true }
-vecdb = { workspace = true }
 jiff = { workspace = true }
 parking_lot = { workspace = true }
 rayon = { workspace = true }
-rustc-hash = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true, features = ["rc"] }
 serde_json = { workspace = true }
@@ -74,6 +71,7 @@ tower-http = { workspace = true, features = ["limit"] }
 tower-layer = { workspace = true }
 
 [dev-dependencies]
+vecdb = { workspace = true }
 brk_mempool = { workspace = true }
 tower = { workspace = true }
 brk_exit = { workspace = true }

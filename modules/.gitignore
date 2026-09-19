@@ -10,5 +10,6 @@ dev.js
 nano.*
 worker.*
 *.mts
+!lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.d.mts
 *.cts
 *.rs

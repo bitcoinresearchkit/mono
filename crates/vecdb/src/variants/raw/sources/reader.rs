@@ -90,7 +90,7 @@ where
 
     fn from_region(region: &Region, stored_len: usize) -> Self {
         let reader = region.create_reader();
-        let slice = reader.prefixed(HEADER_OFFSET);
+        let slice = reader.read_from(HEADER_OFFSET);
         let ptr = slice.as_ptr();
 
         Self {

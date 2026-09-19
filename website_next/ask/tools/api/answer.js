@@ -518,7 +518,7 @@ export function finishApiAnswer(name, action, fields, grounding) {
   }
   if (name === "select_api_fields") {
     const refs = Array.isArray(action.fields) ? action.fields : [];
-    const selected = refs.map((ref) => byRef.get(String(ref))).filter(Boolean);
+    const selected = refs.map((ref) => byRef.get(String(ref))).filter((field) => field !== undefined);
     if (selected.length < 2) {
       throw new Error("The AI selected too few API fields");
     }

@@ -1,0 +1,464 @@
+{
+  "date": "2026-09-19",
+  "baseline": "Working-tree rawdb after the control-flow review, before replacing the slot-indexed region vector with direct ID-to-region lookup",
+  "before_source_sha256": "d6b233d84cc1026895086c524ef04918f63a176743444bfbe05fd8a522a6ac67",
+  "after_source_sha256": "a0511ee46d3f1f42b9a140cc543e70d998e812fa7d3ece9830f6812ea05cab9d",
+  "source_hash_method": "SHA256 over sorted recursive Rust source relative paths followed by their bytes, excluding tests",
+  "benchmark_sha256": "f2b66914b1c34886fe363b9887fb7f4115453575dec10317bb1d3d17d34bb721",
+  "focused_harness_source": "use std::{hint::black_box, time::{Duration, Instant}};\nuse rawdb::{Database, Result};\nuse tempfile::TempDir;\nfn scan_reads() -> Result<Duration> {\n    let dir = TempDir::new()?;\n    let db = Database::open(dir.path())?;\n    let region = db.create_region_if_needed(\"scan\")?;\n    region.write(&vec![7; 64 * 1024 * 1024])?;\n    let reader = region.create_reader();\n    let time = Instant::now();\n    for _ in 0..64 {\n        black_box(reader.read_all().iter().fold(0u64, |sum, &byte| sum + u64::from(byte)));\n    }\n    Ok(time.elapsed())\n}\nfn main() -> Result<()> {\n    for _ in 0..5 {\n        let scan = scan_reads()?;\n        let (lookup, reopen, retain, compact) = registry_operations()?;\n        println!(\"scan_ms={:.3} lookup_ms={:.3} reopen_ms={:.3} retain_ms={:.3} compact_ms={:.3}\",\n            scan.as_secs_f64()*1e3, lookup.as_secs_f64()*1e3, reopen.as_secs_f64()*1e3,\n            retain.as_secs_f64()*1e3, compact.as_secs_f64()*1e3);\n    }\n    Ok(())\n}\nfn registry_operations() -> Result<(Duration, Duration, Duration, Duration)> {\n    let dir = TempDir::new()?;\n    let db = Database::open(dir.path())?;\n    let ids: Vec<_> = (0..4096).map(|index| index.to_string()).collect();\n    for id in &ids {\n        db.create_region_if_needed(id)?.write(&[7])?;\n    }\n    db.flush()?;\n    let time = Instant::now();\n    for _ in 0..256 {\n        for id in &ids {\n            black_box(db.get_region(black_box(id)).unwrap());\n        }\n    }\n    let lookup = time.elapsed();\n    drop(db);\n\n    let time = Instant::now();\n    let db = Database::open(dir.path())?;\n    let reopen = time.elapsed();\n    for id in &ids[..2048] {\n        assert!(db.get_region(id).is_some());\n    }\n    let time = Instant::now();\n    db.retain_accessed_regions()?;\n    let retain = time.elapsed();\n    let time = Instant::now();\n    db.compact()?;\n    let compact = time.elapsed();\n    assert!(db.get_region(&ids[2048]).is_none());\n    assert_eq!(\n        db.get_region(&ids[0]).unwrap().create_reader().read_all(),\n        &[7]\n    );\n    Ok((lookup, reopen, retain, compact))\n}\n\n",
+  "hardware": "Apple M3 Pro, 36 GiB RAM, Darwin 27.0.0",
+  "hardware_provenance": "Chip and RAM from preceding local audit benchmark record; not independently re-read in this run.",
+  "toolchain": "Rust 1.98.1, MacOSX26.5.sdk, release, fat LTO, codegen-units=1, target-cpu=native, default panic=unwind, default rawdb features",
+  "method": "Identical standalone harness sources and Cargo.lock files. Five warmup samples per version, then four interleaved rounds alternating version order, five samples per version per round. No audit builds run during timing.",
+  "round_order": [
+    [
+      "before",
+      "after"
+    ],
+    [
+      "after",
+      "before"
+    ],
+    [
+      "before",
+      "after"
+    ],
+    [
+      "after",
+      "before"
+    ]
+  ],
+  "workloads": {
+    "scan_ms": "64 sequential byte-sum scans of a 64 MiB mapped region; 4 GiB read total",
+    "lookup_ms": "1,048,576 successful ID lookups among 4,096 regions using preallocated IDs",
+    "reopen_ms": "Reopen 4,096 flushed one-byte regions",
+    "retain_ms": "Retain the first 2,048 accessed regions and shrink metadata",
+    "compact_ms": "Compact after retaining 2,048 regions, reclaiming the removed tail"
+  },
+  "limits": "Local temporary files and microbenchmarks; fsync timings include filesystem noise. No physical disk-failure simulation, full-indexer, cross-platform, cold-cache, or allocator-profile claim.",
+  "warmup_samples_ms": {
+    "before": [
+      {
+        "scan_ms": 100.673,
+        "lookup_ms": 14.961,
+        "reopen_ms": 1.453,
+        "retain_ms": 18.265,
+        "compact_ms": 5.142
+      },
+      {
+        "scan_ms": 97.669,
+        "lookup_ms": 15.111,
+        "reopen_ms": 1.529,
+        "retain_ms": 16.982,
+        "compact_ms": 4.192
+      },
+      {
+        "scan_ms": 87.977,
+        "lookup_ms": 15.211,
+        "reopen_ms": 1.332,
+        "retain_ms": 17.629,
+        "compact_ms": 5.174
+      },
+      {
+        "scan_ms": 87.976,
+        "lookup_ms": 15.484,
+        "reopen_ms": 1.303,
+        "retain_ms": 16.67,
+        "compact_ms": 4.252
+      },
+      {
+        "scan_ms": 83.346,
+        "lookup_ms": 15.154,
+        "reopen_ms": 1.271,
+        "retain_ms": 17.273,
+        "compact_ms": 4.27
+      }
+    ],
+    "after": [
+      {
+        "scan_ms": 105.96,
+        "lookup_ms": 12.676,
+        "reopen_ms": 2.153,
+        "retain_ms": 19.377,
+        "compact_ms": 5.131
+      },
+      {
+        "scan_ms": 96.483,
+        "lookup_ms": 13.013,
+        "reopen_ms": 1.515,
+        "retain_ms": 18.013,
+        "compact_ms": 5.245
+      },
+      {
+        "scan_ms": 84.631,
+        "lookup_ms": 12.702,
+        "reopen_ms": 1.379,
+        "retain_ms": 18.366,
+        "compact_ms": 4.211
+      },
+      {
+        "scan_ms": 83.829,
+        "lookup_ms": 12.991,
+        "reopen_ms": 1.406,
+        "retain_ms": 18.276,
+        "compact_ms": 5.215
+      },
+      {
+        "scan_ms": 83.274,
+        "lookup_ms": 12.881,
+        "reopen_ms": 1.409,
+        "retain_ms": 17.157,
+        "compact_ms": 4.131
+      }
+    ]
+  },
+  "samples_ms": {
+    "before": [
+      {
+        "scan_ms": 85.395,
+        "lookup_ms": 15.186,
+        "reopen_ms": 1.29,
+        "retain_ms": 17.157,
+        "compact_ms": 5.197
+      },
+      {
+        "scan_ms": 85.931,
+        "lookup_ms": 15.506,
+        "reopen_ms": 1.386,
+        "retain_ms": 18.757,
+        "compact_ms": 4.099
+      },
+      {
+        "scan_ms": 89.999,
+        "lookup_ms": 15.135,
+        "reopen_ms": 1.301,
+        "retain_ms": 18.239,
+        "compact_ms": 5.202
+      },
+      {
+        "scan_ms": 84.446,
+        "lookup_ms": 14.842,
+        "reopen_ms": 1.167,
+        "retain_ms": 16.85,
+        "compact_ms": 4.21
+      },
+      {
+        "scan_ms": 84.019,
+        "lookup_ms": 14.874,
+        "reopen_ms": 1.298,
+        "retain_ms": 17.549,
+        "compact_ms": 4.263
+      },
+      {
+        "scan_ms": 88.519,
+        "lookup_ms": 14.738,
+        "reopen_ms": 1.984,
+        "retain_ms": 17.65,
+        "compact_ms": 4.533
+      },
+      {
+        "scan_ms": 85.687,
+        "lookup_ms": 14.902,
+        "reopen_ms": 1.9,
+        "retain_ms": 17.019,
+        "compact_ms": 4.116
+      },
+      {
+        "scan_ms": 82.642,
+        "lookup_ms": 14.802,
+        "reopen_ms": 1.293,
+        "retain_ms": 17.381,
+        "compact_ms": 4.493
+      },
+      {
+        "scan_ms": 84.279,
+        "lookup_ms": 14.922,
+        "reopen_ms": 1.155,
+        "retain_ms": 14.635,
+        "compact_ms": 4.156
+      },
+      {
+        "scan_ms": 87.487,
+        "lookup_ms": 15.134,
+        "reopen_ms": 1.226,
+        "retain_ms": 17.72,
+        "compact_ms": 4.534
+      },
+      {
+        "scan_ms": 86.568,
+        "lookup_ms": 14.776,
+        "reopen_ms": 1.298,
+        "retain_ms": 18.813,
+        "compact_ms": 5.156
+      },
+      {
+        "scan_ms": 83.576,
+        "lookup_ms": 14.809,
+        "reopen_ms": 1.18,
+        "retain_ms": 17.697,
+        "compact_ms": 7.224
+      },
+      {
+        "scan_ms": 86.596,
+        "lookup_ms": 14.7,
+        "reopen_ms": 1.305,
+        "retain_ms": 17.722,
+        "compact_ms": 5.057
+      },
+      {
+        "scan_ms": 83.298,
+        "lookup_ms": 14.7,
+        "reopen_ms": 1.207,
+        "retain_ms": 17.855,
+        "compact_ms": 5.195
+      },
+      {
+        "scan_ms": 83.795,
+        "lookup_ms": 15.284,
+        "reopen_ms": 2.003,
+        "retain_ms": 17.29,
+        "compact_ms": 4.147
+      },
+      {
+        "scan_ms": 83.297,
+        "lookup_ms": 14.772,
+        "reopen_ms": 1.248,
+        "retain_ms": 17.458,
+        "compact_ms": 4.531
+      },
+      {
+        "scan_ms": 85.987,
+        "lookup_ms": 15.25,
+        "reopen_ms": 1.212,
+        "retain_ms": 16.292,
+        "compact_ms": 4.421
+      },
+      {
+        "scan_ms": 86.145,
+        "lookup_ms": 14.921,
+        "reopen_ms": 1.473,
+        "retain_ms": 17.479,
+        "compact_ms": 4.125
+      },
+      {
+        "scan_ms": 83.695,
+        "lookup_ms": 14.841,
+        "reopen_ms": 1.261,
+        "retain_ms": 18.485,
+        "compact_ms": 5.224
+      },
+      {
+        "scan_ms": 87.707,
+        "lookup_ms": 14.843,
+        "reopen_ms": 1.303,
+        "retain_ms": 17.3,
+        "compact_ms": 4.546
+      }
+    ],
+    "after": [
+      {
+        "scan_ms": 83.448,
+        "lookup_ms": 12.579,
+        "reopen_ms": 1.37,
+        "retain_ms": 18.257,
+        "compact_ms": 4.095
+      },
+      {
+        "scan_ms": 79.532,
+        "lookup_ms": 12.659,
+        "reopen_ms": 1.273,
+        "retain_ms": 19.406,
+        "compact_ms": 5.191
+      },
+      {
+        "scan_ms": 91.285,
+        "lookup_ms": 12.924,
+        "reopen_ms": 1.33,
+        "retain_ms": 17.774,
+        "compact_ms": 5.155
+      },
+      {
+        "scan_ms": 87.227,
+        "lookup_ms": 12.526,
+        "reopen_ms": 1.582,
+        "retain_ms": 19.69,
+        "compact_ms": 5.083
+      },
+      {
+        "scan_ms": 83.723,
+        "lookup_ms": 12.725,
+        "reopen_ms": 1.55,
+        "retain_ms": 19.422,
+        "compact_ms": 5.175
+      },
+      {
+        "scan_ms": 81.136,
+        "lookup_ms": 12.662,
+        "reopen_ms": 1.409,
+        "retain_ms": 18.271,
+        "compact_ms": 4.454
+      },
+      {
+        "scan_ms": 83.382,
+        "lookup_ms": 12.704,
+        "reopen_ms": 1.333,
+        "retain_ms": 17.793,
+        "compact_ms": 4.103
+      },
+      {
+        "scan_ms": 83.591,
+        "lookup_ms": 12.617,
+        "reopen_ms": 1.292,
+        "retain_ms": 16.894,
+        "compact_ms": 5.293
+      },
+      {
+        "scan_ms": 84.965,
+        "lookup_ms": 13.066,
+        "reopen_ms": 1.804,
+        "retain_ms": 17.852,
+        "compact_ms": 4.466
+      },
+      {
+        "scan_ms": 85.831,
+        "lookup_ms": 12.52,
+        "reopen_ms": 1.385,
+        "retain_ms": 17.881,
+        "compact_ms": 5.18
+      },
+      {
+        "scan_ms": 89.663,
+        "lookup_ms": 12.483,
+        "reopen_ms": 1.37,
+        "retain_ms": 19.563,
+        "compact_ms": 5.201
+      },
+      {
+        "scan_ms": 82.882,
+        "lookup_ms": 12.427,
+        "reopen_ms": 1.291,
+        "retain_ms": 18.613,
+        "compact_ms": 4.521
+      },
+      {
+        "scan_ms": 86.357,
+        "lookup_ms": 12.462,
+        "reopen_ms": 1.416,
+        "retain_ms": 20.545,
+        "compact_ms": 5.169
+      },
+      {
+        "scan_ms": 83.608,
+        "lookup_ms": 12.527,
+        "reopen_ms": 1.542,
+        "retain_ms": 19.415,
+        "compact_ms": 5.179
+      },
+      {
+        "scan_ms": 84.276,
+        "lookup_ms": 13.181,
+        "reopen_ms": 1.281,
+        "retain_ms": 18.262,
+        "compact_ms": 5.16
+      },
+      {
+        "scan_ms": 85.76,
+        "lookup_ms": 12.957,
+        "reopen_ms": 1.265,
+        "retain_ms": 17.022,
+        "compact_ms": 4.488
+      },
+      {
+        "scan_ms": 85.62,
+        "lookup_ms": 12.504,
+        "reopen_ms": 1.192,
+        "retain_ms": 17.807,
+        "compact_ms": 5.17
+      },
+      {
+        "scan_ms": 83.297,
+        "lookup_ms": 12.68,
+        "reopen_ms": 1.321,
+        "retain_ms": 18.576,
+        "compact_ms": 5.193
+      },
+      {
+        "scan_ms": 84.177,
+        "lookup_ms": 12.636,
+        "reopen_ms": 1.327,
+        "retain_ms": 17.879,
+        "compact_ms": 4.119
+      },
+      {
+        "scan_ms": 83.082,
+        "lookup_ms": 12.563,
+        "reopen_ms": 1.225,
+        "retain_ms": 18.948,
+        "compact_ms": 5.187
+      }
+    ]
+  },
+  "summary_ms": {
+    "scan_ms": {
+      "before": {
+        "median": 85.541,
+        "min": 82.642,
+        "max": 89.999
+      },
+      "after": {
+        "median": 83.95,
+        "min": 79.532,
+        "max": 91.285
+      }
+    },
+    "lookup_ms": {
+      "before": {
+        "median": 14.8585,
+        "min": 14.7,
+        "max": 15.506
+      },
+      "after": {
+        "median": 12.6265,
+        "min": 12.427,
+        "max": 13.181
+      }
+    },
+    "reopen_ms": {
+      "before": {
+        "median": 1.2955,
+        "min": 1.155,
+        "max": 2.003
+      },
+      "after": {
+        "median": 1.3315000000000001,
+        "min": 1.192,
+        "max": 1.804
+      }
+    },
+    "retain_ms": {
+      "before": {
+        "median": 17.514,
+        "min": 14.635,
+        "max": 18.813
+      },
+      "after": {
+        "median": 18.2665,
+        "min": 16.894,
+        "max": 20.545
+      }
+    },
+    "compact_ms": {
+      "before": {
+        "median": 4.532,
+        "min": 4.099,
+        "max": 7.224
+      },
+      "after": {
+        "median": 5.1645,
+        "min": 4.095,
+        "max": 5.293
+      }
+    }
+  },
+  "candidate": "Direct ID-to-region map, with retention still traversing map values; superseded by address-ordered layout traversal for retention."
+}

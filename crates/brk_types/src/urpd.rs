@@ -2,10 +2,6 @@ use rustc_hash::FxHashMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-#[cfg(test)]
-#[path = "../benches/unit/urpd.rs"]
-mod bench;
-
 use crate::{
     Bitcoin, Cents, CentsSats, CentsSigned, Cohort, Date, Dollars, Sats, UrpdAggregation,
     UrpdBucket, UrpdRaw, UrpdWeight,

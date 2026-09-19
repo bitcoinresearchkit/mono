@@ -9,7 +9,7 @@ use base::{
 };
 use variants::*;
 
-pub use rawdb::{Database, Error as RawDBError, PAGE_SIZE, Reader, likely, unlikely};
+pub use rawdb::{Database, Error as RawDBError, PAGE_SIZE, Reader};
 
 #[cfg(feature = "derive")]
 pub use vecdb_derive::{Bytes, Pco};
@@ -20,6 +20,7 @@ pub mod cache;
 pub use cache::{Budgeted, CacheBudget, CachePolicy, NoCache};
 mod cursor;
 mod error;
+mod hints;
 mod iterators;
 mod ops;
 mod read_bounds;
@@ -36,6 +37,7 @@ pub use bytes::Bytes;
 pub use cursor::Cursor;
 
 pub use error::{Error, Result};
+pub use hints::{likely, unlikely};
 
 pub use iterators::ValueWriter;
 

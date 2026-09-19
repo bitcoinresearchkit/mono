@@ -181,7 +181,7 @@ function unrealizedCoreWithGross(u, title) {
 
 /**
  * % of Own P&L chart
- * @param {AllRelativePattern | FullRelativePattern} u
+ * @param {AllUtxoPattern["relative"]["unrealized"] | ShortTermPattern["relative"]["unrealized"]} u
  * @param {(name: string) => string} title
  * @returns {PartialChartOption}
  */

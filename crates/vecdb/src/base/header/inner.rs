@@ -46,7 +46,7 @@ impl HeaderInner {
         }
 
         let reader = region.create_reader();
-        let vec = reader.unchecked_read(0, HEADER_OFFSET);
+        let vec = reader.read(0, HEADER_OFFSET);
         let header = HeaderInner::from_bytes(vec)?;
 
         if header.header_version != HEADER_VERSION {

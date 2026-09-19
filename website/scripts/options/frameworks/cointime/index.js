@@ -407,7 +407,7 @@ export function createCointimeSection() {
                 title: "Active Supply in Loss",
                 bottom: [
                   line({
-                    series: cointimeSupply.active.inLoss.share,
+                    series: cointimeSupply.active.inLoss.share.ratio,
                     name: "Share",
                     color: colors.loss,
                     unit: Unit.ratio,

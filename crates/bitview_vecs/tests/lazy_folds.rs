@@ -15,8 +15,6 @@ use vecdb::{
     ReadBounds, ReadableVec, ReverseOperands, VecValue, WritableVec,
 };
 
-#[path = "../benches/unit/lazy_folds.rs"]
-mod bench;
 #[allow(dead_code)]
 mod common;
 

@@ -29,12 +29,6 @@ mod middleware;
 mod mining;
 #[cfg(feature = "price")]
 mod oracle;
-#[cfg(feature = "price")]
-#[path = "../../benches/unit/oracle_window.rs"]
-mod oracle_window;
-#[cfg(all(feature = "chain", feature = "series"))]
-#[path = "../../benches/unit/populated_server.rs"]
-mod populated_server;
 #[cfg(feature = "chain")]
 mod raw_responses;
 #[cfg(all(feature = "chain", feature = "series"))]

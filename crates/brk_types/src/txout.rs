@@ -11,26 +11,8 @@ use crate::{Addr, AddrBytes, OutputType, OutputTypeNormalized, Sats};
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
     /// Script pubkey (locking script)
-    #[serde(
-        rename = "scriptpubkey",
-        serialize_with = "serialize_with_script_pubkey"
-    )]
+    #[serde(rename = "scriptpubkey")]
     pub script_pubkey: ScriptBuf,
-
-    /// Script pubkey in assembly format
-    #[allow(dead_code)]
-    #[serde(skip, rename = "scriptpubkey_asm")]
-    script_pubkey_asm: (),
-
-    /// Esplora/mempool.space script type
-    #[allow(dead_code)]
-    #[serde(skip, rename = "scriptpubkey_type")]
-    script_pubkey_type: (),
-
-    /// Bitcoin address (if applicable, None for OP_RETURN)
-    #[allow(dead_code)]
-    #[serde(skip, rename = "scriptpubkey_address")]
-    script_pubkey_addr: (),
 
     /// Value of the output in satoshis
     pub value: Sats,
@@ -100,9 +82,6 @@ impl From<BitcoinTxOut> for TxOut {
         Self {
             script_pubkey: txout.script_pubkey,
             value: txout.value.into(),
-            script_pubkey_asm: (),
-            script_pubkey_addr: (),
-            script_pubkey_type: (),
         }
     }
 }
@@ -122,9 +101,6 @@ impl From<(ScriptBuf, Sats)> for TxOut {
     fn from((script, value): (ScriptBuf, Sats)) -> Self {
         Self {
             script_pubkey: script,
-            script_pubkey_addr: (),
-            script_pubkey_asm: (),
-            script_pubkey_type: (),
             value,
         }
     }

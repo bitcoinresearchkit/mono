@@ -6,7 +6,7 @@ import {
 } from "./op-return/data.js";
 
 const tx = bitview.series.transactions;
-const txIndexes = bitview.series.indexes.txIndex;
+const txIndexes = bitview.series.mappings.txIndex;
 
 /** @param {unknown} expected */
 const equals = (expected) => (/** @type {unknown} */ value) => value === expected;
@@ -36,25 +36,25 @@ const COUNT_SOURCES = [
   { key: "type:op_return", series: tx.features.count.opReturn },
   { key: "type:empty", series: tx.features.count.empty },
   { key: "type:unknown", series: tx.features.count.unknown },
-  { key: "behavior:cpfp_parent", series: tx.fees.count.cpfpParent },
-  { key: "behavior:cpfp_child", series: tx.fees.count.cpfpChild },
-  { key: "behavior:coinjoin", series: tx.patterns.count.coinjoin },
-  { key: "behavior:consolidation", series: tx.patterns.count.consolidation },
-  { key: "behavior:batch", series: tx.patterns.count.batchPayout },
+  { key: "behavior:cpfp_parent", series: tx.fees.count.cpfpParent.block },
+  { key: "behavior:cpfp_child", series: tx.fees.count.cpfpChild.block },
+  { key: "behavior:coinjoin", series: tx.patterns.count.coinjoin.block },
+  { key: "behavior:consolidation", series: tx.patterns.count.consolidation.block },
+  { key: "behavior:batch", series: tx.patterns.count.batchPayout.block },
   { key: "data:fake_pubkey", series: tx.features.count.fakePubkey },
   { key: "data:fake_scripthash", series: tx.features.count.fakeScripthash },
-  { key: "data:inscription", series: tx.features.count.inscription },
-  { key: "data:annex", series: tx.features.count.annex },
-  { key: "data:dust", series: tx.features.count.dustOutput },
-  { key: "sighash:all", series: tx.features.count.sighashAll },
-  { key: "sighash:none", series: tx.features.count.sighashNone },
-  { key: "sighash:single", series: tx.features.count.sighashSingle },
-  { key: "sighash:default", series: tx.features.count.sighashDefault },
+  { key: "data:inscription", series: tx.features.count.inscription.block },
+  { key: "data:annex", series: tx.features.count.annex.block },
+  { key: "data:dust", series: tx.features.count.dustOutput.block },
+  { key: "sighash:all", series: tx.features.count.sighashAll.block },
+  { key: "sighash:none", series: tx.features.count.sighashNone.block },
+  { key: "sighash:single", series: tx.features.count.sighashSingle.block },
+  { key: "sighash:default", series: tx.features.count.sighashDefault.block },
   {
     key: "sighash:anyone_can_pay",
-    series: tx.features.count.sighashAnyoneCanPay,
+    series: tx.features.count.sighashAnyoneCanPay.block,
   },
-  { key: "policy:nonstandard", series: tx.policy.count },
+  { key: "policy:nonstandard", series: tx.policy.count.nonstandard.block },
   ...OP_RETURN_COUNT_SOURCES,
 ];
 

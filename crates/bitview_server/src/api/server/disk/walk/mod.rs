@@ -10,9 +10,6 @@ use std::{
 };
 
 #[cfg(test)]
-#[path = "../../../../../benches/unit/disk_walk.rs"]
-mod bench;
-#[cfg(test)]
 #[path = "../../../../../tests/unit/disk_walk.rs"]
 mod tests;
 

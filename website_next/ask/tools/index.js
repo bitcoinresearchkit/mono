@@ -214,7 +214,7 @@ async function answerFromEvidence(model, grounding, onStatus) {
   });
   const answer = unsupportedReference ? "" : draft;
   const answerSubjects = [...new Set(
-    inline.map(codeSubject).filter(Boolean),
+    inline.map(codeSubject).filter((subject) => subject !== undefined),
   )];
   const groundedSubject = grounding.subjects?.[0];
   const referencedSubjects = answerSubjects.length > 1 && groundedSubject
@@ -255,12 +255,12 @@ async function answerFromEvidence(model, grounding, onStatus) {
 /** @param {string} question */
 function requestedArithmetic(question) {
   const words = new Set(normalize(question).split(" "));
-  const matches = [
+  const matches = /** @type {const} */ ([
     { action: "add", words: ["add", "plus"] },
     { action: "subtract", words: ["subtract", "minus"] },
     { action: "multiply", words: ["multiply", "times"] },
     { action: "divide", words: ["divide", "rate"] },
-  ].filter(({ words: candidates }) =>
+  ]).filter(({ words: candidates }) =>
     candidates.some((word) => words.has(word))
   );
   return matches.length === 1 ? matches[0].action : undefined;
@@ -300,7 +300,9 @@ function matchApiClauses(clauses, fields, previousFields) {
       .filter(Boolean),
   );
   const preferredParent = parents.size === 1 ? [...parents][0] : undefined;
+  /** @param {import("./api/answer.js").ApiAnswerField[]} candidates */
   const resolve = (candidates) => {
+    /** @type {import("./api/answer.js").ApiAnswerField[]} */
     const chosen = [];
     for (const clause of clauses) {
       const ranked = candidates
@@ -513,14 +515,15 @@ async function answerFromApiGrounding(model, grounding, onStatus) {
       };
     }
   }
-  const previousOperand = arithmetic && apiAnswer.previous
-    ? directFields.find(({ ref }) => ref !== apiAnswer.previous.ref) ??
+  const previous = apiAnswer.previous;
+  const previousOperand = arithmetic && previous
+    ? directFields.find(({ ref }) => ref !== previous.ref) ??
       (() => {
         const compatible = apiAnswer.fields
           .filter((field) =>
-            field.ref !== apiAnswer.previous.ref &&
+            field.ref !== previous.ref &&
             typeof field.value === "number" &&
-            field.type === apiAnswer.previous.type
+            field.type === previous.type
           )
           .sort((left, right) => right.score - left.score);
         return compatible[0]?.score >= 6 &&
@@ -529,8 +532,7 @@ async function answerFromApiGrounding(model, grounding, onStatus) {
           : undefined;
       })()
     : undefined;
-  if (arithmetic && apiAnswer.previous && previousOperand) {
-    const previous = apiAnswer.previous;
+  if (arithmetic && previous && previousOperand) {
     const current = previousOperand;
     const previousPosition = fieldPosition(grounding.question, previous.name);
     const currentPosition = fieldPosition(grounding.question, current.name);

@@ -1,9 +1,8 @@
 use std::{collections::BTreeMap, path::PathBuf};
 
 use log::debug;
-use rawdb::unlikely;
 
-use crate::{AnyStoredVec, Error, Result, Stamp, VecIndex, VecValue, Version};
+use crate::{AnyStoredVec, Error, Result, Stamp, VecIndex, VecValue, Version, unlikely};
 
 /// Maximum in-memory cache size before forcing a flush (1 GiB).
 /// Prevents unbounded memory growth when pushing many values without flushing.

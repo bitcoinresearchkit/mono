@@ -1,6 +1,4 @@
-use rawdb::unlikely;
-
-use crate::ReadableVec;
+use crate::{ReadableVec, unlikely};
 
 use super::{MutableRawVec, MutableVec};
 

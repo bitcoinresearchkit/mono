@@ -1,4 +1,4 @@
-import { QuickMatch, QuickMatchConfig } from "../../../modules/quickmatch-js/0.5.0/src/index.js";
+import { QuickMatch, QuickMatchConfig } from "../../../modules/quickmatch-js/src/index.js";
 import { normalize, tokenAffinity } from "../text.js";
 import { operationsFromOpenApi } from "./openapi.js";
 

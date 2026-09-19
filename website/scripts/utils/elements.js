@@ -2,9 +2,6 @@ import { getElementById } from "./dom.js";
 
 export const style = getComputedStyle(window.document.documentElement);
 
-export const headElement = window.document.getElementsByTagName("head")[0];
-export const bodyElement = window.document.body;
-
 export const mainElement = getElementById("main");
 export const asideElement = getElementById("aside");
 export const searchElement = getElementById("search");

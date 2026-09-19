@@ -17,19 +17,6 @@ import { colors } from "../utils/colors.js";
 // ============================================================================
 
 /**
- * Map cohorts to series (without "all" cohort)
- * Use for charts where "all" doesn't have required properties
- * @template T
- * @template R
- * @param {readonly T[]} list
- * @param {(item: T) => R} fn
- * @returns {R[]}
- */
-export function mapCohorts(list, fn) {
-  return list.map(fn);
-}
-
-/**
  * FlatMap cohorts to series (without "all" cohort)
  * Use for charts where "all" doesn't have required properties
  * @template T
@@ -183,41 +170,6 @@ export function satsBtcUsd({ pattern, name, color, defaultActive, style }) {
 }
 
 /**
- * Create sats/btc/usd baseline series from a value pattern
- * @param {Object} args
- * @param {{ btc: AnySeriesPattern, sats: AnySeriesPattern, usd: AnySeriesPattern }} args.pattern
- * @param {string} args.name
- * @param {Color} [args.color]
- * @param {boolean} [args.defaultActive]
- * @returns {FetchedBaselineSeriesBlueprint[]}
- */
-export function satsBtcUsdBaseline({ pattern, name, color, defaultActive }) {
-  return [
-    baseline({
-      series: pattern.btc,
-      name,
-      color,
-      unit: Unit.btc,
-      defaultActive,
-    }),
-    baseline({
-      series: pattern.sats,
-      name,
-      color,
-      unit: Unit.sats,
-      defaultActive,
-    }),
-    baseline({
-      series: pattern.usd,
-      name,
-      color,
-      unit: Unit.usd,
-      defaultActive,
-    }),
-  ];
-}
-
-/**
  * Create sats/btc/usd series from a value pattern's cumulative
  * @param {Object} args
  * @param {{ cumulative: AnyValuePattern }} args.source
@@ -266,19 +218,6 @@ export function revenueBtcSatsUsd({ coinbase, subsidy, fee, key }) {
       color: colors.mining.fee,
     }),
   ];
-}
-
-/**
- * Create sats/btc/usd series from a rolling window (24h/1w/1m/1y sum)
- * @param {Object} args
- * @param {AnyValuePattern} args.pattern - A BtcSatsUsdPattern (e.g., source.rolling._24h.sum)
- * @param {string} args.name
- * @param {Color} [args.color]
- * @param {boolean} [args.defaultActive]
- * @returns {FetchedLineSeriesBlueprint[]}
- */
-export function satsBtcUsdRolling({ pattern, name, color, defaultActive }) {
-  return satsBtcUsd({ pattern, name, color, defaultActive });
 }
 
 /**

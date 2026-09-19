@@ -42,7 +42,7 @@
  * @typedef {Bitview.BtcCentsSatsUsdPattern} SupplyPattern
  * @typedef {Bitview.AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern} BlockSizePattern
  * @typedef {keyof Bitview.SeriesTree_Cohorts_Supply_Total["type"]} SpendableType
- * @typedef {Bitview.SpentUnspentPattern} OutputsPattern
+ * @typedef {AllUtxoPattern["outputs"]} OutputsPattern
  * @typedef {keyof Bitview.SeriesTree_Addrs_Raw} AddressableType
  *
  * Bitview pattern types (using new pattern names)
@@ -78,24 +78,24 @@
  * @typedef {Bitview.AnySeriesData} AnySeriesData
  * Relative patterns by capability:
  * Unrealized patterns by capability level
- * @typedef {Bitview.LossNetNuplProfitPattern} BasicRelativePattern
- * @typedef {Bitview.CapitalizedGrossInvestedLossNetNuplProfitSentimentPattern2} FullRelativePattern
+ * @typedef {BasicUtxoPattern["unrealized"]} BasicRelativePattern
+ * @typedef {ShortTermPattern["unrealized"]} FullRelativePattern
  *
  * Profitability bucket pattern (supply + realized_cap + unrealized_pnl + nupl)
  * @typedef {ReturnType<typeof import("./options/distribution/data.js").buildCohortData>["profitabilityRange"][number]["pattern"]} RealizedSupplyPattern
  *
  * Realized pattern (full: cap + gross + capitalized + loss + mvrv + net + peak + price + profit + sell + sopr)
- * @typedef {Bitview.CapCapitalizedGrossLossMvrvNetPeakPriceProfitSellSoprPattern} RealizedPattern
- * @typedef {Omit<RealizedPattern, "sopr">} FullRealizedProfitabilityPattern
+ * @typedef {AllUtxoPattern["realized"]} RealizedPattern
+ * @typedef {Pick<RealizedPattern, "profit" | "loss" | "netPnl" | "grossPnl" | "peakRegret" | "netPnlChange1mToRcap" | "profitToLossRatio">} FullRealizedProfitabilityPattern
  *
  * Transfer volume pattern (block + cumulative + inProfit/inLoss + sum windows)
- * @typedef {Bitview.AverageBlockCumulativeInSumPattern} TransferVolumePattern
+ * @typedef {AllUtxoPattern["activity"]["transferVolume"]} TransferVolumePattern
  *
  * Realized profit/loss pattern (block + cumulative + sum windows, cents/usd)
  * @typedef {Bitview.BlockCumulativeSumPattern} RealizedProfitLossPattern
  *
  * Full activity pattern (coindays, coinyears, dormancy, transfer volume)
- * @typedef {Bitview.CoindaysCoinyearsDormancyTransferPattern} FullActivityPattern
+ * @typedef {AllUtxoPattern["activity"]} FullActivityPattern
  *
  *
  * PPM + percent + ratio pattern
@@ -108,17 +108,17 @@
  * @typedef {Bitview.PpmRatioPattern} NuplPattern
  *
  * Net PnL pattern with change (base + change + cumulative + delta + rel + sum)
- * @typedef {Bitview.BlockChangeCumulativeDeltaSumPattern} NetPnlFullPattern
+ * @typedef {AllUtxoPattern["realized"]["netPnl"]} NetPnlFullPattern
  *
  * Net PnL basic pattern (base + cumulative + delta + sum)
  * @typedef {Bitview.BlockCumulativeDeltaSumPattern} NetPnlBasicPattern
  *
- * Mid realized pattern (cap + loss + MVRV + net + price + profit + SOPR)
- * @typedef {Bitview.CapLossMvrvNetPriceProfitSoprPattern} MidRealizedPattern
+ * Realized profitability shared by Core and AgeRange cohorts
+ * @typedef {Pick<AgeRangePattern["realized"], "profit" | "loss" | "netPnl">} MidRealizedPattern
  *
  * Basic realized pattern (cap + loss + MVRV + price + profit, no net/sopr)
- * @typedef {Bitview.CapLossMvrvPriceProfitPattern} BasicRealizedPattern
- * @typedef {Pick<Bitview.CapLossProfitPattern, "profit" | "loss">} BasicRealizedProfitabilityPattern
+ * @typedef {BasicUtxoPattern["realized"]} BasicRealizedPattern
+ * @typedef {Pick<UtxoAmountPattern["realized"], "profit" | "loss">} BasicRealizedProfitabilityPattern
  *
  * Moving average price ratio pattern (ppm + cents + ratio + sats + usd)
  * @typedef {Bitview.CentsPpmRatioSatsUsdPattern} MaPriceRatioPattern

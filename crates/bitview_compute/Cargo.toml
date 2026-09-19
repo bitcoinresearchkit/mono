@@ -20,6 +20,3 @@ brk_types = { workspace = true, features = ["storage"] }
 schemars = { workspace = true }
 serde = { workspace = true }
 vecdb = { workspace = true }
-
-[dev-dependencies]
-tempfile = { workspace = true }

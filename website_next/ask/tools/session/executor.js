@@ -101,7 +101,7 @@ function computesField(content, field) {
       .some((operator) => code.includes(operator));
 }
 
-/** @param {any} result @param {string} query */
+/** @param {Awaited<ReturnType<import("../source/index.js").AskSource["search"]>>} result @param {string} query */
 function rankedSchemaMatches(result, query) {
   const parts = query.trim().split(/\s+/);
   const field = normalize(parts.at(-1) ?? "");
@@ -420,7 +420,7 @@ export class CapabilityExecutor {
           declaresSymbol(match.content, exactSubject)
         )
       : undefined;
-    if (definition) {
+    if (definition && exactSubject && subjectResult) {
       const source = {
         ...definition,
         revision: subjectResult.revision,
@@ -504,9 +504,9 @@ export class CapabilityExecutor {
             containsSymbol(content, exactSubject)
           )
         : candidates).slice(0, 3);
-    const callers = subject
+    const callers = subject && usageResult
       ? usageCallers(
-          (usageResult?.matches ?? []).map((/** @type {any} */ match) => ({
+          usageResult.matches.map((/** @type {any} */ match) => ({
             ...match,
             revision: usageResult.revision,
           })),

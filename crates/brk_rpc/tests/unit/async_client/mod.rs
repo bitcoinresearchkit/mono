@@ -13,8 +13,6 @@ use tokio::{
 use super::AsyncClient;
 use crate::Auth;
 
-#[path = "../../../benches/unit/async_rpc.rs"]
-mod bench;
 mod broadcast;
 
 async fn request(socket: &mut BufReader<TcpStream>) -> (Value, String) {

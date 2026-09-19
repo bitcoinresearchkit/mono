@@ -508,34 +508,6 @@ function groupedVolumeFolder(list, all, title, getTransferVolume) {
   return { name: "Volume", tree: groupedVolumeTree(list, all, title, getTransferVolume) };
 }
 
-/**
- * @template {{ name: string, color: Color }} T
- * @template {{ name: string, color: Color }} A
- * @param {readonly T[]} list
- * @param {A} all
- * @param {(name: string) => string} title
- * @param {(c: T | A) => { sum: Record<string, AnyValuePattern>, cumulative: AnyValuePattern, inProfit: { sum: Record<string, AnyValuePattern>, cumulative: AnyValuePattern }, inLoss: { sum: Record<string, AnyValuePattern>, cumulative: AnyValuePattern } }} getTransferVolume
- * @param {(c: T | A) => CountPattern<number>} getAdjustedTransferVolume
- * @returns {PartialOptionsGroup}
- */
-function groupedVolumeFolderWithAdjusted(list, all, title, getTransferVolume, getAdjustedTransferVolume) {
-  return {
-    name: "Volume",
-    tree: [
-      ...groupedVolumeTree(list, all, title, getTransferVolume),
-      {
-        name: "Adjusted",
-        tree: groupedWindowsCumulativeWithAll({
-          list, all, title, metricTitle: "Adjusted Transfer Volume",
-          getWindowSeries: (c, key) => getAdjustedTransferVolume(c).sum[key],
-          getCumulativeSeries: (c) => getAdjustedTransferVolume(c).cumulative,
-          seriesFn: line, unit: Unit.usd,
-        }),
-      },
-    ],
-  };
-}
-
 // ============================================================================
 // Grouped SOPR Helpers
 // ============================================================================
@@ -594,42 +566,6 @@ function groupedValueDestroyedFolder({ list, all, title, getValueDestroyed }) {
   };
 }
 
-/**
- * @template {{ name: string, color: Color }} T
- * @template {{ name: string, color: Color }} A
- * @param {{ list: readonly T[], all: A, title: (name: string) => string, getValueDestroyed: (c: T | A) => Bitview.SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed["all"], getAdjustedValueDestroyed: (c: T | A) => CountPattern<number> }} args
- * @returns {PartialOptionsGroup}
- */
-function groupedValueDestroyedFolderWithAdjusted({
-  list,
-  all,
-  title,
-  getValueDestroyed,
-  getAdjustedValueDestroyed,
-}) {
-  return {
-    name: "Value Destroyed",
-    tree: [
-      ...groupedValueDestroyedTree({ list, all, title, getValueDestroyed }),
-      {
-        name: "Adjusted",
-        tree: groupedWindowsCumulativeWithAll({
-          list,
-          all,
-          title,
-          metricTitle: "Adjusted Value Destroyed",
-          getWindowSeries: (cohort, key) =>
-            getAdjustedValueDestroyed(cohort).sum[key],
-          getCumulativeSeries: (cohort) =>
-            getAdjustedValueDestroyed(cohort).cumulative,
-          seriesFn: line,
-          unit: Unit.usd,
-        }),
-      },
-    ],
-  };
-}
-
 // ============================================================================
 // Grouped Activity Sections
 // ============================================================================
@@ -651,32 +587,6 @@ function groupedFullActivityTree(list, all, title, volumeItem, soprFolder, value
     valueDestroyedItem,
     ...groupedActivitySharedItems(list, all, title),
   ];
-}
-
-/** @param {{ list: readonly CohortFull[], all: CohortAll, title: (name: string) => string }} args */
-export function createGroupedActivitySectionWithAdjusted({ list, all, title }) {
-  return {
-    name: "Activity",
-    tree: groupedFullActivityTree(list, all, title,
-      groupedVolumeFolderWithAdjusted(list, all, title, (c) => c.tree.activity.transferVolume, (c) => c.tree.realized.adjustedSopr.transferVolume),
-      {
-        name: "SOPR",
-        tree: [
-          ...groupedSoprCharts(list, all, (c) => soprWindows(c.tree.realized), title),
-          { name: "Adjusted", tree: groupedSoprCharts(list, all, (c) => c.tree.realized.adjustedSopr.ratio, title, "Adjusted ") },
-        ],
-      },
-      groupedValueDestroyedFolderWithAdjusted({
-        list,
-        all,
-        title,
-        getValueDestroyed: (cohort) =>
-          cohort.tree.realized.sopr.valueDestroyed,
-        getAdjustedValueDestroyed: (cohort) =>
-          cohort.tree.realized.adjustedSopr.valueDestroyed,
-      }),
-    ),
-  };
 }
 
 /** @param {{ list: readonly (CohortFull | CohortLongTerm)[], all: CohortAll, title: (name: string) => string }} args */

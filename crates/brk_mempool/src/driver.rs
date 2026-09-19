@@ -167,7 +167,3 @@ impl Mempool {
 #[cfg(test)]
 #[path = "../tests/unit/driver.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "../benches/unit/publication.rs"]
-mod bench;

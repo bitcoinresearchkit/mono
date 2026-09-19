@@ -177,6 +177,7 @@ fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
     let reader = vec.reader();
     assert_eq!(vec.get_with_reader(1, &reader), Some(TestValue(1_000)));
     assert_eq!(read_only.len(), 0);
+    drop(reader);
 
     vec.write()?;
 
@@ -186,6 +187,7 @@ fn roundtrip_updates_holes_and_read_only_visibility() -> Result<()> {
     assert_eq!(cursor.position(), 2);
     assert_eq!(cursor.remaining(), 1);
     assert_eq!(cursor.get(2), Some(TestValue(3)));
+    drop(cursor);
 
     assert_eq!(
         read_only.collect(),

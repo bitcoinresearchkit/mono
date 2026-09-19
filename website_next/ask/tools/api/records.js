@@ -18,6 +18,7 @@ export function apiRows(data) {
   if (Array.isArray(data)) return data;
   return data &&
       typeof data === "object" &&
+      "sample" in data &&
       Array.isArray(data.sample)
     ? data.sample
     : undefined;

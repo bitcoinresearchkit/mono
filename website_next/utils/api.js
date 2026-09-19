@@ -38,5 +38,7 @@ export function fetchBrkSeries(name, index, start, end, signal) {
     start: String(start),
   });
 
-  return fetchBrkJson(`/api/series/${name}/${index}?${params}`, signal);
+  return /** @type {Promise<{ data: T[] }>} */ (
+    fetchBrkJson(`/api/series/${name}/${index}?${params}`, signal)
+  );
 }

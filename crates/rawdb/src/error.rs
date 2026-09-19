@@ -11,17 +11,14 @@ pub enum Error {
     #[error(transparent)]
     IO(#[from] io::Error),
 
-    #[error("Database is locked by another process")]
+    #[error(transparent)]
     TryLock(#[from] fs::TryLockError),
 
     // Region errors
     #[error("Region not found")]
     RegionNotFound,
 
-    #[error("Region already exists")]
-    RegionAlreadyExists,
-
-    #[error("Cannot remove region '{id}': still held by {} reference(s)", ref_count - 1)]
+    #[error("Cannot remove region '{id}': still referenced ({ref_count} handles)")]
     RegionStillReferenced { id: String, ref_count: usize },
 
     // Write errors
@@ -36,22 +33,9 @@ pub enum Error {
     #[error("Invalid region ID")]
     InvalidRegionId,
 
-    #[error("Invalid metadata size: expected {expected} bytes, got {actual}")]
-    InvalidMetadataSize { expected: usize, actual: usize },
-
-    #[error("Empty region metadata")]
-    EmptyMetadata,
-
-    // Layout errors
-    #[error("Region index mismatch in layout")]
-    RegionIndexMismatch,
-
-    #[error("Hole too small: have {hole_size} bytes, need {requested}")]
-    HoleTooSmall { hole_size: usize, requested: usize },
-
-    // Internal invariant errors
-    #[error("Internal invariant violated: {0}")]
-    InvariantViolation(String),
+    /// An error reported by a caller-supplied operation.
+    #[error("{0}")]
+    Other(String),
 
     #[error("Corrupted metadata: {0}")]
     CorruptedMetadata(String),
@@ -59,13 +43,14 @@ pub enum Error {
     #[error("Region size would overflow: current={current}, requested={requested}")]
     RegionSizeOverflow { current: usize, requested: usize },
 
-    #[error("Overlapping copy ranges not supported (src={src}..{src_end}, dst={dst}..{dst_end})")]
-    OverlappingCopyRanges {
-        src: usize,
-        src_end: usize,
-        dst: usize,
-        dst_end: usize,
-    },
+    #[error("Database file size exceeds the addressable range: {requested}")]
+    FileSizeOverflow { requested: usize },
+
+    #[error("Background task panicked")]
+    BackgroundTaskPanicked,
+
+    #[error("A background task cannot join itself")]
+    BackgroundTaskSelfJoin,
 
     // Hole punching errors
     #[error("Failed to punch hole at offset {start} (length {len}): {source}")]
@@ -80,7 +65,8 @@ pub enum Error {
 }
 
 impl Error {
+    /// Preserves a caller-supplied error message without classifying its cause.
     pub fn other(e: impl ToString) -> Self {
-        Self::InvariantViolation(e.to_string())
+        Self::Other(e.to_string())
     }
 }

@@ -17,6 +17,7 @@ export class AskSource {
    * @param {string | undefined} path
    * @param {"definition" | "implementation" | "usage" | "availability" | undefined} focus
    * @param {((progress: { loaded: number, total: number }) => void) | undefined} [onProgress]
+   * @returns {Promise<{ revision: string, matches: ReturnType<typeof import("./search.js").searchSource> }>}
    */
   search(query, path, focus, onProgress) {
     return this.#client.request(

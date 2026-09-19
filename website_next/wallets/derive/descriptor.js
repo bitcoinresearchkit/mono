@@ -57,7 +57,7 @@ export async function generateAddressesFromDescriptor(descriptorText, options) {
       payload: addressData.payload,
       script: descriptor.script,
       network,
-      addrType: "v0_p2wsh",
+      addrType: "p2wsh",
     });
   }
 

@@ -3,7 +3,6 @@ import { style } from "../elements.js";
 import { colors } from "../colors.js";
 import { stringToId } from "../format.js";
 
-export const canCapture = !ios || canShare;
 const openUrls = new Set();
 
 window.addEventListener("pagehide", () => {

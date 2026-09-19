@@ -25,7 +25,7 @@ const extendedPublicKeyVersions = /** @type {const} */ ([
     prefix: "zpub",
     network: "mainnet",
     script: "v0_p2wpkh",
-    addrType: "v0_p2wpkh",
+    addrType: "p2wpkh",
   },
   {
     version: 0x043587cf,
@@ -46,7 +46,7 @@ const extendedPublicKeyVersions = /** @type {const} */ ([
     prefix: "vpub",
     network: "testnet",
     script: "v0_p2wpkh",
-    addrType: "v0_p2wpkh",
+    addrType: "p2wpkh",
   },
 ]);
 

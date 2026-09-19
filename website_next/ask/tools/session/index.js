@@ -71,7 +71,7 @@ function explicitPosition(question) {
   return values.length === 1 ? values[0].replaceAll(",", "") : undefined;
 }
 
-/** @param {any} evidence @param {string} question @param {boolean} [requiresExample] */
+/** @param {Awaited<ReturnType<typeof collectEvidence>>} evidence @param {string} question @param {boolean} [requiresExample] */
 function preferredGuide(evidence, question, requiresExample = false) {
   return evidence.guideOptions
     .filter(({ guide }) => !requiresExample || guide.example)
@@ -162,6 +162,7 @@ export class AskToolSession {
   routeMessages() {
     if (!this.evidence) throw new Error("Tool session is not ready");
     const { context, apiOptions } = this.evidence;
+    /** @type {import("../../model.js").ChatMessage[]} */
     const messages = [
       {
         role: /** @type {const} */ ("system"),
@@ -410,8 +411,9 @@ export class AskToolSession {
     }
 
     const query = questionTokens;
-    const contextKey = this.evidence.context.api?.operation.key;
-    const contextOperation = this.evidence.context.api?.operation;
+    const apiContext = this.evidence.context.api;
+    const contextKey = apiContext?.operation.key;
+    const contextOperation = apiContext?.operation;
     const currentFieldNames = schemaTokens(
       contextOperation?.response.fields.map(
         (/** @type {any} */ field) => field.name,
@@ -425,7 +427,7 @@ export class AskToolSession {
           !operation.response.type.endsWith("[]") &&
           operation.response.fields.length >
             contextOperation.response.fields.length &&
-          Boolean(reusableArguments(operation, this.evidence.context.api))
+          Boolean(reusableArguments(operation, apiContext))
         )
         .sort(({ operation: left }, { operation: right }) =>
           Number(right.titleMatchedTerms ?? 0) -
@@ -664,6 +666,7 @@ export class AskToolSession {
     };
   }
 
+  /** @param {boolean} continueContext */
   contextualGeneralAction(continueContext) {
     if (!continueContext || !this.evidence) return undefined;
     if (

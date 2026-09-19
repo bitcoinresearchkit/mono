@@ -1,11 +1,9 @@
 use std::{
-    array::from_fn,
     fs::OpenOptions,
-    hint::black_box,
     net::SocketAddr,
     os::unix::fs::symlink,
     path::Path,
-    time::{Duration, Instant},
+    time::Duration,
 };
 
 use aide::axum::ApiRouter;
@@ -15,7 +13,7 @@ use axum::{
     serve as serve_http,
 };
 use brk_types::{Cents, CentsCompact, Cohort, Date, Sats, UrpdAggregation, UrpdRaw, UrpdWeight};
-use serde_json::{Value, from_str, to_vec};
+use serde_json::{Value, from_str};
 use tokio::{
     fs, join,
     net::TcpListener,
@@ -444,58 +442,4 @@ async fn check_weighted_error(address: SocketAddr, route: &str, status: u16) {
             }
         }
     }
-}
-
-pub fn benchmark_inputs(state: &AppState) {
-    state.sync(|query| {
-        let cohort = Cohort::new("fixture").unwrap();
-        let date = Date::new(2009, 1, 3); // The fixture's populated genesis day.
-        let path = &query.plugins().distribution.states_path;
-        for rows in [0_u32, 1, 10_000, 100_000] {
-            let mut random = 0x1234_5678_u64;
-            let mut price = 0;
-            UrpdRaw::write(path, &cohort, date, (0..rows).map(|_| {
-                random ^= random << 13;
-                random ^= random >> 7;
-                random ^= random << 17;
-                price += 1 + (random % 199) as u32;
-                (CentsCompact::new(price), Sats::from(1_000_000 + random % 100_000_000))
-            })).unwrap();
-            for aggregation in [UrpdAggregation::Raw, UrpdAggregation::Lin200] {
-                let capture = || query.resolve_urpd_latest(&cohort, aggregation, UrpdWeight::Raw).unwrap();
-                let first = capture();
-                let id = urpd_input::identity(&first);
-                let mut encoded = 0;
-                first.for_each_section(|bytes| encoded += bytes.len());
-                let expected = to_vec(&first.build().unwrap()).unwrap();
-                let batch = if rows < 10_000 { 100 } else { 10 };
-                let mut samples: [Vec<Duration>; 4] = from_fn(|_| Vec::new());
-                for round in 0..12 {
-                    for offset in 0..4 {
-                        let variant = (round + offset) % 4;
-                        let start = Instant::now();
-                        for sample in 0..batch {
-                            let input = capture();
-                            if variant != 0 {
-                                assert_eq!(urpd_input::identity(&input), id);
-                            }
-                            match variant {
-                                0 | 2 => {
-                                    let actual = to_vec(&input.build().unwrap()).unwrap();
-                                    if round < 2 && sample == 0 { assert_eq!(actual, expected); }
-                                    black_box(actual);
-                                }
-                                1 => {}
-                                3 => { input.validate().unwrap(); }
-                                _ => unreachable!(),
-                            }
-                        }
-                        if round >= 2 { samples[variant].push(start.elapsed() / batch); }
-                    }
-                }
-                for values in &mut samples { values.sort_unstable(); }
-                eprintln!("URPD varied rows={rows} aggregation={aggregation} encoded={encoded} body={}: decode+JSON {:?}, captured-id lower bound {:?}, captured-id+decode+JSON {:?}, stateless-entry-validation {:?}", expected.len(), samples[0][5], samples[1][5], samples[2][5], samples[3][5]);
-            }
-        }
-    });
 }

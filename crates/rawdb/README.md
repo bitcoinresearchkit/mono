@@ -8,9 +8,9 @@ It features:
 - Automatic space reclamation via hole punching
 - Regions grow and move automatically as needed
 - Zero-copy mmap access
-- Thread-safe with concurrent reads and writes
+- Concurrent reads and writes to independent regions
 - Page-aligned allocations (4KB)
-- Crash-consistent with explicit flush
+- Explicit synchronization of data and metadata
 - Foundation for higher-level abstractions (e.g., [`vecdb`](../vecdb/README.md))
 
 It is not:
@@ -44,7 +44,7 @@ fn main() -> Result<()> {
 
     // flush to disk for durability
     db.flush()?;
-    
+
     // read via mmap (data is immediately visible)
     {
         let reader = region1.create_reader();
@@ -72,25 +72,48 @@ rawdb relies on **sparse file** support. Files grow via `set_len()` which create
 
 ## Durability
 
-Operations become durable after calling `flush()`. Before flush, writes are visible in memory but not guaranteed to survive crashes.
+Each database directory contains a `data` file and a `regions` metadata file.
+Metadata uses fixed 4 KiB slots containing each region's ID, offset, length,
+and capacity. These slots are not guaranteed atomic disk writes.
 
-**Design:**
-- **4KB metadata entries**: Atomic page-sized writes per region with embedded IDs
-- **Single metadata file**: Rebuilt into HashMap on startup for O(1) lookups
-- **No WAL**: Simple design with lazy flushing for consistency
-- **Lazy writes**: Both data and metadata are written to mmaps immediately but not synced until flush
+Writes become visible in process immediately. `Database::flush()` excludes
+mutations while it synchronizes dirty data and the data file's metadata, then
+synchronizes the region metadata. Only after that do old allocations from
+moves and removals become reusable. `Region::flush()` uses the same database-wide
+barrier because its metadata file is shared with every other region.
 
-**Write model:**
-1. **Data writes** modify the data mmap immediately (visible but not durable)
-2. **Metadata changes** modify the metadata mmap immediately (visible but not durable)
-3. **Holes from moves/removes** are marked as pending (not reusable until flush)
-4. **`flush()`** syncs both mmaps (data → metadata → file size), then promotes pending holes
-5. Ensures metadata never points to unflushed data and old locations aren't reused prematurely
+This is not a transaction or crash-recovery protocol. Both mappings can be
+written back by the OS before an explicit flush, and in-place writes can
+partially persist. A crash during unflushed operations or synchronization can
+leave inconsistent data or torn metadata; a previously flushed state is not
+preserved as a rollback point. There is no WAL or checksum-based repair. File
+synchronization guarantees also depend on the filesystem and storage device.
 
-**Region operations:**
-- Expand in-place when possible (last region or adjacent hole)
-- Copy-on-write to new location when expansion needed
-- All changes visible immediately in mmaps, durable after `flush()`
+On open, rawdb validates metadata sizes, IDs, region bounds, and overlaps before
+rebuilding its lookup and allocation structures. Invalid metadata returns an
+error; valid-looking data corruption cannot be detected by rawdb.
 
-**Recovery:**
-On open, reads all metadata entries and rebuilds in-memory structures. Deleted regions are identified by zeroed metadata.
+## Concurrency and lifetimes
+
+- A `Reader`, `with_read_bytes` callback, or `read_lock` guard keeps its region
+  stable. Writes, truncation, and relocation of that region wait for readers.
+- Readers expose only their region's logical bytes. `read` checks its range;
+  `read_from` returns bytes from an offset to the region's end.
+- Drop readers before mutating the same region. Mmap readers also prevent
+  remapping, so drop them before an operation that grows the database file.
+  `reserve_capacity` can arrange capacity before acquiring readers.
+- Different regions can be written concurrently within the existing mapping.
+  Allocation changes are serialized. Flush and compaction exclude mutations,
+  while ordinary reads can continue.
+- Batch callbacks must not reenter their region or resize/flush the database.
+  Completed writes remain tracked for flushing if an iterator or callback panics.
+- Keep a `Database` alive while using region handles. A `Reader` owns the
+  database and region handles needed for its own lifetime. Release metadata and
+  read guards before requesting conflicting operations.
+- `run_bg` workers own their storage. `sync_bg_tasks` wakes deferred work,
+  joins all pending tasks, and returns the first error, including task panics.
+  The last owning database handle joins tasks on drop; call `sync_bg_tasks`
+  explicitly to observe failures. Background callbacks must not join themselves.
+
+File locks prevent another rawdb instance from opening the same files. External
+tools must not modify or truncate those files while the database is open.

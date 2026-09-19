@@ -106,8 +106,6 @@ impl Error {
             Error::IO(io_err) => is_io_data_error(io_err),
             Error::RawDB(RawdbError::IO(io_err)) => is_io_data_error(io_err),
             Error::RawDB(RawdbError::CorruptedMetadata(_)) => true,
-            Error::RawDB(RawdbError::InvalidMetadataSize { .. }) => true,
-            Error::RawDB(RawdbError::EmptyMetadata) => true,
             Error::DifferentVersion { .. }
             | Error::DifferentFormat { .. }
             | Error::StampMismatch { .. }

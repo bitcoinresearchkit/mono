@@ -14,9 +14,9 @@ const MAX_ADDRESS_COUNT = 100;
 const addrTypeByScript = /** @type {const} */ ({
   p2pkh: "p2pkh",
   p2sh_p2wpkh: "p2sh",
-  v0_p2wpkh: "v0_p2wpkh",
-  v1_p2tr: "v1_p2tr",
-  v0_p2wsh_sortedmulti: "v0_p2wsh",
+  v0_p2wpkh: "p2wpkh",
+  v1_p2tr: "p2tr",
+  v0_p2wsh_sortedmulti: "p2wsh",
 });
 
 /**

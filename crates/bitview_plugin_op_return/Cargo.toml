@@ -11,7 +11,6 @@ repository.workspace = true
 bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
 bitview_vecs = { workspace = true }
-brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_transactions = { workspace = true }

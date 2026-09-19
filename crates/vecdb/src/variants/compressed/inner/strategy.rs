@@ -1,9 +1,7 @@
 use std::ptr;
 
-use rawdb::likely;
-
 use super::EncodedChunk;
-use crate::{Error, Result, ValueStrategy};
+use crate::{Error, Result, ValueStrategy, likely};
 
 /// Trait for compression strategies used by ReadWriteCompressedVec.
 pub trait CompressionStrategy<T>: ValueStrategy<T> {

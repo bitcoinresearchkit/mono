@@ -42,7 +42,7 @@ where
         let reader = region.create_reader();
         let from = from.min(stored_len);
         let to = to.min(stored_len);
-        let slice = reader.prefixed(HEADER_OFFSET);
+        let slice = reader.read_from(HEADER_OFFSET);
         let ptr = slice.as_ptr();
 
         Self {

@@ -1,7 +1,7 @@
-use rawdb::{Database, Region, unlikely};
+use rawdb::{Database, Region};
 
 use super::Page;
-use crate::{Bytes, Error, HEADER_OFFSET, Result};
+use crate::{Bytes, Error, HEADER_OFFSET, Result, unlikely};
 
 pub const PAGES_PER_BLOCK: usize = 16;
 const BLOCK_BASE_BYTES: usize = size_of::<u64>();

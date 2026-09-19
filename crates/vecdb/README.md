@@ -73,11 +73,16 @@ explicitly wants rebuild behavior.
 
 - `push` appends to the in-memory write buffer.
 - `write` publishes buffered changes to the backing regions.
-- `flush` writes and synchronizes the vector's regions.
-- `Database::flush` synchronizes database metadata.
+- `flush` publishes the vector's changes and synchronizes its database.
+- `Database::flush` synchronizes all dirty data and shared metadata.
 - `reader` creates a read handle for repeated random access.
 - `collect`, `collect_range`, folds, and iterators provide sequential access.
 - `truncate_if_needed` removes a suffix without changing earlier indexes.
+
+Readers and cursors keep their backing regions stable. Drop them before writing
+or truncating those same regions, and before growing the database mapping.
+Writes within another region's existing capacity can proceed while readers
+are alive. Buffered file readers use the same region lock as mmap readers.
 
 Wrap `BytesVec` or `ZeroCopyVec` in `MutableVec` when existing positions must be
 replaced or deleted. Deletions leave holes, so later indexes do not move.

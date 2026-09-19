@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 bitview_vecs = { workspace = true }
-brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_distribution = { workspace = true }
 bitview_plugin_mappings = { workspace = true }

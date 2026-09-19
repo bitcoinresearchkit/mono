@@ -17,10 +17,6 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex};
 
-#[cfg(test)]
-#[path = "../benches/unit/week1.rs"]
-mod bench;
-
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]

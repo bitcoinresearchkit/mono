@@ -124,7 +124,3 @@ impl ResolvedBlockTemplateDiff {
 #[cfg(test)]
 #[path = "../../tests/unit/api/block_template.rs"]
 mod tests;
-
-#[cfg(test)]
-#[path = "../../benches/unit/block_template.rs"]
-mod bench;

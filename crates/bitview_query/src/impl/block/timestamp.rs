@@ -5,10 +5,6 @@ use vecdb::ReadableVec;
 
 use crate::Query;
 
-#[cfg(test)]
-#[path = "../../../benches/unit/block_timestamp.rs"]
-mod bench;
-
 /// An owned timestamp selection from one published chain view.
 pub struct ResolvedBlockTimestamp {
     height: Height,

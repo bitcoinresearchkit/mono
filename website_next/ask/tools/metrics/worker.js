@@ -1,4 +1,4 @@
-import { QuickMatch, QuickMatchConfig } from "../../../modules/quickmatch-js/0.5.0/src/index.js";
+import { QuickMatch, QuickMatchConfig } from "../../../modules/quickmatch-js/src/index.js";
 import { normalize, relevance } from "../text.js";
 import { metricsFromSeries } from "./series.js";
 import { unitFromType } from "./unit.js";

@@ -202,25 +202,6 @@ impl AppState {
             .await?)
     }
 
-    /// Exact former responder for worker-path comparisons; not in release builds.
-    #[cfg(test)]
-    pub async fn respond_block_timestamp_eager_for_bench(
-        &self,
-        headers: HeaderMap,
-        timestamp: Timestamp,
-    ) -> Result<Response, Error> {
-        self.read_block_response(move |q| {
-            let block = q.resolve_block_by_timestamp(timestamp)?.into_value();
-            let params =
-                CacheParams::revalidate(format!("block-timestamp-v2-{}", block.hash).into());
-            if params.matches_etag(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-            block_json_response(params, &block)
-        })
-        .await
-    }
-
     pub async fn respond_block_timestamp(
         &self,
         headers: HeaderMap,

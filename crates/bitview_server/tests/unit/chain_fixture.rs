@@ -4,7 +4,7 @@ use std::{
     future::Future,
     net::{Ipv4Addr, SocketAddr},
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicU32, AtomicUsize, Ordering},
     },
     thread,
@@ -253,6 +253,11 @@ pub fn run_genesis<F: Future<Output = ()>>(
     first: Block,
     inspect: impl FnOnce(ChainFixture) -> F + Send + 'static,
 ) {
+    // Full pipeline fixtures share a cache and retain process-lifetime catalogs.
+    // Running them together can push updates beyond the HTTP deadline even
+    // without eviction. Each scenario still runs its own readers and writers.
+    static FIXTURE: Mutex<()> = Mutex::new(());
+    let _fixture = FIXTURE.lock().unwrap_or_else(|error| error.into_inner());
     init_cache();
     thread::Builder::new()
         .stack_size(8 * 1024 * 1024)

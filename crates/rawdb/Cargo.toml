@@ -1,6 +1,6 @@
 [package]
 name = "rawdb"
-description = "Single-file, low-level and space efficient storage engine with filesystem-like API"
+description = "Low-level, space-efficient storage engine with a filesystem-like API"
 keywords = ["vec", "disk", "database"]
 categories = ["database"]
 version.workspace = true
@@ -15,7 +15,6 @@ libc = { workspace = true }
 log = { workspace = true }
 memmap2 = "0.9.11"
 parking_lot = { workspace = true }
-smallvec = "1.16"
 thiserror = "2.0.20"
 
 [dev-dependencies]
@@ -23,3 +22,7 @@ tempfile = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
+
+[[bench]]
+name = "storage"
+harness = false

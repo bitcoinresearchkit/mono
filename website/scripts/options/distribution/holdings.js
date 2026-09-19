@@ -882,35 +882,6 @@ export function createGroupedHoldingsSection({ list, all, title }) {
   ];
 }
 
-/** @param {{ list: readonly CohortWithoutRelative[], all: CohortAll, title: (name: string) => string }} args */
-export function createGroupedHoldingsSectionWithProfitLoss({
-  list,
-  all,
-  title,
-}) {
-  return [
-    lazyGroup("Supply", () => ({
-      name: "Supply",
-      tree: [
-        groupedSupplyTotal(list, all, title),
-        groupedDominanceChart(list, title),
-        lazyGroup("Profitability", () => ({
-          name: "Profitability",
-          tree: groupedSupplyProfitLoss(list, all, title),
-        })),
-        ...groupedAmountDeltaItems(
-          list,
-          all,
-          (c) => c.tree.supply.delta,
-          title,
-          "Supply",
-        ),
-      ],
-    })),
-    lazyGroup("Outputs", () => groupedOutputsFolder(list, all, title)),
-  ];
-}
-
 /** @param {{ list: readonly (CohortCore | CohortAgeRange)[], all: CohortAll, title: (name: string) => string }} args */
 export function createGroupedHoldingsSectionWithOwnSupply({
   list,

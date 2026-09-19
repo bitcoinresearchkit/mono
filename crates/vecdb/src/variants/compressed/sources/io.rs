@@ -8,7 +8,7 @@ use std::{
 };
 
 use parking_lot::{RwLock, RwLockReadGuard};
-use rawdb::{Region, RegionMetadata};
+use rawdb::Region;
 
 use super::super::inner::{
     COMPRESSED_PAGE_SIZE, CompressionStrategy, Page, PageDecoder, ReadWriteCompressedVec,
@@ -38,7 +38,7 @@ where
     pages: RwLockReadGuard<'a, Pages>,
     index: usize,
     end_index: usize,
-    _region_lock: RwLockReadGuard<'a, RegionMetadata>,
+    _region_lock: RwLockReadGuard<'a, ()>,
     _marker: PhantomData<(I, T, S)>,
 }
 
@@ -161,8 +161,8 @@ where
         from: usize,
         to: usize,
     ) -> Self {
-        let region_lock = region.meta();
-        let region_start = region_lock.start() as u64;
+        let region_lock = region.read_lock();
+        let region_start = region.meta().start() as u64;
         let file = region.open_db_read_only_file().expect("open file");
         let pages = pages.read();
         let from = from.min(stored_len);

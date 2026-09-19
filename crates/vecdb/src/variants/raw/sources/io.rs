@@ -8,7 +8,7 @@ use std::{
 
 use libc::read as LibcRead;
 use parking_lot::RwLockReadGuard;
-use rawdb::{Region, RegionMetadata};
+use rawdb::Region;
 
 use super::super::{RawStrategy, ReadWriteRawVec};
 use crate::{
@@ -32,7 +32,7 @@ pub struct RawIoSource<'a, I, T, S> {
     buffer_len: usize,
     file_offset: usize,
     end_offset: usize,
-    _lock: RwLockReadGuard<'a, RegionMetadata>,
+    _lock: RwLockReadGuard<'a, ()>,
     _marker: PhantomData<(I, T, S)>,
 }
 
@@ -84,8 +84,10 @@ where
 
     pub fn new_from_parts(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {
         let file = region.open_db_read_only_file().expect("open file");
+        let access = region.read_lock();
         let region_meta = region.meta();
         let region_start = region_meta.start();
+        drop(region_meta);
         let start_offset = region_start + HEADER_OFFSET;
         let from = from.min(stored_len);
         let to = to.min(stored_len);
@@ -100,7 +102,7 @@ where
             buffer_len: 0,
             file_offset: from_offset,
             end_offset,
-            _lock: region_meta,
+            _lock: access,
             _marker: PhantomData,
         };
 

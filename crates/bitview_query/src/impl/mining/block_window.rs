@@ -126,9 +126,5 @@ impl BlockWindow {
 }
 
 #[cfg(test)]
-#[path = "../../../benches/unit/mining_storage.rs"]
-mod storage_bench;
-
-#[cfg(test)]
 #[path = "../../../tests/unit/impl/mining/block_window.rs"]
 mod tests;

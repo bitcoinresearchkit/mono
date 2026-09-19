@@ -163,7 +163,7 @@ where
 
     #[inline(always)]
     fn unchecked_read_at(&self, index: usize, reader: &Reader) -> T {
-        let ptr = reader.prefixed(HEADER_OFFSET).as_ptr();
+        let ptr = reader.read_from(HEADER_OFFSET).as_ptr();
         unsafe { S::read_from_ptr(ptr, index * Self::SIZE_OF_T) }
     }
 

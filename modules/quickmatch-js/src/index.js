@@ -171,7 +171,14 @@ export class QuickMatch {
     return this._matches(query, config, false, true);
   }
 
-  /** @private */
+  /**
+   * @private
+   * @param {string} query
+   * @param {QuickMatchConfig} config
+   * @param {boolean} bestOnly
+   * @param {boolean} [exactWords]
+   * @returns {[number, number][]}
+   */
   _matches(query, config, bestOnly, exactWords = false) {
     const { limit, trigramBudget } = config;
     const sep =
@@ -211,6 +218,7 @@ export class QuickMatch {
     // A swapped pair often shares no trigrams ("prcie" → "price").
     // Probe indexed corrections before the broader trigram fallback.
     if (unknown.length && trigramBudget) {
+      /** @type {number[][][]} */
       const corrections = unknown.map(() => []);
       let budget = trigramBudget;
       for (let round = 0; round < trigramBudget && budget > 0; round++) {
@@ -317,6 +325,9 @@ export class QuickMatch {
    * @param {string[]} qwords
    * @param {Uint8Array} sep
    * @param {number} limit
+   * @param {boolean} bestOnly
+   * @param {boolean} [exactWords]
+   * @returns {[number, number][]}
    */
   _rank(indices, minScore, qwords, sep, limit, bestOnly, exactWords = false) {
     const { items, _scores: scores } = this;
@@ -330,6 +341,7 @@ export class QuickMatch {
       buckets[matched].push([idx, position]);
     }
 
+    /** @type {[number, number][]} */
     const results = [];
     for (let ps = buckets.length - 1; ps >= 0 && results.length < limit; ps--) {
       const bucket = buckets[ps];

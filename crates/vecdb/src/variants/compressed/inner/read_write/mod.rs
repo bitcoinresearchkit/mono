@@ -2,7 +2,7 @@ use std::{marker::PhantomData, result::Result, sync::Arc};
 
 use log::debug;
 use parking_lot::RwLock;
-use rawdb::{Reader, Region, likely, unlikely};
+use rawdb::{Reader, Region};
 
 use super::{CompressionStrategy, PAGES_PER_BLOCK, PageDecoder, Pages, ReadOnlyCompressedVec};
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
     Format, ImportOptions, ReadWriteBaseVec, Result as CrateResult, VecIndex, VecValue, Version,
     WritableVec,
     cache::{CachePolicy, NoCache},
-    vec_region_name_with,
+    likely, unlikely, vec_region_name_with,
 };
 
 pub mod any_stored_vec;
@@ -216,8 +216,8 @@ where
         let page = pages
             .get(page_index)
             .expect("page should exist after bounds check");
-        let header = reader.unchecked_read(page.header_start as usize, page.header_len());
-        let body = reader.unchecked_read(page.start as usize, page.bytes as usize);
+        let header = reader.read(page.header_start as usize, page.header_len());
+        let body = reader.read(page.start as usize, page.bytes as usize);
         let expected_len = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
         let mut values = Vec::with_capacity(expected_len);
         PageDecoder::<T, S>::default().decode_into(
@@ -255,8 +255,8 @@ where
             let page = pages
                 .get(page_idx)
                 .expect("page should exist after bounds check");
-            let header = reader.unchecked_read(page.header_start as usize, page.header_len());
-            let body = reader.unchecked_read(page.start as usize, page.bytes as usize);
+            let header = reader.read(page.header_start as usize, page.header_len());
+            let body = reader.read(page.start as usize, page.bytes as usize);
             let values_count = page.values_count(Self::PER_PAGE, Self::SIZE_OF_T);
             let local_from = from.saturating_sub(page_start);
             let local_to = (to - page_start).min(values_count);

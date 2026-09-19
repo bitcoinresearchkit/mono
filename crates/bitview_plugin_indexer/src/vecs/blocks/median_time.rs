@@ -5,10 +5,6 @@ use vecdb::{AnyVec, ReadableVec, WritableVec};
 use super::BlocksVecs;
 
 #[cfg(test)]
-#[path = "../../../benches/unit/median_time.rs"]
-mod bench;
-
-#[cfg(test)]
 #[path = "../../../tests/unit/vecs/blocks/median_time.rs"]
 mod tests;
 

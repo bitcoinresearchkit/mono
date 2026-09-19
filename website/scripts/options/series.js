@@ -211,24 +211,6 @@ export function dotted(args) {
 }
 
 /**
- * @param {Omit<Parameters<typeof line>[0], 'style'>} args
- */
-export function dashed(args) {
-  const _args = /** @type {Parameters<typeof line>[0]} */ (args);
-  _args.style = 2;
-  return line(_args);
-}
-
-/**
- * @param {Omit<Parameters<typeof line>[0], 'style'>} args
- */
-export function sparseDotted(args) {
-  const _args = /** @type {Parameters<typeof line>[0]} */ (args);
-  _args.style = 4;
-  return line(_args);
-}
-
-/**
  * Create a Dots series (line with only point markers visible)
  * @param {Object} args
  * @param {AnySeriesPattern} args.series
@@ -255,37 +237,6 @@ export function dots({
     title: name,
     key,
     color,
-    unit,
-    defaultActive,
-    options,
-  };
-}
-
-/**
- * Create a Candlestick series
- * @param {Object} args
- * @param {AnySeriesPattern} args.series
- * @param {string} args.name
- * @param {Unit} args.unit
- * @param {string} [args.key] - Optional key for persistence (derived from name if not provided)
- * @param {[Color, Color]} [args.colors] - [upColor, downColor] for legend
- * @param {boolean} [args.defaultActive]
- * @param {CandlestickSeriesPartialOptions} [args.options]
- * @returns {FetchedCandlestickSeriesBlueprint}
- */
-export function candlestick({
-  series,
-  name,
-  key,
-  defaultActive,
-  unit,
-  options,
-}) {
-  return {
-    type: /** @type {const} */ ("Candlestick"),
-    series,
-    title: name,
-    key,
     unit,
     defaultActive,
     options,
@@ -335,15 +286,6 @@ export function baseline({
       ...options,
     },
   };
-}
-
-/**
- * @param {Omit<Parameters<typeof baseline>[0], 'style'>} args
- */
-export function dottedBaseline(args) {
-  const _args = /** @type {Parameters<typeof baseline>[0]} */ (args);
-  _args.style = 1;
-  return baseline(_args);
 }
 
 /**
@@ -422,36 +364,6 @@ export function histogram({
     defaultActive,
     options,
   };
-}
-
-/**
- * Create series from an AverageHeightMaxMedianMinP10P25P75P90Pattern (height + rolling stats)
- * @param {Object} args
- * @param {{ height: AnySeriesPattern } & WindowedStats<AnySeriesPattern>} args.pattern - Pattern with .height and rolling stats
- * @param {string} args.window - Rolling window key (e.g., '_24h', '_1w', '_1m', '_1y')
- * @param {Unit} args.unit
- * @param {string} [args.title]
- * @param {Color} [args.baseColor]
- * @param {boolean} [args.avgActive]
- * @returns {AnyFetchedSeriesBlueprint[]}
- */
-export function fromBaseStatsPattern({
-  pattern,
-  window,
-  unit,
-  title = "",
-  baseColor,
-}) {
-  const stats = statsAtWindow(pattern, window);
-  return [
-    dots({
-      series: pattern.height,
-      name: title || "Base",
-      color: baseColor,
-      unit,
-    }),
-    ...percentileSeries({ pattern: stats, unit, title }),
-  ];
 }
 
 /**
@@ -569,33 +481,6 @@ export function sumsAndAveragesCumulativeWith({
       bottom: series({ pattern: cumulative, name: "All Time", color }),
     },
   ];
-}
-
-/**
- * Flat array of per-window charts with both sum (active) and average (off by default)
- * @param {Object} args
- * @param {{ _24h: AnySeriesPattern, _1w: AnySeriesPattern, _1m: AnySeriesPattern, _1y: AnySeriesPattern }} args.sum
- * @param {{ _24h: AnySeriesPattern, _1w: AnySeriesPattern, _1m: AnySeriesPattern, _1y: AnySeriesPattern }} args.average
- * @param {(metric: string) => string} [args.title]
- * @param {string} args.metric
- * @param {Unit} args.unit
- * @returns {PartialChartOption[]}
- */
-export function sumsAndAveragesArray({ sum, average, title = (s) => s, metric, unit }) {
-  return ROLLING_WINDOWS.map((w) => ({
-    name: w.name,
-    title: title(`${w.title} ${metric}`),
-    bottom: [
-      line({ series: sum[w.key], name: "Sum", color: w.color, unit }),
-      line({
-        series: average[w.key],
-        name: "Avg",
-        color: w.color,
-        unit,
-        defaultActive: false,
-      }),
-    ],
-  }));
 }
 
 /**
