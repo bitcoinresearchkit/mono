@@ -137,7 +137,3 @@ fn indexed_chunks_keep_metadata_aligned_with_emitted_values_across_holes() {
         );
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

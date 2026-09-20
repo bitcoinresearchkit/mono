@@ -19,7 +19,6 @@ hyper-util = { version = "0.1", features = ["tokio"], optional = true }
 tokio = { workspace = true, features = ["fs", "time", "net", "sync", "macros"], optional = true }
 bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["corepc", "serde_json"] }
-brk_logger = { workspace = true }
 brk_types = { workspace = true }
 corepc-jsonrpc = { workspace = true }
 corepc-types = { workspace = true }

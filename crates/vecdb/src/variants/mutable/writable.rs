@@ -18,15 +18,17 @@ where
     }
 
     fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+        self.header().check_writable()?;
         self.truncate_mutations_at(index);
         self.vec.truncate_if_needed_at(index)
     }
 
     fn reset(&mut self) -> Result<()> {
+        let guard = self.header().begin_write()?;
         self.holes.clear();
         self.updated.clear();
         self.vec.reset()?;
-        Ok(())
+        guard.finish(Ok(()))
     }
 
     fn reset_unsaved(&mut self) {
@@ -41,23 +43,17 @@ where
     }
 
     fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
-        if self.vec.saved_stamped_changes() == 0 {
-            return self.stamped_write(stamp);
-        }
-
-        let bytes = self.serialize_changes()?;
-        self.vec.save_change_file(stamp, &bytes)?;
-        self.update_stamp(stamp);
-        self.write_inner(false)?;
-        self.vec.save_previous();
-        self.holes.save();
-        self.updated.clear_previous();
-        Ok(())
+        let guard = self.header().begin_write()?;
+        self.save_changes(stamp)?;
+        self.write_saved_changes(stamp)?;
+        guard.finish(Ok(()))
     }
 
     fn rollback(&mut self) -> Result<()> {
+        self.header().check_writable()?;
         let bytes = self.vec.read_current_change_file()?;
         let (modifications, previous_holes) = V::parse_mutable_changes(&bytes)?;
+        let guard = self.header().begin_write()?;
 
         self.vec.rollback()?;
         self.truncate_mutations_at(self.vec.len());
@@ -67,7 +63,7 @@ where
         *self.holes.current_mut() = Arc::new(previous_holes);
         self.holes.save();
         self.updated.save();
-        Ok(())
+        guard.finish(Ok(()))
     }
 
     fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
@@ -75,6 +71,7 @@ where
     }
 
     fn save_rollback_state(&mut self) {
+        self.header().assert_writable();
         self.vec.save_previous_for_rollback();
         self.holes.save();
         self.updated.save();

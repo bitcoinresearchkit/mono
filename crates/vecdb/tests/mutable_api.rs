@@ -130,3 +130,31 @@ fn zerocopy_reader_merges_updates_and_holes() -> Result<()> {
     assert_eq!(vec.get_with_reader(2, &reader), Some(12));
     Ok(())
 }
+
+#[test]
+fn read_only_clone_tracks_published_holes() -> Result<()> {
+    let directory = tempdir()?;
+    let database = Database::open(directory.path())?;
+    let mut vec = MutableVec::<BytesVec<usize, u32>>::forced_import(
+        &database,
+        "read_only_holes",
+        Version::ONE,
+    )?;
+    vec.push(1);
+    vec.push(2);
+    vec.push(3);
+    vec.write()?;
+
+    let read_only = vec.read_only_clone();
+    vec.delete_at(1);
+    vec.write()?;
+
+    assert_eq!(read_only.collect(), vec![1, 3]);
+    assert_eq!(read_only.collect_one_at(1), None);
+
+    vec.update_at(1, 4)?;
+    vec.write()?;
+    assert_eq!(read_only.collect(), vec![1, 4, 3]);
+
+    Ok(())
+}

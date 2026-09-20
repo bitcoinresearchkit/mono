@@ -2,7 +2,9 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use rayon::join;
 
-use super::{Vecs, count, features, fees, patterns, policy, sigops, size, versions, volume};
+use super::{
+    Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions, volume,
+};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -22,7 +24,6 @@ impl ComputePlugin for Vecs {
             price: prices,
         } = dependencies;
         let exit = context.exit();
-
         self.db.sync_bg_tasks()?;
 
         let ((r1, r2), (r3, r4)) = join(
@@ -54,6 +55,8 @@ impl ComputePlugin for Vecs {
             &self.size,
             exit,
         )?;
+
+        inscription::compute(&mut self.inscription, indexer, mappings, &self.fees, exit)?;
 
         patterns::compute(&mut self.patterns, indexer, &inputs.value, mappings, exit)?;
 

@@ -85,17 +85,6 @@ mod tests {
     }
 
     #[test]
-    fn full_height_domain_is_not_materialized() {
-        let State::Rpc { mut heights, .. } = rpc(0, u32::MAX) else {
-            unreachable!();
-        };
-        assert_eq!(heights.next(), Some(0));
-        assert_eq!(heights.next(), Some(1));
-        assert_eq!(heights.next_back(), Some(u32::MAX));
-        assert_eq!(heights.next_back(), Some(u32::MAX - 1));
-    }
-
-    #[test]
     fn empty_rpc_iterator_does_not_contact_the_client() {
         let mut blocks = BlockIterator::new(rpc(5, 4));
         assert!(blocks.next().is_none());

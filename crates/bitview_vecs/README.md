@@ -91,5 +91,4 @@ cargo check -p bitviewd -p bitview_vecs --all-targets --features bitview_vecs/di
 ```
 
 Tests cover calculation boundaries, storage resume/rewind, cache invalidation,
-and exported values. Historical one-off benchmark results remain in `benches/vecdb`;
-their comparison harnesses are no longer part of the test suite.
+and exported values.

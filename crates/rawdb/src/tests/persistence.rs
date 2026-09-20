@@ -7,10 +7,28 @@ use crate::{Database, Result};
 use super::setup_test_db;
 
 #[test]
+fn first_flush_after_reopen_synchronizes_metadata_without_new_writes() -> Result<()> {
+    let temp = TempDir::new()?;
+    {
+        let db = Database::open(temp.path())?;
+        db.create_region_if_needed("values")?.write(b"unsynced")?;
+    }
+    let db = Database::open(temp.path())?;
+    // Region dirty ranges belong to the previous process. Reopening must still
+    // force the data-file sync and then the metadata-file sync on first flush.
+    assert_eq!(db.flush_inner()?, (0, true));
+    assert_eq!(db.flush_inner()?, (0, false));
+    assert_eq!(
+        db.get_region("values").unwrap().create_reader().read_all(),
+        b"unsynced"
+    );
+    Ok(())
+}
+
+#[test]
 fn test_persistence() -> Result<()> {
     let temp = TempDir::new()?;
     let path = temp.path();
-    dbg!(&path);
 
     // Create and populate database
     {

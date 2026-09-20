@@ -2,22 +2,19 @@
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, EagerVec, ImportableVec, PcoVec, ReadOnlyClone,
-    ReadableBoxedVec, ReadableCloneableVec, ReadableVec, Stamp, Version, WritableVec,
+    ReadableCloneableVec, ReadableVec, Stamp, Version, WritableVec,
 };
 
 #[test]
 fn captured_readers_share_ranges_and_source_owned_invalidation() {
     init_cache();
-    fn capture(source: &impl ReadableCloneableVec<usize, u64>) -> ReadableBoxedVec<usize, u64> {
-        source.read_only_boxed_clone()
-    }
     let dir = tempdir().unwrap();
     let db = Database::open(dir.path()).unwrap();
     let mut values = PcoVec::<usize, u64, Budgeted>::import(&db, "values", Version::ONE).unwrap();
     values.push(10);
     values.push(20);
     values.write().unwrap();
-    let captured = capture(&values);
+    let captured = values.read_only_boxed_clone();
     let previous = values.collect();
     assert!(captured.read_cached_into_at(0, 2, &mut Vec::new()));
     values.truncate_if_needed_at(1).unwrap();

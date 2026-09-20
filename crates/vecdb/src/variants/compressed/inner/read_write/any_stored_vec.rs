@@ -118,9 +118,8 @@ where
     }
 
     fn write(&mut self) -> Result<bool> {
-        self.with_cache_update(self.stored_len(), |this| {
-            this.base.write_header_if_needed()?;
-
+        let guard = self.header().begin_write()?;
+        let result = self.with_cache_update(self.stored_len(), |this| {
             let stored_len = this.stored_len();
             let pushed_len = this.base.pushed().len();
 
@@ -136,7 +135,7 @@ where
                 }
 
                 if pushed_len == 0 && stored_len == real_stored_len {
-                    return Ok(false);
+                    return this.base.write_header_if_needed();
                 }
 
                 let starting_page_index = Self::index_to_page_index(stored_len);
@@ -192,8 +191,10 @@ where
                     .checked_add(u32::try_from(raw.len()).map_err(|_| Error::Overflow)?)
                     .ok_or(Error::Overflow)?;
                 pages.push_raw(starting_page_index, total_bytes)?;
-                this.base.update_stored_len(stored_len + pushed_len);
                 pages.flush()?;
+                drop(pages);
+                this.base.write_header_if_needed()?;
+                this.base.update_stored_len(stored_len + pushed_len);
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
@@ -234,15 +235,18 @@ where
                 }
             }
 
-            this.base.update_stored_len(stored_len + pushed_len);
             pages.flush()?;
+            drop(pages);
+            this.base.write_header_if_needed()?;
+            this.base.update_stored_len(stored_len + pushed_len);
 
             if let Some(cache) = C::cache(&this.cache) {
                 cache.extend_tail(stored_len, &values[stored_len - rewrite_from..]);
             }
 
             Ok(true)
-        })
+        });
+        guard.finish(result)
     }
 
     #[inline]

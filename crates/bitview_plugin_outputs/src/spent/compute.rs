@@ -3,7 +3,7 @@ use brk_error::Result;
 use bitview_plugin_indexer::Indexer;
 use brk_exit::{Exit, ExitGuard};
 use brk_types::{Height, TxInIndex, TxOutIndex};
-use tracing::info;
+use tracing::{info, warn};
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex, WritableVec};
 
 use super::Vecs;
@@ -26,12 +26,21 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
     }
     let target_height = Height::from(target_height - 1);
 
-    // Find min_height from current vec length
-    let current_txout_index = vecs.txin_index.len();
-    let min_txout_index = current_txout_index.min(starting_lengths.txout_index.to_usize());
-
-    let starting_stamp = Stamp::from(starting_lengths.height);
-    let _ = vecs.txin_index.rollback_before(starting_stamp);
+    // Zero means uninitialized; every checkpoint counts completed blocks.
+    let starting_stamp = Stamp::from(starting_lengths.height.incremented());
+    if vecs.txin_index.stamp() >= starting_stamp
+        && !vecs
+            .txin_index
+            .rollback_before(starting_stamp)
+            .is_ok_and(|stamp| stamp < starting_stamp)
+    {
+        warn!("Could not roll back spent outputs; rebuilding");
+        vecs.txin_index.reset()?;
+    }
+    let min_txout_index = vecs
+        .txin_index
+        .len()
+        .min(starting_lengths.txout_index.to_usize());
 
     vecs.txin_index
         .truncate_if_needed(TxOutIndex::from(min_txout_index))?;
@@ -91,8 +100,14 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
         } else {
             first_txout_index_data[batch_end_height.to_usize() + 1 - offset].to_usize()
         };
+        // Keep the batch staged: fill_to may issue an unstamped write before
+        // rollback data for a reorg truncation has been saved.
+        let len = vecs.txin_index.len();
         vecs.txin_index
-            .fill_to(batch_txout_index, TxInIndex::UNSPENT)?;
+            .reserve_pushed(batch_txout_index.saturating_sub(len));
+        for _ in len..batch_txout_index {
+            vecs.txin_index.push(TxInIndex::UNSPENT);
+        }
 
         // Get txin range for this height batch
         let txin_start = first_txin_index_data[batch_start_height.to_usize() - offset].to_usize();
@@ -129,7 +144,13 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
 
         if batch_end_height < target_height {
             let _lock = exit.lock();
-            vecs.txin_index.write()?;
+            // Catch-up batches advance the baseline without saving rollback
+            // history. Only the final update write records changes.
+            vecs.txin_index.stamped_write_maybe_with_changes(
+                Stamp::from(batch_end_height.incremented()),
+                false,
+            )?;
+            vecs.txin_index.flush()?;
             info!(
                 "Indexing spent outputs: {:.0}%",
                 batch_end_height.to_usize() as f64 / target_height.to_usize() as f64 * 100.0
@@ -140,8 +161,17 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
     }
 
     let lock = exit.lock();
-    vecs.txin_index
-        .stamped_write_with_changes(Stamp::from(target_height))?;
+    if vecs.txin_index.stamp() < Stamp::from(target_height.incremented()) {
+        checkpoint(vecs, target_height)?;
+    }
 
     Ok(lock)
+}
+
+/// Save undo before changing stored outputs, then make the batch durable.
+pub(super) fn checkpoint(vecs: &mut Vecs, height: Height) -> Result<()> {
+    vecs.txin_index
+        .stamped_write_with_changes(Stamp::from(height.incremented()))?;
+    vecs.txin_index.flush()?;
+    Ok(())
 }

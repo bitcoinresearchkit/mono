@@ -3,4 +3,3 @@ clients/
 /*.js
 /*.rs
 /*.py
-tests/output/

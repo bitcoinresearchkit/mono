@@ -1,4 +1,3 @@
-use crate::test_cache::init_cache;
 use bitview_collections::PerResolution;
 use bitview_vecs::{IndexSources, LazyPreviousDeltaVec, RangeMapVec};
 use brk_types::{Height, Version};
@@ -7,6 +6,9 @@ use vecdb::{
     AnyStoredVec, Budgeted, Database, EagerVec, ImportableVec, PcoVec, PcoVecValue,
     ReadableCloneableVec, VecIndex, WritableVec,
 };
+
+mod cache;
+pub(crate) use cache::init_cache;
 
 pub fn stored<I: VecIndex, T: PcoVecValue>(
     db: &Database,

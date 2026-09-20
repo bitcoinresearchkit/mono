@@ -19,6 +19,10 @@ pub trait AnyStoredVec: AnyVec {
 
     /// Writes pending changes to storage.
     /// Returns `Ok(true)` if data was written, `Ok(false)` if nothing to write.
+    /// This does not create a rollback checkpoint or synchronize files. Use
+    /// stamped writes with changes before overwriting checkpointed values.
+    /// After a failed or unwound write, discard the writer; retries and resets
+    /// cannot repair a partially persisted logical vector.
     #[doc(hidden)]
     fn write(&mut self) -> Result<bool>;
 
@@ -27,10 +31,10 @@ pub trait AnyStoredVec: AnyVec {
 
     #[inline]
     fn flush(&mut self) -> Result<()> {
-        if self.write()? {
-            self.region().flush()?;
-        }
-        Ok(())
+        let guard = self.header().begin_write()?;
+        self.write()?;
+        self.db().flush()?;
+        guard.finish(Ok(()))
     }
 
     /// The actual length stored on disk.
@@ -50,9 +54,11 @@ pub trait AnyStoredVec: AnyVec {
 
     #[inline]
     fn stamped_write(&mut self, stamp: Stamp) -> Result<()> {
+        let guard = self.header().begin_write()?;
+        self.write()?;
         self.update_stamp(stamp);
         self.write()?;
-        Ok(())
+        guard.finish(Ok(()))
     }
 
     /// Flushes with the given stamp, saving changes to enable rollback.

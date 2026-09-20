@@ -3,7 +3,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use crate::test_cache::init_cache;
+    use super::common::init_cache;
 
     use bitview_transforms::RatioU64;
     use bitview_vecs::{LazyIndexedVec, LazyRollingRatioVec};
@@ -149,7 +149,3 @@ mod tests {
         }
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

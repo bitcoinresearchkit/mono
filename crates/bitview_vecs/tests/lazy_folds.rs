@@ -190,7 +190,3 @@ fn fallible_fold_stops_transforming_after_the_first_error() {
     assert_eq!(result, Err(()));
     assert_eq!(calls.load(Ordering::Relaxed), 3);
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

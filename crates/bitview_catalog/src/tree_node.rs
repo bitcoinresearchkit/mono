@@ -410,6 +410,13 @@ mod tests {
         // Multiple branches with same child keys → indexes are merged
         let tree = branch(vec![
             (
+                "day1",
+                branch(vec![
+                    ("sum", leaf("s_sum", Index::Day1)),
+                    ("cumulative", leaf("s_cumulative", Index::Day1)),
+                ]),
+            ),
+            (
                 "week1",
                 branch(vec![
                     ("sum", leaf("s_sum", Index::Week1)),
@@ -428,13 +435,13 @@ mod tests {
 
         match merged {
             TreeNode::Branch(map) => {
-                let sum_indexes = get_leaf_indexes(map.get("sum").unwrap()).unwrap();
-                assert!(sum_indexes.contains(&Index::Week1));
-                assert!(sum_indexes.contains(&Index::Month1));
-
-                let cumulative_indexes = get_leaf_indexes(map.get("cumulative").unwrap()).unwrap();
-                assert!(cumulative_indexes.contains(&Index::Week1));
-                assert!(cumulative_indexes.contains(&Index::Month1));
+                assert_eq!(map.len(), 2);
+                for key in ["sum", "cumulative"] {
+                    assert_eq!(
+                        get_leaf_indexes(map.get(key).unwrap()).unwrap(),
+                        &BTreeSet::from([Index::Day1, Index::Week1, Index::Month1])
+                    );
+                }
             }
             _ => panic!("Expected branch"),
         }
@@ -630,89 +637,6 @@ mod tests {
                     map.keys().collect::<Vec<_>>()
                 );
             }
-        }
-    }
-
-    // ========== Case 1: DerivedDateLast (all same series name) ==========
-
-    #[test]
-    fn case1_derived_date_last() {
-        // All leaves have the same series name, all wrapped as "last"
-        // All branches lift to same key → collapses to single Leaf
-        let tree = branch(vec![
-            (
-                "week1",
-                branch(vec![("last", leaf("1m_block_count", Index::Week1))]),
-            ),
-            (
-                "month1",
-                branch(vec![("last", leaf("1m_block_count", Index::Month1))]),
-            ),
-            (
-                "month3",
-                branch(vec![("last", leaf("1m_block_count", Index::Month3))]),
-            ),
-            (
-                "year1",
-                branch(vec![("last", leaf("1m_block_count", Index::Year1))]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        match &merged {
-            TreeNode::Leaf(leaf) => {
-                assert_eq!(leaf.name(), "1m_block_count");
-                let indexes = leaf.indexes();
-                assert!(indexes.contains(&Index::Week1));
-                assert!(indexes.contains(&Index::Month1));
-                assert!(indexes.contains(&Index::Month3));
-                assert!(indexes.contains(&Index::Year1));
-            }
-            _ => panic!("Expected collapsed Leaf"),
-        }
-    }
-
-    // ========== Case 2: SumCum (different aggregations via wrap) ==========
-
-    #[test]
-    fn case2_sum_cum() {
-        // SumVec/CumulativeVec use wrap to produce branches
-        // Multiple time periods, each producing { "sum": Leaf, "cumulative": Leaf }
-        // These should merge into { "sum": Leaf(all indexes), "cumulative": Leaf(all indexes) }
-        let tree = branch(vec![
-            (
-                "day1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Day1)),
-                    ("cumulative", leaf("s_cumulative", Index::Day1)),
-                ]),
-            ),
-            (
-                "week1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Week1)),
-                    ("cumulative", leaf("s_cumulative", Index::Week1)),
-                ]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // DESIRED: { "sum": Leaf, "cumulative": Leaf } with merged indexes
-        match merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 2);
-
-                let sum_indexes = get_leaf_indexes(map.get("sum").unwrap()).unwrap();
-                assert!(sum_indexes.contains(&Index::Day1));
-                assert!(sum_indexes.contains(&Index::Week1));
-
-                let cumulative_indexes = get_leaf_indexes(map.get("cumulative").unwrap()).unwrap();
-                assert!(cumulative_indexes.contains(&Index::Day1));
-                assert!(cumulative_indexes.contains(&Index::Week1));
-            }
-            _ => panic!("Expected branch with sum and cumulative"),
         }
     }
 
@@ -1039,93 +963,8 @@ mod tests {
         }
     }
 
-    // ========== Case 9: ValueBlockSumCum (outer no merge, inner has merge) ==========
-    // ValueBlockSumCum (no merge):
-    //   - sats: ComputedBlockSumCum<Sats> (merge) → { base, sum, cumulative }
-    //   - bitcoin: LazyBlockSumCum<Bitcoin> (merge) → { base, sum, cumulative }
-    //   - dollars: Option<ComputedBlockSumCum<Dollars>> (merge) → { base, sum, cumulative }
-
-    #[test]
-    fn case9_value_block_sum_cum() {
-        // Each denomination has already been merged internally
-        // Simulating the output after inner merge
-        let sats_merged = branch(vec![
-            ("raw", leaf("s", Index::Height)),
-            ("sum", leaf("s_sum", Index::Day1)),
-            ("cumulative", leaf("s_cumulative", Index::Height)),
-        ]);
-
-        let bitcoin_merged = branch(vec![
-            ("raw", leaf("s_btc", Index::Height)),
-            ("sum", leaf("s_btc_sum", Index::Day1)),
-            ("cumulative", leaf("s_btc_cumulative", Index::Height)),
-        ]);
-
-        let dollars_merged = branch(vec![
-            ("raw", leaf("s_usd", Index::Height)),
-            ("sum", leaf("s_usd_sum", Index::Day1)),
-            ("cumulative", leaf("s_usd_cumulative", Index::Height)),
-        ]);
-
-        // Outer struct has no merge, so denominations stay as branches
-        let tree = branch(vec![
-            ("sats", sats_merged),
-            ("bitcoin", bitcoin_merged),
-            ("dollars", dollars_merged),
-        ]);
-
-        match &tree {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 3);
-
-                for denom in ["sats", "bitcoin", "dollars"] {
-                    match map.get(denom) {
-                        Some(TreeNode::Branch(inner)) => {
-                            assert_eq!(inner.len(), 3);
-                            assert!(inner.contains_key("raw"));
-                            assert!(inner.contains_key("sum"));
-                            assert!(inner.contains_key("cumulative"));
-                        }
-                        _ => panic!("Expected branch for {}", denom),
-                    }
-                }
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
     // ========== Case 10: ValueDateLast structure ==========
     // Testing individual components of ValueDateLast
-
-    #[test]
-    fn case10_derived_date_last_collapses_to_leaf() {
-        // DerivedDateLast<T> with merge: all fields have wrap="last"
-        // week1: { last: Leaf }, month1: { last: Leaf }, etc.
-        // After merge: all "last" keys merge, same series name → collapses to Leaf
-        let tree = branch(vec![
-            ("week1", branch(vec![("last", leaf("s", Index::Week1))])),
-            ("month1", branch(vec![("last", leaf("s", Index::Month1))])),
-            ("year1", branch(vec![("last", leaf("s", Index::Year1))])),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // Should collapse to single Leaf with all indexes
-        match &merged {
-            TreeNode::Leaf(leaf) => {
-                let indexes = leaf.indexes();
-                assert!(indexes.contains(&Index::Week1));
-                assert!(indexes.contains(&Index::Month1));
-                assert!(indexes.contains(&Index::Year1));
-            }
-            TreeNode::Branch(map) => {
-                panic!(
-                    "Expected Leaf, got Branch: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-            }
-        }
-    }
 
     #[test]
     fn case10_computed_date_last_collapses_to_leaf() {
@@ -1198,35 +1037,6 @@ mod tests {
             }
             Some(_) => panic!("Expected branch"),
             None => panic!("Unexpected conflict"),
-        }
-    }
-
-    // ========== Case 12: ValueDateLast ideal output ==========
-
-    #[test]
-    fn case12_value_date_last_ideal_output() {
-        // The IDEAL output for ValueDateLast:
-        // { sats: Leaf(all indexes), bitcoin: Leaf(all indexes), dollars: Leaf(all indexes) }
-        //
-        // This requires:
-        // 1. Each denomination collapses its time indexes into one Leaf
-        // 2. Denominations stay as separate siblings
-
-        // Simulating final merged output
-        let tree = branch(vec![
-            ("sats", leaf("s", Index::Day1)), // placeholder, would have all indexes
-            ("bitcoin", leaf("s_btc", Index::Day1)),
-            ("dollars", leaf("s_usd", Index::Day1)),
-        ]);
-
-        match &tree {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 3);
-                assert!(matches!(map.get("sats"), Some(TreeNode::Leaf(_))));
-                assert!(matches!(map.get("bitcoin"), Some(TreeNode::Leaf(_))));
-                assert!(matches!(map.get("dollars"), Some(TreeNode::Leaf(_))));
-            }
-            _ => panic!("Expected branch with 3 denomination leaves"),
         }
     }
 }

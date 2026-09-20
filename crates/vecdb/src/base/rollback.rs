@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    fs::{self, File},
+    io::Write,
+    path::PathBuf,
+};
 
 use super::{ChangeCursor, ChangeData, ReadWriteBaseVec, vec_region_name};
 use crate::{Bytes, Error, Result, SIZE_OF_U64, Stamp, ValueStrategy, VecIndex, VecValue};
@@ -90,29 +95,37 @@ where
     pub fn save_change_file(&self, stamp: Stamp, data: &[u8]) -> Result<()> {
         debug_assert!(self.saved_stamped_changes > 0);
         let path = self.changes_path();
-        fs::create_dir_all(&path)?;
-
-        let files: BTreeMap<Stamp, PathBuf> = fs::read_dir(&path)?
-            .filter_map(|entry| {
-                let path = entry.ok()?.path();
-                let s = Stamp::from(path.file_name()?.to_str()?.parse::<u64>().ok()?);
-                if s < stamp {
-                    Some((s, path))
-                } else {
-                    let _ = fs::remove_file(&path);
-                    None
-                }
-            })
-            .collect();
-
-        let excess = files
-            .len()
-            .saturating_sub(self.saved_stamped_changes as usize - 1);
-        for (_, path) in files.iter().take(excess) {
-            fs::remove_file(path)?;
+        if !path.exists() {
+            fs::create_dir_all(&path)?;
+            // Persist new directory entries all the way back to the database.
+            let db_path = self.db_path();
+            for ancestor in path.ancestors().take_while(|p| *p != db_path) {
+                File::open(ancestor)?.sync_all()?;
+            }
+            File::open(db_path)?.sync_all()?;
         }
 
-        fs::write(path.join(u64::from(stamp).to_string()), data)?;
+        // Never truncate an existing undo record until its replacement is
+        // complete. Ignore this non-numeric staging name when listing stamps.
+        let pending = path.join("pending");
+        let mut file = File::create(&pending)?;
+        file.write_all(data)?;
+        file.sync_all()?;
+        fs::rename(&pending, path.join(u64::from(stamp).to_string()))?;
+        File::open(&path)?.sync_all()?;
+
+        // Prune only after the new undo record is durable.
+        let files = self.find_rollback_files()?;
+        let older = files.range(..stamp).count();
+        let excess = older.saturating_sub(self.saved_stamped_changes as usize - 1);
+        for (&saved, file) in files
+            .range(..stamp)
+            .take(excess)
+            .chain(files.range(stamp..).skip(1))
+        {
+            debug_assert_ne!(saved, stamp);
+            fs::remove_file(file)?;
+        }
         Ok(())
     }
 

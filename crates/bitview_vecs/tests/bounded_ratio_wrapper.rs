@@ -1,9 +1,8 @@
-use crate::test_cache::init_cache;
 use bitview_transforms::{BoundedOddsF64, BoundedToF64};
 use bitview_traversable::{Traversable, TreeNode};
 use bitview_vecs::{BoundedRatioPerBlock, LazyPerBlock};
 use brk_types::{BoundedRatio, Version};
-use common::indexes;
+use common::{indexes, init_cache};
 use tempfile::tempdir;
 use vecdb::{AnySerializableVec, AnyStoredVec, AnyVec, Database, ReadableVec, WritableVec};
 
@@ -70,7 +69,3 @@ fn bounded_wrapper_groups_storage_and_decimal_view() {
         BoundedRatioPerBlock::forced_import(&db, "loss_share", Version::ONE, &indexes).unwrap();
     assert_eq!(reopened.bounded.height.collect_range_at(0, 4), values);
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

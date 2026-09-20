@@ -85,11 +85,13 @@ where
 
     #[inline]
     pub fn mut_pushed(&mut self) -> &mut Vec<T> {
+        self.header.assert_writable();
         self.pushed.current_mut()
     }
 
     #[inline]
     pub fn reserve_pushed(&mut self, additional: usize) {
+        self.header.assert_writable();
         self.pushed.current_mut().reserve(additional);
     }
 
@@ -138,11 +140,12 @@ where
         self.db().path().to_path_buf()
     }
 
-    pub fn write_header_if_needed(&mut self) -> CrateResult<()> {
+    pub fn write_header_if_needed(&mut self) -> CrateResult<bool> {
         if self.read_only.header.modified() {
             self.read_only.header.write(&self.read_only.region)?;
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 
     pub fn index_to_name(&self) -> String {
@@ -220,6 +223,7 @@ where
     }
 
     pub fn reset_base(&mut self) -> CrateResult<()> {
+        self.header.check_writable()?;
         self.pushed.clear();
         self.read_only.stored_len.set(0);
         self.previous_stored_len = 0;
@@ -234,6 +238,7 @@ where
     }
 
     pub fn reset_unsaved_base(&mut self) {
+        self.header.assert_writable();
         self.pushed.current_mut().clear();
     }
 }

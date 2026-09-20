@@ -41,24 +41,7 @@ zerocopy = { version = "0.8.57", features = ["zerocopy-derive"], optional = true
 zstd = { version = "0.14.0", optional = true }
 
 [dev-dependencies]
-sha2 = "0.11"
 tempfile = { workspace = true }
-
-[[example]]
-name = "zerocopy"
-required-features = ["zerocopy"]
-
-[[example]]
-name = "pcodec"
-required-features = ["pco"]
-
-[[example]]
-name = "pco_bench"
-required-features = ["pco"]
-
-[[example]]
-name = "io_vs_mmap"
-required-features = ["pco"]
 
 [[example]]
 name = "bench"

@@ -33,4 +33,4 @@ half = "2.7.1"
 rand_xoshiro = "0.8.1"
 
 [dev-dependencies]
-rand = "0.10.2"
+rand = "0.10.3"

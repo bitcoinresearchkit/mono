@@ -1,5 +1,15 @@
 //! Generic consistency tests for all vec types.
 
+use vecdb::BytesVec;
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+#[cfg(feature = "pco")]
+use vecdb::PcoVec;
+#[cfg(feature = "zerocopy")]
+use vecdb::ZeroCopyVec;
+#[cfg(feature = "zstd")]
+use vecdb::ZstdVec;
+
 use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{AnyStoredVec, EagerVec, ImportableVec, ReadableVec, StoredVec, Version, WritableVec};
@@ -32,69 +42,31 @@ where
     }
 }
 
-// ============================================================================
-// Test instantiation for BytesVec (no feature flag needed)
-// ============================================================================
-
-mod bytes {
-    use super::*;
-    use vecdb::BytesVec;
-    type V = BytesVec<usize, u64>;
-
-    #[test]
-    fn immediate_read_after_write() {
-        run_immediate_read_after_write::<V>();
-    }
+#[test]
+fn bytes() {
+    run_immediate_read_after_write::<BytesVec<usize, u64>>();
 }
 
-// ============================================================================
-// Test instantiation for feature-gated vec types
-// ============================================================================
-
 #[cfg(feature = "zerocopy")]
-mod zerocopy {
-    use super::*;
-    use vecdb::ZeroCopyVec;
-    type V = ZeroCopyVec<usize, u64>;
-
-    #[test]
-    fn immediate_read_after_write() {
-        run_immediate_read_after_write::<V>();
-    }
+#[test]
+fn zerocopy() {
+    run_immediate_read_after_write::<ZeroCopyVec<usize, u64>>();
 }
 
 #[cfg(feature = "pco")]
-mod pco {
-    use super::*;
-    use vecdb::PcoVec;
-    type V = PcoVec<usize, u64>;
-
-    #[test]
-    fn immediate_read_after_write() {
-        run_immediate_read_after_write::<V>();
-    }
+#[test]
+fn pco() {
+    run_immediate_read_after_write::<PcoVec<usize, u64>>();
 }
 
 #[cfg(feature = "lz4")]
-mod lz4 {
-    use super::*;
-    use vecdb::LZ4Vec;
-    type V = LZ4Vec<usize, u64>;
-
-    #[test]
-    fn immediate_read_after_write() {
-        run_immediate_read_after_write::<V>();
-    }
+#[test]
+fn lz4() {
+    run_immediate_read_after_write::<LZ4Vec<usize, u64>>();
 }
 
 #[cfg(feature = "zstd")]
-mod zstd {
-    use super::*;
-    use vecdb::ZstdVec;
-    type V = ZstdVec<usize, u64>;
-
-    #[test]
-    fn immediate_read_after_write() {
-        run_immediate_read_after_write::<V>();
-    }
+#[test]
+fn zstd() {
+    run_immediate_read_after_write::<ZstdVec<usize, u64>>();
 }

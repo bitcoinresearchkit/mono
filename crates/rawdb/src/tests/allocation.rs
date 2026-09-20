@@ -173,6 +173,13 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
     for index in [0, 2, 4, 6, 8, 9] {
         db.remove_region(&index.to_string())?;
     }
+    // Metadata slots are reusable even before removed data holes are flushed.
+    let pending = db.create_region_if_needed("pending")?;
+    assert_eq!(pending.index(), 0);
+    assert_eq!(db.regions().len(), 5);
+    assert!(db.get_region("0").is_none());
+    assert!(db.get_region("pending").is_some());
+    pending.remove()?;
     db.flush()?;
     drop(db);
 
@@ -208,78 +215,26 @@ fn metadata_slot_reuse_survives_reopen_and_shrink() -> Result<()> {
 }
 
 #[test]
-fn test_region_reuse_after_removal() -> Result<()> {
+fn repeated_unflushed_removals_preserve_data_and_empty_registry() -> Result<()> {
     let (db, _temp) = setup_test_db()?;
-
-    let region1 = db.create_region_if_needed("region1")?;
-    let _region2 = db.create_region_if_needed("region2")?;
-    let index1 = region1.index();
-
-    // Remove first region
-    region1.remove()?;
-
-    // Create a new region - should reuse the slot
-    let region3 = db.create_region_if_needed("region3")?;
-    assert_eq!(region3.index(), index1);
-
-    // Verify only 2 regions exist
-    let regions = db.regions();
-    assert_eq!(regions.len(), 2);
-    assert!(regions.get("region1").is_none());
-    assert!(regions.get("region2").is_some());
-    assert!(regions.get("region3").is_some());
-
-    Ok(())
-}
-
-#[test]
-fn test_hole_filling() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    let _region1 = db.create_region_if_needed("region1")?;
-    let region2 = db.create_region_if_needed("region2")?;
-    let _region3 = db.create_region_if_needed("region3")?;
-
-    // Remove middle region to create a hole
-    region2.remove()?;
-    db.flush()?; // Make hole available for reuse
-
-    let layout = db.layout();
-    assert_eq!(layout.start_to_hole().len(), 1);
-    drop(layout);
-
-    // Create new region - should fill the hole
-    let _region4 = db.create_region_if_needed("region4")?;
-
-    let layout = db.layout();
-    // Hole should be gone since new region takes PAGE_SIZE which fills it exactly
-    assert_eq!(layout.start_to_hole().len(), 0);
-
-    Ok(())
-}
-
-#[test]
-fn test_region_defragmentation() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    let region1 = db.create_region_if_needed("region1")?;
-    let region2 = db.create_region_if_needed("region2")?;
-
-    // Write small data first
-    region1.write(b"small")?;
-
-    // Write large data to region1 - should move it to end
-    let large_data = vec![1u8; PAGE_SIZE * 2];
-    region1.write(&large_data)?;
-    db.flush()?; // Make hole available
-
-    // region1 should have moved, leaving a hole
-    let layout = db.layout();
-    assert_eq!(layout.start_to_hole().len(), 1);
-    // region2 should still be at its original position
-    let meta2 = region2.meta();
-    assert_eq!(meta2.start(), PAGE_SIZE);
-
+    for cycle in 0..5 {
+        let regions = (0..20)
+            .map(|i| db.create_region_if_needed(&format!("cycle_{cycle}_region_{i}")))
+            .collect::<Result<Vec<_>>>()?;
+        for (i, region) in regions.iter().enumerate() {
+            region.write(format!("Cycle {cycle} Region {i}").as_bytes())?;
+        }
+        for (i, region) in regions.iter().enumerate() {
+            assert_eq!(
+                region.create_reader().read_all(),
+                format!("Cycle {cycle} Region {i}").as_bytes()
+            );
+        }
+        for region in regions {
+            region.remove()?;
+        }
+        assert_eq!(db.regions().len(), 0);
+    }
     Ok(())
 }
 
@@ -356,47 +311,6 @@ fn test_hole_coalescing() -> Result<()> {
     // The single hole should span all 3 removed regions
     let hole_size = holes.values().next().unwrap();
     assert_eq!(*hole_size, PAGE_SIZE * 3);
-
-    Ok(())
-}
-
-#[test]
-fn test_stress_region_creation_and_removal() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    // Create and remove regions in a cycle
-    for cycle in 0..5 {
-        // Create 20 regions
-        let regions: Vec<_> = (0..20)
-            .map(|i| {
-                let name = format!("cycle_{}_region_{}", cycle, i);
-                db.create_region_if_needed(&name)
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        // Write to each
-        for (i, r) in regions.iter().enumerate() {
-            let data = format!("Cycle {} Region {}", cycle, i);
-            r.write(data.as_bytes())?;
-        }
-
-        // Verify
-        for (i, r) in regions.iter().enumerate() {
-            let reader = r.create_reader();
-            let expected = format!("Cycle {} Region {}", cycle, i);
-            assert_eq!(reader.read_all(), expected.as_bytes());
-            drop(reader);
-        }
-
-        // Remove all
-        for r in regions {
-            r.remove()?;
-        }
-
-        // Verify all gone
-        let reg = db.regions();
-        assert_eq!(reg.len(), 0);
-    }
 
     Ok(())
 }

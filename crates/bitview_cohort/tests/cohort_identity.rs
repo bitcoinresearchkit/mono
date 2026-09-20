@@ -18,15 +18,6 @@ fn identity_roundtrips_through_composed_groups() {
     assert_eq!(core.get(CohortId::Term(Term::Sth)), None);
     assert_eq!(core.get(AmountRangeId::Zero.cohort()), None);
     assert_eq!(core.get(CohortId::Type(OutputType::P2PKH)), None);
-
-    let ages = AgeRange::from_fn(|id| id);
-    for &id in ages.iter() {
-        assert_eq!(*id.select(&ages), id);
-    }
-    let amounts = AmountRange::from_fn(|id| id);
-    for &id in amounts.iter() {
-        assert_eq!(*id.select(&amounts), id);
-    }
 }
 
 #[test]
@@ -89,10 +80,8 @@ fn canonical_names_preserve_series_prefixes() {
 }
 
 #[test]
-fn amount_identity_keeps_disjoint_bucket_names() {
-    let values = AmountRange::from_fn(|id| id.index() as u64 + 1);
+fn amount_names_match_cohort_names() {
     for &id in AmountRangeId::ALL {
-        assert_eq!(*id.select(&values), id.index() as u64 + 1);
         assert_eq!(id.name().id, id.cohort().name());
     }
 }

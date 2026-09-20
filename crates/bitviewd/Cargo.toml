@@ -82,9 +82,7 @@ vecdb = { workspace = true }
 
 [dev-dependencies]
 aide = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
 bitview_query = { workspace = true }
-bitview_traversable = { workspace = true }
 brk_mempool = { workspace = true }
 color-eyre = { workspace = true }
 serde_json = { workspace = true }
@@ -98,19 +96,7 @@ path = "src/bin/bindgen.rs"
 required-features = ["bindgen", "default"]
 
 [[example]]
-name = "list"
-required-features = ["default"]
-
-[[example]]
 name = "plugin_set"
-required-features = ["default"]
-
-[[example]]
-name = "plugin_set_read"
-required-features = ["default"]
-
-[[example]]
-name = "plugin_set_tree"
 required-features = ["default"]
 
 [[example]]

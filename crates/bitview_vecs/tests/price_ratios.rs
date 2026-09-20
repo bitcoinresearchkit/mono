@@ -1,7 +1,6 @@
-use crate::test_cache::init_cache;
 use bitview_vecs::{LazyPriceWithRatioPerBlock, PriceWithRatioPerBlock};
 use brk_types::{Cents, Height, PriceRatio, Version};
-use common::{indexes, stored};
+use common::{indexes, init_cache, stored};
 use tempfile::tempdir;
 use vecdb::{
     AnySerializableVec, AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, WritableVec,
@@ -89,7 +88,3 @@ fn price_ratios_preserve_zero_nan_saturation_and_empty_days() {
     check!(imported);
     check!(lazy);
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

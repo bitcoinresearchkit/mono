@@ -141,7 +141,3 @@ impl Query {
         self.transactions_at_indices(&resolved.txindices, guard)
     }
 }
-
-#[cfg(test)]
-#[path = "../../../../tests/unit/impl/addr/txs/chain.rs"]
-mod tests;

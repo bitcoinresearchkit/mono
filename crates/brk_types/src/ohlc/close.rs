@@ -99,13 +99,6 @@ where
     }
 }
 
-// impl<A, B> From<Close<A>> for Close<B>
-// where
-//     B: From<A>,
-// {
-// #[inline]
-// fn from(value: Close<A>) -> Self {
-//         Self(B::from(*value))
 impl From<Close<Cents>> for Close<Dollars> {
     #[inline]
     fn from(value: Close<Cents>) -> Self {

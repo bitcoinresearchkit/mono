@@ -1,4 +1,4 @@
-use crate::test_cache::init_cache;
+use common::init_cache;
 mod common;
 
 use bitview_cohort::{AgeRange, AgeRangeId};
@@ -146,7 +146,3 @@ fn lazy_sides_preserve_stored_rounding_and_follow_source_rewrites() {
         }
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

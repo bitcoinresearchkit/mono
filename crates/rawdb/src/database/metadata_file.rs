@@ -28,7 +28,9 @@ impl MetadataFile {
         Ok(Self {
             file,
             mmap,
-            dirty: Mutex::new(false),
+            // A reopened mapping may include unsynced writes from its previous
+            // owner. The first flush must establish a data + metadata boundary.
+            dirty: Mutex::new(true),
         })
     }
 
@@ -112,7 +114,9 @@ impl MetadataFile {
         if !*dirty {
             return Ok(false);
         }
-        self.mmap.flush_async()?;
+        if self.mmap.len() != 0 {
+            self.mmap.flush_async()?;
+        }
         self.file.sync_all()?;
         *dirty = false;
         Ok(true)

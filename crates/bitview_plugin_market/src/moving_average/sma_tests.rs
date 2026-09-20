@@ -2,13 +2,14 @@ use bitview_vecs::{LazySmaVec, import_cached};
 use brk_exit::Exit;
 use brk_types::{Cents, Height, StoredU64, Version};
 use tempfile::tempdir;
-use vecdb::{AnyStoredVec, Budgeted, Database, ReadableCloneableVec, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, WritableVec};
 
 use super::compute_sma_prefix;
+use crate::test_cache::init_cache;
 
 #[test]
 fn stored_sma_prefix_survives_append_rewrite_eviction_and_reopen() {
-    let budget = Budgeted::init_global(16 * 1024 * 1024).unwrap();
+    let budget = init_cache();
     let directory = tempdir().unwrap();
     let db = Database::open(directory.path()).unwrap();
     let mut prices = import_cached::<Height, Cents>(&db, "prices", Version::ONE).unwrap();

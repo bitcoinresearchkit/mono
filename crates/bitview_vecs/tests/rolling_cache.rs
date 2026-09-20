@@ -1,9 +1,9 @@
 #![cfg(feature = "diagnostics")]
 
-use crate::test_cache::init_cache;
 use bitview_collections::Windows;
 use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_types::{Height, StoredF32, StoredU64, Timestamp, Version};
+use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadableVec, VecIndex, WritableVec, diagnostics};
 
@@ -199,7 +199,3 @@ fn rolling_resolutions_share_the_cumulative_cache_without_caching_derivations() 
     lazy.block.collect_range_at(1020, 1030);
     assert_eq!(diagnostics::take(), 0);
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

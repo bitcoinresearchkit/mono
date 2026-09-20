@@ -24,7 +24,6 @@ pub fn forced_import(
     };
     Ok(Vecs {
         count: CountVecs {
-            inscription: import("tx_count_inscription")?,
             annex: import("tx_count_annex")?,
             sighash_all: import("tx_count_sighash_all")?,
             sighash_none: import("tx_count_sighash_none")?,

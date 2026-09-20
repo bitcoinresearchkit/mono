@@ -203,7 +203,3 @@ fn last_day_keeps_selective_source_reads() {
     );
     assert_eq!(DAILY_READS.load(Ordering::Relaxed), 3);
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

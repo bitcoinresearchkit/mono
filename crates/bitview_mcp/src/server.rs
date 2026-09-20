@@ -14,7 +14,7 @@ use rmcp::{
     model::{
         CacheScope, CallToolRequestParams, CallToolResponse, CallToolResult, ContentBlock,
         DiscoverResult, Icon, Implementation, ListToolsResult, MetaObject, PaginatedRequestParams,
-        ProtocolVersion, ResourceContents, ServerCapabilities, ServerInfo, Tool,
+        ProtocolVersion, ResourceContents, ServerCapabilities, ServerConfig, Tool,
     },
     service::RequestContext,
     transport::streamable_http_server::{
@@ -105,8 +105,8 @@ pub fn router(
 }
 
 impl BrkMcp {
-    fn server_info(&self) -> ServerInfo {
-        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+    fn server_info(&self) -> ServerConfig {
+        ServerConfig::new(ServerCapabilities::builder().enable_tools().build())
             .with_protocol_version(ProtocolVersion::V_2026_07_28)
             .with_server_info(
                 Implementation::new("bitview_mcp", env!("CARGO_PKG_VERSION"))
@@ -297,7 +297,7 @@ impl ServerHandler for BrkMcp {
         Ok(self.render_upstream(response, has_output_schema))
     }
 
-    fn get_info(&self) -> ServerInfo {
+    fn get_info(&self) -> ServerConfig {
         self.server_info()
     }
 }

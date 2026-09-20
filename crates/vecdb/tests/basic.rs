@@ -1,11 +1,23 @@
 use std::error::Error;
 
+use vecdb::BytesVec;
+#[cfg(any(feature = "pco", feature = "zerocopy"))]
+use vecdb::EagerVec;
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+#[cfg(feature = "pco")]
+use vecdb::PcoVec;
+#[cfg(feature = "zerocopy")]
+use vecdb::ZeroCopyVec;
+#[cfg(feature = "zstd")]
+use vecdb::ZstdVec;
+
 use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{Result as VecdbResult, Stamp, StoredVec, Version};
 
 /// Helper to create a temporary test database
-pub fn setup_test_db() -> VecdbResult<(Database, TempDir)> {
+fn setup_test_db() -> VecdbResult<(Database, TempDir)> {
     let temp_dir = TempDir::new()?;
     let db = Database::open(temp_dir.path())?;
     Ok((db, temp_dir))
@@ -180,103 +192,43 @@ where
     Ok(())
 }
 
-// ============================================================================
-// Test instantiation for each vec type
-// ============================================================================
-
-mod bytes {
-    use vecdb::BytesVec;
-
-    use super::*;
-
-    type V = BytesVec<usize, u32>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn bytes() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<BytesVec<usize, u32>>()
 }
 
 #[cfg(feature = "zerocopy")]
-mod zerocopy {
-    use vecdb::ZeroCopyVec;
-
-    use super::*;
-
-    type V = ZeroCopyVec<usize, u32>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn zerocopy() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<ZeroCopyVec<usize, u32>>()
 }
 
 #[cfg(feature = "pco")]
-mod pco {
-    use vecdb::PcoVec;
-
-    use super::*;
-
-    type V = PcoVec<usize, u32>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn pco() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<PcoVec<usize, u32>>()
 }
 
 #[cfg(feature = "lz4")]
-mod lz4 {
-    use vecdb::LZ4Vec;
-
-    use super::*;
-
-    type V = LZ4Vec<usize, u32>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn lz4() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<LZ4Vec<usize, u32>>()
 }
 
 #[cfg(feature = "zstd")]
-mod zstd {
-    use vecdb::ZstdVec;
-
-    use super::*;
-
-    type V = ZstdVec<usize, u32>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn zstd() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<ZstdVec<usize, u32>>()
 }
 
 #[cfg(feature = "zerocopy")]
-mod eager_zerocopy {
-    use vecdb::{EagerVec, ZeroCopyVec};
-
-    use super::*;
-
-    type V = EagerVec<ZeroCopyVec<usize, u32>>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn eager_zerocopy() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<EagerVec<ZeroCopyVec<usize, u32>>>()
 }
 
 #[cfg(feature = "pco")]
-mod eager_pco {
-    use vecdb::{EagerVec, PcoVec};
-
-    use super::*;
-
-    type V = EagerVec<PcoVec<usize, u32>>;
-
-    #[test]
-    fn test_vec_operations() -> Result<(), Box<dyn Error>> {
-        run_vec_operations::<V>()
-    }
+#[test]
+fn eager_pco() -> Result<(), Box<dyn Error>> {
+    run_vec_operations::<EagerVec<PcoVec<usize, u32>>>()
 }

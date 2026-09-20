@@ -1,7 +1,7 @@
-use crate::test_cache::init_cache;
 use bitview_collections::Windows;
 use bitview_vecs::PerBlockCumulativeRolling;
 use brk_types::{Height, StoredU64, Version};
+use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadableVec, WritableVec};
 
@@ -44,7 +44,3 @@ fn mutable_checkpoint_access_invalidates_same_length_cumulative_state() {
     );
     assert_eq!(values.block.collect(), [2_u64, 10, 1].map(StoredU64::from));
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

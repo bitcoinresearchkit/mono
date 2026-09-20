@@ -18,6 +18,8 @@ pub type Result<T> = StdResult<T, Error>;
 /// Error types for vecdb operations.
 #[derive(Debug, Error)]
 pub enum Error {
+    #[error("A write failed; discard this vector and reopen or rebuild before continuing")]
+    WriteFailed,
     #[error(transparent)]
     IO(#[from] io::Error),
     #[error(transparent)]

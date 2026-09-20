@@ -1,8 +1,7 @@
-use crate::test_cache::init_cache;
 use bitview_traversable::{Traversable, TreeNode};
 use bitview_vecs::PercentPerBlock;
 use brk_types::{PartsPerMillionSigned32, PartsPerMillionSigned64, Version};
-use common::indexes;
+use common::{indexes, init_cache};
 use tempfile::tempdir;
 use vecdb::{AnySerializableVec, AnyStoredVec, AnyVec, Database, ReadableVec, WritableVec};
 
@@ -88,7 +87,3 @@ fn signed_ppm_width_migration_rebuilds_storage_and_preserves_public_units() {
         assert_eq!(reopened.ppm.height.collect_range_at(0, 3), values);
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

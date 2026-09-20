@@ -4,15 +4,21 @@
 //! consistent compute behavior across all vec types.
 
 use brk_exit::Exit;
+use vecdb::BytesVec;
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+#[cfg(feature = "pco")]
+use vecdb::PcoVec;
+#[cfg(feature = "zerocopy")]
+use vecdb::ZeroCopyVec;
+#[cfg(feature = "zstd")]
+use vecdb::ZstdVec;
+
 use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{
     AnyStoredVec, EagerVec, ImportableVec, ReadableVec, Result, StoredVec, Version, WritableVec,
 };
-
-// ============================================================================
-// Test Setup
-// ============================================================================
 
 fn setup_db() -> Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
@@ -30,10 +36,6 @@ fn assert_f32_eq(actual: f32, expected: f32, tolerance: f32, message: &str) {
         (actual - expected).abs()
     );
 }
-
-// ============================================================================
-// Generic Test Functions
-// ============================================================================
 
 fn run_compute_all_time_high<V>() -> Result<()>
 where
@@ -255,194 +257,56 @@ where
     Ok(())
 }
 
-// ============================================================================
-// Test instantiation for BytesVec (no feature flag needed)
-// ============================================================================
-
-mod bytes {
-    use vecdb::BytesVec;
-
-    use super::*;
-
-    #[test]
-    fn compute_all_time_high() -> Result<()> {
-        run_compute_all_time_high::<BytesVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_all_time_low() -> Result<()> {
-        run_compute_all_time_low::<BytesVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_functions_with_resume() -> Result<()> {
-        run_compute_functions_with_resume::<BytesVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_subtract() -> Result<()> {
-        run_compute_subtract::<BytesVec<usize, u64>>()
-    }
-
-    #[test]
-    fn compute_multiply() -> Result<()> {
-        run_compute_multiply::<BytesVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_sma() -> Result<()> {
-        run_compute_sma::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
-    }
+#[test]
+fn bytes() -> Result<()> {
+    run_compute_all_time_high::<BytesVec<usize, u32>>()?;
+    run_compute_all_time_low::<BytesVec<usize, u32>>()?;
+    run_compute_functions_with_resume::<BytesVec<usize, u32>>()?;
+    run_compute_subtract::<BytesVec<usize, u64>>()?;
+    run_compute_multiply::<BytesVec<usize, u32>>()?;
+    run_compute_sma::<BytesVec<usize, u16>, BytesVec<usize, f32>>()
 }
 
-// ============================================================================
-// Test instantiation for feature-gated vec types
-// ============================================================================
-
 #[cfg(feature = "zerocopy")]
-mod zerocopy {
-    use vecdb::ZeroCopyVec;
-
-    use super::*;
-
-    #[test]
-    fn compute_all_time_high() -> Result<()> {
-        run_compute_all_time_high::<ZeroCopyVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_all_time_low() -> Result<()> {
-        run_compute_all_time_low::<ZeroCopyVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_functions_with_resume() -> Result<()> {
-        run_compute_functions_with_resume::<ZeroCopyVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_subtract() -> Result<()> {
-        run_compute_subtract::<ZeroCopyVec<usize, u64>>()
-    }
-
-    #[test]
-    fn compute_multiply() -> Result<()> {
-        run_compute_multiply::<ZeroCopyVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_sma() -> Result<()> {
-        run_compute_sma::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
-    }
+#[test]
+fn zerocopy() -> Result<()> {
+    run_compute_all_time_high::<ZeroCopyVec<usize, u32>>()?;
+    run_compute_all_time_low::<ZeroCopyVec<usize, u32>>()?;
+    run_compute_functions_with_resume::<ZeroCopyVec<usize, u32>>()?;
+    run_compute_subtract::<ZeroCopyVec<usize, u64>>()?;
+    run_compute_multiply::<ZeroCopyVec<usize, u32>>()?;
+    run_compute_sma::<ZeroCopyVec<usize, u16>, ZeroCopyVec<usize, f32>>()
 }
 
 #[cfg(feature = "pco")]
-mod pco {
-    use vecdb::PcoVec;
-
-    use super::*;
-
-    #[test]
-    fn compute_all_time_high() -> Result<()> {
-        run_compute_all_time_high::<PcoVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_all_time_low() -> Result<()> {
-        run_compute_all_time_low::<PcoVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_functions_with_resume() -> Result<()> {
-        run_compute_functions_with_resume::<PcoVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_subtract() -> Result<()> {
-        run_compute_subtract::<PcoVec<usize, u64>>()
-    }
-
-    #[test]
-    fn compute_multiply() -> Result<()> {
-        run_compute_multiply::<PcoVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_sma() -> Result<()> {
-        run_compute_sma::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
-    }
+#[test]
+fn pco() -> Result<()> {
+    run_compute_all_time_high::<PcoVec<usize, u32>>()?;
+    run_compute_all_time_low::<PcoVec<usize, u32>>()?;
+    run_compute_functions_with_resume::<PcoVec<usize, u32>>()?;
+    run_compute_subtract::<PcoVec<usize, u64>>()?;
+    run_compute_multiply::<PcoVec<usize, u32>>()?;
+    run_compute_sma::<PcoVec<usize, u16>, PcoVec<usize, f32>>()
 }
 
 #[cfg(feature = "lz4")]
-mod lz4 {
-    use vecdb::LZ4Vec;
-
-    use super::*;
-
-    #[test]
-    fn compute_all_time_high() -> Result<()> {
-        run_compute_all_time_high::<LZ4Vec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_all_time_low() -> Result<()> {
-        run_compute_all_time_low::<LZ4Vec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_functions_with_resume() -> Result<()> {
-        run_compute_functions_with_resume::<LZ4Vec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_subtract() -> Result<()> {
-        run_compute_subtract::<LZ4Vec<usize, u64>>()
-    }
-
-    #[test]
-    fn compute_multiply() -> Result<()> {
-        run_compute_multiply::<LZ4Vec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_sma() -> Result<()> {
-        run_compute_sma::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
-    }
+#[test]
+fn lz4() -> Result<()> {
+    run_compute_all_time_high::<LZ4Vec<usize, u32>>()?;
+    run_compute_all_time_low::<LZ4Vec<usize, u32>>()?;
+    run_compute_functions_with_resume::<LZ4Vec<usize, u32>>()?;
+    run_compute_subtract::<LZ4Vec<usize, u64>>()?;
+    run_compute_multiply::<LZ4Vec<usize, u32>>()?;
+    run_compute_sma::<LZ4Vec<usize, u16>, LZ4Vec<usize, f32>>()
 }
 
 #[cfg(feature = "zstd")]
-mod zstd {
-    use vecdb::ZstdVec;
-
-    use super::*;
-
-    #[test]
-    fn compute_all_time_high() -> Result<()> {
-        run_compute_all_time_high::<ZstdVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_all_time_low() -> Result<()> {
-        run_compute_all_time_low::<ZstdVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_functions_with_resume() -> Result<()> {
-        run_compute_functions_with_resume::<ZstdVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_subtract() -> Result<()> {
-        run_compute_subtract::<ZstdVec<usize, u64>>()
-    }
-
-    #[test]
-    fn compute_multiply() -> Result<()> {
-        run_compute_multiply::<ZstdVec<usize, u32>>()
-    }
-
-    #[test]
-    fn compute_sma() -> Result<()> {
-        run_compute_sma::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
-    }
+#[test]
+fn zstd() -> Result<()> {
+    run_compute_all_time_high::<ZstdVec<usize, u32>>()?;
+    run_compute_all_time_low::<ZstdVec<usize, u32>>()?;
+    run_compute_functions_with_resume::<ZstdVec<usize, u32>>()?;
+    run_compute_subtract::<ZstdVec<usize, u64>>()?;
+    run_compute_multiply::<ZstdVec<usize, u32>>()?;
+    run_compute_sma::<ZstdVec<usize, u16>, ZstdVec<usize, f32>>()
 }

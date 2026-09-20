@@ -6,7 +6,8 @@ use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
 
 use super::{
-    STORAGE, Vecs, count, features, fees, patterns, policy, sigops, size, versions, volume,
+    STORAGE, Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions,
+    volume,
 };
 
 impl Vecs {
@@ -23,6 +24,7 @@ impl Vecs {
         let features = features::forced_import(&db, version, mappings, window_starts)?;
         let size = size::forced_import(&db, version, indexer, mappings)?;
         let fees = fees::forced_import(&db, version, mappings, window_starts)?;
+        let inscription = inscription::forced_import(&db, version, mappings, window_starts)?;
         let patterns = patterns::forced_import(&db, version, mappings, window_starts)?;
         let policy = policy::forced_import(&db, version, mappings, window_starts)?;
         let sigops = sigops::forced_import(&db, version, mappings, window_starts)?;
@@ -41,6 +43,7 @@ impl Vecs {
             features,
             size,
             fees,
+            inscription,
             patterns,
             policy,
             sigops,

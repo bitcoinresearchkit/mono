@@ -102,7 +102,6 @@ fn check_recovery<V: StoredVec<I = usize, T = u64>>(compute: Compute) {
 
 #[test]
 fn raw_batched_recovery() {
-    init_cache();
     check_recovery::<BytesVec<usize, u64>>(Compute::Batched);
     check_recovery::<BytesVec<usize, u64, Budgeted>>(Compute::Batched);
 }
@@ -110,7 +109,6 @@ fn raw_batched_recovery() {
 #[cfg(feature = "pco")]
 #[test]
 fn pco_batched_recovery() {
-    init_cache();
     check_recovery::<PcoVec<usize, u64>>(Compute::Batched);
     check_recovery::<PcoVec<usize, u64, Budgeted>>(Compute::Batched);
 }
@@ -118,7 +116,6 @@ fn pco_batched_recovery() {
 #[cfg(feature = "lz4")]
 #[test]
 fn lz4_batched_recovery() {
-    init_cache();
     check_recovery::<LZ4Vec<usize, u64>>(Compute::Batched);
     check_recovery::<LZ4Vec<usize, u64, Budgeted>>(Compute::Batched);
 }
@@ -126,7 +123,6 @@ fn lz4_batched_recovery() {
 #[cfg(feature = "zstd")]
 #[test]
 fn zstd_batched_recovery() {
-    init_cache();
     check_recovery::<ZstdVec<usize, u64>>(Compute::Batched);
     check_recovery::<ZstdVec<usize, u64, Budgeted>>(Compute::Batched);
 }
@@ -134,28 +130,21 @@ fn zstd_batched_recovery() {
 #[cfg(feature = "zerocopy")]
 #[test]
 fn zerocopy_batched_recovery() {
-    init_cache();
     check_recovery::<ZeroCopyVec<usize, u64>>(Compute::Batched);
     check_recovery::<ZeroCopyVec<usize, u64, Budgeted>>(Compute::Batched);
 }
 
 #[test]
 fn zero_append_compute_transform_recovery() {
-    init_cache();
-    check_legacy_recovery(Compute::Transform);
-}
-
-fn check_legacy_recovery(compute: Compute) {
-    init_cache();
-    check_recovery::<BytesVec<usize, u64>>(compute);
+    check_recovery::<BytesVec<usize, u64>>(Compute::Transform);
     #[cfg(feature = "pco")]
-    check_recovery::<PcoVec<usize, u64>>(compute);
+    check_recovery::<PcoVec<usize, u64>>(Compute::Transform);
     #[cfg(feature = "lz4")]
-    check_recovery::<LZ4Vec<usize, u64>>(compute);
+    check_recovery::<LZ4Vec<usize, u64>>(Compute::Transform);
     #[cfg(feature = "zstd")]
-    check_recovery::<ZstdVec<usize, u64>>(compute);
+    check_recovery::<ZstdVec<usize, u64>>(Compute::Transform);
     #[cfg(feature = "zerocopy")]
-    check_recovery::<ZeroCopyVec<usize, u64>>(compute);
+    check_recovery::<ZeroCopyVec<usize, u64>>(Compute::Transform);
 }
 
 #[allow(dead_code)]

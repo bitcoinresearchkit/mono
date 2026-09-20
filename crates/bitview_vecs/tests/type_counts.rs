@@ -1,8 +1,8 @@
-use crate::test_cache::init_cache;
 use bitview_cohort::{ByType, SpendableType, SpendableTypeId};
 use bitview_collections::Windows;
 use bitview_vecs::{CountTotal, OutputTypeCounts, SpendableTypeCounts, import_cached};
 use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
+use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadOnlyClone, ReadableVec, WritableVec};
 
@@ -173,7 +173,3 @@ fn type_domains_share_the_engine_without_sharing_the_wrong_denominator() {
         Some(PartsPerMillion32::from(0.4))
     );
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

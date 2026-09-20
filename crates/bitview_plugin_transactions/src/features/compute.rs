@@ -9,7 +9,6 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
     let source = &indexer.vecs().transaction_features.count;
     for (target, source) in [
-        (&mut vecs.count.inscription, &source.inscription),
         (&mut vecs.count.annex, &source.annex),
         (&mut vecs.count.sighash_all, &source.sighash_all),
         (&mut vecs.count.sighash_none, &source.sighash_none),

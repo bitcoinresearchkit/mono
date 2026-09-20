@@ -6,6 +6,16 @@
 
 use std::error::Error;
 
+use vecdb::BytesVec;
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+#[cfg(feature = "pco")]
+use vecdb::PcoVec;
+#[cfg(feature = "zerocopy")]
+use vecdb::ZeroCopyVec;
+#[cfg(feature = "zstd")]
+use vecdb::ZstdVec;
+
 use rawdb::Database;
 use tempfile::TempDir;
 use vecdb::{Result as VecdbResult, StoredVec, Version};
@@ -122,100 +132,36 @@ where
     Ok(())
 }
 
-// ============================================================================
-// Test instantiation for each vec type
-// ============================================================================
-
-mod bytes {
-    use vecdb::BytesVec;
-
-    use super::*;
-
-    type V = BytesVec<usize, u32>;
-
-    #[test]
-    fn test_compute_chain() -> Result<(), Box<dyn Error>> {
-        run_compute_chain_test::<V>()
-    }
-
-    #[test]
-    fn test_write_returns_bool() -> Result<(), Box<dyn Error>> {
-        run_write_returns_bool_test::<V>()
-    }
+fn run<V: StoredVec<I = usize, T = u32>>() -> Result<(), Box<dyn Error>> {
+    run_compute_chain_test::<V>()?;
+    run_write_returns_bool_test::<V>()
 }
 
-#[cfg(feature = "pco")]
-mod pco {
-    use vecdb::PcoVec;
-
-    use super::*;
-
-    type V = PcoVec<usize, u32>;
-
-    #[test]
-    fn test_compute_chain() -> Result<(), Box<dyn Error>> {
-        run_compute_chain_test::<V>()
-    }
-
-    #[test]
-    fn test_write_returns_bool() -> Result<(), Box<dyn Error>> {
-        run_write_returns_bool_test::<V>()
-    }
-}
-
-#[cfg(feature = "lz4")]
-mod lz4 {
-    use vecdb::LZ4Vec;
-
-    use super::*;
-
-    type V = LZ4Vec<usize, u32>;
-
-    #[test]
-    fn test_compute_chain() -> Result<(), Box<dyn Error>> {
-        run_compute_chain_test::<V>()
-    }
-
-    #[test]
-    fn test_write_returns_bool() -> Result<(), Box<dyn Error>> {
-        run_write_returns_bool_test::<V>()
-    }
-}
-
-#[cfg(feature = "zstd")]
-mod zstd {
-    use vecdb::ZstdVec;
-
-    use super::*;
-
-    type V = ZstdVec<usize, u32>;
-
-    #[test]
-    fn test_compute_chain() -> Result<(), Box<dyn Error>> {
-        run_compute_chain_test::<V>()
-    }
-
-    #[test]
-    fn test_write_returns_bool() -> Result<(), Box<dyn Error>> {
-        run_write_returns_bool_test::<V>()
-    }
+#[test]
+fn bytes() -> Result<(), Box<dyn Error>> {
+    run::<BytesVec<usize, u32>>()
 }
 
 #[cfg(feature = "zerocopy")]
-mod zerocopy {
-    use vecdb::ZeroCopyVec;
+#[test]
+fn zerocopy() -> Result<(), Box<dyn Error>> {
+    run::<ZeroCopyVec<usize, u32>>()
+}
 
-    use super::*;
+#[cfg(feature = "pco")]
+#[test]
+fn pco() -> Result<(), Box<dyn Error>> {
+    run::<PcoVec<usize, u32>>()
+}
 
-    type V = ZeroCopyVec<usize, u32>;
+#[cfg(feature = "lz4")]
+#[test]
+fn lz4() -> Result<(), Box<dyn Error>> {
+    run::<LZ4Vec<usize, u32>>()
+}
 
-    #[test]
-    fn test_compute_chain() -> Result<(), Box<dyn Error>> {
-        run_compute_chain_test::<V>()
-    }
-
-    #[test]
-    fn test_write_returns_bool() -> Result<(), Box<dyn Error>> {
-        run_write_returns_bool_test::<V>()
-    }
+#[cfg(feature = "zstd")]
+#[test]
+fn zstd() -> Result<(), Box<dyn Error>> {
+    run::<ZstdVec<usize, u32>>()
 }

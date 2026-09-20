@@ -402,6 +402,10 @@ macro_rules! impl_mutable_raw_vec {
                 }
 
                 fn write_updates(&mut self, updated: BTreeMap<usize, T>) {
+                    let guard = self
+                        .header()
+                        .begin_write()
+                        .expect("vector cannot continue after a failed write");
                     self.region().batch_write_ordered(
                         updated.into_iter().map(|(index, value)| {
                             (index * size_of::<T>() + crate::HEADER_OFFSET, value)
@@ -409,6 +413,7 @@ macro_rules! impl_mutable_raw_vec {
                         size_of::<T>(),
                         $strategy::<T>::write_to_slice,
                     );
+                    guard.finish(Ok(())).expect("ordered update completed");
                 }
 
                 fn append_previous_values(

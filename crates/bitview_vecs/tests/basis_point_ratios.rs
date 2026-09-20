@@ -1,11 +1,10 @@
-use crate::test_cache::init_cache;
 use std::collections::BTreeMap;
 
 use bitview_transforms::RatioDollars;
 use bitview_traversable::{Traversable, TreeNode};
 use bitview_vecs::{BasisPointsPerBlock, LazyBasisPointsPerBlock};
 use brk_types::{BasisPoints32, Dollars, Height, Version};
-use common::indexes;
+use common::{indexes, init_cache};
 use tempfile::tempdir;
 use vecdb::{
     AnySerializableVec, AnyStoredVec, AnyVec, BinaryTransform, Database, ReadableVec, WritableVec,
@@ -106,7 +105,3 @@ fn puell_transform_floors_and_preserves_nonfinite_zero_behavior() {
         );
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

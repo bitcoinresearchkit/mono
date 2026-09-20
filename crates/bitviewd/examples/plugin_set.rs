@@ -21,10 +21,8 @@ pub fn main() -> Result<()> {
     init(Some(Path::new(".log")))?;
 
     let bitcoin_dir = Client::default_bitcoin_path();
-    // let bitcoin_dir = Path::new("/Volumes/WD_BLACK/bitcoin");
 
     let outputs_dir = Path::new(&env::var("HOME").unwrap()).join(".bitview");
-    // let outputs_dir = Path::new("../../_outputs");
 
     let client = Client::new(
         Client::default_url(),

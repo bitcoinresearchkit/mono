@@ -1,28 +1,13 @@
-//! Tests for the "raw last page" optimization in compressed vectors.
-//!
-//! Compressed vectors store full pages compressed but keep the last partial page
-//! as raw (uncompressed) bytes. This avoids recompression on every append.
-//!
-//! A fast-append path exists: when the last page is raw, not truncated, and the
-//! new data fits within the page, bytes are appended directly without reading
-//! back the existing page data.
-//!
-//! These tests cover:
-//! - Small writes (all raw, never filling a page)
-//! - Fast-append path (multiple small writes to the same raw page)
-//! - Full page compression + raw tail
-//! - Exact page boundary (no raw tail)
-//! - Fast-append overflow (raw page fills up, triggers compression)
-//! - Incremental growth across many pages
-//! - Truncation into raw / compressed pages / exact boundaries
-//! - Reset clearing raw pages
-//! - Reads spanning compressed and raw pages
-//! - Write-reopen-append cycles (simulates real usage)
-//! - No-op writes on raw pages
-//! - fold/iteration over mixed page types
+//! Compressed page boundaries, raw-tail appends, truncation, and reopening.
 
 use rawdb::Database;
 use tempfile::TempDir;
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+#[cfg(feature = "pco")]
+use vecdb::PcoVec;
+#[cfg(feature = "zstd")]
+use vecdb::ZstdVec;
 use vecdb::{ReadableVec, Result, StoredVec, Version};
 
 const PER_PAGE_U32: usize = 8 * 1024 / size_of::<u32>();
@@ -33,20 +18,17 @@ fn setup_db() -> Result<(Database, TempDir)> {
     Ok((db, temp))
 }
 
-// ============================================================================
 // Small writes stay raw, data survives reopen
-// ============================================================================
 
 fn test_small_write_raw_survives_reopen<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
     let values: Vec<u32> = (0..100).collect();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for &v in &values {
             vec.push(v);
         }
@@ -57,7 +39,7 @@ where
 
     // Reopen and verify
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), 100);
         assert_eq!(vec.collect(), values);
         assert_eq!(vec.collect_range(0, 1), vec![0]);
@@ -68,17 +50,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Fast-append path: multiple small writes to same raw page
-// ============================================================================
 
 fn test_fast_append_multiple_small_writes<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // Write 10 values, flush → raw page
     for v in 0..10u32 {
@@ -110,19 +89,15 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Fast-append survives reopen and continued appending
-// ============================================================================
 
 fn test_fast_append_survives_reopen<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for v in 0..50u32 {
             vec.push(v);
         }
@@ -138,14 +113,14 @@ where
 
     // Reopen and verify the raw page was persisted correctly
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), 100);
         assert_eq!(vec.collect(), (0..100).collect::<Vec<u32>>());
     }
 
     // Reopen and continue appending (should fast-append to existing raw page)
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for v in 100..150u32 {
             vec.push(v);
         }
@@ -155,28 +130,25 @@ where
 
     // Final reopen
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.collect(), (0..150).collect::<Vec<u32>>());
     }
 
     Ok(())
 }
 
-// ============================================================================
 // Full page gets compressed, partial tail stays raw
-// ============================================================================
 
 fn test_full_page_compressed_partial_raw<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
     let count = PER_PAGE_U32 + 100;
     let values: Vec<u32> = (0..count as u32).collect();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for &v in &values {
             vec.push(v);
         }
@@ -194,7 +166,7 @@ where
 
     // Reopen and verify both compressed and raw pages survive
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), count);
         assert_eq!(vec.collect(), values);
     }
@@ -202,21 +174,18 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Exact page boundary — no raw tail
-// ============================================================================
 
 fn test_exact_page_boundary<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
     let count = PER_PAGE_U32;
     let values: Vec<u32> = (0..count as u32).collect();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for &v in &values {
             vec.push(v);
         }
@@ -227,14 +196,14 @@ where
 
     // Reopen
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), count);
         assert_eq!(vec.collect(), values);
     }
 
     // Append a few more → creates a new raw page
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for v in count as u32..(count + 5) as u32 {
             vec.push(v);
         }
@@ -244,24 +213,21 @@ where
 
     // Reopen and verify
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.collect(), (0..(count + 5) as u32).collect::<Vec<u32>>());
     }
 
     Ok(())
 }
 
-// ============================================================================
 // Fast-append overflow: fills the raw page, triggers compression
-// ============================================================================
 
 fn test_fast_append_overflow<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // Write almost a full page
     let initial = PER_PAGE_U32 - 10;
@@ -293,17 +259,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Fast-append fills exactly to page boundary
-// ============================================================================
 
 fn test_fast_append_fills_exactly<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // Write almost a full page
     let initial = PER_PAGE_U32 - 10;
@@ -339,17 +302,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Incremental growth across multiple pages
-// ============================================================================
 
 fn test_incremental_growth_across_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     let chunk_size = 1000;
     let total_target = PER_PAGE_U32 * 2 + 500;
@@ -384,173 +344,54 @@ where
     Ok(())
 }
 
-// ============================================================================
-// Truncation into a raw last page
-// ============================================================================
-
-fn test_truncate_into_raw_page<V>() -> Result<()>
+fn test_truncation_case<V>(truncate_to: usize, append_count: usize) -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         let count = PER_PAGE_U32 + 500;
         for v in 0..count as u32 {
             vec.push(v);
         }
         vec.write()?;
 
-        // Truncate to within the raw tail page
-        let truncate_to = PER_PAGE_U32 + 200;
         vec.truncate_if_needed(truncate_to)?;
         vec.write()?;
         assert_eq!(vec.collect(), (0..truncate_to as u32).collect::<Vec<u32>>());
     }
 
-    // Reopen and verify
     {
-        let vec: V = V::forced_import_with(options)?;
-        let truncate_to = PER_PAGE_U32 + 200;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), truncate_to);
         assert_eq!(vec.collect(), (0..truncate_to as u32).collect::<Vec<u32>>());
     }
 
-    // Append after truncation into raw page
     {
-        let mut vec: V = V::forced_import_with(options)?;
-        let truncate_to = PER_PAGE_U32 + 200;
-        for v in truncate_to as u32..(truncate_to + 50) as u32 {
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
+        for v in truncate_to as u32..(truncate_to + append_count) as u32 {
             vec.push(v);
         }
         vec.write()?;
         assert_eq!(
             vec.collect(),
-            (0..(truncate_to + 50) as u32).collect::<Vec<u32>>()
+            (0..(truncate_to + append_count) as u32).collect::<Vec<u32>>()
         );
     }
 
     Ok(())
 }
 
-// ============================================================================
-// Truncation to exact page boundary
-// ============================================================================
-
-fn test_truncate_to_page_boundary<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-
-    {
-        let mut vec: V = V::forced_import_with(options)?;
-        let count = PER_PAGE_U32 + 500;
-        for v in 0..count as u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-
-        // Truncate to the first page boundary (removes raw tail entirely)
-        vec.truncate_if_needed(PER_PAGE_U32)?;
-        vec.write()?;
-        assert_eq!(
-            vec.collect(),
-            (0..PER_PAGE_U32 as u32).collect::<Vec<u32>>()
-        );
-    }
-
-    // Reopen
-    {
-        let vec: V = V::forced_import_with(options)?;
-        assert_eq!(vec.stored_len(), PER_PAGE_U32);
-        assert_eq!(
-            vec.collect(),
-            (0..PER_PAGE_U32 as u32).collect::<Vec<u32>>()
-        );
-    }
-
-    // Append after truncation to boundary → new raw page
-    {
-        let mut vec: V = V::forced_import_with(options)?;
-        for v in PER_PAGE_U32 as u32..(PER_PAGE_U32 + 10) as u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-        assert_eq!(
-            vec.collect(),
-            (0..(PER_PAGE_U32 + 10) as u32).collect::<Vec<u32>>()
-        );
-    }
-
-    Ok(())
-}
-
-// ============================================================================
-// Truncation into a compressed page (removes raw tail and part of compressed)
-// ============================================================================
-
-fn test_truncate_into_compressed_page<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-
-    {
-        let mut vec: V = V::forced_import_with(options)?;
-        let count = PER_PAGE_U32 + 500;
-        for v in 0..count as u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-
-        // Truncate to half the first (compressed) page
-        let truncate_to = PER_PAGE_U32 / 2;
-        vec.truncate_if_needed(truncate_to)?;
-        vec.write()?;
-        assert_eq!(vec.collect(), (0..truncate_to as u32).collect::<Vec<u32>>());
-    }
-
-    // Reopen
-    {
-        let vec: V = V::forced_import_with(options)?;
-        let truncate_to = PER_PAGE_U32 / 2;
-        assert_eq!(vec.stored_len(), truncate_to);
-        assert_eq!(vec.collect(), (0..truncate_to as u32).collect::<Vec<u32>>());
-    }
-
-    // Append after truncation into compressed page
-    {
-        let mut vec: V = V::forced_import_with(options)?;
-        let truncate_to = PER_PAGE_U32 / 2;
-        for v in truncate_to as u32..(truncate_to + 100) as u32 {
-            vec.push(v);
-        }
-        vec.write()?;
-        assert_eq!(
-            vec.collect(),
-            (0..(truncate_to + 100) as u32).collect::<Vec<u32>>()
-        );
-    }
-
-    Ok(())
-}
-
-// ============================================================================
 // Reset clears raw pages
-// ============================================================================
 
 fn test_reset_clears_raw_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     for v in 0..100u32 {
         vec.push(v);
@@ -573,19 +414,16 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Reset after multi-page data (compressed + raw)
-// ============================================================================
 
 fn test_reset_after_multi_page<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         let count = PER_PAGE_U32 + 200;
         for v in 0..count as u32 {
             vec.push(v);
@@ -606,24 +444,21 @@ where
 
     // Reopen
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.collect(), (0..50).collect::<Vec<u32>>());
     }
 
     Ok(())
 }
 
-// ============================================================================
 // Read spanning compressed and raw pages
-// ============================================================================
 
 fn test_read_spanning_compressed_and_raw<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     let count = PER_PAGE_U32 + 200;
     for v in 0..count as u32 {
@@ -654,17 +489,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Multiple pages with raw tail
-// ============================================================================
 
 fn test_multiple_pages_with_raw_tail<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // 3 full pages + partial raw tail
     let count = PER_PAGE_U32 * 3 + 777;
@@ -702,20 +534,17 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Write-reopen-append cycle (simulates real usage patterns)
-// ============================================================================
 
 fn test_write_reopen_append_cycle<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
 
     let mut total = 0u32;
     for cycle in 0..20u32 {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         let count = 100 + cycle * 50;
         for _ in 0..count {
             vec.push(total);
@@ -732,7 +561,7 @@ where
 
     // Final verification after all cycles
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.stored_len(), total as usize);
         assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
     }
@@ -740,22 +569,19 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Write-reopen-append cycle crossing page boundaries
-// ============================================================================
 
 fn test_write_reopen_cycle_crossing_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
 
     // Use a chunk size that doesn't align with PER_PAGE to ensure we cross boundaries
     let chunk = PER_PAGE_U32 / 3 + 7;
     let mut total = 0u32;
     for cycle in 0..10u32 {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         for _ in 0..chunk {
             vec.push(total);
             total += 1;
@@ -771,51 +597,20 @@ where
     }
 
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.collect(), (0..total).collect::<Vec<u32>>());
     }
 
     Ok(())
 }
 
-// ============================================================================
-// No-op write on a raw page
-// ============================================================================
-
-fn test_noop_write_on_raw_page<V>() -> Result<()>
+fn test_noop_write<V>(count: usize) -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
-    for v in 0..50u32 {
-        vec.push(v);
-    }
-    vec.write()?;
-
-    // Write again with no changes
-    let changed = vec.write()?;
-    assert!(!changed);
-    assert_eq!(vec.collect(), (0..50).collect::<Vec<u32>>());
-
-    Ok(())
-}
-
-// ============================================================================
-// No-op write after multi-page data
-// ============================================================================
-
-fn test_noop_write_after_multi_page<V>() -> Result<()>
-where
-    V: StoredVec<I = usize, T = u32>,
-{
-    let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
-
-    let count = PER_PAGE_U32 + 100;
     for v in 0..count as u32 {
         vec.push(v);
     }
@@ -828,17 +623,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // fold/iteration over mixed compressed+raw pages
-// ============================================================================
 
 fn test_fold_over_mixed_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     let count = PER_PAGE_U32 + 500;
     for v in 0..count as u32 {
@@ -862,17 +654,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Pushed (un-flushed) values mixed with stored raw page
-// ============================================================================
 
 fn test_pushed_and_stored_raw_page<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // Write some values → stored as raw page
     for v in 0..100u32 {
@@ -902,17 +691,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Pushed values mixed with stored compressed + raw pages
-// ============================================================================
 
 fn test_pushed_and_stored_mixed_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     let count = PER_PAGE_U32 + 100;
     for v in 0..count as u32 {
@@ -946,17 +732,14 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Single value writes (extreme fast-append case)
-// ============================================================================
 
 fn test_single_value_writes<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     // Push and write one value at a time, 50 times
     for v in 0..50u32 {
@@ -969,25 +752,22 @@ where
 
     // Reopen
     drop(vec);
-    let vec: V = V::forced_import_with(options)?;
+    let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
     assert_eq!(vec.collect(), (0..50).collect::<Vec<u32>>());
 
     Ok(())
 }
 
-// ============================================================================
 // Truncate all then rebuild (edge case)
-// ============================================================================
 
 fn test_truncate_to_zero_then_rebuild<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
 
     {
-        let mut vec: V = V::forced_import_with(options)?;
+        let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         let count = PER_PAGE_U32 + 100;
         for v in 0..count as u32 {
             vec.push(v);
@@ -1007,24 +787,21 @@ where
 
     // Reopen
     {
-        let vec: V = V::forced_import_with(options)?;
+        let vec: V = V::forced_import(&db, "vec", Version::TWO)?;
         assert_eq!(vec.collect(), (5000..5100).collect::<Vec<u32>>());
     }
 
     Ok(())
 }
 
-// ============================================================================
 // Read-only clone reads mixed pages correctly
-// ============================================================================
 
 fn test_read_only_clone_mixed_pages<V>() -> Result<()>
 where
     V: StoredVec<I = usize, T = u32>,
 {
     let (db, _tmp) = setup_db()?;
-    let options = (&db, "vec", Version::TWO).into();
-    let mut vec: V = V::forced_import_with(options)?;
+    let mut vec: V = V::forced_import(&db, "vec", Version::TWO)?;
 
     let count = PER_PAGE_U32 + 200;
     for v in 0..count as u32 {
@@ -1045,336 +822,53 @@ where
     Ok(())
 }
 
-// ============================================================================
 // Test instantiation for each compression strategy
-// ============================================================================
+
+fn page_cases<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
+    test_small_write_raw_survives_reopen::<V>()?;
+    test_fast_append_multiple_small_writes::<V>()?;
+    test_fast_append_survives_reopen::<V>()?;
+    test_full_page_compressed_partial_raw::<V>()?;
+    test_exact_page_boundary::<V>()?;
+    test_fast_append_overflow::<V>()?;
+    test_fast_append_fills_exactly::<V>()?;
+    test_incremental_growth_across_pages::<V>()?;
+    // Truncate within the raw tail, at the page boundary, and within a compressed page.
+    test_truncation_case::<V>(PER_PAGE_U32 + 200, 50)?;
+    test_truncation_case::<V>(PER_PAGE_U32, 10)?;
+    test_truncation_case::<V>(PER_PAGE_U32 / 2, 100)?;
+    test_reset_clears_raw_pages::<V>()?;
+    test_reset_after_multi_page::<V>()?;
+    test_read_spanning_compressed_and_raw::<V>()?;
+    test_multiple_pages_with_raw_tail::<V>()?;
+    test_write_reopen_append_cycle::<V>()?;
+    test_write_reopen_cycle_crossing_pages::<V>()?;
+    // A second write stays a no-op for both one-page and multi-page data.
+    test_noop_write::<V>(50)?;
+    test_noop_write::<V>(PER_PAGE_U32 + 100)?;
+    test_fold_over_mixed_pages::<V>()?;
+    test_pushed_and_stored_raw_page::<V>()?;
+    test_pushed_and_stored_mixed_pages::<V>()?;
+    test_single_value_writes::<V>()?;
+    test_truncate_to_zero_then_rebuild::<V>()?;
+    test_read_only_clone_mixed_pages::<V>()?;
+    Ok(())
+}
 
 #[cfg(feature = "pco")]
-mod pco {
-    use vecdb::PcoVec;
-
-    use super::*;
-
-    type V = PcoVec<usize, u32>;
-
-    #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
-        test_small_write_raw_survives_reopen::<V>()
-    }
-    #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
-        test_fast_append_multiple_small_writes::<V>()
-    }
-    #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
-        test_fast_append_survives_reopen::<V>()
-    }
-    #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
-        test_full_page_compressed_partial_raw::<V>()
-    }
-    #[test]
-    fn exact_page_boundary() -> Result<()> {
-        test_exact_page_boundary::<V>()
-    }
-    #[test]
-    fn fast_append_overflow() -> Result<()> {
-        test_fast_append_overflow::<V>()
-    }
-    #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
-        test_fast_append_fills_exactly::<V>()
-    }
-    #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
-        test_incremental_growth_across_pages::<V>()
-    }
-    #[test]
-    fn truncate_into_raw_page() -> Result<()> {
-        test_truncate_into_raw_page::<V>()
-    }
-    #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
-        test_truncate_to_page_boundary::<V>()
-    }
-    #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
-        test_truncate_into_compressed_page::<V>()
-    }
-    #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
-        test_reset_clears_raw_pages::<V>()
-    }
-    #[test]
-    fn reset_after_multi_page() -> Result<()> {
-        test_reset_after_multi_page::<V>()
-    }
-    #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
-        test_read_spanning_compressed_and_raw::<V>()
-    }
-    #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
-        test_multiple_pages_with_raw_tail::<V>()
-    }
-    #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
-        test_write_reopen_append_cycle::<V>()
-    }
-    #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
-        test_write_reopen_cycle_crossing_pages::<V>()
-    }
-    #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
-        test_noop_write_on_raw_page::<V>()
-    }
-    #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
-        test_noop_write_after_multi_page::<V>()
-    }
-    #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
-        test_fold_over_mixed_pages::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
-        test_pushed_and_stored_raw_page::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
-        test_pushed_and_stored_mixed_pages::<V>()
-    }
-    #[test]
-    fn single_value_writes() -> Result<()> {
-        test_single_value_writes::<V>()
-    }
-    #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
-        test_truncate_to_zero_then_rebuild::<V>()
-    }
-    #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
-        test_read_only_clone_mixed_pages::<V>()
-    }
+#[test]
+fn pco_pages() -> Result<()> {
+    page_cases::<PcoVec<usize, u32>>()
 }
 
 #[cfg(feature = "lz4")]
-mod lz4 {
-    use vecdb::LZ4Vec;
-
-    use super::*;
-
-    type V = LZ4Vec<usize, u32>;
-
-    #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
-        test_small_write_raw_survives_reopen::<V>()
-    }
-    #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
-        test_fast_append_multiple_small_writes::<V>()
-    }
-    #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
-        test_fast_append_survives_reopen::<V>()
-    }
-    #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
-        test_full_page_compressed_partial_raw::<V>()
-    }
-    #[test]
-    fn exact_page_boundary() -> Result<()> {
-        test_exact_page_boundary::<V>()
-    }
-    #[test]
-    fn fast_append_overflow() -> Result<()> {
-        test_fast_append_overflow::<V>()
-    }
-    #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
-        test_fast_append_fills_exactly::<V>()
-    }
-    #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
-        test_incremental_growth_across_pages::<V>()
-    }
-    #[test]
-    fn truncate_into_raw_page() -> Result<()> {
-        test_truncate_into_raw_page::<V>()
-    }
-    #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
-        test_truncate_to_page_boundary::<V>()
-    }
-    #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
-        test_truncate_into_compressed_page::<V>()
-    }
-    #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
-        test_reset_clears_raw_pages::<V>()
-    }
-    #[test]
-    fn reset_after_multi_page() -> Result<()> {
-        test_reset_after_multi_page::<V>()
-    }
-    #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
-        test_read_spanning_compressed_and_raw::<V>()
-    }
-    #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
-        test_multiple_pages_with_raw_tail::<V>()
-    }
-    #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
-        test_write_reopen_append_cycle::<V>()
-    }
-    #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
-        test_write_reopen_cycle_crossing_pages::<V>()
-    }
-    #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
-        test_noop_write_on_raw_page::<V>()
-    }
-    #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
-        test_noop_write_after_multi_page::<V>()
-    }
-    #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
-        test_fold_over_mixed_pages::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
-        test_pushed_and_stored_raw_page::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
-        test_pushed_and_stored_mixed_pages::<V>()
-    }
-    #[test]
-    fn single_value_writes() -> Result<()> {
-        test_single_value_writes::<V>()
-    }
-    #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
-        test_truncate_to_zero_then_rebuild::<V>()
-    }
-    #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
-        test_read_only_clone_mixed_pages::<V>()
-    }
+#[test]
+fn lz4_pages() -> Result<()> {
+    page_cases::<LZ4Vec<usize, u32>>()
 }
 
 #[cfg(feature = "zstd")]
-mod zstd {
-    use vecdb::ZstdVec;
-
-    use super::*;
-
-    type V = ZstdVec<usize, u32>;
-
-    #[test]
-    fn small_write_raw_survives_reopen() -> Result<()> {
-        test_small_write_raw_survives_reopen::<V>()
-    }
-    #[test]
-    fn fast_append_multiple_small_writes() -> Result<()> {
-        test_fast_append_multiple_small_writes::<V>()
-    }
-    #[test]
-    fn fast_append_survives_reopen() -> Result<()> {
-        test_fast_append_survives_reopen::<V>()
-    }
-    #[test]
-    fn full_page_compressed_partial_raw() -> Result<()> {
-        test_full_page_compressed_partial_raw::<V>()
-    }
-    #[test]
-    fn exact_page_boundary() -> Result<()> {
-        test_exact_page_boundary::<V>()
-    }
-    #[test]
-    fn fast_append_overflow() -> Result<()> {
-        test_fast_append_overflow::<V>()
-    }
-    #[test]
-    fn fast_append_fills_exactly() -> Result<()> {
-        test_fast_append_fills_exactly::<V>()
-    }
-    #[test]
-    fn incremental_growth_across_pages() -> Result<()> {
-        test_incremental_growth_across_pages::<V>()
-    }
-    #[test]
-    fn truncate_into_raw_page() -> Result<()> {
-        test_truncate_into_raw_page::<V>()
-    }
-    #[test]
-    fn truncate_to_page_boundary() -> Result<()> {
-        test_truncate_to_page_boundary::<V>()
-    }
-    #[test]
-    fn truncate_into_compressed_page() -> Result<()> {
-        test_truncate_into_compressed_page::<V>()
-    }
-    #[test]
-    fn reset_clears_raw_pages() -> Result<()> {
-        test_reset_clears_raw_pages::<V>()
-    }
-    #[test]
-    fn reset_after_multi_page() -> Result<()> {
-        test_reset_after_multi_page::<V>()
-    }
-    #[test]
-    fn read_spanning_compressed_and_raw() -> Result<()> {
-        test_read_spanning_compressed_and_raw::<V>()
-    }
-    #[test]
-    fn multiple_pages_with_raw_tail() -> Result<()> {
-        test_multiple_pages_with_raw_tail::<V>()
-    }
-    #[test]
-    fn write_reopen_append_cycle() -> Result<()> {
-        test_write_reopen_append_cycle::<V>()
-    }
-    #[test]
-    fn write_reopen_cycle_crossing_pages() -> Result<()> {
-        test_write_reopen_cycle_crossing_pages::<V>()
-    }
-    #[test]
-    fn noop_write_on_raw_page() -> Result<()> {
-        test_noop_write_on_raw_page::<V>()
-    }
-    #[test]
-    fn noop_write_after_multi_page() -> Result<()> {
-        test_noop_write_after_multi_page::<V>()
-    }
-    #[test]
-    fn fold_over_mixed_pages() -> Result<()> {
-        test_fold_over_mixed_pages::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_raw_page() -> Result<()> {
-        test_pushed_and_stored_raw_page::<V>()
-    }
-    #[test]
-    fn pushed_and_stored_mixed_pages() -> Result<()> {
-        test_pushed_and_stored_mixed_pages::<V>()
-    }
-    #[test]
-    fn single_value_writes() -> Result<()> {
-        test_single_value_writes::<V>()
-    }
-    #[test]
-    fn truncate_to_zero_then_rebuild() -> Result<()> {
-        test_truncate_to_zero_then_rebuild::<V>()
-    }
-    #[test]
-    fn read_only_clone_mixed_pages() -> Result<()> {
-        test_read_only_clone_mixed_pages::<V>()
-    }
+#[test]
+fn zstd_pages() -> Result<()> {
+    page_cases::<ZstdVec<usize, u32>>()
 }

@@ -40,7 +40,9 @@ where
     /// Returns true if there are uncommitted changes.
     fn is_dirty(&self) -> bool;
 
-    /// Flushes with the given stamp, saving changes to enable rollback.
+    /// Writes an update checkpoint, saving changes before overwriting values.
+    /// Compute loops should use `stamped_write_maybe_with_changes(stamp, false)`
+    /// for periodic writes and save rollback history only at the final update.
     fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()>;
 
     /// Rolls back the most recent change set.
@@ -56,6 +58,7 @@ where
 
     /// Rolls back changes to before the given stamp.
     fn rollback_before(&mut self, stamp: Stamp) -> Result<Stamp> {
+        self.header().check_writable()?;
         let files = self.find_rollback_files()?;
 
         // Walk change files newest-first. Each rollback decrements the vec

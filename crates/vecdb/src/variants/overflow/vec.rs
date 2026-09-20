@@ -196,6 +196,7 @@ where
 
     #[inline(always)]
     pub fn push(&mut self, value: T) {
+        self.header().assert_writable();
         let compact = self.encode(&value);
         self.compact.push(compact);
         self.pushed.push(value);
@@ -203,6 +204,7 @@ where
 
     /// Replaces one final value per index, sorting and applying the owned batch.
     pub fn update_many(&mut self, mut values: Vec<(I, T)>) -> Result<()> {
+        self.header().check_writable()?;
         values.sort_unstable_by_key(|(index, _)| index.to_usize());
         debug_assert!(
             values.windows(2).all(|pair| pair[0].0 != pair[1].0),
@@ -242,6 +244,7 @@ where
     }
 
     pub fn delete_many(&mut self, indices: impl IntoIterator<Item = I>) {
+        self.header().assert_writable();
         let reader = self.reader();
         for index in indices {
             self.delete_with_reader(index, &reader);
@@ -250,6 +253,7 @@ where
 
     /// Fills the lowest available indexes, then appends, preserving input order.
     pub fn fill_holes_or_push_many(&mut self, values: Vec<T>) -> Vec<I> {
+        self.header().assert_writable();
         let compacts = values
             .iter()
             .map(|value| Self::encode_with_overflow(&mut self.overflow, value));
@@ -276,11 +280,12 @@ where
     }
 
     fn write_inner(&mut self) -> Result<bool> {
+        let guard = self.header().begin_write()?;
         let overflow = self.overflow.write()?;
         let compact = self.compact.write()?;
         self.pushed.clear();
         self.visible_len.set(self.compact.stored_len());
-        Ok(compact || overflow)
+        guard.finish(Ok(compact || overflow))
     }
 }
 
@@ -378,14 +383,6 @@ where
         self.write_inner()
     }
 
-    fn flush(&mut self) -> Result<()> {
-        if self.write()? {
-            self.overflow.region().flush()?;
-            self.compact.region().flush()?;
-        }
-        Ok(())
-    }
-
     fn db(&self) -> Database {
         self.compact.db()
     }
@@ -449,6 +446,7 @@ where
     }
 
     fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+        self.header().check_writable()?;
         let len = self.len();
         if index >= len {
             return Ok(());
@@ -469,16 +467,18 @@ where
     }
 
     fn reset(&mut self) -> Result<()> {
+        let write_guard = self.header().begin_write()?;
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.reset()?;
         self.compact.reset()?;
         self.pushed.clear();
         self.visible_len.set(0);
-        Ok(())
+        write_guard.finish(Ok(()))
     }
 
     fn reset_unsaved(&mut self) {
+        self.header().assert_writable();
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.reset_unsaved();
@@ -492,23 +492,28 @@ where
     }
 
     fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        let write_guard = self.header().begin_write()?;
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
-        self.overflow.stamped_write_with_changes(stamp)?;
-        self.compact.stamped_write_with_changes(stamp)?;
+        // Both undo records must exist before either half is overwritten.
+        self.overflow.save_changes(stamp)?;
+        self.compact.save_changes(stamp)?;
+        self.overflow.write_saved_changes(stamp)?;
+        self.compact.write_saved_changes(stamp)?;
         self.pushed.clear();
         self.visible_len.set(self.compact.stored_len());
-        Ok(())
+        write_guard.finish(Ok(()))
     }
 
     fn rollback(&mut self) -> Result<()> {
+        let write_guard = self.header().begin_write()?;
         let gate = Arc::clone(&self.gate);
         let _guard = gate.write();
         self.overflow.rollback()?;
         self.compact.rollback()?;
         self.pushed.clear();
         self.visible_len.set(self.compact.stored_len());
-        Ok(())
+        write_guard.finish(Ok(()))
     }
 
     fn find_rollback_files(&self) -> Result<BTreeMap<Stamp, PathBuf>> {
@@ -519,6 +524,7 @@ where
     }
 
     fn save_rollback_state(&mut self) {
+        self.header().assert_writable();
         self.overflow.save_rollback_state();
         self.compact.save_rollback_state();
     }

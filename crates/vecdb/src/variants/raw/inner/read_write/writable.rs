@@ -23,6 +23,7 @@ where
     }
 
     fn truncate_if_needed_at(&mut self, index: usize) -> Result<()> {
+        self.header().check_writable()?;
         self.with_cache_update(index, |this| {
             if this.base.truncate_pushed(index) {
                 this.base.update_stored_len(index);
@@ -32,11 +33,13 @@ where
     }
 
     fn reset(&mut self) -> Result<()> {
-        self.with_cache_update(0, |this| {
+        let guard = self.header().begin_write()?;
+        let result = self.with_cache_update(0, |this| {
             this.base.truncate_pushed(0);
             this.base.update_stored_len(0);
             this.base.reset_base()
-        })
+        });
+        guard.finish(result)
     }
 
     fn reset_unsaved(&mut self) {
@@ -52,19 +55,22 @@ where
     }
 
     fn stamped_write_with_changes(&mut self, stamp: Stamp) -> Result<()> {
+        self.header().check_writable()?;
         if self.base.saved_stamped_changes() == 0 {
             return self.stamped_write(stamp);
         }
 
+        let guard = self.header().begin_write()?;
         let data = self.serialize_changes()?;
         self.base.save_change_file(stamp, &data)?;
         self.stamped_write(stamp)?;
         self.base.save_prev();
 
-        Ok(())
+        guard.finish(Ok(()))
     }
 
     fn rollback(&mut self) -> Result<()> {
+        self.header().check_writable()?;
         let bytes = self.base.read_current_change_file()?;
         let change =
             ReadWriteBaseVec::<I, T>::parse_change_data::<S>(&mut ChangeCursor::new(&bytes))?;
@@ -80,6 +86,7 @@ where
     }
 
     fn save_rollback_state(&mut self) {
+        self.header().assert_writable();
         self.base.save_prev_for_rollback();
     }
 }

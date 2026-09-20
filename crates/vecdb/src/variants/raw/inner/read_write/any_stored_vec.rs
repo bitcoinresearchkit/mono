@@ -49,9 +49,8 @@ where
     }
 
     fn write(&mut self) -> Result<bool> {
-        self.with_cache_update(self.stored_len(), |this| {
-            this.base.write_header_if_needed()?;
-
+        let guard = self.header().begin_write()?;
+        let result = self.with_cache_update(self.stored_len(), |this| {
             let stored_len = this.stored_len();
             let pushed_len = this.base.pushed().len();
             let real_stored_len = this.real_stored_len();
@@ -66,7 +65,7 @@ where
             }
 
             if !truncated && !has_new_data {
-                return Ok(false);
+                return this.base.write_header_if_needed();
             }
 
             let from = stored_len * Self::SIZE_OF_T + HEADER_OFFSET;
@@ -91,16 +90,18 @@ where
                     }
                     this.region().truncate_write(from, &bytes)?;
                 }
+                this.base.write_header_if_needed()?;
                 this.base.update_stored_len(stored_len + pushed_len);
                 if let Some(cache) = C::cache(&this.cache) {
                     cache.extend_tail(stored_len, &taken);
                 }
-            } else if truncated {
+            } else {
                 this.region().truncate(from)?;
+                this.base.write_header_if_needed()?;
             }
-
             Ok(true)
-        })
+        });
+        guard.finish(result)
     }
 
     fn region(&self) -> &Region {

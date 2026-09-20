@@ -76,9 +76,6 @@ impl Timestamp {
 
     #[inline]
     pub fn difference_in_days_between_float(&self, older: Self) -> f64 {
-        // if self.0 < older.0 {
-        //     unreachable!()
-        // }
         (self.0 - older.0) as f64 / ONE_DAY_IN_SEC_F64
     }
 

@@ -58,7 +58,6 @@ fn main() -> Result<()> {
     values.push(21);
     values.push(34);
     values.flush()?;
-    db.flush()?;
 
     assert_eq!(values.collect_range(0, 2), vec![21, 34]);
     Ok(())
@@ -87,10 +86,18 @@ are alive. Buffered file readers use the same region lock as mmap readers.
 Wrap `BytesVec` or `ZeroCopyVec` in `MutableVec` when existing positions must be
 replaced or deleted. Deletions leave holes, so later indexes do not move.
 
-Import options can set `saved_stamped_changes`; stamped writes then preserve a
-bounded rollback history. `rollback` and `rollback_before` restore prior
-states. Rollback is explicit recovery machinery, not a multi-vector
-transaction.
+Import options can set `saved_stamped_changes`;
+`stamped_write_with_changes` then preserves a bounded rollback history before
+overwriting values. Periodic writes inside compute loops use
+`stamped_write_maybe_with_changes(stamp, false)` to advance the baseline without
+undo history. The final update write saves changes; `rollback` and
+`rollback_before` run when preparing an update, before its compute loop.
+
+A failed or unwound write fences the writer, including failures in a mutable or
+overflow sidecar. Further writes return `WriteFailed`; infallible mutation
+methods panic. Resetting pending state cannot clear the fence. Discard the
+affected handles and validate or rebuild the data before continuing. In-place
+writes are not crash-atomic, and reopening does not itself repair a partial write.
 
 ## Range retention
 
@@ -159,25 +166,12 @@ Indexes implement `VecIndex`. Using domain-specific newtypes instead of
 | `zstd` | `ZstdVec` |
 | `serde` | Serialization support for public metadata types |
 | `schemars` | JSON Schema support for public metadata types |
-| `serde_json` | JSON output through `serde_json` |
-| `sonic-rs` | JSON output through `sonic-rs` |
 
 ## Examples and benchmarks
 
-- [`examples/zerocopy.rs`](examples/zerocopy.rs) demonstrates mutable
-  zero-copy storage, holes, updates, and rollback.
-- [`examples/pcodec.rs`](examples/pcodec.rs) demonstrates pco-compressed
-  storage.
 - [`examples/bench.rs`](examples/bench.rs) compares the available storage
   representations on a chosen workload.
-- [`benches/cached_ranges.rs`](benches/cached_ranges.rs) measures retained reads,
-  gap fills, and mixed-source budget pressure.
-- [`benches/cache_updates.rs`](benches/cache_updates.rs) compares cached and
-  native committed appends and last-value rewrites with sparse or full histories.
 
 ```bash
-cargo run -p vecdb --example zerocopy --features zerocopy
-cargo run -p vecdb --example pcodec --features pco
 cargo run --release -p vecdb --example bench --features pco,lz4,zstd,zerocopy
-cargo test -p vecdb --features pco,diagnostics --bench cached_ranges --bench cache_updates -- --ignored --nocapture --test-threads=1
 ```

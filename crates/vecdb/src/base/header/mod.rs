@@ -1,13 +1,18 @@
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 use inner::HeaderInner;
 use parking_lot::RwLock;
 use rawdb::Region;
 
 use super::Format;
-use crate::{Result, Stamp, Version};
+use crate::{Error, Result, Stamp, Version};
+use write_guard::WriteGuard;
 
 pub mod inner;
+mod write_guard;
 
 const HEADER_VERSION: Version = Version::TWO;
 pub const HEADER_OFFSET: usize = size_of::<HeaderInner>();
@@ -16,6 +21,7 @@ pub const HEADER_OFFSET: usize = size_of::<HeaderInner>();
 pub struct Header {
     inner: Arc<RwLock<HeaderInner>>,
     modified: bool,
+    write_failed: Arc<AtomicBool>,
 }
 
 impl Header {
@@ -24,6 +30,7 @@ impl Header {
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
             modified: false,
+            write_failed: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -36,10 +43,12 @@ impl Header {
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
             modified: false,
+            write_failed: Arc::new(AtomicBool::new(false)),
         })
     }
 
     pub fn update_stamp(&mut self, stamp: Stamp) {
+        self.assert_writable();
         let mut inner = self.inner.write();
         if inner.stamp != stamp {
             self.modified = true;
@@ -48,6 +57,7 @@ impl Header {
     }
 
     pub fn update_computed_version(&mut self, computed_version: Version) {
+        self.assert_writable();
         let mut inner = self.inner.write();
         if inner.computed_version != computed_version {
             self.modified = true;
@@ -76,8 +86,26 @@ impl Header {
     }
 
     pub fn write(&mut self, region: &Region) -> Result<()> {
+        let guard = self.begin_write()?;
         self.inner.read().write(region)?;
         self.modified = false;
-        Ok(())
+        guard.finish(Ok(()))
+    }
+
+    pub(crate) fn check_writable(&self) -> Result<()> {
+        if self.write_failed.load(Ordering::Relaxed) {
+            Err(Error::WriteFailed)
+        } else {
+            Ok(())
+        }
+    }
+
+    pub(crate) fn assert_writable(&self) {
+        self.check_writable()
+            .expect("vector cannot continue after a failed write");
+    }
+
+    pub(crate) fn begin_write(&self) -> Result<WriteGuard> {
+        WriteGuard::new(&self.write_failed)
     }
 }

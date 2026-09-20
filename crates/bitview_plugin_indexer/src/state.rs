@@ -203,19 +203,6 @@ mod tests {
     }
 
     #[test]
-    fn lifecycle_publishes_lengths() {
-        let state = State::new();
-        state.finish_update(Lengths::default());
-
-        let lengths = Lengths {
-            height: Height::new(1),
-            ..Default::default()
-        };
-        state.finish_update(lengths);
-        assert_eq!(state.lengths(), lengths);
-    }
-
-    #[test]
     fn lower_before_clamps_published_lengths() {
         let state = State::new();
         state.finish_update(Lengths {

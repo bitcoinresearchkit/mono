@@ -5,6 +5,7 @@ mod dependencies;
 mod features;
 mod fees;
 mod has;
+mod inscription;
 mod patterns;
 mod policy;
 mod sigops;
@@ -25,6 +26,7 @@ pub use dependencies::Dependencies;
 use features::Vecs as FeaturesVecs;
 pub use fees::Vecs as FeesVecs;
 pub use has::HasTransactions;
+use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
 use policy::Vecs as PolicyVecs;
 use sigops::Vecs as SigopsVecs;
@@ -44,6 +46,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub features: FeaturesVecs<M>,
     pub size: SizeVecs<M>,
     pub fees: FeesVecs<M>,
+    pub inscription: InscriptionVecs<M>,
     pub patterns: PatternsVecs<M>,
     /// BRK's transaction-local approximation of default Bitcoin Core relay
     /// standardness at the represented block height. It checks version,

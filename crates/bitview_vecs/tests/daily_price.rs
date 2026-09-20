@@ -1,9 +1,9 @@
-use crate::test_cache::init_cache;
 use bitview_cohort::UTXOAggregate;
 use bitview_vecs::{
     CachedSeries, DailyMappings, LazyDailyPriceWithRatio, RangeMapLookupVec, import_cached,
 };
 use brk_types::{Cents, Day1, Height, PriceRatio, Version};
+use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{
     AnySerializableVec, AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec,
@@ -186,7 +186,3 @@ fn daily_price_sources_persist_and_expose_prices_ratios_and_aligned_rewrites() {
         Some(Cents::new(600))
     );
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

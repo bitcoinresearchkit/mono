@@ -1,14 +1,17 @@
 #![cfg(feature = "diagnostics")]
 
-use crate::test_cache::init_cache;
 use bitview_vecs::LazyOhlcVec;
 use brk_types::{Cents, Day1, Height, OHLCCents, Version};
+use common::init_cache;
 use rangeindex::SharedRangeMap;
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, EagerVec, ImportableVec, PcoVec, ReadableVec, WritableVec,
     diagnostics,
 };
+
+#[allow(dead_code)]
+mod common;
 
 fn values(candle: &OHLCCents) -> (u64, u64, u64, u64) {
     (**candle.open, **candle.high, **candle.low, **candle.close)
@@ -68,7 +71,3 @@ fn cold_candles_batch_their_price_span_and_warm_reads_reuse_it() {
         "sparse candles do not read the intervening days"
     );
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

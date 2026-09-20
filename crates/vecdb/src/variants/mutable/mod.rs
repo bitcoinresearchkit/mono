@@ -8,7 +8,10 @@ use parking_lot::RwLock;
 
 use log::debug;
 
-use crate::{AnyVec, Bytes, Error, Result, TypedVec, VecIndex, WithPrev, vec_region_name_with};
+use crate::{
+    AnyStoredVec, AnyVec, Bytes, Error, Result, Stamp, TypedVec, VecIndex, WithPrev,
+    vec_region_name_with,
+};
 
 pub mod any_stored_vec;
 pub mod any_vec;
@@ -144,6 +147,7 @@ where
     /// Applies a batch of replacements. Sorted input lets `BTreeMap` build the
     /// mutation tree in linear time.
     pub fn update_many(&mut self, updates: impl IntoIterator<Item = (V::I, V::T)>) -> Result<()> {
+        self.header().check_writable()?;
         let updates: BTreeMap<_, _> = updates
             .into_iter()
             .map(|(index, value)| (index.to_usize(), value))
@@ -175,6 +179,7 @@ where
         &mut self,
         mut values: impl ExactSizeIterator<Item = V::T>,
     ) -> Vec<V::I> {
+        self.header().assert_writable();
         let hole_count = self.current_holes().len().min(values.len());
         let mut indices = Vec::with_capacity(values.len());
         if hole_count > 0 {
@@ -202,6 +207,7 @@ where
     }
 
     fn write_inner(&mut self, preserve_rollback_values: bool) -> Result<bool> {
+        let guard = self.header().begin_write()?;
         let mut changed = self.vec.write()?;
 
         if !self.current_updated().is_empty() {
@@ -222,7 +228,6 @@ where
 
         if self.holes_changed() {
             if !self.current_holes().is_empty() {
-                self.has_stored_holes = true;
                 let region = self
                     .vec
                     .db()
@@ -232,22 +237,46 @@ where
                     bytes.extend(index.to_bytes());
                 }
                 region.truncate_write(0, &bytes)?;
+                self.has_stored_holes = true;
                 changed = true;
             } else if self.has_stored_holes {
-                self.has_stored_holes = false;
                 let db = self.vec.db();
                 let name = self.holes_region_name();
                 debug!("{}: removing holes region '{}'", db, name);
                 db.remove_region(&name)?;
+                self.has_stored_holes = false;
                 changed = true;
             }
             self.publish_holes();
         }
 
-        Ok(changed)
+        guard.finish(Ok(changed))
+    }
+
+    pub(super) fn save_changes(&self, stamp: Stamp) -> Result<()> {
+        self.header().check_writable()?;
+        if self.saved_stamped_changes() > 0 {
+            self.vec
+                .save_change_file(stamp, &self.serialize_changes()?)?;
+        }
+        Ok(())
+    }
+
+    pub(super) fn write_saved_changes(&mut self, stamp: Stamp) -> Result<()> {
+        let guard = self.header().begin_write()?;
+        self.write_inner(false)?;
+        self.update_stamp(stamp);
+        self.write_inner(false)?;
+        if self.saved_stamped_changes() > 0 {
+            self.vec.save_previous();
+            self.holes.save();
+            self.updated.clear_previous();
+        }
+        guard.finish(Ok(()))
     }
 
     fn update_value_at(&mut self, index: usize, value: V::T) -> Result<()> {
+        self.header().check_writable()?;
         let stored_len = self.vec.stored_len();
         if index >= stored_len {
             let Some(slot) = self.vec.pushed_mut().get_mut(index - stored_len) else {

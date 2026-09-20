@@ -211,38 +211,20 @@ fn test_comprehensive_db_operations() -> Result<()> {
 
     db.flush()?;
 
-    region1.truncate(10)?;
-    db.compact()?;
-
-    {
-        let region1_meta = region1.meta();
-        assert!(region1_meta.start() == 0);
-        assert!(region1_meta.len() == 10);
-        assert!(region1_meta.reserved() == PAGE_SIZE * 2);
-
-        // We only punch a hole in whole pages (4096 bytes)
-        // Thus the last byte of the page where the is still data wasn't overwritten when truncating
-        // And the first byte of the punched page was set to 0
-        assert!(fs::read(db.path().join("data"))?[4095..=4096] == [1, 0]);
+    // Repeating truncation and compaction must preserve the same page boundary.
+    for _ in 0..2 {
+        region1.truncate(10)?;
+        db.compact()?;
+        {
+            let region1_meta = region1.meta();
+            assert_eq!(region1_meta.start(), 0);
+            assert_eq!(region1_meta.len(), 10);
+            assert_eq!(region1_meta.reserved(), PAGE_SIZE * 2);
+            // Only whole pages are punched; the preceding byte stays intact.
+            assert_eq!(fs::read(db.path().join("data"))?[4095..=4096], [1, 0]);
+        }
+        db.flush()?;
     }
-
-    db.flush()?;
-
-    region1.truncate(10)?;
-    db.compact()?;
-
-    {
-        let region1_meta = region1.meta();
-        assert!(region1_meta.start() == 0);
-        assert!(region1_meta.len() == 10);
-        assert!(region1_meta.reserved() == PAGE_SIZE * 2);
-        // We only punch a hole in whole pages (4096 bytes)
-        // Thus the last byte of the page where the is still data wasn't overwritten when truncating
-        // And the first byte of the punched page was set to 0
-        assert!(fs::read(db.path().join("data"))?[4095..=4096] == [1, 0]);
-    }
-
-    db.flush()?;
 
     region1.remove()?;
     db.compact()?;

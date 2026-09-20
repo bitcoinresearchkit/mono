@@ -14,13 +14,11 @@ use vecdb::Budgeted;
 pub fn main() -> Result<()> {
     Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
     let bitcoin_dir = Client::default_bitcoin_path();
-    // let bitcoin_dir = Path::new("/Volumes/WD_BLACK1/bitcoin");
 
     let blocks_dir = bitcoin_dir.join("blocks");
 
     let outputs_dir = Path::new(&env::var("HOME").unwrap()).join(".bitview");
     fs::create_dir_all(&outputs_dir)?;
-    // let outputs_dir = Path::new("/Volumes/WD_BLACK1/bitview");
 
     let client = Client::new(
         Client::default_url(),
@@ -57,17 +55,6 @@ pub fn main() -> Result<()> {
         Addr::from("bc1qwzrryqr3ja8w7hnja2spmkgfdcgvqwp5swz4af4ngsjecfz0w0pqud7k38".to_string()),
         1000,
     ));
-
-    // dbg!(query.search_and_format(SeriesSelection {
-    //     index: Index::Height,
-    //     series: vec!["date"].into(),
-    //     range: DataRangeFormat::default().set_from(-1),
-    // })?);
-    // dbg!(query.search_and_format(SeriesSelection {
-    //     index: Index::Height,
-    //     series: vec!["date", "timestamp"].into(),
-    //     range: DataRangeFormat::default().set_from(-10).set_count(5),
-    // })?);
 
     Ok(())
 }

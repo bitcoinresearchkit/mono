@@ -1,8 +1,7 @@
-use crate::test_cache::init_cache;
 use bitview_vecs::{LazyRollingDistribution, PerBlockDistribution, RollingDistribution};
 use brk_exit::Exit;
 use brk_types::{Height, StoredU64, TxIndex, VSize, Version, get_percentile};
-use common::{indexes, stored};
+use common::{indexes, init_cache, stored};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, AnyVec, Database, Ident, ImportableVec, PcoVec, ReadableVec, WritableVec,
@@ -224,7 +223,3 @@ fn lazy_rolling_distribution_preserves_all_stat_window_mappings() {
         }
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

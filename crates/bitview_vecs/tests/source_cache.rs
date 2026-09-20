@@ -1,4 +1,4 @@
-use crate::test_cache::init_cache;
+use common::init_cache;
 use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 
 use bitview_transforms::RatioU64;
@@ -309,7 +309,3 @@ fn incremental_compute_preserves_cached_prefixes_and_invalidates_rewrites() {
     );
     assert_eq!(original[4095], StoredU64::from(4095_u64));
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

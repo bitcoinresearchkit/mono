@@ -288,7 +288,3 @@ fn rolling_units_preserve_height_and_all_resolution_views() {
         check_rate!("scalar_delta", scalar_delta.rate.as_array()[slot]);
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

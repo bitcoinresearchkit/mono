@@ -1,5 +1,5 @@
 use bitview_traversable::Traversable;
-use brk_types::{Cents, PartsPerMillionSigned32, StoredF32};
+use brk_types::{Cents, PartsPerMillionSigned32, StoredF32, StoredU32};
 use vecdb::{Rw, StorageMode};
 
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, PerBlock, Price};
@@ -12,9 +12,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Bitcoin spot price divided by its running all-time high, minus one. Zero
     /// marks an all-time high; negative values measure the drawdown below it.
     pub drawdown: LazyPercentPerBlock<PartsPerMillionSigned32>,
+    /// Exact elapsed seconds preserve the ATH timestamp across incremental updates.
+    #[traversable(hidden)]
+    pub(super) seconds_since: PerBlock<StoredU32, M>,
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.
-    pub days_since: PerBlock<StoredF32, M>,
+    pub days_since: LazyPerBlock<StoredF32, StoredU32>,
     /// Fractional years since the latest Bitcoin spot-price all-time high,
     /// equal to fractional days since that high divided by 365.
     pub years_since: LazyPerBlock<StoredF32>,

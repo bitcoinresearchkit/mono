@@ -5,10 +5,6 @@ use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CountVecs<M: StorageMode = Rw> {
-    /// Counts transactions containing at least one Taproot script-path input
-    /// whose tapscript contains the Ordinals envelope prefix
-    /// `OP_0 OP_IF PUSH 'ord'`.
-    pub inscription: PerBlockCumulativeRolling<StoredU64, M>,
     /// Counts transactions containing at least one Taproot input with more
     /// than one witness element whose final element begins with annex prefix
     /// byte `0x50`.

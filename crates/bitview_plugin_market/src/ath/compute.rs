@@ -1,12 +1,13 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_vecs::CachedSeries;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{StoredF32, Timestamp};
-use vecdb::{ReadableVec, VecIndex};
+use brk_types::{Cents, Height, StoredF32, StoredU32, Timestamp};
+use vecdb::{ReadableVec, UnaryTransform, VecIndex};
 
-use super::Vecs;
+use super::{Vecs, seconds_to_days::SecondsToDays};
 
 pub fn compute(
     vecs: &mut Vecs,
@@ -23,38 +24,20 @@ pub fn compute(
         exit,
     )?;
 
-    let mut ath_ts: Option<Timestamp> = None;
-    vecs.days_since.height.compute_transform3(
+    compute_seconds_since(
+        &mut vecs.seconds_since.height,
         starting_height,
         &vecs.high.cents.height,
         &prices.spot.cents.height,
         &mappings.timestamp.monotonic,
-        |(i, ath, price, ts, slf)| {
-            if ath_ts.is_none() {
-                let idx = i.to_usize();
-                ath_ts = Some(if idx > 0 {
-                    let prev_days: StoredF32 = slf.collect_one_at(idx - 1).unwrap();
-                    Timestamp::from((*ts as f64 - *prev_days as f64 * 86400.0) as u32)
-                } else {
-                    ts
-                });
-            }
-            if price == ath {
-                ath_ts = Some(ts);
-                (i, StoredF32::default())
-            } else {
-                let days = ts.difference_in_days_between_float(ath_ts.unwrap());
-                (i, StoredF32::from(days as f32))
-            }
-        },
         exit,
     )?;
 
     let mut prev = None;
     vecs.max_days_between.height.compute_transform(
         starting_height,
-        &vecs.days_since.height,
-        |(i, days, slf)| {
+        &vecs.seconds_since.height,
+        |(i, seconds, slf)| {
             if prev.is_none() {
                 let i = i.to_usize();
                 prev.replace(if i > 0 {
@@ -63,7 +46,7 @@ pub fn compute(
                     StoredF32::default()
                 });
             }
-            let max = prev.unwrap().max(days);
+            let max = prev.unwrap().max(SecondsToDays::apply(seconds));
             prev.replace(max);
             (i, max)
         },
@@ -72,3 +55,45 @@ pub fn compute(
 
     Ok(())
 }
+
+fn compute_seconds_since(
+    seconds_since: &mut CachedSeries<Height, StoredU32>,
+    starting_height: Height,
+    high: &impl ReadableVec<Height, Cents>,
+    prices: &impl ReadableVec<Height, Cents>,
+    timestamps: &impl ReadableVec<Height, Timestamp>,
+    exit: &Exit,
+) -> Result<()> {
+    let mut ath_ts: Option<Timestamp> = None;
+    seconds_since.compute_transform3(
+        starting_height,
+        high,
+        prices,
+        timestamps,
+        |(i, ath, price, ts, slf)| {
+            if ath_ts.is_none() {
+                let idx = i.to_usize();
+                ath_ts = Some(if idx > 0 {
+                    let prev_seconds = slf.collect_one_at(idx - 1).unwrap();
+                    let prev_ts = timestamps.collect_one_at(idx - 1).unwrap();
+                    Timestamp::from(*prev_ts - *prev_seconds)
+                } else {
+                    ts
+                });
+            }
+            if price == ath {
+                ath_ts = Some(ts);
+                (i, StoredU32::ZERO)
+            } else {
+                (i, StoredU32::from(*ts - *ath_ts.unwrap()))
+            }
+        },
+        exit,
+    )?;
+
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "compute_tests.rs"]
+mod tests;

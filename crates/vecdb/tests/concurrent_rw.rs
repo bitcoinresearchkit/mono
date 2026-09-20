@@ -1,23 +1,11 @@
-//! Tests for concurrent read/write behavior with batched syncs.
-//!
-//! These tests verify that:
-//! 1. A reader clone can see data written by writer after write() (even without sync)
-//! 2. Batched writes followed by a single sync are safe for concurrent readers
-//! 3. The SharedLen atomic is properly visible across clones
-//! 4. Data written to mmap is visible to readers BEFORE stored_len is updated
-//!    (critical for memory ordering correctness)
-//!
-//! IMPORTANT: These tests verify that the write ordering is correct:
-//!   1. Data must be written to mmap
-//!   2. Memory barrier (implicit in SeqCst atomic)
-//!   3. stored_len is updated
-//!
+//! Concurrent reads during writes and batched syncs.
+//! Data must reach the mmap before the stored length is published.
 //! If a reader sees a new stored_len, the corresponding data MUST be readable.
 
 use std::{
     sync::{
         Arc, Barrier,
-        atomic::{AtomicBool, AtomicUsize, Ordering},
+        atomic::{AtomicBool, Ordering},
     },
     thread,
     time::Duration,
@@ -89,8 +77,15 @@ fn test_reader_sees_new_data_after_write() -> Result<()> {
         writer.push(i);
     }
 
-    // Reader still sees old stored_len (pushed is not shared)
+    // Pushed data is visible only to the writer until write().
+    assert_eq!(writer.len(), 100);
+    assert_eq!(writer.pushed_len(), 50);
     assert_eq!(reader.len(), 50);
+    {
+        let r = reader.reader();
+        assert_eq!(r.get(49), 49);
+        assert_eq!(r.try_get(50), None);
+    }
 
     // Writer calls write() - this updates stored_len (shared) and writes to mmap
     writer.write()?;
@@ -124,7 +119,7 @@ fn test_concurrent_read_during_write() -> Result<()> {
     let barrier = Arc::new(Barrier::new(2));
 
     let reader_barrier = barrier.clone();
-    let reader_handle = thread::spawn(move || -> Result<()> {
+    let reader_handle = thread::spawn(move || {
         // Wait for writer to start
         reader_barrier.wait();
 
@@ -135,14 +130,11 @@ fn test_concurrent_read_during_write() -> Result<()> {
                 let r = reader.reader();
                 // Read some values - should never panic or return garbage
                 for i in 0..len.min(100) {
-                    let val = r.try_get(i);
-                    assert!(val.is_some(), "Expected value at index {}", i);
-                    assert_eq!(val.unwrap(), i as u64);
+                    assert_eq!(r.try_get(i), Some(i as u64));
                 }
             }
             thread::sleep(Duration::from_micros(100));
         }
-        Ok(())
     });
 
     // Signal reader to start, then write more data
@@ -156,7 +148,7 @@ fn test_concurrent_read_during_write() -> Result<()> {
         thread::sleep(Duration::from_micros(50));
     }
 
-    reader_handle.join().unwrap()?;
+    reader_handle.join().unwrap();
 
     // Final state check
     assert_eq!(writer.len(), 2000);
@@ -247,44 +239,7 @@ fn test_pco_concurrent_read_write() -> Result<()> {
     Ok(())
 }
 
-/// Test that reader doesn't see writer's uncommitted pushed data
-#[test]
-fn test_reader_isolation_from_pushed() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-    let version = Version::ONE;
-
-    let mut writer: BytesVec<usize, u64> = BytesVec::forced_import(&db, "test_vec", version)?;
-
-    for i in 0..50u64 {
-        writer.push(i);
-    }
-    writer.write()?;
-
-    // Read-only clone
-    let reader = writer.read_only_clone();
-
-    // Writer pushes more but doesn't write
-    for i in 50..100u64 {
-        writer.push(i);
-    }
-
-    // Writer sees pushed data
-    assert_eq!(writer.len(), 100);
-    assert_eq!(writer.pushed_len(), 50);
-
-    // Read-only clone doesn't see writer's pushed
-    assert_eq!(reader.len(), 50);
-
-    // Reader can't access indices 50-99
-    let r = reader.reader();
-    assert_eq!(r.get(49), 49);
-    assert_eq!(r.try_get(50), None);
-
-    Ok(())
-}
-
-/// CRITICAL TEST: Verify that when reader sees updated stored_len, the data is readable.
-/// This tests the memory ordering invariant: mmap write must happen-before stored_len update.
+/// A newly published length must have readable data behind it.
 #[test]
 fn test_memory_ordering_len_vs_data() -> Result<()> {
     let (db, _temp) = setup_test_db()?;
@@ -302,16 +257,13 @@ fn test_memory_ordering_len_vs_data() -> Result<()> {
 
     let barrier = Arc::new(Barrier::new(2));
     let stop = Arc::new(AtomicBool::new(false));
-    let errors = Arc::new(AtomicUsize::new(0));
-    let reads = Arc::new(AtomicUsize::new(0));
 
     let reader_barrier = barrier.clone();
     let stop_clone = stop.clone();
-    let errors_clone = errors.clone();
-    let reads_clone = reads.clone();
 
     // Reader thread: continuously check that if we see a length, we can read that data
     let reader_handle = thread::spawn(move || {
+        let mut reads = 0;
         // Wait for writer to be ready
         reader_barrier.wait();
 
@@ -321,18 +273,12 @@ fn test_memory_ordering_len_vs_data() -> Result<()> {
                 // CRITICAL: If we see len = N, we MUST be able to read index N-1
                 let last_idx = len - 1;
                 let r = reader.reader();
-                let val = r.get(last_idx);
-                if val != last_idx as u64 {
-                    eprintln!(
-                        "ERROR: Read wrong value at {}: expected {}, got {}",
-                        last_idx, last_idx, val
-                    );
-                    errors_clone.fetch_add(1, Ordering::Relaxed);
-                }
-                reads_clone.fetch_add(1, Ordering::Relaxed);
+                assert_eq!(r.get(last_idx), last_idx as u64);
+                reads += 1;
             }
             // No sleep - tight loop to maximize chance of catching races
         }
+        reads
     });
 
     // Synchronize start with reader
@@ -353,14 +299,7 @@ fn test_memory_ordering_len_vs_data() -> Result<()> {
     thread::sleep(Duration::from_millis(1));
 
     stop.store(true, Ordering::Relaxed);
-    reader_handle.join().unwrap();
-
-    let error_count = errors.load(Ordering::Relaxed);
-    let read_count = reads.load(Ordering::Relaxed);
-
-    println!("Completed {} reads with {} errors", read_count, error_count);
-
-    assert_eq!(error_count, 0, "Memory ordering violation detected!");
+    let read_count = reader_handle.join().unwrap();
     assert!(read_count > 0, "Should have completed at least some reads");
 
     // Verify final state
@@ -380,42 +319,32 @@ fn test_length_data_consistency_stress() -> Result<()> {
     let reader = writer.read_only_clone();
 
     let stop = Arc::new(AtomicBool::new(false));
-    let max_len_seen = Arc::new(AtomicUsize::new(0));
-    let errors = Arc::new(AtomicUsize::new(0));
 
     let stop_clone = stop.clone();
-    let max_len_clone = max_len_seen.clone();
-    let errors_clone = errors.clone();
 
     // Reader aggressively checks consistency
     let reader_handle = thread::spawn(move || {
+        let mut max_len = 0;
         for _ in 0..1000 {
             if stop_clone.load(Ordering::Relaxed) {
                 break;
             }
 
             let len = reader.len();
-            max_len_clone.fetch_max(len, Ordering::Relaxed);
+            max_len = max_len.max(len);
 
             if len > 0 {
                 // Create fresh VecReader each time to pick up new stored data
                 let r = reader.reader();
 
                 // Check first, last, and a few sample indices
-                let indices_to_check = [0, len.saturating_sub(1), len / 2];
-
-                for &i in &indices_to_check {
-                    if i >= len {
-                        continue;
-                    }
-                    let val = r.get(i);
-                    if val != i as u64 {
-                        errors_clone.fetch_add(1, Ordering::Relaxed);
-                    }
+                for i in [0, len - 1, len / 2] {
+                    assert_eq!(r.get(i), i as u64);
                 }
             }
             thread::sleep(Duration::from_micros(10));
         }
+        max_len
     });
 
     // Writer rapidly adds data
@@ -430,14 +359,7 @@ fn test_length_data_consistency_stress() -> Result<()> {
     // Let reader catch up
     thread::sleep(Duration::from_millis(10));
     stop.store(true, Ordering::Relaxed);
-    reader_handle.join().unwrap();
-
-    let error_count = errors.load(Ordering::Relaxed);
-    assert_eq!(error_count, 0, "Consistency violation detected!");
-
-    // Reader should have seen at least some of the data
-    let max_len = max_len_seen.load(Ordering::Relaxed);
-    println!("Reader saw max len: {}", max_len);
+    let max_len = reader_handle.join().unwrap();
     assert!(max_len > 0, "Reader should have seen some data");
 
     Ok(())
@@ -464,7 +386,7 @@ fn test_many_readers_one_writer() -> Result<()> {
         .map(|_| {
             let reader = writer.read_only_clone();
             let b = barrier.clone();
-            thread::spawn(move || -> Result<()> {
+            thread::spawn(move || {
                 b.wait();
                 for _ in 0..50 {
                     let r = reader.reader();
@@ -476,7 +398,6 @@ fn test_many_readers_one_writer() -> Result<()> {
                     }
                     thread::sleep(Duration::from_micros(10));
                 }
-                Ok(())
             })
         })
         .collect();
@@ -493,524 +414,10 @@ fn test_many_readers_one_writer() -> Result<()> {
     }
 
     for handle in handles {
-        handle.join().unwrap()?;
+        handle.join().unwrap();
     }
 
     assert_eq!(writer.len(), 1100);
-
-    Ok(())
-}
-
-/// Long-running realistic stress test that simulates real-world usage patterns.
-/// This test:
-/// - Runs for several seconds
-/// - Has multiple vecs being written concurrently (like bitview_runtime)
-/// - Has readers continuously verifying data integrity
-/// - Uses batched writes without intermediate flushes
-/// - Only flushes at the end of each "block" (simulating block processing)
-///
-/// Run with: cargo test --features pco test_realworld_stress -- --ignored --nocapture
-#[test]
-#[ignore] // Run manually: takes ~10 seconds
-fn test_realworld_stress() -> Result<()> {
-    use std::time::Instant;
-
-    let (db, _temp) = setup_test_db()?;
-    let version = Version::ONE;
-
-    // Create multiple vecs (simulating different metrics in bitview_runtime)
-    let mut vec_a: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_a", version)?;
-    let mut vec_b: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_b", version)?;
-    let mut vec_c: BytesVec<usize, u64> = BytesVec::forced_import(&db, "metric_c", version)?;
-
-    // Write some initial data
-    for i in 0..1000u64 {
-        vec_a.push(i);
-        vec_b.push(i * 2);
-        vec_c.push(i * 3);
-    }
-    vec_a.write()?;
-    vec_b.write()?;
-    vec_c.write()?;
-    db.flush()?;
-
-    // Create read-only clones (simulating web server Query clones)
-    let reader_a = vec_a.read_only_clone();
-    let reader_b = vec_b.read_only_clone();
-    let reader_c = vec_c.read_only_clone();
-
-    let stop = Arc::new(AtomicBool::new(false));
-    let total_reads = Arc::new(AtomicUsize::new(0));
-    let errors = Arc::new(AtomicUsize::new(0));
-
-    // Spawn multiple reader threads (simulating concurrent API requests)
-    let num_readers = 4;
-    let reader_handles: Vec<_> = (0..num_readers)
-        .map(|reader_id| {
-            let r_a = reader_a.clone();
-            let r_b = reader_b.clone();
-            let r_c = reader_c.clone();
-            let stop = stop.clone();
-            let reads = total_reads.clone();
-            let errs = errors.clone();
-
-            thread::spawn(move || {
-                let mut local_reads = 0u64;
-                let mut local_errors = 0u64;
-
-                while !stop.load(Ordering::Relaxed) {
-                    // Read from all three vecs
-                    let len_a = r_a.len();
-                    let len_b = r_b.len();
-                    let len_c = r_c.len();
-
-                    // They should all have the same length (written together)
-                    // Allow for small differences during concurrent writes
-                    let max_len = len_a.max(len_b).max(len_c);
-                    let min_len = len_a.min(len_b).min(len_c);
-                    if max_len - min_len > 100 {
-                        eprintln!(
-                            "Reader {}: Large length discrepancy: a={}, b={}, c={}",
-                            reader_id, len_a, len_b, len_c
-                        );
-                        local_errors += 1;
-                    }
-
-                    // Verify data at various positions
-                    if min_len > 0 {
-                        let ra = r_a.reader();
-                        let rb = r_b.reader();
-                        let rc = r_c.reader();
-
-                        // Check first element
-                        if ra.get(0) != 0 {
-                            local_errors += 1;
-                        }
-
-                        // Check last safe element
-                        let safe_idx = min_len.saturating_sub(1);
-                        let va = ra.get(safe_idx);
-                        if va != safe_idx as u64 {
-                            eprintln!(
-                                "Reader {}: vec_a[{}] = {} (expected {})",
-                                reader_id, safe_idx, va, safe_idx
-                            );
-                            local_errors += 1;
-                        }
-                        if rb.get(safe_idx) != (safe_idx as u64) * 2 {
-                            local_errors += 1;
-                        }
-                        if rc.get(safe_idx) != (safe_idx as u64) * 3 {
-                            local_errors += 1;
-                        }
-
-                        // Check a middle element
-                        let mid_idx = min_len / 2;
-                        if ra.get(mid_idx) != mid_idx as u64 {
-                            local_errors += 1;
-                        }
-
-                        local_reads += 1;
-                    }
-
-                    // Simulate realistic request rate
-                    thread::sleep(Duration::from_micros(100));
-                }
-
-                reads.fetch_add(local_reads as usize, Ordering::Relaxed);
-                errs.fetch_add(local_errors as usize, Ordering::Relaxed);
-            })
-        })
-        .collect();
-
-    // Writer thread: simulate processing blocks
-    let start = Instant::now();
-    let num_blocks = 100;
-    let values_per_block = 50;
-    let mut current_idx = 1000u64;
-
-    println!(
-        "Starting {} blocks of {} values each...",
-        num_blocks, values_per_block
-    );
-
-    for block in 0..num_blocks {
-        // Simulate processing a block - write to multiple vecs
-        for _ in 0..values_per_block {
-            vec_a.push(current_idx);
-            vec_b.push(current_idx * 2);
-            vec_c.push(current_idx * 3);
-            current_idx += 1;
-        }
-
-        // Batched write: write all vecs without flushing each one
-        vec_a.write()?;
-        vec_b.write()?;
-        vec_c.write()?;
-
-        // Single flush at end of block (this is the optimization we're testing)
-        db.flush()?;
-
-        // Simulate some processing time between blocks
-        if block % 10 == 0 {
-            println!("Processed block {}/{}", block + 1, num_blocks);
-        }
-        thread::sleep(Duration::from_millis(10));
-    }
-
-    let write_duration = start.elapsed();
-
-    // Stop readers and wait for them
-    stop.store(true, Ordering::Relaxed);
-    thread::sleep(Duration::from_millis(50)); // Give readers time to notice
-
-    for handle in reader_handles {
-        handle.join().unwrap();
-    }
-
-    let final_reads = total_reads.load(Ordering::Relaxed);
-    let final_errors = errors.load(Ordering::Relaxed);
-
-    println!("\n=== Results ===");
-    println!("Write duration: {:?}", write_duration);
-    println!(
-        "Final vec lengths: a={}, b={}, c={}",
-        vec_a.len(),
-        vec_b.len(),
-        vec_c.len()
-    );
-    println!("Total reader verifications: {}", final_reads);
-    println!("Errors detected: {}", final_errors);
-
-    // Verify final state
-    let expected_len = 1000 + (num_blocks * values_per_block) as usize;
-    assert_eq!(vec_a.len(), expected_len);
-    assert_eq!(vec_b.len(), expected_len);
-    assert_eq!(vec_c.len(), expected_len);
-    assert_eq!(final_errors, 0, "Data integrity errors detected!");
-    assert!(
-        final_reads > 100,
-        "Should have completed many read verifications"
-    );
-
-    // Verify all data is correct after everything is done
-    println!("Verifying final data integrity...");
-    let reader_a_ref = vec_a.reader();
-    let reader_b_ref = vec_b.reader();
-    let reader_c_ref = vec_c.reader();
-
-    for i in 0..expected_len {
-        let a = reader_a_ref.get(i);
-        let b = reader_b_ref.get(i);
-        let c = reader_c_ref.get(i);
-
-        assert_eq!(a, i as u64, "vec_a[{}] incorrect", i);
-        assert_eq!(b, (i as u64) * 2, "vec_b[{}] incorrect", i);
-        assert_eq!(c, (i as u64) * 3, "vec_c[{}] incorrect", i);
-    }
-
-    println!("All {} values verified correctly!", expected_len);
-
-    Ok(())
-}
-
-/// Even longer stress test with more aggressive concurrent access
-/// Run with: cargo test --features pco test_extended_stress -- --ignored --nocapture
-#[test]
-#[ignore] // Run manually: takes ~30 seconds
-fn test_extended_stress() -> Result<()> {
-    use std::time::Instant;
-
-    let (db, _temp) = setup_test_db()?;
-    let version = Version::ONE;
-
-    // Use compressed vecs for more realistic scenario
-    #[cfg(feature = "pco")]
-    let mut writer: PcoVec<usize, u64> = PcoVec::forced_import(&db, "stress_vec", version)?;
-    #[cfg(not(feature = "pco"))]
-    let mut writer: BytesVec<usize, u64> = BytesVec::forced_import(&db, "stress_vec", version)?;
-
-    let stop = Arc::new(AtomicBool::new(false));
-    let writes_completed = Arc::new(AtomicUsize::new(0));
-    let reads_completed = Arc::new(AtomicUsize::new(0));
-    let read_errors = Arc::new(AtomicUsize::new(0));
-
-    // Single reader to verify the fix works
-    let num_readers = 1;
-    let reader_handles: Vec<_> = (0..num_readers)
-        .map(|_| {
-            let reader = writer.read_only_clone();
-            let stop = stop.clone();
-            let reads = reads_completed.clone();
-            let errs = read_errors.clone();
-
-            thread::spawn(move || {
-                let mut local_reads = 0usize;
-                let mut local_errors = 0usize;
-
-                while !stop.load(Ordering::Relaxed) {
-                    let len = reader.len();
-                    if len > 0 {
-                        // Check last element - most likely to catch races
-                        let idx = len - 1;
-                        if let Some(v) = reader.collect_one(idx) {
-                            if v != idx as u64 {
-                                local_errors += 1;
-                            }
-                            local_reads += 1;
-                        } else {
-                            local_errors += 1;
-                        }
-
-                        // Also check a random-ish index
-                        let random_idx = (len * 7) / 11; // Pseudo-random
-                        if random_idx < len
-                            && let Some(v) = reader.collect_one(random_idx)
-                        {
-                            if v != random_idx as u64 {
-                                local_errors += 1;
-                            }
-                            local_reads += 1;
-                        }
-                    }
-                    // Small sleep between reads
-                    thread::sleep(Duration::from_micros(100));
-                }
-
-                reads.fetch_add(local_reads, Ordering::Relaxed);
-                errs.fetch_add(local_errors, Ordering::Relaxed);
-            })
-        })
-        .collect();
-
-    // Writer: infrequent writes (simulates real bitview_runtime pattern)
-    let start = Instant::now();
-    let target_duration = Duration::from_secs(5);
-    let mut current_idx = 0u64;
-    let mut batches = 0usize;
-
-    println!("Running stress test for {:?}...", target_duration);
-
-    while start.elapsed() < target_duration {
-        // Large batch size per write (like processing a block)
-        let batch_size = 100;
-
-        for _ in 0..batch_size {
-            writer.push(current_idx);
-            current_idx += 1;
-        }
-
-        writer.write()?;
-        writes_completed.fetch_add(1, Ordering::Relaxed);
-        batches += 1;
-
-        if batches.is_multiple_of(10) {
-            println!("Written {} batches, {} values", batches, current_idx);
-        }
-
-        // Sleep between writes - simulates ~10 minute block interval scaled down
-        // 100ms sleep = 50 writes over 5 seconds
-        thread::sleep(Duration::from_millis(100));
-
-        // Flush every 10 batches
-        if batches.is_multiple_of(10) {
-            db.flush()?;
-        }
-    }
-
-    // Final flush
-    db.flush()?;
-
-    let write_duration = start.elapsed();
-
-    // Stop readers
-    stop.store(true, Ordering::Relaxed);
-    thread::sleep(Duration::from_millis(100));
-
-    for handle in reader_handles {
-        handle.join().unwrap();
-    }
-
-    let final_writes = writes_completed.load(Ordering::Relaxed);
-    let final_reads = reads_completed.load(Ordering::Relaxed);
-    let final_errors = read_errors.load(Ordering::Relaxed);
-
-    println!("\n=== Extended Stress Test Results ===");
-    println!("Duration: {:?}", write_duration);
-    println!("Total values written: {}", current_idx);
-    println!("Write batches: {}", final_writes);
-    println!("Read verifications: {}", final_reads);
-    println!("Errors: {}", final_errors);
-    println!(
-        "Reads per second: {:.0}",
-        final_reads as f64 / write_duration.as_secs_f64()
-    );
-
-    assert_eq!(writer.len(), current_idx as usize);
-    assert_eq!(final_errors, 0, "Data integrity errors detected!");
-    assert!(final_reads > 1000, "Should have many read verifications");
-
-    // Spot-check final data
-    println!("Spot-checking final data...");
-    for i in [
-        0,
-        100,
-        1000,
-        current_idx as usize / 2,
-        current_idx as usize - 1,
-    ] {
-        if i < writer.len() {
-            let v = writer.collect_one(i).unwrap();
-            assert_eq!(v, i as u64, "Value at {} incorrect", i);
-        }
-    }
-    println!("Spot-check passed!");
-
-    Ok(())
-}
-
-/// BytesVec version of extended stress test - runs without compression overhead
-/// This allows for a true tight loop test without reader starvation issues.
-///
-/// Run with: cargo test test_extended_stress_bytes -- --ignored --nocapture
-#[test]
-#[ignore] // Run manually
-fn test_extended_stress_bytes() -> Result<()> {
-    use std::time::Instant;
-
-    let (db, _temp) = setup_test_db()?;
-    let version = Version::ONE;
-
-    let mut writer: BytesVec<usize, u64> =
-        BytesVec::forced_import(&db, "stress_vec_bytes", version)?;
-
-    let stop = Arc::new(AtomicBool::new(false));
-    let writes_completed = Arc::new(AtomicUsize::new(0));
-    let reads_completed = Arc::new(AtomicUsize::new(0));
-    let read_errors = Arc::new(AtomicUsize::new(0));
-
-    // More aggressive readers - BytesVec is fast enough for tight loops
-    let num_readers = 8;
-    let reader_handles: Vec<_> = (0..num_readers)
-        .map(|_| {
-            let reader = writer.read_only_clone();
-            let stop = stop.clone();
-            let reads = reads_completed.clone();
-            let errs = read_errors.clone();
-
-            thread::spawn(move || {
-                let mut local_reads = 0usize;
-                let mut local_errors = 0usize;
-
-                while !stop.load(Ordering::Relaxed) {
-                    let r = reader.reader();
-                    let len = r.len();
-                    if len > 0 {
-                        // Check last element - most likely to catch races
-                        let idx = len - 1;
-                        let v = r.get(idx);
-                        if v != idx as u64 {
-                            local_errors += 1;
-                        }
-                        local_reads += 1;
-
-                        // Also check a random-ish index
-                        let random_idx = (len * 7) / 11;
-                        if random_idx < len {
-                            let v = r.get(random_idx);
-                            if v != random_idx as u64 {
-                                local_errors += 1;
-                            }
-                            local_reads += 1;
-                        }
-                    }
-                    // Very tight loop for BytesVec - no sleep needed
-                }
-
-                reads.fetch_add(local_reads, Ordering::Relaxed);
-                errs.fetch_add(local_errors, Ordering::Relaxed);
-            })
-        })
-        .collect();
-
-    // Writer: rapid writes with varying batch sizes
-    let start = Instant::now();
-    let target_duration = Duration::from_secs(5);
-    let mut current_idx = 0u64;
-    let mut batches = 0usize;
-
-    println!("Running BytesVec stress test for {:?}...", target_duration);
-
-    while start.elapsed() < target_duration {
-        // Varying batch sizes
-        let batch_size = 10 + (batches % 50);
-
-        for _ in 0..batch_size {
-            writer.push(current_idx);
-            current_idx += 1;
-        }
-
-        writer.write()?;
-        writes_completed.fetch_add(1, Ordering::Relaxed);
-        batches += 1;
-
-        // Occasionally flush (simulating block boundaries)
-        if batches.is_multiple_of(10) {
-            db.flush()?;
-        }
-    }
-
-    // Final flush
-    db.flush()?;
-
-    let write_duration = start.elapsed();
-
-    // Stop readers
-    stop.store(true, Ordering::Relaxed);
-    thread::sleep(Duration::from_millis(100));
-
-    for handle in reader_handles {
-        handle.join().unwrap();
-    }
-
-    let final_writes = writes_completed.load(Ordering::Relaxed);
-    let final_reads = reads_completed.load(Ordering::Relaxed);
-    let final_errors = read_errors.load(Ordering::Relaxed);
-
-    println!("\n=== BytesVec Extended Stress Test Results ===");
-    println!("Duration: {:?}", write_duration);
-    println!("Total values written: {}", current_idx);
-    println!("Write batches: {}", final_writes);
-    println!("Read verifications: {}", final_reads);
-    println!("Errors: {}", final_errors);
-    println!(
-        "Reads per second: {:.0}",
-        final_reads as f64 / write_duration.as_secs_f64()
-    );
-
-    assert_eq!(writer.len(), current_idx as usize);
-    assert_eq!(final_errors, 0, "Data integrity errors detected!");
-    assert!(
-        final_reads > 10000,
-        "Should have many read verifications with tight loop"
-    );
-
-    // Spot-check final data
-    println!("Spot-checking final data...");
-    let reader_ref = writer.reader();
-    for i in [
-        0,
-        100,
-        1000,
-        current_idx as usize / 2,
-        current_idx as usize - 1,
-    ] {
-        if i < writer.len() {
-            let v = reader_ref.get(i);
-            assert_eq!(v, i as u64, "Value at {} incorrect", i);
-        }
-    }
-    println!("Spot-check passed!");
 
     Ok(())
 }

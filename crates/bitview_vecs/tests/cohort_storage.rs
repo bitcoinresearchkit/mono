@@ -1,4 +1,4 @@
-use crate::test_cache::init_cache;
+use common::init_cache;
 use std::ptr;
 
 use bitview_cohort::{
@@ -217,7 +217,3 @@ fn amount_composition_keeps_checkpoint_invalidation_and_reader_projection() {
             .all(|v| *v == StoredU64::from(13_u64))
     );
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

@@ -1,6 +1,8 @@
+use std::fs;
+
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, AnyVec, Bytes, Database, ImportOptions, ImportableVec, OverflowVec,
+    AnyStoredVec, AnyVec, Bytes, Database, Error, ImportOptions, ImportableVec, OverflowVec,
     OverflowVecValue, ReadableVec, Result, Stamp, Version, WritableVec,
 };
 
@@ -397,5 +399,47 @@ fn fill_holes_or_push_many_preserves_value_order_and_indexes() -> Result<()> {
             TestValue(11),
         ]
     );
+    Ok(())
+}
+
+#[test]
+fn sidecar_undo_is_prepared_before_either_half_is_overwritten() -> Result<()> {
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let options = ImportOptions::new(&db, "values", Version::ONE).with_saved_stamped_changes(4);
+    let mut values = OverflowVec::<usize, TestValue>::import_with(options)?;
+    values.push(TestValue(1000));
+    values.stamped_write_with_changes(Stamp::new(1))?;
+    let published = values.read_only_clone();
+    fs::create_dir(temp.path().join("changes/values/usize/2"))?;
+    values.update_many(vec![(0, TestValue(2000))])?;
+    assert!(values.stamped_write_with_changes(Stamp::new(2)).is_err());
+    assert_eq!(published.collect(), [TestValue(1000)]);
+    assert_eq!(values.stamp(), Stamp::new(1));
+    assert!(matches!(values.write(), Err(Error::WriteFailed)));
+    assert!(matches!(values.reset(), Err(Error::WriteFailed)));
+    assert!(matches!(
+        values.update_many(vec![(0, TestValue(3))]),
+        Err(Error::WriteFailed)
+    ));
+    Ok(())
+}
+
+#[test]
+fn late_compact_failure_fences_a_successful_overflow_write() -> Result<()> {
+    let temp = tempdir()?;
+    let db = Database::open(temp.path())?;
+    let mut values = OverflowVec::<usize, TestValue>::import(&db, "values", Version::ONE)?;
+    values.push(TestValue(1));
+    values.push(TestValue(2));
+    values.delete_many([0]);
+    values.stamped_write(Stamp::new(1))?;
+    let holes = db.get_region("values/usize_holes").unwrap();
+    values.update_many(vec![(0, TestValue(1000))])?;
+    assert!(values.stamped_write(Stamp::new(2)).is_err());
+    assert_eq!(values.stamp(), Stamp::new(1));
+    drop(holes);
+    assert!(matches!(values.write(), Err(Error::WriteFailed)));
+    assert!(matches!(values.reset(), Err(Error::WriteFailed)));
     Ok(())
 }

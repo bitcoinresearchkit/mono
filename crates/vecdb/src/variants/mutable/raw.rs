@@ -2,8 +2,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
 use crate::{
-    BytesVec, BytesVecReader, BytesVecValue, ImportableVec, Result, Stamp, StoredVec, VecIndex,
-    WritableVec,
+    AnyStoredVec, BytesVec, BytesVecReader, BytesVecValue, ImportableVec, Result, Stamp, StoredVec,
+    VecIndex, WritableVec,
 };
 
 #[cfg(feature = "zerocopy")]
@@ -64,6 +64,7 @@ where
 
     #[inline]
     pub fn delete_at(&mut self, index: usize) {
+        self.header().assert_writable();
         if index >= self.vec.len() {
             return;
         }
@@ -90,6 +91,7 @@ where
 
     #[inline]
     pub fn fill_first_hole_or_push(&mut self, value: V::T) -> Result<V::I> {
+        self.header().check_writable()?;
         if let Some(index) = self.mut_holes().pop_first() {
             self.update_value_at(index, value)?;
             return Ok(V::I::from(index));

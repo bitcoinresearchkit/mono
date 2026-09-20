@@ -1,4 +1,3 @@
-use crate::test_cache::init_cache;
 use bitview_collections::Windows;
 use bitview_transforms::SatsToCents;
 use bitview_vecs::{
@@ -7,7 +6,7 @@ use bitview_vecs::{
 };
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, StoredU64, Timestamp, TxIndex, Version};
-use common::{indexes, stored};
+use common::{indexes, init_cache, stored};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, AnyVec, BinaryTransform, Database, ImportableVec, PcoVec, ReadableVec,
@@ -243,7 +242,3 @@ fn cumulative_values_reopen_resume_and_rewind_from_stored_totals() {
         }
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

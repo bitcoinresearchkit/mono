@@ -555,7 +555,3 @@ fn sparse_sources_keep_legacy_emitted_value_alignment() {
         assert_eq!(since.collect_range_at(from, to), expected);
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

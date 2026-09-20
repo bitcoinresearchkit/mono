@@ -12,7 +12,7 @@ use vecdb::{
 #[cfg(feature = "diagnostics")]
 use vecdb::diagnostics;
 
-use crate::test_cache::init_cache;
+use common::init_cache;
 
 mod common;
 
@@ -240,7 +240,3 @@ fn benchmark_open_price_reads() {
         }
     }
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

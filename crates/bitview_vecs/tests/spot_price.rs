@@ -1,7 +1,7 @@
-use crate::test_cache::init_cache;
 use bitview_transforms::{CentsUnsignedToDollars, CentsUnsignedToSats};
 use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
 use brk_types::{Cents, Height, Version};
+use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, AnyVec, Budgeted, Database, EagerVec, PcoVec, ReadableVec, UnaryTransform,
@@ -93,7 +93,3 @@ fn shared_price_shapes_preserve_integer_units_inverse_extrema_empty_periods_and_
         Some(Some(Cents::from(1000u64)))
     );
 }
-
-#[allow(dead_code)]
-#[path = "common/cache.rs"]
-mod test_cache;

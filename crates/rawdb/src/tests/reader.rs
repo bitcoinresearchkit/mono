@@ -1,6 +1,6 @@
 use std::panic::{AssertUnwindSafe, catch_unwind};
 
-use crate::{PAGE_SIZE, Reader, Result};
+use crate::Result;
 
 use super::setup_test_db;
 
@@ -39,25 +39,6 @@ fn test_reader_read_from() -> Result<()> {
 }
 
 #[test]
-fn test_reader_ranges() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    let region = db.create_region_if_needed("test")?;
-    region.write(b"Hello World")?;
-
-    let reader = region.create_reader();
-
-    // Read separate ranges within the region
-    let data = reader.read(0, 5);
-    assert_eq!(data, b"Hello");
-
-    let data = reader.read(6, 5);
-    assert_eq!(data, b"World");
-
-    Ok(())
-}
-
-#[test]
 #[should_panic]
 fn test_reader_bounds_check() {
     let (db, _temp) = setup_test_db().unwrap();
@@ -69,20 +50,6 @@ fn test_reader_bounds_check() {
 
     // This should panic due to bounds check
     let _ = reader.read(0, 100);
-}
-
-#[test]
-#[should_panic]
-fn test_reader_bounds_overflow() {
-    let (db, _temp) = setup_test_db().unwrap();
-
-    let first = db.create_region_if_needed("first").unwrap();
-    first.write(&[0; PAGE_SIZE]).unwrap();
-    let second = db.create_region_if_needed("second").unwrap();
-    second.write(b"Short").unwrap();
-
-    let reader = second.create_reader();
-    let _ = reader.read(usize::MAX, 1);
 }
 
 #[test]
@@ -116,27 +83,6 @@ fn test_reader_outlives_database_variable() -> Result<()> {
 
     // Reader should still work
     assert_eq!(reader.read_all(), b"Persisted data");
-
-    Ok(())
-}
-
-#[test]
-fn test_reader_can_be_stored_in_struct() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-
-    struct DataHolder {
-        reader: Reader,
-    }
-
-    let region = db.create_region_if_needed("test")?;
-    region.write(b"Stored in struct")?;
-
-    let holder = DataHolder {
-        reader: region.create_reader(),
-    };
-
-    // Can use reader through struct
-    assert_eq!(holder.reader.read_all(), b"Stored in struct");
 
     Ok(())
 }

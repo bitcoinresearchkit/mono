@@ -39,11 +39,12 @@ impl WeightedCapitalizedPrice {
         // Find floor(numerator / denominator) without overflowing either raw
         // moment by multiplying it by the weight scale or the candidate price.
         let mut low = 0;
-        let mut high = if self.denominator.whole > 0 {
-            (self.numerator.whole / self.denominator.whole).min(Cents::MAX_FINITE.as_u128()) as u64
-        } else {
-            Cents::MAX_FINITE.inner()
-        };
+        let mut high = self
+            .numerator
+            .whole
+            .checked_div(self.denominator.whole)
+            .unwrap_or(Cents::MAX_FINITE.as_u128())
+            .min(Cents::MAX_FINITE.as_u128()) as u64;
         // With substantial invested value the integer-parts quotient is
         // usually already exact, so avoid searching in the common case.
         if self

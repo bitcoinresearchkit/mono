@@ -12,9 +12,7 @@ use vecdb::{
     AnyStoredVec, ImportOptions, ImportableVec, Result, Stamp, StoredVec, Version, WritableVec,
 };
 
-// ============================================================================
 // Test Setup
-// ============================================================================
 
 fn setup_db() -> Result<(Database, TempDir)> {
     let temp = TempDir::new()?;
@@ -22,12 +20,23 @@ fn setup_db() -> Result<(Database, TempDir)> {
     Ok((db, temp))
 }
 
-// ============================================================================
 // PART 1: Generic Rollback Tests (ALL vec types)
-// ============================================================================
+
 // These tests use only push/truncate operations and work with any StoredVec.
 
 mod generic_rollback {
+    use vecdb::BytesVec;
+    #[cfg(any(feature = "zerocopy", feature = "pco"))]
+    use vecdb::EagerVec;
+    #[cfg(feature = "lz4")]
+    use vecdb::LZ4Vec;
+    #[cfg(feature = "pco")]
+    use vecdb::PcoVec;
+    #[cfg(feature = "zerocopy")]
+    use vecdb::ZeroCopyVec;
+    #[cfg(feature = "zstd")]
+    use vecdb::ZstdVec;
+
     use super::*;
 
     fn import_with_changes<V>(db: &Database, name: &str, changes: u16) -> Result<V>
@@ -59,69 +68,6 @@ mod generic_rollback {
         vec.push(6);
         vec.stamped_write_with_changes(Stamp::new(2))?;
         assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6]);
-        assert_eq!(vec.stamp(), Stamp::new(2));
-
-        // Rollback to stamp 1
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        Ok(())
-    }
-
-    fn run_rollback_with_truncation<V>() -> Result<()>
-    where
-        V: StoredVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<V>(&db, "test", 10)?;
-
-        // Stamp 1: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: [0, 1, 2, 3, 4, 5, 6, 7]
-        vec.push(5);
-        vec.push(6);
-        vec.push(7);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6, 7]);
-
-        // Rollback - should restore to [0, 1, 2, 3, 4]
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        Ok(())
-    }
-
-    fn run_multiple_sequential_rollbacks<V>() -> Result<()>
-    where
-        V: StoredVec<I = usize, T = u32>,
-    {
-        let (db, _temp) = setup_db()?;
-        let mut vec = import_with_changes::<V>(&db, "test", 10)?;
-
-        // Stamp 1: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: [0, 1, 2, 3, 4, 5]
-        vec.push(5);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-
-        // Stamp 3: [0, 1, 2, 3, 4, 5, 6]
-        vec.push(6);
-        vec.stamped_write_with_changes(Stamp::new(3))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6]);
-
-        // Rollback to stamp 2
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5]);
         assert_eq!(vec.stamp(), Stamp::new(2));
 
         // Rollback to stamp 1
@@ -346,331 +292,61 @@ mod generic_rollback {
     }
 
     // Test modules for each vec type
-    mod bytes {
-        use vecdb::BytesVec;
+    fn run<V: StoredVec<I = usize, T = u32>>() -> Result<()> {
+        run_basic_rollback::<V>()?;
+        run_rollback_then_save_new_state::<V>()?;
+        run_rollback_to_empty::<V>()?;
+        run_rollback_before::<V>()?;
+        run_deep_rollback_chain::<V>()?;
+        run_rollback_persistence::<V>()?;
+        run_reset::<V>()?;
+        Ok(())
+    }
 
-        use super::*;
-
-        type V = BytesVec<usize, u32>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn bytes() -> Result<()> {
+        run::<BytesVec<usize, u32>>()
     }
 
     #[cfg(feature = "zerocopy")]
-    mod zerocopy {
-        use vecdb::ZeroCopyVec;
-
-        use super::*;
-
-        type V = ZeroCopyVec<usize, u32>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn zerocopy() -> Result<()> {
+        run::<ZeroCopyVec<usize, u32>>()
     }
 
     #[cfg(feature = "pco")]
-    mod pco {
-        use vecdb::PcoVec;
-
-        use super::*;
-
-        type V = PcoVec<usize, u32>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn pco() -> Result<()> {
+        run::<PcoVec<usize, u32>>()
     }
 
     #[cfg(feature = "lz4")]
-    mod lz4 {
-        use vecdb::LZ4Vec;
-
-        use super::*;
-
-        type V = LZ4Vec<usize, u32>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn lz4() -> Result<()> {
+        run::<LZ4Vec<usize, u32>>()
     }
 
     #[cfg(feature = "zstd")]
-    mod zstd {
-        use vecdb::ZstdVec;
-
-        use super::*;
-
-        type V = ZstdVec<usize, u32>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn zstd() -> Result<()> {
+        run::<ZstdVec<usize, u32>>()
     }
 
     #[cfg(feature = "zerocopy")]
-    mod eager_zerocopy {
-        use vecdb::{EagerVec, ZeroCopyVec};
-
-        use super::*;
-
-        type V = EagerVec<ZeroCopyVec<usize, u32>>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn eager_zerocopy() -> Result<()> {
+        run::<EagerVec<ZeroCopyVec<usize, u32>>>()
     }
 
     #[cfg(feature = "pco")]
-    mod eager_pco {
-        use vecdb::{EagerVec, PcoVec};
-
-        use super::*;
-
-        type V = EagerVec<PcoVec<usize, u32>>;
-
-        #[test]
-        fn basic_rollback() -> Result<()> {
-            run_basic_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_persistence() -> Result<()> {
-            run_rollback_persistence::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
+    #[test]
+    fn eager_pco() -> Result<()> {
+        run::<EagerVec<PcoVec<usize, u32>>>()
     }
 }
 
-// ============================================================================
 // PART 2: Raw-Only Rollback Tests (BytesVec and ZeroCopyVec)
-// ============================================================================
+
 // These tests use update/hole operations provided by MutableVec over raw vecs.
 
 mod raw_rollback {
@@ -794,99 +470,6 @@ mod raw_rollback {
     // ============================================================================
     // Generic Rollback Test Functions
     // ============================================================================
-
-    fn run_basic_single_rollback<V>() -> Result<()>
-    where
-        V: RollbackVec,
-    {
-        let (db, _temp) = setup_db()?;
-        let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
-
-        // Initial state: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        // Modify to [0, 1, 99, 3, 4]
-        vec.update(2, 99)?;
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![0, 1, 99, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(2));
-
-        // Rollback to stamp 1
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        Ok(())
-    }
-
-    fn run_rollback_with_truncation<V>() -> Result<()>
-    where
-        V: RollbackVec,
-    {
-        let (db, _temp) = setup_db()?;
-        let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
-
-        // Initial state: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-
-        // Add more: [0, 1, 2, 3, 4, 5, 6, 7]
-        vec.push(5);
-        vec.push(6);
-        vec.push(7);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6, 7]);
-
-        // Rollback - should restore to [0, 1, 2, 3, 4]
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        Ok(())
-    }
-
-    fn run_multiple_sequential_rollbacks<V>() -> Result<()>
-    where
-        V: RollbackVec,
-    {
-        let (db, _temp) = setup_db()?;
-        let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
-
-        // Stamp 1: [0, 1, 2, 3, 4]
-        for i in 0..5 {
-            vec.push(i);
-        }
-        vec.stamped_write_with_changes(Stamp::new(1))?;
-
-        // Stamp 2: [0, 1, 2, 3, 4, 5]
-        vec.push(5);
-        vec.stamped_write_with_changes(Stamp::new(2))?;
-
-        // Stamp 3: [0, 1, 2, 3, 4, 5, 6]
-        vec.push(6);
-        vec.stamped_write_with_changes(Stamp::new(3))?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6]);
-
-        // Rollback to stamp 2
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5]);
-        assert_eq!(vec.stamp(), Stamp::new(2));
-
-        // Rollback to stamp 1
-        vec.rollback()?;
-        assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4]);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
-        Ok(())
-    }
 
     fn run_rollback_then_save_new_state<V>() -> Result<()>
     where
@@ -1505,197 +1088,43 @@ mod raw_rollback {
         Ok(())
     }
 
-    // ============================================================================
     // Test instantiation for each mutable raw vec type
-    // ============================================================================
 
-    #[cfg(feature = "zerocopy")]
-    mod zerocopy {
-        use super::*;
-
-        type V = MutableVec<ZeroCopyVec<usize, u32>>;
-
-        #[test]
-        fn basic_single_rollback() -> Result<()> {
-            run_basic_single_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_with_updates() -> Result<()> {
-            run_rollback_with_updates::<V>()
-        }
-        #[test]
-        fn rollback_with_holes() -> Result<()> {
-            run_rollback_with_holes::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation_and_updates() -> Result<()> {
-            run_rollback_with_truncation_and_updates::<V>()
-        }
-        #[test]
-        fn rollback_with_holes_and_updates() -> Result<()> {
-            run_rollback_with_holes_and_updates::<V>()
-        }
-        #[test]
-        fn multiple_updates_to_same_index() -> Result<()> {
-            run_multiple_updates_to_same_index::<V>()
-        }
-        #[test]
-        fn complex_mixed_operations() -> Result<()> {
-            run_complex_mixed_operations::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_all_elements_updated() -> Result<()> {
-            run_rollback_all_elements_updated::<V>()
-        }
-        #[test]
-        fn multiple_holes_then_rollback() -> Result<()> {
-            run_multiple_holes_then_rollback::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
-        #[test]
-        fn rollback_after_rollback_with_delete() -> Result<()> {
-            run_rollback_after_rollback_with_delete::<V>()
-        }
-        #[test]
-        fn rollback_after_untracked_checkpoint() -> Result<()> {
-            run_rollback_after_untracked_checkpoint::<V>()
-        }
-        #[test]
-        fn rollback_across_intermediate_writes() -> Result<()> {
-            run_rollback_across_intermediate_writes::<V>()
-        }
-        #[test]
-        fn holes_persist_only_when_changed() -> Result<()> {
-            run_holes_persist_only_when_changed::<V>()
-        }
-        #[test]
-        fn rollback_persists_restored_holes() -> Result<()> {
-            run_rollback_persists_restored_holes::<V>()
-        }
+    fn run<V: RollbackVec>() -> Result<()> {
+        run_rollback_then_save_new_state::<V>()?;
+        run_rollback_with_updates::<V>()?;
+        run_rollback_with_holes::<V>()?;
+        run_rollback_with_truncation_and_updates::<V>()?;
+        run_rollback_with_holes_and_updates::<V>()?;
+        run_multiple_updates_to_same_index::<V>()?;
+        run_complex_mixed_operations::<V>()?;
+        run_rollback_to_empty::<V>()?;
+        run_reset::<V>()?;
+        run_deep_rollback_chain::<V>()?;
+        run_rollback_all_elements_updated::<V>()?;
+        run_multiple_holes_then_rollback::<V>()?;
+        run_rollback_before::<V>()?;
+        run_rollback_after_rollback_with_delete::<V>()?;
+        run_rollback_after_untracked_checkpoint::<V>()?;
+        run_rollback_across_intermediate_writes::<V>()?;
+        run_holes_persist_only_when_changed::<V>()?;
+        run_rollback_persists_restored_holes::<V>()?;
+        Ok(())
     }
 
-    mod bytes {
-        use super::*;
+    #[test]
+    fn bytes() -> Result<()> {
+        run::<MutableVec<BytesVec<usize, u32>>>()
+    }
 
-        type V = MutableVec<BytesVec<usize, u32>>;
-
-        #[test]
-        fn basic_single_rollback() -> Result<()> {
-            run_basic_single_rollback::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation() -> Result<()> {
-            run_rollback_with_truncation::<V>()
-        }
-        #[test]
-        fn multiple_sequential_rollbacks() -> Result<()> {
-            run_multiple_sequential_rollbacks::<V>()
-        }
-        #[test]
-        fn rollback_then_save_new_state() -> Result<()> {
-            run_rollback_then_save_new_state::<V>()
-        }
-        #[test]
-        fn rollback_with_updates() -> Result<()> {
-            run_rollback_with_updates::<V>()
-        }
-        #[test]
-        fn rollback_with_holes() -> Result<()> {
-            run_rollback_with_holes::<V>()
-        }
-        #[test]
-        fn rollback_with_truncation_and_updates() -> Result<()> {
-            run_rollback_with_truncation_and_updates::<V>()
-        }
-        #[test]
-        fn rollback_with_holes_and_updates() -> Result<()> {
-            run_rollback_with_holes_and_updates::<V>()
-        }
-        #[test]
-        fn multiple_updates_to_same_index() -> Result<()> {
-            run_multiple_updates_to_same_index::<V>()
-        }
-        #[test]
-        fn complex_mixed_operations() -> Result<()> {
-            run_complex_mixed_operations::<V>()
-        }
-        #[test]
-        fn rollback_to_empty() -> Result<()> {
-            run_rollback_to_empty::<V>()
-        }
-        #[test]
-        fn deep_rollback_chain() -> Result<()> {
-            run_deep_rollback_chain::<V>()
-        }
-        #[test]
-        fn rollback_all_elements_updated() -> Result<()> {
-            run_rollback_all_elements_updated::<V>()
-        }
-        #[test]
-        fn multiple_holes_then_rollback() -> Result<()> {
-            run_multiple_holes_then_rollback::<V>()
-        }
-        #[test]
-        fn rollback_before() -> Result<()> {
-            run_rollback_before::<V>()
-        }
-        #[test]
-        fn reset() -> Result<()> {
-            run_reset::<V>()
-        }
-        #[test]
-        fn rollback_after_rollback_with_delete() -> Result<()> {
-            run_rollback_after_rollback_with_delete::<V>()
-        }
-        #[test]
-        fn rollback_after_untracked_checkpoint() -> Result<()> {
-            run_rollback_after_untracked_checkpoint::<V>()
-        }
-        #[test]
-        fn rollback_across_intermediate_writes() -> Result<()> {
-            run_rollback_across_intermediate_writes::<V>()
-        }
-        #[test]
-        fn holes_persist_only_when_changed() -> Result<()> {
-            run_holes_persist_only_when_changed::<V>()
-        }
-        #[test]
-        fn rollback_persists_restored_holes() -> Result<()> {
-            run_rollback_persists_restored_holes::<V>()
-        }
+    #[cfg(feature = "zerocopy")]
+    #[test]
+    fn zerocopy() -> Result<()> {
+        run::<MutableVec<ZeroCopyVec<usize, u32>>>()
     }
 } // end mod raw_rollback
 
-// ============================================================================
 // PART 3: Checkpoint Rollback Tests (ALL vec types)
-// ============================================================================
 
 mod checkpoint_rollback {
     use vecdb::BytesVec;
@@ -1778,15 +1207,11 @@ mod checkpoint_rollback {
     }
 }
 
-// ============================================================================
 // PART 4: Comprehensive Integration Test
-// ============================================================================
+
 // Complex rollback + flush + reopen test with file integrity verification.
 
 mod integration {
-    use std::{fs, path::Path};
-
-    use sha2::{Digest, Sha256};
     use vecdb::{BytesVec, MutableVec};
 
     use super::*;
@@ -1794,62 +1219,6 @@ mod integration {
 
     #[cfg(feature = "zerocopy")]
     use vecdb::ZeroCopyVec;
-
-    /// Compute SHA-256 hash of the vecdb data file and regions directory
-    /// Only hashes data (file) and regions/*, ignoring changes directory
-    fn compute_directory_hash(dir: &Path) -> Result<String> {
-        use std::path::PathBuf;
-
-        let mut hasher = Sha256::new();
-
-        // Collect all files in sorted order for deterministic hashing
-        let mut files: Vec<PathBuf> = Vec::new();
-
-        // Hash the data file if it exists
-        let data_file = dir.join("data");
-        if data_file.exists() && data_file.is_file() {
-            files.push(data_file);
-        }
-
-        // Hash files in the regions directory, excluding changes subdirectory
-        let regions_dir = dir.join("regions");
-        if regions_dir.exists() {
-            fn collect_files(dir: &Path, files: &mut Vec<PathBuf>) {
-                let Ok(entries) = fs::read_dir(dir) else {
-                    return;
-                };
-                for entry in entries.filter_map(|e| e.ok()) {
-                    let path = entry.path();
-                    if path.components().any(|c| c.as_os_str() == "changes") {
-                        continue;
-                    }
-                    if path.is_dir() {
-                        collect_files(&path, files);
-                    } else if path.is_file() {
-                        files.push(path);
-                    }
-                }
-            }
-            collect_files(&regions_dir, &mut files);
-        }
-
-        files.sort();
-
-        // Hash each file's relative path and contents
-        for file_path in &files {
-            // Hash the relative path
-            if let Ok(rel_path) = file_path.strip_prefix(dir) {
-                hasher.update(rel_path.to_string_lossy().as_bytes());
-            }
-
-            // Hash the file contents
-            let contents = fs::read(file_path)?;
-            hasher.update(&contents);
-        }
-
-        let hash = hasher.finalize();
-        Ok(hash.iter().map(|b| format!("{:02x}", b)).collect())
-    }
 
     /// Comprehensive integration test: rollback + flush + reopen with integrity verification.
     ///
@@ -1863,7 +1232,6 @@ mod integration {
     {
         // Create database
         let (database, temp) = setup_db()?;
-        let test_path = temp.path();
 
         let (mut vec, _) = V::import_with_changes(&database, "vec", 10)?;
 
@@ -1882,7 +1250,6 @@ mod integration {
         // Checkpoint 1
         let checkpoint1_data = vec.collect_holed();
         let checkpoint1_stamp = vec.stamp();
-        let _checkpoint1_hash = compute_directory_hash(test_path)?;
 
         // Phase 3: Three more operations with flush
         vec.update(2, 100)?;
@@ -1900,7 +1267,6 @@ mod integration {
         // Checkpoint 2
         let checkpoint2_data = vec.collect_holed();
         let checkpoint2_stamp = vec.stamp();
-        let _checkpoint2_hash = compute_directory_hash(test_path)?;
 
         // Undo last 3 operations
         vec.rollback()?;
@@ -1916,9 +1282,11 @@ mod integration {
 
         // Flush and close
         vec.stamped_write_with_changes(checkpoint1_stamp)?;
-        let _after_flush_hash = compute_directory_hash(test_path)?;
 
+        database.flush()?;
         drop(vec);
+        drop(database);
+        let database = Database::open(temp.path())?;
 
         // Reopen
         let (mut vec, _) = V::import_with_changes(&database, "vec", 10)?;
@@ -1960,7 +1328,10 @@ mod integration {
 
         // Flush and close
         vec.stamped_write_with_changes(checkpoint2_stamp)?;
+        database.flush()?;
         drop(vec);
+        drop(database);
+        let database = Database::open(temp.path())?;
 
         // Reopen again
         let (vec, _) = V::import_with_changes(&database, "vec", 10)?;
@@ -1979,6 +1350,10 @@ mod integration {
         // Verify using iterator
         let data_via_iter = vec.collect_holed();
         assert_eq!(data_via_iter, checkpoint2_data);
+        assert_eq!(
+            vec.collect(),
+            checkpoint2_data.into_iter().flatten().collect::<Vec<_>>()
+        );
 
         Ok(())
     }
