@@ -36,8 +36,6 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
-# `check_endpoints.py` at the root of tests/mempool_compat needs the extra glob.
-python_files = ["test_*.py", "check_*.py"]
 testpaths = ["tests"]
 
 [tool.ruff.lint]

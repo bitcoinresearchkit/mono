@@ -4828,7 +4828,6 @@ class SeriesTree_Transactions_Features_Count:
         self.unknown: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_unknown')
         self.fake_pubkey: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_fake_pubkey')
         self.fake_scripthash: SeriesPattern18[StoredU64] = SeriesPattern18(client, 'tx_count_fake_scripthash')
-        self.inscription: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_inscription')
         self.annex: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_annex')
         self.sighash_all: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_sighash_all')
         self.sighash_none: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_sighash_none')
@@ -4912,6 +4911,14 @@ class SeriesTree_Transactions_Fees:
         self.is_cpfp_parent: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_cpfp_parent')
         self.is_cpfp_child: SeriesPattern19[StoredBool] = SeriesPattern19(client, 'is_cpfp_child')
 
+class SeriesTree_Transactions_Inscription:
+    """Series tree node."""
+
+    def __init__(self, client: BitviewClient, base_path: str = ''):
+        self.count: AverageBlockCumulativeSumPattern[StoredU64] = AverageBlockCumulativeSumPattern(client, 'tx_count_inscription')
+        self.fees: AverageBlockCumulativeSumPattern[Sats] = AverageBlockCumulativeSumPattern(client, 'inscription_fees')
+        self.fee_share: PercentPpmRatioPattern2 = PercentPpmRatioPattern2(client, 'inscription_fee_share')
+
 class SeriesTree_Transactions_Patterns_Count:
     """Series tree node."""
 
@@ -4973,6 +4980,7 @@ class SeriesTree_Transactions:
         self.count: SeriesTree_Transactions_Count = SeriesTree_Transactions_Count(client)
         self.size: SeriesTree_Transactions_Size = SeriesTree_Transactions_Size(client)
         self.fees: SeriesTree_Transactions_Fees = SeriesTree_Transactions_Fees(client)
+        self.inscription: SeriesTree_Transactions_Inscription = SeriesTree_Transactions_Inscription(client)
         self.patterns: SeriesTree_Transactions_Patterns = SeriesTree_Transactions_Patterns(client)
         self.policy: SeriesTree_Transactions_Policy = SeriesTree_Transactions_Policy(client)
         self.sigops: SeriesTree_Transactions_Sigops = SeriesTree_Transactions_Sigops(client)

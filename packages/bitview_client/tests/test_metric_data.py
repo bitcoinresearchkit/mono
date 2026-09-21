@@ -1,421 +1,92 @@
-# Tests for SeriesData and DateSeriesData helper methods including polars/pandas conversion
-# Run: uv run pytest tests/test_metric_data.py -v
-
-from datetime import date, datetime, timezone, timedelta
+from datetime import date, datetime, timezone
 
 import pytest
 
-from bitview_client import SeriesData, DateSeriesData
+from bitview_client import DateSeriesData, SeriesData, _date_to_index, _index_to_date
 
 
-# ============ Fixtures ============
+def series(index, data=(100, 200, 300), start=0, cls=None):
+    cls = cls or (SeriesData if index == "height" else DateSeriesData)
+    return cls(version=1, index=index, type="n", start=start, end=start + len(data),
+               stamp="2024-01-01T00:00:00Z", data=list(data))
 
 
-@pytest.fixture
-def day1_metric():
-    """DateSeriesData with day1 (date-based, daily)."""
-    return DateSeriesData(
-        version=1,
-        index="day1",
-        type="n",
-        start=0,
-        end=5,
-        stamp="2024-01-01T00:00:00Z",
-        data=[100, 200, 300, 400, 500],
-    )
-
-
-@pytest.fixture
-def height_metric():
-    """SeriesData with height (non-date-based)."""
-    return SeriesData(
-        version=1,
-        index="height",
-        type="n",
-        start=800000,
-        end=800005,
-        stamp="2024-01-01T00:00:00Z",
-        data=[1.5, 2.5, 3.5, 4.5, 5.5],
-    )
-
-
-@pytest.fixture
-def month1_metric():
-    """DateSeriesData with month1."""
-    return DateSeriesData(
-        version=1,
-        index="month1",
-        type="n",
-        start=0,
-        end=3,
-        stamp="2024-01-01T00:00:00Z",
-        data=[1000, 2000, 3000],
-    )
-
-
-@pytest.fixture
-def hour1_metric():
-    """DateSeriesData with hour1 (sub-daily)."""
-    return DateSeriesData(
-        version=1,
-        index="hour1",
-        type="n",
-        start=0,
-        end=3,
-        stamp="2024-01-01T00:00:00Z",
-        data=[10.0, 20.0, 30.0],
-    )
-
-
-@pytest.fixture
-def week1_metric():
-    """DateSeriesData with week1."""
-    return DateSeriesData(
-        version=1,
-        index="week1",
-        type="n",
-        start=0,
-        end=3,
-        stamp="2024-01-01T00:00:00Z",
-        data=[5, 10, 15],
-    )
-
-
-@pytest.fixture
-def year1_metric():
-    """DateSeriesData with year1."""
-    return DateSeriesData(
-        version=1,
-        index="year1",
-        type="n",
-        start=0,
-        end=3,
-        stamp="2024-01-01T00:00:00Z",
-        data=[100, 200, 300],
-    )
-
-
-@pytest.fixture
-def day3_metric():
-    """DateSeriesData with day3."""
-    return DateSeriesData(
-        version=1,
-        index="day3",
-        type="n",
-        start=0,
-        end=3,
-        stamp="2024-01-01T00:00:00Z",
-        data=[7, 8, 9],
-    )
-
-
-@pytest.fixture
-def empty_metric():
-    """SeriesData with empty data."""
-    return SeriesData(
-        version=1,
-        index="day1",
-        type="n",
-        start=5,
-        end=5,
-        stamp="2024-01-01T00:00:00Z",
-        data=[],
-    )
-
-
-# ============ is_date_based ============
-
-
-class TestIsDateBased:
-    def test_day1(self, day1_metric):
-        assert day1_metric.is_date_based is True
-
-    def test_month1(self, month1_metric):
-        assert month1_metric.is_date_based is True
-
-    def test_hour1(self, hour1_metric):
-        assert hour1_metric.is_date_based is True
-
-    def test_week1(self, week1_metric):
-        assert week1_metric.is_date_based is True
-
-    def test_year1(self, year1_metric):
-        assert year1_metric.is_date_based is True
-
-    def test_day3(self, day3_metric):
-        assert day3_metric.is_date_based is True
-
-    def test_height(self, height_metric):
-        assert height_metric.is_date_based is False
-
-
-@pytest.mark.parametrize("fixture", ["height_metric", "day1_metric", "empty_metric"])
-def test_integer_mapping_methods(fixture, request):
-    metric = request.getfixturevalue(fixture)
+@pytest.mark.parametrize("metric", [
+    series("height", [1.5, 2.5, 3.5], 800000),
+    series("day1"),
+    series("day1", [], 5, cls=SeriesData),
+])
+def test_integer_mapping_methods(metric):
     expected = list(zip(range(metric.start, metric.end), metric.data))
+    assert metric.is_date_based == (metric.index != "height")
     assert metric.keys() == metric.indexes() == [key for key, _ in expected]
     assert metric.items() == list(metric) == expected
     assert metric.to_dict() == dict(expected)
     assert len(metric) == len(expected)
 
 
-# ============ _index_to_date conversions ============
+@pytest.mark.parametrize("index, expected", [
+    ("day1", [date(2009, 1, 3), date(2009, 1, 9), date(2009, 1, 10),
+              date(2009, 1, 11), date(2009, 1, 12)]),
+    ("month1", [date(2009, month, 1) for month in (1, 2, 3)]),
+    ("week1", [date(2009, 1, day) for day in (3, 10, 17)]),
+    ("year1", [date(year, 1, 1) for year in (2009, 2010, 2011)]),
+    ("day3", [date(2008, 12, 31), date(2009, 1, 3), date(2009, 1, 6)]),
+    ("hour1", [datetime(2009, 1, 1, hour, tzinfo=timezone.utc) for hour in (0, 1, 2)]),
+])
+def test_calendar_dates_and_mappings(index, expected):
+    metric = series(index, range(len(expected)))
+    assert metric.is_date_based
+    assert metric.dates() == expected
+    assert all(type(actual) is type(want) for actual, want in zip(metric.dates(), expected))
+    assert metric.date_items() == list(zip(expected, metric.data))
+    assert metric.to_date_dict() == dict(zip(expected, metric.data))
 
 
-class TestIndexToDate:
-    """Test date conversion for all index types."""
-
-    def test_day1_genesis_gap_then_consecutive_dates(self, day1_metric):
-        dates = day1_metric.dates()
-        assert dates == [
-            date(2009, 1, 3),
-            date(2009, 1, 9),
-            date(2009, 1, 10),
-            date(2009, 1, 11),
-            date(2009, 1, 12),
-        ]
-        assert all(type(value) is date for value in dates)
-
-    def test_month1(self, month1_metric):
-        dates = month1_metric.dates()
-        assert dates[0] == date(2009, 1, 1)
-        assert dates[1] == date(2009, 2, 1)
-        assert dates[2] == date(2009, 3, 1)
-        assert type(dates[0]) is date
-
-    def test_week1(self, week1_metric):
-        dates = week1_metric.dates()
-        assert dates[0] == date(2009, 1, 3)  # genesis
-        assert dates[1] == date(2009, 1, 10)  # +7 days
-        assert dates[2] == date(2009, 1, 17)  # +14 days
-        assert type(dates[0]) is date
-
-    def test_year1(self, year1_metric):
-        dates = year1_metric.dates()
-        assert dates[0] == date(2009, 1, 1)
-        assert dates[1] == date(2010, 1, 1)
-        assert dates[2] == date(2011, 1, 1)
-        assert type(dates[0]) is date
-
-    def test_day3(self, day3_metric):
-        dates = day3_metric.dates()
-        assert dates[0] == date(2008, 12, 31)  # epoch - 1 day (TradingView-aligned)
-        assert dates[1] == date(2009, 1, 3)  # +3 days
-        assert dates[2] == date(2009, 1, 6)  # +6 days
-
-    def test_hour1_returns_datetime(self, hour1_metric):
-        """Sub-daily indexes return datetime, not date."""
-        dates = hour1_metric.dates()
-        assert isinstance(dates[0], datetime)
-        # hour1 index 0 = epoch (2009-01-01 00:00:00 UTC)
-        assert dates[0] == datetime(2009, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        assert dates[1] == datetime(2009, 1, 1, 1, 0, 0, tzinfo=timezone.utc)
-        assert dates[2] == datetime(2009, 1, 1, 2, 0, 0, tzinfo=timezone.utc)
+@pytest.mark.parametrize("index, value, expected", [
+    ("day1", date(2009, 1, 3), 0),
+    ("day1", date(2009, 1, 5), 0),  # Genesis gap.
+    ("day1", date(2009, 1, 9), 1),
+    ("day1", date(2009, 1, 10), 2),
+    ("month1", date(2009, 1, 1), 0),
+    ("month1", date(2009, 2, 1), 1),
+    ("month1", date(2010, 1, 1), 12),
+    ("year1", date(2009, 1, 1), 0),
+    ("year1", date(2010, 6, 15), 1),
+    ("year1", date(2020, 1, 1), 11),
+    ("week1", date(2009, 1, 3), 0),
+    ("week1", date(2009, 1, 10), 1),
+    ("hour1", datetime(2009, 1, 1, tzinfo=timezone.utc), 0),
+    ("hour1", datetime(2009, 1, 1, 1, tzinfo=timezone.utc), 1),
+    ("hour1", datetime(2009, 1, 2, tzinfo=timezone.utc), 24),
+    ("hour1", date(2009, 1, 1), 0),  # Plain dates mean midnight UTC.
+    ("hour1", date(2009, 1, 2), 24),
+])
+def test_date_to_index(index, value, expected):
+    assert _date_to_index(index, value) == expected
 
 
-# ============ _date_to_index conversions ============
+@pytest.mark.parametrize("index, count", [("day1", 10), ("month1", 24), ("hour1", 48)])
+def test_date_index_roundtrip(index, count):
+    for i in range(count):
+        assert _date_to_index(index, _index_to_date(index, i)) == i
 
 
-class TestDateToIndex:
-    """Test reverse date-to-index conversion."""
-
-    def test_day1_genesis(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("day1", date(2009, 1, 3)) == 0
-
-    def test_day1_before_day_one(self):
-        from bitview_client import _date_to_index
-        # Dates before day1 1 map to 0
-        assert _date_to_index("day1", date(2009, 1, 5)) == 0
-
-    def test_day1_index_one(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("day1", date(2009, 1, 9)) == 1
-
-    def test_day1_later(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("day1", date(2009, 1, 10)) == 2
-
-    def test_month1(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("month1", date(2009, 1, 1)) == 0
-        assert _date_to_index("month1", date(2009, 2, 1)) == 1
-        assert _date_to_index("month1", date(2010, 1, 1)) == 12
-
-    def test_year1(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("year1", date(2009, 1, 1)) == 0
-        assert _date_to_index("year1", date(2010, 6, 15)) == 1
-        assert _date_to_index("year1", date(2020, 1, 1)) == 11
-
-    def test_week1(self):
-        from bitview_client import _date_to_index
-        assert _date_to_index("week1", date(2009, 1, 3)) == 0
-        assert _date_to_index("week1", date(2009, 1, 10)) == 1
-
-    def test_hour1_with_datetime(self):
-        from bitview_client import _date_to_index
-        epoch = datetime(2009, 1, 1, tzinfo=timezone.utc)
-        assert _date_to_index("hour1", epoch) == 0
-        assert _date_to_index("hour1", epoch + timedelta(hours=1)) == 1
-        assert _date_to_index("hour1", epoch + timedelta(hours=24)) == 24
-
-    def test_hour1_with_plain_date(self):
-        """Plain date is treated as midnight UTC for sub-daily."""
-        from bitview_client import _date_to_index
-        # 2009-01-01 as date → midnight UTC → index 0
-        assert _date_to_index("hour1", date(2009, 1, 1)) == 0
-        # 2009-01-02 as date → midnight UTC → 24 hours later
-        assert _date_to_index("hour1", date(2009, 1, 2)) == 24
-
-    def test_roundtrip_day1(self):
-        """date → index → date roundtrip for day1."""
-        from bitview_client import _date_to_index, _index_to_date
-        for i in range(10):
-            d = _index_to_date("day1", i)
-            assert _date_to_index("day1", d) == i
-
-    def test_roundtrip_month1(self):
-        from bitview_client import _date_to_index, _index_to_date
-        for i in range(24):
-            d = _index_to_date("month1", i)
-            assert _date_to_index("month1", d) == i
-
-    def test_roundtrip_hour1(self):
-        from bitview_client import _date_to_index, _index_to_date
-        for i in range(48):
-            d = _index_to_date("hour1", i)
-            assert _date_to_index("hour1", d) == i
-
-
-# ============ DateSeriesData date methods ============
-
-
-class TestDateSeriesDataMethods:
-    def test_date_items(self, day1_metric):
-        items = day1_metric.date_items()
-        assert items[0] == (date(2009, 1, 3), 100)
-        assert items[1] == (date(2009, 1, 9), 200)
-        assert len(items) == 5
-
-    def test_to_date_dict(self, day1_metric):
-        d = day1_metric.to_date_dict()
-        assert d[date(2009, 1, 3)] == 100
-        assert d[date(2009, 1, 9)] == 200
-        assert len(d) == 5
-        # Keys should be date objects
-        assert type(list(d.keys())[0]) is date
-
-    def test_date_items_sub_daily(self, hour1_metric):
-        items = hour1_metric.date_items()
-        assert isinstance(items[0][0], datetime)
-        assert items[0] == (datetime(2009, 1, 1, 0, 0, 0, tzinfo=timezone.utc), 10.0)
-
-    def test_to_date_dict_sub_daily(self, hour1_metric):
-        d = hour1_metric.to_date_dict()
-        key = datetime(2009, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        assert d[key] == 10.0
-        assert isinstance(list(d.keys())[0], datetime)
-
-
-# ============ Polars ============
-
-
-class TestPolarsConversion:
-    @pytest.fixture(autouse=True)
-    def check_polars(self):
-        pytest.importorskip("polars")
-
-    def test_metric_data_to_polars(self, height_metric):
-        import polars as pl
-        df = height_metric.to_polars()
-        assert isinstance(df, pl.DataFrame)
-        assert list(df.columns) == ["index", "value"]
-        assert df["index"].to_list() == [800000, 800001, 800002, 800003, 800004]
-        assert df["value"].to_list() == [1.5, 2.5, 3.5, 4.5, 5.5]
-
-    def test_date_metric_to_polars_with_dates(self, day1_metric):
-        import polars as pl
-        df = day1_metric.to_polars()
-        assert isinstance(df, pl.DataFrame)
-        assert "date" in df.columns
-        assert "value" in df.columns
-        assert "index" not in df.columns
-        assert len(df) == 5
-        assert df["value"].to_list() == [100, 200, 300, 400, 500]
-
-    def test_date_metric_to_polars_without_dates(self, day1_metric):
-        import polars as pl
-        df = day1_metric.to_polars(with_dates=False)
-        assert "index" in df.columns
-        assert "date" not in df.columns
-        assert df["index"].to_list() == [0, 1, 2, 3, 4]
-
-    def test_month1_to_polars(self, month1_metric):
-        df = month1_metric.to_polars()
-        assert "date" in df.columns
-        assert len(df) == 3
-        dates = df["date"].to_list()
-        assert dates[0] == date(2009, 1, 1)
-        assert dates[2] == date(2009, 3, 1)
-
-    def test_sub_daily_to_polars(self, hour1_metric):
-        df = hour1_metric.to_polars()
-        assert "date" in df.columns
-        assert len(df) == 3
-
-    def test_empty_to_polars(self, empty_metric):
-        df = empty_metric.to_polars()
-        assert len(df) == 0
-        assert list(df.columns) == ["index", "value"]
-
-
-# ============ Pandas ============
-
-
-class TestPandasConversion:
-    @pytest.fixture(autouse=True)
-    def check_pandas(self):
-        pytest.importorskip("pandas")
-
-    def test_metric_data_to_pandas(self, height_metric):
-        import pandas as pd
-        df = height_metric.to_pandas()
-        assert isinstance(df, pd.DataFrame)
-        assert list(df.columns) == ["index", "value"]
-        assert df["index"].tolist() == [800000, 800001, 800002, 800003, 800004]
-        assert df["value"].tolist() == [1.5, 2.5, 3.5, 4.5, 5.5]
-
-    def test_date_metric_to_pandas_with_dates(self, day1_metric):
-        import pandas as pd
-        df = day1_metric.to_pandas()
-        assert isinstance(df, pd.DataFrame)
-        assert "date" in df.columns
-        assert "value" in df.columns
-        assert len(df) == 5
-        assert df["value"].tolist() == [100, 200, 300, 400, 500]
-
-    def test_date_metric_to_pandas_without_dates(self, day1_metric):
-        import pandas as pd
-        df = day1_metric.to_pandas(with_dates=False)
-        assert "index" in df.columns
-        assert "date" not in df.columns
-        assert df["index"].tolist() == [0, 1, 2, 3, 4]
-
-    def test_month1_to_pandas(self, month1_metric):
-        df = month1_metric.to_pandas()
-        assert "date" in df.columns
-        assert len(df) == 3
-        dates = df["date"].tolist()
-        assert dates[0] == date(2009, 1, 1)
-        assert dates[2] == date(2009, 3, 1)
-
-    def test_sub_daily_to_pandas(self, hour1_metric):
-        df = hour1_metric.to_pandas()
-        assert "date" in df.columns
-        assert len(df) == 3
-
-    def test_empty_to_pandas(self, empty_metric):
-        df = empty_metric.to_pandas()
-        assert len(df) == 0
-        assert list(df.columns) == ["index", "value"]
+@pytest.mark.parametrize("library", ["pandas", "polars"])
+@pytest.mark.parametrize("metric, with_dates, column", [
+    (series("height", [1.5, 2.5, 3.5], 800000), True, "index"),
+    (series("day1"), True, "date"),
+    (series("day1"), False, "index"),
+    (series("month1", [1000, 2000, 3000]), True, "date"),
+    (series("hour1", [10.0, 20.0, 30.0]), True, "date"),
+    (series("day1", [], 5, cls=SeriesData), True, "index"),
+])
+def test_dataframe_conversion(library, metric, with_dates, column):
+    module = pytest.importorskip(library)
+    convert = getattr(metric, f"to_{library}")
+    frame = convert(with_dates=with_dates) if isinstance(metric, DateSeriesData) else convert()
+    assert isinstance(frame, module.DataFrame)
+    assert list(frame.columns) == [column, "value"]
+    assert len(frame) == len(metric)
+    assert list(frame[column]) == (metric.dates() if column == "date" else metric.indexes())
+    assert list(frame["value"]) == metric.data
