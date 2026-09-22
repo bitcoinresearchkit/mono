@@ -6632,6 +6632,7 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Transactions_Count} count
  * @property {SeriesTree_Transactions_Size} size
  * @property {SeriesTree_Transactions_Fees} fees
+ * @property {SeriesTree_Transactions_Inscription} inscription
  * @property {SeriesTree_Transactions_Patterns} patterns
  * @property {SeriesTree_Transactions_Policy} policy
  * @property {SeriesTree_Transactions_Sigops} sigops
@@ -6701,7 +6702,6 @@ function createTermPattern(client, acc) {
  * @property {SeriesPattern18<StoredU64>} unknown
  * @property {SeriesPattern18<StoredU64>} fakePubkey
  * @property {SeriesPattern18<StoredU64>} fakeScripthash
- * @property {AverageBlockCumulativeSumPattern<StoredU64>} inscription
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} annex
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} sighashAll
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} sighashNone
@@ -6751,6 +6751,13 @@ function createTermPattern(client, acc) {
  * @typedef {Object} SeriesTree_Transactions_Fees_Count
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} cpfpParent
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} cpfpChild
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Transactions_Inscription
+ * @property {AverageBlockCumulativeSumPattern<StoredU64>} count
+ * @property {AverageBlockCumulativeSumPattern<Sats>} fees
+ * @property {PercentPpmRatioPattern2} feeShare
  */
 
 /**
@@ -13115,7 +13122,6 @@ class BitviewClient extends BitviewClientBase {
             unknown: createSeriesPattern18(client, 'tx_count_unknown'),
             fakePubkey: createSeriesPattern18(client, 'tx_count_fake_pubkey'),
             fakeScripthash: createSeriesPattern18(client, 'tx_count_fake_scripthash'),
-            inscription: createAverageBlockCumulativeSumPattern(client, 'tx_count_inscription'),
             annex: createAverageBlockCumulativeSumPattern(client, 'tx_count_annex'),
             sighashAll: createAverageBlockCumulativeSumPattern(client, 'tx_count_sighash_all'),
             sighashNone: createAverageBlockCumulativeSumPattern(client, 'tx_count_sighash_none'),
@@ -13172,6 +13178,11 @@ class BitviewClient extends BitviewClientBase {
           effectiveFeeRate: create_6bBlockTxPattern(client, 'effective_fee_rate'),
           isCpfpParent: createSeriesPattern19(client, 'is_cpfp_parent'),
           isCpfpChild: createSeriesPattern19(client, 'is_cpfp_child'),
+        })); },
+        get inscription() { return _lazy(this, 'inscription', () => ({
+          count: createAverageBlockCumulativeSumPattern(client, 'tx_count_inscription'),
+          fees: createAverageBlockCumulativeSumPattern(client, 'inscription_fees'),
+          feeShare: createPercentPpmRatioPattern2(client, 'inscription_fee_share'),
         })); },
         get patterns() { return _lazy(this, 'patterns', () => ({
           get count() { return _lazy(this, 'count', () => ({

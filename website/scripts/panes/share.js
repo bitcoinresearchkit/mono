@@ -1,5 +1,5 @@
 import { getElementById } from "../utils/dom.js";
-import * as leanQr from "../modules/lean-qr/2.7.1/index.mjs";
+import * as leanQr from "../modules/lean-qr/2.7.3/index.mjs";
 
 const shareDiv = getElementById("share-div");
 const shareContentDiv = getElementById("share-content-div");

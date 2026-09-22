@@ -5,13 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Studio · bitview</title>
     <style>
-      :root { --text-size: 0.875rem; }
-      /* Palette copied from website/styles/variables.css. */
+      /* Neutral series slots adapt to the light canvas; saved color keys stay stable. */
       :root {
-        color-scheme: dark;
-        --white: oklch(95% 0 0);
-        --dark-white: oklch(92.5% 0 0);
-        --light-gray: oklch(90% 0 0);
+        color-scheme: light;
+        --text-size: 0.875rem;
+        --workspace: #edeef0;
+        --field: #e0e4e6;
+        --chart-surface: #f3f5f6;
+        --ink: #292f35;
+        --muted: #59636c;
+        --seam: #c3cacf;
+        --chart-grid: #dfe4e7;
+        --accent: #ef753e;
+        --module-gap: 0.375rem;
+        --header-height: 4rem;
+        --panel-radius: 0.875rem;
+        --control-radius: 0.4375rem;
+        --raised: inset 0 1px 0 #ffffffd9, 0 1px 2px #29353e26;
+        --recessed: inset 0 1px 2px #303b4521, 0 1px 0 #ffffff80;
+        --panel-face: linear-gradient(120deg, #f0f2f3, #e5e8ea);
+        --panel-shadow: inset 0 1px 0 #ffffffc4, 0 1px 2px #26334014;
+        --control-face: linear-gradient(#fafbfb, #e9edef);
+        --white: oklch(32% 0.008 260);
+        --dark-white: oklch(40% 0.008 260);
+        --light-gray: oklch(48% 0.008 260);
         --gray: oklch(55% 0 0);
         --dark-gray: oklch(30% 0 0);
         --light-black: oklch(17.5% 0 0);
@@ -60,336 +77,347 @@
         font-display: swap;
       }
 
-      html,
-      body,
-      #chart {
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        background: #000;
+      html, body { width: 100%; height: 100%; margin: 0; }
+      body {
+        --gutter: 0.75rem;
+        --series-sidebar-width: min(22.5rem, calc(100vw - 2 * var(--gutter)));
+        --library-width: min(19rem, calc(100vw - 2 * var(--gutter)));
+        --library-space: 0rem;
+        --series-space: 0rem;
+        --series-sidebar-duration: 220ms;
+        --series-sidebar-easing: cubic-bezier(0.22, 1, 0.36, 1);
+        overflow: hidden;
+        color: var(--ink);
+        background: var(--workspace);
+        font: var(--text-size) "Lilex", "SFMono-Regular", Consolas, monospace;
       }
-
+      body:has(#chart-library:popover-open) { --library-space: calc(var(--library-width) + var(--gutter)); }
+      body:has(#series-config:popover-open) { --series-space: calc(var(--series-sidebar-width) + var(--gutter)); }
+      button, input, select { font: inherit; }
+      button {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid transparent;
+        border-radius: var(--control-radius);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) { background-color: #ffffff70; }
+      button:active:not(:disabled) { transform: translateY(1px); }
+      button:disabled, select:disabled { opacity: 0.35; cursor: default; }
+      :is(button, input, select, summary, a):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+      ::selection { color: #fff; background: var(--accent); }
+      [hidden] { display: none !important; }
+      .instrument {
+        box-sizing: border-box;
+        padding: var(--module-gap);
+        border: 1px solid var(--seam);
+        border-radius: var(--panel-radius);
+        background: #e0e4e6;
+        box-shadow: inset 0 1px 0 #ffffffb3, 0 2px 3px #25333f14, 0 8px 20px -10px #25333f26;
+      }
+      .surface {
+        box-sizing: border-box;
+        border: 1px solid var(--seam);
+        border-radius: 0.625rem;
+        background: var(--panel-face);
+        box-shadow: var(--panel-shadow);
+      }
+      #studio-workspace {
+        position: fixed;
+        inset: var(--gutter);
+        left: calc(var(--library-space) + var(--gutter));
+        right: calc(var(--series-space) + var(--gutter));
+        display: flex;
+        flex-direction: column;
+        gap: var(--module-gap);
+        transition: left var(--series-sidebar-duration) var(--series-sidebar-easing), right var(--series-sidebar-duration) var(--series-sidebar-easing);
+      }
+      #chart-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: var(--header-height);
+        gap: var(--module-gap);
+      }
+      .chart-identity { display: flex; flex-direction: column; justify-content: center; gap: 0.125rem; min-width: 0; padding: 0.3125rem 0.75rem; }
+      .studio-brand { display: inline-flex; align-self: start; align-items: center; gap: 0.5rem; color: var(--muted); font-size: 0.5625rem; line-height: 1.25; letter-spacing: 0.08em; }
+      .studio-brand::before { content: ""; width: 0.625rem; height: 0.25rem; border-radius: 0.125rem; background: var(--accent); box-shadow: inset 0 1px 1px #91371840, 0 1px 0 #ffffffb3; }
+      .studio-brand span { color: #98a3ab; }
+      #chart-title {
+        box-sizing: border-box;
+        min-width: 0;
+        width: 100%;
+        height: 2rem;
+        padding: 0;
+        border: 0;
+        border-radius: 0.125rem;
+        background: transparent;
+        color: var(--ink);
+        font: 400 1.875rem Instrument, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
+        text-overflow: ellipsis;
+      }
+      .chart-actions { display: flex; align-items: end; justify-content: center; gap: 0.625rem; padding: 0.375rem 0.75rem; }
+      #interval-control { display: flex; flex-direction: column; gap: 0.25rem; }
+      #interval-control > span { color: var(--muted); font-size: 0.5625rem; line-height: 1.1; letter-spacing: 0.06em; text-transform: uppercase; }
+      #timeframe {
+        appearance: none;
+        width: 4rem;
+        height: 2.25rem;
+        padding: 0 1.375rem 0 0.625rem;
+        border: 1px solid var(--seam);
+        border-radius: var(--control-radius);
+        background: var(--field) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23646b6f' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.5rem center;
+        box-shadow: var(--recessed);
+        color: var(--ink);
+        font-size: 0.75rem;
+        cursor: pointer;
+      }
+      #timeframe option, #timeframe optgroup { background: var(--chart-surface); color: var(--ink); }
+      #charts-toggle { display: flex; align-items: center; gap: 0.5rem; height: 2.25rem; padding: 0 0.625rem; border: 1px solid var(--seam); border-radius: var(--control-radius); background: var(--control-face); box-shadow: var(--raised); font-size: 0.6875rem; }
+      #charts-toggle svg { width: 0.875rem; height: 0.875rem; color: var(--muted); }
+      body:has(#chart-library:popover-open) #charts-toggle { background: var(--field); box-shadow: var(--recessed); }
+      body:has(#chart-library:popover-open) #charts-toggle svg { color: #c55224; }
+      #chart-frame { display: flex; flex: 1; min-height: 0; }
       #chart {
         position: relative;
         z-index: 0;
-      }
-
-      body {
-        --series-sidebar-width: min(22.5rem, 80vw);
-        --series-sidebar-duration: 240ms;
-        --series-sidebar-easing: cubic-bezier(0.22, 1, 0.36, 1);
+        flex: 1;
+        min-height: 0;
+        width: 100%;
         overflow: hidden;
-        color: #fff;
-        font:
-          var(--text-size) "Lilex",
-          "SFMono-Regular",
-          Consolas,
-          monospace;
-      }
-
-      body { --library-width: min(20rem, 40vw); --library-space: 0rem; --series-space: 0rem; }
-      body:has(#chart-library:popover-open) { --library-space: var(--library-width); }
-      body:has(#series-config:popover-open) { --series-space: var(--series-sidebar-width); }
-      #chart { width: calc(100% - var(--library-space) - var(--series-space)); margin-left: var(--library-space); transition: margin-left var(--series-sidebar-duration) var(--series-sidebar-easing), width var(--series-sidebar-duration) var(--series-sidebar-easing); }
-      #status { transition: right var(--series-sidebar-duration) var(--series-sidebar-easing); }
-      #status { left: var(--library-space); }
-      #timeframe { margin-left: var(--library-space); transition: margin-left var(--series-sidebar-duration) var(--series-sidebar-easing); }
-      body:has(#series-config:popover-open) #status { right: var(--series-sidebar-width); }
-
-      #chart-header {
-        display: flex; align-items: center; gap: 0.75rem;
-        position: absolute;
-        top: 0.5rem;
-        left: 0.75rem;
-        right: 0.75rem;
-        z-index: 3;
-        pointer-events: none;
-      }
-      #chart-title {
-        min-width: 0;
         box-sizing: border-box;
-        width: min(37.5rem, 100%);
-        height: 3rem;
-        pointer-events: auto;
-        border: 0;
-        padding: 0.25rem 0;
-        background: transparent;
-        color: var(--white);
-        font: 400 2.25rem Instrument, Charter, "Bitstream Charter", "Sitka Text", Cambria, serif;
-        text-overflow: ellipsis;
+        border: 1px solid var(--seam);
+        border-radius: 0.625rem;
+        background: var(--chart-surface);
+        box-shadow: 0 1px 1px #fff;
       }
-      #chart-title:focus { outline: none; }
-      ::selection { color: var(--white); background-color: var(--orange); }
-
-      #status {
-        position: fixed;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        margin: 0;
-        padding: 1.5rem;
-        pointer-events: none;
-        text-align: center;
-      }
-
-      #status:empty {
-        display: none;
-      }
-
+      #chart::after { content: ""; position: absolute; inset: 0; z-index: 4; border-radius: inherit; box-shadow: inset 0 1px 2px #24344112; pointer-events: none; }
+      #status { position: fixed; inset: 0 var(--series-space) 0 var(--library-space); display: grid; place-items: center; margin: 0; padding: 1.5rem; color: var(--muted); pointer-events: none; text-align: center; }
+      #status:empty { display: none; }
       .pane-legend {
         position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
+        top: 0.5rem;
+        left: 0.5rem;
+        right: 0.5rem;
         z-index: 3;
         display: flex;
         align-items: center;
-        gap: 0.75rem;
-        padding: 0.5rem 0.75rem;
-        overflow-x: auto;
+        gap: 0.5rem;
         white-space: nowrap;
-        font-size: var(--text-size);
-        text-transform: lowercase;
         pointer-events: none;
       }
-
-      .pane-legend[hidden] { display: none; }
-      .pane-controls {
-        position: absolute;
-        right: 0.75rem;
-        bottom: 0.5rem;
-        z-index: 3;
-        display: flex;
-        gap: 0.25rem;
-      }
-      .pane-controls:empty { display: none; }
-      .pane-controls button { width: 1.75rem; height: 1.75rem; border-radius: 0; }
-      .pane-legend > span { color: var(--gray); }
+      .legend-series-list { display: flex; align-items: center; min-width: 0; gap: 0.625rem; overflow-x: auto; padding: 0.1875rem; scrollbar-width: thin; pointer-events: auto; }
+      .legend-series-list:empty { display: none; }
+      .legend-series { display: inline-flex; flex-shrink: 0; align-items: center; gap: 0.125rem; background: var(--chart-surface); }
       .legend-series[data-hidden="true"] .series-name { opacity: 0.45; text-decoration: line-through; }
-
-      :is(.pane-legend, .pane-controls) button {
-        flex-shrink: 0;
-        pointer-events: auto;
-        border: 0;
-        background: #000;
-        color: var(--gray);
-        font: inherit;
-        padding: 0;
-        cursor: pointer;
-      }
-      :is(.pane-legend, .pane-controls) button:hover { color: #fff; }
-      :is(.pane-legend, .pane-controls) button:disabled { opacity: 0.25; cursor: default; }
-      :is(.pane-legend, .pane-controls) button:focus-visible {
-        outline: 0.0625rem solid #fff;
-        outline-offset: 0.1875rem;
-      }
-      #series-picker {
-        box-sizing: border-box;
-        width: min(37.5rem, calc(100vw - 2rem));
-        height: min(32.5rem, calc(100dvh - 3rem));
-        max-width: none;
-        max-height: none;
-        padding: 0;
+      :is(.pane-legend, .pane-controls) button { flex-shrink: 0; pointer-events: auto; }
+      .pane-legend .series-name { height: 1.75rem; max-width: 17rem; overflow: hidden; padding: 0; border: 0; font-size: 0.75rem; text-overflow: ellipsis; }
+      .pane-legend .series-name:hover { color: var(--accent); }
+      .pane-legend .series-color { display: grid; place-items: center; width: 1.5rem; height: 1.75rem; padding: 0; border: 0; }
+      .pane-legend .series-color::before { content: ""; box-sizing: border-box; width: 0.5rem; height: 0.5rem; border: 1px solid var(--series-color); border-radius: 50%; background: var(--series-color); }
+      .legend-series[data-hidden="true"] .series-color::before { background: transparent; }
+      .pane-legend > button { padding: 0.375rem 0.5rem; border-color: #d7dcdd; background: var(--chart-surface); color: var(--muted); font-size: 0.6875rem; }
+      .pane-legend > button::first-letter { color: var(--accent); }
+      .pane-controls { position: absolute; right: 0.75rem; bottom: 0.75rem; z-index: 3; display: flex; gap: 0.1875rem; padding: 0.25rem; border: 1px solid var(--seam); border-radius: 0.5rem; background: var(--field); box-shadow: var(--recessed); }
+      .pane-controls:empty { display: none; }
+      .pane-controls button { width: 1.75rem; height: 1.625rem; padding: 0; background: var(--control-face); box-shadow: var(--raised); color: var(--ink); }
+      .pane-controls button:disabled { background: none; box-shadow: none; color: var(--muted); }
+      #chart[data-loading] :is(.pane-legend, .pane-controls) button { pointer-events: none; }
+      :is(#chart-library, #series-config, #series-picker) { color: var(--ink); font: inherit; }
+      :is(#chart-library, #series-config) {
+        position: fixed;
+        top: var(--gutter);
+        bottom: auto;
+        height: auto;
+        max-height: calc(100dvh - 2 * var(--gutter));
+        margin: 0;
+        gap: var(--module-gap);
         overflow: hidden;
-        border: 0.0625rem solid var(--dark-gray);
-        border-radius: 0;
-        background: #000;
-        color: #fff;
-        font-family: inherit;
-        font-size: var(--text-size);
+        transition: transform var(--series-sidebar-duration) var(--series-sidebar-easing), display var(--series-sidebar-duration) allow-discrete, overlay var(--series-sidebar-duration) allow-discrete;
       }
+      .panel-header { box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; min-height: var(--header-height); padding: 0.625rem 0.75rem; }
+      .panel-header, #series-picker form { border: 1px solid var(--seam); border-radius: 0.625rem; background: var(--panel-face); box-shadow: var(--panel-shadow); color: var(--ink); }
+      .panel-header h2 { margin: 0; font: inherit; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+      .panel-header button { width: 2rem; height: 2rem; padding: 0; border: 1px solid var(--seam); border-radius: 50%; background: var(--control-face); box-shadow: var(--raised); color: var(--ink); font-size: 1.125rem; }
+      #chart-library { left: var(--gutter); right: auto; width: var(--library-width); transform: translateX(calc(-100% - 2 * var(--gutter))); }
+      #chart-library:popover-open { display: flex; flex-direction: column; transform: translateX(0); }
+      #library-body { flex: 1; min-height: 0; padding: 0.75rem; overflow: auto; }
+      #new-chart { display: flex; align-items: center; gap: 0.625rem; width: 100%; padding: 0.75rem; border-color: #39434b; background: linear-gradient(#4a535b, #3d464f); box-shadow: inset 0 1px 0 #ffffff26, 0 1px 2px #25333f26; color: #f5f6f4; font-size: 0.75rem; text-align: left; }
+      #new-chart span { color: #f59770; }
+      #library-sort-label { display: block; margin: 1rem 0 0.5rem; color: var(--muted); font-size: 0.625rem; letter-spacing: 0.06em; }
+      #library-sort { display: flex; gap: 0.1875rem; padding: 0.3125rem; border: 1px solid var(--seam); border-radius: 0.625rem; background: var(--field); box-shadow: var(--recessed); }
+      #library-sort button { flex: 1; padding: 0.5rem 0.125rem; color: var(--muted); font-size: 0.5625rem; }
+      #library-sort button[aria-pressed="true"] { border-color: #c4cbcd; background: var(--control-face); box-shadow: var(--raised); color: var(--ink); }
+      #library-list { display: grid; gap: 0.5rem; margin-top: 0.75rem; }
+      .library-chart { position: relative; min-width: 0; padding: 0.75rem 0.875rem; border-color: var(--seam); background: var(--control-face); box-shadow: var(--raised); text-align: left; }
+      .library-chart > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .library-chart small { display: block; margin-top: 0.25rem; color: var(--muted); font-size: 0.625rem; line-height: 1.5; }
+      .library-chart[aria-current="true"] { border-color: #758692; }
+      .library-chart[aria-current="true"]::before { content: ""; position: absolute; top: 0.9375rem; left: 0.3125rem; width: 0.1875rem; height: 0.625rem; border-radius: 1rem; background: var(--accent); }
+      #series-config { left: auto; right: var(--gutter); width: var(--series-sidebar-width); transform: translateX(calc(100% + 2 * var(--gutter))); }
+      #series-config:popover-open { display: flex; flex-direction: column; transform: translateX(0); }
+      #series-config-body { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
+      .config-section { flex-shrink: 0; padding: 0.75rem; border-bottom: 1px solid #cdd3d7; }
+      #series-config label, #series-config-colors-label, .series-config-meta-label { display: block; margin: 0 0 0.5rem; color: var(--muted); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.06em; }
+      #series-config-name, #series-config-style input, #series-search { box-sizing: border-box; border: 1px solid var(--seam); border-radius: var(--control-radius); background: var(--field); box-shadow: var(--recessed); color: var(--ink); }
+      #series-config-name { width: 100%; min-width: 0; padding: 0.5rem 0.625rem; line-height: 1.5; font-size: 0.8125rem; }
+      .series-config-identity { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-top: 0.5rem; }
+      #series-config-id { min-width: 0; color: var(--muted); overflow-wrap: anywhere; font-size: 0.625rem; line-height: 1.6; }
+      #series-config-data { flex-shrink: 0; color: var(--muted); font-size: 0.625rem; text-decoration: none; }
+      #series-config-data:hover { color: var(--ink); text-decoration: underline; }
+      .series-config-placement { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.625rem; }
+      .series-config-choices { display: flex; flex-wrap: wrap; gap: 0.1875rem; padding: 0.3125rem; border: 1px solid var(--seam); border-radius: 0.625rem; background: var(--field); box-shadow: var(--recessed); }
+      .series-config-choices button { flex: 1; min-width: 1.5rem; min-height: 1.875rem; padding: 0.375rem; color: var(--muted); font-size: 0.625rem; white-space: nowrap; }
+      .series-config-choices button[aria-pressed="true"] { color: var(--ink); border-color: #c2cbd2; background: var(--control-face); box-shadow: var(--raised); }
+      #series-config-colors { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); justify-items: center; gap: 0.125rem; padding: 0.5rem; border: 1px solid var(--seam); border-radius: 0.5rem; background: var(--field); box-shadow: var(--recessed); }
+      #series-config-colors button { display: grid; place-items: center; width: 1.875rem; height: 1.875rem; padding: 0; border: 0; border-radius: 50%; }
+      #series-config-colors button::before { content: ""; box-sizing: border-box; width: 1.125rem; height: 1.125rem; border: 1px solid #0003; border-radius: 50%; background: var(--series-color); box-shadow: inset 0 1px 0 #ffffff40; }
+      #series-config-colors button[aria-pressed="true"]::before { outline: 2px solid var(--ink); outline-offset: 3px; }
+      .series-config-field { margin-top: 0.875rem; }
+      .config-section > .series-config-field:first-child { margin-top: 0; }
+      #series-config-type { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      #series-config-type button { padding: 0.4375rem 0.125rem; font-size: 0.625rem; }
+      #series-config-style input { width: 100%; padding: 0.625rem; }
+      #series-config-style-error { margin: 1rem 0 0; color: #a23524; font-size: 0.75rem; }
+      #series-config-style-error:empty { display: none; }
+      #series-config-about { flex-shrink: 0; padding: 0.75rem; }
+      #series-config-about summary { margin: 0; cursor: pointer; }
+      #series-config-description { margin: 0.75rem 0 0; color: var(--muted); font-size: 0.6875rem; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .panel-footer { flex-shrink: 0; padding: 0.25rem 0.75rem; }
+      #series-config-remove { display: flex; align-items: center; gap: 0.625rem; width: 100%; padding: 0.5rem 0; color: var(--muted); font-size: 0.6875rem; text-align: left; }
+      #series-config-remove:hover { background: transparent; color: #a23524; }
+      #series-picker { width: min(37.5rem, calc(100vw - 2rem)); height: min(34rem, calc(100dvh - 3rem)); max-width: none; max-height: none; overflow: hidden; box-shadow: inset 0 1px 0 #ffffffb3, 0 12px 40px #25354033; }
       #series-picker[open] { display: flex; flex-direction: column; }
-      #series-picker::backdrop { background: #0008; }
-      #series-picker form { display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem 0.25rem; color: var(--gray); }
-      #series-picker button { border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
-      #series-picker form button { padding: 0.25rem; font-size: var(--text-size); }
-      #series-picker button:focus-visible { outline: 0.0625rem solid var(--gray); outline-offset: -0.0625rem; }
-      #series-picker button:disabled { color: var(--gray); cursor: default; }
-      #series-search {
-        box-sizing: border-box;
-        width: 100%;
-        flex-shrink: 0;
-        padding: 0.875rem 1rem;
-        border: 0;
-        border-bottom: 0.0625rem solid var(--dark-gray);
-        border-radius: 0;
-        outline: none;
-        background: #000;
-        color: #fff;
-        font: inherit;
-        font-size: var(--text-size);
-      }
-      #series-search:focus { border-bottom-color: var(--gray); }
-      #catalog-path { display: flex; align-items: center; gap: 0.5rem; overflow-x: auto; white-space: nowrap; flex-shrink: 0; padding: 0.625rem 1rem; color: var(--gray); border-bottom: 0.0625rem solid var(--dark-gray); }
-      #catalog-path button { padding: 0; }
-      #catalog-path button:hover { color: #fff; }
-      #catalog-path [aria-current] { color: #fff; }
-      #series-results { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.375rem; scroll-padding: 0.375rem; }
-      #series-picker .catalog-row { display: flex; align-items: center; gap: 1rem; width: 100%; min-height: 2.375rem; padding: 0.5625rem 0.625rem; text-align: left; border-radius: 0; }
-      #series-picker .catalog-row:not(:disabled):hover, #series-picker .catalog-row:focus-visible { background: var(--dark-gray); }
+      #series-picker::backdrop { background: #353d4038; backdrop-filter: blur(2px); }
+      #series-picker form { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-shrink: 0; padding: 0.625rem 0.875rem; margin-bottom: var(--module-gap); }
+      #picker-title { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em; }
+      #series-picker form button { width: 1.75rem; height: 1.75rem; padding: 0; border-radius: 50%; background: var(--control-face); box-shadow: var(--raised); font-size: 1rem; color: var(--ink); }
+      #series-search { width: 100%; flex-shrink: 0; margin: 0 0 var(--module-gap); padding: 0.875rem; font-size: 0.8125rem; }
+      #series-search::placeholder { color: var(--muted); }
+      #catalog-path { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; overflow-x: auto; padding: 0.625rem 0.875rem; border: 1px solid var(--seam); border-bottom: 0; border-radius: 0.5rem 0.5rem 0 0; background: #e8eceb; color: var(--muted); font-size: 0.6875rem; white-space: nowrap; }
+      #catalog-path button { padding: 0; border: 0; border-radius: 0.125rem; color: inherit; }
+      #catalog-path button:hover, #catalog-path [aria-current] { color: var(--ink); }
+      #series-results { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0.375rem; scroll-padding: 0.375rem; border: 1px solid var(--seam); border-radius: 0 0 0.5rem 0.5rem; background: var(--chart-surface); }
+      #series-picker .catalog-row { display: flex; align-items: center; gap: 1rem; width: 100%; min-height: 2.5rem; padding: 0.625rem; text-align: left; font-size: 0.75rem; }
+      #series-picker .catalog-row:not(:disabled):hover, #series-picker .catalog-row:focus-visible { background: #e5e9e8; outline-offset: -2px; }
       .catalog-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .catalog-meta { flex-shrink: 0; color: var(--gray); font-size: var(--text-size); }
-      .catalog-row:hover .catalog-meta, .catalog-row:focus-visible .catalog-meta { color: inherit; }
-      .catalog-more { width: 100%; padding: 0.75rem; color: var(--gray); }
-      #picker-footer { display: flex; flex-shrink: 0; white-space: nowrap; overflow-x: auto; padding: 0.625rem 1rem; border-top: 0.0625rem solid var(--dark-gray); color: var(--gray); font-size: var(--text-size); }
+      .catalog-meta { flex-shrink: 0; color: var(--muted); font-size: 0.6875rem; }
+      .catalog-more { width: 100%; margin-top: 0.5rem; padding: 0.75rem; }
+      #picker-footer { display: flex; flex-shrink: 0; overflow-x: auto; margin-top: var(--module-gap); padding: 0.75rem; color: var(--muted); font-size: 0.625rem; white-space: nowrap; }
       #catalog-info { margin: 0; }
       #catalog-info:empty { display: none; }
       #picker-hint { flex-shrink: 0; }
       #series-picker[aria-busy="true"] #picker-hint { display: none; }
-      #series-error { margin: 0; padding: 0.625rem 1rem; color: #fff; font-size: var(--text-size); }
+      #series-error { margin: 0; padding: 0.75rem 0.625rem; color: #a23524; font-size: 0.75rem; }
       #series-error:empty { display: none; }
-      .legend-series { display: inline-flex; align-items: center; gap: 0.375rem; }
-      .pane-legend .series-color { width: 0.625rem; height: 0.625rem; border: 0.0625rem solid var(--series-color); background: var(--series-color); border-radius: 0; padding: 0; }
-      .legend-series[data-hidden="true"] .series-color { background: transparent; }
-      #series-config { position: fixed; inset: 0 0 0 auto; margin: 0; box-sizing: border-box; width: var(--series-sidebar-width); height: 100dvh; max-height: none; overflow: hidden; padding: 0; border: 0; border-left: 0.0625rem solid var(--dark-gray); border-radius: 0; background: #000; color: #fff; font-family: inherit; font-size: var(--text-size); box-shadow: -0.75rem 0 2.5rem #0006; }
-      #series-config {
-        transform: translateX(100%);
-        transition:
-          transform var(--series-sidebar-duration) var(--series-sidebar-easing),
-          display var(--series-sidebar-duration) allow-discrete,
-          overlay var(--series-sidebar-duration) allow-discrete;
+      @starting-style {
+        #chart-library:popover-open { transform: translateX(calc(-100% - 2 * var(--gutter))); }
+        #series-config:popover-open { transform: translateX(calc(100% + 2 * var(--gutter))); }
       }
-      #series-config:popover-open { display: flex; flex-direction: column; transform: translateX(0); }
-      @starting-style { #series-config:popover-open { transform: translateX(100%); } }
+      @media (max-width: 1100px) {
+        body:has(#chart-library:popover-open), body:has(#series-config:popover-open) { --library-space: 0rem; --series-space: 0rem; }
+        :is(#chart-library, #series-config) { box-shadow: inset 0 1px 0 #ffffffb3, 0 8px 24px #25354026, 0 0 0 100vmax #25354020; }
+      }
+      @media (max-width: 760px) {
+        body { --gutter: 0.5rem; }
+      }
+      @media (max-width: 560px) {
+        .chart-actions { align-items: center; gap: 0.5rem; padding: 0.5rem; }
+        #interval-control > span, #charts-toggle > span { display: none; }
+        #charts-toggle { justify-content: center; width: 2.25rem; padding: 0; }
+        .series-config-placement { gap: 0.375rem; }
+        .series-config-placement .series-config-choices button { min-width: 1.25rem; padding: 0.375rem 0.25rem; }
+        #series-config-colors button { width: 100%; min-width: 1.5rem; }
+      }
       @media (prefers-reduced-motion: reduce) { body { --series-sidebar-duration: 0ms; } }
-      #series-config-body { flex: 1; min-height: 0; overflow: auto; padding: 1rem 1rem 2rem; }
-      #series-config-heading { margin: 0 5rem 1.5rem 0; padding: 0.375rem 0; font: inherit; text-transform: uppercase; letter-spacing: 0.04em; }
-      #series-config button { background: none; border: 0; color: inherit; font: inherit; cursor: pointer; }
-      #series-config label { display: block; margin: 0.75rem 0 0.375rem; color: var(--gray); }
-      #series-config label, #series-config-colors-label, .series-config-meta-label { text-transform: uppercase; letter-spacing: 0.04em; }
-      .series-config-meta-label { display: block; color: var(--gray); }
-      .series-config-identity { margin-bottom: 1rem; }
-      #series-config #series-config-name-label { margin: 0 0 0.5rem; }
-      #series-config-name { box-sizing: border-box; min-width: 0; width: 100%; margin-bottom: 1rem; padding: 0; background: #000; border: 0; color: #fff; font: inherit; line-height: 1.5; }
-      #series-config-colors-label { display: block; margin-bottom: 0.5rem; color: var(--gray); }
-      #series-config-colors { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 0.375rem; margin-bottom: 1rem; }
-      #series-config-colors button { width: 100%; height: 1.5rem; border: 0.0625rem solid #ffffff25; border-radius: 0; }
-      #series-config-colors button[aria-pressed="true"] { outline: 0.0625rem solid #fff; outline-offset: 0.125rem; }
-      #series-config :is(button, input, select, summary, a):focus-visible { outline: 0.0625rem solid #fff; outline-offset: 0.125rem; }
-      .series-config-placement { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.5rem; margin-bottom: 1rem; }
-      .series-config-placement > .series-config-meta-label:not(:first-child) { margin-top: 0.5rem; }
-      #series-config .series-config-placement :is(label, #series-config-colors-label) { margin: 0; color: var(--gray); }
-      .series-config-field { margin-bottom: 1rem; }
-      #series-config .series-config-field > .series-config-meta-label { margin: 0 0 0.5rem; }
-      #series-config-style input { box-sizing: border-box; width: 100%; padding: 0.375rem 0.5rem; border: 0.0625rem solid var(--dark-gray); border-radius: 0; background: #000; color: #fff; font: inherit; }
-      #series-config-style-error { margin: 0 0 1rem; color: var(--red); }
-      #series-config-style-error:empty { display: none; }
-      .series-config-choices { display: flex; flex-wrap: wrap; gap: 0.375rem; }
-      #series-config .series-config-choices button { min-width: 2rem; height: 2rem; padding: 0 0.5rem; border: 0.0625rem solid var(--dark-gray); border-radius: 0; }
-      #series-config .series-config-choices button[aria-pressed="true"] { color: #000; background: #fff; border-color: #fff; }
-      #series-config .series-config-choices button:hover:not(:disabled):not([aria-pressed="true"]) { border-color: var(--gray); }
-      #series-config :is(button, select):disabled { opacity: 0.4; cursor: default; }
-      #series-config-about { margin-top: 1.25rem; }
-      #series-config-id { display: block; margin-top: 0.5rem; overflow-wrap: anywhere; }
-      #series-config-description { margin: 0.5rem 0 0; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
-      #series-config-data { display: inline-block; margin-top: 0.375rem; color: var(--gray); text-decoration: underline; text-underline-offset: 0.1875rem; }
-      #series-config-data:hover { color: #fff; }
-      #series-config .series-config-action { position: absolute; right: 1rem; z-index: 2; padding: 0.375rem 0.625rem; border: 0.1rem solid #000; border-radius: 0; color: #000; }
-      #series-config #series-config-close { top: 1rem; background: var(--yellow); }
-      #series-config #series-config-remove { bottom: 1rem; background: var(--red); }
-      #series-config .series-config-action:hover { filter: brightness(1.2); }
-      #timeframe {
-        position: fixed;
-        bottom: 2.25rem;
-        left: 0.5rem;
-        z-index: 2;
-        appearance: none;
-        width: 4.75rem;
-        height: 1.875rem;
-        border: 0;
-        border-radius: 0;
-        padding: 0 1.5rem 0 0.5rem;
-        background: #000 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='m3 4.5 3 3 3-3' fill='none' stroke='%23888888' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 0.5rem center;
-        color: var(--light-gray);
-        font: inherit;
-        cursor: pointer;
-      }
-      #timeframe:hover { background-color: var(--light-black); color: #fff; }
-      #timeframe:focus-visible { outline: 0.0625rem solid var(--gray); outline-offset: 0.125rem; }
-      #timeframe:disabled { opacity: 0.4; cursor: wait; }
-      #timeframe option, #timeframe optgroup { background: #000; color: var(--light-gray); }
-      #chart[data-loading] :is(.pane-legend, .pane-controls) button { pointer-events: none; }
-      #chart-library { position: fixed; inset: 0 auto 0 0; margin: 0; box-sizing: border-box; width: var(--library-width); height: 100dvh; max-height: none; padding: 1rem; border: 0; border-right: 0.0625rem solid var(--dark-gray); background: #000; color: #fff; font: inherit; overflow: auto; transform: translateX(-100%); transition: transform var(--series-sidebar-duration) var(--series-sidebar-easing), display var(--series-sidebar-duration) allow-discrete, overlay var(--series-sidebar-duration) allow-discrete; }
-      #chart-library:popover-open { display: block; transform: translateX(0); }
-      @starting-style { #chart-library:popover-open { transform: translateX(-100%); } }
-      #chart-library h2 { margin: 0 5rem 1.5rem 0; padding: 0.375rem 0; font: inherit; }
-      #chart-library button, #charts-toggle { padding: 0.375rem 0.625rem; border: 0.0625rem solid var(--dark-gray); border-radius: 0; background: #000; color: #fff; font: inherit; cursor: pointer; }
-      #charts-toggle { pointer-events: auto; }
-      #chart-library #library-close { position: absolute; top: 1rem; right: 1rem; background: var(--yellow); color: #000; border: 0.1rem solid #000; }
-      #chart-library #new-chart { width: 100%; padding: 0.625rem 0.75rem; background: #fff; color: #000; border-color: #fff; text-align: left; }
-      #chart-library #new-chart:hover:not(:disabled) { background: var(--light-gray); border-color: var(--light-gray); }
-      #library-sort-label { display: block; color: var(--gray); margin: 1.5rem 0 0.625rem; font-size: 0.75rem; }
-      #library-sort { display: flex; justify-content: space-between; gap: 0.5rem; border-bottom: 0.0625rem solid var(--dark-gray); }
-      #chart-library #library-sort button { padding: 0 0 0.5rem; border: 0; border-bottom: 0.125rem solid transparent; color: var(--gray); font-size: 0.75rem; }
-      #chart-library #library-sort button[aria-pressed="true"] { color: #fff; border-bottom-color: #fff; }
-      #chart-library #library-sort button:hover { color: #fff; }
-      #library-list { display: grid; gap: 0.125rem; margin-top: 0.75rem; }
-      #chart-library .library-chart { min-width: 0; text-align: left; padding: 0.75rem; border: 0; border-left: 0.125rem solid transparent; }
-      .library-chart > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .library-chart small { display: block; color: var(--gray); margin-top: 0.25rem; font-size: 0.75rem; line-height: 1.5; }
-      #chart-library .library-chart:hover:not(:disabled) { background: var(--light-black); }
-      #chart-library .library-chart[aria-current="true"] { background: var(--light-black); border-left-color: #fff; }
-      #chart-library button:disabled { opacity: 0.4; cursor: wait; }
-      #chart-library button:focus-visible, #charts-toggle:focus-visible { outline: 0.0625rem solid #fff; outline-offset: 0.125rem; }
     </style>
   </head>
   <body>
-    <aside id="chart-library" popover="manual" aria-labelledby="library-heading">
-      <h2 id="library-heading">CHARTS</h2>
-      <button id="library-close" popovertarget="chart-library" popovertargetaction="hide">CLOSE</button>
-      <button id="new-chart" disabled>+ NEW CHART</button>
-      <span id="library-sort-label">SORT BY</span>
-      <div id="library-sort" role="group" aria-labelledby="library-sort-label"></div>
-      <nav id="library-list" aria-label="Saved charts"></nav>
+    <aside class="instrument" id="chart-library" popover="manual" aria-labelledby="library-heading">
+      <header class="panel-header">
+        <h2 id="library-heading">Chart library</h2>
+        <button id="library-close" popovertarget="chart-library" popovertargetaction="hide" aria-label="Close chart library">×</button>
+      </header>
+      <div id="library-body" class="surface">
+        <button id="new-chart" disabled><span aria-hidden="true">+</span> New chart</button>
+        <span id="library-sort-label">SORT BY</span>
+        <div id="library-sort" role="group" aria-labelledby="library-sort-label"></div>
+        <nav id="library-list" aria-label="Saved charts"></nav>
+      </div>
     </aside>
-    <header id="chart-header">
-      <button id="charts-toggle" popovertarget="chart-library" aria-label="Toggle chart library">CHARTS</button>
-      <input id="chart-title" aria-label="Chart title" title="Edit chart title" placeholder="Untitled chart" maxlength="160" autocomplete="off" />
-    </header>
-    <main id="chart" aria-label="Chart"></main>
-    <select id="timeframe" aria-label="Index / interval" title="Index / interval" disabled></select>
+    <div id="studio-workspace" class="instrument">
+      <header id="chart-header" class="surface">
+        <div class="chart-identity">
+          <div class="studio-brand">BITVIEW <span aria-hidden="true">/</span> STUDIO</div>
+          <input id="chart-title" aria-label="Chart title" title="Edit chart title" placeholder="Untitled chart" maxlength="160" autocomplete="off" />
+        </div>
+        <div class="chart-actions">
+          <label id="interval-control"><span>Interval</span><select id="timeframe" aria-label="Index / interval" title="Index / interval" disabled></select></label>
+          <button id="charts-toggle" popovertarget="chart-library" aria-label="Toggle chart library">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 6h12M6 6v8"/></svg>
+            <span>Charts</span>
+          </button>
+        </div>
+      </header>
+      <div id="chart-frame"><main id="chart" aria-label="Chart"></main></div>
+    </div>
     <p id="status" role="status">Loading…</p>
-    <dialog id="series-picker" aria-labelledby="picker-title">
+    <dialog class="instrument" id="series-picker" aria-labelledby="picker-title">
       <form method="dialog"><span id="picker-title">Add series</span><button aria-label="Close">×</button></form>
       <input id="series-search" type="search" aria-label="Search series" placeholder="Search all series…" autocomplete="off" />
       <nav id="catalog-path" aria-label="Catalog path"></nav>
       <div id="series-results" role="region" aria-label="Series and folders"></div>
-      <footer id="picker-footer"><p id="catalog-info" role="status"></p><span id="picker-hint">← ↓ ↑ → navigate · Enter select · Esc close</span></footer>
+      <footer id="picker-footer" class="surface"><p id="catalog-info" role="status"></p><span id="picker-hint">← ↓ ↑ → navigate · Enter select · Esc close</span></footer>
       <p id="series-error" role="status"></p>
     </dialog>
-    <div id="series-config" popover="manual" role="dialog" aria-labelledby="series-config-heading">
-      <button id="series-config-close" class="series-config-action" popovertarget="series-config" popovertargetaction="hide" aria-label="Close series settings">CLOSE</button>
-      <div id="series-config-body">
+    <div class="instrument" id="series-config" popover="manual" role="dialog" aria-labelledby="series-config-heading">
+      <header class="panel-header">
         <h2 id="series-config-heading">Series settings</h2>
-        <label id="series-config-name-label" for="series-config-name">Name</label>
-        <input id="series-config-name" type="text" aria-label="Series name" title="Rename series" maxlength="120" autocomplete="off" />
-        <section class="series-config-identity" aria-labelledby="series-config-id-label">
-          <span id="series-config-id-label" class="series-config-meta-label">ID</span>
-          <span id="series-config-id" aria-labelledby="series-config-id-label"></span>
-          <a id="series-config-data" target="_blank" rel="noopener noreferrer">Open data ↗</a>
+        <button id="series-config-close" popovertarget="series-config" popovertargetaction="hide" aria-label="Close series settings">×</button>
+      </header>
+      <div id="series-config-body" class="surface">
+        <section class="config-section" aria-labelledby="series-config-name-label">
+          <label id="series-config-name-label" for="series-config-name">Name</label>
+          <input id="series-config-name" type="text" aria-label="Series name" title="Rename series" maxlength="120" autocomplete="off" />
+          <div class="series-config-identity">
+            <span id="series-config-id" aria-label="Series ID"></span>
+            <a id="series-config-data" target="_blank" rel="noopener noreferrer">Data ↗</a>
+          </div>
         </section>
-        <div class="series-config-placement">
-          <span id="series-config-visible-label" class="series-config-meta-label">Visible</span>
-          <div id="series-config-visible" class="series-config-choices" role="group" aria-labelledby="series-config-visible-label"></div>
-          <span id="series-config-panel-label" class="series-config-meta-label">Panel</span>
-          <div id="series-config-panel" class="series-config-choices" role="group" aria-labelledby="series-config-panel-label"></div>
-          <span id="series-config-position-label" class="series-config-meta-label">Position</span>
-          <div id="series-config-position" class="series-config-choices" role="group" aria-labelledby="series-config-position-label"></div>
+        <div class="series-config-placement config-section">
+          <div>
+            <span id="series-config-visible-label" class="series-config-meta-label">Visible</span>
+            <div id="series-config-visible" class="series-config-choices" role="group" aria-labelledby="series-config-visible-label"></div>
+          </div>
+          <div>
+            <span id="series-config-panel-label" class="series-config-meta-label">Panel</span>
+            <div id="series-config-panel" class="series-config-choices" role="group" aria-labelledby="series-config-panel-label"></div>
+          </div>
+          <div>
+            <span id="series-config-position-label" class="series-config-meta-label">Position</span>
+            <div id="series-config-position" class="series-config-choices" role="group" aria-labelledby="series-config-position-label"></div>
+          </div>
         </div>
-        <span id="series-config-colors-label">Color</span>
-        <div id="series-config-colors" role="group" aria-labelledby="series-config-colors-label"></div>
-        <div class="series-config-field">
-          <span id="series-config-type-label" class="series-config-meta-label">Chart type</span>
-          <div id="series-config-type" class="series-config-choices" role="group" aria-labelledby="series-config-type-label"></div>
-        </div>
-        <div id="series-config-style"></div>
-        <p id="series-config-style-error" role="status"></p>
-        <section id="series-config-about" aria-label="About this series">
-          <span id="series-config-description-label" class="series-config-meta-label">Description</span>
+        <section class="config-section" aria-labelledby="series-config-colors-label">
+          <span id="series-config-colors-label">Color</span>
+          <div id="series-config-colors" role="group" aria-labelledby="series-config-colors-label"></div>
+        </section>
+        <section class="config-section" aria-labelledby="series-config-type-label">
+          <div class="series-config-field">
+            <span id="series-config-type-label" class="series-config-meta-label">Chart type</span>
+            <div id="series-config-type" class="series-config-choices" role="group" aria-labelledby="series-config-type-label"></div>
+          </div>
+          <div id="series-config-style"></div>
+          <p id="series-config-style-error" role="status"></p>
+        </section>
+        <details id="series-config-about">
+          <summary id="series-config-description-label" class="series-config-meta-label">About this series</summary>
           <p id="series-config-description" role="status" aria-labelledby="series-config-description-label"></p>
-        </section>
+        </details>
       </div>
-      <button id="series-config-remove" class="series-config-action" aria-label="Remove series">REMOVE</button>
+      <footer class="panel-footer surface">
+        <button id="series-config-remove" aria-label="Remove series"><span aria-hidden="true">−</span> Remove series</button>
+      </footer>
     </div>
     <script type="module">
       const base = "http://localhost:3110";
@@ -447,10 +475,6 @@
       }
       let saveState = () => {};
       const chartTitle = document.getElementById("chart-title");
-      const chartHeader = document.getElementById("chart-header");
-      for (const type of ["pointerdown", "mousedown", "touchstart", "click", "dblclick", "wheel", "keydown"]) {
-        chartHeader.addEventListener(type, event => event.stopPropagation());
-      }
       chartTitle.value = typeof savedState?.title === "string" ? savedState.title : "Untitled chart";
       chartTitle.addEventListener("input", () => saveState());
       chartTitle.addEventListener("keydown", event => {
@@ -700,7 +724,7 @@
         return a === 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${a})`;
       }
 
-      // Read the CSS palette in the same way as website/.
+      // CSS is the source of truth for both the canvas and the color picker.
       function readPalette() {
         const names = [
           "white", "dark-white", "light-gray", "gray", "dark-gray", "light-black", "black",
@@ -710,7 +734,7 @@
         const styles = getComputedStyle(document.documentElement);
         return Object.fromEntries(names.map((name) => {
           const color = styles.getPropertyValue(`--${name}`).trim();
-          if (!color) throw new Error("The website color palette could not load.");
+          if (!color) throw new Error("The Studio color palette could not load.");
           return [name, oklchToRgba(color)];
         }));
       }
@@ -774,31 +798,35 @@
           chart?.applyOptions({ layout: { fontFamily: getComputedStyle(document.body).fontFamily } });
         }).catch(console.warn);
         const palette = readPalette();
+        const themeStyles = getComputedStyle(document.documentElement);
+        const theme = Object.fromEntries(["chart-surface", "chart-grid", "ink", "muted", "seam"].map(name =>
+          [name, themeStyles.getPropertyValue(`--${name}`).trim()],
+        ));
         chart = LC.createChart(document.getElementById("chart"), {
           autoSize: true,
           localization: { priceFormatter: numberToShortUSFormat, locale: "en-us" },
           layout: {
             attributionLogo: false,
-            background: { color: "#000" },
-            textColor: "#fff",
+            background: { color: theme["chart-surface"] },
+            textColor: theme.muted,
             fontFamily: getComputedStyle(document.body).fontFamily,
             fontSize: parseFloat(getComputedStyle(document.body).fontSize),
             panes: {
-              separatorColor: palette["dark-gray"],
-              separatorHoverColor: palette.gray,
+              separatorColor: theme.seam,
+              separatorHoverColor: theme.muted,
               enableResize: true,
             },
           },
           grid: {
-            vertLines: { color: palette["dark-gray"], style: LC.LineStyle.SparseDotted },
-            horzLines: { color: palette["dark-gray"], style: LC.LineStyle.SparseDotted },
+            vertLines: { color: theme["chart-grid"], style: LC.LineStyle.SparseDotted },
+            horzLines: { color: theme["chart-grid"], style: LC.LineStyle.SparseDotted },
           },
           crosshair: {
-            vertLine: { color: palette.gray, labelBackgroundColor: "#000" },
-            horzLine: { color: palette.gray, labelBackgroundColor: "#000" },
+            vertLine: { color: theme.muted, labelBackgroundColor: theme.ink },
+            horzLine: { color: theme.muted, labelBackgroundColor: theme.ink },
           },
-          rightPriceScale: { borderVisible: false },
-          timeScale: { borderVisible: true, borderColor: palette["dark-gray"] },
+          rightPriceScale: { borderVisible: false, entireTextOnly: true },
+          timeScale: { borderVisible: true, borderColor: theme.seam },
         });
         const timeframePicker = document.getElementById("timeframe");
         const timeframes = Object.values(client.series.mappings.timestamp).flatMap(pattern =>
@@ -926,7 +954,7 @@
               case "Baseline": options = { ...optionsFor(lineSettings), baseValue: { type: "price", price: setting(entry, "base") }, topLineColor: color, bottomLineColor: color, topFillColor1: fill, topFillColor2: "transparent", bottomFillColor1: "transparent", bottomFillColor2: fill }; break;
               case "Histogram": options = { color, base: setting(entry, "base") }; break;
               case "Bar": options = { upColor: color, downColor: color }; break;
-              case "Candlestick": options = { upColor: "#000", downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }; break;
+              case "Candlestick": options = { upColor: theme["chart-surface"], downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }; break;
               default: options = { ...optionsFor(lineSettings), color, lineVisible: entry.chartType !== "dots", pointMarkersVisible: entry.chartType === "dots" };
             }
             api.applyOptions(options);
@@ -995,8 +1023,8 @@
           colors.replaceChildren();
           for (const [key, color] of Object.entries(palette)) {
             const swatch = document.createElement("button");
-            swatch.style.background = color;
-            swatch.title = key.replaceAll("-", " ");
+            swatch.style.setProperty("--series-color", color);
+            swatch.title = ({ white: "graphite", "dark-white": "slate", "light-gray": "steel" })[key] || key.replaceAll("-", " ");
             swatch.setAttribute("aria-label", swatch.title);
             swatch.setAttribute("aria-pressed", String(entry.color === key));
             swatch.onclick = () => {
@@ -1241,6 +1269,9 @@
         function renderLegend(pane) {
           const legend = pane.legend;
           legend.replaceChildren();
+          const seriesList = document.createElement("div");
+          seriesList.className = "legend-series-list";
+          legend.append(seriesList);
           pane.controls.replaceChildren();
           if (panes.length > 1) {
             for (const [direction, symbol, name] of [[-1, "↑", "up"], [1, "↓", "down"]]) {
@@ -1278,7 +1309,7 @@
             const label = document.createElement("button");
             label.className = "series-name";
             label.textContent = seriesTitle(entry);
-            label.title = "Series settings";
+            label.title = `${seriesTitle(entry)} · Series settings`;
             label.setAttribute("aria-haspopup", "dialog");
             label.onclick = () => configureSeries(pane, entry);
             const color = document.createElement("button");
@@ -1299,11 +1330,11 @@
             group.className = "legend-series";
             group.dataset.hidden = String(!entry.visible);
             group.append(color, label);
-            legend.append(group);
+            seriesList.append(group);
           });
           const add = document.createElement("button");
           add.type = "button";
-          add.textContent = "+";
+          add.textContent = "+ Series";
           add.title = "Add metric";
           add.setAttribute("aria-label", `Add metric to panel ${pane.index + 1}`);
           add.onclick = () => {
@@ -1327,8 +1358,6 @@
           // Read the current index: deleting an earlier pane shifts this pane.
           const plot = chart.panes()[pane.index]?.getHTMLElement()?.children.item(1)?.firstChild;
           if (plot) {
-            pane.legend.style.top = pane.index === 0 ? "3.75rem" : "0";
-            if (pane.index === 0) plot.appendChild(chartHeader);
             plot.appendChild(pane.legend);
             plot.appendChild(pane.controls);
           }
@@ -1899,11 +1928,6 @@
         document.getElementById("chart").addEventListener("pointerup", () => requestAnimationFrame(saveState));
         window.addEventListener("pagehide", saveState);
         document.addEventListener("visibilitychange", () => { if (document.hidden) saveState(); });
-        function positionInterval() {
-          timeframePicker.style.bottom = `${chart.timeScale().height() / parseFloat(getComputedStyle(document.documentElement).fontSize) + 0.5}rem`;
-        }
-        chart.timeScale().subscribeSizeChange(positionInterval);
-        requestAnimationFrame(positionInterval);
 
       } catch (error) {
         status.textContent = `${error.message} Reload to retry.`;

@@ -3,14 +3,9 @@
     "url": "https://github.com/bitcoinresearchkit/brk/issues"
   },
   "scripts": {
-    "test": "npm run test:unit && node tests/basic.js && node tests/metric_data.js && node tests/tree.js",
-    "test:unit": "node tests/hash_prefix.js && node tests/broadcast.js && node tests/cache.js",
-    "test:basic": "node tests/basic.js",
-    "test:hash-prefix": "node tests/hash_prefix.js",
-    "test:metric-data": "node tests/metric_data.js",
-    "test:tree": "node tests/tree.js"
+    "test": "node --test tests/hash_prefix.js tests/broadcast.js tests/cache.js tests/metric_data.js tests/tree.js"
   },
-  "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
+  "description": "Bitcoin on-chain analytics client \u2014 thousands of metrics, block explorer, and address index",
   "engines": {
     "node": ">=18"
   },

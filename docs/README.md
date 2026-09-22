@@ -113,7 +113,7 @@ cargo test --workspace
 ## Documentation
 
 - [Architecture](./ARCHITECTURE.md)
-- [Crate audit and progress](./CRATE_AUDIT.md)
+- [Storage design, update policy, and remaining work](./STORAGE_ROLLBACK.md)
 - [Changelog](./CHANGELOG.md)
 - [Self-hosting](../crates/bitviewd)
 - [BRK crates](../crates/brk)

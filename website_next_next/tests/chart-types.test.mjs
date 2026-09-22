@@ -4,6 +4,7 @@ import test from 'node:test';
 import * as LC from '../../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs';
 
 const html = await readFile(new URL('../studio.html', import.meta.url), 'utf8');
+const theme = { 'chart-surface': html.match(/--chart-surface:\s*([^;]+);/)[1] };
 function section(start, end) {
   const from = html.indexOf(start), to = html.indexOf(end, from);
   assert.ok(from >= 0 && to > from);
@@ -57,7 +58,7 @@ function fixture() {
     panes: () => panes.map(() => ({ getStretchFactor: () => 1 })),
   };
   const localStorage = { setItem(key, text) { saved = JSON.parse(text); } };
-  const api = new Function('LC', 'chart', 'panes', 'localStorage', `
+  const api = new Function('LC', 'chart', 'panes', 'localStorage', 'theme', `
     const palette = { white: 'rgb(255, 255, 255)', blue: 'rgb(0, 100, 255)' };
     const priceSources = { price_ohlc: { day1: 'price_ohlc', height: 'price' } };
     const chartTitle = { value: 'Test chart' }, storageKey = 'test', status = {};
@@ -68,7 +69,7 @@ function fixture() {
     function renderLegend() {}
     ${code}
     return { addSeries, setChartType, setSeriesData, updateVisibility, applySeriesStyle, setting, chartTypes, chartSettings, saveState };
-  `)(LC, chart, panes, localStorage);
+  `)(LC, chart, panes, localStorage, theme);
   return { ...api, panes, handles, pane: panes[0], get saved() { return saved; }, setRange(value) { range = value; }, failRenderer(type) { failType = type; } };
 }
 
@@ -157,7 +158,7 @@ test('type-specific settings, metadata and ordering survive switching and saving
     if (type === 'baseline') assert.equal(entry.api.options.baseValue.price, 7);
     if (type === 'histogram') assert.equal(entry.api.options.base, 7);
     if (type === 'candles') {
-      assert.equal(rendered.options.upColor, '#000');
+      assert.equal(rendered.options.upColor, theme['chart-surface']);
       assert.equal(rendered.options.wickVisible, true);
       assert.equal(rendered.options.borderVisible, true);
     }

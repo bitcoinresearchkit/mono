@@ -43,7 +43,7 @@ const COUNT_SOURCES = [
   { key: "behavior:batch", series: tx.patterns.count.batchPayout.block },
   { key: "data:fake_pubkey", series: tx.features.count.fakePubkey },
   { key: "data:fake_scripthash", series: tx.features.count.fakeScripthash },
-  { key: "data:inscription", series: tx.features.count.inscription.block },
+  { key: "data:inscription", series: tx.inscription.count.block },
   { key: "data:annex", series: tx.features.count.annex.block },
   { key: "data:dust", series: tx.features.count.dustOutput.block },
   { key: "sighash:all", series: tx.features.count.sighashAll.block },

@@ -111,7 +111,6 @@ initFrameSelectors();
 initPrice(bitview);
 
 onPrice((price) => {
-  console.log("close:", price);
   window.document.title = `${price.toLocaleString("en-us")} | bitview`;
 });
 
@@ -132,8 +131,6 @@ function initSelected() {
     options.selected.onChange((option) => {
       /** @type {HTMLElement | undefined} */
       let element;
-
-      console.log(option);
 
       switch (option.kind) {
         case "explorer": {

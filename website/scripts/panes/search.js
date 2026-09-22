@@ -11,8 +11,6 @@ import { createChartSearch } from "./search-client.js";
  * @param {Options} options
  */
 export function init(options) {
-  console.log("search: init");
-
   const chartSearch = lazy(createChartSearch);
 
   /** @type {HTMLLIElement | undefined} */

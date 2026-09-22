@@ -1,4 +1,4 @@
-import * as leanQr from "../modules/lean-qr/2.7.1/index.mjs";
+import * as leanQr from "../modules/lean-qr/2.7.3/index.mjs";
 
 /**
  * @typedef {Object} QrDataUrlOptions

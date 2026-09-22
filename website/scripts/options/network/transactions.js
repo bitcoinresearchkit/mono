@@ -176,7 +176,7 @@ export function createTransactionsSection() {
           createCountFolder({
             name: "Inscriptions",
             metric: "Transactions with Inscriptions",
-            pattern: featureCount.inscription,
+            pattern: transactions.inscription.count,
           }),
           createCountFolder({
             name: "Taproot Annexes",
