@@ -38,7 +38,7 @@
       .profit { color: var(--bull); }
       .loss { color: var(--bear); }
       .signal { font-weight: 600; }
-      .band-readout { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+      .density-readout { display: flex; flex-wrap: wrap; gap: 8px 18px; }
       #chart-wrap { position: relative; flex: 1; min-height: 0; }
       #chart { position: absolute; inset: 0; }
       #status { position: absolute; inset: 42% 20px auto; text-align: center; color: var(--muted); font-size: 12px; line-height: 1.7; pointer-events: none; }
@@ -75,8 +75,7 @@
         <div id="readout">
           <span id="date">—</span>
           <span><span class="label">Price </span><span id="price">—</span></span>
-          <div class="band-readout" data-readout="5"><span>±5%</span><span class="label">Total <span data-side="total">—</span></span><span class="profit">Profit <span data-side="profit">—</span></span><span class="loss">Loss <span data-side="loss">—</span></span><span class="signal">—</span></div>
-          <div class="band-readout" data-readout="10"><span>±10%</span><span class="label">Total <span data-side="total">—</span></span><span class="profit">Profit <span data-side="profit">—</span></span><span class="loss">Loss <span data-side="loss">—</span></span><span class="signal">—</span></div>
+          <div class="density-readout" id="density-readout"><span>Supply Density</span><span class="label">Total <span data-side="total">—</span></span><span class="profit">Profit <span data-side="profit">—</span></span><span class="loss">Loss <span data-side="loss">—</span></span><span class="signal">—</span></div>
         </div>
       </header>
       <section id="chart-wrap" aria-label="Price and density signal">
@@ -84,7 +83,7 @@
         <div id="status" role="status">Loading local data…</div>
       </section>
       <footer>
-        <span><strong>±5%: total ≥25% · ±10%: total ≥40%.</strong> All densities use total weighted supply.</span>
+        <span><strong>Signal: total ≥25%.</strong> Supply density is the share of total weighted supply within ±5% of spot.</span>
         <span><strong>Height:</strong> winning side ÷ (profit + loss), from 50% to 100%. Color always uses that day’s balance: profit → green · loss → red.</span>
         <a href="http://localhost:3110" target="_blank" rel="noreferrer">Local Bitview ↗</a>
       </footer>
@@ -93,14 +92,14 @@
       const API = "http://localhost:3110/api/series";
       const DAY_ZERO = Date.UTC(2009, 0, 1) / 1000;
       const DAY_SECONDS = 86400;
-      const BANDS = [{ band: "5", threshold: 250_000 }, { band: "10", threshold: 400_000 }];
+      const SIGNAL_THRESHOLD = 250_000;
       const COLORS = { price: "#eceeea", bull: "#55c997", bear: "#ef7979", muted: "#808888" };
       const MODES = ["cointime", "coinflow"];
       const SIDES = ["total", "profit", "loss"];
 
-      function signalFor(total, profit, loss, threshold = BANDS[0].threshold) {
+      function signalFor(total, profit, loss) {
         if (![total, profit, loss].every(Number.isFinite)) return null;
-        if (total < threshold || profit === loss) return 0;
+        if (total < SIGNAL_THRESHOLD || profit === loss) return 0;
         return profit > loss ? 1 : -1;
       }
 
@@ -108,7 +107,7 @@
         return series.data[day - series.start];
       }
 
-      function buildRows(prices, density, threshold = BANDS[0].threshold) {
+      function buildRows(prices, density) {
         const rows = [];
         for (let offset = 0; offset < prices.data.length; offset++) {
           const candle = prices.data[offset];
@@ -116,7 +115,7 @@
           const day = prices.start + offset;
           const [open, high, low, close] = candle;
           const [total, profit, loss] = density.map(series => valueAt(series, day));
-          const signal = signalFor(total, profit, loss, threshold);
+          const signal = signalFor(total, profit, loss);
           const strength = signal ? Math.max(profit, loss) / (profit + loss) : null;
           rows.push({ time: DAY_ZERO + day * DAY_SECONDS, open, high, low, close, total, profit, loss, signal, strength });
         }
@@ -134,9 +133,8 @@
         return bars <= (visible ? 600 : 500);
       }
 
-      function densitySeriesNames(weight, band) {
-        const suffix = band === "10" ? "_10pct" : "";
-        return SIDES.map(side => `bedrock_${weight}_supply_density${suffix}${side === "total" ? "" : `_in_${side}`}_ppm`);
+      function densitySeriesNames(weight) {
+        return SIDES.map(side => `${weight}_urpd_all_supply_density_${side === "total" ? "total" : `in_${side}`}_ppm`);
       }
 
       async function fetchSeries(name) {
@@ -152,7 +150,7 @@
       const refresh = document.getElementById("refresh");
       const buttons = [...document.querySelectorAll("[data-mode]")];
       const readout = Object.fromEntries(["date", "price"].map(key => [key, document.getElementById(key)]));
-      const bands = BANDS.map(config => ({ ...config, readout: document.querySelector(`[data-readout="${config.band}"]`), rowsByMode: new Map(), rowsByTime: new Map(), histogram: null, error: "" }));
+      const density = { readout: document.getElementById("density-readout"), rowsByMode: new Map(), rowsByTime: new Map(), histogram: null, error: "" };
       let mode = "cointime";
       let chart, priceLine, priceCandles;
       let priceRows = [];
@@ -165,15 +163,13 @@
         const row = priceByTime.get(time) ?? priceRows.at(-1);
         readout.date.textContent = row ? new Date(row.time * 1000).toISOString().slice(0, 10) : "—";
         readout.price.textContent = row ? row.close.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }) : "—";
-        for (const band of bands) {
-          const density = band.rowsByTime.get(row?.time);
-          for (const key of SIDES) band.readout.querySelector(`[data-side="${key}"]`).textContent = Number.isFinite(density?.[key]) ? `${(density[key] / 10_000).toFixed(2)}%` : "—";
-          const signal = density?.signal;
-          const label = band.readout.querySelector(".signal");
-          label.textContent = signal === 1 ? "Bull" : signal === -1 ? "Bear" : signal === 0 ? "No signal" : "No density data";
-          if (signal) label.textContent += ` · ${(density.strength * 100).toFixed(1)}%`;
-          label.style.color = signal === 1 ? COLORS.bull : signal === -1 ? COLORS.bear : COLORS.muted;
-        }
+        const entry = density.rowsByTime.get(row?.time);
+        for (const key of SIDES) density.readout.querySelector(`[data-side="${key}"]`).textContent = Number.isFinite(entry?.[key]) ? `${(entry[key] / 10_000).toFixed(2)}%` : "—";
+        const signal = entry?.signal;
+        const label = density.readout.querySelector(".signal");
+        label.textContent = signal === 1 ? "Bull" : signal === -1 ? "Bear" : signal === 0 ? "No signal" : "No density data";
+        if (signal) label.textContent += ` · ${(entry.strength * 100).toFixed(1)}%`;
+        label.style.color = signal === 1 ? COLORS.bull : signal === -1 ? COLORS.bear : COLORS.muted;
       }
 
       function updatePriceVisibility(range) {
@@ -185,20 +181,18 @@
       }
 
       function render() {
-        chartElement.setAttribute("aria-label", `Bitcoin price with ${mode}-weighted ±5% and ±10% bull/bear density share panes`);
+        chartElement.setAttribute("aria-label", `Bitcoin price with ${mode}-weighted supply density bull/bear share pane`);
         const range = chart.timeScale().getVisibleLogicalRange();
         priceLine.setData(priceRows.map(row => ({ time: row.time, value: row.close })));
         priceCandles.setData(priceRows.map(({ time, open, high, low, close }) => ({ time, open, high, low, close })));
-        for (const band of bands) {
-          const rows = band.rowsByMode.get(mode) ?? [];
-          band.rowsByTime = new Map(rows.map(row => [row.time, row]));
-          band.histogram.setData(rows.map(histogramPoint));
-        }
+        const rows = density.rowsByMode.get(mode) ?? [];
+        density.rowsByTime = new Map(rows.map(row => [row.time, row]));
+        density.histogram.setData(rows.map(histogramPoint));
         if (fitted && range) chart.timeScale().setVisibleLogicalRange(range);
         else if (priceRows.length) { chart.timeScale().fitContent(); fitted = true; }
         updatePriceVisibility(chart.timeScale().getVisibleLogicalRange());
         updateReadout();
-        status.textContent = bands.map(band => band.error).filter(Boolean).join(" ");
+        status.textContent = density.error;
         status.dataset.error = String(Boolean(status.textContent));
       }
 
@@ -210,23 +204,20 @@
         status.dataset.error = "false";
         status.textContent = "Loading local data…";
         try {
-          const [prices, ...results] = await Promise.all([
+          const [prices, results] = await Promise.all([
             fetchSeries("price_ohlc"),
-            ...bands.map(band => Promise.allSettled(MODES.flatMap(weight => densitySeriesNames(weight, band.band).map(fetchSeries)))),
+            Promise.allSettled(MODES.flatMap(weight => densitySeriesNames(weight).map(fetchSeries))),
           ]);
           priceRows = buildRows(prices, SIDES.map(() => ({ start: 0, data: [] })));
           if (!priceRows.length) throw new Error("No daily price candles available");
           priceByTime = new Map(priceRows.map(row => [row.time, row]));
-          bands.forEach((band, index) => {
-            const result = results[index];
-            const failed = result.find(item => item.status === "rejected");
-            if (failed) {
-              band.error = `±${band.band}% could not load. ${band.rowsByMode.size ? "Showing previously loaded density. " : ""}Rebuild/restart local Bitview and refresh. (${failed.reason.message})`;
-              return;
-            }
-            band.rowsByMode = new Map(MODES.map((weight, offset) => [weight, buildRows(prices, result.slice(offset * 3, offset * 3 + 3).map(item => item.value), band.threshold)]));
-            band.error = band.rowsByMode.get(mode).some(row => row.signal !== null) ? "" : `No ±${band.band}% density data yet.`;
-          });
+          const failed = results.find(item => item.status === "rejected");
+          if (failed) {
+            density.error = `Supply density could not load. ${density.rowsByMode.size ? "Showing previously loaded density. " : ""}Rebuild/restart local Bitview and refresh. (${failed.reason.message})`;
+          } else {
+            density.rowsByMode = new Map(MODES.map((weight, offset) => [weight, buildRows(prices, results.slice(offset * 3, offset * 3 + 3).map(item => item.value))]));
+            density.error = density.rowsByMode.get(mode).some(row => row.signal !== null) ? "" : "No supply density data yet.";
+          }
           render();
         } catch (error) {
           status.dataset.error = "true";
@@ -252,20 +243,17 @@
         priceLine = chart.addSeries(LineSeries, priceOptions);
         priceCandles = chart.addSeries(CandlestickSeries, { ...priceOptions, visible: false, upColor: "#080a0b", downColor: COLORS.price, wickUpColor: COLORS.price, wickDownColor: COLORS.price, borderUpColor: COLORS.price, borderDownColor: COLORS.price });
         chart.panes()[0].setStretchFactor(3);
-        bands.forEach((band, index) => {
-          const paneIndex = index + 1;
-          band.histogram = chart.addSeries(HistogramSeries, {
-            base: 0.5, priceLineVisible: false, lastValueVisible: false,
-            priceFormat: { type: "custom", formatter: value => `${(value * 100).toFixed(0)}%`, minMove: 0.01 },
-            autoscaleInfoProvider: () => ({ priceRange: { minValue: 0.5, maxValue: 1 } }),
-          }, paneIndex);
-          chart.priceScale("right", paneIndex).applyOptions({ mode: PriceScaleMode.Normal, minimumWidth: 72, scaleMargins: { top: .22, bottom: .06 }, borderColor: "#252b2b" });
-          const pane = chart.panes()[paneIndex];
-          pane.setStretchFactor(1);
-          pane.setPreserveEmptyPane(true);
-          createTextWatermark(pane, { horzAlign: "left", vertAlign: "top", lines: [{ text: `±${band.band}% · Total ≥${band.threshold / 10_000}% · Winning share`, color: COLORS.muted, fontSize: 11, fontFamily: "monospace" }] });
-          band.histogram.createPriceLine({ price: 0.5, color: "#38413e", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
-        });
+        density.histogram = chart.addSeries(HistogramSeries, {
+          base: 0.5, priceLineVisible: false, lastValueVisible: false,
+          priceFormat: { type: "custom", formatter: value => `${(value * 100).toFixed(0)}%`, minMove: 0.01 },
+          autoscaleInfoProvider: () => ({ priceRange: { minValue: 0.5, maxValue: 1 } }),
+        }, 1);
+        chart.priceScale("right", 1).applyOptions({ mode: PriceScaleMode.Normal, minimumWidth: 72, scaleMargins: { top: .22, bottom: .06 }, borderColor: "#252b2b" });
+        const pane = chart.panes()[1];
+        pane.setStretchFactor(1);
+        pane.setPreserveEmptyPane(true);
+        createTextWatermark(pane, { horzAlign: "left", vertAlign: "top", lines: [{ text: "Supply Density · Total ≥25% · Winning share", color: COLORS.muted, fontSize: 11, fontFamily: "monospace" }] });
+        density.histogram.createPriceLine({ price: 0.5, color: "#38413e", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
         chart.timeScale().subscribeVisibleLogicalRangeChange(updatePriceVisibility);
         chart.subscribeCrosshairMove(({ time }) => updateReadout(time));
         buttons.forEach(button => button.addEventListener("click", () => {

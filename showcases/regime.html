@@ -97,7 +97,7 @@
       })),
     ];
     function metricName(mode, level) {
-      return level.percentile === 100 ? "cost_basis_max" : `bedrock_${mode}_cost_basis_per_${level.basis}_pct${level.percentile}`;
+      return level.percentile === 100 ? "cost_basis_max" : `${mode}_cost_basis_per_${level.basis}_pct${level.percentile}`;
     }
     function points(response) {
       if (!Number.isInteger(response?.start) || !Array.isArray(response.data)) throw new Error("Invalid series data");

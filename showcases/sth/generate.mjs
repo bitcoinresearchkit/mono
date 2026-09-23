@@ -66,7 +66,7 @@ export const sources = ['under_4m', 'sth', 'under_6m'].flatMap(cohort =>
 );
 const boundsSources = [4, 5, 6].map(months => ({
   name: `<${months}M`,
-  series: ['min', 'max'].map(side => `bedrock_under_${months}m_cost_basis_${side}_cents`),
+  series: ['min', 'max'].map(side => `utxos_urpd_under_${months}m_cost_basis_${side}_cents`),
 }));
 export const seriesNames = ['price_ohlc_cents', ...sources, ...boundsSources.flatMap(source => source.series)];
 

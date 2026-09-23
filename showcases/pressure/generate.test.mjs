@@ -33,8 +33,8 @@ test('missing, invalid, or inconsistent values cannot masquerade as an inactive 
   assert.throws(() => densityBalance(500_000, 400_000, 300_000), /inconsistent/);
 });
 
-test('snapshot preserves price on inactive days and uses only <6m cointime 5% inputs', () => {
-  assert.ok(seriesNames.slice(1).every(name => name.startsWith('bedrock_cointime_under_6m_supply_density') && !name.includes('10pct')));
+test('snapshot preserves price on inactive days and uses only <6m cointime supply density inputs', () => {
+  assert.ok(seriesNames.slice(1).every(name => name.startsWith('cointime_urpd_under_6m_supply_density_')));
   const snapshot = buildSnapshot(histories(), 0, 2, '2009-01-02T12:00:00Z');
   assert.deepEqual(snapshot.rows.map(row => row[4]), [30, null]);
   assert.deepEqual(snapshot.rows.map(row => row.slice(0, 4)), [[100, 120, 90, 110], [100, 120, 90, 110]]);

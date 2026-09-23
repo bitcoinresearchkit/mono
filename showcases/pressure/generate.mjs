@@ -8,9 +8,9 @@ const dateAt = day => new Date(DAY_ZERO + day * DAY_MS).toISOString().slice(0, 1
 export const THRESHOLD = 500_000;
 export const seriesNames = [
   'price_ohlc_cents',
-  'bedrock_cointime_under_6m_supply_density_ppm',
-  'bedrock_cointime_under_6m_supply_density_in_profit_ppm',
-  'bedrock_cointime_under_6m_supply_density_in_loss_ppm',
+  'cointime_urpd_under_6m_supply_density_total_ppm',
+  'cointime_urpd_under_6m_supply_density_in_profit_ppm',
+  'cointime_urpd_under_6m_supply_density_in_loss_ppm',
 ];
 
 export function densityBalance(total, profit, loss) {

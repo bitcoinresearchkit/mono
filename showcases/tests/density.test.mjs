@@ -4,7 +4,7 @@ import test from "node:test";
 
 const html = await readFile(new URL("../density.html", import.meta.url), "utf8");
 const source = html.slice(html.indexOf('      const API ='), html.indexOf('      async function fetchSeries'));
-const { signalFor, buildRows, histogramPoint, showCandles, densitySeriesNames, BANDS, DAY_ZERO, DAY_SECONDS } = new Function(`${source}\nreturn {signalFor, buildRows, histogramPoint, showCandles, densitySeriesNames, BANDS, DAY_ZERO, DAY_SECONDS};`)();
+const { signalFor, buildRows, histogramPoint, showCandles, densitySeriesNames, DAY_ZERO, DAY_SECONDS } = new Function(`${source}\nreturn {signalFor, buildRows, histogramPoint, showCandles, densitySeriesNames, DAY_ZERO, DAY_SECONDS};`)();
 
 test("requires at least 25% total and a strict winning side", () => {
   assert.equal(signalFor(249999, 150000, 99999), 0);
@@ -50,18 +50,6 @@ test("switches to candles on zoom-in and avoids flicker near the threshold", () 
   assert.equal(showCandles(null, true), false);
 });
 
-test("uses a 40% threshold for the 10% band and never carries a signal forward", () => {
-  const observations = [[400000, 300000, 100000], [399999, 300000, 99999], [400000, 100000, 300000], [250000, 187500, 62500]];
-  const prices = { start: 0, data: observations.map(() => [90, 110, 80, 100]) };
-  const densities = [0, 1, 2].map(side => ({ start: 0, data: observations.map(row => row[side]) }));
-  const rows = buildRows(prices, densities, BANDS[1].threshold);
-  assert.deepEqual(rows.map(row => row.signal), [1, 0, -1, 0]);
-  assert.deepEqual(rows.map(histogramPoint).map(row => row.value), [0.75, undefined, 0.75, undefined]);
-  assert.notEqual(histogramPoint(rows[0]).color, histogramPoint(rows[2]).color);
-  const five = buildRows(prices, densities, BANDS[0].threshold);
-  assert.deepEqual(five.map(row => row.signal), [1, 1, -1, 1]);
-});
-
 test("a zero losing side is a fully dominant 100% share", () => {
   const rows = buildRows(
     { start: 0, data: [[90, 110, 80, 100]] },
@@ -72,17 +60,13 @@ test("a zero losing side is a fully dominant 100% share", () => {
   assert.equal(histogramPoint(rows[0]).value, 1);
 });
 
-test("selects separate 5% and 10% series for both modes", () => {
+test("selects supply density series for both modes", () => {
   for (const mode of ["cointime", "coinflow"]) {
-    assert.deepEqual(densitySeriesNames(mode, "5"), [
-      `bedrock_${mode}_supply_density_ppm`,
-      `bedrock_${mode}_supply_density_in_profit_ppm`,
-      `bedrock_${mode}_supply_density_in_loss_ppm`,
+    assert.deepEqual(densitySeriesNames(mode), [
+      `${mode}_urpd_all_supply_density_total_ppm`,
+      `${mode}_urpd_all_supply_density_in_profit_ppm`,
+      `${mode}_urpd_all_supply_density_in_loss_ppm`,
     ]);
-    assert.deepEqual(densitySeriesNames(mode, "10"), [
-      `bedrock_${mode}_supply_density_10pct_ppm`,
-      `bedrock_${mode}_supply_density_10pct_in_profit_ppm`,
-      `bedrock_${mode}_supply_density_10pct_in_loss_ppm`,
-    ]);
+
   }
 });
