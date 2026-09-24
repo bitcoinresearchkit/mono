@@ -402,11 +402,10 @@ prior template's transactions or a full transaction body.
 /**
  * URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
  *
- * Validated at construction: non-empty, ASCII `[a-z0-9_]+`. Matches the
- * schemars enum value set; the type therefore proves "this is a valid
- * cohort name" wherever a `Cohort` is held.
+ * Names are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.
+ * Availability is determined by the producer's published snapshots.
  *
- * @typedef {("all"|"sth"|"lth"|"utxos_under_1h_old"|"utxos_1h_to_1d_old"|"utxos_1d_to_1w_old"|"utxos_1w_to_1m_old"|"utxos_1m_to_2m_old"|"utxos_2m_to_3m_old"|"utxos_3m_to_4m_old"|"utxos_4m_to_5m_old"|"utxos_5m_to_6m_old"|"utxos_6m_to_9m_old"|"utxos_9m_to_1y_old"|"utxos_1y_to_18m_old"|"utxos_18m_to_2y_old"|"utxos_2y_to_3y_old"|"utxos_3y_to_4y_old"|"utxos_4y_to_5y_old"|"utxos_5y_to_6y_old"|"utxos_6y_to_7y_old"|"utxos_7y_to_8y_old"|"utxos_8y_to_10y_old"|"utxos_10y_to_12y_old"|"utxos_12y_to_15y_old"|"utxos_over_15y_old")} Cohort
+ * @typedef {string} Cohort
  */
 /**
  * Up to the first 100 bytes of a coinbase transaction's first-input
@@ -2542,31 +2541,31 @@ function createSeriesPattern35(client, name) { return /** @type {SeriesPattern35
 
 /**
  * @typedef {Object} _0pct100pct10pct200pct20pct300pct30pct40pct500pct50pct60pct70pct80pct90pctOverPattern2
- * @property {AllLthSthPattern5} _0pctTo10pctInLoss
- * @property {AllLthSthPattern5} _0pctTo10pctInProfit
- * @property {AllLthSthPattern5} _100pctTo200pctInProfit
- * @property {AllLthSthPattern5} _10pctTo20pctInLoss
- * @property {AllLthSthPattern5} _10pctTo20pctInProfit
- * @property {AllLthSthPattern5} _200pctTo300pctInProfit
- * @property {AllLthSthPattern5} _20pctTo30pctInLoss
- * @property {AllLthSthPattern5} _20pctTo30pctInProfit
- * @property {AllLthSthPattern5} _300pctTo500pctInProfit
- * @property {AllLthSthPattern5} _30pctTo40pctInLoss
- * @property {AllLthSthPattern5} _30pctTo40pctInProfit
- * @property {AllLthSthPattern5} _40pctTo50pctInLoss
- * @property {AllLthSthPattern5} _40pctTo50pctInProfit
- * @property {AllLthSthPattern5} _500pctTo1000pctInProfit
- * @property {AllLthSthPattern5} _50pctTo60pctInLoss
- * @property {AllLthSthPattern5} _50pctTo60pctInProfit
- * @property {AllLthSthPattern5} _60pctTo70pctInLoss
- * @property {AllLthSthPattern5} _60pctTo70pctInProfit
- * @property {AllLthSthPattern5} _70pctTo80pctInLoss
- * @property {AllLthSthPattern5} _70pctTo80pctInProfit
- * @property {AllLthSthPattern5} _80pctTo90pctInLoss
- * @property {AllLthSthPattern5} _80pctTo90pctInProfit
- * @property {AllLthSthPattern5} _90pctTo100pctInLoss
- * @property {AllLthSthPattern5} _90pctTo100pctInProfit
- * @property {AllLthSthPattern5} over1000pctInProfit
+ * @property {AllLthSthPattern4} _0pctTo10pctInLoss
+ * @property {AllLthSthPattern4} _0pctTo10pctInProfit
+ * @property {AllLthSthPattern4} _100pctTo200pctInProfit
+ * @property {AllLthSthPattern4} _10pctTo20pctInLoss
+ * @property {AllLthSthPattern4} _10pctTo20pctInProfit
+ * @property {AllLthSthPattern4} _200pctTo300pctInProfit
+ * @property {AllLthSthPattern4} _20pctTo30pctInLoss
+ * @property {AllLthSthPattern4} _20pctTo30pctInProfit
+ * @property {AllLthSthPattern4} _300pctTo500pctInProfit
+ * @property {AllLthSthPattern4} _30pctTo40pctInLoss
+ * @property {AllLthSthPattern4} _30pctTo40pctInProfit
+ * @property {AllLthSthPattern4} _40pctTo50pctInLoss
+ * @property {AllLthSthPattern4} _40pctTo50pctInProfit
+ * @property {AllLthSthPattern4} _500pctTo1000pctInProfit
+ * @property {AllLthSthPattern4} _50pctTo60pctInLoss
+ * @property {AllLthSthPattern4} _50pctTo60pctInProfit
+ * @property {AllLthSthPattern4} _60pctTo70pctInLoss
+ * @property {AllLthSthPattern4} _60pctTo70pctInProfit
+ * @property {AllLthSthPattern4} _70pctTo80pctInLoss
+ * @property {AllLthSthPattern4} _70pctTo80pctInProfit
+ * @property {AllLthSthPattern4} _80pctTo90pctInLoss
+ * @property {AllLthSthPattern4} _80pctTo90pctInProfit
+ * @property {AllLthSthPattern4} _90pctTo100pctInLoss
+ * @property {AllLthSthPattern4} _90pctTo100pctInProfit
+ * @property {AllLthSthPattern4} over1000pctInProfit
  */
 
 /**
@@ -3481,84 +3480,6 @@ function createAllEmptyOpP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPatte
 }
 
 /**
- * @typedef {Object} _10y1m1w1y2y3m3y4y5y6m6y8yPattern3
- * @property {BtcCentsSatsUsdPattern} _10y
- * @property {BtcCentsSatsUsdPattern} _1m
- * @property {BtcCentsSatsUsdPattern} _1w
- * @property {BtcCentsSatsUsdPattern} _1y
- * @property {BtcCentsSatsUsdPattern} _2y
- * @property {BtcCentsSatsUsdPattern} _3m
- * @property {BtcCentsSatsUsdPattern} _3y
- * @property {BtcCentsSatsUsdPattern} _4y
- * @property {BtcCentsSatsUsdPattern} _5y
- * @property {BtcCentsSatsUsdPattern} _6m
- * @property {BtcCentsSatsUsdPattern} _6y
- * @property {BtcCentsSatsUsdPattern} _8y
- */
-
-/**
- * Create a _10y1m1w1y2y3m3y4y5y6m6y8yPattern3 pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @returns {_10y1m1w1y2y3m3y4y5y6m6y8yPattern3}
- */
-function create_10y1m1w1y2y3m3y4y5y6m6y8yPattern3(client, acc) {
-  return {
-    _10y: createBtcCentsSatsUsdPattern(client, _m(acc, '10y')),
-    _1m: createBtcCentsSatsUsdPattern(client, _m(acc, '1m')),
-    _1w: createBtcCentsSatsUsdPattern(client, _m(acc, '1w')),
-    _1y: createBtcCentsSatsUsdPattern(client, _m(acc, '1y')),
-    _2y: createBtcCentsSatsUsdPattern(client, _m(acc, '2y')),
-    _3m: createBtcCentsSatsUsdPattern(client, _m(acc, '3m')),
-    _3y: createBtcCentsSatsUsdPattern(client, _m(acc, '3y')),
-    _4y: createBtcCentsSatsUsdPattern(client, _m(acc, '4y')),
-    _5y: createBtcCentsSatsUsdPattern(client, _m(acc, '5y')),
-    _6m: createBtcCentsSatsUsdPattern(client, _m(acc, '6m')),
-    _6y: createBtcCentsSatsUsdPattern(client, _m(acc, '6y')),
-    _8y: createBtcCentsSatsUsdPattern(client, _m(acc, '8y')),
-  };
-}
-
-/**
- * @typedef {Object} _10y1m1w1y2y3m3y4y5y6m6y8yPattern2
- * @property {PercentPpmRatioPattern} _10y
- * @property {PercentPpmRatioPattern} _1m
- * @property {PercentPpmRatioPattern} _1w
- * @property {PercentPpmRatioPattern} _1y
- * @property {PercentPpmRatioPattern} _2y
- * @property {PercentPpmRatioPattern} _3m
- * @property {PercentPpmRatioPattern} _3y
- * @property {PercentPpmRatioPattern} _4y
- * @property {PercentPpmRatioPattern} _5y
- * @property {PercentPpmRatioPattern} _6m
- * @property {PercentPpmRatioPattern} _6y
- * @property {PercentPpmRatioPattern} _8y
- */
-
-/**
- * Create a _10y1m1w1y2y3m3y4y5y6m6y8yPattern2 pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @returns {_10y1m1w1y2y3m3y4y5y6m6y8yPattern2}
- */
-function create_10y1m1w1y2y3m3y4y5y6m6y8yPattern2(client, acc) {
-  return {
-    _10y: createPercentPpmRatioPattern(client, _m(acc, '10y')),
-    _1m: createPercentPpmRatioPattern(client, _m(acc, '1m')),
-    _1w: createPercentPpmRatioPattern(client, _m(acc, '1w')),
-    _1y: createPercentPpmRatioPattern(client, _m(acc, '1y')),
-    _2y: createPercentPpmRatioPattern(client, _m(acc, '2y')),
-    _3m: createPercentPpmRatioPattern(client, _m(acc, '3m')),
-    _3y: createPercentPpmRatioPattern(client, _m(acc, '3y')),
-    _4y: createPercentPpmRatioPattern(client, _m(acc, '4y')),
-    _5y: createPercentPpmRatioPattern(client, _m(acc, '5y')),
-    _6m: createPercentPpmRatioPattern(client, _m(acc, '6m')),
-    _6y: createPercentPpmRatioPattern(client, _m(acc, '6y')),
-    _8y: createPercentPpmRatioPattern(client, _m(acc, '8y')),
-  };
-}
-
-/**
  * @typedef {Object} AllEmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} all
  * @property {AverageBlockCumulativeSumPattern<StoredU64>} empty
@@ -4116,35 +4037,6 @@ function createPct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern(client, acc)
 }
 
 /**
- * @typedef {Object} _10y2y3y4y5y6y8yPattern
- * @property {PercentPpmRatioPattern} _10y
- * @property {PercentPpmRatioPattern} _2y
- * @property {PercentPpmRatioPattern} _3y
- * @property {PercentPpmRatioPattern} _4y
- * @property {PercentPpmRatioPattern} _5y
- * @property {PercentPpmRatioPattern} _6y
- * @property {PercentPpmRatioPattern} _8y
- */
-
-/**
- * Create a _10y2y3y4y5y6y8yPattern pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @returns {_10y2y3y4y5y6y8yPattern}
- */
-function create_10y2y3y4y5y6y8yPattern(client, acc) {
-  return {
-    _10y: createPercentPpmRatioPattern(client, _m(acc, '10y')),
-    _2y: createPercentPpmRatioPattern(client, _m(acc, '2y')),
-    _3y: createPercentPpmRatioPattern(client, _m(acc, '3y')),
-    _4y: createPercentPpmRatioPattern(client, _m(acc, '4y')),
-    _5y: createPercentPpmRatioPattern(client, _m(acc, '5y')),
-    _6y: createPercentPpmRatioPattern(client, _m(acc, '6y')),
-    _8y: createPercentPpmRatioPattern(client, _m(acc, '8y')),
-  };
-}
-
-/**
  * @typedef {Object} _1m1w1y24hPercentPpmRatioPattern
  * @property {PercentPpmRatioPattern2} _1m
  * @property {PercentPpmRatioPattern2} _1w
@@ -4175,13 +4067,13 @@ function create_1m1w1y24hPercentPpmRatioPattern(client, acc) {
 
 /**
  * @typedef {Object} _1m1y2y3m4y6m8yPattern
- * @property {SupplyPattern2} _1m
- * @property {SupplyPattern2} _1y
- * @property {SupplyPattern2} _2y
- * @property {SupplyPattern2} _3m
- * @property {SupplyPattern2} _4y
- * @property {SupplyPattern2} _6m
- * @property {SupplyPattern2} _8y
+ * @property {SupplyPattern} _1m
+ * @property {SupplyPattern} _1y
+ * @property {SupplyPattern} _2y
+ * @property {SupplyPattern} _3m
+ * @property {SupplyPattern} _4y
+ * @property {SupplyPattern} _6m
+ * @property {SupplyPattern} _8y
  */
 
 /**
@@ -4192,13 +4084,13 @@ function create_1m1w1y24hPercentPpmRatioPattern(client, acc) {
  */
 function create_1m1y2y3m4y6m8yPattern(client, acc) {
   return {
-    _1m: createSupplyPattern2(client, _m(acc, '1m_supply_in_loss_share')),
-    _1y: createSupplyPattern2(client, _m(acc, '1y_supply_in_loss_share')),
-    _2y: createSupplyPattern2(client, _m(acc, '2y_supply_in_loss_share')),
-    _3m: createSupplyPattern2(client, _m(acc, '3m_supply_in_loss_share')),
-    _4y: createSupplyPattern2(client, _m(acc, '4y_supply_in_loss_share')),
-    _6m: createSupplyPattern2(client, _m(acc, '6m_supply_in_loss_share')),
-    _8y: createSupplyPattern2(client, _m(acc, '8y_supply_in_loss_share')),
+    _1m: createSupplyPattern(client, _m(acc, '1m_supply_in_loss_share')),
+    _1y: createSupplyPattern(client, _m(acc, '1y_supply_in_loss_share')),
+    _2y: createSupplyPattern(client, _m(acc, '2y_supply_in_loss_share')),
+    _3m: createSupplyPattern(client, _m(acc, '3m_supply_in_loss_share')),
+    _4y: createSupplyPattern(client, _m(acc, '4y_supply_in_loss_share')),
+    _6m: createSupplyPattern(client, _m(acc, '6m_supply_in_loss_share')),
+    _8y: createSupplyPattern(client, _m(acc, '8y_supply_in_loss_share')),
   };
 }
 
@@ -4226,8 +4118,8 @@ function create_1m1y2y3m4y6m8yPattern(client, acc) {
 
 /**
  * @typedef {Object} InMaxMinPerSupplyPattern
- * @property {PerPattern2} inLoss
- * @property {PerPattern2} inProfit
+ * @property {PerPattern} inLoss
+ * @property {PerPattern} inProfit
  * @property {CentsSatsUsdPattern} max
  * @property {CentsSatsUsdPattern} min
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -4243,8 +4135,8 @@ function create_1m1y2y3m4y6m8yPattern(client, acc) {
  */
 function createInMaxMinPerSupplyPattern(client, acc) {
   return {
-    inLoss: createPerPattern2(client, _m(acc, 'cost_basis_in_loss_per')),
-    inProfit: createPerPattern2(client, _m(acc, 'cost_basis_in_profit_per')),
+    inLoss: createPerPattern(client, _m(acc, 'cost_basis_in_loss_per')),
+    inProfit: createPerPattern(client, _m(acc, 'cost_basis_in_profit_per')),
     max: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_max')),
     min: createCentsSatsUsdPattern(client, _m(acc, 'cost_basis_min')),
     perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'cost_basis_per_coin')),
@@ -4606,11 +4498,11 @@ function createPct95Pct98Pct99Pattern(client, acc) {
  */
 function createPct95Pct98Pct99Pattern2(client, acc) {
   return {
-    pct95: createSeriesPattern1(client, _m(acc, 'pct95')),
-    pct98: createSeriesPattern1(client, _m(acc, 'pct98')),
-    pct99: createSeriesPattern1(client, _m(acc, 'pct99')),
-    pct995: createSeriesPattern1(client, _m(acc, 'pct99_5')),
-    pct999: createSeriesPattern1(client, _m(acc, 'pct99_9')),
+    pct95: createSeriesPattern1(client, _m(acc, 'pct95_ratio')),
+    pct98: createSeriesPattern1(client, _m(acc, 'pct98_ratio')),
+    pct99: createSeriesPattern1(client, _m(acc, 'pct99_ratio')),
+    pct995: createSeriesPattern1(client, _m(acc, 'pct99_5_ratio')),
+    pct999: createSeriesPattern1(client, _m(acc, 'pct99_9_ratio')),
   };
 }
 
@@ -4882,6 +4774,29 @@ function create_1m1w1y24hPattern8(client, acc) {
 }
 
 /**
+ * @typedef {Object} AllUnderPattern
+ * @property {InTotalPattern} all
+ * @property {InTotalPattern} under4m
+ * @property {InTotalPattern} under5m
+ * @property {InTotalPattern} under6m
+ */
+
+/**
+ * Create a AllUnderPattern pattern node
+ * @param {BitviewClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {AllUnderPattern}
+ */
+function createAllUnderPattern(client, acc) {
+  return {
+    all: createInTotalPattern(client, _m(acc, 'all_supply_density')),
+    under4m: createInTotalPattern(client, _m(acc, 'under_4m_supply_density')),
+    under5m: createInTotalPattern(client, _m(acc, 'under_5m_supply_density')),
+    under6m: createInTotalPattern(client, _m(acc, 'under_6m_supply_density')),
+  };
+}
+
+/**
  * @typedef {Object} AverageBlockCumulativeSumPattern2
  * @property {_1m1w1y24hPattern3} average
  * @property {BtcCentsSatsUsdPattern3} block
@@ -5128,19 +5043,19 @@ function createAllLthSthPattern8(client, acc) {
 }
 
 /**
- * @typedef {Object} AllLthSthPattern6
+ * @typedef {Object} AllLthSthPattern5
  * @property {BtcCentsDeltaSatsUsdPattern} all
  * @property {BtcCentsDeltaSatsUsdPattern} lth
  * @property {BtcCentsDeltaSatsUsdPattern} sth
  */
 
 /**
- * Create a AllLthSthPattern6 pattern node
+ * Create a AllLthSthPattern5 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {AllLthSthPattern6}
+ * @returns {AllLthSthPattern5}
  */
-function createAllLthSthPattern6(client, acc) {
+function createAllLthSthPattern5(client, acc) {
   return {
     all: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'supply')),
     lth: createBtcCentsDeltaSatsUsdPattern(client, _m(acc, 'lth_supply')),
@@ -5149,32 +5064,53 @@ function createAllLthSthPattern6(client, acc) {
 }
 
 /**
- * @typedef {Object} AllLthSthPattern
+ * @typedef {Object} AllLthSthPattern7
  * @property {CentsPpmRatioSatsUsdPattern} all
  * @property {CentsPpmRatioSatsUsdPattern} lth
  * @property {CentsPpmRatioSatsUsdPattern} sth
  */
 
 /**
- * Create a AllLthSthPattern pattern node
+ * Create a AllLthSthPattern7 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {AllLthSthPattern}
+ * @returns {AllLthSthPattern7}
  */
-function createAllLthSthPattern(client, acc) {
+function createAllLthSthPattern7(client, acc) {
   return {
-    all: createCentsPpmRatioSatsUsdPattern(client, acc),
-    lth: createCentsPpmRatioSatsUsdPattern(client, _p('lth', acc)),
-    sth: createCentsPpmRatioSatsUsdPattern(client, _p('sth', acc)),
+    all: createCentsPpmRatioSatsUsdPattern(client, _m(acc, 'all_capitalized_price')),
+    lth: createCentsPpmRatioSatsUsdPattern(client, _m(acc, 'lth_capitalized_price')),
+    sth: createCentsPpmRatioSatsUsdPattern(client, _m(acc, 'sth_capitalized_price')),
   };
 }
 
 /**
- * @typedef {Object} AllLthSthPattern5
+ * @typedef {Object} AllLthSthPattern4
  * @property {CentsUsdPattern} all
  * @property {CentsUsdPattern} lth
  * @property {CentsUsdPattern} sth
  */
+
+/**
+ * @typedef {Object} AllLthSthPattern14
+ * @property {PerPattern2} all
+ * @property {PerPattern2} lth
+ * @property {PerPattern2} sth
+ */
+
+/**
+ * Create a AllLthSthPattern14 pattern node
+ * @param {BitviewClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {AllLthSthPattern14}
+ */
+function createAllLthSthPattern14(client, acc) {
+  return {
+    all: createPerPattern2(client, acc),
+    lth: createPerPattern2(client, _p('lth', acc)),
+    sth: createPerPattern2(client, _p('sth', acc)),
+  };
+}
 
 /**
  * @typedef {Object} AllLthSthPattern9
@@ -5198,19 +5134,19 @@ function createAllLthSthPattern9(client, acc) {
 }
 
 /**
- * @typedef {Object} AllLthSthPattern7
+ * @typedef {Object} AllLthSthPattern6
  * @property {PercentPpmRatioPattern2} all
  * @property {PercentPpmRatioPattern2} lth
  * @property {PercentPpmRatioPattern2} sth
  */
 
 /**
- * Create a AllLthSthPattern7 pattern node
+ * Create a AllLthSthPattern6 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {AllLthSthPattern7}
+ * @returns {AllLthSthPattern6}
  */
-function createAllLthSthPattern7(client, acc) {
+function createAllLthSthPattern6(client, acc) {
   return {
     all: createPercentPpmRatioPattern2(client, acc),
     lth: createPercentPpmRatioPattern2(client, _p('lth', acc)),
@@ -5219,19 +5155,19 @@ function createAllLthSthPattern7(client, acc) {
 }
 
 /**
- * @typedef {Object} AllLthSthPattern3
+ * @typedef {Object} AllLthSthPattern2
  * @property {_1m1w1y24hPattern<StoredF32>} all
  * @property {_1m1w1y24hPattern<StoredF32>} lth
  * @property {_1m1w1y24hPattern<StoredF32>} sth
  */
 
 /**
- * Create a AllLthSthPattern3 pattern node
+ * Create a AllLthSthPattern2 pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {AllLthSthPattern3}
+ * @returns {AllLthSthPattern2}
  */
-function createAllLthSthPattern3(client, acc) {
+function createAllLthSthPattern2(client, acc) {
   return {
     all: create_1m1w1y24hPattern(client, acc),
     lth: create_1m1w1y24hPattern(client, _p('lth', acc)),
@@ -5299,6 +5235,27 @@ function createBlocksDominanceRewardsPattern(client, acc) {
     blocksMined: createBlockCumulativeSumPattern2(client, _m(acc, 'blocks_mined')),
     dominance: create_1m1w1y24hPercentPpmRatioPattern(client, _m(acc, 'dominance')),
     rewards: createAverageBlockCumulativeSumPattern2(client, _m(acc, 'rewards')),
+  };
+}
+
+/**
+ * @typedef {Object} CapitalizedCostSupplyPattern
+ * @property {AllLthSthPattern7} capitalizedPrice
+ * @property {AllLthSthPattern14} costBasis
+ * @property {AllUnderPattern} supplyDensity
+ */
+
+/**
+ * Create a CapitalizedCostSupplyPattern pattern node
+ * @param {BitviewClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {CapitalizedCostSupplyPattern}
+ */
+function createCapitalizedCostSupplyPattern(client, acc) {
+  return {
+    capitalizedPrice: createAllLthSthPattern7(client, _m(acc, 'urpd')),
+    costBasis: createAllLthSthPattern14(client, _m(acc, 'cost_basis_per')),
+    supplyDensity: createAllUnderPattern(client, _m(acc, 'urpd')),
   };
 }
 
@@ -5394,23 +5351,23 @@ function createCumulativeRollingSumPattern(client, acc) {
 }
 
 /**
- * @typedef {Object} FloorLevelLossPattern
+ * @typedef {Object} FloorLevelSupplyPattern
  * @property {Pct95Pct98Pct99Pattern} floor
  * @property {Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern} level
- * @property {Pct95Pct98Pct99Pattern2} lossThreshold
+ * @property {Pct95Pct98Pct99Pattern2} supplyInLossThreshold
  */
 
 /**
- * Create a FloorLevelLossPattern pattern node
+ * Create a FloorLevelSupplyPattern pattern node
  * @param {BitviewClient} client
  * @param {string} acc - Accumulated series name
- * @returns {FloorLevelLossPattern}
+ * @returns {FloorLevelSupplyPattern}
  */
-function createFloorLevelLossPattern(client, acc) {
+function createFloorLevelSupplyPattern(client, acc) {
   return {
     floor: createPct95Pct98Pct99Pattern(client, _m(acc, 'floor')),
     level: createPct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern(client, _m(acc, 'level')),
-    lossThreshold: createPct95Pct98Pct99Pattern2(client, _m(acc, 'loss_threshold')),
+    supplyInLossThreshold: createPct95Pct98Pct99Pattern2(client, _m(acc, 'supply_in_loss_threshold')),
   };
 }
 
@@ -5431,7 +5388,7 @@ function createInTotalPattern(client, acc) {
   return {
     inLoss: createPercentPpmRatioPattern2(client, _m(acc, 'in_loss')),
     inProfit: createPercentPpmRatioPattern2(client, _m(acc, 'in_profit')),
-    total: createPercentPpmRatioPattern2(client, acc),
+    total: createPercentPpmRatioPattern2(client, _m(acc, 'total')),
   };
 }
 
@@ -5565,8 +5522,8 @@ function createRsiStochPattern(client, acc, disc) {
 
 /**
  * @typedef {Object} ToPattern2
- * @property {AllLthSthPattern7} toMcap
- * @property {AllLthSthPattern7} toOwnGrossPnl
+ * @property {AllLthSthPattern6} toMcap
+ * @property {AllLthSthPattern6} toOwnGrossPnl
  * @property {LongShortPattern12} toOwnMcap
  */
 
@@ -5578,8 +5535,8 @@ function createRsiStochPattern(client, acc, disc) {
  */
 function createToPattern2(client, acc) {
   return {
-    toMcap: createAllLthSthPattern7(client, _m(acc, 'mcap')),
-    toOwnGrossPnl: createAllLthSthPattern7(client, _m(acc, 'own_gross_pnl')),
+    toMcap: createAllLthSthPattern6(client, _m(acc, 'mcap')),
+    toOwnGrossPnl: createAllLthSthPattern6(client, _m(acc, 'own_gross_pnl')),
     toOwnMcap: createLongShortPattern12(client, _m(acc, 'own_mcap')),
   };
 }
@@ -5686,7 +5643,7 @@ function createAllSthPattern2(client, acc) {
 /**
  * @typedef {Object} AwakeDormantPattern2
  * @property {CapCapitalizedPriceSupplyPattern} awake
- * @property {SupplyPattern3} dormant
+ * @property {SupplyPattern2} dormant
  */
 
 /**
@@ -5897,38 +5854,6 @@ function createCentsUsdPattern5(client, acc) {
     usd: createSeriesPattern1(client, acc),
   };
 }
-
-/**
- * @typedef {Object} CoinflowCointimePattern3
- * @property {InTotalPattern} coinflow
- * @property {InTotalPattern} cointime
- */
-
-/**
- * Create a CoinflowCointimePattern3 pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @param {string} disc - Discriminator suffix
- * @returns {CoinflowCointimePattern3}
- */
-function createCoinflowCointimePattern3(client, acc, disc) {
-  return {
-    coinflow: createInTotalPattern(client, _m(_m(acc, 'coinflow_supply_density'), disc)),
-    cointime: createInTotalPattern(client, _m(_m(acc, 'cointime_supply_density'), disc)),
-  };
-}
-
-/**
- * @typedef {Object} CoinflowCointimePattern2
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- */
-
-/**
- * @typedef {Object} CoinflowCointimePattern
- * @property {SupplyPattern} coinflow
- * @property {SupplyPattern} cointime
- */
 
 /**
  * @typedef {Object} DiscountPremiumPattern
@@ -6203,9 +6128,28 @@ function createMaxMinPattern(client, acc) {
 }
 
 /**
- * @typedef {Object} PerPattern2
+ * @typedef {Object} PerPattern
  * @property {CentsSatsUsdPattern} perCoin
  * @property {CentsSatsUsdPattern} perDollar
+ */
+
+/**
+ * Create a PerPattern pattern node
+ * @param {BitviewClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {PerPattern}
+ */
+function createPerPattern(client, acc) {
+  return {
+    perCoin: createCentsSatsUsdPattern(client, _m(acc, 'coin')),
+    perDollar: createCentsSatsUsdPattern(client, _m(acc, 'dollar')),
+  };
+}
+
+/**
+ * @typedef {Object} PerPattern2
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
+ * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perDollar
  */
 
 /**
@@ -6216,16 +6160,10 @@ function createMaxMinPattern(client, acc) {
  */
 function createPerPattern2(client, acc) {
   return {
-    perCoin: createCentsSatsUsdPattern(client, _m(acc, 'coin')),
-    perDollar: createCentsSatsUsdPattern(client, _m(acc, 'dollar')),
+    perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'coin')),
+    perDollar: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, _m(acc, 'dollar')),
   };
 }
-
-/**
- * @typedef {Object} PerPattern
- * @property {CoinflowCointimePattern2} perCoin
- * @property {CoinflowCointimePattern2} perDollar
- */
 
 /**
  * @typedef {Object} PpmRatioPattern2
@@ -6270,25 +6208,6 @@ function createPpmRatioPattern(client, acc) {
  * @property {SeriesPattern1<StoredF32>} sd
  * @property {SeriesPattern1<StoredF32>} sma
  */
-
-/**
- * @typedef {Object} SupplyPattern
- * @property {InTotalPattern} supplyDensity
- * @property {InTotalPattern} supplyDensity10pct
- */
-
-/**
- * Create a SupplyPattern pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @returns {SupplyPattern}
- */
-function createSupplyPattern(client, acc) {
-  return {
-    supplyDensity: createInTotalPattern(client, acc),
-    supplyDensity10pct: createInTotalPattern(client, _m(acc, '10pct')),
-  };
-}
 
 /**
  * @template T
@@ -6372,7 +6291,7 @@ function createInPattern2(client, acc) {
 
 /**
  * @typedef {Object} SharePattern
- * @property {AllLthSthPattern7} share
+ * @property {AllLthSthPattern6} share
  */
 
 /**
@@ -6383,7 +6302,7 @@ function createInPattern2(client, acc) {
  */
 function createSharePattern(client, acc) {
   return {
-    share: createAllLthSthPattern7(client, acc),
+    share: createAllLthSthPattern6(client, acc),
   };
 }
 
@@ -6405,25 +6324,8 @@ function createSharePattern2(client, acc) {
 }
 
 /**
- * @typedef {Object} SupplyPattern3
- * @property {BtcCentsSatsUsdPattern} supply
- */
-
-/**
- * Create a SupplyPattern3 pattern node
- * @param {BitviewClient} client
- * @param {string} acc - Accumulated series name
- * @returns {SupplyPattern3}
- */
-function createSupplyPattern3(client, acc) {
-  return {
-    supply: createBtcCentsSatsUsdPattern(client, acc),
-  };
-}
-
-/**
  * @typedef {Object} SupplyPattern2
- * @property {InPattern2} supply
+ * @property {BtcCentsSatsUsdPattern} supply
  */
 
 /**
@@ -6433,6 +6335,23 @@ function createSupplyPattern3(client, acc) {
  * @returns {SupplyPattern2}
  */
 function createSupplyPattern2(client, acc) {
+  return {
+    supply: createBtcCentsSatsUsdPattern(client, acc),
+  };
+}
+
+/**
+ * @typedef {Object} SupplyPattern
+ * @property {InPattern2} supply
+ */
+
+/**
+ * Create a SupplyPattern pattern node
+ * @param {BitviewClient} client
+ * @param {string} acc - Accumulated series name
+ * @returns {SupplyPattern}
+ */
+function createSupplyPattern(client, acc) {
   return {
     supply: createInPattern2(client, acc),
   };
@@ -6475,13 +6394,11 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Constants} constants
  * @property {SeriesTree_Mappings} mappings
  * @property {SeriesTree_Indicators} indicators
- * @property {SeriesTree_Investing} investing
  * @property {SeriesTree_Market} market
  * @property {SeriesTree_Pools} pools
  * @property {SeriesTree_Price} price
  * @property {SeriesTree_Supply} supply
  * @property {SeriesTree_Cohorts} cohorts
- * @property {SeriesTree_Frameworks} frameworks
  */
 
 /**
@@ -7522,8 +7439,9 @@ function createTermPattern(client, acc) {
  * @typedef {Object} SeriesTree_Cointime
  * @property {SeriesTree_Cointime_Activity} activity
  * @property {SeriesTree_Cointime_AgeRange} ageRange
+ * @property {CapitalizedCostSupplyPattern} urpd
  * @property {SeriesTree_Cointime_Awake} awake
- * @property {SupplyPattern3} dormant
+ * @property {SupplyPattern2} dormant
  * @property {SeriesTree_Cointime_Sth} sth
  * @property {SeriesTree_Cointime_Lth} lth
  * @property {CentsPpmRatioSatsUsdPattern} under4mAwakePrice
@@ -7558,6 +7476,7 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Cointime_AgeRange_CoindaysStored} coindaysStored
  * @property {SeriesTree_Cointime_AgeRange_Activity} activity
  * @property {SeriesTree_Cointime_AgeRange_Supply} supply
+ * @property {SeriesTree_Cointime_AgeRange_CoindaysCreated} coindaysCreated
  */
 
 /**
@@ -7763,6 +7682,33 @@ function createTermPattern(client, acc) {
  */
 
 /**
+ * @typedef {Object} SeriesTree_Cointime_AgeRange_CoindaysCreated
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
+ * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
+ */
+
+/**
  * @typedef {Object} SeriesTree_Cointime_Awake
  * @property {SeriesTree_Cointime_Awake_Supply} supply
  * @property {CentsUsdPattern} cap
@@ -7782,7 +7728,7 @@ function createTermPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Cointime_Sth
  * @property {SeriesTree_Cointime_Sth_Awake} awake
- * @property {SupplyPattern3} dormant
+ * @property {SupplyPattern2} dormant
  */
 
 /**
@@ -7805,7 +7751,7 @@ function createTermPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Cointime_Lth
  * @property {SeriesTree_Cointime_Lth_Awake} awake
- * @property {SupplyPattern3} dormant
+ * @property {SupplyPattern2} dormant
  */
 
 /**
@@ -7894,6 +7840,7 @@ function createTermPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Coinflow
  * @property {SeriesTree_Coinflow_AgeRange} ageRange
+ * @property {CapitalizedCostSupplyPattern} urpd
  * @property {SeriesTree_Coinflow_Supply} supply
  * @property {_1m1y2y3m4y6m8yPattern} horizon
  * @property {CentsUsdPattern} cap
@@ -8125,122 +8072,28 @@ function createTermPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Bedrock
- * @property {SeriesTree_Bedrock_CostBasis} costBasis
- * @property {SeriesTree_Bedrock_CapitalizedPrice} capitalizedPrice
- * @property {FloorLevelLossPattern} raw
- * @property {FloorLevelLossPattern} cointime
- * @property {FloorLevelLossPattern} coinflow
- * @property {FloorLevelLossPattern} coinflow8y
- * @property {FloorLevelLossPattern} coinflow4y
- * @property {FloorLevelLossPattern} coinflow2y
- * @property {FloorLevelLossPattern} coinflow1y
- * @property {FloorLevelLossPattern} coinflow6m
- * @property {FloorLevelLossPattern} coinflow3m
- * @property {FloorLevelLossPattern} coinflow1m
+ * @property {FloorLevelSupplyPattern} raw
+ * @property {FloorLevelSupplyPattern} cointime
+ * @property {SeriesTree_Bedrock_Coinflow} coinflow
  */
 
 /**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis
- * @property {SeriesTree_Bedrock_CostBasis_AgeDensity} ageDensity
- * @property {SeriesTree_Bedrock_CostBasis_AgeBounds} ageBounds
- * @property {SeriesTree_Bedrock_CostBasis_Sth} sth
- * @property {SeriesTree_Bedrock_CostBasis_Lth} lth
- * @property {SeriesTree_Bedrock_CostBasis_PerCoin} perCoin
- * @property {SeriesTree_Bedrock_CostBasis_PerDollar} perDollar
- * @property {SeriesTree_Bedrock_CostBasis_SupplyDensity} supplyDensity
- * @property {CoinflowCointimePattern3} supplyDensity10pct
+ * @typedef {Object} SeriesTree_Bedrock_Coinflow
+ * @property {Pct95Pct98Pct99Pattern2} supplyInLossThreshold
+ * @property {Pct95Pct98Pct99Pattern} floor
+ * @property {Pct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern} level
+ * @property {SeriesTree_Bedrock_Coinflow_Horizon} horizon
  */
 
 /**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_AgeDensity
- * @property {SeriesTree_Bedrock_CostBasis_AgeDensity_Under4m} under4m
- * @property {SeriesTree_Bedrock_CostBasis_AgeDensity_Under5m} under5m
- * @property {SeriesTree_Bedrock_CostBasis_AgeDensity_Under6m} under6m
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_AgeDensity_Under4m
- * @property {SupplyPattern} cointime
- * @property {SupplyPattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_AgeDensity_Under5m
- * @property {SupplyPattern} cointime
- * @property {SupplyPattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_AgeDensity_Under6m
- * @property {SupplyPattern} cointime
- * @property {SupplyPattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_AgeBounds
- * @property {MaxMinPattern} under4m
- * @property {MaxMinPattern} under5m
- * @property {MaxMinPattern} under6m
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth
- * @property {SeriesTree_Bedrock_CostBasis_Sth_PerCoin} perCoin
- * @property {SeriesTree_Bedrock_CostBasis_Sth_PerDollar} perDollar
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth_PerCoin
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Sth_PerDollar
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth
- * @property {SeriesTree_Bedrock_CostBasis_Lth_PerCoin} perCoin
- * @property {SeriesTree_Bedrock_CostBasis_Lth_PerDollar} perDollar
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth_PerCoin
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_Lth_PerDollar
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_PerCoin
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_PerDollar
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} cointime
- * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CostBasis_SupplyDensity
- * @property {InTotalPattern} cointime
- * @property {InTotalPattern} coinflow
- */
-
-/**
- * @typedef {Object} SeriesTree_Bedrock_CapitalizedPrice
- * @property {AllLthSthPattern} awake
- * @property {AllLthSthPattern} coinflow
+ * @typedef {Object} SeriesTree_Bedrock_Coinflow_Horizon
+ * @property {FloorLevelSupplyPattern} _8y
+ * @property {FloorLevelSupplyPattern} _4y
+ * @property {FloorLevelSupplyPattern} _2y
+ * @property {FloorLevelSupplyPattern} _1y
+ * @property {FloorLevelSupplyPattern} _6m
+ * @property {FloorLevelSupplyPattern} _3m
+ * @property {FloorLevelSupplyPattern} _1m
  */
 
 /**
@@ -8625,94 +8478,6 @@ function createTermPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Investing
- * @property {SeriesPattern18<Sats>} satsPerDay
- * @property {SeriesTree_Investing_Period} period
- * @property {SeriesTree_Investing_Class} class
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Period
- * @property {_10y1m1w1y2y3m3y4y5y6m6y8yPattern3} dcaStack
- * @property {SeriesTree_Investing_Period_DcaCostBasis} dcaCostBasis
- * @property {_10y1m1w1y2y3m3y4y5y6m6y8yPattern2} dcaReturn
- * @property {_10y2y3y4y5y6y8yPattern} dcaCagr
- * @property {_10y1m1w1y2y3m3y4y5y6m6y8yPattern3} lumpSumStack
- * @property {_10y1m1w1y2y3m3y4y5y6m6y8yPattern2} lumpSumReturn
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Period_DcaCostBasis
- * @property {CentsSatsUsdPattern} _1w
- * @property {CentsSatsUsdPattern} _1m
- * @property {CentsSatsUsdPattern} _3m
- * @property {CentsSatsUsdPattern} _6m
- * @property {CentsSatsUsdPattern} _1y
- * @property {CentsSatsUsdPattern} _2y
- * @property {CentsSatsUsdPattern} _3y
- * @property {CentsSatsUsdPattern} _4y
- * @property {CentsSatsUsdPattern} _5y
- * @property {CentsSatsUsdPattern} _6y
- * @property {CentsSatsUsdPattern} _8y
- * @property {CentsSatsUsdPattern} _10y
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Class
- * @property {SeriesTree_Investing_Class_DcaStack} dcaStack
- * @property {SeriesTree_Investing_Class_DcaCostBasis} dcaCostBasis
- * @property {SeriesTree_Investing_Class_DcaReturn} dcaReturn
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Class_DcaStack
- * @property {BtcCentsSatsUsdPattern} from2015
- * @property {BtcCentsSatsUsdPattern} from2016
- * @property {BtcCentsSatsUsdPattern} from2017
- * @property {BtcCentsSatsUsdPattern} from2018
- * @property {BtcCentsSatsUsdPattern} from2019
- * @property {BtcCentsSatsUsdPattern} from2020
- * @property {BtcCentsSatsUsdPattern} from2021
- * @property {BtcCentsSatsUsdPattern} from2022
- * @property {BtcCentsSatsUsdPattern} from2023
- * @property {BtcCentsSatsUsdPattern} from2024
- * @property {BtcCentsSatsUsdPattern} from2025
- * @property {BtcCentsSatsUsdPattern} from2026
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Class_DcaCostBasis
- * @property {CentsSatsUsdPattern} from2015
- * @property {CentsSatsUsdPattern} from2016
- * @property {CentsSatsUsdPattern} from2017
- * @property {CentsSatsUsdPattern} from2018
- * @property {CentsSatsUsdPattern} from2019
- * @property {CentsSatsUsdPattern} from2020
- * @property {CentsSatsUsdPattern} from2021
- * @property {CentsSatsUsdPattern} from2022
- * @property {CentsSatsUsdPattern} from2023
- * @property {CentsSatsUsdPattern} from2024
- * @property {CentsSatsUsdPattern} from2025
- * @property {CentsSatsUsdPattern} from2026
- */
-
-/**
- * @typedef {Object} SeriesTree_Investing_Class_DcaReturn
- * @property {PercentPpmRatioPattern} from2015
- * @property {PercentPpmRatioPattern} from2016
- * @property {PercentPpmRatioPattern} from2017
- * @property {PercentPpmRatioPattern} from2018
- * @property {PercentPpmRatioPattern} from2019
- * @property {PercentPpmRatioPattern} from2020
- * @property {PercentPpmRatioPattern} from2021
- * @property {PercentPpmRatioPattern} from2022
- * @property {PercentPpmRatioPattern} from2023
- * @property {PercentPpmRatioPattern} from2024
- * @property {PercentPpmRatioPattern} from2025
- * @property {PercentPpmRatioPattern} from2026
- */
-
-/**
  * @typedef {Object} SeriesTree_Market
  * @property {SeriesTree_Market_Ath} ath
  * @property {SeriesTree_Market_Lookback} lookback
@@ -8753,7 +8518,7 @@ function createTermPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Market_Returns
  * @property {SeriesTree_Market_Returns_Periods} periods
- * @property {_10y2y3y4y5y6y8yPattern} cagr
+ * @property {SeriesTree_Market_Returns_Cagr} cagr
  * @property {SeriesTree_Market_Returns_Sd24h} sd24h
  */
 
@@ -8765,6 +8530,17 @@ function createTermPattern(client, acc) {
  * @property {PercentPpmRatioPattern} _3m
  * @property {PercentPpmRatioPattern} _6m
  * @property {PercentPpmRatioPattern} _1y
+ * @property {PercentPpmRatioPattern} _2y
+ * @property {PercentPpmRatioPattern} _3y
+ * @property {PercentPpmRatioPattern} _4y
+ * @property {PercentPpmRatioPattern} _5y
+ * @property {PercentPpmRatioPattern} _6y
+ * @property {PercentPpmRatioPattern} _8y
+ * @property {PercentPpmRatioPattern} _10y
+ */
+
+/**
+ * @typedef {Object} SeriesTree_Market_Returns_Cagr
  * @property {PercentPpmRatioPattern} _2y
  * @property {PercentPpmRatioPattern} _3y
  * @property {PercentPpmRatioPattern} _4y
@@ -9169,6 +8945,7 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Cohorts_CostBasis} costBasis
  * @property {SeriesTree_Cohorts_Relative} relative
  * @property {SeriesTree_Cohorts_Profitability} profitability
+ * @property {SeriesTree_Cohorts_Urpd} urpd
  */
 
 /**
@@ -9928,7 +9705,7 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Activity_TransferVolume} transferVolume
  * @property {SeriesTree_Cohorts_Activity_CoindaysDestroyed} coindaysDestroyed
  * @property {SeriesTree_Cohorts_Activity_CoinyearsDestroyed} coinyearsDestroyed
- * @property {AllLthSthPattern3} dormancy
+ * @property {AllLthSthPattern2} dormancy
  */
 
 /**
@@ -10178,14 +9955,14 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Realized_Sopr} sopr
  * @property {SeriesTree_Cohorts_Realized_AdjustedSopr} adjustedSopr
  * @property {AllLthSthPattern8} grossPnl
- * @property {AllLthSthPattern} capitalizedPrice
+ * @property {SeriesTree_Cohorts_Realized_CapitalizedPrice} capitalizedPrice
  * @property {SeriesTree_Cohorts_Realized_CapRaw} capRaw
  * @property {SeriesTree_Cohorts_Realized_CapitalizedCapRaw} capitalizedCapRaw
  * @property {AllLthSthPattern8} peakRegret
  * @property {AllLthSthPattern9} netPnlChange1mToRcap
  * @property {SeriesTree_Cohorts_Realized_SellSideRiskRatio} sellSideRiskRatio
  * @property {SeriesTree_Cohorts_Realized_SoprRatioExtended} soprRatioExtended
- * @property {AllLthSthPattern3} profitToLossRatio
+ * @property {AllLthSthPattern2} profitToLossRatio
  * @property {SeriesTree_Cohorts_Realized_Mvrv} mvrv
  */
 
@@ -10200,7 +9977,7 @@ function createTermPattern(client, acc) {
  * @property {SeriesTree_Cohorts_Realized_Cap_Term} term
  * @property {SeriesTree_Cohorts_Realized_Cap_Type} type
  * @property {_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4} addrBalance
- * @property {AllLthSthPattern7} toOwnMcap
+ * @property {AllLthSthPattern6} toOwnMcap
  */
 
 /**
@@ -10952,6 +10729,13 @@ function createTermPattern(client, acc) {
  */
 
 /**
+ * @typedef {Object} SeriesTree_Cohorts_Realized_CapitalizedPrice
+ * @property {CentsPpmRatioSatsUsdPattern} all
+ * @property {CentsPpmRatioSatsUsdPattern} sth
+ * @property {CentsPpmRatioSatsUsdPattern} lth
+ */
+
+/**
  * @typedef {Object} SeriesTree_Cohorts_Realized_CapRaw
  * @property {LongShortPattern5<CentsSats>} term
  * @property {SeriesTree_Cohorts_Realized_CapRaw_Age} age
@@ -11611,8 +11395,8 @@ function createTermPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_CostBasis_All
- * @property {PerPattern2} inProfit
- * @property {PerPattern2} inLoss
+ * @property {PerPattern} inProfit
+ * @property {PerPattern} inLoss
  * @property {CentsSatsUsdPattern} min
  * @property {CentsSatsUsdPattern} max
  * @property {Pct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern} perCoin
@@ -11663,31 +11447,31 @@ function createTermPattern(client, acc) {
 
 /**
  * @typedef {Object} SeriesTree_Cohorts_Profitability_Supply
- * @property {AllLthSthPattern6} over1000pctInProfit
- * @property {AllLthSthPattern6} _500pctTo1000pctInProfit
- * @property {AllLthSthPattern6} _300pctTo500pctInProfit
- * @property {AllLthSthPattern6} _200pctTo300pctInProfit
- * @property {AllLthSthPattern6} _100pctTo200pctInProfit
- * @property {AllLthSthPattern6} _90pctTo100pctInProfit
- * @property {AllLthSthPattern6} _80pctTo90pctInProfit
- * @property {AllLthSthPattern6} _70pctTo80pctInProfit
- * @property {AllLthSthPattern6} _60pctTo70pctInProfit
- * @property {AllLthSthPattern6} _50pctTo60pctInProfit
- * @property {AllLthSthPattern6} _40pctTo50pctInProfit
- * @property {AllLthSthPattern6} _30pctTo40pctInProfit
- * @property {AllLthSthPattern6} _20pctTo30pctInProfit
- * @property {AllLthSthPattern6} _10pctTo20pctInProfit
- * @property {AllLthSthPattern6} _0pctTo10pctInProfit
- * @property {AllLthSthPattern6} _0pctTo10pctInLoss
- * @property {AllLthSthPattern6} _10pctTo20pctInLoss
- * @property {AllLthSthPattern6} _20pctTo30pctInLoss
- * @property {AllLthSthPattern6} _30pctTo40pctInLoss
- * @property {AllLthSthPattern6} _40pctTo50pctInLoss
- * @property {AllLthSthPattern6} _50pctTo60pctInLoss
- * @property {AllLthSthPattern6} _60pctTo70pctInLoss
- * @property {AllLthSthPattern6} _70pctTo80pctInLoss
- * @property {AllLthSthPattern6} _80pctTo90pctInLoss
- * @property {AllLthSthPattern6} _90pctTo100pctInLoss
+ * @property {AllLthSthPattern5} over1000pctInProfit
+ * @property {AllLthSthPattern5} _500pctTo1000pctInProfit
+ * @property {AllLthSthPattern5} _300pctTo500pctInProfit
+ * @property {AllLthSthPattern5} _200pctTo300pctInProfit
+ * @property {AllLthSthPattern5} _100pctTo200pctInProfit
+ * @property {AllLthSthPattern5} _90pctTo100pctInProfit
+ * @property {AllLthSthPattern5} _80pctTo90pctInProfit
+ * @property {AllLthSthPattern5} _70pctTo80pctInProfit
+ * @property {AllLthSthPattern5} _60pctTo70pctInProfit
+ * @property {AllLthSthPattern5} _50pctTo60pctInProfit
+ * @property {AllLthSthPattern5} _40pctTo50pctInProfit
+ * @property {AllLthSthPattern5} _30pctTo40pctInProfit
+ * @property {AllLthSthPattern5} _20pctTo30pctInProfit
+ * @property {AllLthSthPattern5} _10pctTo20pctInProfit
+ * @property {AllLthSthPattern5} _0pctTo10pctInProfit
+ * @property {AllLthSthPattern5} _0pctTo10pctInLoss
+ * @property {AllLthSthPattern5} _10pctTo20pctInLoss
+ * @property {AllLthSthPattern5} _20pctTo30pctInLoss
+ * @property {AllLthSthPattern5} _30pctTo40pctInLoss
+ * @property {AllLthSthPattern5} _40pctTo50pctInLoss
+ * @property {AllLthSthPattern5} _50pctTo60pctInLoss
+ * @property {AllLthSthPattern5} _60pctTo70pctInLoss
+ * @property {AllLthSthPattern5} _70pctTo80pctInLoss
+ * @property {AllLthSthPattern5} _80pctTo90pctInLoss
+ * @property {AllLthSthPattern5} _90pctTo100pctInLoss
  */
 
 /**
@@ -12128,45 +11912,15 @@ function createTermPattern(client, acc) {
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks
- * @property {SeriesTree_Frameworks_Cointime} cointime
+ * @typedef {Object} SeriesTree_Cohorts_Urpd
+ * @property {SeriesTree_Cohorts_Urpd_AgeBounds} ageBounds
  */
 
 /**
- * @typedef {Object} SeriesTree_Frameworks_Cointime
- * @property {SeriesTree_Frameworks_Cointime_AgeRange} ageRange
- */
-
-/**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange
- * @property {SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated} coindaysCreated
- */
-
-/**
- * @typedef {Object} SeriesTree_Frameworks_Cointime_AgeRange_CoindaysCreated
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} under1h
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1hTo1d
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1dTo1w
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1wTo1m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1mTo2m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2mTo3m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3mTo4m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4mTo5m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5mTo6m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6mTo9m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _9mTo1y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _1yTo18m
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _18mTo2y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _2yTo3y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _3yTo4y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _4yTo5y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _5yTo6y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _6yTo7y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _7yTo8y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _8yTo10y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _10yTo12y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} _12yTo15y
- * @property {AverageBlockCumulativeSumPattern<StoredF64>} over15y
+ * @typedef {Object} SeriesTree_Cohorts_Urpd_AgeBounds
+ * @property {MaxMinPattern} under4m
+ * @property {MaxMinPattern} under5m
+ * @property {MaxMinPattern} under6m
  */
 
 /**
@@ -13921,7 +13675,33 @@ class BitviewClient extends BitviewClientBase {
               over15y: createBtcCentsSatsUsdPattern(client, 'utxos_over_15y_old_dormant_supply'),
             })); },
           })); },
+          get coindaysCreated() { return _lazy(this, 'coindaysCreated', () => ({
+            under1h: createAverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_coindays_created'),
+            _1hTo1d: createAverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_coindays_created'),
+            _1dTo1w: createAverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_coindays_created'),
+            _1wTo1m: createAverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_coindays_created'),
+            _1mTo2m: createAverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_coindays_created'),
+            _2mTo3m: createAverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_coindays_created'),
+            _3mTo4m: createAverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_coindays_created'),
+            _4mTo5m: createAverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_coindays_created'),
+            _5mTo6m: createAverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_coindays_created'),
+            _6mTo9m: createAverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_coindays_created'),
+            _9mTo1y: createAverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_coindays_created'),
+            _1yTo18m: createAverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_coindays_created'),
+            _18mTo2y: createAverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_coindays_created'),
+            _2yTo3y: createAverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_coindays_created'),
+            _3yTo4y: createAverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_coindays_created'),
+            _4yTo5y: createAverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_coindays_created'),
+            _5yTo6y: createAverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_coindays_created'),
+            _6yTo7y: createAverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_coindays_created'),
+            _7yTo8y: createAverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_coindays_created'),
+            _8yTo10y: createAverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_coindays_created'),
+            _10yTo12y: createAverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_coindays_created'),
+            _12yTo15y: createAverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_coindays_created'),
+            over15y: createAverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_coindays_created'),
+          })); },
         })); },
+        urpd: createCapitalizedCostSupplyPattern(client, 'cointime'),
         get awake() { return _lazy(this, 'awake', () => ({
           get supply() { return _lazy(this, 'supply', () => ({
             btc: createSeriesPattern1(client, 'awake_supply'),
@@ -13934,7 +13714,7 @@ class BitviewClient extends BitviewClientBase {
           price: createCentsPpmRatioSatsUsdPattern(client, 'awake_price'),
           capitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'awake_capitalized_price'),
         })); },
-        dormant: createSupplyPattern3(client, 'dormant_supply'),
+        dormant: createSupplyPattern2(client, 'dormant_supply'),
         get sth() { return _lazy(this, 'sth', () => ({
           get awake() { return _lazy(this, 'awake', () => ({
             get supply() { return _lazy(this, 'supply', () => ({
@@ -13948,7 +13728,7 @@ class BitviewClient extends BitviewClientBase {
             price: createCentsPpmRatioSatsUsdPattern(client, 'sth_awake_price'),
             capitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'sth_awake_capitalized_price'),
           })); },
-          dormant: createSupplyPattern3(client, 'sth_dormant_supply'),
+          dormant: createSupplyPattern2(client, 'sth_dormant_supply'),
         })); },
         get lth() { return _lazy(this, 'lth', () => ({
           get awake() { return _lazy(this, 'awake', () => ({
@@ -13963,7 +13743,7 @@ class BitviewClient extends BitviewClientBase {
             price: createCentsPpmRatioSatsUsdPattern(client, 'lth_awake_price'),
             capitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'lth_awake_capitalized_price'),
           })); },
-          dormant: createSupplyPattern3(client, 'lth_dormant_supply'),
+          dormant: createSupplyPattern2(client, 'lth_dormant_supply'),
         })); },
         under4mAwakePrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_price'),
         under4mAwakeCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'under_4m_awake_capitalized_price'),
@@ -14149,6 +13929,7 @@ class BitviewClient extends BitviewClientBase {
             })); },
           })); },
         })); },
+        urpd: createCapitalizedCostSupplyPattern(client, 'coinflow'),
         get supply() { return _lazy(this, 'supply', () => ({
           get mobile() { return _lazy(this, 'mobile', () => ({
             btc: createSeriesPattern1(client, 'mobile_supply'),
@@ -14205,74 +13986,22 @@ class BitviewClient extends BitviewClientBase {
         over6mCapitalizedPrice: createCentsPpmRatioSatsUsdPattern(client, 'over_6m_coinflow_capitalized_price'),
       })); },
       get bedrock() { return _lazy(this, 'bedrock', () => ({
-        get costBasis() { return _lazy(this, 'costBasis', () => ({
-          get ageDensity() { return _lazy(this, 'ageDensity', () => ({
-            get under4m() { return _lazy(this, 'under4m', () => ({
-              cointime: createSupplyPattern(client, 'bedrock_cointime_under_4m_supply_density'),
-              coinflow: createSupplyPattern(client, 'bedrock_coinflow_under_4m_supply_density'),
-            })); },
-            get under5m() { return _lazy(this, 'under5m', () => ({
-              cointime: createSupplyPattern(client, 'bedrock_cointime_under_5m_supply_density'),
-              coinflow: createSupplyPattern(client, 'bedrock_coinflow_under_5m_supply_density'),
-            })); },
-            get under6m() { return _lazy(this, 'under6m', () => ({
-              cointime: createSupplyPattern(client, 'bedrock_cointime_under_6m_supply_density'),
-              coinflow: createSupplyPattern(client, 'bedrock_coinflow_under_6m_supply_density'),
-            })); },
+        raw: createFloorLevelSupplyPattern(client, 'bedrock_raw'),
+        cointime: createFloorLevelSupplyPattern(client, 'bedrock_cointime'),
+        get coinflow() { return _lazy(this, 'coinflow', () => ({
+          supplyInLossThreshold: createPct95Pct98Pct99Pattern2(client, 'bedrock_coinflow_supply_in_loss_threshold'),
+          floor: createPct95Pct98Pct99Pattern(client, 'bedrock_coinflow_floor'),
+          level: createPct10Pct20Pct30Pct40Pct50Pct60Pct70Pct80Pct90Pattern(client, 'bedrock_coinflow_level'),
+          get horizon() { return _lazy(this, 'horizon', () => ({
+            _8y: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_8y'),
+            _4y: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_4y'),
+            _2y: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_2y'),
+            _1y: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_1y'),
+            _6m: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_6m'),
+            _3m: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_3m'),
+            _1m: createFloorLevelSupplyPattern(client, 'bedrock_coinflow_horizon_1m'),
           })); },
-          get ageBounds() { return _lazy(this, 'ageBounds', () => ({
-            under4m: createMaxMinPattern(client, 'bedrock_under_4m_cost_basis'),
-            under5m: createMaxMinPattern(client, 'bedrock_under_5m_cost_basis'),
-            under6m: createMaxMinPattern(client, 'bedrock_under_6m_cost_basis'),
-          })); },
-          get sth() { return _lazy(this, 'sth', () => ({
-            get perCoin() { return _lazy(this, 'perCoin', () => ({
-              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_coin'),
-              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_coin'),
-            })); },
-            get perDollar() { return _lazy(this, 'perDollar', () => ({
-              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_sth_cost_basis_per_dollar'),
-              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_sth_cost_basis_per_dollar'),
-            })); },
-          })); },
-          get lth() { return _lazy(this, 'lth', () => ({
-            get perCoin() { return _lazy(this, 'perCoin', () => ({
-              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_coin'),
-              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_coin'),
-            })); },
-            get perDollar() { return _lazy(this, 'perDollar', () => ({
-              cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_lth_cost_basis_per_dollar'),
-              coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_lth_cost_basis_per_dollar'),
-            })); },
-          })); },
-          get perCoin() { return _lazy(this, 'perCoin', () => ({
-            cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_coin'),
-            coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_coin'),
-          })); },
-          get perDollar() { return _lazy(this, 'perDollar', () => ({
-            cointime: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_cointime_cost_basis_per_dollar'),
-            coinflow: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'bedrock_coinflow_cost_basis_per_dollar'),
-          })); },
-          get supplyDensity() { return _lazy(this, 'supplyDensity', () => ({
-            cointime: createInTotalPattern(client, 'bedrock_cointime_supply_density'),
-            coinflow: createInTotalPattern(client, 'bedrock_coinflow_supply_density'),
-          })); },
-          supplyDensity10pct: createCoinflowCointimePattern3(client, 'bedrock', '10pct'),
         })); },
-        get capitalizedPrice() { return _lazy(this, 'capitalizedPrice', () => ({
-          awake: createAllLthSthPattern(client, 'awake_urpd_capitalized_price'),
-          coinflow: createAllLthSthPattern(client, 'coinflow_urpd_capitalized_price'),
-        })); },
-        raw: createFloorLevelLossPattern(client, 'bedrock_raw'),
-        cointime: createFloorLevelLossPattern(client, 'bedrock_cointime'),
-        coinflow: createFloorLevelLossPattern(client, 'bedrock_coinflow'),
-        coinflow8y: createFloorLevelLossPattern(client, 'bedrock_coinflow_8y'),
-        coinflow4y: createFloorLevelLossPattern(client, 'bedrock_coinflow_4y'),
-        coinflow2y: createFloorLevelLossPattern(client, 'bedrock_coinflow_2y'),
-        coinflow1y: createFloorLevelLossPattern(client, 'bedrock_coinflow_1y'),
-        coinflow6m: createFloorLevelLossPattern(client, 'bedrock_coinflow_6m'),
-        coinflow3m: createFloorLevelLossPattern(client, 'bedrock_coinflow_3m'),
-        coinflow1m: createFloorLevelLossPattern(client, 'bedrock_coinflow_1m'),
       })); },
       get capitalSentiment() { return _lazy(this, 'capitalSentiment', () => ({
         isLong: createSeriesPattern1(client, 'capital_sentiment_is_long'),
@@ -14525,74 +14254,6 @@ class BitviewClient extends BitviewClientBase {
         stockToFlow: createSeriesPattern1(client, 'stock_to_flow'),
         sellerExhaustion: createSeriesPattern1(client, 'seller_exhaustion'),
       })); },
-      get investing() { return _lazy(this, 'investing', () => ({
-        satsPerDay: createSeriesPattern18(client, 'dca_sats_per_day'),
-        get period() { return _lazy(this, 'period', () => ({
-          dcaStack: create_10y1m1w1y2y3m3y4y5y6m6y8yPattern3(client, 'dca_stack'),
-          get dcaCostBasis() { return _lazy(this, 'dcaCostBasis', () => ({
-            _1w: createCentsSatsUsdPattern(client, 'dca_cost_basis_1w'),
-            _1m: createCentsSatsUsdPattern(client, 'dca_cost_basis_1m'),
-            _3m: createCentsSatsUsdPattern(client, 'dca_cost_basis_3m'),
-            _6m: createCentsSatsUsdPattern(client, 'dca_cost_basis_6m'),
-            _1y: createCentsSatsUsdPattern(client, 'dca_cost_basis_1y'),
-            _2y: createCentsSatsUsdPattern(client, 'dca_cost_basis_2y'),
-            _3y: createCentsSatsUsdPattern(client, 'dca_cost_basis_3y'),
-            _4y: createCentsSatsUsdPattern(client, 'dca_cost_basis_4y'),
-            _5y: createCentsSatsUsdPattern(client, 'dca_cost_basis_5y'),
-            _6y: createCentsSatsUsdPattern(client, 'dca_cost_basis_6y'),
-            _8y: createCentsSatsUsdPattern(client, 'dca_cost_basis_8y'),
-            _10y: createCentsSatsUsdPattern(client, 'dca_cost_basis_10y'),
-          })); },
-          dcaReturn: create_10y1m1w1y2y3m3y4y5y6m6y8yPattern2(client, 'dca_return'),
-          dcaCagr: create_10y2y3y4y5y6y8yPattern(client, 'dca_cagr'),
-          lumpSumStack: create_10y1m1w1y2y3m3y4y5y6m6y8yPattern3(client, 'lump_sum_stack'),
-          lumpSumReturn: create_10y1m1w1y2y3m3y4y5y6m6y8yPattern2(client, 'lump_sum_return'),
-        })); },
-        get class() { return _lazy(this, 'class', () => ({
-          get dcaStack() { return _lazy(this, 'dcaStack', () => ({
-            from2015: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2015'),
-            from2016: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2016'),
-            from2017: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2017'),
-            from2018: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2018'),
-            from2019: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2019'),
-            from2020: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2020'),
-            from2021: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2021'),
-            from2022: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2022'),
-            from2023: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2023'),
-            from2024: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2024'),
-            from2025: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2025'),
-            from2026: createBtcCentsSatsUsdPattern(client, 'dca_stack_from_2026'),
-          })); },
-          get dcaCostBasis() { return _lazy(this, 'dcaCostBasis', () => ({
-            from2015: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2015'),
-            from2016: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2016'),
-            from2017: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2017'),
-            from2018: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2018'),
-            from2019: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2019'),
-            from2020: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2020'),
-            from2021: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2021'),
-            from2022: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2022'),
-            from2023: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2023'),
-            from2024: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2024'),
-            from2025: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2025'),
-            from2026: createCentsSatsUsdPattern(client, 'dca_cost_basis_from_2026'),
-          })); },
-          get dcaReturn() { return _lazy(this, 'dcaReturn', () => ({
-            from2015: createPercentPpmRatioPattern(client, 'dca_return_from_2015'),
-            from2016: createPercentPpmRatioPattern(client, 'dca_return_from_2016'),
-            from2017: createPercentPpmRatioPattern(client, 'dca_return_from_2017'),
-            from2018: createPercentPpmRatioPattern(client, 'dca_return_from_2018'),
-            from2019: createPercentPpmRatioPattern(client, 'dca_return_from_2019'),
-            from2020: createPercentPpmRatioPattern(client, 'dca_return_from_2020'),
-            from2021: createPercentPpmRatioPattern(client, 'dca_return_from_2021'),
-            from2022: createPercentPpmRatioPattern(client, 'dca_return_from_2022'),
-            from2023: createPercentPpmRatioPattern(client, 'dca_return_from_2023'),
-            from2024: createPercentPpmRatioPattern(client, 'dca_return_from_2024'),
-            from2025: createPercentPpmRatioPattern(client, 'dca_return_from_2025'),
-            from2026: createPercentPpmRatioPattern(client, 'dca_return_from_2026'),
-          })); },
-        })); },
-      })); },
       get market() { return _lazy(this, 'market', () => ({
         get ath() { return _lazy(this, 'ath', () => ({
           high: createCentsSatsUsdPattern(client, 'price_ath'),
@@ -14633,7 +14294,15 @@ class BitviewClient extends BitviewClientBase {
             _8y: createPercentPpmRatioPattern(client, 'price_return_8y'),
             _10y: createPercentPpmRatioPattern(client, 'price_return_10y'),
           })); },
-          cagr: create_10y2y3y4y5y6y8yPattern(client, 'price_cagr'),
+          get cagr() { return _lazy(this, 'cagr', () => ({
+            _2y: createPercentPpmRatioPattern(client, 'price_cagr_2y'),
+            _3y: createPercentPpmRatioPattern(client, 'price_cagr_3y'),
+            _4y: createPercentPpmRatioPattern(client, 'price_cagr_4y'),
+            _5y: createPercentPpmRatioPattern(client, 'price_cagr_5y'),
+            _6y: createPercentPpmRatioPattern(client, 'price_cagr_6y'),
+            _8y: createPercentPpmRatioPattern(client, 'price_cagr_8y'),
+            _10y: createPercentPpmRatioPattern(client, 'price_cagr_10y'),
+          })); },
           get sd24h() { return _lazy(this, 'sd24h', () => ({
             get _24h() { return _lazy(this, '_24h', () => ({
               sma: createSeriesPattern1(client, 'price_return_24h_sma_24h'),
@@ -15764,7 +15433,7 @@ class BitviewClient extends BitviewClientBase {
             sth: createSeriesPattern1(client, 'sth_coinyears_destroyed'),
             lth: createSeriesPattern1(client, 'lth_coinyears_destroyed'),
           })); },
-          dormancy: createAllLthSthPattern3(client, 'dormancy'),
+          dormancy: createAllLthSthPattern2(client, 'dormancy'),
         })); },
         get realized() { return _lazy(this, 'realized', () => ({
           get cap() { return _lazy(this, 'cap', () => ({
@@ -15844,7 +15513,7 @@ class BitviewClient extends BitviewClientBase {
               empty: createCentsDeltaUsdPattern(client, 'empty_outputs_realized_cap'),
             })); },
             addrBalance: create_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern4(client, 'addrs'),
-            toOwnMcap: createAllLthSthPattern7(client, 'realized_cap_to_own_mcap'),
+            toOwnMcap: createAllLthSthPattern6(client, 'realized_cap_to_own_mcap'),
           })); },
           get price() { return _lazy(this, 'price', () => ({
             all: createCentsPpmRatioSatsUsdPattern(client, 'realized_price'),
@@ -16381,7 +16050,11 @@ class BitviewClient extends BitviewClientBase {
             valueDestroyed: createAllSthPattern2(client, 'adj_value_destroyed'),
           })); },
           grossPnl: createAllLthSthPattern8(client, 'realized_gross_pnl'),
-          capitalizedPrice: createAllLthSthPattern(client, 'capitalized_price'),
+          get capitalizedPrice() { return _lazy(this, 'capitalizedPrice', () => ({
+            all: createCentsPpmRatioSatsUsdPattern(client, 'capitalized_price'),
+            sth: createCentsPpmRatioSatsUsdPattern(client, 'sth_capitalized_price'),
+            lth: createCentsPpmRatioSatsUsdPattern(client, 'lth_capitalized_price'),
+          })); },
           get capRaw() { return _lazy(this, 'capRaw', () => ({
             term: createLongShortPattern5(client, 'cap_raw'),
             get age() { return _lazy(this, 'age', () => ({
@@ -16467,7 +16140,7 @@ class BitviewClient extends BitviewClientBase {
             sth: create_1m1w1yPattern(client, 'sth_sopr'),
             lth: create_1m1w1yPattern(client, 'lth_sopr'),
           })); },
-          profitToLossRatio: createAllLthSthPattern3(client, 'realized_profit_to_loss_ratio'),
+          profitToLossRatio: createAllLthSthPattern2(client, 'realized_profit_to_loss_ratio'),
           get mvrv() { return _lazy(this, 'mvrv', () => ({
             all: createSeriesPattern1(client, 'mvrv'),
             get age() { return _lazy(this, 'age', () => ({
@@ -16910,8 +16583,8 @@ class BitviewClient extends BitviewClientBase {
         })); },
         get costBasis() { return _lazy(this, 'costBasis', () => ({
           get all() { return _lazy(this, 'all', () => ({
-            inProfit: createPerPattern2(client, 'cost_basis_in_profit_per'),
-            inLoss: createPerPattern2(client, 'cost_basis_in_loss_per'),
+            inProfit: createPerPattern(client, 'cost_basis_in_profit_per'),
+            inLoss: createPerPattern(client, 'cost_basis_in_loss_per'),
             min: createCentsSatsUsdPattern(client, 'cost_basis_min'),
             max: createCentsSatsUsdPattern(client, 'cost_basis_max'),
             perCoin: createPct05Pct10Pct15Pct20Pct25Pct30Pct35Pct40Pct45Pct50Pct55Pct60Pct65Pct70Pct75Pct80Pct85Pct90Pct95Pattern(client, 'cost_basis_per_coin'),
@@ -16942,31 +16615,31 @@ class BitviewClient extends BitviewClientBase {
         })); },
         get profitability() { return _lazy(this, 'profitability', () => ({
           get supply() { return _lazy(this, 'supply', () => ({
-            over1000pctInProfit: createAllLthSthPattern6(client, 'utxos_over_1000pct_in_profit'),
-            _500pctTo1000pctInProfit: createAllLthSthPattern6(client, 'utxos_500pct_to_1000pct_in_profit'),
-            _300pctTo500pctInProfit: createAllLthSthPattern6(client, 'utxos_300pct_to_500pct_in_profit'),
-            _200pctTo300pctInProfit: createAllLthSthPattern6(client, 'utxos_200pct_to_300pct_in_profit'),
-            _100pctTo200pctInProfit: createAllLthSthPattern6(client, 'utxos_100pct_to_200pct_in_profit'),
-            _90pctTo100pctInProfit: createAllLthSthPattern6(client, 'utxos_90pct_to_100pct_in_profit'),
-            _80pctTo90pctInProfit: createAllLthSthPattern6(client, 'utxos_80pct_to_90pct_in_profit'),
-            _70pctTo80pctInProfit: createAllLthSthPattern6(client, 'utxos_70pct_to_80pct_in_profit'),
-            _60pctTo70pctInProfit: createAllLthSthPattern6(client, 'utxos_60pct_to_70pct_in_profit'),
-            _50pctTo60pctInProfit: createAllLthSthPattern6(client, 'utxos_50pct_to_60pct_in_profit'),
-            _40pctTo50pctInProfit: createAllLthSthPattern6(client, 'utxos_40pct_to_50pct_in_profit'),
-            _30pctTo40pctInProfit: createAllLthSthPattern6(client, 'utxos_30pct_to_40pct_in_profit'),
-            _20pctTo30pctInProfit: createAllLthSthPattern6(client, 'utxos_20pct_to_30pct_in_profit'),
-            _10pctTo20pctInProfit: createAllLthSthPattern6(client, 'utxos_10pct_to_20pct_in_profit'),
-            _0pctTo10pctInProfit: createAllLthSthPattern6(client, 'utxos_0pct_to_10pct_in_profit'),
-            _0pctTo10pctInLoss: createAllLthSthPattern6(client, 'utxos_0pct_to_10pct_in_loss'),
-            _10pctTo20pctInLoss: createAllLthSthPattern6(client, 'utxos_10pct_to_20pct_in_loss'),
-            _20pctTo30pctInLoss: createAllLthSthPattern6(client, 'utxos_20pct_to_30pct_in_loss'),
-            _30pctTo40pctInLoss: createAllLthSthPattern6(client, 'utxos_30pct_to_40pct_in_loss'),
-            _40pctTo50pctInLoss: createAllLthSthPattern6(client, 'utxos_40pct_to_50pct_in_loss'),
-            _50pctTo60pctInLoss: createAllLthSthPattern6(client, 'utxos_50pct_to_60pct_in_loss'),
-            _60pctTo70pctInLoss: createAllLthSthPattern6(client, 'utxos_60pct_to_70pct_in_loss'),
-            _70pctTo80pctInLoss: createAllLthSthPattern6(client, 'utxos_70pct_to_80pct_in_loss'),
-            _80pctTo90pctInLoss: createAllLthSthPattern6(client, 'utxos_80pct_to_90pct_in_loss'),
-            _90pctTo100pctInLoss: createAllLthSthPattern6(client, 'utxos_90pct_to_100pct_in_loss'),
+            over1000pctInProfit: createAllLthSthPattern5(client, 'utxos_over_1000pct_in_profit'),
+            _500pctTo1000pctInProfit: createAllLthSthPattern5(client, 'utxos_500pct_to_1000pct_in_profit'),
+            _300pctTo500pctInProfit: createAllLthSthPattern5(client, 'utxos_300pct_to_500pct_in_profit'),
+            _200pctTo300pctInProfit: createAllLthSthPattern5(client, 'utxos_200pct_to_300pct_in_profit'),
+            _100pctTo200pctInProfit: createAllLthSthPattern5(client, 'utxos_100pct_to_200pct_in_profit'),
+            _90pctTo100pctInProfit: createAllLthSthPattern5(client, 'utxos_90pct_to_100pct_in_profit'),
+            _80pctTo90pctInProfit: createAllLthSthPattern5(client, 'utxos_80pct_to_90pct_in_profit'),
+            _70pctTo80pctInProfit: createAllLthSthPattern5(client, 'utxos_70pct_to_80pct_in_profit'),
+            _60pctTo70pctInProfit: createAllLthSthPattern5(client, 'utxos_60pct_to_70pct_in_profit'),
+            _50pctTo60pctInProfit: createAllLthSthPattern5(client, 'utxos_50pct_to_60pct_in_profit'),
+            _40pctTo50pctInProfit: createAllLthSthPattern5(client, 'utxos_40pct_to_50pct_in_profit'),
+            _30pctTo40pctInProfit: createAllLthSthPattern5(client, 'utxos_30pct_to_40pct_in_profit'),
+            _20pctTo30pctInProfit: createAllLthSthPattern5(client, 'utxos_20pct_to_30pct_in_profit'),
+            _10pctTo20pctInProfit: createAllLthSthPattern5(client, 'utxos_10pct_to_20pct_in_profit'),
+            _0pctTo10pctInProfit: createAllLthSthPattern5(client, 'utxos_0pct_to_10pct_in_profit'),
+            _0pctTo10pctInLoss: createAllLthSthPattern5(client, 'utxos_0pct_to_10pct_in_loss'),
+            _10pctTo20pctInLoss: createAllLthSthPattern5(client, 'utxos_10pct_to_20pct_in_loss'),
+            _20pctTo30pctInLoss: createAllLthSthPattern5(client, 'utxos_20pct_to_30pct_in_loss'),
+            _30pctTo40pctInLoss: createAllLthSthPattern5(client, 'utxos_30pct_to_40pct_in_loss'),
+            _40pctTo50pctInLoss: createAllLthSthPattern5(client, 'utxos_40pct_to_50pct_in_loss'),
+            _50pctTo60pctInLoss: createAllLthSthPattern5(client, 'utxos_50pct_to_60pct_in_loss'),
+            _60pctTo70pctInLoss: createAllLthSthPattern5(client, 'utxos_60pct_to_70pct_in_loss'),
+            _70pctTo80pctInLoss: createAllLthSthPattern5(client, 'utxos_70pct_to_80pct_in_loss'),
+            _80pctTo90pctInLoss: createAllLthSthPattern5(client, 'utxos_80pct_to_90pct_in_loss'),
+            _90pctTo100pctInLoss: createAllLthSthPattern5(client, 'utxos_90pct_to_100pct_in_loss'),
           })); },
           get realizedCap() { return _lazy(this, 'realizedCap', () => ({
             get over1000pctInProfit() { return _lazy(this, 'over1000pctInProfit', () => ({
@@ -17250,35 +16923,11 @@ class BitviewClient extends BitviewClientBase {
             _90pctTo100pctInLoss: createPpmRatioPattern(client, 'utxos_90pct_to_100pct_in_loss_nupl'),
           })); },
         })); },
-      })); },
-      get frameworks() { return _lazy(this, 'frameworks', () => ({
-        get cointime() { return _lazy(this, 'cointime', () => ({
-          get ageRange() { return _lazy(this, 'ageRange', () => ({
-            get coindaysCreated() { return _lazy(this, 'coindaysCreated', () => ({
-              under1h: createAverageBlockCumulativeSumPattern(client, 'utxos_under_1h_old_coindays_created'),
-              _1hTo1d: createAverageBlockCumulativeSumPattern(client, 'utxos_1h_to_1d_old_coindays_created'),
-              _1dTo1w: createAverageBlockCumulativeSumPattern(client, 'utxos_1d_to_1w_old_coindays_created'),
-              _1wTo1m: createAverageBlockCumulativeSumPattern(client, 'utxos_1w_to_1m_old_coindays_created'),
-              _1mTo2m: createAverageBlockCumulativeSumPattern(client, 'utxos_1m_to_2m_old_coindays_created'),
-              _2mTo3m: createAverageBlockCumulativeSumPattern(client, 'utxos_2m_to_3m_old_coindays_created'),
-              _3mTo4m: createAverageBlockCumulativeSumPattern(client, 'utxos_3m_to_4m_old_coindays_created'),
-              _4mTo5m: createAverageBlockCumulativeSumPattern(client, 'utxos_4m_to_5m_old_coindays_created'),
-              _5mTo6m: createAverageBlockCumulativeSumPattern(client, 'utxos_5m_to_6m_old_coindays_created'),
-              _6mTo9m: createAverageBlockCumulativeSumPattern(client, 'utxos_6m_to_9m_old_coindays_created'),
-              _9mTo1y: createAverageBlockCumulativeSumPattern(client, 'utxos_9m_to_1y_old_coindays_created'),
-              _1yTo18m: createAverageBlockCumulativeSumPattern(client, 'utxos_1y_to_18m_old_coindays_created'),
-              _18mTo2y: createAverageBlockCumulativeSumPattern(client, 'utxos_18m_to_2y_old_coindays_created'),
-              _2yTo3y: createAverageBlockCumulativeSumPattern(client, 'utxos_2y_to_3y_old_coindays_created'),
-              _3yTo4y: createAverageBlockCumulativeSumPattern(client, 'utxos_3y_to_4y_old_coindays_created'),
-              _4yTo5y: createAverageBlockCumulativeSumPattern(client, 'utxos_4y_to_5y_old_coindays_created'),
-              _5yTo6y: createAverageBlockCumulativeSumPattern(client, 'utxos_5y_to_6y_old_coindays_created'),
-              _6yTo7y: createAverageBlockCumulativeSumPattern(client, 'utxos_6y_to_7y_old_coindays_created'),
-              _7yTo8y: createAverageBlockCumulativeSumPattern(client, 'utxos_7y_to_8y_old_coindays_created'),
-              _8yTo10y: createAverageBlockCumulativeSumPattern(client, 'utxos_8y_to_10y_old_coindays_created'),
-              _10yTo12y: createAverageBlockCumulativeSumPattern(client, 'utxos_10y_to_12y_old_coindays_created'),
-              _12yTo15y: createAverageBlockCumulativeSumPattern(client, 'utxos_12y_to_15y_old_coindays_created'),
-              over15y: createAverageBlockCumulativeSumPattern(client, 'utxos_over_15y_old_coindays_created'),
-            })); },
+        get urpd() { return _lazy(this, 'urpd', () => ({
+          get ageBounds() { return _lazy(this, 'ageBounds', () => ({
+            under4m: createMaxMinPattern(client, 'utxos_urpd_under_4m_cost_basis'),
+            under5m: createMaxMinPattern(client, 'utxos_urpd_under_5m_cost_basis'),
+            under6m: createMaxMinPattern(client, 'utxos_urpd_under_6m_cost_basis'),
           })); },
         })); },
       })); },

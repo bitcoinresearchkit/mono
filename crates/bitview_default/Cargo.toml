@@ -21,7 +21,6 @@ bitview_plugin_indicators = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_inputs = { workspace = true }
-bitview_plugin_investing = { workspace = true }
 bitview_plugin_market = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_plugin_op_return = { workspace = true }

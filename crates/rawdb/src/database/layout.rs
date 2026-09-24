@@ -3,11 +3,7 @@ use std::{
     mem,
 };
 
-use log::debug;
-
 use crate::{Error, Region, Result};
-
-use super::regions::Regions;
 
 /// Tracks live allocations and reusable or pending holes in the database file.
 #[derive(Default)]
@@ -22,15 +18,13 @@ pub(crate) struct Layout {
     holes_need_punch: bool,
 }
 
-impl TryFrom<&Regions> for Layout {
+impl TryFrom<Vec<(usize, Region)>> for Layout {
     type Error = Error;
 
-    fn try_from(regions: &Regions) -> Result<Self> {
-        let start_to_region: BTreeMap<usize, Region> = regions
-            .iter()
-            .map(|region| (region.meta().start(), region.clone()))
-            .collect();
-        if start_to_region.len() != regions.len() {
+    fn try_from(regions: Vec<(usize, Region)>) -> Result<Self> {
+        let count = regions.len();
+        let start_to_region: BTreeMap<usize, Region> = regions.into_iter().collect();
+        if start_to_region.len() != count {
             return Err(Error::CorruptedMetadata(
                 "multiple regions have the same start".to_string(),
             ));
@@ -157,10 +151,9 @@ impl Layout {
         }
     }
 
-    pub(crate) fn promote_pending_holes(&mut self, name: &str) {
-        let count = self.pending_holes.len();
-        if count > 0 {
-            debug!("{}: promoted {} pending holes", name, count);
+    pub(crate) fn promote_pending_holes(&mut self) {
+        if self.pending_holes.is_empty() {
+            return;
         }
         for (start, mut size) in mem::take(&mut self.pending_holes) {
             let mut final_start = start;
@@ -181,6 +174,6 @@ impl Layout {
 
             self.insert_hole(final_start, size);
         }
-        self.holes_need_punch |= count > 0;
+        self.holes_need_punch = true;
     }
 }

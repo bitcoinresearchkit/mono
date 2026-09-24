@@ -1,4 +1,4 @@
-use bitview_compute::compute_cumulative_sats_from_indexes;
+use bitview_compute::compute_cumulative_sum_from_indexes;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use brk_error::Result;
@@ -162,7 +162,7 @@ impl ValuePerBlockCumulative {
         first_indexes: &impl ReadableVec<Height, A>,
         indexes_count: &impl ReadableVec<Height, B>,
         source: &impl ReadableVec<A, Sats>,
-        filter: impl FnMut(&Sats) -> bool,
+        mut filter: impl FnMut(&Sats) -> bool,
         exit: &Exit,
     ) -> Result<()>
     where
@@ -170,13 +170,13 @@ impl ValuePerBlockCumulative {
         B: VecValue,
         usize: From<B>,
     {
-        compute_cumulative_sats_from_indexes(
+        compute_cumulative_sum_from_indexes(
             &mut self.cumulative.sats.height,
             max_from,
             first_indexes,
             indexes_count,
             source,
-            filter,
+            |value| if filter(&value) { value } else { Sats::ZERO },
             exit,
         )?;
         Ok(())

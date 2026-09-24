@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use bitcoin::Amount;
+use bitview_urpd::UrpdRaw;
 use brk_error::Error;
 use brk_types::{Cents, CentsCompact, Cohort, Date, Sats, UrpdAggregation, UrpdWeight};
 use serde_json::to_value;
@@ -37,12 +38,12 @@ fn captured_inputs_preserve_weighted_output() {
             count += 1;
         });
         assert_eq!(count, 1);
-        let expected = Urpd::build(
+        let expected = build_response(
             captured.cohort.clone(),
             captured.date,
             captured.weight,
             close,
-            &raw.apply_weight(scalar),
+            weighted_entries(raw.map.into_iter(), scalar),
             captured.aggregation,
         );
         assert_eq!(

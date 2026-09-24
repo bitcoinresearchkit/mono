@@ -8,9 +8,10 @@ use brk_types::{Cents, CentsCompact, PartsPerMillion32, Sats};
 
 use crate::state::PendingDelta;
 use bitview_compute::{FenwickNode, FenwickTree};
+use bitview_urpd::COST_BASIS_PRICE_DIGITS;
 use brk_types::{PERCENTILES, PERCENTILES_LEN};
 
-use super::{COST_BASIS_PRICE_DIGITS, PercentileResult, ProfitabilityRangeResult};
+use super::{PercentileResult, ProfitabilityRangeResult};
 
 // Tier boundaries for 5-significant-digit dollar bucketing.
 // Matches the rounding used by `Cents::round_to_dollar(5)`.

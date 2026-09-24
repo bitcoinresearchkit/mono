@@ -4,7 +4,6 @@ use band::Band;
 use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, UpdateContext,
 };
-use bitview_plugin_bedrock::Vecs as BedrockVecs;
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_distribution::Vecs as DistributionVecs;
@@ -95,7 +94,6 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         distribution: &DistributionVecs,
-        bedrock: &BedrockVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
@@ -108,7 +106,6 @@ impl Vecs {
                 version,
                 mappings,
                 distribution,
-                bedrock,
                 &reference_prices,
                 cointime,
                 coinflow,

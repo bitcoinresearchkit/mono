@@ -4,6 +4,7 @@ use bitview_plugin_distribution::Vecs as DistributionVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_transforms::BoundedToF64;
+use bitview_urpd::Metrics as UrpdMetrics;
 use bitview_vecs::{
     CachedSeries, LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock,
     LazySpotValuePerBlock, PerBlock, import_cached,
@@ -250,8 +251,17 @@ impl Vecs {
             &spot_price,
         );
 
+        let urpd = UrpdMetrics::forced_import(
+            db,
+            "coinflow",
+            version,
+            mappings,
+            &spot_price,
+            STORAGE.path(context).join("states"),
+        )?;
         let this = Self {
             db: database,
+            urpd,
             age_range: AgeRangeVecs {
                 spending_rate,
                 spending_exposure,

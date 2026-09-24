@@ -1,5 +1,10 @@
 use std::{
-    sync::{Arc, Barrier, mpsc},
+    collections::BTreeMap,
+    sync::{
+        Arc, Barrier,
+        atomic::{AtomicBool, Ordering},
+        mpsc,
+    },
     thread,
     time::Duration,
 };
@@ -148,6 +153,43 @@ fn concurrent_last_owner_drops_join_deferred_work() -> Result<()> {
 }
 
 #[test]
+fn scoped_read_releases_access_before_joining_deferred_writer() -> Result<()> {
+    for created_on_worker in [false, true] {
+        let dir = TempDir::new()?;
+        let db = Database::open(dir.path())?;
+        if created_on_worker {
+            db.run_bg(|db| db.create_region_if_needed("value").map(|_| ()));
+            db.sync_bg_tasks()?;
+        }
+        let region = db.create_region_if_needed("value")?;
+        region.write(b"before")?;
+        let writer = region.clone();
+        db.run_bg(move |db| {
+            db.bg_sleep(Duration::from_secs(60));
+            writer.write_at(b"after!", 0)
+        });
+
+        let (done, finished) = mpsc::channel();
+        let reader = thread::spawn(move || {
+            region.with_read_bytes(move |bytes| {
+                assert_eq!(bytes, b"before");
+                drop(db);
+            });
+            done.send(()).unwrap();
+        });
+        finished.recv_timeout(Duration::from_secs(5)).unwrap();
+        reader.join().unwrap();
+
+        let db = Database::open(dir.path())?;
+        assert_eq!(
+            db.get_region("value").unwrap().create_reader().read_all(),
+            b"after!"
+        );
+    }
+    Ok(())
+}
+
+#[test]
 fn remapping_wait_does_not_lock_out_region_lookups_or_flushes() -> Result<()> {
     let dir = TempDir::new()?;
     let db = Database::open(dir.path())?;
@@ -239,5 +281,174 @@ fn test_concurrent_reads() -> Result<()> {
         handle.join().unwrap();
     }
 
+    Ok(())
+}
+
+#[test]
+fn batch_callback_can_read_another_region_while_remapping_waits() -> Result<()> {
+    for indexed in [false, true] {
+        let dir = TempDir::new()?;
+        let db = Database::open(dir.path())?;
+        let output = db.create_region_if_needed("output")?;
+        output.write(&[0; 8])?;
+        let input = db.create_region_if_needed("input")?;
+        input.write(b"source")?;
+        let length = db.file_len();
+        let (entered, ready) = mpsc::channel();
+        let (continue_reading, proceed) = mpsc::channel();
+        let (completed, done) = mpsc::channel();
+        let writer = thread::spawn(move || {
+            let write = |value: &u64, bytes: &mut [u8]| {
+                entered.send(()).unwrap();
+                proceed.recv().unwrap();
+                assert_eq!(input.create_reader().read_all(), b"source");
+                bytes.copy_from_slice(&value.to_le_bytes());
+            };
+            if indexed {
+                output.write_indexed(BTreeMap::from([(0, 7u64)]), 8, 0, write);
+            } else {
+                output.batch_write_ordered([(0, 7u64)].into_iter(), 8, write);
+            }
+            completed.send(()).unwrap();
+        });
+        ready.recv_timeout(Duration::from_secs(5)).unwrap();
+        let growing = db.clone();
+        let (started, beginning) = mpsc::channel();
+        let grower = thread::spawn(move || {
+            started.send(()).unwrap();
+            growing.set_min_len(length * 2).unwrap();
+        });
+        beginning.recv_timeout(Duration::from_secs(5)).unwrap();
+        thread::sleep(Duration::from_millis(30));
+        continue_reading.send(()).unwrap();
+        done.recv_timeout(Duration::from_secs(5)).unwrap();
+        writer.join().unwrap();
+        grower.join().unwrap();
+        assert_eq!(
+            db.get_region("output").unwrap().create_reader().read_all(),
+            &7u64.to_le_bytes()
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn remapping_completes_while_batches_keep_reading_and_writing() -> Result<()> {
+    let (db, _temp) = setup_test_db()?;
+    let input = db.create_region_if_needed("input")?;
+    input.write(b"source")?;
+    let stop = Arc::new(AtomicBool::new(false));
+    let ready = Arc::new(Barrier::new(5));
+    let mut writers = Vec::new();
+    for index in 0..4 {
+        let output = db.create_region_if_needed(&format!("output_{index}"))?;
+        output.write(&[0; 8])?;
+        let input = input.clone();
+        let stop = stop.clone();
+        let ready = ready.clone();
+        writers.push(thread::spawn(move || {
+            ready.wait();
+            while !stop.load(Ordering::Relaxed) {
+                output.batch_write_ordered([(0, 7u64)].into_iter(), 8, |value, bytes| {
+                    assert_eq!(input.create_reader().read_all(), b"source");
+                    bytes.copy_from_slice(&value.to_le_bytes());
+                });
+            }
+        }));
+    }
+    ready.wait();
+    let length = db.file_len();
+    let growing = db.clone();
+    let (completed, done) = mpsc::channel();
+    let grower = thread::spawn(move || {
+        completed.send(growing.set_min_len(length * 16)).unwrap();
+    });
+    let result = done.recv_timeout(Duration::from_secs(5));
+    stop.store(true, Ordering::Relaxed);
+    for writer in writers {
+        writer.join().unwrap();
+    }
+    grower.join().unwrap();
+    result.expect("continuous batches must not starve remapping")?;
+    assert!(db.file_len() >= length * 16);
+    Ok(())
+}
+
+#[test]
+fn background_handle_keeps_regions_usable_after_foreground_shutdown() -> Result<()> {
+    let dir = TempDir::new()?;
+    let db = Database::open(dir.path())?;
+    let region = db.create_region_if_needed("value")?;
+    let (send, receive) = mpsc::channel();
+    db.run_bg(move |db| {
+        send.send(db.clone()).unwrap();
+        Ok(())
+    });
+    let background = receive.recv_timeout(Duration::from_secs(5)).unwrap();
+    drop(db);
+    region.write(b"after foreground shutdown")?;
+    background.run_bg(|db| db.flush().map(|_| ()));
+    background.sync_bg_tasks()?;
+    assert_eq!(
+        region.create_reader().read_all(),
+        b"after foreground shutdown"
+    );
+    drop(region);
+    drop(background);
+    let reopened = Database::open(dir.path())?;
+    assert_eq!(
+        reopened
+            .get_region("value")
+            .unwrap()
+            .create_reader()
+            .read_all(),
+        b"after foreground shutdown"
+    );
+    Ok(())
+}
+
+#[test]
+fn concurrent_relocations_and_flushes_preserve_every_region() -> Result<()> {
+    let dir = TempDir::new()?;
+    {
+        let db = Database::open(dir.path())?;
+        db.set_min_len(16 * 1024 * 1024)?;
+        let mut regions = Vec::new();
+        for id in 0..4u8 {
+            let region = db.create_region_if_needed(&id.to_string())?;
+            region.write(&vec![id; 1024 * 1024])?;
+            regions.push(region);
+        }
+        // Block in-place growth, so each writer must copy to a new allocation.
+        drop(db.create_region_if_needed("blocker")?);
+        db.flush()?;
+        let barrier = Barrier::new(regions.len() + 1);
+        thread::scope(|scope| -> Result<()> {
+            let handles: Vec<_> = regions
+                .iter()
+                .map(|region| {
+                    let barrier = &barrier;
+                    scope.spawn(move || {
+                        barrier.wait();
+                        region.write(&[9])
+                    })
+                })
+                .collect();
+            barrier.wait();
+            db.flush()?;
+            for handle in handles {
+                handle.join().unwrap()?;
+            }
+            Ok(())
+        })?;
+        db.flush()?;
+    }
+    let db = Database::open(dir.path())?;
+    for id in 0..4u8 {
+        let reader = db.get_region(&id.to_string()).unwrap().create_reader();
+        assert_eq!(reader.len(), 1024 * 1024 + 1);
+        assert!(reader.read_all()[..1024 * 1024].iter().all(|&b| b == id));
+        assert_eq!(reader.read_all().last(), Some(&9));
+    }
     Ok(())
 }

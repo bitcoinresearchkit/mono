@@ -75,6 +75,7 @@ bitview_transforms = { version = "0.12.2", path = "crates/bitview_transforms" }
 bitview_traversable = { version = "0.12.2", path = "crates/bitview_traversable", features = ["pco", "derive"] }
 bitview_traversable_derive = { version = "0.12.2", path = "crates/bitview_traversable_derive" }
 bitview_types = { version = "0.12.2", path = "crates/bitview_types" }
+bitview_urpd = { version = "0.12.2", path = "crates/bitview_urpd" }
 bitview_vecs = { version = "0.12.2", path = "crates/bitview_vecs" }
 bitview_website = { version = "0.12.2", path = "crates/bitview_website" }
 bitviewd = { version = "0.12.2", path = "crates/bitviewd", default-features = false }

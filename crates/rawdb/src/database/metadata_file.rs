@@ -28,9 +28,7 @@ impl MetadataFile {
         Ok(Self {
             file,
             mmap,
-            // A reopened mapping may include unsynced writes from its previous
-            // owner. The first flush must establish a data + metadata boundary.
-            dirty: Mutex::new(true),
+            dirty: Mutex::new(false),
         })
     }
 
@@ -68,7 +66,7 @@ impl MetadataFile {
         Ok(())
     }
 
-    /// The database must flush data and metadata before discarding empty slots.
+    /// Discard empty trailing slots; the caller then flushes data and metadata.
     pub(crate) fn truncate(&mut self, slots: usize) -> Result<()> {
         let len = slots * SIZE_OF_REGION_METADATA;
         if self.file.metadata()?.len() > len as u64 {
@@ -76,8 +74,6 @@ impl MetadataFile {
             self.file.set_len(len as u64)?;
             self.mmap = mmap;
             *self.dirty.get_mut() = true;
-            self.file.sync_all()?;
-            *self.dirty.get_mut() = false;
         }
         Ok(())
     }
@@ -105,8 +101,10 @@ impl MetadataFile {
         *dirty = true;
     }
 
-    pub(crate) fn is_dirty(&self) -> bool {
-        *self.dirty.lock()
+    /// # Safety
+    /// Hold the database mutation barrier exclusively.
+    pub(crate) unsafe fn is_dirty(&self) -> bool {
+        unsafe { *self.dirty.data_ptr() }
     }
 
     pub(crate) fn flush(&self) -> Result<bool> {

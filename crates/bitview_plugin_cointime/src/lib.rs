@@ -11,12 +11,14 @@ mod prices;
 mod reserve_risk;
 mod supply;
 mod value;
+mod weights;
 
 mod compute;
 mod import;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
+use bitview_urpd::Metrics as UrpdMetrics;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -50,6 +52,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// coin days that spending has consumed; one minus wakefulness is the share
     /// still stored.
     pub age_range: AgeRangeVecs<M>,
+    /// Daily wakefulness-weighted UTXO price distributions.
+    pub urpd: UrpdMetrics<M>,
     #[traversable(flatten)]
     /// Cointime-weighted cohort metrics use wakefulness—the share of an age
     /// range's accumulated coin days that has been consumed—to separate more

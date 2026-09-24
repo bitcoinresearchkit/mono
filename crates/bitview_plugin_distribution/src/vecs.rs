@@ -8,14 +8,15 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs as OutputsByTypeVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
+use bitview_urpd::{AgeBoundsMetrics, AgeCutoffs};
+use bitview_vecs::{DailyMappings, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_oracle::VERSION as ORACLE_VERSION;
-use brk_types::{Cents, Height, StoredF64, SupplyState, Version};
+use brk_types::{Cents, Date, Height, StoredF64, SupplyState, Version};
 use tracing::{debug, info, warn};
 use vecdb::{
-    AnyVec, BytesVec, Database, ImportOptions, ImportableVec, ReadableVec, Rw, Stamp, StorageMode,
-    WritableVec,
+    AnyVec, BytesVec, Database, ImportOptions, ImportableVec, ReadableCloneableVec, ReadableVec,
+    Rw, Stamp, StorageMode, WritableVec,
 };
 
 use super::{
@@ -53,12 +54,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// lifetime totals do not fit inline reference shared sidecars.
     pub addr_state: AddrStateVecs<M>,
     pub cohorts: CohortMetrics<M>,
-    // Computed and stored with distribution, but presented beside the other
-    // age-range cointime series to preserve the public series tree.
+    #[traversable(wrap = "cohorts/urpd")]
+    pub age_bounds: AgeBoundsMetrics<M>,
+    // Computed with distribution and presented beside cointime's age-range metrics.
     /// Coin days accrued by unspent supply between block timestamps, allocated
     /// to the age range in which they accrue. One coin day is one BTC remaining
     /// unspent for one day.
-    #[traversable(wrap = "frameworks/cointime/age_range")]
+    #[traversable(wrap = "cointime/age_range")]
     pub coindays_created: AgeRange<PerBlockCumulativeRolling<StoredF64, M>>,
     #[traversable(wrap = "cointime/activity")]
     /// Coin blocks destroyed by spent outputs: each spent output's value in
@@ -167,6 +169,8 @@ impl Vecs {
             &funded_addr_count.counts.all.height,
         )?;
 
+        let age_bounds =
+            AgeBoundsMetrics::forced_import(&db, version, &DailyMappings::new(mappings))?;
         let this = Self {
             supply_state: BytesVec::forced_import_with(
                 ImportOptions::new(&db, "supply_state", version)
@@ -187,6 +191,7 @@ impl Vecs {
             },
 
             cohorts,
+            age_bounds,
 
             coindays_created: AgeRange::try_from_fn(|id| {
                 PerBlockCumulativeRolling::forced_import(
@@ -472,6 +477,21 @@ impl ComputePlugin for Vecs {
             last_height, starting_height
         );
 
+        // Invalidate snapshots from the recovered day. If the next block belongs
+        // to a new day (or the chain ends here), republish the recovered day now.
+        let previous_date = usize::from(starting_height)
+            .checked_sub(1)
+            .and_then(|height| self.inner.timestamps.get(height))
+            .copied()
+            .map(Date::from);
+        let next_date = self
+            .inner
+            .timestamps
+            .get(usize::from(starting_height))
+            .copied()
+            .map(Date::from);
+        utxo_states.prepare_urpds(&self.states_path, previous_date, next_date)?;
+
         // 4. Process blocks
         if starting_height <= last_height {
             debug!("calling process_blocks");
@@ -566,8 +586,26 @@ impl ComputePlugin for Vecs {
         debug!("Computing rest part 2...");
         self.cohorts.compute_rest_part2(&starting_lengths, exit)?;
 
+        let from = mappings
+            .height
+            .recompute_day(starting_lengths.height)
+            .map(usize::from)
+            .unwrap_or_default();
+        self.age_bounds.compute(
+            self.supply_state.version(),
+            from,
+            &mappings.day1.date,
+            |day, date| {
+                utxo_states.with_urpd_entries(
+                    &self.states_path,
+                    date,
+                    usize::from(day) + 1 == mappings.day1.date.len(),
+                    |entries| AgeCutoffs::from_age_entries(entries),
+                )
+            },
+            exit,
+        )?;
         context.compact_database(&self.db);
         Ok(utxo_states)
     }
 }
-use vecdb::ReadableCloneableVec;

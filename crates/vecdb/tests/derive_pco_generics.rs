@@ -13,8 +13,8 @@ where
     T: PartialEq + PcoVecValue,
 {
     let mut vec: PcoVec<usize, T> = PcoVec::import(db, name, Version::TWO)?;
-    for value in values {
-        vec.push(value.clone());
+    for &value in values {
+        vec.push(value);
     }
     vec.write()?;
     assert_eq!(vec.collect().as_slice(), values);

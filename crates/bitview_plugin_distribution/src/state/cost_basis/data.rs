@@ -4,8 +4,9 @@ use std::{
     path::Path,
 };
 
+use bitview_urpd::UrpdRaw;
 use brk_error::{Error, Result};
-use brk_types::{Cents, CentsCompact, CentsSats, CentsSquaredSats, Height, Sats, UrpdRaw};
+use brk_types::{Cents, CentsCompact, CentsSats, CentsSquaredSats, Height, Sats};
 use rustc_hash::FxHashMap;
 use vecdb::{Bytes, unlikely};
 

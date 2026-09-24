@@ -98,14 +98,6 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7300](https://github
 
 ***
 
-### investing
-
-> **investing**: [`SeriesTree_Investing`](SeriesTree_Investing.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:7314](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7314)
-
-***
-
 ### mappings
 
 > **mappings**: [`SeriesTree_Mappings`](SeriesTree_Mappings.md)

@@ -17,7 +17,7 @@ pub use dependencies::Dependencies;
 pub use has::HasDistribution;
 use metrics::CohortMetrics;
 pub use metrics::RealizedTotals;
-pub use state::{AgeRangeUrpds, EncodedAgeRangeUrpds, UTXOStates};
+pub use state::UTXOStates;
 pub use vecs::Vecs;
 
 use bitview_plugin::{PluginId, PluginStorage};

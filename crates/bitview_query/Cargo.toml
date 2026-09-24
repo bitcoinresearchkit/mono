@@ -37,7 +37,7 @@ chain = [
 ]
 series = ["mappings"]
 urpd = [
-    "bedrock",
+    "dep:bitview_urpd",
     "coinflow",
     "cointime",
     "distribution",
@@ -62,6 +62,7 @@ bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
+bitview_urpd = { workspace = true, optional = true }
 bitview_catalog = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "vecdb"] }
 bitview_plugin_indexer = { workspace = true, optional = true }

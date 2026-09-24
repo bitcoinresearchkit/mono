@@ -1,3 +1,4 @@
+import { createWeightedUrpdSection } from "../urpd/index.js";
 import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
@@ -166,6 +167,7 @@ export function createCoinflowSection() {
         ],
       },
 
+      createWeightedUrpdSection("Coinflow", coinflow.urpd),
       {
         name: "Capitalization",
         tree: [

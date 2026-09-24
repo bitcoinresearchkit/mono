@@ -2,12 +2,10 @@ use std::iter;
 
 use bitview_plugin_indexer::HasIndexer;
 use bitview_plugin_inputs::HasInputs;
-use bitview_plugin_investing::HasInvesting;
-use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_market::HasMarket;
 use bitview_plugin_outputs::HasOutputs;
 use bitview_plugin_price::HasPrice;
-use brk_types::{Dollars, OutputType, Sats, StoredU64};
+use brk_types::{OutputType, StoredU64};
 use serde_json::{Value, from_str, to_value};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -143,45 +141,6 @@ fn cumulative_sources_follow_real_plugin_reorgs() {
                     .collect::<Vec<_>>(),
                 expected
             );
-
-            let mut total = Sats::ZERO;
-            let expected_daily: Vec<_> = fixture
-                .plugins
-                .price()
-                .split
-                .close
-                .usd
-                .day1
-                .collect()
-                .into_iter()
-                .map(|price| {
-                    total += Sats::from_dollars_at_price(
-                        Dollars::mint(100.0),
-                        price.unwrap_or_default(),
-                    );
-                    total
-                })
-                .collect();
-            let investing = fixture.plugins.investing();
-            assert_eq!(investing.sats_cumulative.collect(), expected_daily);
-            let mut before = Sats::ZERO;
-            let expected_purchases: Vec<_> = fixture
-                .plugins
-                .mappings()
-                .height_day1
-                .collect()
-                .into_iter()
-                .map(|day| {
-                    let total = expected_daily
-                        .get(day.to_usize())
-                        .copied()
-                        .unwrap_or_default();
-                    let purchase = total - before;
-                    before = total;
-                    purchase
-                })
-                .collect();
-            assert_eq!(investing.sats_per_day.collect(), expected_purchases);
 
             let price = fixture.plugins.price();
             let expected_open: Vec<_> = price

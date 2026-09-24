@@ -1,12 +1,75 @@
 use bitview_cohort::{ByType, SpendableType, SpendableTypeId};
 use bitview_collections::Windows;
-use bitview_vecs::{CountTotal, OutputTypeCounts, SpendableTypeCounts, import_cached};
-use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
+use bitview_compute::BlockAggregate;
+use bitview_vecs::{
+    CachedSeries, CountTotal, OutputTypeCounts, SpendableTypeCounts, compute_type_counts,
+    import_cached,
+};
+use brk_exit::Exit;
+use brk_types::{Height, OutputType, PartsPerMillion32, StoredU64, Version};
 use common::init_cache;
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadOnlyClone, ReadableVec, WritableVec};
 
 mod common;
+
+#[test]
+fn type_counter_updates_resume_from_the_shortest_target_and_replace_reorg_suffixes() {
+    init_cache();
+    let dir = tempdir().unwrap();
+    let db = Database::open(dir.path()).unwrap();
+    let mut entries = import_cached(&db, "entries", Version::ONE).unwrap();
+    let mut txs = import_cached(&db, "txs", Version::ONE).unwrap();
+    let exit = Exit::new();
+    let compute = |entries: &mut CachedSeries<Height, StoredU64>,
+                   txs: &mut CachedSeries<Height, StoredU64>,
+                   from: u32,
+                   rows: &[(u64, u64)],
+                   version| {
+        compute_type_counts(
+            [(OutputType::P2TR, entries, txs)],
+            Height::new(from),
+            rows.len(),
+            version,
+            &exit,
+            |skip, store| {
+                for &(entries, txs) in &rows[skip..] {
+                    let mut block = BlockAggregate {
+                        entries_per_type: [0; OutputType::COUNT],
+                        txs_per_type: [0; OutputType::COUNT],
+                    };
+                    block.entries_per_type[OutputType::P2TR as usize] = entries;
+                    block.txs_per_type[OutputType::P2TR as usize] = txs;
+                    store(block)?;
+                }
+                Ok(())
+            },
+        )
+        .unwrap();
+    };
+    let rows = [(2, 1), (0, 0), (3, 2)];
+    compute(&mut entries, &mut txs, 0, &rows, Version::ONE);
+    assert_eq!(entries.collect(), [2, 2, 5].map(StoredU64::new));
+    assert_eq!(txs.collect(), [1, 1, 3].map(StoredU64::new));
+
+    entries.truncate_if_needed_at(2).unwrap();
+    txs.truncate_if_needed_at(1).unwrap();
+    compute(&mut entries, &mut txs, 3, &rows, Version::ONE);
+    assert_eq!(entries.collect(), [2, 2, 5].map(StoredU64::new));
+    assert_eq!(txs.collect(), [1, 1, 3].map(StoredU64::new));
+
+    let replacement = [(2, 1), (0, 0), (7, 3)];
+    compute(&mut entries, &mut txs, 2, &replacement, Version::ONE);
+    assert_eq!(entries.collect(), [2, 2, 9].map(StoredU64::new));
+    assert_eq!(txs.collect(), [1, 1, 4].map(StoredU64::new));
+    compute(&mut entries, &mut txs, 3, &rows, Version::TWO);
+    assert_eq!(entries.collect(), [2, 2, 5].map(StoredU64::new));
+    assert_eq!(txs.collect(), [1, 1, 3].map(StoredU64::new));
+
+    compute(&mut entries, &mut txs, 0, &[], Version::TWO);
+    assert!(entries.collect().is_empty());
+    assert!(txs.collect().is_empty());
+}
 
 #[test]
 fn type_domains_share_the_engine_without_sharing_the_wrong_denominator() {

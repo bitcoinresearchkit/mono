@@ -6,10 +6,10 @@ use std::{
 };
 
 use bitview_cohort::{AgeRangeId, CohortContext, UTXO_ALL_NAME, UTXOAggregateId};
-use bitview_plugin_distribution::AgeRangeUrpds;
+use bitview_urpd::{AgeRangeUrpds, UrpdRaw};
 use brk_error::{Error, Result};
-use brk_types::{Cents, Cohort, Date, Day1, UrpdAggregation, UrpdRaw, UrpdWeight};
-use vecdb::ReadableOptionVec;
+use brk_types::{Cents, Cohort, Date, Day1, UrpdAggregation, UrpdWeight};
+use vecdb::{ReadableOptionVec, ReadableVec};
 
 use crate::Query;
 
@@ -51,7 +51,7 @@ impl Query {
                 continue;
             }
             if entry.path() == age_range_dir {
-                has_age_ranges = true;
+                has_age_ranges = latest_date_in_dir(&age_range_dir)?.is_some();
                 continue;
             }
             let Some(cohort) = entry.file_name().to_str().and_then(Cohort::new) else {
@@ -60,7 +60,10 @@ impl Query {
             if Self::urpd_age_range_id(&cohort).is_none()
                 && Self::urpd_aggregate_id(&cohort).is_none()
             {
-                cohorts.push(cohort);
+                let dir = UrpdRaw::dir(states_path, &cohort);
+                if dir.try_exists()? && latest_date_in_dir(&dir)?.is_some() {
+                    cohorts.push(cohort);
+                }
             }
         }
 
@@ -157,7 +160,7 @@ impl Query {
             return Ok((self.read_urpd_input(cohort, date)?, 1.0));
         }
 
-        if Self::urpd_aggregate_id(cohort).is_some() {
+        if let Some(id) = Self::urpd_aggregate_id(cohort) {
             let path = self
                 .weighted_urpd_dir(cohort, weight)?
                 .join(date.to_string());
@@ -167,27 +170,31 @@ impl Query {
                 )));
             }
             return Ok((
-                UrpdInput::Raw(
-                    self.plugins()
-                        .bedrock
-                        .urpd_raw_bytes(weight, cohort, date)?,
-                ),
+                UrpdInput::Raw(match weight {
+                    UrpdWeight::Cointime => self.plugins().cointime.urpd.raw_bytes(id, date)?,
+                    UrpdWeight::Coinflow => self.plugins().coinflow.urpd.raw_bytes(id, date)?,
+                    UrpdWeight::Raw => unreachable!("raw URPDs are resolved above"),
+                }),
                 1.0,
             ));
         }
 
         let day = Day1::try_from(date)?;
-        let scalar = self
-            .plugins()
-            .bedrock
-            .urpd_weight(
-                self.plugins().distribution,
-                self.plugins().cointime,
-                self.plugins().coinflow,
-                cohort,
-                day,
-                weight,
-            )
+        let scalar = Self::urpd_age_range_id(cohort)
+            .and_then(|age| {
+                let plugins = self.plugins();
+                let supply = age
+                    .select(&plugins.distribution.cohorts.supply.total.cohorts.utxo.age)
+                    .sats
+                    .day1
+                    .collect_one(day)
+                    .flatten()?;
+                match weight {
+                    UrpdWeight::Raw => Some(1.0),
+                    UrpdWeight::Cointime => plugins.cointime.urpd_weight(age, day, supply),
+                    UrpdWeight::Coinflow => plugins.coinflow.urpd_weight(age, day, supply),
+                }
+            })
             .ok_or_else(|| {
                 Error::NotFound(format!(
                     "No {weight} weight for cohort '{cohort}' on {date}"
@@ -276,7 +283,7 @@ impl Query {
             Err(error) => {
                 // Preserve decoding-before-price error precedence without retaining
                 // an error inside a successfully captured input.
-                input.decode()?;
+                input.decode_entries()?;
                 return Err(error);
             }
         };
@@ -292,7 +299,13 @@ impl Query {
     }
 
     fn weighted_urpd_dir(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<PathBuf> {
-        let dir = self.plugins().bedrock.urpd_dir(weight, cohort);
+        let id = Self::urpd_aggregate_id(cohort)
+            .ok_or_else(|| Error::NotFound(format!("No weighted URPD aggregate for '{cohort}'")))?;
+        let dir = match weight {
+            UrpdWeight::Cointime => self.plugins().cointime.urpd.dir(id),
+            UrpdWeight::Coinflow => self.plugins().coinflow.urpd.dir(id),
+            UrpdWeight::Raw => return self.urpd_dir(cohort),
+        };
         if !dir.try_exists()? {
             return Err(Error::NotFound(format!(
                 "No {weight}-weighted URPD available for cohort '{cohort}'"

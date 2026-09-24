@@ -1,6 +1,6 @@
-use bitview_plugin_distribution::EncodedAgeRangeUrpds;
+use bitview_urpd::{EncodedAgeRangeUrpds, UrpdRaw, build_response, weighted_entries};
 use brk_error::{Error, Result};
-use brk_types::{CentsCompact, Sats, Urpd, UrpdRaw};
+use brk_types::{CentsCompact, Sats, Urpd};
 
 #[allow(clippy::large_enum_variant)] // One captured request input; keep aggregate sections inline.
 pub enum UrpdInput {
@@ -9,13 +9,7 @@ pub enum UrpdInput {
 }
 
 impl UrpdInput {
-    pub fn decode(&self) -> Result<UrpdRaw> {
-        Ok(UrpdRaw {
-            map: self.decode_entries()?.into_iter().collect(),
-        })
-    }
-
-    fn decode_entries(&self) -> Result<Vec<(CentsCompact, Sats)>> {
+    pub(super) fn decode_entries(&self) -> Result<Vec<(CentsCompact, Sats)>> {
         match self {
             Self::Raw(bytes) => UrpdRaw::deserialize_entries(bytes),
             Self::Aggregate(input) => input.decode_entries(),
@@ -35,36 +29,29 @@ impl ResolvedUrpd {
     }
 
     pub fn build(self) -> Result<Urpd> {
-        let raw = self.validated_raw()?;
+        let entries = self.validated_entries()?;
         drop(self.input);
-        Ok(Urpd::build(
+        Ok(build_response(
             self.cohort,
             self.date,
             self.weight,
             self.close,
-            &raw,
+            entries,
             self.aggregation,
         ))
     }
 
     /// Check captured inputs without constructing response buckets or JSON.
     pub fn validate(self) -> Result<()> {
-        self.validate_metadata()?;
-        let entries = self.input.decode_entries()?;
-        // Decoder validation bounds the source total by MAX_MONEY and the
-        // scalar is in [0, 1], so the weighted sum cannot overflow u64.
-        let supply = entries
-            .iter()
-            .map(|(_, sats)| (u64::from(*sats) as f64 * self.scalar).floor() as u64)
-            .sum();
-        self.validate_market_value(supply)
+        self.validated_entries().map(|_| ())
     }
 
-    fn validated_raw(&self) -> Result<UrpdRaw> {
+    fn validated_entries(&self) -> Result<Vec<(CentsCompact, Sats)>> {
         self.validate_metadata()?;
-        let raw = self.input.decode()?.apply_weight(self.scalar);
-        self.validate_market_value(u64::from(raw.checked_supply()?))?;
-        Ok(raw)
+        let entries: Vec<_> = weighted_entries(self.input.decode_entries()?, self.scalar).collect();
+        // Validated source supply and a scalar in [0, 1] bound the weighted sum.
+        self.validate_market_value(entries.iter().map(|(_, sats)| u64::from(*sats)).sum())?;
+        Ok(entries)
     }
 
     fn validate_metadata(&self) -> Result<()> {

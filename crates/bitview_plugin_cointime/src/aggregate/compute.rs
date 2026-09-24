@@ -1,7 +1,7 @@
 use std::iter;
 
-use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, Term};
-use bitview_compute::WeightedCohortState;
+use bitview_cohort::{AgeRange, ByTerm};
+use bitview_compute::{WeightedCohortAggregates, WeightedCohortState};
 use bitview_plugin_distribution::Vecs as DistributionVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::PerBlock;
@@ -142,17 +142,13 @@ impl Sources {
                 AgeRange::from_fn(|id| id.select(weights).collect_range_at(chunk_start, chunk_end));
 
             for offset in 0..chunk_end - chunk_start {
-                let mut terms = ByTerm::<WeightedCohortState>::default();
-                let mut under_4m = WeightedCohortState::default();
-                let mut under_6m = WeightedCohortState::default();
-                let mut over_4m = WeightedCohortState::default();
-                let mut over_6m = WeightedCohortState::default();
-                for &id in AgeRangeId::ALL {
-                    let term = if id.term() == Term::Sth {
-                        &mut terms.short
-                    } else {
-                        &mut terms.long
-                    };
+                let WeightedCohortAggregates {
+                    terms,
+                    under_4m,
+                    under_6m,
+                    over_4m,
+                    over_6m,
+                } = WeightedCohortAggregates::from_fn(|id| {
                     let mut contribution = WeightedCohortState::default();
                     contribution.capitalized_price.add(
                         id.select(&raw_batches)[offset],
@@ -165,21 +161,8 @@ impl Sources {
                         id.select(&cap_batches)[offset],
                         id.select(&weight_batch)[offset],
                     );
-                    *term = term.merged(contribution);
-                    if id >= AgeRangeId::From4MTo5M {
-                        over_4m = over_4m.merged(contribution);
-                    }
-                    if id >= AgeRangeId::From6MTo9M {
-                        over_6m = over_6m.merged(contribution);
-                    }
-                    // AgeRangeId::ALL is ordered youngest to oldest. Capture
-                    // exact aggregate states at the two additional cutoffs.
-                    if id == AgeRangeId::From3MTo4M {
-                        under_4m = terms.short;
-                    } else if id == AgeRangeId::From5MTo6M {
-                        under_6m = terms.short.merged(terms.long);
-                    }
-                }
+                    contribution
+                });
                 self.under_4m_awake_price.push(under_4m.realized_price());
                 self.under_4m_awake_capitalized_price
                     .push(under_4m.capitalized_price.value());
@@ -286,6 +269,7 @@ impl Sources {
 mod tests {
     use crate::test_cache::init_cache;
 
+    use bitview_cohort::AgeRangeId;
     use tempfile::tempdir;
     use vecdb::{BytesVec, Database, ImportableVec};
 

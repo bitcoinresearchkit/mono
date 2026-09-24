@@ -15,7 +15,4 @@ pub use cost_basis::{
 };
 pub use pending::PendingDelta;
 pub use transacted::Transacted;
-pub use utxo::{
-    AgeRangeUrpds, EncodedAgeRangeUrpds, PercentileResult, SendPrecomputed, UTXOStates,
-    tick_tock_next_block,
-};
+pub use utxo::{PercentileResult, SendPrecomputed, UTXOStates, tick_tock_next_block};

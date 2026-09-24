@@ -3,6 +3,7 @@ mod import;
 
 use bitview_plugin::{Plugin, PluginStorage};
 use bitview_traversable::Traversable;
+use bitview_urpd::Metrics as UrpdMetrics;
 use bitview_vecs::LazyPriceWithRatioPerBlock;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -18,6 +19,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// observed age-specific spending rates and a fitted declining tail for
     /// ages beyond the measured ranges.
     pub age_range: AgeRangeVecs<M>,
+    /// Daily mobility-weighted UTXO price distributions.
+    pub urpd: UrpdMetrics<M>,
     #[traversable(flatten)]
     /// All-chain Coinflow aggregates weight every UTXO age range by its
     /// estimated future spending probability.

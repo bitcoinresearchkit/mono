@@ -88,31 +88,10 @@ const METRICS = [
 ];
 
 /** @type {UrpdCohortFolder[]} */
-const AGE_BANDS = [
-  { name: "Up to 1h", cohort: "utxos_under_1h_old" },
-  { name: "1h to 1d", cohort: "utxos_1h_to_1d_old" },
-  { name: "1d to 1w", cohort: "utxos_1d_to_1w_old" },
-  { name: "1w to 1m", cohort: "utxos_1w_to_1m_old" },
-  { name: "1m to 2m", cohort: "utxos_1m_to_2m_old" },
-  { name: "2m to 3m", cohort: "utxos_2m_to_3m_old" },
-  { name: "3m to 4m", cohort: "utxos_3m_to_4m_old" },
-  { name: "4m to 5m", cohort: "utxos_4m_to_5m_old" },
-  { name: "5m to 6m", cohort: "utxos_5m_to_6m_old" },
-  { name: "6m to 9m", cohort: "utxos_6m_to_9m_old" },
-  { name: "9m to 1y", cohort: "utxos_9m_to_1y_old" },
-  { name: "1y to 18m", cohort: "utxos_1y_to_18m_old" },
-  { name: "18m to 2y", cohort: "utxos_18m_to_2y_old" },
-  { name: "2y to 3y", cohort: "utxos_2y_to_3y_old" },
-  { name: "3y to 4y", cohort: "utxos_3y_to_4y_old" },
-  { name: "4y to 5y", cohort: "utxos_4y_to_5y_old" },
-  { name: "5y to 6y", cohort: "utxos_5y_to_6y_old" },
-  { name: "6y to 7y", cohort: "utxos_6y_to_7y_old" },
-  { name: "7y to 8y", cohort: "utxos_7y_to_8y_old" },
-  { name: "8y to 10y", cohort: "utxos_8y_to_10y_old" },
-  { name: "10y to 12y", cohort: "utxos_10y_to_12y_old" },
-  { name: "12y to 15y", cohort: "utxos_12y_to_15y_old" },
-  { name: "Over 15y", cohort: "utxos_over_15y_old" },
-];
+const AGE_BANDS = Object.values(bitview.AGE_RANGE_NAMES).map(({ id, short }) => ({
+  name: short,
+  cohort: `utxos_${id}`,
+}));
 
 export const rawUrpdHeatmapTree = createUrpdHeatmapTree();
 export const cointimeWeightedUrpdHeatmapTree = createUrpdHeatmapTree({

@@ -11,7 +11,6 @@ use bitview_plugin_distribution::{ID as DISTRIBUTION_ID, Vecs as Distribution};
 use bitview_plugin_indexer::{ID as INDEXER_ID, Indexer};
 use bitview_plugin_indicators::{ID as INDICATORS_ID, Vecs as Indicators};
 use bitview_plugin_inputs::{ID as INPUTS_ID, Vecs as Inputs};
-use bitview_plugin_investing::{ID as INVESTING_ID, Vecs as Investing};
 use bitview_plugin_mappings::{ID as MAPPINGS_ID, Vecs as Mappings};
 use bitview_plugin_market::{ID as MARKET_ID, Vecs as Market};
 use bitview_plugin_mining::{ID as MINING_ID, Vecs as Mining};
@@ -141,19 +140,11 @@ impl DefaultPlugins {
                 Ok((inputs, outputs, mining, transactions, pools, op_return))
             })?;
 
-        // Market, investing, and distribution are independent; import in parallel.
-        let (distribution, market, investing) = thread::scope(|scope| -> Result<_> {
+        // Market and distribution are independent; import in parallel.
+        let (distribution, market) = thread::scope(|scope| -> Result<_> {
             let market_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
                 timed(Phase::Import, MARKET_ID, || {
                     Ok(Box::new(Market::import(
-                        context, &mappings, &blocks, &price,
-                    )?))
-                })
-            })?;
-
-            let investing_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
-                timed(Phase::Import, INVESTING_ID, || {
-                    Ok(Box::new(Investing::import(
                         context, &mappings, &blocks, &price,
                     )?))
                 })
@@ -171,8 +162,7 @@ impl DefaultPlugins {
             })?;
 
             let market = market_handle.join().unwrap()?;
-            let investing = investing_handle.join().unwrap()?;
-            Ok((distribution, market, investing))
+            Ok((distribution, market))
         })?;
 
         let all_chain = distribution.all_chain_sources();
@@ -204,11 +194,7 @@ impl DefaultPlugins {
                 })?;
                 let bedrock = big_thread().spawn_scoped(scope, || -> Result<_> {
                     timed(Phase::Import, BEDROCK_ID, || {
-                        Ok(Box::new(Bedrock::import(
-                            context,
-                            &mappings,
-                            &price.spot.cents.height.read_only_boxed_clone(),
-                        )?))
+                        Ok(Box::new(Bedrock::import(context, &mappings)?))
                     })
                 })?;
                 let capital_sentiment = big_thread().spawn_scoped(scope, || -> Result<_> {
@@ -255,7 +241,6 @@ impl DefaultPlugins {
                         context,
                         &mappings,
                         &distribution,
-                        &bedrock,
                         &cointime,
                         &coinflow,
                     )?))
@@ -273,7 +258,6 @@ impl DefaultPlugins {
             transactions,
             constants,
             indicators,
-            investing,
             market,
             distribution,
             supply,

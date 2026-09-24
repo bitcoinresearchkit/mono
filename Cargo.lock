@@ -515,7 +515,6 @@ dependencies = [
  "bitview_plugin_indexer",
  "bitview_plugin_indicators",
  "bitview_plugin_inputs",
- "bitview_plugin_investing",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
  "bitview_plugin_mining",
@@ -570,20 +569,17 @@ name = "bitview_plugin_bedrock"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
- "bitview_collections",
- "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
- "bitview_plugin_price",
  "bitview_transforms",
  "bitview_traversable",
+ "bitview_urpd",
  "bitview_vecs",
  "brk_error",
- "brk_exit",
  "brk_types",
  "derive_more",
  "schemars",
@@ -641,6 +637,7 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_transforms",
  "bitview_traversable",
+ "bitview_urpd",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
@@ -665,6 +662,7 @@ dependencies = [
  "bitview_plugin_price",
  "bitview_transforms",
  "bitview_traversable",
+ "bitview_urpd",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
@@ -703,6 +701,7 @@ dependencies = [
  "bitview_plugin_transactions",
  "bitview_transforms",
  "bitview_traversable",
+ "bitview_urpd",
  "bitview_vecs",
  "brk_error",
  "brk_exit",
@@ -1069,6 +1068,7 @@ dependencies = [
  "bitview_runtime",
  "bitview_traversable",
  "bitview_types",
+ "bitview_urpd",
  "brk_error",
  "brk_mempool",
  "brk_oracle",
@@ -1121,12 +1121,12 @@ dependencies = [
  "axum",
  "bitcoin",
  "bitview_catalog",
+ "bitview_cohort",
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
- "bitview_plugin_investing",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
  "bitview_plugin_outputs",
@@ -1135,6 +1135,7 @@ dependencies = [
  "bitview_query",
  "bitview_runtime",
  "bitview_types",
+ "bitview_urpd",
  "bitview_website",
  "brk_error",
  "brk_exit",
@@ -1200,6 +1201,25 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "bitview_urpd"
+version = "0.12.2"
+dependencies = [
+ "bitcoin",
+ "bitview_cohort",
+ "bitview_collections",
+ "bitview_compute",
+ "bitview_transforms",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_pco",
+ "brk_types",
+ "tempfile",
+ "vecdb",
 ]
 
 [[package]]
@@ -1536,7 +1556,6 @@ dependencies = [
  "bitcoin",
  "brk_byteview",
  "brk_error",
- "brk_pco",
  "derive_more",
  "itoa",
  "jiff",
@@ -3398,6 +3417,7 @@ dependencies = [
  "log",
  "memmap2",
  "parking_lot",
+ "rustc-hash",
  "tempfile",
  "thiserror",
 ]
@@ -3515,9 +3535,9 @@ dependencies = [
 
 [[package]]
 name = "rmcp"
-version = "3.4.0"
+version = "3.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b23c62fe489ac1d401ab32688cfacac3737a8978dc3343e5361464c7724fd3cb"
+checksum = "5b6317cd8c13e3ec9033cf2aa5aa92cd743f0f4f8a93cddc42ea0ae6ce3b8898"
 dependencies = [
  "async-trait",
  "base64 0.23.1",
@@ -4029,18 +4049,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
+checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
+checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -4811,18 +4831,18 @@ dependencies = [
 
 [[package]]
 name = "zerocopy"
-version = "0.8.57"
+version = "0.8.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d35102a9f36d089ccae9e4c6802bc118be4487b80aaffc0ab4e0cf5ce92d2873"
+checksum = "c17e8fafad82b542ff3717217ecdc736231b59e387768c9630123b4ce4d2db44"
 dependencies = [
  "zerocopy-derive",
 ]
 
 [[package]]
 name = "zerocopy-derive"
-version = "0.8.57"
+version = "0.8.58"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "146c01f5ab44258da43cf276c74a2763db2ff3969c9c652c3f2de07041d0b2bc"
+checksum = "595f56e044df4f46a0c9a626f65c3d99eb8488f7e8a8baa12dd76326d9710bf2"
 dependencies = [
  "proc-macro2",
  "quote",

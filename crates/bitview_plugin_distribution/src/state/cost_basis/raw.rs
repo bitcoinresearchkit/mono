@@ -1,3 +1,4 @@
+use bitview_urpd::UrpdRaw;
 use brk_error::Result;
 
 use std::{
@@ -7,7 +8,7 @@ use std::{
 };
 
 use brk_error::Error;
-use brk_types::{Cents, CentsSats, CentsSquaredSats, Height, Sats, UrpdRaw};
+use brk_types::{Cents, CentsSats, CentsSquaredSats, Height, Sats};
 use vecdb::{Bytes, unlikely};
 
 use crate::state::pending::PendingCapDelta;

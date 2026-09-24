@@ -7,21 +7,20 @@ use crate::{Database, Result};
 use super::setup_test_db;
 
 #[test]
-fn first_flush_after_reopen_synchronizes_metadata_without_new_writes() -> Result<()> {
+fn reopening_starts_clean_and_new_writes_are_tracked() -> Result<()> {
     let temp = TempDir::new()?;
     {
         let db = Database::open(temp.path())?;
         db.create_region_if_needed("values")?.write(b"unsynced")?;
     }
     let db = Database::open(temp.path())?;
-    // Region dirty ranges belong to the previous process. Reopening must still
-    // force the data-file sync and then the metadata-file sync on first flush.
-    assert_eq!(db.flush_inner()?, (0, true));
-    assert_eq!(db.flush_inner()?, (0, false));
-    assert_eq!(
-        db.get_region("values").unwrap().create_reader().read_all(),
-        b"unsynced"
-    );
+    // Dirty tracking starts with this owner, as it does on main.
+    assert_eq!(db.flush_inner(&db.inner.writes.write())?, (0, false));
+    let region = db.get_region("values").unwrap();
+    assert_eq!(region.create_reader().read_all(), b"unsynced");
+    region.write(b" append")?;
+    assert_eq!(db.flush_inner(&db.inner.writes.write())?, (1, true));
+    assert_eq!(db.flush_inner(&db.inner.writes.write())?, (0, false));
     Ok(())
 }
 

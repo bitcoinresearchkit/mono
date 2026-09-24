@@ -1,11 +1,13 @@
 use std::iter;
 
-use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, Term, UTXOAggregateId};
+use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, UTXOAggregateId};
 use bitview_compute::{
-    AgeBand, MINIMUM_DURATION_DAYS, WeightedCohortContribution, WeightedCohortState, WeightedRatio,
+    AgeBand, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, WeightedCohortContribution,
+    WeightedCohortState, WeightedRatio,
 };
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Lengths;
+use bitview_urpd::DailyUrpds;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{
@@ -13,9 +15,10 @@ use brk_types::{
     Version,
 };
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use vecdb::{AnyStoredVec, ReadableVec, VecValue, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecValue, WritableVec};
 
 use super::Vecs;
+use crate::weights::horizon_mobilities;
 use crate::{AGE_COHORT_COUNT, AggregateSources, Dependencies, HorizonId, Horizons};
 
 const WRITE_INTERVAL: usize = 20_000;
@@ -38,6 +41,8 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         let Dependencies {
+            utxo_states,
+            price,
             indexer,
             mappings,
             distribution,
@@ -96,6 +101,36 @@ impl ComputePlugin for Vecs {
             exit,
         )?;
 
+        let weights =
+            AgeRange::from_fn(|age| &age.select(&self.age_range.spending_exposure.mobility).day1);
+        let supplies = AgeRange::from_fn(|age| {
+            &age.select(&distribution.cohorts.supply.total.cohorts.utxo.age)
+                .sats
+                .day1
+        });
+        let from = mappings
+            .height
+            .recompute_day(indexer.safe_lengths().height)
+            .map(usize::from)
+            .unwrap_or_default();
+        self.urpd.compute(
+            distribution.supply_state.version(),
+            from,
+            &mappings.day1.date,
+            &price.split.close.cents.day1,
+            &weights,
+            &supplies,
+            |day, date, weights| {
+                utxo_states.with_urpd_entries(
+                    &distribution.states_path,
+                    date,
+                    usize::from(day) + 1 == mappings.day1.date.len(),
+                    |entries| DailyUrpds::from_age_entries(entries, weights),
+                )
+            },
+            exit,
+        )?;
+
         context.compact_database(&self.db);
 
         Ok(())
@@ -142,12 +177,16 @@ impl AggregateState {
 
     fn merged(mut self, other: Self) -> Self {
         self.weighted = self.weighted.merged(other.weighted);
+        self.merge_horizons(&other);
+        self
+    }
+
+    fn merge_horizons(&mut self, other: &Self) {
         for horizon in HorizonId::ALL {
             horizon
                 .select_mut(&mut self.horizon_supply_in_loss)
                 .merge(*horizon.select(&other.horizon_supply_in_loss));
         }
-        self
     }
 }
 
@@ -230,27 +269,14 @@ impl PrimaryBatch {
         let exposures = DecayFit::exposures(&hazards, network_age, bounds);
         let mobilities =
             AgeRange::from_fn(|id| BoundedRatio::from(AgeBand::mobility(*id.select(&exposures))));
-        let horizon_mobilities: Horizons<AgeRange<f64>> = HorizonId::from_fn(|horizon| {
-            let horizon = horizon.days();
-            AgeRange::from_fn(|age| AgeBand::horizon_mobility(&hazards, age, horizon, bounds))
-        });
+        let horizon_mobilities = horizon_mobilities(&hazards, bounds);
         let mut terms = ByTerm::<AggregateState>::default();
-        let mut under_4m = WeightedCohortState::default();
-        let mut under_6m = WeightedCohortState::default();
-        let mut over_4m = WeightedCohortState::default();
-        let mut over_6m = WeightedCohortState::default();
-
-        for &id in AgeRangeId::ALL {
+        let aggregates = WeightedCohortAggregates::from_fn(|id| {
             let mobility = *id.select(&mobilities);
             let total_supply = id.select(&self.supplies)[offset];
             let total_cap = id.select(&self.realized_caps)[offset];
             let loss_supply = id.select(&self.loss_supplies)[offset];
 
-            let term = if id.term() == Term::Sth {
-                &mut terms.short
-            } else {
-                &mut terms.long
-            };
             let mut contribution = AggregateState::default();
             contribution.weighted.capitalized_price.add(
                 id.select(&self.cap_raw)[offset],
@@ -265,29 +291,20 @@ impl PrimaryBatch {
                 &horizon_mobilities,
                 id,
             );
-            *term = term.merged(contribution);
-            if id >= AgeRangeId::From4MTo5M {
-                over_4m = over_4m.merged(contribution.weighted);
-            }
-            if id >= AgeRangeId::From6MTo9M {
-                over_6m = over_6m.merged(contribution.weighted);
-            }
-            // AgeRangeId::ALL is ordered youngest to oldest.
-            if id == AgeRangeId::From3MTo4M {
-                under_4m = terms.short.weighted;
-            } else if id == AgeRangeId::From5MTo6M {
-                under_6m = terms.short.weighted.merged(terms.long.weighted);
-            }
-        }
+            terms.get_mut(id.term()).merge_horizons(&contribution);
+            contribution.weighted
+        });
+        terms.short.weighted = aggregates.terms.short;
+        terms.long.weighted = aggregates.terms.long;
 
         PrimaryValues {
             spending_rate: AgeRange::from_fn(|id| StoredF64::from(*id.select(&hazards))),
             spending_exposure: AgeRange::from_fn(|id| StoredF64::from(*id.select(&exposures))),
             mobility: mobilities,
-            under_4m,
-            under_6m,
-            over_4m,
-            over_6m,
+            under_4m: aggregates.under_4m,
+            under_6m: aggregates.under_6m,
+            over_4m: aggregates.over_4m,
+            over_6m: aggregates.over_6m,
             terms,
         }
     }
@@ -722,10 +739,11 @@ mod tests {
     fn fixed_horizon_compounds_hazards_across_age_ranges() {
         let bounds = AgeBand::all();
         let hazards = AgeRange::from_fn(|_| 0.01);
-        let probability =
-            AgeBand::horizon_mobility(&hazards, AgeRangeId::From1DTo1W, 30.0, &bounds);
-
-        assert!((probability - AgeBand::mobility(0.3)).abs() < 1e-12);
+        let probabilities = horizon_mobilities(&hazards, &bounds);
+        for horizon in HorizonId::ALL {
+            let probability = *AgeRangeId::From1DTo1W.select(horizon.select(&probabilities));
+            assert!((probability - AgeBand::mobility(0.01 * horizon.days())).abs() < 1e-12);
+        }
     }
 
     #[test]

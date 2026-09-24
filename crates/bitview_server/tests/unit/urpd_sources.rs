@@ -1,8 +1,10 @@
 use std::{collections::BTreeMap, fs, io::ErrorKind, net::SocketAddr, path::PathBuf};
 
-use bitview_plugin_distribution::{AgeRangeUrpds, UTXOStates};
+use bitview_cohort::UTXOAggregateId;
+use bitview_plugin_distribution::UTXOStates;
+use bitview_urpd::{AgeRangeUrpds, UrpdRaw, accumulate_masses};
 use brk_types::{
-    Cents, CentsCompact, Cohort, Date, Sats, SupplyState, UrpdAggregation, UrpdRaw, UrpdWeight,
+    Cents, CentsCompact, Cohort, Date, Sats, SupplyState, UrpdAggregation, UrpdWeight,
 };
 use serde_json::{Value, from_str, to_value};
 use tempfile::tempdir;
@@ -19,13 +21,15 @@ pub async fn check(state: &AppState, address: SocketAddr) {
     for age in producer.age_range.iter_mut() {
         age.reset_cost_basis_data_if_needed().unwrap();
     }
-    producer.age_range.iter_mut().next().unwrap().receive_utxo(
-        &SupplyState {
-            utxo_count: 1,
-            value: Sats::from(300_000_000_u64),
-        },
-        Cents::new(100),
-    );
+    for (price, sats) in [(101, 100_000_000_u64), (102, 200_000_000)] {
+        producer.age_range.iter_mut().next().unwrap().receive_utxo(
+            &SupplyState {
+                utxo_count: 1,
+                value: Sats::from(sats),
+            },
+            Cents::new(price),
+        );
+    }
     producer.age_range.iter_mut().last().unwrap().receive_utxo(
         &SupplyState {
             utxo_count: 1,
@@ -39,6 +43,24 @@ pub async fn check(state: &AppState, address: SocketAddr) {
     let mut originals = Vec::new();
     remember(&mut originals, AgeRangeUrpds::path(&path, date));
     producer.write_urpds(date, &path).unwrap();
+
+    // Live and persisted entries share the same rounded price buckets.
+    let buckets = |current| {
+        producer
+            .with_urpd_entries(&path, date, current, |entries| {
+                accumulate_masses(entries, |total: &mut Sats, _, _, sats| *total += sats)
+            })
+            .unwrap()
+            .unwrap()
+    };
+    assert_eq!(buckets(true), buckets(false));
+    assert_eq!(
+        buckets(false),
+        BTreeMap::from([
+            (CentsCompact::new(100), Sats::from(300_000_000_u64)),
+            (CentsCompact::new(200), Sats::from(500_000_000_u64)),
+        ])
+    );
 
     for (name, total) in [
         ("all", 8.0),
@@ -72,7 +94,11 @@ pub async fn check(state: &AppState, address: SocketAddr) {
         (UrpdWeight::Cointime, 200_000_000_u64),
         (UrpdWeight::Coinflow, 400_000_000),
     ] {
-        let dir = state.sync(|q| q.plugins().bedrock.urpd_dir(weight, &cohort));
+        let dir = state.sync(|q| match weight {
+            UrpdWeight::Cointime => q.plugins().cointime.urpd.dir(UTXOAggregateId::All),
+            UrpdWeight::Coinflow => q.plugins().coinflow.urpd.dir(UTXOAggregateId::All),
+            UrpdWeight::Raw => unreachable!(),
+        });
         let file = dir.join(date.to_string());
         remember(&mut originals, file.clone());
         fs::create_dir_all(dir).unwrap();

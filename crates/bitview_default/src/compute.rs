@@ -14,7 +14,6 @@ use bitview_plugin_distribution::{
 use bitview_plugin_indexer::ID as INDEXER_ID;
 use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
 use bitview_plugin_inputs::{Dependencies as InputsDependencies, ID as INPUTS_ID};
-use bitview_plugin_investing::{Dependencies as InvestingDependencies, ID as INVESTING_ID};
 use bitview_plugin_mappings::{Dependencies as MappingsDependencies, ID as MAPPINGS_ID};
 use bitview_plugin_market::{Dependencies as MarketDependencies, ID as MARKET_ID};
 use bitview_plugin_mining::{Dependencies as MiningDependencies, ID as MINING_ID};
@@ -87,17 +86,6 @@ impl DefaultPlugins {
             );
             inputs_result?;
             prices_result?;
-
-            timed(Phase::Compute, INVESTING_ID, || {
-                self.investing.compute(
-                    InvestingDependencies {
-                        indexer,
-                        mappings: self.mappings.as_ref(),
-                        price: self.price.as_ref(),
-                    },
-                    context,
-                )
-            })?;
 
             // market, outputs, and (transactions → mining + OP_RETURN) are pairwise
             // independent. Run all three in parallel.
@@ -259,6 +247,8 @@ impl DefaultPlugins {
                         self.cointime.compute(
                             CointimeDependencies {
                                 indexer,
+                                mappings: self.mappings.as_ref(),
+                                utxo_states: &utxo_states,
                                 price: self.price.as_ref(),
                                 blocks: self.blocks.as_ref(),
                                 inflation_rate: &self.supply.inflation_rate,
@@ -275,6 +265,8 @@ impl DefaultPlugins {
                         self.coinflow.compute(
                             CoinflowDependencies {
                                 indexer,
+                                price: self.price.as_ref(),
+                                utxo_states: &utxo_states,
                                 mappings: self.mappings.as_ref(),
                                 distribution: self.distribution.as_ref(),
                             },
@@ -290,7 +282,6 @@ impl DefaultPlugins {
                 self.bedrock.compute(
                     BedrockDependencies {
                         indexer,
-                        price: self.price.as_ref(),
                         mappings: self.mappings.as_ref(),
                         distribution: self.distribution.as_ref(),
                         utxo_states: &utxo_states,

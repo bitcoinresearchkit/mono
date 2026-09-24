@@ -11,7 +11,6 @@ use bitview_plugin_distribution::Vecs as Distribution;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_indicators::Vecs as Indicators;
 use bitview_plugin_inputs::Vecs as Inputs;
-use bitview_plugin_investing::Vecs as Investing;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_plugin_market::Vecs as Market;
 use bitview_plugin_mining::Vecs as Mining;
@@ -46,7 +45,6 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     constants: Box<Constants>,
     mappings: Box<Mappings<M>>,
     indicators: Box<Indicators<M>>,
-    investing: Box<Investing<M>>,
     market: Box<Market<M>>,
     pools: Box<Pools<M>>,
     price: Box<Price<M>>,

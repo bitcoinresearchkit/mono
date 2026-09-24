@@ -196,14 +196,7 @@
  * Tree branch types
  * @typedef {Bitview.SeriesTree_Market} Market
  * @typedef {Bitview.SeriesTree_Market_MovingAverage} MarketMovingAverage
- * @typedef {Bitview.SeriesTree_Investing} Investing
- * @typedef {Bitview._10y2y3y4y5y6y8yPattern} PeriodCagrPattern
  * @typedef {FullStatsPattern} AnyFullStatsPattern
- *
- * DCA period keys - derived from pattern types
- * @typedef {keyof Bitview._10y2y3y4y5y6y8yPattern} LongPeriodKey
- * @typedef {"_1w" | "_1m" | "_3m" | "_6m" | "_1y"} ShortPeriodKey
- * @typedef {ShortPeriodKey | LongPeriodKey} AllPeriodKey
  *
  * Pattern unions by cohort type
  * @typedef {AllUtxoPattern | AgeRangePattern | UtxoAmountPattern} UtxoCohortPattern

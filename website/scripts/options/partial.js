@@ -28,7 +28,6 @@ import { createCoinflowSection } from "./frameworks/coinflow.js";
 import { createCapitalSentimentSection } from "./models/capital-sentiment.js";
 import { createBedrockSection } from "./models/bedrock.js";
 import { createRarityMeterSection } from "./models/rarity-meter.js";
-import { createInvestingSection } from "./investing.js";
 import {
   oracleOutputsHeatmapOption,
   oraclePaymentsHeatmapOption,
@@ -275,8 +274,6 @@ export function createPartialOptions() {
             }),
           ],
         },
-
-        lazyGroup("Investing", createInvestingSection),
 
         lazyGroup("Frameworks", () => ({
           name: "Frameworks",

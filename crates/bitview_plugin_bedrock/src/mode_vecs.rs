@@ -14,7 +14,7 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// and the value is unavailable until its loss share exists and at least
     /// 365 prior observations are available. Stored as a bounded share and
     /// exposed as a unitless decimal. Calibration remains full precision.
-    pub loss_threshold: Percentiles<LazyDailyMetric<StoredF64, BoundedRatio>>,
+    pub supply_in_loss_threshold: Percentiles<LazyDailyMetric<StoredF64, BoundedRatio>>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
@@ -24,7 +24,7 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// price when that output was created.
     pub prices: PriceBands<LazyDailyPrice>,
     #[traversable(hidden)]
-    pub loss_threshold_stored: Percentiles<CachedSeries<Day1, BoundedRatio, M>>,
+    pub supply_in_loss_threshold_stored: Percentiles<CachedSeries<Day1, BoundedRatio, M>>,
     #[traversable(hidden)]
     pub prices_stored: PriceBands<CachedSeries<Day1, Cents, M>>,
 }

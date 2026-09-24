@@ -1,3 +1,5 @@
+use std::{str, sync::Arc};
+
 use crate::{Error, PAGE_SIZE, Result};
 
 pub(crate) const SIZE_OF_REGION_METADATA: usize = PAGE_SIZE;
@@ -10,7 +12,7 @@ pub struct RegionMetadata {
     start: usize,
     len: usize,
     reserved: usize,
-    id: String,
+    id: Arc<str>,
 }
 
 impl RegionMetadata {
@@ -21,9 +23,8 @@ impl RegionMetadata {
         Ok(())
     }
 
-    pub(crate) fn new(id: String, start: usize) -> Self {
+    pub(crate) fn new(id: Arc<str>, start: usize) -> Self {
         assert!(start.is_multiple_of(PAGE_SIZE));
-        Self::validate_id(&id).expect("validated region ID");
 
         Self {
             id,
@@ -59,6 +60,10 @@ impl RegionMetadata {
 
     pub fn reserved(&self) -> usize {
         self.reserved
+    }
+
+    pub(crate) fn shared_id(&self) -> Arc<str> {
+        self.id.clone()
     }
 
     pub fn id(&self) -> &str {
@@ -121,9 +126,8 @@ impl RegionMetadata {
             )));
         }
 
-        let id = String::from_utf8(bytes[32..32 + id_len].to_vec())
-            .map_err(|_| Error::InvalidRegionId)?;
-        Self::validate_id(&id)?;
+        let id = str::from_utf8(&bytes[32..32 + id_len]).map_err(|_| Error::InvalidRegionId)?;
+        Self::validate_id(id)?;
 
         if !start.is_multiple_of(PAGE_SIZE) {
             return Err(Error::CorruptedMetadata(format!(
@@ -156,7 +160,7 @@ impl RegionMetadata {
         }
 
         Ok(Some(Self {
-            id,
+            id: Arc::from(id),
             start,
             len,
             reserved,

@@ -3,6 +3,7 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_distribution::{AllChainSources, Vecs as DistributionVecs};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_urpd::Metrics as UrpdMetrics;
 use bitview_vecs::{LazyWindowStartVec, PerBlock};
 use brk_error::Result;
 use brk_types::{Cents, Version};
@@ -56,10 +57,19 @@ impl Vecs {
         let adjusted = adjusted::forced_import(&db, version, mappings)?;
         let reserve_risk = reserve_risk::forced_import(&db, v1, mappings, &spot_price)?;
 
+        let urpd = UrpdMetrics::forced_import(
+            &db,
+            "cointime",
+            version,
+            mappings,
+            &spot_price,
+            STORAGE.path(context).join("states"),
+        )?;
         let this = Self {
             db,
             activity,
             age_range,
+            urpd,
             aggregate,
             supply,
             value,

@@ -39,16 +39,26 @@ impl DataFile {
         self.len.load(Ordering::Relaxed)
     }
 
+    #[inline]
     pub(crate) fn read(&self) -> RwLockReadGuard<'_, MmapRaw> {
         self.mmap.read_recursive()
     }
 
-    pub(crate) fn ensure_len(&self, len: usize) -> Result<()> {
+    pub(crate) fn ensure_len(&self, len: usize, writes: &RwLock<()>) -> Result<()> {
         let len = Self::aligned_len(len)?;
         if self.len() >= len {
             return Ok(());
         }
-        let mut mmap = self.mmap.write();
+        let (mut mmap, _writes) = loop {
+            let mmap = self.mmap.write();
+            if let Some(writes) = writes.try_write() {
+                break (mmap, writes);
+            }
+            // A batch may hold the barrier while reading another region. Never
+            // hold the mapping lock while waiting for that batch to finish.
+            drop(mmap);
+            drop(writes.write());
+        };
         let current_len = self.len();
         if current_len >= len {
             return Ok(());
@@ -70,15 +80,22 @@ impl DataFile {
     }
 
     /// # Safety
-    /// The caller must hold exclusive access to the destination region.
-    pub(crate) unsafe fn write(&self, start: usize, bytes: &[u8]) {
-        unsafe { write_to_mmap(&self.read(), start, bytes) };
+    /// Hold the database mutation barrier throughout use of this mapping.
+    pub(crate) unsafe fn mapping(&self) -> &MmapRaw {
+        // Remapping takes both the mapping lock and the exclusive mutation barrier.
+        unsafe { &*self.mmap.data_ptr() }
     }
 
     /// # Safety
-    /// The caller exclusively owns the source region and the free destination.
+    /// Hold the mutation barrier and exclusive access to the destination region.
+    pub(crate) unsafe fn write(&self, start: usize, bytes: &[u8]) {
+        unsafe { write_to_mmap(self.mapping(), start, bytes) };
+    }
+
+    /// # Safety
+    /// Hold the mutation barrier and exclusively own the source and destination.
     pub(crate) unsafe fn copy(&self, src: usize, dst: usize, len: usize) {
-        let mmap = self.read();
+        let mmap = unsafe { self.mapping() };
         assert!(src <= mmap.len() && len <= mmap.len() - src);
         assert!(dst <= mmap.len() && len <= mmap.len() - dst);
         assert!(src + len <= dst || dst + len <= src);
@@ -88,24 +105,25 @@ impl DataFile {
         };
     }
 
-    pub(crate) fn flush(&self, ranges: &DirtyRanges, metadata_dirty: bool) -> Result<()> {
+    /// # Safety
+    /// Hold the database mutation barrier exclusively.
+    pub(crate) unsafe fn flush(&self, ranges: &DirtyRanges) -> Result<()> {
         if !ranges.is_empty() {
-            let mmap = self.read();
+            // SAFETY: flush holds the exclusive mutation barrier.
+            let mmap = unsafe { self.mapping() };
             for range in ranges.iter() {
                 mmap.flush_async_range(range.start, range.len())?;
             }
         }
-        // Metadata can refer to newly grown space even without dirty data.
-        self.sync(metadata_dirty || !ranges.is_empty())
+        self.sync(!ranges.is_empty())
     }
 
     pub(crate) fn sync(&self, force: bool) -> Result<()> {
-        let dirty = self.dirty.swap(false, Ordering::Relaxed);
-        if (dirty || force)
-            && let Err(error) = self.file.sync_all()
-        {
-            self.dirty.store(true, Ordering::Relaxed);
-            return Err(error.into());
+        // Callers hold the exclusive mutation barrier. Leave dirty state intact
+        // on failure; a clean flush needs no atomic read-modify-write.
+        if force || self.dirty.load(Ordering::Relaxed) {
+            self.file.sync_all()?;
+            self.dirty.store(false, Ordering::Relaxed);
         }
         Ok(())
     }

@@ -8,7 +8,6 @@ use bitview_plugin_distribution::{HasDistribution, Vecs as Distribution};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 use bitview_plugin_indicators::{HasIndicators, Vecs as Indicators};
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
-use bitview_plugin_investing::{HasInvesting, Vecs as Investing};
 use bitview_plugin_mappings::{HasMappings, Vecs as Mappings};
 use bitview_plugin_market::{HasMarket, Vecs as Market};
 use bitview_plugin_mining::{HasMining, Vecs as Mining};
@@ -92,12 +91,6 @@ impl<M: StorageMode> HasMappings<M> for DefaultPlugins<M> {
 impl<M: StorageMode> HasIndicators<M> for DefaultPlugins<M> {
     fn indicators(&self) -> &Indicators<M> {
         self.indicators.as_ref()
-    }
-}
-
-impl<M: StorageMode> HasInvesting<M> for DefaultPlugins<M> {
-    fn investing(&self) -> &Investing<M> {
-        self.investing.as_ref()
     }
 }
 

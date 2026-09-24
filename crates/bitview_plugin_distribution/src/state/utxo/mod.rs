@@ -1,4 +1,3 @@
-mod age_range_urpds;
 mod cohort;
 mod collection;
 mod fenwick;
@@ -9,11 +8,8 @@ mod send;
 mod send_precomputed;
 mod tick_tock;
 mod transient;
+mod urpd;
 
-/// Rounding precision for UTXO cost basis prices (5 significant digits in dollars).
-pub const COST_BASIS_PRICE_DIGITS: i32 = 5;
-
-pub use age_range_urpds::{AgeRangeUrpds, EncodedAgeRangeUrpds};
 pub use cohort::UTXOCohortState;
 pub use collection::UTXOStates;
 pub use fenwick::CostBasisFenwick;

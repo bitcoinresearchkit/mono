@@ -183,17 +183,17 @@ fn resident_resolution_mappings_preserve_last_values_through_append_and_reorg() 
                 );
             }
             for metric in [
-                "coinflow_urpd_capitalized_price_cents",
-                "awake_urpd_capitalized_price_cents",
-                "bedrock_under_4m_cost_basis_min_cents",
-                "bedrock_under_4m_cost_basis_max_cents",
-                "bedrock_under_5m_cost_basis_min_cents",
-                "bedrock_under_5m_cost_basis_max_cents",
-                "bedrock_under_6m_cost_basis_min_cents",
-                "bedrock_under_6m_cost_basis_max_cents",
+                "coinflow_urpd_all_capitalized_price_cents",
+                "cointime_urpd_all_capitalized_price_cents",
+                "utxos_urpd_under_4m_cost_basis_min_cents",
+                "utxos_urpd_under_4m_cost_basis_max_cents",
+                "utxos_urpd_under_5m_cost_basis_min_cents",
+                "utxos_urpd_under_5m_cost_basis_max_cents",
+                "utxos_urpd_under_6m_cost_basis_min_cents",
+                "utxos_urpd_under_6m_cost_basis_max_cents",
             ] {
                 let daily = data(fixture.address, metric, "day1").await;
-                if metric.starts_with("bedrock_under_") {
+                if metric.starts_with("utxos_urpd_under_") {
                     // This pre-market fixture has occupied zero-price buckets,
                     // including on the current partial day after each reorg.
                     assert_eq!(daily.last(), Some(&json!(0)), "{metric} branch={branch}");
@@ -262,8 +262,8 @@ fn resident_resolution_mappings_preserve_last_values_through_append_and_reorg() 
                 for metric in [
                     "price_cents",
                     "supply_sats",
-                    "coinflow_urpd_capitalized_price_ratio_ppm",
-                    "awake_urpd_capitalized_price_ratio_ppm",
+                    "coinflow_urpd_all_capitalized_price_ratio_ppm",
+                    "cointime_urpd_all_capitalized_price_ratio_ppm",
                     "coinflow_capitalized_price_cents",
                     "sth_coinflow_capitalized_price_cents",
                     "lth_coinflow_capitalized_price_cents",

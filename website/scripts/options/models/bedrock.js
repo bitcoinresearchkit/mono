@@ -1,8 +1,7 @@
-import { createSupplyDensityFolders } from "./bedrock/supply-density.js";
 import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
-import { line, price, pricePercentileSeries } from "../series.js";
+import { line, price } from "../series.js";
 
 const FLOOR_PERCENTILES = /** @type {const} */ ([
   { key: "pct95", name: "P95" },
@@ -31,7 +30,7 @@ const LEVEL_PERCENTILES = /** @type {const} */ ([
  * @property {{
  *   floor: Record<string, AnyPricePattern>,
  *   level: Record<string, AnyPricePattern>,
- *   lossThreshold: Record<string, AnySeriesPattern>,
+ *   supplyInLossThreshold: Record<string, AnySeriesPattern>,
  * }} tree
  */
 
@@ -77,7 +76,7 @@ function modeChart(mode, ath) {
       }),
       ...FLOOR_PERCENTILES.map((percentile, index) =>
         line({
-          series: mode.tree.lossThreshold[percentile.key],
+          series: mode.tree.supplyInLossThreshold[percentile.key],
           name: percentile.name,
           color: colors.bedrock.percentiles[index],
           defaultActive: false,
@@ -89,64 +88,22 @@ function modeChart(mode, ath) {
 }
 
 /**
- * @param {string} name
- * @param {string} weightLabel
- * @param {PercentilesPattern} percentiles
- * @param {AnyPricePattern} p100
- * @param {string} [cohort]
- * @returns {PartialChartOption}
- */
-function costBasisChart(name, weightLabel, percentiles, p100, cohort = "") {
-  return {
-    name,
-    title: `Bitcoin ${cohort ? `${cohort} ` : ""}${name}-Weighted Cost Basis Distribution (${weightLabel})`,
-    top: [
-      price({
-        series: p100,
-        name: "P100",
-        color: colors.stat.max,
-        defaultActive: false,
-      }),
-      ...pricePercentileSeries(percentiles),
-    ],
-  };
-}
-
-/**
- * @param {string} name
- * @param {string} weightLabel
- * @param {{ cointime: PercentilesPattern, coinflow: PercentilesPattern }} distributions
- * @param {AnyPricePattern} p100
- * @param {string} [cohort]
- * @returns {PartialOptionsGroup}
- */
-function costBasisGroup(name, weightLabel, distributions, p100, cohort = "") {
-  return {
-    name,
-    tree: [
-      costBasisChart("Cointime", weightLabel, distributions.cointime, p100, cohort),
-      costBasisChart("Coinflow", weightLabel, distributions.coinflow, p100, cohort),
-    ],
-  };
-}
-
-/**
  * Create Bedrock model section.
  * @returns {PartialOptionsGroup}
  */
 export function createBedrockSection() {
   const { market, cohorts, cointime, coinflow, bedrock } = bitview.series;
   const horizonModes = /** @type {const} */ ([
-    { key: "coinflow8y", horizon: "_8y", name: "Coinflow 8Y" },
-    { key: "coinflow4y", horizon: "_4y", name: "Coinflow 4Y" },
-    { key: "coinflow2y", horizon: "_2y", name: "Coinflow 2Y" },
-    { key: "coinflow1y", horizon: "_1y", name: "Coinflow 1Y" },
-    { key: "coinflow6m", horizon: "_6m", name: "Coinflow 6M" },
-    { key: "coinflow3m", horizon: "_3m", name: "Coinflow 3M" },
-    { key: "coinflow1m", horizon: "_1m", name: "Coinflow 1M" },
+    { horizon: "_8y", name: "Coinflow 8Y" },
+    { horizon: "_4y", name: "Coinflow 4Y" },
+    { horizon: "_2y", name: "Coinflow 2Y" },
+    { horizon: "_1y", name: "Coinflow 1Y" },
+    { horizon: "_6m", name: "Coinflow 6M" },
+    { horizon: "_3m", name: "Coinflow 3M" },
+    { horizon: "_1m", name: "Coinflow 1M" },
   ]).map((mode) => ({
     name: mode.name,
-    tree: bedrock[mode.key],
+    tree: bedrock.coinflow.horizon[mode.horizon],
     inLoss: coinflow.horizon[mode.horizon].supply.inLoss.share,
   }));
 
@@ -171,56 +128,6 @@ export function createBedrockSection() {
 
   return {
     name: "Bedrock",
-    tree: [
-      ...modes.map((mode) => modeChart(mode, market.ath.high)),
-      {
-        name: "Cost Basis",
-        tree: [
-          {
-            name: "Age Bounds",
-            tree: /** @type {const} */ ([
-              { key: "under4m", name: "<4M" },
-              { key: "under5m", name: "<5M" },
-              { key: "under6m", name: "<6M" },
-            ]).map(({ key, name }) => ({
-              name,
-              title: `${name} URPD Cost Basis Min/Max`,
-              top: [
-                price({
-                  series: bedrock.costBasis.ageBounds[key].min,
-                  name: "Min",
-                  color: colors.stat.min,
-                }),
-                price({
-                  series: bedrock.costBasis.ageBounds[key].max,
-                  name: "Max",
-                  color: colors.stat.max,
-                }),
-              ],
-            })),
-          },
-          ...(/** @type {const} */ ([
-            { key: "perCoin", name: "Per Coin", label: "BTC-weighted" },
-            { key: "perDollar", name: "Per Dollar", label: "USD-weighted" },
-          ])).map(({ key, name, label }) => ({
-            name,
-            tree: [
-              ...costBasisGroup(name, label, bedrock.costBasis[key], cohorts.costBasis.all.max).tree,
-              ...(/** @type {const} */ ([
-                { key: "sth", name: "STH" },
-                { key: "lth", name: "LTH" },
-              ])).map((cohort) => costBasisGroup(
-                cohort.name,
-                label,
-                bedrock.costBasis[cohort.key][key],
-                cohorts.costBasis[cohort.key].max,
-                cohort.name,
-              )),
-            ],
-          })),
-          ...createSupplyDensityFolders(),
-        ],
-      },
-    ],
+    tree: modes.map((mode) => modeChart(mode, market.ath.high)),
   };
 }

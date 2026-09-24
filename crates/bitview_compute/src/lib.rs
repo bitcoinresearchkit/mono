@@ -3,7 +3,8 @@
 //! Metric vector ownership and view composition live in bitview_vecs.
 mod age_band;
 mod block_walker;
-mod cumulative_sats;
+mod cohort_weight;
+mod cumulative_sum;
 mod drawdown;
 mod statistics;
 mod traits;
@@ -11,7 +12,8 @@ mod weighted;
 
 pub use age_band::{AgeBand, MINIMUM_DURATION_DAYS};
 pub use block_walker::{BlockAggregate, CoinbasePolicy, walk_blocks};
-pub use cumulative_sats::compute_cumulative_sats_from_indexes;
+pub use cohort_weight::{collect_cohort_weights, resolve_cohort_value, resolve_cohort_weight};
+pub use cumulative_sum::compute_cumulative_sum_from_indexes;
 pub use drawdown::ComputeDrawdown;
 pub use statistics::{
     ComputeRollingMedianFromStarts, ExactOrderStats, FenwickNode, FenwickTree,
@@ -19,5 +21,6 @@ pub use statistics::{
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue};
 pub use weighted::{
-    WeightedCapitalizedPrice, WeightedCohortContribution, WeightedCohortState, WeightedRatio,
+    WeightedCapitalizedPrice, WeightedCohortAggregates, WeightedCohortContribution,
+    WeightedCohortState, WeightedRatio,
 };

@@ -1,10 +1,4 @@
-use std::{
-    fs::OpenOptions,
-    net::SocketAddr,
-    os::unix::fs::symlink,
-    path::Path,
-    time::Duration,
-};
+use std::{fs::OpenOptions, net::SocketAddr, os::unix::fs::symlink, path::Path, time::Duration};
 
 use aide::axum::ApiRouter;
 use axum::{
@@ -12,7 +6,8 @@ use axum::{
     http::{Request, StatusCode},
     serve as serve_http,
 };
-use brk_types::{Cents, CentsCompact, Cohort, Date, Sats, UrpdAggregation, UrpdRaw, UrpdWeight};
+use bitview_urpd::UrpdRaw;
+use brk_types::{Cents, CentsCompact, Cohort, Date, Sats, UrpdAggregation, UrpdWeight};
 use serde_json::{Value, from_str};
 use tokio::{
     fs, join,
@@ -64,6 +59,9 @@ pub async fn check_snapshots(state: &AppState, address: SocketAddr) {
         .unwrap()
     };
     write(date, 100_000_000_u64);
+    let cohorts = exchange_with_etag(address, "GET", "/api/urpd", "\"old\"").await;
+    assert!(cohorts.contains("\"fixture\""), "{cohorts}");
+    assert!(!cohorts.contains("\"emptyfixture\""), "{cohorts}");
     let route = "/api/urpd/fixture";
     let dated = "/api/urpd/fixture/2009-01-03";
     let response = exchange_with_etag(address, "GET", route, "\"old\"").await;

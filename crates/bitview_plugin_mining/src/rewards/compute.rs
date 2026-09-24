@@ -49,28 +49,11 @@ pub fn compute(
                 &prices.spot.cents.height,
                 &indexer.vecs().transactions.first_tx_index,
                 |_, tx_index| {
-                    let mut txout_cursor = indexer
-                        .vecs()
-                        .transactions
-                        .first_txout_index
-                        .reader()
-                        .cursor();
-                    let mut count_cursor = mappings.tx_index.output_count.cursor();
-
-                    let ti = tx_index.to_usize();
-
-                    txout_cursor.advance(ti - txout_cursor.position());
-                    let first_txout_index = txout_cursor.next().unwrap().to_usize();
-
-                    count_cursor.advance(ti - count_cursor.position());
-                    let output_count: usize = count_cursor.next().unwrap().into();
-
-                    indexer.vecs().outputs.value.fold_range_at(
-                        first_txout_index,
-                        first_txout_index + output_count,
-                        Sats::ZERO,
-                        |acc, v| acc + v,
-                    )
+                    transactions
+                        .fees
+                        .output_value
+                        .collect_one(tx_index)
+                        .unwrap()
                 },
                 exit,
             )

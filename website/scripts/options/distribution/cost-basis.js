@@ -10,6 +10,7 @@
  * Only for cohorts WITH costBasis (All, STH, LTH)
  */
 
+import { createAgeBoundsSection } from "../urpd/age-bounds.js";
 import { colors } from "../../utils/colors.js";
 import { price, percentRatio, pricePercentileSeries } from "../series.js";
 import { mapCohortsWithAll, flatMapCohortsWithAll } from "../shared.js";
@@ -58,15 +59,16 @@ function singleWeightFolder({ avgPrice, avgName, inProfit, inLoss, percentiles, 
 }
 
 /**
- * @param {{ cohort: CohortAll | CohortFull | CohortLongTerm, title: (name: string) => string }} args
+ * @param {{ cohort: CohortAll | CohortFull | CohortLongTerm, title: (name: string) => string, ageBounds?: Bitview.SeriesTree_Cohorts_Urpd_AgeBounds }} args
  * @returns {PartialOptionsGroup}
  */
-export function createCostBasisSectionWithPercentiles({ cohort, title }) {
+export function createCostBasisSectionWithPercentiles({ cohort, title, ageBounds }) {
   const { tree, color } = cohort;
   const cb = tree.costBasis;
   return {
     name: "Cost Basis",
     tree: [
+      ...(ageBounds ? [createAgeBoundsSection(ageBounds)] : []),
       {
         name: "Per Coin",
         tree: singleWeightFolder({

@@ -60,6 +60,29 @@ fn raw_encoding_panic_fences_the_writer() -> Result<()> {
     encoding_failure::<BytesVec<usize, PanicValue>>()
 }
 
+#[test]
+fn raw_update_encoding_panic_fences_the_writer() -> Result<()> {
+    let dir = tempdir()?;
+    let db = Database::open(dir.path())?;
+    let mut values =
+        MutableVec::<BytesVec<usize, PanicValue>>::import(&db, "values", Version::ONE)?;
+    values.push(PanicValue(10));
+    values.push(PanicValue(20));
+    values.stamped_write(Stamp::new(1))?;
+    values.update_at(0, PanicValue(30))?;
+    values.update_at(1, PanicValue(u64::MAX))?;
+
+    assert!(catch_unwind(AssertUnwindSafe(|| values.stamped_write(Stamp::new(2)))).is_err());
+    assert_eq!(values.stamp(), Stamp::new(1));
+    assert!(matches!(values.write(), Err(Error::WriteFailed)));
+    assert!(matches!(values.flush(), Err(Error::WriteFailed)));
+    assert!(matches!(
+        values.update_at(0, PanicValue(40)),
+        Err(Error::WriteFailed)
+    ));
+    Ok(())
+}
+
 #[cfg(feature = "lz4")]
 #[test]
 fn compressed_encoding_panic_fences_the_writer() -> Result<()> {

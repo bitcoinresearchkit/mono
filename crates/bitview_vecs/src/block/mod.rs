@@ -16,6 +16,7 @@ mod rolling;
 mod rolling_average;
 mod std_dev;
 mod stored;
+mod type_counts;
 
 pub use aggregated::PerBlockAggregated;
 pub use count_rolling_average::CountPerBlockRollingAverage;
@@ -35,3 +36,4 @@ pub use rolling::PerBlockRolling;
 pub use rolling_average::PerBlockRollingAverage;
 pub use std_dev::StdDevPerBlock;
 pub use stored::PerBlock;
+pub use type_counts::compute_type_counts;

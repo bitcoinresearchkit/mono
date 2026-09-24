@@ -27,7 +27,12 @@ fn failed_flush_preserves_dirty_ranges_and_pending_holes() -> Result<()> {
 
     // Force the actual mmap flush to fail without OS permissions or test hooks.
     // This intentionally invalid bookkeeping must survive each failed attempt.
-    kept.0.mark_dirty(db.file_len(), 1);
+    {
+        let _access = kept.0.access.write();
+        let _writes = db.inner.writes.read();
+        // SAFETY: both mutation guards are held; only the test range is invalid.
+        unsafe { kept.0.mark_dirty(db.file_len(), 1) };
+    }
     for _ in 0..2 {
         assert!(
             matches!(db.flush(), Err(Error::IO(error)) if error.kind() == ErrorKind::InvalidInput)
@@ -176,41 +181,85 @@ fn batch_panic_preserves_dirty_tracking() -> Result<()> {
 }
 
 #[test]
-fn unordered_batch_panics_without_losing_prior_writes() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let region = db.create_region_if_needed("batch")?;
-    region.write(&[0; 16])?;
-    db.flush()?;
-    let result = catch_unwind(AssertUnwindSafe(|| {
-        region.batch_write_ordered([(8, 9u8), (0, 7)].into_iter(), 1, |value, bytes| {
-            bytes[0] = *value
-        });
-    }));
-    assert!(result.is_err());
-    assert_eq!(db.flush()?, 1);
-    assert_eq!(region.create_reader().read(8, 1), &[9]);
-    assert_eq!(region.create_reader().read(0, 1), &[0]);
-    Ok(())
-}
-
-#[test]
 fn batch_iterator_panic_preserves_completed_writes() -> Result<()> {
     let (db, _temp) = setup_test_db()?;
     let region = db.create_region_if_needed("batch")?;
     region.write(&[0; 16])?;
     db.flush()?;
     let result = catch_unwind(AssertUnwindSafe(|| {
-        let values = (0..2).map(|index| {
-            assert_eq!(index, 0, "iterator failed after its first item");
-            (8, 9u8)
+        let values = (0..3).map(|index| {
+            assert_ne!(index, 1, "iterator failed after its first item");
+            (index * 4, 9u8)
         });
         region.batch_write_ordered(values, 1, |value, bytes| bytes[0] = *value);
     }));
     assert!(result.is_err());
     assert_eq!(db.flush()?, 1);
-    assert_eq!(region.create_reader().read(8, 1), &[9]);
+    assert_eq!(region.create_reader().read(0, 1), &[9]);
+    assert_eq!(region.create_reader().read(8, 1), &[0]);
     assert_eq!(db.flush()?, 0);
+    Ok(())
+}
+
+#[test]
+fn invalid_batch_bounds_leave_data_clean() -> Result<()> {
+    let (db, _temp) = setup_test_db()?;
+    let region = db.create_region_if_needed("batch")?;
+    region.write(&[1; 16])?;
+    db.flush()?;
+    let cases: &[(&[usize], usize)] = &[
+        (&[8, 0], 1),
+        (&[0, 16], 8),
+        (&[0, usize::MAX], 8),
+        (&[0], 17),
+        (&[0], usize::MAX),
+    ];
+    for &(offsets, value_len) in cases {
+        let mut called = false;
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            region.batch_write_ordered(
+                offsets.iter().map(|&offset| (offset, ())),
+                value_len,
+                |_, bytes| {
+                    called = true;
+                    bytes.fill(7);
+                },
+            );
+        }));
+        assert!(result.is_err());
+        assert!(!called);
+        assert_eq!(db.flush()?, 0);
+        assert_eq!(region.create_reader().read_all(), &[1; 16]);
+    }
+    Ok(())
+}
+
+#[test]
+fn middle_batch_offsets_cannot_escape_the_dirty_span() -> Result<()> {
+    for invalid in [0, 16, usize::MAX] {
+        let (db, temp) = setup_test_db()?;
+        let region = db.create_region_if_needed("batch")?;
+        region.write(&[0; 24])?;
+        db.flush()?;
+        let result = catch_unwind(AssertUnwindSafe(|| {
+            region.batch_write_ordered(
+                [(4, 7u8), (invalid, 9), (8, 11)].into_iter(),
+                1,
+                |value, bytes| bytes[0] = *value,
+            );
+        }));
+        assert!(result.is_err());
+        assert_eq!(db.flush()?, 1);
+        drop(region);
+        drop(db);
+        let db = Database::open(temp.path())?;
+        let mut expected = [0; 24];
+        expected[4] = 7;
+        assert_eq!(
+            db.get_region("batch").unwrap().create_reader().read_all(),
+            expected
+        );
+    }
     Ok(())
 }
 

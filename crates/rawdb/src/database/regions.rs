@@ -1,9 +1,11 @@
 use std::{
     cmp::Reverse,
-    collections::{BinaryHeap, HashMap, hash_map::Entry},
+    collections::{BinaryHeap, hash_map::Entry},
     path::Path,
     sync::{Arc, atomic::Ordering},
 };
+
+use rustc_hash::FxHashMap;
 
 use crate::{Database, Error, Region, RegionMetadata, Result};
 
@@ -11,7 +13,7 @@ use super::metadata_file::MetadataFile;
 
 /// Registry of live regions by ID and vacant metadata slots available for reuse.
 pub(crate) struct Regions {
-    by_id: HashMap<String, Region>,
+    by_id: FxHashMap<Arc<str>, Region>,
     /// Lowest vacant metadata slot first; avoids rescanning the registry on reuse.
     free_indexes: BinaryHeap<Reverse<usize>>,
     metadata: MetadataFile,
@@ -20,7 +22,7 @@ pub(crate) struct Regions {
 impl Regions {
     pub(crate) fn open(parent: &Path) -> Result<Self> {
         Ok(Self {
-            by_id: HashMap::new(),
+            by_id: FxHashMap::default(),
             free_indexes: BinaryHeap::new(),
             metadata: MetadataFile::open(&parent.join("regions"))?,
         })
@@ -40,10 +42,11 @@ impl Regions {
         self.by_id.len()
     }
 
-    pub(crate) fn fill(&mut self, db: &Database) -> Result<()> {
+    pub(crate) fn fill(&mut self, db: &Database) -> Result<Vec<(usize, Region)>> {
         let data_len = db.file_len();
         let slots = self.metadata.slots();
         self.by_id.reserve(slots.len());
+        let mut imported = Vec::with_capacity(slots.len());
         for (index, meta) in slots.enumerate() {
             let meta = meta.map_err(|error| {
                 Error::CorruptedMetadata(format!("region slot {index}: {error}"))
@@ -61,18 +64,20 @@ impl Regions {
                     "region slot {index} ends at {end}, beyond data file length {data_len}"
                 )));
             }
-            let Entry::Vacant(entry) = self.by_id.entry(meta.id().to_owned()) else {
+            let Entry::Vacant(entry) = self.by_id.entry(meta.shared_id()) else {
                 return Err(Error::CorruptedMetadata(format!(
                     "duplicate region id '{}'",
                     meta.id()
                 )));
             };
+            let start = meta.start();
             let region = Region::new(db, index, meta);
             region.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            entry.insert(region);
+            entry.insert(region.clone());
+            imported.push((start, region));
         }
 
-        Ok(())
+        Ok(imported)
     }
 
     pub(crate) fn shrink_to_fit(&mut self) -> Result<()> {
@@ -85,9 +90,9 @@ impl Regions {
         self.metadata.truncate(len)
     }
 
-    pub(crate) fn create(&mut self, db: &Database, id: String, start: usize) -> Result<Region> {
+    pub(crate) fn create(&mut self, db: &Database, id: Arc<str>, start: usize) -> Result<Region> {
         assert!(
-            !self.by_id.contains_key(&id),
+            !self.by_id.contains_key(id.as_ref()),
             "region ID is already registered"
         );
         // With no vacancies, the live slots are contiguous from zero.
@@ -135,8 +140,10 @@ impl Regions {
         self.metadata.clear(region.index());
     }
 
-    pub(crate) fn is_dirty(&self) -> bool {
-        self.metadata.is_dirty()
+    /// # Safety
+    /// Hold the database mutation barrier exclusively.
+    pub(crate) unsafe fn metadata_is_dirty(&self) -> bool {
+        unsafe { self.metadata.is_dirty() }
     }
 
     pub(crate) fn flush(&self) -> Result<bool> {

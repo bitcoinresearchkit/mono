@@ -5,6 +5,8 @@ use super::urpd;
 use crate::test_cache::init_cache;
 #[cfg(feature = "chain")]
 use bitcoin::consensus::encode;
+#[cfg(all(feature = "chain", feature = "urpd"))]
+use bitview_cohort::UTXOAggregateId;
 #[cfg(feature = "chain")]
 use brk_types::BlockHash;
 #[cfg(any(feature = "chain", all(feature = "chain", feature = "series")))]
@@ -44,17 +46,19 @@ use bitview_default::DefaultPlugins;
 #[cfg(feature = "chain")]
 use bitview_plugin::ImportContext;
 #[cfg(all(feature = "chain", feature = "urpd"))]
-use bitview_plugin_distribution::{AgeRangeUrpds, HasDistribution};
+use bitview_plugin_distribution::HasDistribution;
 #[cfg(feature = "chain")]
 use bitview_query::AsyncQuery;
 #[cfg(all(feature = "chain", feature = "series"))]
 use bitview_types::{Limit, Pagination, SearchQuery};
+#[cfg(all(feature = "chain", feature = "urpd"))]
+use bitview_urpd::AgeRangeUrpds;
 #[cfg(feature = "chain")]
 use brk_reader::Reader;
 #[cfg(feature = "chain")]
 use brk_rpc::{Auth, Client};
 #[cfg(all(feature = "chain", feature = "urpd"))]
-use brk_types::{Cohort, UrpdWeight};
+use brk_types::UrpdWeight;
 #[cfg(feature = "chain")]
 use serde_json::Value;
 #[cfg(feature = "chain")]
@@ -998,11 +1002,12 @@ fn server_routes_preserve_validation_and_errors_before_conditionals() {
                     assert!(response.starts_with("HTTP/1.1 200"), "{response}");
                     assert!(response.ends_with("\r\n\r\n[]"), "{response}");
                     let etag = response.lines().find_map(|line| line.strip_prefix("etag: ")).unwrap();
-                    // Simulate the publication of the directory used by the producer.
+                    // Empty snapshot directories and cost-basis state are not publications.
                     fs::create_dir_all(AgeRangeUrpds::dir(&states_path)).await.unwrap();
+                    fs::create_dir_all(states_path.join("checkpoint_only").join("cost_basis")).await.unwrap();
                     let response = exchange_with_etag(address, "GET", "/api/urpd", etag).await;
-                    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-                    assert!(response.contains("\"all\""), "{response}");
+                    assert!(response.starts_with("HTTP/1.1 304"), "{response}");
+                    assert!(response.ends_with("\r\n\r\n"), "{response}");
                     let response = exchange(address, "GET", "/api/urpd/unknown").await;
                     assert!(response.starts_with("HTTP/1.1 404"), "{response}");
                     let response = exchange(address, "GET", "/api/urpd/all").await;
@@ -1014,9 +1019,17 @@ fn server_routes_preserve_validation_and_errors_before_conditionals() {
                     let old = response.lines().find_map(|line| line.strip_prefix("etag: ")).unwrap();
                     // Dates discovery reads filenames; no snapshot payload is read here.
                     fs::write(AgeRangeUrpds::dir(&states_path).join("2026-09-01"), b"").await.unwrap();
+                    let response = exchange_with_etag(address, "GET", "/api/urpd", etag).await;
+                    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
+                    assert!(response.contains("\"all\""), "{response}");
+                    assert!(!response.contains("checkpoint_only"), "{response}");
                     for weight in UrpdWeight::WEIGHTED {
                         let weighted_dir = query.sync(|query| {
-                            query.plugins().bedrock.urpd_dir(weight, &Cohort::new("all").unwrap())
+                            match weight {
+                                UrpdWeight::Cointime => query.plugins().cointime.urpd.dir(UTXOAggregateId::All),
+                                UrpdWeight::Coinflow => query.plugins().coinflow.urpd.dir(UTXOAggregateId::All),
+                                UrpdWeight::Raw => unreachable!(),
+                            }
                         });
                         urpd::check_weighted_errors(address, &weighted_dir, weight).await;
                     }

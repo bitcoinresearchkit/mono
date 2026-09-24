@@ -1,3 +1,4 @@
+import { createWeightedUrpdSection } from "../../urpd/index.js";
 import { colors } from "../../../utils/colors.js";
 import { bitview } from "../../../utils/client.js";
 import { Unit } from "../../../utils/units.js";
@@ -22,7 +23,6 @@ import {
  */
 export function createCointimeSection() {
   const { cohorts, supply, cointime } = bitview.series;
-  const frameworkAgeRange = bitview.series.frameworks.cointime.ageRange;
   const {
     prices: cointimePrices,
     cap,
@@ -35,7 +35,7 @@ export function createCointimeSection() {
   const cointimeAgeRanges = ageRanges.map(({ key, ...range }) => ({
     ...range,
     tree: {
-      coindaysCreated: frameworkAgeRange.coindaysCreated[key],
+      coindaysCreated: cointime.ageRange.coindaysCreated[key],
       coindaysConsumed: cointime.ageRange.coindaysConsumed[key],
       coindaysStored: cointime.ageRange.coindaysStored[key],
       wakefulness: cointime.ageRange.activity.wakefulness[key],
@@ -276,6 +276,7 @@ export function createCointimeSection() {
         ],
       },
 
+      createWeightedUrpdSection("Cointime", cointime.urpd),
       {
         name: "Capitalization",
         tree: [

@@ -23,8 +23,8 @@ test("actual search worker loads its matcher and resolves catalog links", async 
     assert.equal(replies[0].error, undefined);
     assert.ok(replies[0].results.length >= 4);
     for (const [title, href, blank] of replies[0].results) {
-      assert.match(title, /Weighted Supply Density/);
-      assert.match(href, /^\/charts\/models\/bedrock\//);
+      assert.match(title, /Weighted Supply Density$/);
+      assert.match(href, /^\/charts\/frameworks\/(cointime|coinflow)\/urpd\/supply-density\//);
       assert.equal(blank, false);
     }
   } finally {
@@ -101,7 +101,7 @@ test("chart routes match encoded cutoffs, symbols and existing percent escapes",
   for (const [url, catalog] of [
     ["%3C4m", "<4m"],
     ["sth-(%3C5m)", "sth-(<5m)"],
-    ["supply-density-(%C2%B110%25)", "supply-density-(±10%25)"],
+    ["band-(%C2%B15%25)", "band-(±5%25)"],
     ["all", "all"],
   ]) assert.equal(decodePathSegment(url), decodePathSegment(catalog));
   assert.equal(decodePathSegment("malformed%"), "malformed%");

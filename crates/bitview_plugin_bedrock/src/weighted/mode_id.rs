@@ -1,3 +1,5 @@
+use bitview_plugin_coinflow::HorizonId;
+
 use super::super::{MODE_COUNT, ModeId};
 
 const WEIGHTED_MODE_COUNT: usize = MODE_COUNT - 1;
@@ -49,6 +51,19 @@ impl WeightedModeId {
             Self::Coinflow6M => ModeId::Coinflow6M,
             Self::Coinflow3M => ModeId::Coinflow3M,
             Self::Coinflow1M => ModeId::Coinflow1M,
+        }
+    }
+
+    pub const fn coinflow_horizon(self) -> Option<HorizonId> {
+        match self {
+            Self::Cointime | Self::Coinflow => None,
+            Self::Coinflow8Y => Some(HorizonId::Y8),
+            Self::Coinflow4Y => Some(HorizonId::Y4),
+            Self::Coinflow2Y => Some(HorizonId::Y2),
+            Self::Coinflow1Y => Some(HorizonId::Y1),
+            Self::Coinflow6M => Some(HorizonId::M6),
+            Self::Coinflow3M => Some(HorizonId::M3),
+            Self::Coinflow1M => Some(HorizonId::M1),
         }
     }
 }

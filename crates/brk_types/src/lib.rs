@@ -186,7 +186,6 @@ mod unknown_output_index;
 mod urpd;
 mod urpd_aggregation;
 mod urpd_bucket;
-mod urpd_raw;
 mod urpd_weight;
 mod utxo;
 #[cfg(feature = "storage")]
@@ -382,7 +381,6 @@ pub use unknown_output_index::*;
 pub use urpd::*;
 pub use urpd_aggregation::*;
 pub use urpd_bucket::*;
-pub use urpd_raw::*;
 pub use urpd_weight::*;
 pub use utxo::*;
 pub use vin::*;

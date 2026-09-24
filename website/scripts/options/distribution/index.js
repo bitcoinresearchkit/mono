@@ -111,7 +111,7 @@ export function createCohortFolderAll(cohort) {
       ),
       lazyGroup("Prices", () => createPricesSectionFull({ cohort, title })),
       lazyGroup("Cost Basis", () =>
-        createCostBasisSectionWithPercentiles({ cohort, title }),
+        createCostBasisSectionWithPercentiles({ cohort, title, ageBounds: bitview.series.cohorts.urpd.ageBounds }),
       ),
       lazyGroup("Profitability", () =>
         createProfitabilitySectionAll({ cohort, title }),

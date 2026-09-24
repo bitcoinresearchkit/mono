@@ -1,4 +1,3 @@
-use bitview_plugin_bedrock::Vecs as BedrockVecs;
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_distribution::Vecs as DistributionVecs;
@@ -133,7 +132,6 @@ pub fn forced_import(
     version: Version,
     mappings: &MappingsVecs,
     distribution: &DistributionVecs,
-    bedrock: &BedrockVecs,
     reference_prices: &ReferencePrices,
     cointime: &CointimeVecs,
     coinflow: &CoinflowVecs,
@@ -149,7 +147,6 @@ pub fn forced_import(
     }
 
     let cost_basis = &utxos.cost_basis.cohorts;
-    let weighted = &bedrock.cost_basis;
 
     Ok(Components {
         realized_price: import!("realized_price", realized_price.all),
@@ -201,84 +198,180 @@ pub fn forced_import(
             "cointime_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.per_coin.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .all
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         cointime_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "cointime_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.per_dollar.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .all
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         coinflow_median_price_btc_weighted: MedianComponent::forced_import_daily(
             db,
             "coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.per_coin.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .all
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         coinflow_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.per_dollar.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .all
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         sth_cointime_median_price_btc_weighted: MedianComponent::forced_import_daily(
             db,
             "sth_cointime_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.sth.per_coin.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .sth
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         sth_cointime_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "sth_cointime_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.sth.per_dollar.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .sth
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         lth_cointime_median_price_btc_weighted: MedianComponent::forced_import_daily(
             db,
             "lth_cointime_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.lth.per_coin.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .lth
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         lth_cointime_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "lth_cointime_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.lth.per_dollar.cointime.pct50.cents.views.height,
+            &cointime
+                .urpd
+                .cost_basis
+                .lth
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import_daily(
             db,
             "sth_coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.sth.per_coin.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .sth
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "sth_coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.sth.per_dollar.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .sth
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import_daily(
             db,
             "lth_coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &weighted.lth.per_coin.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .lth
+                .per_coin
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import_daily(
             db,
             "lth_coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &weighted.lth.per_dollar.coinflow.pct50.cents.views.height,
+            &coinflow
+                .urpd
+                .cost_basis
+                .lth
+                .per_dollar
+                .pct50
+                .cents
+                .views
+                .height,
         )?,
         sth_realized_price: import!("sth_realized_price", realized_price.term.short),
         sth_capitalized_price: import!("sth_capitalized_price", capitalized_price.sth),

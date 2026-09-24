@@ -1,0 +1,25 @@
+[package]
+name = "bitview_urpd"
+description = "Shared UTXO price distribution calculations and metric storage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+
+[dependencies]
+bitcoin = { workspace = true }
+bitview_compute = { workspace = true }
+bitview_cohort = { workspace = true, features = ["storage"] }
+bitview_collections = { workspace = true, features = ["storage"] }
+bitview_transforms = { workspace = true }
+bitview_traversable = { workspace = true }
+bitview_vecs = { workspace = true }
+brk_error = { workspace = true, features = ["pco"] }
+brk_exit = { workspace = true }
+brk_types = { workspace = true, features = ["storage"] }
+vecdb = { workspace = true }
+pco = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

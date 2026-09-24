@@ -13177,36 +13177,9 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nValidated at construction: non-empty, ASCII `[a-z0-9_]+`. Matches the\nschemars enum value set; the type therefore proves \"this is a valid\ncohort name\" wherever a `Cohort` is held.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
               "type": "string",
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ]
+              "pattern": "^[a-z0-9_]+$"
             },
             "UrpdAggregation": {
               "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).",
@@ -13245,34 +13218,7 @@
               "type": "number"
             },
             "Cohort": {
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ],
+              "pattern": "^[a-z0-9_]+$",
               "type": "string"
             },
             "Date": {
@@ -13464,36 +13410,9 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nValidated at construction: non-empty, ASCII `[a-z0-9_]+`. Matches the\nschemars enum value set; the type therefore proves \"this is a valid\ncohort name\" wherever a `Cohort` is held.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
               "type": "string",
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ]
+              "pattern": "^[a-z0-9_]+$"
             },
             "UrpdAggregation": {
               "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).",
@@ -13532,34 +13451,7 @@
               "type": "number"
             },
             "Cohort": {
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ],
+              "pattern": "^[a-z0-9_]+$",
               "type": "string"
             },
             "Date": {
@@ -13842,34 +13734,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ],
+              "pattern": "^[a-z0-9_]+$",
               "type": "string"
             }
           }
@@ -13910,36 +13775,9 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nValidated at construction: non-empty, ASCII `[a-z0-9_]+`. Matches the\nschemars enum value set; the type therefore proves \"this is a valid\ncohort name\" wherever a `Cohort` is held.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
               "type": "string",
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "utxos_under_1h_old",
-                "utxos_1h_to_1d_old",
-                "utxos_1d_to_1w_old",
-                "utxos_1w_to_1m_old",
-                "utxos_1m_to_2m_old",
-                "utxos_2m_to_3m_old",
-                "utxos_3m_to_4m_old",
-                "utxos_4m_to_5m_old",
-                "utxos_5m_to_6m_old",
-                "utxos_6m_to_9m_old",
-                "utxos_9m_to_1y_old",
-                "utxos_1y_to_18m_old",
-                "utxos_18m_to_2y_old",
-                "utxos_2y_to_3y_old",
-                "utxos_3y_to_4y_old",
-                "utxos_4y_to_5y_old",
-                "utxos_5y_to_6y_old",
-                "utxos_6y_to_7y_old",
-                "utxos_7y_to_8y_old",
-                "utxos_8y_to_10y_old",
-                "utxos_10y_to_12y_old",
-                "utxos_12y_to_15y_old",
-                "utxos_over_15y_old"
-              ]
+              "pattern": "^[a-z0-9_]+$"
             },
             "UrpdWeight": {
               "description": "Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.",

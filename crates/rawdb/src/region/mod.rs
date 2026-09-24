@@ -3,11 +3,14 @@ mod inner;
 pub(crate) mod metadata;
 mod reader;
 pub(crate) mod residency;
+#[cfg(test)]
+mod tests;
 
 pub use metadata::RegionMetadata;
 pub use reader::Reader;
 
 use std::{
+    collections::BTreeMap,
     fs::File,
     slice,
     sync::{Arc, atomic::Ordering},
@@ -15,7 +18,7 @@ use std::{
 
 use parking_lot::RwLockReadGuard;
 
-use crate::{Database, Error, PAGE_SIZE, Result};
+use crate::{Database, Error, PAGE_SIZE, Result, dirty_ranges::DirtyRanges};
 
 use self::{
     dirty_write::DirtyWrite,
@@ -40,22 +43,22 @@ impl Region {
 
     /// Holds the region stable for a scoped read, including buffered file I/O.
     /// Drop the guard before mutating this region.
+    #[inline]
     pub fn read_lock(&self) -> RwLockReadGuard<'_, ()> {
         self.0.access.read_recursive()
     }
 
     /// Runs `f` with the region's bytes. The callback must not mutate this region
     /// or grow the database mapping while the borrowed bytes are alive.
-    #[inline]
+    #[inline(always)]
     pub fn with_read_bytes<R>(&self, f: impl FnOnce(&[u8]) -> R) -> R {
-        let _access = self.read_lock();
         let db = self.db();
-        let meta = self.meta();
-        let start = meta.start();
-        let len = meta.len();
-        drop(meta);
-        let mmap = db.inner.data.read();
-        assert!(start <= mmap.len() && len <= mmap.len() - start);
+        let data = &db.inner.data;
+        let _access = self.read_lock();
+        // SAFETY: access keeps all metadata fields stable.
+        let (start, len, _) = unsafe { self.0.bounds() };
+        let mmap = data.read();
+        debug_assert!(start <= mmap.len() && len <= mmap.len() - start);
         // SAFETY: access prevents changes to this region, and mmap prevents
         // remapping. Only this region's initialized bytes are borrowed.
         f(unsafe { slice::from_raw_parts(mmap.as_ptr().add(start), len) })
@@ -77,6 +80,7 @@ impl Region {
             return true;
         }
 
+        let db = self.db();
         let _access = self.read_lock();
         let meta = self.meta();
         let Some(end) = offset.checked_add(len) else {
@@ -90,7 +94,6 @@ impl Region {
         };
         drop(meta);
 
-        let db = self.db();
         let mmap = db.inner.data.read();
         is_range_resident(&mmap, absolute_start, len)
     }
@@ -101,6 +104,9 @@ impl Region {
     /// into the added space. When the region cannot grow in place, its current
     /// contents are moved once to a sufficiently large contiguous range.
     pub fn reserve_capacity(&self, capacity: usize) -> Result<()> {
+        if capacity <= self.meta().reserved() {
+            return Ok(());
+        }
         let db = self.db();
         let _access = self.0.access.write();
         let capacity = capacity
@@ -111,21 +117,30 @@ impl Region {
                 current: self.meta().reserved(),
                 requested: capacity,
             })?;
-        self.reserve_inner(&db, capacity)
-    }
-
-    /// Caller holds this region's access lock. Capacity changes preserve all
-    /// existing logical bytes, so an intervening flush can persist them safely.
-    fn reserve_inner(&self, db: &Database, capacity: usize) -> Result<()> {
         let meta = self.meta();
-        let start = meta.start();
-        let len = meta.len();
-        let reserved = meta.reserved();
-        drop(meta);
-        if capacity <= reserved {
+        if capacity <= meta.reserved() {
             return Ok(());
         }
+        let len = meta.len();
+        drop(meta);
+        let _writes = self.reserve_inner(&db, capacity, len)?;
+        db.regions().update_bounds(self.index(), &self.meta());
+        Ok(())
+    }
 
+    /// Grows the in-memory allocation while the caller holds region access.
+    /// Keep the returned barrier until replacement bytes and metadata are written;
+    /// a truncating write copies only its prefix. Metadata slots stay unchanged here.
+    fn reserve_inner<'a>(
+        &self,
+        db: &'a Database,
+        capacity: usize,
+        copy_len: usize,
+    ) -> Result<RwLockReadGuard<'a, ()>> {
+        let meta = self.meta();
+        let start = meta.start();
+        let reserved = meta.reserved();
+        drop(meta);
         loop {
             let writes = db.inner.writes.read();
             let mut layout = db.layout_mut();
@@ -154,27 +169,31 @@ impl Region {
                 // mutation-barrier locks. No tentative allocation needs rollback.
                 drop(layout);
                 drop(writes);
-                db.inner.data.ensure_len(end)?;
+                db.inner.data.ensure_len(end, &db.inner.writes)?;
                 continue;
             }
             if adjacent {
                 layout.consume_hole(next, added);
             } else if !in_place {
-                // SAFETY: access owns the source region; layout owns the free destination.
-                unsafe { db.inner.data.copy(start, new_start, len) };
                 if hole.is_some() {
                     layout.consume_hole(new_start, capacity);
                 }
                 layout.move_region(new_start, self);
-                self.0.mark_dirty(0, len);
             }
-            let regions = db.regions();
             let mut meta = self.0.meta.write();
             meta.set_start(new_start);
             meta.set_reserved(capacity);
             self.0.tail_needs_punch.store(true, Ordering::Relaxed);
-            regions.update_bounds(self.index(), &meta);
-            return Ok(());
+            drop(meta);
+            drop(layout);
+            if !in_place {
+                // The layout now reserves the destination. Region access keeps
+                // readers out, and the barrier prevents flushing or remapping
+                // until the copy and the caller's write have both completed.
+                unsafe { db.inner.data.copy(start, new_start, copy_len) };
+                unsafe { self.0.mark_dirty(0, copy_len) };
+            }
+            return Ok(writes);
         }
     }
 
@@ -191,14 +210,66 @@ impl Region {
         self.write_with(data, Some(at), false)
     }
 
+    /// Writes fixed-size values at `at + index * value_len` within the current
+    /// region length, in ascending key order. All bounds are checked before writing.
+    /// Written bytes remain dirty if a callback or value destructor panics.
+    /// Callbacks and destructors may read other regions, but must not read this
+    /// region or write, resize, or flush this database.
+    #[inline]
+    pub fn write_indexed<T>(
+        &self,
+        values: BTreeMap<usize, T>,
+        value_len: usize,
+        at: usize,
+        mut write_fn: impl FnMut(&T, &mut [u8]),
+    ) {
+        let Some((&first, _)) = values.first_key_value() else {
+            return;
+        };
+        let last = *values.last_key_value().unwrap().0;
+        let start = first
+            .checked_mul(value_len)
+            .and_then(|n| at.checked_add(n))
+            .expect("batch offset overflow");
+        let end = last
+            .checked_mul(value_len)
+            .and_then(|n| at.checked_add(n))
+            .and_then(|n| n.checked_add(value_len))
+            .expect("batch offset overflow");
+        let db = self.db();
+        let storage = &**db.inner;
+        let _access = self.0.access.write();
+        let _writes = storage.writes.read();
+        // SAFETY: access keeps bounds stable; the barrier prevents remapping.
+        let (region_start, region_len, _) = unsafe { self.0.bounds() };
+        assert!(end <= region_len, "batch bounds exceed region");
+        let _dirty = DirtyWrite {
+            region: &self.0,
+            start,
+            end,
+        };
+        // SAFETY: at <= end <= region_len; access excludes readers and other
+        // writers, and the barrier keeps the validated mapping in place.
+        let ptr = unsafe { storage.data.mapping().as_mut_ptr().add(region_start + at) };
+        for (index, value) in values {
+            // SAFETY: this owned map has immutable usize keys in [first, last].
+            // The checked maximum proves every record fits without overflow.
+            // Each exclusive borrow ends before the next callback.
+            let bytes = unsafe { slice::from_raw_parts_mut(ptr.add(index * value_len), value_len) };
+            write_fn(&value, bytes);
+        }
+    }
+
     /// Writes ascending (offset, value) pairs within the region's current length.
-    /// Panics for unordered or out-of-bounds offsets. Completed writes remain
-    /// dirty if the iterator or callback panics. The callback must not reenter
-    /// this region or resize/flush the database.
+    /// The first and last offsets define the batch's bounds. Every write must
+    /// fall within those bounds. Both endpoints are read before the middle;
+    /// write callbacks still run in forward order.
+    /// Written bytes remain dirty if the iterator or callback panics. The callback
+    /// may read other regions, but must not write, resize, or flush this database.
     #[inline]
     pub fn batch_write_ordered<T, F>(
         &self,
-        mut iter: impl Iterator<Item = (usize, T)>,
+        mut iter: impl DoubleEndedIterator<Item = (usize, T)>,
         value_len: usize,
         mut write_fn: F,
     ) where
@@ -207,35 +278,53 @@ impl Region {
         let Some(first) = iter.next() else {
             return;
         };
+        let last = iter.next_back();
+        let last_offset = last.as_ref().map_or(first.0, |value| value.0);
         let db = self.db();
+        let storage = &**db.inner;
         let _access = self.0.access.write();
-        let _writes = db.inner.writes.read();
-        let meta = self.meta();
-        let region_start = meta.start();
-        let region_len = meta.len();
-        drop(meta);
-        let mmap = db.inner.data.read();
-        assert!(region_start <= mmap.len() && region_len <= mmap.len() - region_start);
-        // SAFETY: the access lock excludes all other users of this region's
-        // bytes, and the mmap guard prevents remapping for the entire batch.
-        let bytes =
-            unsafe { slice::from_raw_parts_mut(mmap.as_mut_ptr().add(region_start), region_len) };
-        let mut dirty = DirtyWrite {
+        let _writes = storage.writes.read();
+        // SAFETY: access keeps bounds stable; the barrier prevents remapping.
+        let (region_start, region_len, _) = unsafe { self.0.bounds() };
+        let end = last_offset
+            .checked_add(value_len)
+            .expect("batch offset overflow");
+        assert!(
+            first.0 <= last_offset && end <= region_len,
+            "batch bounds exceed region"
+        );
+        // SAFETY: the barrier prevents remapping, and allocation/import validate bounds.
+        let ptr = unsafe {
+            storage
+                .data
+                .mapping()
+                .as_mut_ptr()
+                .add(region_start + first.0)
+        };
+        let _dirty = DirtyWrite {
             region: &self.0,
             start: first.0,
-            end: first.0,
+            end,
         };
-        let mut previous = first.0;
-        let mut write = |offset, value: &T| {
-            assert!(offset >= previous, "batch offsets must be ordered");
-            assert!(offset <= region_len && value_len <= region_len - offset);
-            dirty.end = offset + value_len;
-            previous = offset;
-            write_fn(value, &mut bytes[offset..dirty.end]);
+        let span_len = end - first.0;
+        // SAFETY: the validated span is exclusively held and cannot be remapped.
+        let bytes = unsafe { slice::from_raw_parts_mut(ptr, span_len) };
+        let mut write = |offset: usize, value: &T| {
+            let relative = offset.wrapping_sub(first.0);
+            let dst = bytes
+                .get_mut(relative..)
+                .and_then(|tail| tail.get_mut(..value_len))
+                .expect("offset outside batch bounds");
+            write_fn(value, dst);
         };
-        // Chaining the first item back into the iterator slows large batches.
         write(first.0, &first.1);
-        for (offset, value) in iter {
+        if let Some((offset, value)) = iter.next() {
+            write(offset, &value);
+            for (offset, value) in iter {
+                write(offset, &value);
+            }
+        }
+        if let Some((offset, value)) = last {
             write(offset, &value);
         }
     }
@@ -243,6 +332,9 @@ impl Region {
     /// Keeps the first `from` bytes without changing reserved capacity.
     /// Returns an error if `from` exceeds the current length.
     pub fn truncate(&self, from: usize) -> Result<()> {
+        if from == self.meta().len() {
+            return Ok(());
+        }
         let db = self.db();
         let _access = self.0.access.write();
         let _writes = db.inner.writes.read();
@@ -270,14 +362,25 @@ impl Region {
 
     #[inline]
     fn write_with(&self, data: &[u8], at: Option<usize>, truncate: bool) -> Result<()> {
+        if data.is_empty() {
+            let Some(offset) = at else {
+                return Ok(());
+            };
+            let len = self.meta().len();
+            if offset > len {
+                return Err(Error::WriteOutOfBounds {
+                    position: offset,
+                    region_len: len,
+                });
+            }
+            if !truncate || offset == len {
+                return Ok(());
+            }
+        }
         let db = self.db();
         let _access = self.0.access.write();
-        let meta = self.meta();
-        // Access keeps this stable unless this write relocates the region.
-        let mut start = meta.start();
-        let len = meta.len();
-        let reserved = meta.reserved();
-        drop(meta);
+        // SAFETY: access keeps metadata stable until this operation updates it.
+        let (mut start, len, reserved) = unsafe { self.0.bounds() };
         let offset = at.unwrap_or(len);
         if offset > len {
             return Err(Error::WriteOutOfBounds {
@@ -293,19 +396,22 @@ impl Region {
                 requested: data.len(),
             })?;
         let new_len = if truncate { end } else { end.max(len) };
-        if new_len > reserved {
+        let _writes = if new_len > reserved {
             let mut capacity = reserved;
             while capacity < new_len {
                 capacity = capacity.saturating_mul(2).min(MAX_RESERVED_SIZE);
             }
-            self.reserve_inner(&db, capacity)?;
+            let copy_len = if truncate { offset } else { len };
+            let writes = self.reserve_inner(&db, capacity, copy_len)?;
             start = self.meta().start();
-        }
-
-        let _writes = db.inner.writes.read();
+            writes
+        } else {
+            db.inner.writes.read()
+        };
         // SAFETY: access excludes readers and overlapping writes to this region.
         unsafe { db.inner.data.write(start + offset, data) };
-        self.0.mark_dirty(offset, data.len());
+        // SAFETY: region access and the mutation barrier remain held.
+        unsafe { self.0.mark_dirty(offset, data.len()) };
         if new_len != len {
             let regions = db.regions();
             let mut meta = self.0.meta.write();
@@ -331,14 +437,26 @@ impl Region {
         Ok(())
     }
 
-    /// Flushes all dirty data and metadata in this region's database.
-    /// The metadata file is shared, so all regions' data must precede its sync.
-    /// Returns whether any region data or region metadata was flushed.
+    /// Flushes this region's dirty data and any pending metadata.
+    /// When metadata changed, all database data must precede its synchronization.
+    /// Returns whether data or metadata was flushed.
     pub fn flush(&self) -> Result<bool> {
         let db = self.db();
-        let _writes = db.inner.writes.write();
-        db.flush_inner()
-            .map(|(regions, metadata)| regions > 0 || metadata)
+        let writes = db.inner.writes.write();
+        if db.metadata_is_dirty(&writes) {
+            return db
+                .flush_inner(&writes)
+                .map(|(regions, metadata)| regions > 0 || metadata);
+        }
+        let mut ranges = DirtyRanges::default();
+        // SAFETY: the exclusive barrier stabilizes dirty ranges and their bounds.
+        if !unsafe { self.0.append_dirty_ranges(&mut ranges) } {
+            return Ok(false);
+        }
+        // SAFETY: no writer or remapper can run until the barrier is released.
+        unsafe { db.inner.data.flush(&ranges) }?;
+        unsafe { self.0.clear_dirty_ranges() };
+        Ok(true)
     }
 
     pub(crate) fn ptr_eq(&self, other: &Region) -> bool {
@@ -355,6 +473,7 @@ impl Region {
         self.0.meta.read()
     }
 
+    #[inline]
     pub fn db(&self) -> Database {
         self.0.db.upgrade()
     }

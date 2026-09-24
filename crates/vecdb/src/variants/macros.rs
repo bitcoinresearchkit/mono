@@ -406,11 +406,10 @@ macro_rules! impl_mutable_raw_vec {
                         .header()
                         .begin_write()
                         .expect("vector cannot continue after a failed write");
-                    self.region().batch_write_ordered(
-                        updated.into_iter().map(|(index, value)| {
-                            (index * size_of::<T>() + crate::HEADER_OFFSET, value)
-                        }),
+                    self.region().write_indexed(
+                        updated,
                         size_of::<T>(),
+                        crate::HEADER_OFFSET,
                         $strategy::<T>::write_to_slice,
                     );
                     guard.finish(Ok(())).expect("ordered update completed");

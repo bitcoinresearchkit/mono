@@ -28,6 +28,10 @@ impl BackgroundTasks {
     }
 
     pub(crate) fn join(&self) -> Result<()> {
+        // An empty queue is enough only when no other join owns drained tasks.
+        if self.handles.lock().is_empty() && self.join.try_lock().is_some() {
+            return Ok(());
+        }
         let _join = self.join.lock();
         *self.joining.lock() = true;
         self.wake.notify_all();

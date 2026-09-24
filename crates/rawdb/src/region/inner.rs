@@ -1,8 +1,11 @@
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::{
+    cell::UnsafeCell,
+    sync::atomic::{AtomicBool, Ordering},
+};
 
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 
-use crate::{Database, database::weak::WeakDatabase, dirty_ranges::DirtyRanges};
+use crate::{Database, PAGE_SIZE, database::weak::WeakDatabase, dirty_ranges::DirtyRanges};
 
 use super::RegionMetadata;
 
@@ -16,8 +19,13 @@ pub(crate) struct RegionInner {
     pub(crate) access: RwLock<()>,
     pub(crate) tail_needs_punch: AtomicBool,
     /// Sorted, merged dirty byte ranges relative to the region start.
-    dirty_ranges: Mutex<DirtyRanges>,
+    dirty_ranges: UnsafeCell<DirtyRanges>,
 }
+
+// SAFETY: dirty ranges are mutated only with exclusive region access plus the
+// mutation barrier. Flush reads/clears them with that barrier held exclusively.
+// All remaining shared fields are immutable, atomic, or independently locked.
+unsafe impl Sync for RegionInner {}
 
 impl RegionInner {
     pub(super) fn new(db: &Database, index: usize, meta: RegionMetadata) -> Self {
@@ -28,8 +36,16 @@ impl RegionInner {
             meta: RwLock::new(meta),
             access: RwLock::new(()),
             tail_needs_punch: AtomicBool::new(false),
-            dirty_ranges: Mutex::new(DirtyRanges::default()),
+            dirty_ranges: UnsafeCell::new(DirtyRanges::default()),
         }
+    }
+
+    /// # Safety
+    /// Hold region access or the exclusive database mutation barrier.
+    /// Every metadata mutation takes both region access and the shared barrier.
+    pub(crate) unsafe fn bounds(&self) -> (usize, usize, usize) {
+        let meta = unsafe { &*self.meta.data_ptr() };
+        (meta.start(), meta.len(), meta.reserved())
     }
 
     pub(crate) fn mark_accessed(&self) {
@@ -40,29 +56,38 @@ impl RegionInner {
         self.accessed.load(Ordering::Relaxed)
     }
 
+    /// # Safety
+    /// Hold exclusive region access and the database mutation barrier.
     #[inline]
-    pub(crate) fn mark_dirty(&self, offset: usize, len: usize) {
-        self.dirty_ranges.lock().insert(offset..offset + len);
+    pub(crate) unsafe fn mark_dirty(&self, offset: usize, len: usize) {
+        unsafe { &mut *self.dirty_ranges.get() }.insert(offset..offset + len);
     }
 
-    /// Appends absolute ranges without changing dirty state. Returns whether
-    /// this region has dirty data. The caller holds the database mutation barrier.
-    pub(crate) fn append_dirty_ranges(&self, ranges: &mut DirtyRanges) -> bool {
-        let dirty = self.dirty_ranges.lock();
+    /// Appends page-covered absolute ranges without changing dirty state.
+    ///
+    /// # Safety
+    /// Hold the database mutation barrier exclusively.
+    pub(crate) unsafe fn append_dirty_ranges(&self, ranges: &mut DirtyRanges) -> bool {
+        // The barrier excludes every writer; another per-region lock is redundant.
+        let dirty = unsafe { &*self.dirty_ranges.get() };
         if dirty.is_empty() {
             return false;
         }
-        let start = self.meta.read().start();
-        ranges.extend(
-            dirty
-                .iter()
-                .map(|range| start + range.start..start + range.end),
-        );
+        let (start, _, _) = unsafe { self.bounds() };
+        // Allocations have PAGE_SIZE-aligned bounds, so rounding stays within
+        // reserved storage. Merge flushes that cover the same or adjacent pages
+        // while keeping each region's dirty byte ranges unchanged until success.
+        ranges.extend(dirty.iter().map(|range| {
+            let first = start + range.start;
+            let end = start + range.end;
+            first / PAGE_SIZE * PAGE_SIZE..end.next_multiple_of(PAGE_SIZE)
+        }));
         true
     }
 
-    /// Called only after a successful flush, while mutations are still excluded.
-    pub(crate) fn clear_dirty_ranges(&self) {
-        *self.dirty_ranges.lock() = DirtyRanges::default();
+    /// # Safety
+    /// Hold the mutation barrier exclusively; both files have synchronized.
+    pub(crate) unsafe fn clear_dirty_ranges(&self) {
+        unsafe { *self.dirty_ranges.get() = DirtyRanges::default() };
     }
 }

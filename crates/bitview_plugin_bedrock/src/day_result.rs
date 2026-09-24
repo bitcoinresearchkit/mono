@@ -1,4 +1,5 @@
-use brk_types::{BoundedRatio, Cents, CentsCompact, Sats, UrpdRaw};
+use bitview_urpd::UrpdRaw;
+use brk_types::{BoundedRatio, Cents, CentsCompact, Sats};
 
 use super::{
     DayUrpds, LEVEL_IDS, Levels, LossPercentileId, ModeId, ModeResult, Modes, Percentiles,
@@ -25,7 +26,7 @@ impl DayResult {
     pub fn from_thresholds(thresholds: &Thresholds) -> Self {
         Self {
             by_mode: Modes::from_fn(|mode| ModeResult {
-                loss_threshold: match thresholds.select(mode) {
+                supply_in_loss_threshold: match thresholds.select(mode) {
                     Some(values) => Percentiles::from_fn(|percentile| {
                         BoundedRatio::from(*percentile.select(values))
                     }),
@@ -41,7 +42,7 @@ impl DayResult {
             let urpd = urpds.mode(mode);
             let denominator = urpd.map.values().copied().map(u64::from).sum::<u64>();
             let mode_result = self.by_mode.select_mut(mode);
-            let thresholds = &mode_result.loss_threshold;
+            let thresholds = &mode_result.supply_in_loss_threshold;
             if thresholds.iter().all(|threshold| threshold.is_nan()) {
                 continue;
             }
@@ -135,7 +136,7 @@ mod tests {
         let result = &result.by_mode.coinflow;
 
         assert_eq!(
-            result.loss_threshold,
+            result.supply_in_loss_threshold,
             Percentiles::from_fn(|_| BoundedRatio::from(0.5))
         );
         assert_eq!(
@@ -172,10 +173,10 @@ mod tests {
         let urpds = repeated_urpds([(100, 9), (200, 1)]);
         let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.1)));
         let mut result = DayResult::from_thresholds(&thresholds);
-        assert!(f64::from(result.by_mode.raw.loss_threshold.pct95) < 0.1);
+        assert!(f64::from(result.by_mode.raw.supply_in_loss_threshold.pct95) < 0.1);
         result.evaluate(&urpds);
         assert_eq!(result.by_mode.raw.prices.floor.pct95, Cents::new(200));
         let missing = DayResult::from_thresholds(&Thresholds::from_fn(|_| None));
-        assert!(missing.by_mode.raw.loss_threshold.pct95.is_nan());
+        assert!(missing.by_mode.raw.supply_in_loss_threshold.pct95.is_nan());
     }
 }

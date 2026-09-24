@@ -16,36 +16,43 @@ pub struct WeightedModes<T> {
     /// estimated probability of being spent within eight years, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_8y")]
     pub coinflow_8y: T,
     /// Bedrock's four-year coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within four years, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_4y")]
     pub coinflow_4y: T,
     /// Bedrock's two-year coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within two years, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_2y")]
     pub coinflow_2y: T,
     /// Bedrock's one-year coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within one year, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_1y")]
     pub coinflow_1y: T,
     /// Bedrock's six-month coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within six months, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_6m")]
     pub coinflow_6m: T,
     /// Bedrock's three-month coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within three months, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_3m")]
     pub coinflow_3m: T,
     /// Bedrock's one-month coinflow mode weights each UTXO age range by its
     /// estimated probability of being spent within one month, derived from
     /// observed spending rates, and calibrates against the resulting weighted
     /// share of supply in loss.
+    #[traversable(wrap = "coinflow/horizon", rename = "_1m")]
     pub coinflow_1m: T,
 }
 

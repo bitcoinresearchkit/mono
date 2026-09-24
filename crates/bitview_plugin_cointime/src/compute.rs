@@ -1,6 +1,9 @@
+use bitview_cohort::AgeRange;
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_urpd::DailyUrpds;
 use brk_error::Result;
 use rayon::join;
+use vecdb::AnyVec;
 
 use super::{Vecs, activity, adjusted, age_range, aggregate, cap, prices, reserve_risk, value};
 use crate::Dependencies;
@@ -15,6 +18,8 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         let Dependencies {
+            utxo_states,
+            mappings,
             indexer,
             price: prices,
             blocks,
@@ -113,6 +118,36 @@ impl ComputePlugin for Vecs {
         );
         r3?;
         r4?;
+
+        let weights =
+            AgeRange::from_fn(|age| &age.select(&self.age_range.activity.wakefulness).day1);
+        let supplies = AgeRange::from_fn(|age| {
+            &age.select(&distribution.cohorts.supply.total.cohorts.utxo.age)
+                .sats
+                .day1
+        });
+        let from = mappings
+            .height
+            .recompute_day(indexer.safe_lengths().height)
+            .map(usize::from)
+            .unwrap_or_default();
+        self.urpd.compute(
+            distribution.supply_state.version(),
+            from,
+            &mappings.day1.date,
+            &prices.split.close.cents.day1,
+            &weights,
+            &supplies,
+            |day, date, weights| {
+                utxo_states.with_urpd_entries(
+                    &distribution.states_path,
+                    date,
+                    usize::from(day) + 1 == mappings.day1.date.len(),
+                    |entries| DailyUrpds::from_age_entries(entries, weights),
+                )
+            },
+            exit,
+        )?;
 
         context.compact_database(&self.db);
 

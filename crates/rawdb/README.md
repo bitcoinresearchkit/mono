@@ -79,8 +79,12 @@ and capacity. These slots are not guaranteed atomic disk writes.
 Writes become visible in process immediately. `Database::flush()` excludes
 mutations while it synchronizes dirty data and the data file's metadata, then
 synchronizes the region metadata. Only after that do old allocations from
-moves and removals become reusable. `Region::flush()` uses the same database-wide
-barrier because its metadata file is shared with every other region.
+moves and removals become reusable. `Region::flush()` synchronizes its own data when metadata is unchanged. If
+metadata changed, it synchronizes all database data before the shared metadata.
+
+Dirty tracking starts when the database is opened. Reopening alone does not
+request file synchronization; a flush without changes since opening is a no-op.
+It does not establish durability for pending writes left by a previous process.
 
 This is not a transaction or crash-recovery protocol. Both mappings can be
 written back by the OS before an explicit flush, and in-place writes can
@@ -106,7 +110,10 @@ error; valid-looking data corruption cannot be detected by rawdb.
   Allocation changes are serialized. Flush and compaction exclude mutations,
   while ordinary reads can continue.
 - Batch callbacks must not reenter their region or resize/flush the database.
-  Completed writes remain tracked for flushing if an iterator or callback panics.
+  They may read other regions while file growth waits. Ordered batches use a
+  double-ended iterator: the first and last items establish the writable span
+  before callbacks run in forward order. Each write is checked against that
+  span, which remains dirty if an iterator or callback panics.
 - Keep a `Database` alive while using region handles. A `Reader` owns the
   database and region handles needed for its own lifetime. Release metadata and
   read guards before requesting conflicting operations.

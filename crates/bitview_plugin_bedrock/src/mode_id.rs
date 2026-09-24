@@ -36,13 +36,13 @@ impl ModeId {
             Self::Raw => "raw",
             Self::Cointime => "cointime",
             Self::Coinflow => "coinflow",
-            Self::Coinflow8Y => "coinflow_8y",
-            Self::Coinflow4Y => "coinflow_4y",
-            Self::Coinflow2Y => "coinflow_2y",
-            Self::Coinflow1Y => "coinflow_1y",
-            Self::Coinflow6M => "coinflow_6m",
-            Self::Coinflow3M => "coinflow_3m",
-            Self::Coinflow1M => "coinflow_1m",
+            Self::Coinflow8Y => "coinflow_horizon_8y",
+            Self::Coinflow4Y => "coinflow_horizon_4y",
+            Self::Coinflow2Y => "coinflow_horizon_2y",
+            Self::Coinflow1Y => "coinflow_horizon_1y",
+            Self::Coinflow6M => "coinflow_horizon_6m",
+            Self::Coinflow3M => "coinflow_horizon_3m",
+            Self::Coinflow1M => "coinflow_horizon_1m",
         }
     }
 
@@ -95,13 +95,13 @@ mod tests {
                 "raw",
                 "cointime",
                 "coinflow",
-                "coinflow_8y",
-                "coinflow_4y",
-                "coinflow_2y",
-                "coinflow_1y",
-                "coinflow_6m",
-                "coinflow_3m",
-                "coinflow_1m",
+                "coinflow_horizon_8y",
+                "coinflow_horizon_4y",
+                "coinflow_horizon_2y",
+                "coinflow_horizon_1y",
+                "coinflow_horizon_6m",
+                "coinflow_horizon_3m",
+                "coinflow_horizon_1m",
             ]
         );
     }

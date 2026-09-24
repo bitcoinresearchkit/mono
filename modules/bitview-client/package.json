@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node --test tests/hash_prefix.js tests/broadcast.js tests/cache.js tests/metric_data.js tests/tree.js"
   },
-  "description": "Bitcoin on-chain analytics client \u2014 thousands of metrics, block explorer, and address index",
+  "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
   "engines": {
     "node": ">=18"
   },
