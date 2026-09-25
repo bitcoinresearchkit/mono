@@ -1,9 +1,9 @@
-use byteview::ByteView;
 use derive_more::Deref;
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
 use super::AddrBytes;
+use crate::StoreValue;
 
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "storage", derive(Bytes))]
@@ -22,22 +22,17 @@ impl From<&AddrBytes> for AddrHash {
     }
 }
 
-impl From<ByteView> for AddrHash {
+impl StoreValue for AddrHash {
+    type Bytes = [u8; 8];
+
     #[inline]
-    fn from(value: ByteView) -> Self {
-        Self(u64::from_be_bytes((&*value).try_into().unwrap()))
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0.to_be_bytes()
     }
-}
-impl From<AddrHash> for ByteView {
+
     #[inline]
-    fn from(value: AddrHash) -> Self {
-        Self::from(&value)
-    }
-}
-impl From<&AddrHash> for ByteView {
-    #[inline]
-    fn from(value: &AddrHash) -> Self {
-        Self::new(&value.0.to_be_bytes())
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(u64::from_be_bytes(bytes))
     }
 }
 

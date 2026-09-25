@@ -2,9 +2,9 @@ use bitcoin::{
     Network, OutPoint as BitcoinOutPoint, Txid as BitcoinTxid, blockdata::constants::genesis_block,
     hashes::Hash,
 };
-use brk_types::{Block, Height, Version};
+use brk_types::{Block, Height, OutputType, TypeIndex, Version};
 use tempfile::tempdir;
-use vecdb::WritableVec;
+use vecdb::{AnyStoredVec, WritableVec};
 
 use super::*;
 use crate::{Lengths, Readers, Stores, Vecs, processor::BlockBuffers, test_cache::init_cache};
@@ -24,7 +24,7 @@ fn parent_cache_collisions_invalidation_and_chain_continuity() {
         tx_index: TxIndex::new(7),
         first_txout_index: TxOutIndex::new(11),
     };
-    let cache = &mut buffers.inputs.reads.cache;
+    let cache = &mut buffers.inputs.cache;
     assert_eq!(cache.get(a), None);
     cache.insert(a, read);
     cache.insert(b, read);
@@ -35,9 +35,9 @@ fn parent_cache_collisions_invalidation_and_chain_continuity() {
     let block = Block::from((Height::ZERO, genesis_block(Network::Bitcoin)));
     buffers.finish_block(*block.hash());
     buffers.continue_from(Some(*block.hash()));
-    assert_eq!(buffers.inputs.reads.cache.get(b), Some(read));
+    assert_eq!(buffers.inputs.cache.get(b), Some(read));
     buffers.continue_from(None);
-    assert_eq!(buffers.inputs.reads.cache.get(b), None);
+    assert_eq!(buffers.inputs.cache.get(b), None);
 }
 
 #[test]
@@ -48,6 +48,9 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
     let mut stores = Stores::forced_import(dir.path(), Version::new(34))?;
     let prefixes: Vec<_> = (0..1002).map(|i| TxidPrefix::from(txid(i + 1))).collect();
     for (i, &prefix) in prefixes.iter().enumerate() {
+        if i == 500 {
+            vecs.transactions.first_txout_index.write()?;
+        }
         vecs.transactions
             .first_txout_index
             .push(TxOutIndex::from(i * 2));
@@ -56,6 +59,10 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
             .txid_prefixes
             .insert(prefix, TxIndex::from(i));
     }
+    vecs.outputs.output_type.push(OutputType::P2PKH);
+    vecs.outputs.type_index.push(TypeIndex::new(16));
+    vecs.outputs.output_type.write()?;
+    vecs.outputs.type_index.write()?;
     let readers = Readers::new(&vecs);
     let block = Block::from((Height::ZERO, genesis_block(Network::Bitcoin)));
     let mut lengths = Lengths::default();
@@ -69,21 +76,20 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
         readers: &readers,
     };
     let mut resolver = InputResolver::default();
-    // Both branches of the production parallel/raw read threshold, cold and warm.
-    for len in [0, 1, 999, 1000, 1002, 1] {
-        resolver
-            .reads
-            .resolve_parents(&processor, &prefixes[..len], TxIndex::new(2000))?;
-        for (i, read) in resolver.reads.parents.iter().enumerate() {
+    assert!(resolver.resolve(&processor, &[])?.is_empty());
+    processor.lengths.tx_index = TxIndex::new(2000);
+    // Single-parent and large batches, with persisted and pending offsets.
+    for len in [0, 1, 1002, 1] {
+        for (i, &prefix) in prefixes[..len].iter().enumerate() {
+            let read = InputResolver::read_parent(&resolver.cache, &processor, prefix)?;
             assert_eq!(read.tx_index, TxIndex::from(i));
             assert_eq!(read.first_txout_index, TxOutIndex::from(i * 2));
+            resolver.cache.insert(prefix, read);
         }
     }
     // Exercise the complete input resolver with repeated historical parents,
     // a same-block parent, and a coinbase, using both cold and warm caches.
     processor.vecs.outputs.output_type.push(OutputType::P2PKH);
-    processor.vecs.outputs.output_type.push(OutputType::P2PKH);
-    processor.vecs.outputs.type_index.push(TypeIndex::new(16));
     processor.vecs.outputs.type_index.push(TypeIndex::new(17));
     processor.lengths.tx_index = TxIndex::new(2000);
     processor.lengths.txout_index = TxOutIndex::new(3000);
@@ -92,7 +98,9 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
     previous.previous_output = BitcoinOutPoint::new(txid(1).into(), 1);
     let mut same_block = previous.clone();
     same_block.previous_output = BitcoinOutPoint::new(txid(88888).into(), 0);
-    spending.input = vec![previous.clone(), previous, same_block];
+    let mut persisted_output = previous.clone();
+    persisted_output.previous_output.vout = 0;
+    spending.input = vec![previous.clone(), previous, same_block, persisted_output];
     let mut txs = [
         ComputedTx::new(
             TxIndex::new(2000),
@@ -129,7 +137,34 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
     assert!(
         matches!(warm[3], InputSource::SameBlock { txout_index, .. } if txout_index == TxOutIndex::new(3000))
     );
+    assert!(matches!(
+        warm[4],
+        InputSource::PreviousBlock { txout_index, output_type, type_index, .. }
+            if txout_index == TxOutIndex::ZERO
+                && output_type == OutputType::P2PKH
+                && type_index == TypeIndex::new(16)
+    ));
+
+    // Failed output reads must not publish partially resolved parents to the cache.
+    resolver.clear_cache();
+    spending.input.truncate(1);
+    spending.input[0].previous_output.vout = 2;
+    let missing_output = ComputedTx::new(TxIndex::new(2000), &spending, txid(99999), true, 0, 0);
+    assert!(matches!(
+        resolver.resolve(&processor, &[missing_output]),
+        Err(Error::Internal("Missing output_type"))
+    ));
+    assert_eq!(resolver.cache.get(prefixes[0]), None);
+    processor.vecs.outputs.output_type.push(OutputType::P2PKH);
+    let missing_index = ComputedTx::new(TxIndex::new(2000), &spending, txid(99999), true, 0, 0);
+    assert!(matches!(
+        resolver.resolve(&processor, &[missing_index]),
+        Err(Error::Internal("Missing type_index"))
+    ));
+    assert_eq!(resolver.cache.get(prefixes[0]), None);
     // Preparing a new block invalidates every prefix it may replace (including BIP30).
+    let cached = InputResolver::read_parent(&resolver.cache, &processor, prefixes[0])?;
+    resolver.cache.insert(prefixes[0], cached);
     let replacement_id = txid(1);
     let computed = ComputedTx::new(
         TxIndex::new(1002),
@@ -140,7 +175,7 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
         0,
     );
     resolver.prepare(&[computed], TxIndex::new(1002), TxOutIndex::new(2004));
-    assert_eq!(resolver.reads.cache.get(prefixes[0]), None);
+    assert_eq!(resolver.cache.get(prefixes[0]), None);
     processor
         .vecs
         .transactions
@@ -151,32 +186,26 @@ fn parent_resolution_preserves_store_updates_bounds_errors_and_pending_reads() -
         .transaction_stores_mut()
         .txid_prefixes
         .insert(prefixes[0], TxIndex::new(1002));
-    resolver
-        .reads
-        .resolve_parents(&processor, &prefixes[..1], TxIndex::new(2000))?;
-    assert_eq!(
-        resolver.reads.parent(0).first_txout_index,
-        TxOutIndex::new(9999)
-    );
+    let read = InputResolver::read_parent(&resolver.cache, &processor, prefixes[0])?;
+    assert_eq!(read.first_txout_index, TxOutIndex::new(9999));
+    resolver.cache.insert(prefixes[0], read);
+    processor.lengths.tx_index = TxIndex::new(1002);
     assert!(matches!(
-        resolver
-            .reads
-            .resolve_parents(&processor, &prefixes[..1], TxIndex::new(1002)),
+        InputResolver::read_parent(&resolver.cache, &processor, prefixes[0]),
         Err(Error::UnknownTxid)
     ));
     // Rollback discards cached values before reading the changed store.
     resolver.clear_cache();
+    processor.lengths.tx_index = TxIndex::new(2000);
     processor
         .stores
         .transaction_stores_mut()
         .txid_prefixes
         .remove(prefixes[0]);
     assert!(matches!(
-        resolver
-            .reads
-            .resolve_parents(&processor, &prefixes[..1], TxIndex::new(2000)),
+        InputResolver::read_parent(&resolver.cache, &processor, prefixes[0]),
         Err(Error::UnknownTxid)
     ));
-    assert_eq!(resolver.reads.cache.get(prefixes[0]), None);
+    assert_eq!(resolver.cache.get(prefixes[0]), None);
     Ok(())
 }

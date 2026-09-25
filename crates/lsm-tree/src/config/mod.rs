@@ -7,15 +7,11 @@ use std::{
     sync::Arc,
 };
 
-use crate::{
-    Cache, CompressionType, DescriptorTable, Result, Tree, path::absolute_path,
-    version::DEFAULT_LEVEL_COUNT,
-};
+use crate::{Cache, CompressionType, DescriptorTable, Result, Tree, path::absolute_path};
 
 mod block_size;
 mod compression;
 mod filter;
-mod hash_ratio;
 mod partitioning;
 mod pinning;
 mod restart_interval;
@@ -27,7 +23,6 @@ mod tests;
 pub use block_size::BlockSizePolicy;
 pub use compression::CompressionPolicy;
 pub use filter::{BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry};
-pub use hash_ratio::HashRatioPolicy;
 pub use partitioning::PartitioningPolicy;
 pub use pinning::PinningPolicy;
 pub use restart_interval::RestartIntervalPolicy;
@@ -46,11 +41,6 @@ pub struct Config {
     #[doc(hidden)]
     pub descriptor_table: Option<Arc<DescriptorTable>>,
 
-    /// Number of levels of the LSM tree (depth of tree)
-    ///
-    /// Once set, the level count is fixed (in the "manifest" file)
-    pub level_count: u8,
-
     /// What type of compression is used for data blocks
     pub data_block_compression_policy: CompressionPolicy,
 
@@ -60,9 +50,6 @@ pub struct Config {
     /// Restart interval inside data blocks
     pub data_block_restart_interval_policy: RestartIntervalPolicy,
 
-    /// Restart interval inside index blocks
-    pub index_block_restart_interval_policy: RestartIntervalPolicy,
-
     /// Block size of data blocks
     pub data_block_size_policy: BlockSizePolicy,
 
@@ -71,9 +58,6 @@ pub struct Config {
 
     /// Whether to pin filter blocks
     pub filter_block_pinning_policy: PinningPolicy,
-
-    /// Data block hash ratio
-    pub data_block_hash_ratio_policy: HashRatioPolicy,
 
     /// Whether to partition index blocks
     pub index_block_partitioning_policy: PartitioningPolicy,
@@ -97,8 +81,6 @@ impl Config {
             descriptor_table: Some(Arc::new(DescriptorTable::new(256))),
             cache: Arc::new(Cache::with_capacity_bytes(16 * 1_024 * 1_024)),
             data_block_restart_interval_policy: RestartIntervalPolicy::all(16),
-            index_block_restart_interval_policy: RestartIntervalPolicy::all(1),
-            level_count: DEFAULT_LEVEL_COUNT,
             data_block_size_policy: BlockSizePolicy::all(4_096),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
@@ -109,7 +91,6 @@ impl Config {
                 CompressionType::Lz4,
             ]),
             index_block_compression_policy: CompressionPolicy::all(CompressionType::None),
-            data_block_hash_ratio_policy: HashRatioPolicy::all(0.0),
             filter_policy: FilterPolicy::all(FilterPolicyEntry::Bloom(
                 BloomConstructionPolicy::BitsPerKey(10.0),
             )),
@@ -213,16 +194,6 @@ impl Config {
     #[must_use]
     pub fn data_block_size_policy(mut self, policy: BlockSizePolicy) -> Self {
         self.data_block_size_policy = policy;
-        self
-    }
-
-    /// Sets the hash ratio policy for data blocks.
-    ///
-    /// If greater than 0.0, a hash index is embedded into data blocks that can speed up reads
-    /// inside the data block.
-    #[must_use]
-    pub fn data_block_hash_ratio_policy(mut self, policy: HashRatioPolicy) -> Self {
-        self.data_block_hash_ratio_policy = policy;
         self
     }
 

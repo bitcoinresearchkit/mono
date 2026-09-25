@@ -8,67 +8,60 @@ use std::{
     path::Path,
 };
 
+#[cfg(unix)]
+use byteview::ByteView;
+#[cfg(unix)]
+use rustix::io::pread;
+#[cfg(windows)]
+use std::os::windows::fs::FileExt;
+
 use tempfile::NamedTempFile;
 
-use crate::Slice;
+use crate::{FORMAT_VERSION, Slice};
 
 #[cfg(windows)]
 use std::{thread, time::Duration};
 
-pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', 4];
-pub const CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 10];
-// Accepted only so databases written by the immediately preceding BRK format can be upgraded.
-pub const CHECKSUMLESS_CURRENT_MAGIC: [u8; 4] = [b'L', b'S', b'M', 9];
+pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', FORMAT_VERSION];
 
 pub const TABLES_FOLDER: &str = "tables";
 pub const CURRENT_VERSION_FILE: &str = "current";
 
 /// Reads bytes from a file using `pread`.
 pub fn read_exact(file: &File, offset: u64, size: usize) -> Result<Slice> {
-    // SAFETY: This slice builder starts uninitialized, but we know its length
-    //
-    // We use read_at/seek_read which give us the number of bytes read
-    // If that number does not match the slice length, the function errors,
-    // so the (partially) uninitialized buffer is discarded
-    //
-    #[expect(unsafe_code, reason = "see safety")]
-    let mut builder = unsafe { Slice::builder_unzeroed(size) };
-
+    #[cfg(unix)]
     {
-        let bytes_read: usize;
-
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::FileExt;
-
-            bytes_read = file.read_at(&mut builder, offset)?;
-        }
-
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::FileExt;
-
-            bytes_read = file.seek_read(&mut builder, offset)?;
-        }
-
-        #[cfg(not(any(unix, windows)))]
-        {
-            compile_error!("unsupported platform");
-            unimplemented!();
-        }
-
-        if bytes_read != size {
-            return Err(Error::new(
-                ErrorKind::UnexpectedEof,
-                format!(
-                    "read_exact({bytes_read}) at {offset} did not read enough bytes {size}; file has length {}",
-                    file.metadata()?.len()
-                ),
-            ));
-        }
+        ByteView::try_init(size, |buffer| {
+            let (initialized, _) = pread(file, buffer, offset)?;
+            check_read(file, offset, size, initialized.len())?;
+            Ok(initialized)
+        })
+        .map(Into::into)
     }
 
-    Ok(builder.freeze().into())
+    #[cfg(windows)]
+    {
+        let mut builder = Slice::builder(size);
+        let bytes_read = file.seek_read(&mut builder, offset)?;
+        check_read(file, offset, size, bytes_read)?;
+        Ok(builder.freeze().into())
+    }
+
+    #[cfg(not(any(unix, windows)))]
+    compile_error!("unsupported platform");
+}
+
+fn check_read(file: &File, offset: u64, size: usize, bytes_read: usize) -> Result<()> {
+    if bytes_read != size {
+        return Err(Error::new(
+            ErrorKind::UnexpectedEof,
+            format!(
+                "read_exact({bytes_read}) at {offset} did not read enough bytes {size}; file has length {}",
+                file.metadata()?.len()
+            ),
+        ));
+    }
+    Ok(())
 }
 
 /// Runs an I/O operation, retrying transient Windows errors with backoff.
@@ -149,6 +142,22 @@ mod tests {
 
     use super::*;
     use crate::Result as CrateResult;
+
+    #[test]
+    fn positional_read_initialization_and_short_reads() -> Result<()> {
+        let mut file = NamedTempFile::new()?;
+        let bytes: Vec<_> = (0..=255_u8).cycle().take(8192).collect();
+        file.write_all(&bytes)?;
+        for len in [0, 8, 12, 13, 4096] {
+            assert_eq!(
+                read_exact(file.as_file(), 7, len)?.as_ref(),
+                &bytes[7..7 + len]
+            );
+        }
+        let result = read_exact(file.as_file(), 8190, 16);
+        assert!(matches!(result, Err(error) if error.kind() == ErrorKind::UnexpectedEof));
+        Ok(())
+    }
 
     #[test]
     fn atomic_rewrite() -> CrateResult<()> {

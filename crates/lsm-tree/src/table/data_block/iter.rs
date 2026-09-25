@@ -28,14 +28,6 @@ impl<'a> Iter<'a> {
         Self { bytes, decoder }
     }
 
-    /// Seek the iterator to an byte offset.
-    ///
-    /// This is used when the hash index returns a hit.
-    pub fn seek_to_offset(&mut self, offset: usize) -> bool {
-        self.decoder.inner_mut().set_lo_offset(offset);
-        true
-    }
-
     pub fn seek(&mut self, needle: &[u8]) -> bool {
         // Find the restart interval whose head key is the last one strictly below `needle`.
         // The decoder then performs a linear scan within that interval; we stop as soon as we

@@ -3,7 +3,6 @@
 // (found in the LICENSE-* files in the repository)
 
 use std::{
-    borrow::Cow,
     fmt,
     fs::File,
     ops::{Bound, Deref, RangeBounds},
@@ -16,7 +15,6 @@ use std::{
 
 use block_index::BlockIndexImpl;
 use bound::Bound as IterBound;
-use byteorder::ReadBytesExt;
 use inner::Inner;
 use iter::Iter;
 use log::{debug, trace};
@@ -24,18 +22,18 @@ use sfa::Reader;
 use util::load_block;
 
 use crate::{
-    CompressionType, Error, InternalValue, Result, Slice,
+    CompressionType, Error, InternalValue, RecordBytes, Result, Slice,
     cache::Cache,
     descriptor_table::DescriptorTable,
     file_accessor::FileAccessor,
+    point_read_value::PointReadValue,
     table::{
-        block::{BlockType, ParsedItem},
+        block::BlockType,
         block_index::{BlockIndex, FullBlockIndex, TwoLevelBlockIndex, VolatileBlockIndex},
-        filter::{block::FilterBlock, standard_bloom::Builder},
+        filter::standard_bloom::StandardBloomFilterReader,
         meta::ParsedMeta,
         regions::ParsedRegions,
     },
-    value::PointReadValue,
 };
 
 pub mod block;
@@ -113,7 +111,7 @@ impl Table {
     pub fn pinned_filter_size(&self) -> usize {
         self.pinned_filter_block
             .as_ref()
-            .map(FilterBlock::size)
+            .map(StandardBloomFilterReader::size)
             .unwrap_or_default()
     }
 
@@ -173,11 +171,11 @@ impl Table {
         self.get_with(key, &mut key_hash, Self::point_read)
     }
 
-    pub fn get_value(
+    pub fn get_value<V: RecordBytes>(
         &self,
         key: &[u8],
         key_hash: &mut Option<u64>,
-    ) -> Result<Option<PointReadValue>> {
+    ) -> Result<Option<PointReadValue<V>>> {
         self.get_with(key, key_hash, Self::point_read_value)
     }
 
@@ -187,70 +185,55 @@ impl Table {
         key_hash: &mut Option<u64>,
         point_read: impl FnOnce(&Self, &[u8]) -> Result<Option<T>>,
     ) -> Result<Option<T>> {
-        let filter_block = if let Some(block) = &self.pinned_filter_block {
-            Some(Cow::Borrowed(block))
-        } else if let Some(filter_idx) = &self.pinned_filter_index {
-            let mut iter = filter_idx.iter();
-            iter.seek(key, u64::MAX);
+        if !self.filter_may_contain(key, key_hash)? {
+            return Ok(None);
+        }
+        point_read(self, key)
+    }
 
-            if let Some(filter_block_handle) = iter.next() {
-                let filter_block_handle = filter_block_handle.materialize(filter_idx.as_slice());
-
-                let block = self.load_block(
-                    &filter_block_handle.into_inner(),
-                    BlockType::Filter,
-                    CompressionType::None, // NOTE: We never write a filter block with compression
-                )?;
-                let block = FilterBlock::new(block);
-
-                Some(Cow::Owned(block))
-            } else {
-                None
-            }
-        } else if let Some(filter_block_handle) = &self.regions.filter {
-            let block = self.load_block(
-                filter_block_handle,
-                BlockType::Filter,
-                CompressionType::None, // NOTE: We never write a filter block with compression
-            )?;
-            let block = FilterBlock::new(block);
-
-            Some(Cow::Owned(block))
-        } else {
-            None
-        };
-
-        if let Some(filter_block) = &filter_block {
-            let key_hash = *key_hash.get_or_insert_with(|| Builder::get_hash(key));
-            if !filter_block.maybe_contains_hash(key_hash)? {
-                return Ok(None);
-            }
+    fn filter_may_contain(&self, key: &[u8], key_hash: &mut Option<u64>) -> Result<bool> {
+        if let Some(block) = &self.pinned_filter_block {
+            return Ok(block.maybe_contains(key, key_hash));
         }
 
-        point_read(self, key)
+        let handle = if let Some(index) = &self.pinned_filter_index {
+            let mut iter = index.iter();
+            iter.seek(key, u64::MAX);
+            let Some(handle) = iter.next() else {
+                return Ok(true);
+            };
+            BlockHandle::new(handle.offset, handle.size)
+        } else if let Some(handle) = &self.regions.filter {
+            *handle
+        } else {
+            return Ok(true);
+        };
+
+        let block = self.load_block(&handle, BlockType::Filter, CompressionType::None)?;
+        Ok(StandardBloomFilterReader::new(block.data.as_ref())?.maybe_contains(key, key_hash))
     }
 
     fn point_read(&self, key: &[u8]) -> Result<Option<InternalValue>> {
         self.point_read_with(key, |block, key| {
-            block.point_read(key).map(|mut item| {
+            Ok(block.point_read(key).map(|mut item| {
                 item.key.seqno += self.global_seqno();
                 item
-            })
+            }))
         })
     }
 
-    fn point_read_value(&self, key: &[u8]) -> Result<Option<PointReadValue>> {
+    fn point_read_value<V: RecordBytes>(&self, key: &[u8]) -> Result<Option<PointReadValue<V>>> {
         self.point_read_with(key, DataBlock::point_read_value)
     }
 
     fn point_read_with<T>(
         &self,
         key: &[u8],
-        point_read: impl Fn(&DataBlock, &[u8]) -> Option<T>,
+        point_read: impl Fn(&DataBlock, &[u8]) -> Result<Option<T>>,
     ) -> Result<Option<T>> {
         self.block_index.point_read(key, u64::MAX, |block_handle| {
             let block = self.load_data_block(block_handle)?;
-            Ok(point_read(&block, key))
+            point_read(&block, key)
         })
     }
 
@@ -266,7 +249,7 @@ impl Table {
     ///
     /// Will return `Err` if an IO error occurs.
     #[doc(hidden)]
-    pub fn scan(&self) -> Result<Scanner> {
+    pub fn scan<K: RecordBytes, V: RecordBytes>(&self) -> Result<Scanner<K, V>> {
         #[expect(
             clippy::expect_used,
             reason = "there shouldn't be 4 billion data blocks in a single table"
@@ -307,9 +290,16 @@ impl Table {
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + use<R> {
+        self.range_as::<Slice, Slice, R>(range)
+    }
+
+    pub fn range_as<K: RecordBytes, V: RecordBytes, R: RangeBounds<Slice> + Send>(
+        &self,
+        range: R,
+    ) -> impl DoubleEndedIterator<Item = Result<InternalValue<K, V>>> + Send + use<K, V, R> {
         let index_iter = self.block_index.iter();
 
-        let mut iter = Iter::new(self.clone(), index_iter);
+        let mut iter = Iter::<K, V>::new(self.clone(), index_iter);
 
         match range.start_bound() {
             Bound::Included(key) => iter.set_lower_bound(IterBound::Included(key.clone())),
@@ -346,10 +336,6 @@ impl Table {
     }
 
     /// Tries to recover a table from a file.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "table recovery mirrors the complete persisted table configuration"
-    )]
     pub fn recover(
         file_path: PathBuf,
         global_seqno: u64,
@@ -364,18 +350,6 @@ impl Table {
         let file_path = Arc::new(file_path);
 
         let trailer = Reader::from_reader(&mut file)?;
-
-        let table_version = trailer
-            .toc()
-            .section(b"table_version")
-            .ok_or(Error::Unrecoverable)?;
-        if table_version.len() != 1 {
-            return Err(Error::Unrecoverable);
-        }
-        let version = ReadBytesExt::read_u8(&mut table_version.buf_reader(&file_path)?)?;
-        if version != 8 {
-            return Err(Error::InvalidVersion(version));
-        }
 
         let regions = ParsedRegions::parse_from_toc(trailer.toc())?;
 
@@ -435,7 +409,6 @@ impl Table {
             None
         };
 
-        // TODO: FilterBlock newtype
         let pinned_filter_block = if pinned_filter_index.is_none() && pin_filter {
             regions
                 .filter
@@ -458,7 +431,7 @@ impl Table {
                         }
                     })?;
 
-                    Ok::<_, Error>(FilterBlock::new(block))
+                    StandardBloomFilterReader::new(block.data)
                 })
                 .transpose()?
         } else {

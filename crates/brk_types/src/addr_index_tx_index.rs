@@ -1,11 +1,11 @@
 use std::hash::Hash;
 
-use byteview::ByteView;
 use serde::Serialize;
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
 use super::{TxIndex, TypeIndex};
+use crate::StoreValue;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
 #[cfg_attr(feature = "storage", derive(Bytes))]
@@ -32,22 +32,16 @@ impl From<(TypeIndex, TxIndex)> for AddrIndexTxIndex {
     }
 }
 
-impl From<ByteView> for AddrIndexTxIndex {
-    #[inline]
-    fn from(value: ByteView) -> Self {
-        Self(u64::from_be_bytes((&*value).try_into().unwrap()))
-    }
-}
+impl StoreValue for AddrIndexTxIndex {
+    type Bytes = [u8; 8];
 
-impl From<AddrIndexTxIndex> for ByteView {
     #[inline]
-    fn from(value: AddrIndexTxIndex) -> Self {
-        ByteView::from(&value)
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0.to_be_bytes()
     }
-}
-impl From<&AddrIndexTxIndex> for ByteView {
+
     #[inline]
-    fn from(value: &AddrIndexTxIndex) -> Self {
-        ByteView::from(value.0.to_be_bytes())
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(u64::from_be_bytes(bytes))
     }
 }

@@ -5,21 +5,85 @@
 use std::{
     borrow::Borrow,
     cmp::Ordering,
-    ops::Deref,
+    io::{Read, Result},
+    ops::{Deref, RangeBounds},
     path::{Path, PathBuf},
     sync::Arc,
 };
 
-use byteview::ByteView;
-
-mod slice_default;
-
-pub use slice_default::SliceExt;
+use byteview::{Builder, ByteView};
 
 /// An immutable byte slice that can be cloned without additional heap allocation.
 /// There is no guarantee of alignment for zero-copy (de)serialization.
 #[derive(Debug, Default, Clone, Eq, Hash, Ord)]
 pub struct Slice(ByteView);
+
+impl Slice {
+    /// Creates an owned subslice.
+    #[must_use]
+    pub fn slice(&self, range: impl RangeBounds<usize>) -> Self {
+        Self(self.0.slice(range))
+    }
+
+    /// Joins two byte slices into one owned slice.
+    #[must_use]
+    pub fn fused(left: &[u8], right: &[u8]) -> Self {
+        Self(ByteView::fused(left, right))
+    }
+
+    /// Construct a [`Slice`] from a byte slice.
+    #[must_use]
+    pub fn new(bytes: &[u8]) -> Self {
+        Self(bytes.into())
+    }
+
+    /// Returns the bytes slice containing the entire data.
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] {
+        self
+    }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub fn empty() -> Self {
+        Self::default()
+    }
+
+    #[doc(hidden)]
+    #[must_use]
+    pub fn builder(len: usize) -> Builder {
+        ByteView::builder(len)
+    }
+
+    #[doc(hidden)]
+    pub fn from_reader<R: Read>(reader: &mut R, len: usize) -> Result<Self> {
+        ByteView::from_reader(reader, len).map(Self)
+    }
+}
+
+impl From<Vec<u8>> for Slice {
+    fn from(value: Vec<u8>) -> Self {
+        Self(ByteView::from(value))
+    }
+}
+
+impl From<String> for Slice {
+    fn from(value: String) -> Self {
+        Self(ByteView::from(value.into_bytes()))
+    }
+}
+
+impl From<ByteView> for Slice {
+    fn from(value: ByteView) -> Self {
+        Self(value)
+    }
+}
+
+impl From<Slice> for ByteView {
+    fn from(value: Slice) -> Self {
+        value.0
+    }
+}
 
 impl AsRef<[u8]> for Slice {
     fn as_ref(&self) -> &[u8] {
@@ -147,7 +211,7 @@ mod tests {
 
     use test_log::test;
 
-    use super::{Slice, SliceExt};
+    use super::Slice;
 
     fn assert_slice_handles<T>(v: T)
     where
@@ -184,27 +248,26 @@ mod tests {
     }
 
     #[test]
-    #[expect(unsafe_code)]
     fn slice_with_size() {
         assert_eq!(
-            &*unsafe {
-                let mut b = Slice::builder_unzeroed(5);
+            &*{
+                let mut b = Slice::builder(5);
                 b.fill(0);
                 b.freeze()
             },
             [0; 5],
         );
         assert_eq!(
-            &*unsafe {
-                let mut b = Slice::builder_unzeroed(50);
+            &*{
+                let mut b = Slice::builder(50);
                 b.fill(0);
                 b.freeze()
             },
             [0; 50],
         );
         assert_eq!(
-            &*unsafe {
-                let mut b = Slice::builder_unzeroed(50);
+            &*{
+                let mut b = Slice::builder(50);
                 b.fill(77);
                 b.freeze()
             },

@@ -1,16 +1,16 @@
-use lsm_tree::{Ingestion as TreeIngestion, Slice};
+use lsm_tree::{Ingestion as TreeIngestion, RecordBytes, Slice};
 
 use crate::{Keyspace, Result};
 
 /// A strictly sorted stream written directly into `SSTables`.
-pub struct Ingestion<'a> {
+pub struct Ingestion<'a, K = Slice, V = Slice> {
     keyspace: &'a Keyspace,
-    inner: TreeIngestion<'a>,
+    inner: TreeIngestion<'a, K, V>,
 }
 
-impl<'a> Ingestion<'a> {
+impl<'a, K: RecordBytes, V: RecordBytes> Ingestion<'a, K, V> {
     /// Starts an ingestion for `keyspace`.
-    pub fn new(keyspace: &'a Keyspace) -> Result<Self> {
+    pub(super) fn new(keyspace: &'a Keyspace) -> Result<Self> {
         let inner = TreeIngestion::new(&keyspace.inner.tree)?;
         Ok(Self { keyspace, inner })
     }
@@ -20,7 +20,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error if the table writer fails.
-    pub fn write<K: Into<Slice>, V: Into<Slice>>(&mut self, key: K, value: V) -> Result<()> {
+    pub fn write<IK: Into<K>, IV: Into<V>>(&mut self, key: IK, value: IV) -> Result<()> {
         self.inner.write(key, value).map_err(Into::into)
     }
 
@@ -29,7 +29,7 @@ impl<'a> Ingestion<'a> {
     /// # Errors
     ///
     /// Returns an error if the table writer fails.
-    pub fn write_weak_tombstone<K: Into<Slice>>(&mut self, key: K) -> Result<()> {
+    pub fn write_weak_tombstone<IK: Into<K>>(&mut self, key: IK) -> Result<()> {
         self.inner.write_weak_tombstone(key).map_err(Into::into)
     }
 

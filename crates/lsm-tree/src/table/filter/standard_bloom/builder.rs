@@ -2,12 +2,11 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::io::Write;
+use std::f32::consts::LN_2;
 
-use byteorder::{LittleEndian, WriteBytesExt};
+use xxhash_rust::xxh3::xxh3_64;
 
 use super::super::bit_array::Builder as BitArrayBuilder;
-use crate::{file::MAGIC_BYTES, hash, table::filter::FilterType};
 
 pub fn secondary_hash(h1: u64) -> u64 {
     // Taken from https://github.com/tomtomwombat/fastbloom
@@ -27,39 +26,19 @@ pub struct Builder {
 }
 
 impl Builder {
-    #[expect(
-        clippy::expect_used,
-        reason = "we write into a Vec<u8>, so no I/O error can happen"
-    )]
     #[must_use]
     pub fn build(&self) -> Vec<u8> {
-        let mut v = vec![];
-
-        // Write header
-        v.write_all(&MAGIC_BYTES).expect("should not fail");
-
-        // NOTE: Filter type
-        v.write_u8(FilterType::StandardBloom.into())
-            .expect("should not fail");
-
-        // NOTE: Hash type (unused)
-        v.write_u8(0).expect("should not fail");
-
-        v.write_u64::<LittleEndian>(self.m as u64)
-            .expect("should not fail");
-        v.write_u64::<LittleEndian>(self.k as u64)
-            .expect("should not fail");
-        v.write_all(self.inner.bytes()).expect("should not fail");
-
-        v
+        let mut bytes = Vec::with_capacity(2 * size_of::<u64>() + self.inner.bytes().len());
+        bytes.extend_from_slice(&(self.m as u64).to_le_bytes());
+        bytes.extend_from_slice(&(self.k as u64).to_le_bytes());
+        bytes.extend_from_slice(self.inner.bytes());
+        bytes
     }
 
     /// Constructs a bloom filter that can hold `n` items
     /// while maintaining a certain false positive rate `fpr`.
     #[must_use]
     pub fn with_fp_rate(n: usize, fpr: f32) -> Self {
-        use std::f32::consts::LN_2;
-
         assert!(n > 0);
 
         // NOTE: Some sensible minimum
@@ -93,8 +72,6 @@ impl Builder {
     /// 10 bits per key is a sensible default.
     #[must_use]
     pub fn with_bpk(n: usize, bpk: f32) -> Self {
-        use std::f32::consts::LN_2;
-
         assert!(bpk > 0.0);
         assert!(n > 0);
 
@@ -129,8 +106,6 @@ impl Builder {
     }
 
     pub fn calculate_m(n: usize, fp_rate: f32) -> usize {
-        use std::f32::consts::LN_2;
-
         #[expect(
             clippy::cast_precision_loss,
             reason = "n tends to be in the single millions at most, so f32 should be precise enough"
@@ -172,7 +147,7 @@ impl Builder {
     /// Gets the hash of a key.
     #[must_use]
     pub fn get_hash(key: &[u8]) -> u64 {
-        hash::hash64(key)
+        xxh3_64(key)
     }
 }
 

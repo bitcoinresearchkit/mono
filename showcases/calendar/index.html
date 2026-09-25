@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="A Bitcoin mining calendar. Every block, every day, and the miners behind them. Powered by the Bitview API." />
+    <meta name="theme-color" content="#fff" />
+    <title>Miner calendar · Bitview</title>
+    <link rel="preconnect" href="https://bitview.space" crossorigin />
+    <style>
+      :root {
+        color-scheme: light;
+        font: 400 11px/1.5 var(--mono);
+        color: var(--ink);
+        background: #fff;
+        --ink: #33353a;
+        --secondary: #676d76;
+        --muted: #858c96;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+        --mark: 18px;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button { font: inherit; color: inherit; cursor: pointer; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+      button { border: 0; background: none; }
+      a { color: inherit; text-decoration: none; }
+      button:disabled { cursor: default; }
+      :focus-visible { outline: 1px solid #aeb3be; outline-offset: 4px; }
+      [hidden] { display: none !important; }
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      .shell { width: min(640px, calc(100% - 56px)); margin: 0 auto 40px; }
+      .calendar-header { padding: 24px 0 18px; }
+      .header-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); row-gap: 5px; align-items: center; }
+      .brand {
+        display: inline-flex; align-items: center; gap: 7px; justify-self: start; color: var(--secondary); transition: color .18s ease;
+        --logo-top: oklch(26.6% 0 0); --logo-left: oklch(23.3% 0 0); --logo-right: oklch(20% 0 0); --logo-bottom: oklch(10.1% 0 0);
+      }
+      .brand:hover { color: var(--ink); }
+      .brand:active {
+        color: oklch(67.64% 0.191 44.41); transition: none;
+        --logo-top: oklch(67.64% 0.191 44.41); --logo-left: oklch(64.34% 0.191 44.41); --logo-right: oklch(61.04% 0.191 44.41); --logo-bottom: oklch(57.74% 0.191 44.41);
+      }
+      .brand svg { display: block; width: 22px; height: 26px; flex-shrink: 0; }
+      .calendar-title { grid-column: 2; margin: 0; text-align: center; font: inherit; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+      .year-heading { grid-column: 2; display: grid; grid-template-columns: 48px auto 48px; gap: 17px; align-items: baseline; font-family: var(--serif); }
+      .date-nav, .context { display: flex; align-items: center; }
+      #year-home { padding: 0; font-size: 44px; line-height: 1.1; letter-spacing: -1.8px; }
+      #year-home:not(:disabled):hover { color: var(--secondary); }
+      .neighbor-year { padding: 8px 0; color: #b5b9c0; font-size: 19px; line-height: 1.2; letter-spacing: -.5px; transition: color .18s ease; }
+      .neighbor-year:disabled { color: #e3e5e9; }
+      .neighbor-year:hover:not(:disabled) { color: var(--secondary); }
+      .date-nav { justify-content: center; gap: 10px; margin-top: 7px; }
+      .arrow { display: grid; place-items: center; width: 28px; height: 36px; padding: 0; color: var(--muted); }
+      .arrow svg { display: block; width: 16px; height: 16px; }
+      .arrow:disabled { opacity: .22; }
+      .arrow:hover:not(:disabled) { color: var(--ink); }
+      .context { justify-content: space-between; gap: 16px; height: 34px; margin-top: 7px; }
+      #day-heading { margin: 0; min-width: 85px; text-align: center; font: 400 32px/1.1 var(--serif); letter-spacing: -.8px; white-space: nowrap; color: var(--secondary); }
+      .inspection { min-width: 0; margin-left: auto; display: grid; gap: 2px; text-align: right; line-height: 16px; }
+      .context .inspection { margin-inline: auto; text-align: center; }
+      .inspection > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .inspect-title { color: var(--ink); }
+      .inspect-detail { color: var(--muted); }
+      #calendar { min-height: 150px; }
+      .year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 32px; }
+      .month-header { display: flex; align-items: center; gap: 8px; height: 32px; margin: 0 0 8px 5px; }
+      .month-title { flex-shrink: 0; margin: 0; font: inherit; letter-spacing: .1em; text-transform: uppercase; color: var(--secondary); }
+      .calendar-grid { display: grid; }
+      .month-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); aspect-ratio: 7 / 6; }
+      .day-grid { --mark: 28px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+      .day-grid > * { aspect-ratio: 1; }
+      .cell { position: relative; min-width: 0; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+      .pool-mark { display: inline-grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; width: var(--mark); height: var(--mark); transition: transform .18s ease; }
+      .pool-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+      .cell:is(:hover, :focus-visible) .pool-mark { transform: scale(1.18); }
+      .today::after { content: ""; position: absolute; bottom: 0; width: 2px; height: 2px; border-radius: 50%; background: #a2a6ae; }
+      .empty-mark, .skeleton::after, .month-gap::after { width: 3px; height: 3px; background: #d8dae0; border-radius: 50%; }
+      .future .empty-mark { background: #e9eaed; }
+      .skeleton, .month-gap { display: grid; place-items: center; }
+      .skeleton::after, .month-gap::after { content: ""; }
+      .month-gap::after { background: #e3e5e9; }
+      #status[data-state="error"] { margin: 20px 0 0; text-align: center; color: #8b7060; }
+      .message { padding: 40px 12px; text-align: center; line-height: 1.7; color: var(--secondary); }
+      .message button { padding: 7px 12px; text-decoration: underline; text-underline-offset: 3px; }
+      @media (min-width: 800px) {
+        .shell { width: min(880px, calc(100% - 56px)); margin-bottom: 20px; }
+        .year-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 32px; }
+        .month-header { height: 24px; margin-bottom: 6px; }
+        .day-grid { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+      }
+      @media (max-width: 540px) {
+        :root { --mark: 16px; }
+        .shell { width: calc(100% - 40px); }
+        .calendar-header { padding: 23px 0 20px; }
+        .brand span { display: none; }
+        #year-home { font-size: 39px; }
+        #day-heading { font-size: 28px; }
+        .context { height: auto; min-height: 66px; }
+        .context .inspection > span { white-space: normal; text-wrap: balance; }
+        .year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
+        .day-grid { --mark: 24px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+      }
+      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="calendar-header">
+        <div class="header-top">
+          <a class="brand" href="https://bitview.space" aria-label="Bitview">
+            <svg viewBox="0 0 173.2 200" aria-hidden="true" focusable="false">
+              <defs><clipPath id="bitview-cube"><polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" /></clipPath></defs>
+              <g fill-opacity=".4">
+                <polygon fill="var(--logo-bottom)" points="86.6,100 173.2,150 86.6,200 0,150" />
+                <polygon fill="var(--logo-top)" points="86.6,100 0,150 0,50 86.6,0" />
+                <polygon fill="var(--logo-left)" points="86.6,100 173.2,150 173.2,50 86.6,0" />
+              </g>
+              <g clip-path="url(#bitview-cube)">
+                <g transform="translate(0 50)">
+                  <polygon fill="var(--logo-top)" points="86.6,0 173.2,50 86.6,100 0,50" />
+                  <polygon fill="var(--logo-right)" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                  <polygon fill="var(--logo-left)" points="0,50 0,150 86.6,200 86.6,100" />
+                </g>
+              </g>
+              <g fill-opacity=".4">
+                <polygon fill="var(--logo-top)" points="0,50 86.6,0 173.2,50 86.6,100" />
+                <polygon fill="var(--logo-right)" points="173.2,50 173.2,150 86.6,200 86.6,100" />
+                <polygon fill="var(--logo-left)" points="0,50 0,150 86.6,200 86.6,100" />
+              </g>
+            </svg>
+            <span>bitview</span>
+          </a>
+          <h1 class="calendar-title">Miner calendar</h1>
+          <nav class="year-heading" aria-label="Year navigation">
+            <button id="previous-year" class="neighbor-year" aria-label="Previous year"></button>
+            <button id="year-home" aria-label="Year overview"></button>
+            <button id="next-year" class="neighbor-year" aria-label="Next year"></button>
+          </nav>
+        </div>
+        <nav id="date-nav" class="date-nav" aria-label="Day navigation" hidden>
+          <button id="previous-day" class="arrow" aria-label="Previous day"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m12 5-5 5 5 5" /></svg></button>
+          <h2 id="day-heading"></h2>
+          <button id="next-day" class="arrow" aria-label="Next day"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m8 5 5 5-5 5" /></svg></button>
+        </nav>
+        <div id="day-context" class="context" hidden>
+          <div id="inspection" class="inspection" aria-hidden="true"></div>
+        </div>
+      </header>
+      <p id="period-note" class="sr-only"></p>
+      <div id="calendar" aria-label="Mining calendar" aria-describedby="period-note" aria-busy="true"></div>
+      <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+      <noscript><p>This calendar needs JavaScript to load block data from Bitview.</p></noscript>
+    </main>
+    <script id="calendar-data">
+      const API = "https://bitview.space/api";
+      const DAY = 86400000;
+      const GENESIS = "2009-01-03";
+      const isoDay = value => new Date(value).toISOString().slice(0, 10);
+      const utcDate = value => new Date(`${value}T00:00:00Z`);
+      const addDays = (value, count) => isoDay(utcDate(value).getTime() + count * DAY);
+      const todayUTC = () => isoDay(Date.now());
+      const number = value => value.toLocaleString("en-US");
+
+      function ordinal(value) {
+        const lastTwo = value % 100;
+        const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th");
+        return `${number(value)}${suffix}`;
+      }
+
+      function addPoolOrdinals(blocks, pools, series) {
+        if (!blocks.length) return [];
+        const start = blocks[0].height;
+        const end = blocks.at(-1).height + 1;
+        const represented = new Set(blocks.map(block => block.pool));
+        const invalid = () => { throw new Error("Pool block counts are still synchronizing. Please refresh in a moment."); };
+        if (!Array.isArray(series) || series.length !== pools.length || new Set(pools).size !== represented.size ||
+          pools.length !== represented.size || pools.some(pool => !represented.has(pool)) ||
+          blocks.some((block, i) => block.height !== start + i)) invalid();
+        const counters = new Map();
+        for (let p = 0; p < pools.length; p++) {
+          const values = series[p];
+          if (!values || values.index !== "height" || values.start !== start || values.end !== end ||
+            !Array.isArray(values.data) || values.data.length !== blocks.length ||
+            values.data.some((value, i) => !Number.isSafeInteger(value) || value < 0 ||
+              (i && value - values.data[i - 1] !== Number(blocks[i].pool === pools[p])))) invalid();
+          counters.set(pools[p], values.data);
+        }
+        const counts = new Map();
+        let day;
+        return blocks.map((block, i) => {
+          if (block.day !== day) { counts.clear(); day = block.day; }
+          const poolDayIndex = (counts.get(block.pool) || 0) + 1;
+          counts.set(block.pool, poolDayIndex);
+          const poolTotal = counters.get(block.pool)[i];
+          if (poolTotal < poolDayIndex) invalid();
+          return { ...block, poolDayIndex, poolTotal };
+        });
+      }
+
+      function rankPools(blocks) {
+        const counts = new Map();
+        for (const block of blocks) counts.set(block.pool, (counts.get(block.pool) || 0) + 1);
+        const ranked = [...counts].map(([pool, count]) => ({ pool, count }));
+        return ranked.sort((a, b) => b.count - a.count || (a.pool < b.pool ? -1 : a.pool > b.pool ? 1 : 0));
+      }
+
+      function decodeBlocks(series) {
+        if (!Array.isArray(series) || series.length !== 3) throw new Error("Incomplete block data from Bitview.");
+        const [timestamps, calendar, pools] = series;
+        const { start, end } = timestamps;
+        if (!Number.isInteger(start) || !Number.isInteger(end) || end < start ||
+          !series.every(item => item.index === "height" && item.start === start && item.end === end &&
+            Array.isArray(item.data) && item.data.length === end - start)) {
+          throw new Error("Block data is still synchronizing. Please refresh in a moment.");
+        }
+        return pools.data.map((pool, i) => {
+          if (typeof pool !== "string" || !/^[a-z0-9]+$/.test(pool) ||
+            !Number.isFinite(timestamps.data[i]) || !Number.isFinite(calendar.data[i])) {
+            throw new Error("Bitview returned an incomplete block.");
+          }
+          return { height: start + i, pool, timestamp: timestamps.data[i], day: isoDay(calendar.data[i] * 1000) };
+        });
+      }
+
+      function groupDays(blocks) {
+        const days = new Map();
+        for (const block of blocks) {
+          if (!days.has(block.day)) days.set(block.day, []);
+          days.get(block.day).push(block);
+        }
+        return days;
+      }
+
+      // Quarter-sized ranges stay below the API's response-weight limit, even
+      // in fast-block years. An open end includes the latest indexed block.
+      function requestRanges(from, to, today) {
+        const ranges = [];
+        let start = from < GENESIS ? GENESIS : from;
+        while (start < to && start <= today) {
+          const date = utcDate(start);
+          const quarterEnd = isoDay(Date.UTC(date.getUTCFullYear(), Math.floor(date.getUTCMonth() / 3) * 3 + 3, 1));
+          const end = quarterEnd < to ? quarterEnd : to;
+          ranges.push({ start, ...(end <= today ? { end } : {}) });
+          start = end;
+        }
+        return ranges;
+      }
+    </script>
+    <script>
+      const $ = id => document.getElementById(id);
+      const monthNames = Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(2024, i)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" }));
+      const lightLogos = new Set(["foundryusa", "unknown", "ultimuspool", "whitepool"]);
+      const poolNames = new Map([["unknown", "Unknown"]]);
+      const cache = new Map();
+      let poolRequest;
+      let request;
+      let generation = 0;
+      let loaded;
+      let animations = [];
+      let state = readLocation();
+      let inspection = $("inspection");
+
+      function readLocation() {
+        const params = new URLSearchParams(location.search);
+        const candidate = params.get("date") || todayUTC();
+        const valid = /^\d{4}-\d{2}-\d{2}$/.test(candidate) && Number.isFinite(utcDate(candidate).getTime()) && isoDay(utcDate(candidate)) === candidate;
+        return { date: valid ? (candidate < GENESIS ? GENESIS : candidate > todayUTC() ? todayUTC() : candidate) : todayUTC(), view: params.get("view") === "day" ? "day" : "year" };
+      }
+
+      function element(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function describe(cell, title, detail = "") {
+        cell.dataset.title = title;
+        cell.dataset.detail = detail;
+        cell.setAttribute("aria-label", `${title}. ${detail}`);
+      }
+
+      function inspect(cell) {
+        inspection.replaceChildren();
+        if (!cell) return;
+        inspection = cell.closest(".month")?.querySelector(".inspection") || $("inspection");
+        inspection.replaceChildren(element("span", "inspect-title", cell.dataset.title));
+        if (cell.dataset.detail) inspection.append(element("span", "inspect-detail", cell.dataset.detail));
+      }
+
+      function poolName(slug) { return poolNames.get(slug) || slug; }
+      function mark(slug) {
+        const node = element("span", "pool-mark");
+        node.setAttribute("aria-hidden", "true");
+        const img = element("img");
+        img.alt = "";
+        img.loading = "lazy";
+        img.src = `https://bitview.space/assets/pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
+        img.addEventListener("error", () => { img.src = "https://bitview.space/assets/pools/default.light.svg"; }, { once: true });
+        node.append(img);
+        return node;
+      }
+
+      async function getJSON(path, signal) {
+        const response = await fetch(`${API}${path}`, { signal });
+        if (!response.ok) throw new Error(`Bitview is unavailable (HTTP ${response.status}).`);
+        return response.json();
+      }
+
+      async function loadPools() {
+        if (!poolRequest) {
+          poolRequest = getJSON("/v1/mining/pools", AbortSignal.timeout(25000)).then(pools => {
+            if (!Array.isArray(pools)) throw new Error("The mining pool directory is unavailable.");
+            for (const pool of pools) poolNames.set(pool.slug, pool.name);
+          }).catch(error => { poolRequest = undefined; throw error; });
+        }
+        return poolRequest;
+      }
+
+      function period() {
+        const year = Number(state.date.slice(0, 4));
+        return state.view === "year" ? { from: `${year}-01-01`, to: `${year + 1}-01-01` } : { from: state.date, to: addDays(state.date, 1) };
+      }
+
+      function updateControls() {
+        const year = Number(state.date.slice(0, 4));
+        const isDay = state.view === "day";
+        $("year-home").textContent = String(year);
+        $("year-home").disabled = !isDay;
+        $("year-home").setAttribute("aria-label", isDay ? `Back to ${year}` : `${year} miner calendar`);
+        $("date-nav").hidden = !isDay;
+        $("day-context").hidden = !isDay;
+        $("day-heading").textContent = utcDate(state.date).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+        $("previous-year").textContent = String(year - 1);
+        $("next-year").textContent = String(year + 1);
+        $("previous-year").disabled = year <= 2009;
+        $("next-year").disabled = year >= Number(todayUTC().slice(0, 4));
+        $("previous-year").setAttribute("aria-label", `Previous year, ${year - 1}`);
+        $("next-year").setAttribute("aria-label", `Next year, ${year + 1}`);
+        $("previous-day").disabled = state.date <= GENESIS;
+        $("next-day").disabled = state.date >= todayUTC();
+        $("period-note").textContent = isDay ? "Every block in height order. Dates follow Bitview’s UTC chain calendar; block times are miner-reported. Select the year heading to return to the year." : "The top miner for each UTC day, grouped by month with weeks starting on Monday. Select a day to explore its blocks. Ties are ordered by pool identifier.";
+        document.title = `${isDay ? state.date : year} · Miner calendar · Bitview`;
+      }
+
+      function navigate(changes, replace = false) {
+        const previousYear = Number(state.date.slice(0, 4));
+        state = { ...state, ...changes };
+        const url = new URL(location.href);
+        url.search = new URLSearchParams({ view: state.view, date: state.date });
+        history[replace ? "replaceState" : "pushState"](null, "", url);
+        load(false, Math.sign(Number(state.date.slice(0, 4)) - previousYear));
+      }
+
+      function animateYearChange(node, direction) {
+        if (!direction || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        animations.push(node.animate([
+          { opacity: 0, transform: `translateX(${direction * 14}px)` },
+          { opacity: 1, transform: "translateX(0)" },
+        ], { duration: 320, easing: "cubic-bezier(.22, 1, .36, 1)" }));
+      }
+
+      function setStatus(text, status) {
+        $("status").textContent = text;
+        $("status").dataset.state = status;
+        $("status").classList.toggle("sr-only", status !== "error");
+      }
+
+      async function load(force = false, direction = 0) {
+        for (const animation of animations) animation.cancel();
+        animations = [];
+        updateControls();
+        animateYearChange(document.querySelector(".year-heading"), direction);
+        const id = ++generation;
+        request?.abort();
+        request = new AbortController();
+        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(30000)]);
+        const { from, to } = period();
+        const isDay = state.view === "day";
+        const key = `${from}/${to}`;
+        const refreshing = force && loaded?.from === from && loaded?.to === to;
+        if (!refreshing) loaded = undefined;
+        $("calendar").setAttribute("aria-busy", "true");
+        setStatus("Loading blocks from Bitview", "loading");
+        inspect();
+        if (!refreshing) {
+          const skeleton = state.view === "year" ? createYearGrid(() => element("div", "skeleton")) : element("div", "calendar-grid day-grid");
+          skeleton.setAttribute("aria-hidden", "true");
+          if (state.view === "day") for (let i = 0; i < 144; i++) skeleton.append(element("div", "skeleton"));
+          $("calendar").replaceChildren(skeleton);
+        }
+        try {
+          const cached = !force && [cache.get(key), ...cache.values()].find(item => item && item.from <= from && item.to >= to && Date.now() - item.fetched < 60000);
+          let blocks;
+          if (cached) {
+            blocks = cached.blocks.filter(block => block.day >= from && block.day < to);
+          } else {
+            const [responses] = await Promise.all([
+              Promise.all(requestRanges(from, to, todayUTC()).map(range => {
+                const query = new URLSearchParams({ series: "timestamp,timestamp_monotonic,pool", index: "height", ...range });
+                return getJSON(`/series/bulk?${query}`, signal);
+              })),
+              loadPools(),
+            ]);
+            blocks = responses.flatMap(decodeBlocks).filter(block => block.day >= from && block.day < to);
+            if (blocks.some((block, i) => i && block.height !== blocks[i - 1].height + 1)) {
+              throw new Error("Block history is updating. Please refresh in a moment.");
+            }
+          }
+          if (id !== generation) return;
+          if (isDay && blocks.length && blocks.some(block => block.poolTotal === undefined)) {
+            const pools = [...new Set(blocks.map(block => block.pool))];
+            const query = new URLSearchParams({
+              series: pools.map(pool => `${pool}_blocks_mined_cumulative`).join(","),
+              index: "height", start: blocks[0].height, end: blocks.at(-1).height + 1,
+            });
+            blocks = addPoolOrdinals(blocks, pools, await getJSON(`/series/bulk?${query}`, signal));
+          }
+          if (id !== generation) return;
+          loaded = { from, to, blocks, fetched: cached?.fetched ?? Date.now() };
+          cache.set(key, loaded);
+          if (cache.size > 4) cache.delete(cache.keys().next().value);
+          render();
+          animateYearChange($("calendar"), direction);
+          setStatus("Calendar loaded", "ready");
+        } catch (error) {
+          if (id !== generation) return;
+          if (refreshing) {
+            setStatus("Refresh failed · Showing previous data", "error");
+            return;
+          }
+          const message = element("div", "message");
+          message.append(element("p", "", error.name === "TimeoutError" ? "Bitview took too long to respond. Try again in a moment." : error.message || "Unable to reach Bitview. Check your connection and try again."));
+          const retry = element("button", "", "Try again");
+          retry.addEventListener("click", () => load(true));
+          message.append(retry);
+          $("calendar").replaceChildren(message);
+          setStatus("Data unavailable", "unavailable");
+        } finally {
+          if (id === generation) $("calendar").setAttribute("aria-busy", "false");
+        }
+      }
+
+      function render() {
+        if (!loaded) return;
+        const blocks = loaded.blocks;
+        if (state.view === "day") renderDay(blocks);
+        else renderYear(groupDays(blocks));
+        inspect();
+      }
+
+      function renderDay(blocks) {
+        const grid = element("div", "calendar-grid day-grid");
+        const dayLabel = state.date === todayUTC() ? "today" : "that day";
+        for (const block of blocks) {
+          const cell = element("a", "cell block");
+          cell.href = `https://bitview.space/block/${block.height}`;
+          cell.target = "_blank";
+          cell.rel = "noopener";
+          const time = new Date(block.timestamp * 1000).toISOString().slice(11, 19);
+          const name = block.pool === "unknown" ? "Unattributed" : poolName(block.pool);
+          describe(cell, `${name} · ${ordinal(block.poolDayIndex)} ${dayLabel} · ${ordinal(block.poolTotal)} overall`, `Block ${number(block.height)} · ${time} UTC`);
+          cell.setAttribute("aria-label", `${cell.getAttribute("aria-label")}. Open block in Bitview.`);
+          cell.append(mark(block.pool));
+          grid.append(cell);
+        }
+        if (!blocks.length) {
+          const empty = element("div", "message", state.date === todayUTC() ? "No blocks indexed for today yet. The calendar refreshes every minute." : "No indexed blocks for this UTC calendar day.");
+          $("calendar").replaceChildren(empty);
+        } else $("calendar").replaceChildren(grid);
+      }
+
+      function createYearGrid(createCell) {
+        const year = Number(state.date.slice(0, 4));
+        const overview = element("div", "year-grid");
+        for (let month = 0; month < 12; month++) {
+          const section = element("section", "month");
+          const heading = element("h2", "month-title", monthNames[month]);
+          heading.id = `month-${month}`;
+          section.setAttribute("aria-labelledby", heading.id);
+          const header = element("div", "month-header");
+          const legend = element("div", "inspection");
+          legend.setAttribute("aria-hidden", "true");
+          header.append(heading, legend);
+          const grid = element("div", "calendar-grid month-grid");
+          const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+          const offset = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
+          for (let slot = 0; slot < 42; slot++) {
+            const day = slot - offset + 1;
+            if (day < 1 || day > length) {
+              const gap = element("span", "month-gap");
+              gap.setAttribute("aria-hidden", "true");
+              grid.append(gap);
+            } else grid.append(createCell(isoDay(Date.UTC(year, month, day)), month, day));
+          }
+          section.append(header, grid);
+          overview.append(section);
+        }
+        return overview;
+      }
+
+      function renderYear(days) {
+        const today = todayUTC();
+        const grid = createYearGrid((date, month, day) => {
+          const blocks = days.get(date) || [];
+          const future = date > today || date < GENESIS;
+          const cell = element("button", `cell block day${date === today ? " today" : ""}${future ? " future" : ""}${!blocks.length ? " empty" : ""}`);
+          cell.dataset.date = date;
+          cell.disabled = future;
+          const [leader, runnerUp] = rankPools(blocks);
+          const tied = !!runnerUp && runnerUp.count === leader.count;
+          describe(cell, future ? "" : leader ? `${leader.count} · ${poolName(leader.pool)}` : "0 · No blocks");
+          const description = leader ? `${poolName(leader.pool)} · ${leader.count} of ${blocks.length} blocks${tied ? " · Tied for first" : ""}` : "No indexed blocks";
+          cell.setAttribute("aria-label", `${monthNames[month]} ${day}${date === today ? " · So far" : ""}. ${future ? "Outside available dates" : description}`);
+          cell.append(leader ? mark(leader.pool) : element("span", "empty-mark"));
+          cell.addEventListener("click", () => { navigate({ view: "day", date }); window.scrollTo({ top: 0 }); });
+          return cell;
+        });
+        $("calendar").replaceChildren(grid);
+      }
+
+      $("year-home").addEventListener("click", () => { navigate({ view: "year" }); window.scrollTo({ top: 0 }); });
+      for (const [name, direction] of [["previous", -1], ["next", 1]]) {
+        $(`${name}-year`).addEventListener("click", () => navigate({ view: "year", date: `${Number(state.date.slice(0, 4)) + direction}-01-03` }));
+        $(`${name}-day`).addEventListener("click", () => navigate({ view: "day", date: addDays(state.date, direction) }));
+      }
+      $("calendar").addEventListener("pointerover", event => {
+        const cell = event.target.closest(".cell");
+        inspect(cell);
+      });
+      $("calendar").addEventListener("pointerleave", () => inspect(document.activeElement.closest(".cell")));
+      $("calendar").addEventListener("focusin", event => inspect(event.target.closest(".cell")));
+      $("calendar").addEventListener("focusout", event => inspect(event.relatedTarget?.closest(".cell")));
+      window.addEventListener("keydown", event => { if (event.key === "Escape") inspect(); });
+      window.addEventListener("popstate", () => { state = readLocation(); load(); });
+      setInterval(() => {
+        if (!document.hidden && !$("calendar").contains(document.activeElement) && !$("calendar").querySelector(".cell:hover") && $("calendar").getAttribute("aria-busy") !== "true" && period().to > todayUTC()) load(true);
+      }, 60000);
+      load();
+    </script>
+  </body>
+</html>

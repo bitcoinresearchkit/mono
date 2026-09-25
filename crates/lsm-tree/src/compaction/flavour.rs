@@ -7,19 +7,19 @@ use std::{mem, time::Instant};
 use log::debug;
 
 use crate::{
-    InternalValue, Result, Table,
+    InternalValue, RecordBytes, Result, Slice, Table,
     compaction::{Input as CompactionPayload, worker::Worker},
     table::multi_writer::MultiWriter,
 };
 
-pub struct StandardCompaction {
+pub struct StandardCompaction<K = Slice, V = Slice> {
     start: Instant,
-    table_writer: MultiWriter,
+    table_writer: MultiWriter<K, V>,
     tables_to_rewrite: Vec<Table>,
 }
 
-impl StandardCompaction {
-    pub fn new(table_writer: MultiWriter, tables_to_rewrite: Vec<Table>) -> Self {
+impl<K: RecordBytes, V: RecordBytes> StandardCompaction<K, V> {
+    pub fn new(table_writer: MultiWriter<K, V>, tables_to_rewrite: Vec<Table>) -> Self {
         Self {
             start: Instant::now(),
             table_writer,
@@ -27,7 +27,7 @@ impl StandardCompaction {
         }
     }
 
-    pub fn write(&mut self, item: InternalValue) -> Result<()> {
+    pub fn write(&mut self, item: InternalValue<K, V>) -> Result<()> {
         self.table_writer.write(item)
     }
 

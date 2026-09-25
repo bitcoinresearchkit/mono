@@ -3,21 +3,24 @@ use std::{
     io::{Cursor, Seek, Write},
 };
 
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 use varint_rs::{VarintReader, VarintWriter};
 
+#[cfg(test)]
+use std::mem::size_of;
+
+#[cfg(test)]
+use byteorder::LittleEndian;
+
+#[cfg(test)]
+use crate::{Slice, table::block::Trailer};
+
 use super::block::{
-    Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER, Trailer,
-    binary_index::Reader as BinaryIndexReader, hash_index::Reader as HashIndexReader,
+    Block, Decodable, Decoder, Encodable, Encoder, ParsedItem, TRAILER_START_MARKER,
 };
 use crate::{
-    InternalValue, Result, Slice, SliceExt as _, ValueType,
-    key::InternalKey,
-    table::{
-        block::hash_index::{MARKER_CONFLICT, MARKER_FREE},
-        util::{SliceIndexes, compare_prefixed_slice},
-    },
-    value::PointReadValue,
+    InternalValue, RecordBytes, Result, ValueType, point_read_value::PointReadValue,
+    table::util::SliceIndexes,
 };
 
 // Copyright (c) 2025-present, fjall-rs
@@ -25,11 +28,13 @@ use crate::{
 // (found in the LICENSE-* files in the repository)
 
 mod iter;
+mod parsed_item;
 
 #[cfg(test)]
 mod iter_test;
 
 pub use iter::Iter;
+pub use parsed_item::DataBlockParsedItem;
 
 impl Decodable<DataBlockParsedItem> for InternalValue {
     fn parse_restart_key<'a>(
@@ -219,7 +224,7 @@ impl Decodable<DataBlockParsedItem> for InternalValue {
     }
 }
 
-impl Encodable<()> for InternalValue {
+impl<K: RecordBytes, V: RecordBytes> Encodable<()> for InternalValue<K, V> {
     fn encode_full_into<W: Write>(
         &self,
         writer: &mut W,
@@ -236,17 +241,17 @@ impl Encodable<()> for InternalValue {
 
         if fixed_key_len.is_none() {
             #[expect(clippy::cast_possible_truncation, reason = "keys are u16 length max")]
-            writer.write_u16_varint(self.key.user_key.len() as u16)?; // 3
+            writer.write_u16_varint(self.key.user_key.as_ref().len() as u16)?; // 3
         }
-        writer.write_all(&self.key.user_key)?; // 4
+        writer.write_all(self.key.user_key.as_ref())?; // 4
 
         // NOTE: Only write value len + value if we are actually a value
         if !self.is_tombstone() {
             if fixed_value_len.is_none() {
                 #[expect(clippy::cast_possible_truncation, reason = "values are u32 length max")]
-                writer.write_u32_varint(self.value.len() as u32)?; // 5
+                writer.write_u32_varint(self.value.as_ref().len() as u32)?; // 5
             }
-            writer.write_all(&self.value)?; // 6
+            writer.write_all(self.value.as_ref())?; // 6
         }
 
         Ok(())
@@ -286,6 +291,7 @@ impl Encodable<()> for InternalValue {
         let truncated_user_key = self
             .key
             .user_key
+            .as_ref()
             .get(shared_len..)
             .expect("should be in bounds");
 
@@ -295,77 +301,16 @@ impl Encodable<()> for InternalValue {
         if !self.is_tombstone() {
             if fixed_value_len.is_none() {
                 #[expect(clippy::cast_possible_truncation, reason = "values are u32 length max")]
-                writer.write_u32_varint(self.value.len() as u32)?; // 6
+                writer.write_u32_varint(self.value.as_ref().len() as u32)?; // 6
             }
-            writer.write_all(&self.value)?; // 7
+            writer.write_all(self.value.as_ref())?; // 7
         }
 
         Ok(())
     }
 
     fn key(&self) -> &[u8] {
-        &self.key.user_key
-    }
-}
-
-#[derive(Debug)]
-pub struct DataBlockParsedItem {
-    pub value_type: ValueType,
-    pub seqno: u64,
-    pub prefix: Option<SliceIndexes>,
-    pub key: SliceIndexes,
-    pub value: Option<SliceIndexes>,
-}
-
-impl ParsedItem<InternalValue> for DataBlockParsedItem {
-    fn compare_key(&self, needle: &[u8], bytes: &[u8]) -> Ordering {
-        if let Some(prefix) = &self.prefix {
-            let prefix = unsafe { bytes.get_unchecked(prefix.0..prefix.1) };
-            let rest_key = unsafe { bytes.get_unchecked(self.key.0..self.key.1) };
-            compare_prefixed_slice(prefix, rest_key, needle)
-        } else {
-            let key = unsafe { bytes.get_unchecked(self.key.0..self.key.1) };
-            key.cmp(needle)
-        }
-    }
-
-    fn key_offset(&self) -> usize {
-        self.key.0
-    }
-
-    fn materialize(&self, bytes: &Slice) -> InternalValue {
-        // NOTE: We consider the prefix and key slice indexes to be trustworthy
-        #[expect(clippy::indexing_slicing)]
-        let key = if let Some(prefix) = &self.prefix {
-            let prefix_key = &bytes[prefix.0..prefix.1];
-            let rest_key = &bytes[self.key.0..self.key.1];
-            Slice::fused(prefix_key, rest_key)
-        } else {
-            bytes.slice(self.key.0..self.key.1)
-        };
-
-        let key = InternalKey::new(key, self.seqno, self.value_type);
-
-        let value = self
-            .value
-            .as_ref()
-            .map_or_else(Slice::empty, |v| bytes.slice(v.0..v.1));
-
-        InternalValue { key, value }
-    }
-}
-
-impl DataBlockParsedItem {
-    fn materialize_value(&self, bytes: &Slice) -> PointReadValue {
-        let value = self
-            .value
-            .as_ref()
-            .map_or_else(Slice::empty, |value| bytes.slice(value.0..value.1));
-
-        PointReadValue {
-            value_type: self.value_type,
-            value,
-        }
+        self.key.user_key.as_ref()
     }
 }
 
@@ -397,121 +342,34 @@ impl DataBlock {
         &self.inner.data
     }
 
-    fn get_binary_index_reader(&self) -> BinaryIndexReader<'_> {
-        use std::mem::size_of;
-
-        let trailer = Trailer::new(&self.inner);
-
-        // NOTE: Skip restart interval (u8)
-        let offset = size_of::<u8>();
-
-        let mut reader = unwrap!(trailer.as_slice().get(offset..));
-
-        let binary_index_step_size = unwrap!(reader.read_u8());
-
-        debug_assert!(
-            binary_index_step_size == 2 || binary_index_step_size == 4,
-            "invalid binary index step size",
-        );
-
-        let binary_index_len = unwrap!(reader.read_u32::<LittleEndian>());
-        let binary_index_offset = unwrap!(reader.read_u32::<LittleEndian>());
-
-        BinaryIndexReader::new(
-            &self.inner.data,
-            binary_index_offset,
-            binary_index_len,
-            binary_index_step_size,
-        )
-    }
-
-    #[must_use]
-    pub fn get_hash_index_reader(&self) -> Option<HashIndexReader<'_>> {
-        use std::mem::size_of;
-
-        let trailer = Trailer::new(&self.inner);
-
-        // NOTE: Skip restart interval (u8), binary index step size (u8)
-        // and binary stuff (2x u32)
-        let offset = size_of::<u8>() + size_of::<u8>() + size_of::<u32>() + size_of::<u32>();
-
-        let mut reader = unwrap!(trailer.as_slice().get(offset..));
-
-        let hash_index_len = unwrap!(reader.read_u32::<LittleEndian>());
-        let hash_index_offset = unwrap!(reader.read_u32::<LittleEndian>());
-
-        if hash_index_len == 0 {
-            debug_assert_eq!(
-                0, hash_index_offset,
-                "hash index offset should be 0 if its length is 0"
-            );
-            None
-        } else {
-            Some(HashIndexReader::new(
-                &self.inner.data,
-                hash_index_offset,
-                hash_index_len,
-            ))
-        }
-    }
-
-    /// Returns the number of hash buckets.
-    #[cfg(test)]
-    #[must_use]
-    pub fn hash_bucket_count(&self) -> Option<usize> {
-        self.get_hash_index_reader()
-            .map(|reader| reader.bucket_count())
-    }
-
     #[must_use]
     pub fn point_read(&self, needle: &[u8]) -> Option<InternalValue> {
         self.point_read_item(needle)
             .map(|item| item.materialize(&self.inner.data))
     }
 
-    pub fn point_read_value(&self, needle: &[u8]) -> Option<PointReadValue> {
+    pub fn point_read_value<V: RecordBytes>(
+        &self,
+        needle: &[u8],
+    ) -> Result<Option<PointReadValue<V>>> {
         self.point_read_item(needle)
             .map(|item| item.materialize_value(&self.inner.data))
+            .transpose()
     }
 
     fn point_read_item(&self, needle: &[u8]) -> Option<DataBlockParsedItem> {
-        let Some(hash_index_reader) = self.get_hash_index_reader() else {
-            return self.binary_point_read(needle);
-        };
-
-        let idx = match hash_index_reader.get(needle) {
-            MARKER_FREE => return None,
-            MARKER_CONFLICT => return self.binary_point_read(needle),
-            idx => idx,
-        };
-        let offset = self.get_binary_index_reader().get(usize::from(idx));
-        let mut iter = self.iter();
-        iter.seek_to_offset(offset);
-
-        // Linear scan
-        for item in iter {
+        let mut decoder = Decoder::<InternalValue, DataBlockParsedItem>::new(&self.inner);
+        if !decoder.seek(|key, _| key < needle, false) {
+            return None;
+        }
+        for item in decoder {
             match item.compare_key(needle, &self.inner.data) {
-                Ordering::Greater => {
-                    // We are before our searched key/seqno
-                    return None;
-                }
-                Ordering::Equal => {
-                    return Some(item);
-                }
+                Ordering::Equal => return Some(item),
+                Ordering::Greater => return None,
                 Ordering::Less => {}
             }
         }
-
         None
-    }
-
-    fn binary_point_read(&self, needle: &[u8]) -> Option<DataBlockParsedItem> {
-        let mut iter = self.iter();
-        if !iter.seek(needle) {
-            return None;
-        }
-
-        iter.next()
     }
 
     #[must_use]
@@ -528,8 +386,6 @@ impl DataBlock {
     #[cfg(test)]
     #[must_use]
     pub fn binary_index_len(&self) -> u32 {
-        use std::mem::size_of;
-
         let trailer = Trailer::new(&self.inner);
 
         // NOTE: Skip restart interval (u8) and binary index step size (u8)
@@ -547,14 +403,10 @@ impl DataBlock {
     }
 
     #[cfg(test)]
-    pub fn encode_into_vec(
-        items: &[InternalValue],
-        restart_interval: u8,
-        hash_index_ratio: f32,
-    ) -> Result<Vec<u8>> {
+    pub fn encode_into_vec(items: &[InternalValue], restart_interval: u8) -> Result<Vec<u8>> {
         let mut buf = vec![];
 
-        Self::encode_into(&mut buf, items, restart_interval, hash_index_ratio)?;
+        Self::encode_into(&mut buf, items, restart_interval)?;
 
         Ok(buf)
     }
@@ -568,7 +420,6 @@ impl DataBlock {
         writer: &mut Vec<u8>,
         items: &[InternalValue],
         restart_interval: u8,
-        hash_index_ratio: f32,
     ) -> Result<()> {
         #[expect(clippy::expect_used, reason = "the chunk should not be empty")]
         let first_key = &items
@@ -601,42 +452,22 @@ impl DataBlock {
             writer,
             items,
             restart_interval,
-            hash_index_ratio,
             fixed_key_len,
             fixed_value_len,
         )
     }
 
-    pub fn encode_into_with_fixed_lengths(
+    pub fn encode_into_with_fixed_lengths<K: RecordBytes, V: RecordBytes>(
         writer: &mut Vec<u8>,
-        items: &[InternalValue],
+        items: &[InternalValue<K, V>],
         restart_interval: u8,
-        hash_index_ratio: f32,
         fixed_key_len: Option<u16>,
         fixed_value_len: Option<u32>,
     ) -> Result<()> {
-        #[expect(clippy::expect_used, reason = "the chunk should not be empty")]
-        let first_key = &items
-            .first()
-            .expect("chunk should not be empty")
-            .key
-            .user_key;
-
-        let mut serializer = Encoder::<'_, (), InternalValue>::new(
-            writer,
-            items.len(),
-            restart_interval,
-            hash_index_ratio,
-            first_key,
-        )
-        .use_fixed_key_len(fixed_key_len)
-        .use_fixed_value_len(fixed_value_len);
-
-        for item in items {
-            serializer.write(item)?;
-        }
-
-        serializer.finish()
+        Encoder::<'_, (), InternalValue<K, V>>::new(writer, items, restart_interval)
+            .use_fixed_key_len(fixed_key_len)
+            .use_fixed_value_len(fixed_value_len)
+            .finish()
     }
 }
 
@@ -655,6 +486,72 @@ mod tests {
     };
 
     #[test]
+    fn restart_groups_preserve_records_at_block_boundaries() -> Result<()> {
+        let parts = |item: InternalValue| {
+            (
+                item.key.user_key,
+                item.key.seqno,
+                item.key.value_type,
+                item.value,
+            )
+        };
+        for interval in [1_u8, 2, 3, 4, 8, 16, 31, 255] {
+            let width = u16::from(interval);
+            for count in [
+                1,
+                width.saturating_sub(1).max(1),
+                width,
+                width + 1,
+                2 * width + 1,
+            ] {
+                let items: Vec<_> = (0..count)
+                    .map(|i| {
+                        let (value, kind) = if i % 3 == 0 {
+                            (Slice::empty(), Tombstone)
+                        } else {
+                            (Slice::from(i.to_be_bytes()), Value)
+                        };
+                        InternalValue::from_components(i.to_be_bytes(), value, u64::from(i), kind)
+                    })
+                    .collect();
+                let bytes = DataBlock::encode_into_vec(&items, interval)?;
+                let block = DataBlock::new(Block {
+                    data: bytes.into(),
+                    header: Header {
+                        block_type: BlockType::Data,
+                        data_length: 0,
+                        uncompressed_length: 0,
+                    },
+                });
+                assert_eq!(block.len(), items.len());
+                assert_eq!(
+                    block.binary_index_len(),
+                    u32::from(count).div_ceil(u32::from(interval))
+                );
+                let expected: Vec<_> = items.iter().cloned().map(parts).collect();
+                let forward: Vec<_> = block
+                    .iter()
+                    .map(|item| parts(item.materialize(block.as_slice())))
+                    .collect();
+                let reverse: Vec<_> = block
+                    .iter()
+                    .rev()
+                    .map(|item| parts(item.materialize(block.as_slice())))
+                    .collect();
+                assert_eq!(forward, expected);
+                assert_eq!(reverse, expected.into_iter().rev().collect::<Vec<_>>());
+                for item in items {
+                    assert_eq!(
+                        block.point_read(&item.key.user_key).map(parts),
+                        Some(parts(item))
+                    );
+                }
+            }
+        }
+        Ok(())
+    }
+
+    #[test]
     fn fixed_width_block_roundtrip_is_smaller() -> Result<()> {
         let items: Vec<_> = (0..256u64)
             .map(|i| {
@@ -662,16 +559,16 @@ mod tests {
             })
             .collect();
 
-        let fixed = DataBlock::encode_into_vec(&items, 16, 0.0)?;
-        let mut legacy = Vec::new();
-        DataBlock::encode_into_with_fixed_lengths(&mut legacy, &items, 16, 0.0, None, None)?;
+        let fixed = DataBlock::encode_into_vec(&items, 16)?;
+        let mut variable = Vec::new();
+        DataBlock::encode_into_with_fixed_lengths(&mut variable, &items, 16, None, None)?;
 
         assert!(
-            fixed.len() + items.len() < legacy.len(),
+            fixed.len() + items.len() < variable.len(),
             "fixed-width encoding should omit at least one length per item",
         );
 
-        for bytes in [fixed, legacy] {
+        for bytes in [fixed, variable] {
             let block = DataBlock::new(Block {
                 data: bytes.into(),
                 header: Header {
@@ -709,7 +606,7 @@ mod tests {
 
         let ping_pong_code = [1, 0];
 
-        let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, 1, 0.0)?;
+        let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, 1)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -769,7 +666,7 @@ mod tests {
         ];
 
         for restart_interval in 1..=16 {
-            let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, restart_interval, 0.0)?;
+            let bytes: Vec<u8> = DataBlock::encode_into_vec(&items, restart_interval)?;
 
             let data_block = DataBlock::new(Block {
                 data: bytes.into(),
@@ -808,7 +705,7 @@ mod tests {
             ValueType::Value,
         )];
 
-        let bytes = DataBlock::encode_into_vec(&items, 16, 0.0)?;
+        let bytes = DataBlock::encode_into_vec(&items, 16)?;
         let serialized_len = bytes.len();
 
         let data_block = DataBlock::new(Block {
@@ -846,7 +743,7 @@ mod tests {
         )];
 
         for restart_interval in 1..=16 {
-            let bytes = DataBlock::encode_into_vec(&items, restart_interval, 0.0)?;
+            let bytes = DataBlock::encode_into_vec(&items, restart_interval)?;
             let serialized_len = bytes.len();
 
             let data_block = DataBlock::new(Block {
@@ -874,7 +771,7 @@ mod tests {
             InternalValue::from_components([1], b"", 0, Value),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 16, 1.33)?;
+        let bytes = DataBlock::encode_into_vec(&items, 16)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -886,12 +783,6 @@ mod tests {
         });
 
         assert_eq!(data_block.len(), items.len());
-        assert!(
-            data_block
-                .hash_bucket_count()
-                .expect("should have built hash index")
-                > 0,
-        );
 
         for needle in items {
             assert_eq!(
@@ -914,7 +805,7 @@ mod tests {
             InternalValue::from_components([3], [], 0, Value),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 2, 0.0)?;
+        let bytes = DataBlock::encode_into_vec(&items, 2)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -926,7 +817,6 @@ mod tests {
         });
 
         assert_eq!(data_block.len(), items.len());
-        assert!(data_block.hash_bucket_count().is_none());
 
         for needle in items {
             assert_eq!(
@@ -949,7 +839,7 @@ mod tests {
             InternalValue::from_components(b"d", b"d", 65, Value),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 1, 0.0)?;
+        let bytes = DataBlock::encode_into_vec(&items, 1)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -962,46 +852,6 @@ mod tests {
 
         assert_eq!(data_block.len(), items.len());
         assert_eq!(4, data_block.binary_index_len());
-
-        for needle in items {
-            assert_eq!(
-                Some(needle.clone()),
-                data_block.point_read(&needle.key.user_key),
-            );
-        }
-
-        assert_eq!(None, data_block.point_read(b"yyy"));
-
-        Ok(())
-    }
-
-    #[test]
-    fn data_block_point_read_dense_with_hash() -> Result<()> {
-        let items = [
-            InternalValue::from_components(b"a", b"a", 3, Value),
-            InternalValue::from_components(b"b", b"b", 2, Value),
-            InternalValue::from_components(b"c", b"c", 1, Value),
-            InternalValue::from_components(b"d", b"d", 65, Value),
-        ];
-
-        let bytes = DataBlock::encode_into_vec(&items, 1, 1.33)?;
-
-        let data_block = DataBlock::new(Block {
-            data: bytes.into(),
-            header: Header {
-                block_type: BlockType::Data,
-                data_length: 0,
-                uncompressed_length: 0,
-            },
-        });
-
-        assert_eq!(data_block.len(), items.len());
-        assert!(
-            data_block
-                .hash_bucket_count()
-                .expect("should have built hash index")
-                > 0,
-        );
 
         for needle in items {
             assert_eq!(
@@ -1029,7 +879,7 @@ mod tests {
             ),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 2, 0.0)?;
+        let bytes = DataBlock::encode_into_vec(&items, 2)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -1041,7 +891,6 @@ mod tests {
         });
 
         assert_eq!(data_block.len(), items.len());
-        assert!(data_block.get_hash_index_reader().is_none());
 
         assert_eq!(
             Some(items.get(1).cloned().unwrap()),
@@ -1061,7 +910,7 @@ mod tests {
             InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 16, 1.33)?;
+        let bytes = DataBlock::encode_into_vec(&items, 16)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -1073,12 +922,6 @@ mod tests {
         });
 
         assert_eq!(data_block.len(), items.len());
-        assert!(
-            data_block
-                .hash_bucket_count()
-                .expect("should have built hash index")
-                > 0,
-        );
 
         assert!(
             data_block
@@ -1104,7 +947,7 @@ mod tests {
             InternalValue::from_components("pla:venus:name", "Venus", 0, Value),
         ];
 
-        let bytes = DataBlock::encode_into_vec(&items, 1, 1.33)?;
+        let bytes = DataBlock::encode_into_vec(&items, 1)?;
 
         let data_block = DataBlock::new(Block {
             data: bytes.into(),
@@ -1116,12 +959,6 @@ mod tests {
         });
 
         assert_eq!(data_block.len(), items.len());
-        assert!(
-            data_block
-                .hash_bucket_count()
-                .expect("should have built hash index")
-                > 0,
-        );
 
         for needle in items {
             assert_eq!(

@@ -2,12 +2,18 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use quick_cache::{OptionsBuilder, Weighter, sync::Cache as QuickCache};
+use quick_cache::{
+    OptionsBuilder, Weighter,
+    sync::{Cache as QuickCache, DefaultLifecycle},
+};
 use rustc_hash::FxBuildHasher;
 
 use crate::{
     GlobalTableId,
-    table::{Block, BlockOffset, block::Header},
+    table::{
+        Block, BlockOffset,
+        block::{BlockType, Header},
+    },
 };
 
 #[derive(Eq, std::hash::Hash, PartialEq)]
@@ -28,11 +34,13 @@ impl Weighter<CacheKey, Block> for BlockWeighter {
     }
 }
 
-/// Cache in which table blocks are cached in memory
-/// after being retrieved from disk
+type BlockCache = QuickCache<CacheKey, Block, BlockWeighter, FxBuildHasher>;
+
+/// Shared cache for decoded table blocks.
 ///
-/// This speeds up consecutive queries to nearby data, improving
-/// read performance for hot data.
+/// Indexes and filters receive seven eighths of the capacity. The remaining
+/// eighth keeps reused data blocks without letting random data reads evict
+/// the metadata needed by many lookups.
 ///
 /// # Examples
 ///
@@ -54,19 +62,26 @@ impl Weighter<CacheKey, Block> for BlockWeighter {
 /// ```
 pub struct Cache {
     // NOTE: rustc_hash performed best: https://fjall-rs.github.io/post/fjall-2-1
-    /// Concurrent cache implementation
-    data: QuickCache<CacheKey, Block, BlockWeighter, FxBuildHasher>,
+    data: BlockCache,
+    metadata: BlockCache,
 
     /// Capacity in bytes
     capacity: u64,
 }
 
 impl Cache {
-    /// Creates a new block cache with roughly `n` bytes of capacity.
+    /// Creates a block cache with roughly `bytes` bytes of capacity.
     #[must_use]
     pub fn with_capacity_bytes(bytes: u64) -> Self {
-        use quick_cache::sync::DefaultLifecycle;
+        let data_bytes = bytes / 8;
+        Self {
+            data: Self::create_cache(data_bytes),
+            metadata: Self::create_cache(bytes - data_bytes),
+            capacity: bytes,
+        }
+    }
 
+    fn create_cache(bytes: u64) -> BlockCache {
         #[expect(clippy::expect_used, reason = "nothing we can do if it fails")]
         let opts = OptionsBuilder::new()
             .weight_capacity(bytes)
@@ -75,23 +90,18 @@ impl Cache {
             .build()
             .expect("cache options should be valid");
 
-        let quick_cache = QuickCache::with_options(
+        QuickCache::with_options(
             opts,
             BlockWeighter,
             FxBuildHasher,
             DefaultLifecycle::default(),
-        );
-
-        Self {
-            data: quick_cache,
-            capacity: bytes,
-        }
+        )
     }
 
     /// Returns the amount of cached bytes.
     #[must_use]
     pub fn size(&self) -> u64 {
-        self.data.weight()
+        self.data.weight() + self.metadata.weight()
     }
 
     /// Returns the cache capacity in bytes.
@@ -100,15 +110,27 @@ impl Cache {
         self.capacity
     }
 
-    #[doc(hidden)]
     #[must_use]
-    pub fn get_block(&self, id: GlobalTableId, offset: BlockOffset) -> Option<Block> {
+    pub(crate) fn get_block(
+        &self,
+        id: GlobalTableId,
+        offset: BlockOffset,
+        block_type: BlockType,
+    ) -> Option<Block> {
         let key = CacheKey::from_id(id, offset);
-        self.data.get(&key)
+        self.cache_for(block_type).get(&key)
     }
 
-    #[doc(hidden)]
-    pub fn insert_block(&self, id: GlobalTableId, offset: BlockOffset, block: Block) {
-        self.data.insert(CacheKey::from_id(id, offset), block);
+    fn cache_for(&self, block_type: BlockType) -> &BlockCache {
+        if block_type == BlockType::Data {
+            &self.data
+        } else {
+            &self.metadata
+        }
+    }
+
+    pub(crate) fn insert_block(&self, id: GlobalTableId, offset: BlockOffset, block: Block) {
+        self.cache_for(block.header.block_type)
+            .insert(CacheKey::from_id(id, offset), block);
     }
 }

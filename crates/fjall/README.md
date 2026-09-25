@@ -13,5 +13,8 @@ LSM tables. This crate therefore contains only the pieces that workload needs:
 - background leveled compaction.
 
 There is deliberately no journal, public memtable write path, snapshot API, or
-cross-keyspace batch API. SSTable and manifest publication are synced before an
-ingestion finishes.
+cross-keyspace batch API. SSTable and manifest userspace buffers are flushed
+before an ingestion finishes; storage-device barriers are not required.
+
+The fork supports only its current `FORMAT_VERSION`. Older databases must be
+rebuilt; there is no format migration path.

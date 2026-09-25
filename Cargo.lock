@@ -1449,6 +1449,7 @@ dependencies = [
  "nanoid",
  "quick_cache",
  "rustc-hash",
+ "rustix",
  "self_cell",
  "sfa",
  "strum",
@@ -1541,7 +1542,6 @@ dependencies = [
 name = "brk_store"
 version = "0.12.2"
 dependencies = [
- "brk_byteview",
  "brk_error",
  "brk_fjall",
  "brk_types",
@@ -1556,6 +1556,7 @@ dependencies = [
  "bitcoin",
  "brk_byteview",
  "brk_error",
+ "brk_pco",
  "derive_more",
  "itoa",
  "jiff",

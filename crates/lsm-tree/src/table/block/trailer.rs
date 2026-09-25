@@ -10,17 +10,15 @@ use super::{
     Block,
     encoder::{Encodable, Encoder},
 };
-use crate::{Result, table::block::hash_index::MAX_POINTERS_FOR_HASH_INDEX};
+use crate::Result;
 
 pub const TRAILER_START_MARKER: u8 = 255;
 
-const TRAILER_SIZE: usize = 5 * mem::size_of::<u32>()
+const TRAILER_SIZE: usize = 3 * mem::size_of::<u32>()
     + (2 * mem::size_of::<u8>())
     // Fixed key size
     + mem::size_of::<u8>()
     + mem::size_of::<u16>()
-    // Prefix truncation on/off (always on)
-    + mem::size_of::<u8>()
     // Fixed value size
     + mem::size_of::<u8>()
     + mem::size_of::<u32>();
@@ -29,7 +27,7 @@ const TRAILER_SIZE: usize = 5 * mem::size_of::<u32>()
 ///
 /// ## Format
 ///
-/// \[restart_interval\] \[binary index\] \[hash index\] \[prefix truncation\]
+/// \[restart_interval\] \[binary index\]
 /// \[fixed key length\] \[fixed value length\] \[item count\]
 #[expect(clippy::doc_markdown)]
 pub struct Trailer<'a> {
@@ -93,27 +91,6 @@ impl<'a> Trailer<'a> {
         let (binary_index_step_size, binary_index_len) =
             encoder.binary_index_builder.write(&mut encoder.writer)?;
 
-        let mut hash_index_offset = 0u32;
-        let hash_index_len = encoder.hash_index_builder.bucket_count();
-
-        // NOTE: We can only use a hash index when there are 254 buckets or less
-        // Because 254 and 255 are reserved marker values
-        //
-        // With the default restart interval of 16, that still gives us support
-        // for up to ~4000 KVs
-        if encoder.hash_index_builder.bucket_count() > 0
-            && binary_index_len <= MAX_POINTERS_FOR_HASH_INDEX
-        {
-            // NOTE: We know that data blocks will never even approach 4 GB in size
-            #[expect(clippy::cast_possible_truncation)]
-            {
-                hash_index_offset = encoder.writer.len() as u32;
-            }
-
-            // Write hash index
-            encoder.hash_index_builder.write(&mut encoder.writer)?;
-        }
-
         // Write trailer
 
         #[cfg(debug_assertions)]
@@ -134,21 +111,6 @@ impl<'a> Trailer<'a> {
         encoder
             .writer
             .write_u32::<LittleEndian>(binary_index_offset)?;
-
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(if hash_index_offset > 0 {
-                hash_index_len
-            } else {
-                0
-            })?;
-
-        encoder
-            .writer
-            .write_u32::<LittleEndian>(hash_index_offset)?;
-
-        // Prefix truncation on/off (always on)
-        encoder.writer.write_u8(1)?;
 
         // Fixed key size
         encoder
@@ -172,7 +134,7 @@ impl<'a> Trailer<'a> {
         )]
         encoder
             .writer
-            .write_u32::<LittleEndian>(encoder.item_count as u32)?;
+            .write_u32::<LittleEndian>(encoder.items.len() as u32)?;
 
         #[cfg(debug_assertions)]
         assert_eq!(

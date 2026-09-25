@@ -1,25 +1,25 @@
-use crate::{BoxedIterator, Error, InternalValue, Result, Slice, Table, version::Run};
+use crate::{BoxedIterator, Error, InternalValue, RecordBytes, Result, Slice, Table, version::Run};
 use std::{ops::RangeBounds, sync::Arc};
 
 /// Reads through a disjoint run.
-pub struct RunReader {
+pub struct RunReader<K = Slice, V = Slice> {
     run: Arc<Run<Table>>,
     lo: usize,
     hi: usize,
-    lo_reader: Option<BoxedIterator<'static>>,
-    hi_reader: Option<BoxedIterator<'static>>,
+    lo_reader: Option<BoxedIterator<'static, K, V>>,
+    hi_reader: Option<BoxedIterator<'static, K, V>>,
 }
 
-impl RunReader {
+impl<K: RecordBytes, V: RecordBytes> RunReader<K, V> {
     #[must_use]
     pub fn new<R: RangeBounds<Slice> + Clone + Send + 'static>(
         run: Arc<Run<Table>>,
         range: R,
     ) -> Option<Self> {
         let (lo, hi) = run.range_overlap_indexes(&range)?;
-        let lo_reader = run.get(lo)?.range(range.clone());
+        let lo_reader = run.get(lo)?.range_as::<K, V, _>(range.clone());
         let hi_reader = if hi > lo {
-            Some(run.get(hi)?.range(range))
+            Some(run.get(hi)?.range_as::<K, V, _>(range))
         } else {
             None
         };
@@ -34,8 +34,8 @@ impl RunReader {
     }
 }
 
-impl Iterator for RunReader {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes> Iterator for RunReader<K, V> {
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -50,7 +50,7 @@ impl Iterator for RunReader {
                     let Some(table) = self.run.get(self.lo) else {
                         return Some(Err(Error::Unrecoverable));
                     };
-                    self.lo_reader = Some(BoxedIterator::new(table.iter()));
+                    self.lo_reader = Some(BoxedIterator::new(table.range_as::<K, V, _>(..)));
                 }
             } else {
                 return self.hi_reader.as_mut()?.next();
@@ -59,7 +59,7 @@ impl Iterator for RunReader {
     }
 }
 
-impl DoubleEndedIterator for RunReader {
+impl<K: RecordBytes, V: RecordBytes> DoubleEndedIterator for RunReader<K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             if let Some(reader) = &mut self.hi_reader {
@@ -73,7 +73,7 @@ impl DoubleEndedIterator for RunReader {
                     let Some(table) = self.run.get(self.hi) else {
                         return Some(Err(Error::Unrecoverable));
                     };
-                    self.hi_reader = Some(BoxedIterator::new(table.iter()));
+                    self.hi_reader = Some(BoxedIterator::new(table.range_as::<K, V, _>(..)));
                 }
             } else {
                 return self.lo_reader.as_mut()?.next_back();

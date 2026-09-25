@@ -2,17 +2,16 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use alloc::{alloc as AllocAlloc, dealloc, handle_alloc_error};
 use std::{
-    alloc::{self, Layout},
+    alloc::{Layout, alloc, alloc_zeroed, dealloc, handle_alloc_error},
     borrow::Borrow,
     cmp::{Ord, Ordering as CmpOrdering, PartialEq, PartialOrd},
-    fmt::{Debug, Formatter, Result},
+    fmt::{Debug, Formatter, Result as FmtResult},
     hash::{Hash, Hasher},
     io::{Read, Result as IoResult},
-    mem::{self, ManuallyDrop},
-    ops::{Deref, RangeBounds},
-    ptr, slice,
+    mem::{self, ManuallyDrop, MaybeUninit},
+    ops::{Bound, Deref, RangeBounds},
+    process, ptr, slice,
     sync::atomic::{AtomicU64, Ordering, fence},
 };
 
@@ -22,16 +21,15 @@ mod builder;
 pub use builder::Builder;
 
 #[cfg(target_pointer_width = "64")]
-const INLINE_SIZE: usize = 20;
+const INLINE_SIZE: usize = 12;
 
 #[cfg(target_pointer_width = "32")]
-const INLINE_SIZE: usize = 16;
-
-const PREFIX_SIZE: usize = 4;
+const INLINE_SIZE: usize = 8;
 
 #[repr(C)]
 struct HeapAllocationHeader {
     ref_count: AtomicU64,
+    len: u32,
 }
 
 fn allocation_layout(data_len: usize) -> Layout {
@@ -54,10 +52,8 @@ struct ShortRepr {
 #[repr(C)]
 struct LongRepr {
     len: u32,
-    prefix: [u8; PREFIX_SIZE],
-    heap: *const u8,
-    original_len: u32,
     offset: u32,
+    heap: *const u8,
 }
 
 #[repr(C)]
@@ -80,26 +76,20 @@ impl Default for Trailer {
 /// An immutable byte slice
 ///
 /// Will be inlined (no pointer dereference or heap allocation)
-/// if it is 20 characters or shorter (on a 64-bit system).
+/// if it is 12 bytes or shorter (on a 64-bit system).
 ///
 /// A single heap allocation will be shared between multiple slices.
 /// Even subslices of that heap allocation can be cloned without additional heap allocation.
 ///
 /// [`ByteView`] does not guarantee any sort of alignment for zero-copy (de)serialization.
-///
-/// The design is very similar to:
-///
-/// - [Polars' strings](<https://pola.rs/posts/polars-string-type>)
-/// - [CedarDB's German strings](<https://cedardb.com/blog/german_strings>)
-/// - [Umbra's string](<https://db.in.tum.de/~freitag/papers/p29-neumann-cidr20.pdf>)
-/// - [Velox' String View](https://facebookincubator.github.io/velox/develop/vectors.html)
-/// - [Apache Arrow's String View](https://arrow.apache.org/docs/cpp/api/datatype.html#_CPPv4N5arrow14BinaryViewType6c_typeE)
 #[repr(C)]
 #[derive(Default)]
 pub struct ByteView {
     trailer: Trailer,
 }
 
+// SAFETY: Shared allocations contain immutable bytes and an atomic reference count.
+// Mutable access is confined to a uniquely owned Builder before it is frozen.
 #[allow(clippy::non_send_fields_in_send_ty)]
 unsafe impl Send for ByteView {}
 #[allow(clippy::non_send_fields_in_send_ty)]
@@ -108,9 +98,7 @@ unsafe impl Sync for ByteView {}
 impl Clone for ByteView {
     fn clone(&self) -> Self {
         if !self.is_inline() {
-            self.get_heap_region()
-                .ref_count
-                .fetch_add(1, Ordering::Relaxed);
+            self.increment_ref_count();
         }
 
         // SAFETY: Inline views own no external resource. Heap views share their
@@ -133,7 +121,7 @@ impl Drop for ByteView {
         fence(Ordering::Acquire);
 
         unsafe {
-            let layout = allocation_layout(self.trailer.long.original_len as usize);
+            let layout = allocation_layout(heap_region.len as usize);
             let ptr = self.trailer.long.heap.cast_mut();
             dealloc(ptr, layout);
         }
@@ -144,18 +132,7 @@ impl Eq for ByteView {}
 
 impl PartialEq for ByteView {
     fn eq(&self, other: &Self) -> bool {
-        unsafe {
-            let a = ptr::from_ref(self).cast::<u64>().read_unaligned();
-            let b = ptr::from_ref(other).cast::<u64>().read_unaligned();
-
-            if a != b {
-                return false;
-            }
-        }
-
-        // The first word contains the length and cached four-byte prefix.
-        // Compare only the bytes that were not already checked.
-        self.get(PREFIX_SIZE..).unwrap_or_default() == other.get(PREFIX_SIZE..).unwrap_or_default()
+        self.as_ref() == other.as_ref()
     }
 }
 
@@ -172,7 +149,7 @@ impl PartialOrd for ByteView {
 }
 
 impl Debug for ByteView {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "{:?}", &**self)
     }
 }
@@ -196,36 +173,72 @@ impl Hash for ByteView {
 }
 
 impl ByteView {
-    #[doc(hidden)]
+    /// Creates a uniquely owned, zero-initialized buffer for writing bytes.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the length does not fit in a u32 (4 GiB).
     #[must_use]
-    pub unsafe fn builder_unzeroed(len: usize) -> Builder {
-        // SAFETY: The caller is responsible for initializing every byte before
-        // the returned builder is frozen.
-        unsafe { Builder::new(Self::with_size_unzeroed(len)) }
+    pub fn builder(len: usize) -> Builder {
+        // SAFETY: allocation initializes the header and all exposed bytes.
+        Builder::new(unsafe { Self::with_size(len, true) })
     }
 
-    #[cfg(test)]
-    fn prefix(&self) -> &[u8] {
-        let len = PREFIX_SIZE.min(self.len());
+    /// Initializes a fresh allocation without first clearing its bytes.
+    ///
+    /// The initializer must return the entire buffer as an initialized slice.
+    /// On error, the partially initialized allocation is discarded.
+    ///
+    /// # Errors
+    ///
+    /// Returns the initializer's error.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the length exceeds `u32::MAX`, or the initializer returns a
+    /// different buffer or length.
+    pub fn try_init<E>(
+        len: usize,
+        init: impl FnOnce(&mut [MaybeUninit<u8>]) -> Result<&[u8], E>,
+    ) -> Result<Self, E> {
+        // SAFETY: Only MaybeUninit bytes are exposed until initialization succeeds.
+        let mut view = unsafe { Self::with_size(len, false) };
+        let data = if view.is_inline() {
+            unsafe { (*view.trailer.short).data.as_mut_ptr() }
+        } else {
+            unsafe { view.data_ptr_mut() }
+        };
+        let uninit = unsafe { slice::from_raw_parts_mut(data.cast(), len) };
+        let initialized = init(uninit)?;
+        assert_eq!(
+            initialized.len(),
+            len,
+            "initializer returned a partial buffer"
+        );
+        if len != 0 {
+            assert_eq!(
+                initialized.as_ptr(),
+                data,
+                "initializer returned a different buffer"
+            );
+        }
+        // The returned &[u8] proves that every byte in this allocation is initialized.
+        Ok(view)
+    }
 
-        // SAFETY: Both trailer layouts have the prefix stored at the same position
-        unsafe { self.trailer.short.data.get_unchecked(..len) }
+    fn increment_ref_count(&self) {
+        let previous = self
+            .get_heap_region()
+            .ref_count
+            .fetch_add(1, Ordering::Relaxed);
+        // Leaked clones must never wrap the counter and free a live allocation.
+        if previous >= u64::MAX / 2 {
+            process::abort();
+        }
     }
 
     fn is_inline(&self) -> bool {
         self.len() <= INLINE_SIZE
-    }
-
-    fn update_prefix(&mut self) {
-        if !self.is_inline() {
-            unsafe {
-                let slice_ptr: &[u8] = &*self;
-                let slice_ptr = slice_ptr.as_ptr();
-
-                let prefix = (*self.trailer.long).prefix.as_mut_ptr();
-                ptr::copy_nonoverlapping(slice_ptr, prefix, PREFIX_SIZE);
-            }
-        }
     }
 
     /// Creates a byteview and populates it with `len` bytes
@@ -235,10 +248,7 @@ impl ByteView {
     ///
     /// Returns an error if an I/O error occurred.
     pub fn from_reader<R: Read>(reader: &mut R, len: usize) -> IoResult<Self> {
-        // NOTE: We can use _unzeroed to skip zeroing of the heap allocated slice
-        // because we receive the `len` parameter
-        // If the reader does not give us exactly `len` bytes, `read_exact` fails anyway
-        let mut builder = unsafe { Self::builder_unzeroed(len) };
+        let mut builder = Self::builder(len);
         reader.read_exact(&mut builder)?;
         Ok(builder.freeze())
     }
@@ -270,21 +280,19 @@ impl ByteView {
             };
         }
 
-        let mut builder = unsafe { Self::builder_unzeroed(len) };
-        let (left_target, right_target) = builder.split_at_mut(left.len());
-        left_target.copy_from_slice(left);
-        right_target.copy_from_slice(right);
-        builder.freeze()
+        let mut view = unsafe { Self::with_size(len, false) };
+        // SAFETY: the fresh allocation has space for both slices. No borrowed
+        // byte slice is exposed until both copies have initialized the data.
+        unsafe {
+            let data = view.data_ptr_mut();
+            ptr::copy_nonoverlapping(left.as_ptr(), data, left.len());
+            ptr::copy_nonoverlapping(right.as_ptr(), data.add(left.len()), right.len());
+        }
+        view
     }
 
-    /// Creates a new fixed-length byteview, **with uninitialized contents**.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the length does not fit in a u32 (4 GiB).
-    #[doc(hidden)]
-    #[must_use]
-    pub unsafe fn with_size_unzeroed(slice_len: usize) -> Self {
+    // If zeroed is false, the caller must initialize all bytes before exposing a slice.
+    unsafe fn with_size(slice_len: usize, zeroed: bool) -> Self {
         let view = if slice_len <= INLINE_SIZE {
             Self {
                 trailer: Trailer {
@@ -305,7 +313,11 @@ impl ByteView {
             unsafe {
                 let layout = allocation_layout(slice_len);
 
-                let heap_ptr = AllocAlloc(layout);
+                let heap_ptr = if zeroed {
+                    alloc_zeroed(layout)
+                } else {
+                    alloc(layout)
+                };
                 if heap_ptr.is_null() {
                     handle_alloc_error(layout);
                 }
@@ -318,15 +330,14 @@ impl ByteView {
                 let heap_region = heap_ptr.cast::<HeapAllocationHeader>();
                 heap_region.write(HeapAllocationHeader {
                     ref_count: AtomicU64::new(1),
+                    len,
                 });
 
                 Self {
                     trailer: Trailer {
                         long: ManuallyDrop::new(LongRepr {
                             len,
-                            prefix: [0; PREFIX_SIZE],
                             heap: heap_ptr,
-                            original_len: len,
                             offset: 0,
                         }),
                     },
@@ -341,7 +352,7 @@ impl ByteView {
 
     /// Creates a new byteview from an existing byte slice.
     ///
-    /// Will heap-allocate the slice if it has at least length 21.
+    /// Heap-allocates slices longer than 12 bytes on 64-bit targets.
     ///
     /// # Panics
     ///
@@ -350,7 +361,7 @@ impl ByteView {
     pub fn new(slice: &[u8]) -> Self {
         let slice_len = slice.len();
 
-        let mut view = unsafe { Self::with_size_unzeroed(slice_len) };
+        let mut view = unsafe { Self::with_size(slice_len, false) };
 
         if view.is_inline() {
             // SAFETY: We check for inlinability
@@ -360,15 +371,8 @@ impl ByteView {
                 ptr::copy_nonoverlapping(slice.as_ptr(), data_ptr, slice_len);
             }
         } else {
-            let long_repr = unsafe { &mut *view.trailer.long };
-
-            // Copy prefix
-            // SAFETY: We know that there are at least 4 bytes in the input slice
-            #[allow(clippy::indexing_slicing)]
-            long_repr.prefix.copy_from_slice(&slice[0..PREFIX_SIZE]);
-
-            // Copy byte slice into heap allocation
-            view.get_mut_slice().copy_from_slice(slice);
+            // SAFETY: the unique allocation has exactly slice_len data bytes.
+            unsafe { ptr::copy_nonoverlapping(slice.as_ptr(), view.data_ptr_mut(), slice_len) };
         }
 
         debug_assert_eq!(1, view.ref_count());
@@ -382,7 +386,7 @@ impl ByteView {
         debug_assert!(!self.is_inline());
 
         // SAFETY: The non-inline representation is active, and its allocation
-        // contains the header followed by `original_len` data bytes.
+        // contains the header followed by the allocation's data bytes.
         unsafe {
             self.trailer
                 .long
@@ -398,7 +402,7 @@ impl ByteView {
         debug_assert!(!self.is_inline());
 
         // SAFETY: The non-inline representation is active, and its allocation
-        // contains the header followed by `original_len` data bytes.
+        // contains the header followed by the allocation's data bytes.
         unsafe {
             self.trailer
                 .long
@@ -450,8 +454,6 @@ impl ByteView {
     /// Panics if the slice is out of bounds.
     #[must_use]
     pub fn slice(&self, range: impl RangeBounds<usize>) -> Self {
-        use core::ops::Bound;
-
         // Credits: This is essentially taken from
         // https://github.com/tokio-rs/bytes/blob/291df5acc94b82a48765e67eeb1c1a2074539e68/src/bytes.rs#L264
 
@@ -517,34 +519,19 @@ impl ByteView {
             child
         } else {
             // IMPORTANT: Increase ref count
-            let heap_region = self.get_heap_region();
-            heap_region.ref_count.fetch_add(1, Ordering::Relaxed);
+            self.increment_ref_count();
 
-            let mut child = Self {
-                // SAFETY: self.data must be defined
-                // we cannot get a range larger than our own slice
-                // so we cannot be inlined while the requested slice is not inlinable
+            Self {
+                // SAFETY: a non-inline child comes from a non-inline parent.
+                // Its offset and length stay within the original allocation.
                 trailer: Trailer {
                     long: ManuallyDrop::new(LongRepr {
                         len,
-                        prefix: [0; PREFIX_SIZE],
                         heap: unsafe { self.trailer.long.heap },
                         offset: unsafe { self.trailer.long.offset } + begin_u32,
-                        original_len: unsafe { self.trailer.long.original_len },
                     }),
                 },
-            };
-
-            let Some(prefix) = self.get(begin..(begin + PREFIX_SIZE)) else {
-                unreachable!("non-inline ranges contain a full prefix");
-            };
-            debug_assert_eq!(prefix.len(), 4);
-
-            unsafe {
-                (*child.trailer.long).prefix.copy_from_slice(prefix);
             }
-
-            child
         }
     }
 
@@ -642,19 +629,105 @@ mod tests {
     #[cfg(target_pointer_width = "64")]
     use std::mem;
 
-    use std::io::{Cursor, Result};
+    use std::{
+        io::{Cursor, ErrorKind, Read, Result},
+        thread,
+    };
 
-    use super::{ByteView, HeapAllocationHeader};
+    use super::{ByteView, HeapAllocationHeader, INLINE_SIZE, LongRepr, ShortRepr, Trailer};
+
+    #[test]
+    #[expect(
+        clippy::indexing_slicing,
+        reason = "bounds follow the generated input length"
+    )]
+    fn inline_boundary_and_shared_subslices() {
+        for len in [0, 1, 8, 10, INLINE_SIZE, INLINE_SIZE + 1, 20, 21, 64] {
+            let bytes: Vec<_> = (0..=u8::MAX).take(len).collect();
+            let view = ByteView::new(&bytes);
+            assert_eq!(view.is_inline(), len <= INLINE_SIZE);
+            assert_eq!(&*view, bytes);
+            for split in 0..=len {
+                let fused = ByteView::fused(&bytes[..split], &bytes[split..]);
+                assert_eq!(view, fused);
+            }
+        }
+
+        let bytes: Vec<_> = (0..128).collect();
+        let parent = ByteView::new(&bytes);
+        let child = parent.slice(13..100).slice(7..70);
+        drop(parent);
+        thread::scope(|scope| {
+            for _ in 0..4 {
+                let copy = child.clone();
+                scope.spawn(move || {
+                    for _ in 0..100 {
+                        assert_eq!(&*copy.clone().slice(3..40), &(23..60).collect::<Vec<_>>());
+                    }
+                });
+            }
+        });
+        assert_eq!(&*child, &bytes[20..83]);
+        assert_eq!(child.ref_count(), 1);
+    }
+
+    struct InspectingReader;
+
+    #[test]
+    #[should_panic(expected = "initializer returned a different buffer")]
+    fn initializer_rejects_another_buffer() {
+        let _ = ByteView::try_init(64, |_| Ok::<_, ()>(&[0; 64]));
+    }
+
+    #[test]
+    #[should_panic(expected = "initializer returned a partial buffer")]
+    fn initializer_rejects_partial_success() {
+        let _ = ByteView::try_init(64, |_| Ok::<_, ()>(&[]));
+    }
+
+    #[test]
+    fn initializer_can_fail_after_partial_write() {
+        let result = ByteView::try_init(64, |buffer| {
+            if let Some(byte) = buffer.first_mut() {
+                byte.write(1);
+            }
+            Err(())
+        });
+        assert!(result.is_err());
+    }
+
+    impl Read for InspectingReader {
+        fn read(&mut self, buffer: &mut [u8]) -> Result<usize> {
+            assert!(buffer.iter().all(|byte| *byte == 0));
+            buffer.fill(42);
+            Ok(buffer.len())
+        }
+    }
+
+    #[test]
+    fn builders_and_readers_only_expose_initialized_bytes() -> Result<()> {
+        for len in [0, INLINE_SIZE, INLINE_SIZE + 1, 4096] {
+            let mut builder = ByteView::builder(len);
+            assert!(builder.iter().all(|byte| *byte == 0));
+            builder.fill(42);
+            let view = builder.freeze();
+            assert_eq!(view, ByteView::from_reader(&mut InspectingReader, len)?);
+            assert_eq!(&*view.clone(), vec![42; len]);
+        }
+        assert!(matches!(
+            ByteView::from_reader(&mut Cursor::new([1, 2, 3]), 4096),
+            Err(error) if error.kind() == ErrorKind::UnexpectedEof
+        ));
+        Ok(())
+    }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn memsize() {
-        use crate::byteview::{LongRepr, ShortRepr, Trailer};
-
         assert_eq!(mem::size_of::<ShortRepr>(), mem::size_of::<LongRepr>());
         assert_eq!(mem::size_of::<Trailer>(), mem::size_of::<LongRepr>());
 
-        assert_eq!(24, mem::size_of::<ByteView>());
+        assert_eq!(16, mem::size_of::<ByteView>());
         assert_eq!(
             32,
             mem::size_of::<ByteView>() + mem::size_of::<HeapAllocationHeader>()
@@ -674,7 +747,6 @@ mod tests {
         #[allow(clippy::redundant_clone)]
         let cloned = slice.clone();
 
-        assert_eq!(slice.prefix(), cloned.prefix());
         assert_eq!(slice, cloned);
     }
 
@@ -757,7 +829,6 @@ mod tests {
         assert_eq!(6, slice.len());
         assert_eq!(&*slice, b"abcdef");
         assert_eq!(1, slice.ref_count());
-        assert_eq!(&slice.prefix(), b"abcd");
         assert!(slice.is_inline());
     }
 
@@ -768,7 +839,6 @@ mod tests {
         assert_eq!(12, slice.len());
         assert_eq!(&*slice, b"abcdefabcdef");
         assert_eq!(1, slice.ref_count());
-        assert_eq!(&slice.prefix(), b"abcd");
         assert!(slice.is_inline());
     }
 
@@ -779,17 +849,15 @@ mod tests {
         assert_eq!(20, slice.len());
         assert_eq!(&*slice, b"abcdefabcdefabcdabcd");
         assert_eq!(1, slice.ref_count());
-        assert_eq!(&slice.prefix(), b"abcd");
-        assert!(slice.is_inline());
+        assert!(!slice.is_inline());
     }
 
     #[test]
     #[cfg(target_pointer_width = "64")]
     fn medium_str_clone() {
-        let slice = ByteView::from("abcdefabcdefabcdefab");
+        let slice = ByteView::from("abcdefabcdef");
         let copy = slice.clone();
         assert_eq!(slice, copy);
-        assert_eq!(copy.prefix(), slice.prefix());
 
         assert_eq!(1, slice.ref_count());
 
@@ -803,7 +871,6 @@ mod tests {
         assert_eq!(24, slice.len());
         assert_eq!(&*slice, b"abcdefabcdefabcdefababcd");
         assert_eq!(1, slice.ref_count());
-        assert_eq!(&slice.prefix(), b"abcd");
         assert!(!slice.is_inline());
     }
 
@@ -812,7 +879,6 @@ mod tests {
         let slice = ByteView::from("abcdefabcdefabcdefababcd");
         let copy = slice.clone();
         assert_eq!(slice, copy);
-        assert_eq!(copy.prefix(), slice.prefix());
 
         assert_eq!(2, slice.ref_count());
 
@@ -840,9 +906,8 @@ mod tests {
 
         let copy = slice.slice(11..);
         assert_eq!(b"thisisalongstring", &*copy);
-        assert_eq!(&copy.prefix(), b"this");
 
-        assert_eq!(1, slice.ref_count());
+        assert_eq!(2, slice.ref_count());
 
         drop(copy);
         assert_eq!(1, slice.ref_count());
@@ -859,10 +924,10 @@ mod tests {
         let copycopy = copy.slice(..);
         assert_eq!(copy, copycopy);
 
-        assert_eq!(1, slice.ref_count());
+        assert_eq!(3, slice.ref_count());
 
         drop(copy);
-        assert_eq!(1, slice.ref_count());
+        assert_eq!(2, slice.ref_count());
 
         drop(slice);
         assert_eq!(1, copycopy.ref_count());
@@ -885,7 +950,7 @@ mod tests {
             assert_eq!(Some(b't'), copycopy.first().copied());
         }
 
-        assert_eq!(1, slice.ref_count());
+        assert_eq!(2, slice.ref_count());
 
         drop(copy);
         assert_eq!(1, slice.ref_count());

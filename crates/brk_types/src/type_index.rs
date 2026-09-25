@@ -3,12 +3,11 @@ use std::{
     ops::Add,
 };
 
-use byteview::ByteView;
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::CheckedSub;
+use crate::{CheckedSub, StoreValue};
 
 #[cfg(feature = "storage")]
 use vecdb::CheckedSub as VecdbCheckedSub;
@@ -115,22 +114,17 @@ impl Add<TypeIndex> for TypeIndex {
     }
 }
 
-impl From<ByteView> for TypeIndex {
+impl StoreValue for TypeIndex {
+    type Bytes = [u8; 4];
+
     #[inline]
-    fn from(value: ByteView) -> Self {
-        Self::from(u32::from_be_bytes((&*value).try_into().unwrap()))
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0.to_be_bytes()
     }
-}
-impl From<TypeIndex> for ByteView {
-    #[inline(always)]
-    fn from(value: TypeIndex) -> Self {
-        ByteView::from(&value)
-    }
-}
-impl From<&TypeIndex> for ByteView {
-    #[inline(always)]
-    fn from(value: &TypeIndex) -> Self {
-        Self::new(&value.0.to_be_bytes())
+
+    #[inline]
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(u32::from_be_bytes(bytes))
     }
 }
 

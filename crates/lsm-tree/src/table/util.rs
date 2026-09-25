@@ -2,7 +2,11 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{cmp::Ordering, mem::size_of, path::Path};
+use std::{
+    cmp::Ordering::{self, Equal, Greater},
+    mem::size_of,
+    path::Path,
+};
 
 use log::trace;
 
@@ -40,7 +44,7 @@ pub fn load_block(
 ) -> Result<Block> {
     trace!("load {block_type:?} block {handle:?}");
 
-    if let Some(block) = cache.get_block(table_id, handle.offset()) {
+    if let Some(block) = cache.get_block(table_id, handle.offset(), block_type) {
         return Ok(block);
     }
 
@@ -100,8 +104,6 @@ pub fn longest_shared_prefix_length(s1: &[u8], s2: &[u8]) -> usize {
 
 #[must_use]
 pub fn compare_prefixed_slice(prefix: &[u8], suffix: &[u8], needle: &[u8]) -> Ordering {
-    use std::cmp::Ordering::{Equal, Greater};
-
     if needle.is_empty() {
         let combined_len = prefix.len() + suffix.len();
         return if combined_len > 0 { Greater } else { Equal };

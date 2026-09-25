@@ -3,18 +3,24 @@
 // (found in the LICENSE-* files in the repository)
 
 use crate::{
-    InternalValue, Result, Slice,
+    InternalValue, RecordBytes, Result, Slice,
     double_ended_peekable::{DoubleEndedPeekable, DoubleEndedPeekableExt},
 };
 
 /// Consumes a stream of KVs and emits a new stream according to MVCC and tombstone rules
 ///
 /// This iterator is used for read operations.
-pub struct MvccStream<I: DoubleEndedIterator<Item = Result<InternalValue>>> {
-    inner: DoubleEndedPeekable<Result<InternalValue>, I>,
+pub struct MvccStream<
+    I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>,
+    K = Slice,
+    V = Slice,
+> {
+    inner: DoubleEndedPeekable<Result<InternalValue<K, V>>, I>,
 }
 
-impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> MvccStream<I> {
+impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>>
+    MvccStream<I, K, V>
+{
     /// Initializes a new multi-version-aware iterator.
     #[must_use]
     pub fn new(iter: I) -> Self {
@@ -24,11 +30,11 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> MvccStream<I> {
     }
 
     // Drains all entries for the given user key from the front of the iterator.
-    fn drain_key_min(&mut self, key: &Slice) -> Result<()> {
+    fn drain_key_min(&mut self, key: &K) -> Result<()> {
         loop {
             let Some(next) = self.inner.next_if(|kv| {
                 if let Ok(kv) = kv {
-                    kv.key.user_key == key
+                    &kv.key.user_key == key
                 } else {
                     true
                 }
@@ -41,8 +47,10 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> MvccStream<I> {
     }
 }
 
-impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Iterator for MvccStream<I> {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>>
+    Iterator for MvccStream<I, K, V>
+{
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let head = fail_iter!(self.inner.next()?);
@@ -54,7 +62,9 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Iterator for MvccStre
     }
 }
 
-impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> DoubleEndedIterator for MvccStream<I> {
+impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>>
+    DoubleEndedIterator for MvccStream<I, K, V>
+{
     fn next_back(&mut self) -> Option<Self::Item> {
         loop {
             let tail = fail_iter!(self.inner.next_back()?);

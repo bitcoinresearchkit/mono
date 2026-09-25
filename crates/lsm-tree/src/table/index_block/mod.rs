@@ -1,16 +1,8 @@
-use std::cmp::Ordering;
-
 use super::{
     Block,
     block::{BlockOffset, Encoder, Trailer},
 };
-use crate::{
-    Result, Slice, SliceExt as _,
-    table::{
-        block::{Decoder, ParsedItem},
-        util::{SliceIndexes, compare_prefixed_slice},
-    },
-};
+use crate::{Result, Slice, table::block::Decoder};
 
 // Copyright (c) 2025-present, fjall-rs
 // This source code is licensed under both the Apache 2.0 and MIT License
@@ -18,49 +10,11 @@ use crate::{
 
 mod block_handle;
 mod iter;
+mod parsed_item;
 
 pub use block_handle::{BlockHandle, KeyedBlockHandle};
 pub use iter::Iter;
-
-#[derive(Debug)]
-pub struct IndexBlockParsedItem {
-    pub offset: BlockOffset,
-    pub size: u32,
-    pub prefix: Option<SliceIndexes>,
-    pub end_key: SliceIndexes,
-    pub seqno: u64,
-}
-
-impl ParsedItem<KeyedBlockHandle> for IndexBlockParsedItem {
-    fn compare_key(&self, needle: &[u8], bytes: &[u8]) -> Ordering {
-        if let Some(prefix) = &self.prefix {
-            let prefix = unsafe { bytes.get_unchecked(prefix.0..prefix.1) };
-            let rest_key = unsafe { bytes.get_unchecked(self.end_key.0..self.end_key.1) };
-            compare_prefixed_slice(prefix, rest_key, needle)
-        } else {
-            let key = unsafe { bytes.get_unchecked(self.end_key.0..self.end_key.1) };
-            key.cmp(needle)
-        }
-    }
-
-    fn key_offset(&self) -> usize {
-        self.end_key.0
-    }
-
-    fn materialize(&self, bytes: &Slice) -> KeyedBlockHandle {
-        // NOTE: We consider the prefix and key slice indexes to be trustworthy
-        #[expect(clippy::indexing_slicing)]
-        let key = if let Some(prefix) = &self.prefix {
-            let prefix_key = &bytes[prefix.0..prefix.1];
-            let rest_key = &bytes[self.end_key.0..self.end_key.1];
-            Slice::fused(prefix_key, rest_key)
-        } else {
-            bytes.slice(self.end_key.0..self.end_key.1)
-        };
-
-        KeyedBlockHandle::new(key, self.seqno, BlockHandle::new(self.offset, self.size))
-    }
-}
+pub use parsed_item::IndexBlockParsedItem;
 
 /// Block that contains block handles (file offset + size)
 #[derive(Clone)]
@@ -107,21 +61,6 @@ impl IndexBlock {
     ///
     /// Panics if the given item array if empty.
     pub fn encode_into(writer: &mut Vec<u8>, items: &[KeyedBlockHandle]) -> Result<()> {
-        #[expect(clippy::expect_used)]
-        let first_key = items.first().expect("chunk should not be empty").end_key();
-
-        let mut serializer = Encoder::<'_, BlockOffset, KeyedBlockHandle>::new(
-            writer,
-            items.len(),
-            1,   // hard-coded for now, TODO: see https://github.com/fjall-rs/lsm-tree/issues/184
-            0.0, // Index blocks do not support hash index
-            first_key,
-        );
-
-        for item in items {
-            serializer.write(item)?;
-        }
-
-        serializer.finish()
+        Encoder::<'_, BlockOffset, KeyedBlockHandle>::new(writer, items, 1).finish()
     }
 }

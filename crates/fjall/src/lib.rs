@@ -42,4 +42,5 @@ pub use {
     database::Database,
     error::{Error, Result},
     keyspace::{Keyspace, options::CreateOptions as KeyspaceCreateOptions},
+    lsm_tree::{FORMAT_VERSION, RecordBytes},
 };

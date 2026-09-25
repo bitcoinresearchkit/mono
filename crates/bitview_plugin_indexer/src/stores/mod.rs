@@ -39,12 +39,10 @@ pub struct Stores {
 impl Stores {
     #[inline]
     pub fn addr_index(&self, addr_type: OutputType, hash: &AddrHash) -> Result<Option<TypeIndex>> {
-        Ok(self
-            .addr_type_to_addr_hash_to_addr_index
+        self.addr_type_to_addr_hash_to_addr_index
             .get(addr_type)
             .data()?
-            .get(hash)?
-            .map(|index| index.into_owned()))
+            .get(hash)
     }
 
     pub fn addr_hash_range(
@@ -90,18 +88,12 @@ impl Stores {
 
     #[inline]
     pub fn block_height(&self, prefix: &BlockHashPrefix) -> Result<Option<Height>> {
-        Ok(self
-            .blockhash_prefix_to_height
-            .get(prefix)?
-            .map(|height| height.into_owned()))
+        self.blockhash_prefix_to_height.get(prefix)
     }
 
     #[inline]
     pub fn tx_index(&self, prefix: &TxidPrefix) -> Result<Option<TxIndex>> {
-        Ok(self
-            .txid_prefix_to_tx_index
-            .get(prefix)?
-            .map(|index| index.into_owned()))
+        self.txid_prefix_to_tx_index.get(prefix)
     }
 
     pub fn forced_import(parent: &Path, version: Version) -> Result<Self> {

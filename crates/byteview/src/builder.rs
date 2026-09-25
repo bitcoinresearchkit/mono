@@ -8,14 +8,13 @@ pub struct Builder(ByteView);
 impl Builder {
     /// Creates a new builder.
     #[must_use]
-    pub const fn new(inner: ByteView) -> Self {
+    pub(super) const fn new(inner: ByteView) -> Self {
         Self(inner)
     }
 
     /// Converts the builder into a [`ByteView`], making it immutable.
     #[must_use]
-    pub fn freeze(mut self) -> ByteView {
-        self.0.update_prefix();
+    pub fn freeze(self) -> ByteView {
         self.0
     }
 }

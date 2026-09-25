@@ -6,7 +6,7 @@ use xxhash_rust::xxh3;
 
 use crate::{
     Result,
-    file::{CURRENT_MAGIC, CURRENT_VERSION_FILE, rewrite_atomic},
+    file::{CURRENT_VERSION_FILE, MAGIC_BYTES, rewrite_atomic},
     version::Version,
 };
 
@@ -14,7 +14,7 @@ impl Version {
     pub fn persist(&self, folder: &Path) -> Result<()> {
         trace!("Persisting version {} in {}", self.id(), folder.display());
 
-        let mut current = CURRENT_MAGIC.to_vec();
+        let mut current = MAGIC_BYTES.to_vec();
         current.write_u64::<LittleEndian>(self.id())?;
         self.encode_into(&mut current)?;
         let checksum = xxh3::xxh3_128(&current);

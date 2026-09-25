@@ -77,7 +77,9 @@ mod error;
 
 mod file;
 
-mod hash;
+/// On-disk format shared by BRK's storage forks. Older formats require rebuilding.
+pub const FORMAT_VERSION: u8 = 11;
+
 mod key;
 mod key_range;
 mod run_reader;
@@ -97,6 +99,9 @@ mod slice_windows;
 
 mod tree;
 
+mod point_read_value;
+mod record_bytes;
+pub use record_bytes::RecordBytes;
 mod value;
 mod value_type;
 mod version;
@@ -119,4 +124,3 @@ pub use {
 };
 
 use seqno::SequenceNumberCounter;
-use slice::SliceExt;

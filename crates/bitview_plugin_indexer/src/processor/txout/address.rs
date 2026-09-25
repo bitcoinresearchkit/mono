@@ -1,11 +1,9 @@
 pub mod cache;
 
-use brk_error::Result;
-
 use std::collections::hash_map::Entry;
 
 use bitview_cohort::ByAddrType;
-use brk_error::Error;
+use brk_error::{Error, Result};
 use brk_types::{AddrBytes, AddrHash, OutputType, TxIndex, TypeIndex, Vout};
 use rayon::prelude::*;
 use rustc_hash::FxHashMap;
@@ -16,7 +14,7 @@ use self::cache::AddressCache;
 use super::{ProcessedOutput, processed::ProcessedOutputData};
 use crate::processor::BlockProcessor;
 
-pub struct Lookup {
+struct Lookup {
     index: usize,
     output_type: OutputType,
     hash: AddrHash,
@@ -28,7 +26,6 @@ pub struct BlockAddresses {
     cache: AddressCache,
     indexes: ByAddrType<FxHashMap<AddrHash, usize>>,
     lookups: Vec<Lookup>,
-    unique: Vec<(OutputType, AddrHash)>,
     resolved: Vec<Option<TypeIndex>>,
 }
 
@@ -50,23 +47,18 @@ impl BlockAddresses {
                 .get_mut_unwrap(output.output_type)
                 .entry(*addr_hash)
             {
-                entry.insert(self.unique.len());
-                self.unique.push((output.output_type, *addr_hash));
-            }
-        }
-
-        self.resolved.resize(self.unique.len(), None);
-
-        for (index, &(output_type, hash)) in self.unique.iter().enumerate() {
-            if let Some(type_index) = self.cache.get(output_type, hash) {
-                self.resolved[index] = Some(type_index);
-            } else {
-                self.lookups.push(Lookup {
-                    index,
-                    output_type,
-                    hash,
-                    type_index: None,
-                });
+                let index = self.resolved.len();
+                entry.insert(index);
+                let type_index = self.cache.get(output.output_type, *addr_hash);
+                self.resolved.push(type_index);
+                if type_index.is_none() {
+                    self.lookups.push(Lookup {
+                        index,
+                        output_type: output.output_type,
+                        hash: *addr_hash,
+                        type_index: None,
+                    });
+                }
             }
         }
 
@@ -169,7 +161,6 @@ impl BlockAddresses {
     pub fn clear_block(&mut self) {
         self.indexes.values_mut().for_each(FxHashMap::clear);
         self.lookups.clear();
-        self.unique.clear();
         self.resolved.clear();
     }
 }

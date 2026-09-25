@@ -1,7 +1,7 @@
 use std::{ops::RangeBounds, sync::Arc};
 
 use inner::Inner;
-use lsm_tree::Slice;
+use lsm_tree::{RecordBytes, Slice};
 use options::CreateOptions;
 
 use crate::{
@@ -16,6 +16,9 @@ mod ingestion;
 mod inner;
 pub mod options;
 
+#[cfg(test)]
+mod tests;
+
 pub use ingestion::Ingestion;
 
 /// A named, table-only LSM keyspace.
@@ -27,7 +30,7 @@ pub struct Keyspace {
 impl Keyspace {
     /// Opens or creates a named keyspace.
     #[doc(hidden)]
-    pub fn open(
+    pub(crate) fn open(
         name: &str,
         options: CreateOptions,
         database: &Config,
@@ -35,12 +38,14 @@ impl Keyspace {
         lock: LockedFileGuard,
     ) -> Result<Self> {
         let path = database.path.join(KEYSPACES_FOLDER).join(name);
+        let compaction = options.compaction;
         let tree = options.tree_config(&path, database).open()?;
 
         let keyspace = Self {
             inner: Arc::new(Inner {
                 name: name.to_owned(),
                 tree,
+                compaction,
                 worker: worker_pool.sender(),
                 _lock: lock,
             }),
@@ -68,6 +73,16 @@ impl Keyspace {
         Ingestion::new(self)
     }
 
+    /// Starts ingestion with the specified record representation.
+    ///
+    /// # Errors
+    /// Returns an error if an output table cannot be created.
+    pub fn start_ingestion_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+    ) -> Result<Ingestion<'_, K, V>> {
+        Ingestion::new(self)
+    }
+
     /// Reads the latest value for `key` from immutable tables.
     ///
     /// # Errors
@@ -75,6 +90,38 @@ impl Keyspace {
     /// Returns an error if a table cannot be read or decoded.
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
         self.inner.tree.get(key).map_err(Into::into)
+    }
+
+    /// Reads a value into the specified owned bytes.
+    ///
+    /// # Errors
+    /// Returns an error if the table cannot be read or the value width does not match.
+    pub fn get_as<V: RecordBytes>(&self, key: &[u8]) -> Result<Option<V>> {
+        self.inner.tree.get_as(key).map_err(Into::into)
+    }
+
+    /// Iterates over a range using the specified owned record bytes.
+    #[must_use]
+    pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
+        &self,
+        range: R,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
+        self.inner
+            .tree
+            .range_as(range)
+            .map(|item| item.map_err(Into::into))
+    }
+
+    /// Iterates over matching keys using the specified owned record bytes.
+    #[must_use]
+    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+        prefix: &[u8],
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
+        self.inner
+            .tree
+            .prefix_as(prefix)
+            .map(|item| item.map_err(Into::into))
     }
 
     /// Iterates over all latest key-value pairs.
@@ -118,14 +165,14 @@ impl Keyspace {
 
     /// Runs leveled compaction until no eligible work remains.
     #[doc(hidden)]
-    pub fn compact(&self) -> Result<()> {
-        self.inner.tree.compact()?;
+    pub(crate) fn compact(&self) -> Result<()> {
+        (self.inner.compaction)(&self.inner.tree)?;
         Ok(())
     }
 
     /// Queues this keyspace for background compaction.
     #[doc(hidden)]
-    pub fn request_compaction(&self) {
+    pub(super) fn request_compaction(&self) {
         let _ = self
             .inner
             .worker

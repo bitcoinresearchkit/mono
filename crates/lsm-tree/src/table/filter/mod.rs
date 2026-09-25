@@ -4,10 +4,7 @@
 
 use standard_bloom::Builder as StandardBloomFilterBuilder;
 
-use crate::Error;
-
 pub mod bit_array;
-pub mod block;
 pub mod standard_bloom;
 
 /// Controls the size of Bloom filters written into tables.
@@ -29,11 +26,9 @@ impl BloomConstructionPolicy {
     /// Creates a filter builder sized for `n` keys.
     #[must_use]
     pub fn init(&self, n: usize) -> StandardBloomFilterBuilder {
-        use standard_bloom::Builder;
-
         match self {
-            Self::BitsPerKey(bpk) => Builder::with_bpk(n, *bpk),
-            Self::FalsePositiveRate(fpr) => Builder::with_fp_rate(n, *fpr),
+            Self::BitsPerKey(bpk) => StandardBloomFilterBuilder::with_bpk(n, *bpk),
+            Self::FalsePositiveRate(fpr) => StandardBloomFilterBuilder::with_fp_rate(n, *fpr),
         }
     }
 
@@ -66,33 +61,6 @@ impl BloomConstructionPolicy {
                 let bpk = (m / n) as f32;
                 (bpk * (n as f32)) as usize / 8
             }
-        }
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
-enum FilterType {
-    StandardBloom,
-    BlockedBloom,
-}
-
-impl TryFrom<u8> for FilterType {
-    type Error = Error;
-
-    fn try_from(value: u8) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(Self::StandardBloom),
-            1 => Ok(Self::BlockedBloom),
-            _ => Err(Error::InvalidTag(("FilterType", value))),
-        }
-    }
-}
-
-impl From<FilterType> for u8 {
-    fn from(value: FilterType) -> Self {
-        match value {
-            FilterType::StandardBloom => 0,
-            FilterType::BlockedBloom => 1,
         }
     }
 }

@@ -423,7 +423,10 @@ fn table_scan() -> Result<()> {
     test_with_table(
         &items,
         |table| {
-            assert_eq!(items, &*table.scan()?.flatten().collect::<Vec<_>>());
+            assert_eq!(
+                items,
+                &*table.scan::<Slice, Slice>()?.flatten().collect::<Vec<_>>()
+            );
 
             assert_eq!(
                 table.metadata.key_range,

@@ -56,7 +56,7 @@ impl BlockIndexWriter for FullIndexWriter {
         Ok(())
     }
 
-    fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<usize> {
+    fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<()> {
         file_writer.start("tli")?;
 
         let mut bytes = vec![];
@@ -77,6 +77,6 @@ impl BlockIndexWriter for FullIndexWriter {
             self.block_handles.len(),
         );
 
-        Ok(1)
+        Ok(())
     }
 }

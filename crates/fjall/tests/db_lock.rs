@@ -28,7 +28,7 @@ fn db_lock() -> Result<()> {
 fn lock_error_wins_over_an_invalid_marker() -> Result<()> {
     let folder = tempdir()?;
     let database = Database::builder(&folder).open()?;
-    fs::write(folder.path().join("version"), b"invalid")?;
+    fs::write(folder.path().join("version"), b"FJL\x08")?;
 
     assert!(matches!(
         Database::builder(&folder).open(),

@@ -37,6 +37,14 @@ pub enum Error {
     /// Invalid enum tag
     InvalidTag((&'static str, u8)),
 
+    /// A record does not match the requested fixed width.
+    InvalidRecordLength {
+        /// Requested width in bytes.
+        expected: usize,
+        /// Width found in the block.
+        actual: usize,
+    },
+
     /// Invalid block trailer
     InvalidTrailer,
 

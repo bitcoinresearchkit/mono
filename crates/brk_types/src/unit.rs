@@ -1,23 +1,18 @@
-use byteview::ByteView;
+use crate::StoreValue;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Unit;
 
-impl From<ByteView> for Unit {
-    #[inline(always)]
-    fn from(_: ByteView) -> Self {
+impl StoreValue for Unit {
+    type Bytes = [u8; 0];
+
+    #[inline]
+    fn to_store_bytes(&self) -> Self::Bytes {
+        []
+    }
+
+    #[inline]
+    fn from_store_bytes(_bytes: Self::Bytes) -> Self {
         Self
-    }
-}
-impl From<Unit> for ByteView {
-    #[inline(always)]
-    fn from(_: Unit) -> Self {
-        Self::new(&[])
-    }
-}
-impl From<&Unit> for ByteView {
-    #[inline(always)]
-    fn from(_: &Unit) -> Self {
-        Self::new(&[])
     }
 }

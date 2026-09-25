@@ -17,7 +17,7 @@ pub use partitioned::PartitionedIndexWriter;
 pub trait BlockIndexWriter {
     fn register_data_block(&mut self, block_handle: KeyedBlockHandle) -> Result<()>;
 
-    fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<usize>;
+    fn finish(self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<()>;
 
     fn use_compression(self: Box<Self>, compression: CompressionType) -> Box<dyn BlockIndexWriter>;
 

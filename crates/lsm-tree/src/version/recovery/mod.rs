@@ -6,7 +6,7 @@ use xxhash_rust::xxh3;
 
 use crate::{
     Error, Result,
-    file::{CHECKSUMLESS_CURRENT_MAGIC, CURRENT_MAGIC, CURRENT_VERSION_FILE},
+    file::{CURRENT_VERSION_FILE, MAGIC_BYTES},
     version::DEFAULT_LEVEL_COUNT,
 };
 
@@ -25,32 +25,22 @@ impl Recovery {
     pub fn load(folder: &Path) -> Result<Self> {
         let current_path = folder.join(CURRENT_VERSION_FILE);
         let bytes = fs::read(&current_path)?;
-        let magic = bytes
-            .get(..CURRENT_MAGIC.len())
-            .ok_or(Error::Unrecoverable)?;
-        let payload = if magic == CURRENT_MAGIC {
-            if bytes.len() < CURRENT_MAGIC.len() + size_of::<u64>() + size_of::<u128>() {
-                return Err(Error::Unrecoverable);
-            }
-
-            let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());
-            if xxh3::xxh3_128(payload) != LittleEndian::read_u128(checksum) {
-                error!("Current manifest checksum mismatch");
-                return Err(Error::Unrecoverable);
-            }
-            payload
-        } else if magic == CHECKSUMLESS_CURRENT_MAGIC {
-            if bytes.len() < CHECKSUMLESS_CURRENT_MAGIC.len() + size_of::<u64>() {
-                return Err(Error::Unrecoverable);
-            }
-            bytes.as_slice()
-        } else {
+        let magic = bytes.get(..MAGIC_BYTES.len()).ok_or(Error::Unrecoverable)?;
+        if magic != MAGIC_BYTES {
             let version = magic.last().copied().ok_or(Error::Unrecoverable)?;
             return Err(Error::InvalidVersion(version));
-        };
+        }
+        if bytes.len() < MAGIC_BYTES.len() + size_of::<u64>() + size_of::<u128>() {
+            return Err(Error::Unrecoverable);
+        }
+        let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());
+        if xxh3::xxh3_128(payload) != LittleEndian::read_u128(checksum) {
+            error!("Current manifest checksum mismatch");
+            return Err(Error::Unrecoverable);
+        }
 
         let mut reader = payload
-            .get(CURRENT_MAGIC.len()..)
+            .get(MAGIC_BYTES.len()..)
             .ok_or(Error::Unrecoverable)?;
         let curr_version_id = reader.read_u64::<LittleEndian>()?;
 
@@ -115,7 +105,7 @@ mod tests {
         const GLOBAL_SEQNO: u64 = 84;
 
         let directory = tempdir()?;
-        let mut current = CURRENT_MAGIC.to_vec();
+        let mut current = MAGIC_BYTES.to_vec();
         current.write_u64::<LittleEndian>(7)?;
 
         for level in 0..DEFAULT_LEVEL_COUNT {
@@ -149,22 +139,6 @@ mod tests {
     }
 
     #[test]
-    fn recovery_reads_checksumless_v9_manifest() -> Result<()> {
-        let directory = tempdir()?;
-        let mut current = CHECKSUMLESS_CURRENT_MAGIC.to_vec();
-        current.write_u64::<LittleEndian>(7)?;
-        for _ in 0..DEFAULT_LEVEL_COUNT {
-            current.write_u8(0)?;
-        }
-        fs::write(directory.path().join(CURRENT_VERSION_FILE), current)?;
-
-        let recovery = Recovery::load(directory.path())?;
-        assert_eq!(7, recovery.curr_version_id);
-        assert!(recovery.table_ids.iter().all(Vec::is_empty));
-        Ok(())
-    }
-
-    #[test]
     fn recovery_rejects_manifest_checksum_mismatch() -> Result<()> {
         let directory = tempdir()?;
         let version = Version::new(7);
@@ -172,7 +146,7 @@ mod tests {
 
         let path = directory.path().join(CURRENT_VERSION_FILE);
         let mut current = fs::read(&path)?;
-        let payload_byte = CURRENT_MAGIC.len() + size_of::<u64>();
+        let payload_byte = MAGIC_BYTES.len() + size_of::<u64>();
         *current.get_mut(payload_byte).ok_or(Error::Unrecoverable)? ^= 1;
         fs::write(path, current)?;
 
@@ -186,7 +160,7 @@ mod tests {
     #[test]
     fn recovery_rejects_impossible_table_count_before_allocating() -> Result<()> {
         let directory = tempdir()?;
-        let mut current = CURRENT_MAGIC.to_vec();
+        let mut current = MAGIC_BYTES.to_vec();
         current.write_u64::<LittleEndian>(7)?;
         current.write_u8(1)?;
         current.write_u32::<LittleEndian>(u32::MAX)?;

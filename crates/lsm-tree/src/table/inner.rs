@@ -18,7 +18,7 @@ use crate::{
     GlobalTableId,
     cache::Cache,
     file_accessor::FileAccessor,
-    table::{IndexBlock, filter::block::FilterBlock},
+    table::{IndexBlock, filter::standard_bloom::StandardBloomFilterReader},
 };
 
 pub struct Inner {
@@ -51,7 +51,7 @@ pub struct Inner {
     pub pinned_filter_index: Option<IndexBlock>,
 
     /// Pinned AMQ filter
-    pub pinned_filter_block: Option<FilterBlock>,
+    pub pinned_filter_block: Option<StandardBloomFilterReader>,
 
     /// True when the table was compacted away or dropped
     ///

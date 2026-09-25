@@ -11,14 +11,15 @@ Persist and query Bitcoin index data (address→outputs, txid→height, etc.) wi
 - **Workload-optimized configs**: `Kind::Random` (bloom filters, pinned blocks), `Kind::Recent` (point-read optimized), and `Kind::Vec` (append-heavy)
 - **Write batching**: Accumulate puts/deletes in memory, then move them into an owned ingestion batch
 - **Tiered caching**: Optional bounded in-memory batches before hitting disk
+- **Fixed-width records**: Key and value types define their encoded arrays for ingestion, reads, and background compaction; `Unit` uses zero bytes
 - **Version management**: Automatic schema-version validation when opening a store
 
 ## Core API
 
 ```rust,ignore
-let mut store: Store<Txid, Height> = Store::import(
+let mut store: Store<TxidPrefix, Height> = Store::import(
     &db, &path, "txid_to_height",
-    Version::new(1), Mode::Any, Kind::Random
+    Version::new(1), Kind::Random
 )?;
 
 store.insert(txid, height);

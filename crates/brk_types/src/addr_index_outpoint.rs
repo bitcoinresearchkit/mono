@@ -1,9 +1,9 @@
 use std::mem;
 
-use byteview::ByteView;
 use serde::Serialize;
 
 use super::{OutPoint, TxIndex, TypeIndex, Vout};
+use crate::StoreValue;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Serialize, Hash)]
 pub struct AddrIndexOutPoint([u8; 10]);
@@ -35,24 +35,17 @@ impl From<(TypeIndex, OutPoint)> for AddrIndexOutPoint {
     }
 }
 
-impl From<ByteView> for AddrIndexOutPoint {
-    #[inline]
-    fn from(value: ByteView) -> Self {
-        Self(value.as_ref().try_into().unwrap())
-    }
-}
+impl StoreValue for AddrIndexOutPoint {
+    type Bytes = [u8; 10];
 
-impl From<AddrIndexOutPoint> for ByteView {
     #[inline]
-    fn from(value: AddrIndexOutPoint) -> Self {
-        ByteView::from(&value)
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0
     }
-}
 
-impl From<&AddrIndexOutPoint> for ByteView {
     #[inline]
-    fn from(value: &AddrIndexOutPoint) -> Self {
-        ByteView::from(value.0)
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(bytes)
     }
 }
 
@@ -66,14 +59,14 @@ mod tests {
             TypeIndex::new(0x0102_0304),
             OutPoint::new(TxIndex::new(0x0506_0708), Vout::from(0x090a_u16)),
         ));
-        let bytes = ByteView::from(value);
+        let bytes = value.to_store_bytes();
 
         assert_eq!(
-            &*bytes,
+            &bytes,
             &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
             "the LSM key encoding is part of the persisted format",
         );
-        assert_eq!(AddrIndexOutPoint::from(bytes), value);
+        assert_eq!(AddrIndexOutPoint::from_store_bytes(bytes), value);
         assert_eq!(value.tx_index(), TxIndex::new(0x0506_0708));
         assert_eq!(value.vout(), Vout::from(0x090a_u16));
     }

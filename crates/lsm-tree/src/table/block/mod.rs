@@ -7,7 +7,7 @@ use log::trace;
 use lz4_flex::{compress, decompress_into};
 
 use crate::{
-    CompressionType, Error, Result, Slice, SliceExt as _,
+    CompressionType, Error, Result, Slice,
     coding::{Decode, Encode},
     file,
     table::BlockHandle,
@@ -20,7 +20,6 @@ use crate::{
 pub mod binary_index;
 pub mod decoder;
 mod encoder;
-pub mod hash_index;
 mod header;
 mod offset;
 mod trailer;
@@ -56,11 +55,7 @@ fn validate_lengths(header: &Header, compression: CompressionType) -> Result<()>
 }
 
 fn decompress_lz4(raw_data: &[u8], uncompressed_len: usize) -> Result<Slice> {
-    #[expect(
-        unsafe_code,
-        reason = "the builder is frozen only after LZ4 initializes every byte"
-    )]
-    let mut builder = unsafe { Slice::builder_unzeroed(uncompressed_len) };
+    let mut builder = Slice::builder(uncompressed_len);
 
     let written = decompress_into(raw_data, &mut builder)
         .map_err(|_| Error::Decompress(CompressionType::Lz4))?;

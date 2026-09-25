@@ -12,8 +12,7 @@ exclude = ["examples/"]
 
 [dependencies]
 brk_error = { workspace = true, features = ["fjall"] }
-brk_types = { workspace = true }
-byteview = { workspace = true }
+brk_types = { workspace = true, features = ["storage"] }
 fjall = { workspace = true }
 rustc-hash = { workspace = true }
 

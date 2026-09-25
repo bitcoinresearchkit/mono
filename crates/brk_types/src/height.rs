@@ -4,14 +4,13 @@ use std::{
 };
 
 use bitcoin::locktime::absolute::Height as AbsoluteHeight;
-use byteview::ByteView;
 use derive_more::Deref;
 use itoa::Buffer;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{Epoch, Halving, StoredU64};
-use crate::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, CheckedSub, FromCoarserIndex};
+use crate::{BLOCKS_PER_DIFF_EPOCHS, BLOCKS_PER_HALVING, CheckedSub, FromCoarserIndex, StoreValue};
 
 #[cfg(feature = "storage")]
 use brk_error::Error as ErrorError;
@@ -258,24 +257,17 @@ impl TryFrom<&Path> for Height {
     }
 }
 
-impl From<ByteView> for Height {
-    #[inline(always)]
-    fn from(value: ByteView) -> Self {
-        Self(u32::from_be_bytes((&*value).try_into().unwrap()))
-    }
-}
+impl StoreValue for Height {
+    type Bytes = [u8; 4];
 
-impl From<Height> for ByteView {
-    #[inline(always)]
-    fn from(value: Height) -> Self {
-        ByteView::from(&value)
+    #[inline]
+    fn to_store_bytes(&self) -> Self::Bytes {
+        self.0.to_be_bytes()
     }
-}
 
-impl From<&Height> for ByteView {
-    #[inline(always)]
-    fn from(value: &Height) -> Self {
-        Self::new(&value.0.to_be_bytes())
+    #[inline]
+    fn from_store_bytes(bytes: Self::Bytes) -> Self {
+        Self(u32::from_be_bytes(bytes))
     }
 }
 

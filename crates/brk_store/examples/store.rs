@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     if let Some(ingest) = store.take_pending_ingest() {
         ingest.run()?;
     }
-    assert_eq!(store.get(&key)?.as_deref(), Some(&value));
+    assert_eq!(store.get(&key)?, Some(value));
 
     Ok(())
 }

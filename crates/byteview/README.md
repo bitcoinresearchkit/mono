@@ -2,7 +2,7 @@
 
 BRK's immutable byte slice. Its Rust library name remains `byteview`.
 
-Values up to 20 bytes on 64-bit targets are stored directly in the 24-byte
+Values up to 12 bytes on 64-bit targets are stored directly in the 16-byte
 view. Larger values and their subslices share one reference-counted allocation.
 This keeps BRK's small database keys allocation-free while allowing decoded
 table blocks to expose cheap owned subslices.

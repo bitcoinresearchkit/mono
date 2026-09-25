@@ -1,6 +1,9 @@
 use brk_error::Result;
 use brk_store::{Kind, Store, open_database};
-use brk_types::{AddrHash, AddrIndexTxIndex, TxIndex, TypeIndex, Unit, Version};
+use brk_types::{
+    AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, TxIndex, TypeIndex, Unit, Version,
+    Vout,
+};
 use tempfile::tempdir;
 
 fn key(address: u32, transaction: u32) -> AddrIndexTxIndex {
@@ -80,7 +83,7 @@ fn vector_pending_preserves_insert_remove_semantics() -> Result<()> {
 }
 
 #[test]
-fn pending_tombstone_hides_persisted_point_value() -> Result<()> {
+fn owned_point_values_survive_updates_and_deletion() -> Result<()> {
     let dir = tempdir()?;
     let path = dir.path();
     let db = open_database(path)?;
@@ -88,13 +91,62 @@ fn pending_tombstone_hides_persisted_point_value() -> Result<()> {
     let key = AddrHash::new(42);
 
     store.insert(key, TypeIndex::new(1));
+    let pending = store.get(&key)?;
+    store.insert(key, TypeIndex::new(2));
+    assert_eq!(pending, Some(TypeIndex::new(1)));
+    assert_eq!(store.get(&key)?, Some(TypeIndex::new(2)));
     store.take_pending_ingest().unwrap().run()?;
-    assert!(store.get(&key)?.is_some());
+    let persisted = store.get(&key)?;
 
     store.remove(key);
+    assert_eq!(persisted, Some(TypeIndex::new(2)));
     assert!(store.get(&key)?.is_none());
     store.take_pending_ingest().unwrap().run()?;
     assert!(store.get(&key)?.is_none());
 
+    Ok(())
+}
+
+#[test]
+fn key_only_prefix_preserves_order_after_reopen() -> Result<()> {
+    let dir = tempdir()?;
+    let key = |address, transaction| {
+        AddrIndexOutPoint::from((
+            TypeIndex::new(address),
+            OutPoint::new(TxIndex::new(transaction), Vout::from(2_u16)),
+        ))
+    };
+    {
+        let db = open_database(dir.path())?;
+        let mut store = Store::import(&db, dir.path(), "outputs", Version::ZERO, Kind::Vec)?;
+        for transaction in [5, 1, 3] {
+            store.insert(key(42, transaction), Unit);
+        }
+        store.insert(key(43, 2), Unit);
+        store.take_pending_ingest().unwrap().run()?;
+        store.remove(key(42, 3));
+        store.take_pending_ingest().unwrap().run()?;
+    }
+    let db = open_database(dir.path())?;
+    let store: Store<AddrIndexOutPoint, Unit> =
+        Store::import(&db, dir.path(), "outputs", Version::ZERO, Kind::Vec)?;
+    let expected = vec![key(42, 1), key(42, 5)];
+    assert_eq!(
+        store
+            .prefix(TypeIndex::new(42))
+            .map(|(k, _)| k)
+            .collect::<Vec<_>>(),
+        expected
+    );
+    assert_eq!(
+        store
+            .prefix(TypeIndex::new(42))
+            .rev()
+            .map(|(k, _)| k)
+            .collect::<Vec<_>>(),
+        expected.into_iter().rev().collect::<Vec<_>>()
+    );
+    assert!(store.get(&key(42, 1))?.is_some());
+    assert!(store.get(&key(42, 3))?.is_none());
     Ok(())
 }

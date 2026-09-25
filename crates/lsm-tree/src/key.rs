@@ -9,21 +9,21 @@ use std::{
 
 use crate::{Slice, ValueType};
 
-#[derive(Clone, Eq)]
-pub struct InternalKey {
-    pub user_key: Slice,
+#[derive(Clone, Copy, Eq)]
+pub struct InternalKey<K = Slice> {
+    pub user_key: K,
     pub seqno: u64,
     pub value_type: ValueType,
 }
 
-impl PartialEq for InternalKey {
+impl<K: PartialEq> PartialEq for InternalKey<K> {
     fn eq(&self, other: &Self) -> bool {
         self.user_key == other.user_key && self.seqno == other.seqno
     }
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
-impl Debug for InternalKey {
+impl<K: Debug> Debug for InternalKey<K> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
@@ -54,13 +54,15 @@ impl InternalKey {
             value_type,
         }
     }
+}
 
+impl<K> InternalKey<K> {
     pub fn is_tombstone(&self) -> bool {
         self.value_type.is_tombstone()
     }
 }
 
-impl PartialOrd for InternalKey {
+impl<K: Ord> PartialOrd for InternalKey<K> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
@@ -69,7 +71,7 @@ impl PartialOrd for InternalKey {
 // Order by user key ascending, THEN by sequence number descending
 // This is one of the most important functions
 // Otherwise queries will not match expected behaviour
-impl Ord for InternalKey {
+impl<K: Ord> Ord for InternalKey<K> {
     fn cmp(&self, other: &Self) -> Ordering {
         (&self.user_key, other.seqno).cmp(&(&other.user_key, self.seqno))
     }

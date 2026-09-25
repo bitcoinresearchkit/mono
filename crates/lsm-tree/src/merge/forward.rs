@@ -3,7 +3,7 @@
 // (found in the LICENSE-* files in the repository)
 
 use super::HeapItem;
-use crate::{InternalValue, Result};
+use crate::{InternalValue, RecordBytes, Result, Slice};
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, binary_heap::PeekMut},
@@ -11,13 +11,15 @@ use std::{
 };
 
 /// Merges multiple KV iterators in ascending order.
-pub struct ForwardMerger<I> {
+pub struct ForwardMerger<I, K: Ord = Slice, V = Slice> {
     iterators: Vec<I>,
-    heap: BinaryHeap<Reverse<HeapItem>>,
+    heap: BinaryHeap<Reverse<HeapItem<K, V>>>,
     initialized: bool,
 }
 
-impl<I: Iterator<Item = Result<InternalValue>>> ForwardMerger<I> {
+impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, V>>>>
+    ForwardMerger<I, K, V>
+{
     #[must_use]
     pub fn new(iterators: Vec<I>) -> Self {
         Self {
@@ -41,8 +43,10 @@ impl<I: Iterator<Item = Result<InternalValue>>> ForwardMerger<I> {
     }
 }
 
-impl<I: Iterator<Item = Result<InternalValue>>> Iterator for ForwardMerger<I> {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, V>>>> Iterator
+    for ForwardMerger<I, K, V>
+{
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.initialized {

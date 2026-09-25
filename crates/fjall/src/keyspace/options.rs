@@ -1,8 +1,8 @@
 use std::path::Path;
 
 use lsm_tree::{
-    CompressionType, Config,
-    config::{BlockSizePolicy, CompressionPolicy, HashRatioPolicy},
+    CompressionType, Config, RecordBytes, Result as TreeResult, Tree,
+    config::{BlockSizePolicy, CompressionPolicy},
 };
 
 use crate::{
@@ -10,11 +10,12 @@ use crate::{
         BloomConstructionPolicy, FilterPolicy, FilterPolicyEntry, PartitioningPolicy,
         PinningPolicy, RestartIntervalPolicy,
     },
-    db_config::Config as DbConfigConfig,
+    db_config::Config as DatabaseConfig,
 };
 
 /// Immutable-table configuration for a keyspace.
 pub struct CreateOptions {
+    pub(super) compaction: fn(&Tree) -> TreeResult<()>,
     data_block_restart_interval_policy: RestartIntervalPolicy,
     index_block_pinning_policy: PinningPolicy,
     filter_block_pinning_policy: PinningPolicy,
@@ -27,7 +28,9 @@ pub struct CreateOptions {
 impl Default for CreateOptions {
     fn default() -> Self {
         Self {
-            data_block_restart_interval_policy: RestartIntervalPolicy::new([10, 16]),
+            compaction: Tree::compact,
+            // Shorter scans in recent tables; keep denser indexes in deeper levels.
+            data_block_restart_interval_policy: RestartIntervalPolicy::new([4, 4, 16]),
             index_block_pinning_policy: PinningPolicy::new([true, true, false]),
             filter_block_pinning_policy: PinningPolicy::new([true, false]),
             index_block_partitioning_policy: PartitioningPolicy::new([false, false, false, true]),
@@ -42,6 +45,16 @@ impl Default for CreateOptions {
 }
 
 impl CreateOptions {
+    /// Uses the specified record representation during background compaction.
+    ///
+    /// All keys and values in this keyspace must match these representations.
+    /// A width mismatch stops the merge without publishing its output.
+    #[must_use]
+    pub fn compaction_records<K: RecordBytes, V: RecordBytes>(mut self) -> Self {
+        self.compaction = Tree::compact_as::<K, V>;
+        self
+    }
+
     /// Sets the restart interval inside data blocks.
     #[must_use]
     pub fn data_block_restart_interval_policy(mut self, policy: RestartIntervalPolicy) -> Self {
@@ -94,12 +107,11 @@ impl CreateOptions {
     /// Builds the underlying LSM-tree configuration.
     #[doc(hidden)]
     #[must_use]
-    pub fn tree_config(self, path: &Path, database: &DbConfigConfig) -> Config {
+    pub(crate) fn tree_config(self, path: &Path, database: &DatabaseConfig) -> Config {
         let config = Config::new(path)
             .use_cache(database.cache.clone())
             .use_descriptor_table(Some(database.descriptor_table.clone()))
             .data_block_size_policy(BlockSizePolicy::all(4 * 1_024))
-            .data_block_hash_ratio_policy(HashRatioPolicy::all(0.0))
             .data_block_restart_interval_policy(self.data_block_restart_interval_policy)
             .index_block_pinning_policy(self.index_block_pinning_policy)
             .filter_block_pinning_policy(self.filter_block_pinning_policy)

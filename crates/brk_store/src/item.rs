@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 #[derive(Clone)]
 pub enum Item<K, V> {
     Value { key: K, value: V },
@@ -29,26 +27,3 @@ impl<K, V> Item<K, V> {
         }
     }
 }
-
-impl<K: Ord, V> Ord for Item<K, V> {
-    #[inline]
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.key().cmp(other.key())
-    }
-}
-
-impl<K: Ord, V> PartialOrd for Item<K, V> {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl<K: Eq, V> PartialEq for Item<K, V> {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        self.key() == other.key()
-    }
-}
-
-impl<K: Eq, V> Eq for Item<K, V> {}

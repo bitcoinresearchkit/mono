@@ -22,8 +22,6 @@ use crate::{
 };
 
 pub struct PartitionedIndexWriter {
-    relative_file_pos: u64,
-
     compression: CompressionType,
 
     tli_handles: Vec<KeyedBlockHandle>,
@@ -31,8 +29,6 @@ pub struct PartitionedIndexWriter {
 
     buffer_size: u32,
     partition_size: u32,
-
-    index_block_count: usize,
 
     block_buffer: Vec<u8>,
 
@@ -42,9 +38,7 @@ pub struct PartitionedIndexWriter {
 impl PartitionedIndexWriter {
     pub fn new() -> Self {
         Self {
-            relative_file_pos: 0,
             buffer_size: 0,
-            index_block_count: 0,
 
             partition_size: 4_096,
             compression: CompressionType::None,
@@ -58,12 +52,13 @@ impl PartitionedIndexWriter {
     }
 
     fn cut_index_block(&mut self) -> Result<()> {
-        let mut bytes = vec![];
-        IndexBlock::encode_into(&mut bytes, &self.data_block_handles)?;
+        self.block_buffer.clear();
+        IndexBlock::encode_into(&mut self.block_buffer, &self.data_block_handles)?;
 
+        let offset = self.final_write_buffer.len() as u64;
         let header = Block::write_into(
-            &mut self.block_buffer,
-            &bytes,
+            &mut self.final_write_buffer,
+            &self.block_buffer,
             BlockType::Index,
             self.compression,
         )?;
@@ -86,21 +81,16 @@ impl PartitionedIndexWriter {
         let index_block_handle = KeyedBlockHandle::new(
             last.end_key().clone(),
             last.seqno(),
-            BlockHandle::new(BlockOffset(self.relative_file_pos), bytes_written),
+            BlockHandle::new(BlockOffset(offset), bytes_written),
         );
 
         trace!(
-            "Built Bloom filter partition ({bytes_written}B) with end_key={:?} at +{:#X?}",
+            "Built index partition ({bytes_written}B) with end_key={:?} at +{:#X?}",
             last.end_key(),
-            self.relative_file_pos,
+            offset,
         );
 
         self.tli_handles.push(index_block_handle);
-        self.final_write_buffer.append(&mut self.block_buffer);
-
-        // Adjust metadata
-        self.index_block_count += 1;
-        self.relative_file_pos += u64::from(bytes_written);
 
         // IMPORTANT: Clear buffer after everything else
         self.data_block_handles.clear();
@@ -182,7 +172,7 @@ impl BlockIndexWriter for PartitionedIndexWriter {
         Ok(())
     }
 
-    fn finish(mut self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<usize> {
+    fn finish(mut self: Box<Self>, file_writer: &mut Writer<BufWriter<File>>) -> Result<()> {
         if self.buffer_size > 0 {
             self.cut_index_block()?;
         }
@@ -195,6 +185,6 @@ impl BlockIndexWriter for PartitionedIndexWriter {
 
         self.write_top_level_index(file_writer, index_base_offset)?;
 
-        Ok(self.index_block_count)
+        Ok(())
     }
 }

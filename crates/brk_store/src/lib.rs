@@ -1,11 +1,10 @@
 #![doc = include_str!("../README.md")]
 
-use std::{borrow::Cow, cmp::Ordering, fmt::Debug, fs, hash::Hash, ops::Range, path::Path};
+use std::{cmp::Ordering, fs, hash::Hash, ops::Range, path::Path};
 
 use brk_error::Result;
-use brk_types::Version;
-use byteview::ByteView;
-use fjall::{Database, Keyspace, KeyspaceCreateOptions, config::*};
+use brk_types::{StoreValue, Version};
+use fjall::{Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, RecordBytes, config::*};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 mod any;
@@ -23,7 +22,6 @@ pub use any::*;
 pub use kind::*;
 pub use pending_ingest::PendingIngest;
 
-const MAJOR_FJALL_VERSION: Version = Version::new(7);
 const BLOCK_CACHE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 pub fn open_database(path: &Path) -> Result<Database> {
@@ -41,9 +39,10 @@ pub struct Store<K, V> {
 
 impl<K, V> Store<K, V>
 where
-    K: Debug + Clone + From<ByteView> + Ord + Eq + Hash,
-    V: Debug + Clone + From<ByteView>,
-    ByteView: From<K> + From<V>,
+    K: StoreValue + Ord + Hash,
+    V: StoreValue,
+    K::Bytes: RecordBytes,
+    V::Bytes: RecordBytes,
     Self: Send + Sync,
 {
     pub fn import(
@@ -57,7 +56,7 @@ where
 
         let keyspace = checked_open(
             &path.join(format!("meta/{name}")),
-            MAJOR_FJALL_VERSION + version,
+            Version::new(u32::from(FORMAT_VERSION)) + version,
             || {
                 Self::open_keyspace(db, name, kind).inspect_err(|e| {
                     eprintln!("{e}");
@@ -73,6 +72,7 @@ where
 
     fn open_keyspace(database: &Database, name: &str, kind: Kind) -> Result<Keyspace> {
         let mut options = KeyspaceCreateOptions::default()
+            .compaction_records::<K::Bytes, V::Bytes>()
             .filter_block_partitioning_policy(PartitioningPolicy::new([false, false, true]))
             .index_block_partitioning_policy(PartitioningPolicy::new([false, false, true]));
 
@@ -114,19 +114,14 @@ where
     }
 
     #[inline]
-    pub fn get<'a>(&'a self, key: &'a K) -> Result<Option<Cow<'a, V>>>
-    where
-        ByteView: From<&'a K>,
-    {
+    pub fn get(&self, key: &K) -> Result<Option<V>> {
         if let Some(pending) = self.pending.get(key) {
-            return Ok(pending.map(Cow::Borrowed));
+            return Ok(pending.copied());
         }
-
-        if let Some(slice) = self.keyspace.get(ByteView::from(key))? {
-            Ok(Some(Cow::Owned(V::from(ByteView::from(slice)))))
-        } else {
-            Ok(None)
-        }
+        Ok(self
+            .keyspace
+            .get_as::<V::Bytes>(key.to_store_bytes().as_ref())?
+            .map(V::from_store_bytes))
     }
 
     #[inline]
@@ -151,7 +146,6 @@ where
     where
         K: Send + 'static,
         V: Send + 'static,
-        for<'a> ByteView: From<&'a K> + From<&'a V>,
     {
         let pending = self.pending.take();
 
@@ -167,34 +161,28 @@ where
     }
 
     #[inline]
-    pub fn prefix<P: Into<ByteView>>(
-        &self,
-        prefix: P,
-    ) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
-        let prefix: ByteView = prefix.into();
+    pub fn prefix<P: StoreValue>(&self, prefix: P) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
+        let prefix = prefix.to_store_bytes();
         self.keyspace
-            .prefix(prefix)
+            .prefix_as::<K::Bytes, V::Bytes>(prefix.as_ref())
             .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
+            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
     }
 
     #[inline]
-    pub fn range<B: Into<ByteView>>(
+    pub fn range<B: StoreValue>(
         &self,
         range: Range<B>,
     ) -> impl DoubleEndedIterator<Item = (K, V)> + '_ {
-        let start: ByteView = range.start.into();
-        let end: ByteView = range.end.into();
+        let start = range.start.to_store_bytes();
+        let end = range.end.to_store_bytes();
         self.keyspace
-            .range(start..end)
+            .range_as::<K::Bytes, V::Bytes, _, _>(start..end)
             .map(|result| result.unwrap())
-            .map(|(k, v)| (K::from(ByteView::from(k)), V::from(ByteView::from(v))))
+            .map(|(k, v)| (K::from_store_bytes(k), V::from_store_bytes(v)))
     }
 
-    fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()>
-    where
-        for<'a> ByteView: From<&'a K> + From<&'a V>,
-    {
+    fn ingest_owned(keyspace: &Keyspace, pending: Pending<K, V>) -> Result<()> {
         match pending {
             Pending::Hashed { puts, dels } => Self::ingest_hashed(keyspace, puts, dels),
             Pending::Sequential(changes) => Self::ingest_sequential(keyspace, changes),
@@ -205,12 +193,12 @@ where
         let mut puts: Vec<_> = puts.into_iter().collect();
         let mut dels: Vec<_> = dels.into_iter().collect();
 
-        puts.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+        puts.sort_unstable_by_key(|(key, _)| *key);
         dels.sort_unstable();
 
         let mut puts = puts.into_iter().peekable();
         let mut dels = dels.into_iter().peekable();
-        let mut ingestion = keyspace.start_ingestion()?;
+        let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
 
         // The buffers are unique and disjoint, and this merge emits them in
         // strict key order, so release builds can skip re-cloning each key.
@@ -219,19 +207,19 @@ where
                 (Some((put_key, _)), Some(del_key)) => match put_key.cmp(del_key) {
                     Ordering::Less => {
                         let (key, value) = puts.next().unwrap();
-                        ingestion.write(ByteView::from(key), ByteView::from(value))?;
+                        ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                     }
                     Ordering::Greater => {
-                        ingestion.write_weak_tombstone(ByteView::from(dels.next().unwrap()))?;
+                        ingestion.write_weak_tombstone(dels.next().unwrap().to_store_bytes())?;
                     }
                     Ordering::Equal => unreachable!("key is both inserted and deleted"),
                 },
                 (Some(_), None) => {
                     let (key, value) = puts.next().unwrap();
-                    ingestion.write(ByteView::from(key), ByteView::from(value))?;
+                    ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                 }
                 (None, Some(_)) => {
-                    ingestion.write_weak_tombstone(ByteView::from(dels.next().unwrap()))?;
+                    ingestion.write_weak_tombstone(dels.next().unwrap().to_store_bytes())?;
                 }
                 (None, None) => break,
             }
@@ -243,16 +231,13 @@ where
         Ok(())
     }
 
-    fn ingest_sequential(keyspace: &Keyspace, mut changes: Vec<Item<K, V>>) -> Result<()>
-    where
-        for<'a> ByteView: From<&'a K> + From<&'a V>,
-    {
+    fn ingest_sequential(keyspace: &Keyspace, mut changes: Vec<Item<K, V>>) -> Result<()> {
         // Equal-key operations must retain their arrival order.
         changes.sort_by(|left, right| left.key().cmp(right.key()));
 
         let mut changes = changes.into_iter().peekable();
         let mut pending = None;
-        let mut ingestion = keyspace.start_ingestion()?;
+        let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
         while let Some(change) = changes.next() {
             let same_key_follows = changes
                 .peek()
@@ -266,10 +251,10 @@ where
             if let Some(pending) = pending.take() {
                 match pending {
                     Item::Value { key, value } => {
-                        ingestion.write(ByteView::from(key), ByteView::from(value))?;
+                        ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                     }
                     Item::Tomb(key) => {
-                        ingestion.write_weak_tombstone(ByteView::from(key))?;
+                        ingestion.write_weak_tombstone(key.to_store_bytes())?;
                     }
                 }
             }
@@ -282,9 +267,10 @@ where
 
 impl<K, V> AnyStore for Store<K, V>
 where
-    K: Debug + Clone + From<ByteView> + Ord + Eq + Hash,
-    V: Debug + Clone + From<ByteView>,
-    for<'a> ByteView: From<K> + From<V> + From<&'a K> + From<&'a V>,
+    K: StoreValue + Ord + Hash,
+    V: StoreValue,
+    K::Bytes: RecordBytes,
+    V::Bytes: RecordBytes,
     Self: Send + Sync,
 {
     fn ingest_pending(&mut self) -> Result<()> {

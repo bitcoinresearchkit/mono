@@ -6,49 +6,53 @@ mod forward;
 
 pub use forward::ForwardMerger;
 
-use crate::{InternalValue, Result};
+use crate::{InternalValue, RecordBytes, Result, Slice};
 use interval_heap::IntervalHeap as Heap;
 use std::cmp::Ordering;
 
-struct HeapItem {
+struct HeapItem<K = Slice, V = Slice> {
     iterator_index: usize,
-    value: InternalValue,
+    value: InternalValue<K, V>,
 }
 
-impl Eq for HeapItem {}
+impl<K: Ord, V> Eq for HeapItem<K, V> {}
 
-impl PartialEq for HeapItem {
+impl<K: Ord, V> PartialEq for HeapItem<K, V> {
     fn eq(&self, other: &Self) -> bool {
         self.value.key == other.value.key
     }
 }
 
-impl Ord for HeapItem {
+impl<K: Ord, V> Ord for HeapItem<K, V> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.value.key.cmp(&other.value.key)
     }
 }
 
-impl PartialOrd for HeapItem {
+impl<K: Ord, V> PartialOrd for HeapItem<K, V> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
 /// Merges multiple KV iterators
-pub struct Merger<I> {
+pub struct Merger<I, K: Ord = Slice, V = Slice> {
     iterators: Vec<I>,
-    heap: Heap<HeapItem>,
+    heap: Heap<HeapItem<K, V>>,
     initialized_lo: bool,
     initialized_hi: bool,
 }
 
-impl<I: Iterator<Item = Result<InternalValue>>> Merger<I> {
+impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, V>>>>
+    Merger<I, K, V>
+{
     #[must_use]
     pub fn new(iterators: Vec<I>) -> Self {
-        let heap = Heap::with_capacity(iterators.len());
-
-        let iterators = iterators.into_iter().collect::<Vec<_>>();
+        let heap = Heap::with_capacity(if iterators.len() > 1 {
+            iterators.len()
+        } else {
+            0
+        });
 
         Self {
             iterators,
@@ -73,7 +77,9 @@ impl<I: Iterator<Item = Result<InternalValue>>> Merger<I> {
     }
 }
 
-impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Merger<I> {
+impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>>
+    Merger<I, K, V>
+{
     fn initialize_hi(&mut self) -> Result<()> {
         for (idx, it) in self.iterators.iter_mut().enumerate() {
             if let Some(item) = it.next_back() {
@@ -89,11 +95,17 @@ impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> Merger<I> {
     }
 }
 
-impl<I: Iterator<Item = Result<InternalValue>>> Iterator for Merger<I> {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes, I: Iterator<Item = Result<InternalValue<K, V>>>> Iterator
+    for Merger<I, K, V>
+{
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if !self.initialized_lo {
+            // A single source needs no heap; keep it on this direct path.
+            if let [iterator] = self.iterators.as_mut_slice() {
+                return iterator.next();
+            }
             fail_iter!(self.initialize_lo());
         }
 
@@ -112,9 +124,15 @@ impl<I: Iterator<Item = Result<InternalValue>>> Iterator for Merger<I> {
     }
 }
 
-impl<I: DoubleEndedIterator<Item = Result<InternalValue>>> DoubleEndedIterator for Merger<I> {
+impl<K: RecordBytes, V: RecordBytes, I: DoubleEndedIterator<Item = Result<InternalValue<K, V>>>>
+    DoubleEndedIterator for Merger<I, K, V>
+{
     fn next_back(&mut self) -> Option<Self::Item> {
         if !self.initialized_hi {
+            // A single source needs no heap; keep it on this direct path.
+            if let [iterator] = self.iterators.as_mut_slice() {
+                return iterator.next_back();
+            }
             fail_iter!(self.initialize_hi());
         }
 

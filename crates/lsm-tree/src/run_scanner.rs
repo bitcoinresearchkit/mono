@@ -1,20 +1,22 @@
 use std::sync::Arc;
 
-use crate::{Error, InternalValue, Result, Table, table::Scanner, version::Run};
+use crate::{
+    Error, InternalValue, RecordBytes, Result, Slice, Table, table::Scanner, version::Run,
+};
 
 /// Scans through a disjoint run for compaction.
-pub struct RunScanner {
+pub struct RunScanner<K = Slice, V = Slice> {
     tables: Arc<Run<Table>>,
     lo: usize,
     hi: usize,
-    lo_reader: Option<Scanner>,
+    lo_reader: Option<Scanner<K, V>>,
 }
 
-impl RunScanner {
+impl<K: RecordBytes, V: RecordBytes> RunScanner<K, V> {
     pub fn culled(run: Arc<Run<Table>>, (lo, hi): (Option<usize>, Option<usize>)) -> Result<Self> {
         let lo = lo.unwrap_or_default();
         let hi = hi.unwrap_or(run.len() - 1);
-        let lo_reader = run.get(lo).ok_or(Error::Unrecoverable)?.scan()?;
+        let lo_reader = run.get(lo).ok_or(Error::Unrecoverable)?.scan::<K, V>()?;
 
         Ok(Self {
             tables: run,
@@ -25,8 +27,8 @@ impl RunScanner {
     }
 }
 
-impl Iterator for RunScanner {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes> Iterator for RunScanner<K, V> {
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
@@ -45,7 +47,7 @@ impl Iterator for RunScanner {
                 self.tables
                     .get(self.lo)
                     .ok_or(Error::Unrecoverable)
-                    .and_then(Table::scan)
+                    .and_then(Table::scan::<K, V>)
             ));
         }
     }

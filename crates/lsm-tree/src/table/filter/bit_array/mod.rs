@@ -3,7 +3,5 @@
 // (found in the LICENSE-* files in the repository)
 
 mod builder;
-mod reader;
 
 pub use builder::Builder;
-pub use reader::BitArrayReader;

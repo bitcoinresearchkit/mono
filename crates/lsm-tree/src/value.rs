@@ -6,21 +6,16 @@ use std::fmt::{Debug, Formatter, Result};
 
 use crate::{Slice, ValueType, key::InternalKey};
 
-pub struct PointReadValue {
-    pub value_type: ValueType,
-    pub value: Slice,
-}
-
 /// Internal representation of KV pairs
-#[derive(Clone)]
-pub struct InternalValue {
+#[derive(Clone, Copy)]
+pub struct InternalValue<K = Slice, V = Slice> {
     /// Internal key
-    pub key: InternalKey,
+    pub key: InternalKey<K>,
 
     /// User-defined value - an arbitrary byte array
     ///
     /// Supports up to 2^32 bytes
-    pub value: Slice,
+    pub value: V,
 }
 
 impl InternalValue {
@@ -75,7 +70,9 @@ impl InternalValue {
         let key = InternalKey::new(key, seqno, ValueType::WeakTombstone);
         Self::new(key, vec![])
     }
+}
 
+impl<K, V> InternalValue<K, V> {
     #[doc(hidden)]
     #[must_use]
     pub fn is_tombstone(&self) -> bool {
@@ -92,14 +89,14 @@ impl PartialEq for InternalValue {
 }
 
 #[cfg_attr(coverage_nightly, coverage(off))]
-impl Debug for InternalValue {
+impl<K: Debug, V: Debug + AsRef<[u8]>> Debug for InternalValue<K, V> {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
             "{:?} => {:?}",
             self.key,
-            if self.value.len() >= 100 {
-                format!("[ ... {} bytes ]", self.value.len())
+            if self.value.as_ref().len() >= 100 {
+                format!("[ ... {} bytes ]", self.value.as_ref().len())
             } else {
                 format!("{:?}", self.value)
             }

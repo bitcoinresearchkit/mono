@@ -1,4 +1,4 @@
-use std::{fmt::Debug, hash::Hash, mem};
+use std::{hash::Hash, mem};
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -15,7 +15,7 @@ pub enum Pending<K, V> {
 
 impl<K, V> Pending<K, V>
 where
-    K: Debug + Eq + Hash,
+    K: Eq + Hash,
 {
     pub fn new(kind: Kind) -> Self {
         match kind {

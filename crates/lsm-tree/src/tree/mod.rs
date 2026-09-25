@@ -10,7 +10,7 @@ use log::{debug, info};
 use rustc_hash::FxHashMap;
 
 use crate::{
-    BoxedIterator, Config, Error, InternalValue, Result, Slice, Table,
+    BoxedIterator, Config, Error, InternalValue, RecordBytes, Result, Slice, Table,
     compaction::worker::Worker,
     file::{CURRENT_VERSION_FILE, TABLES_FOLDER},
     merge::Merger,
@@ -64,14 +64,23 @@ impl Tree {
         ingest::Ingestion::new(self)
     }
 
+    /// Starts ingestion using the specified owned record bytes.
+    ///
+    /// # Errors
+    /// Returns an error if the table writer cannot be created.
+    pub fn ingestion_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+    ) -> Result<ingest::Ingestion<'_, K, V>> {
+        ingest::Ingestion::new(self)
+    }
+
     /// Reads the latest value for `key`.
     ///
     /// # Errors
     ///
     /// Returns an error when an underlying table cannot be read.
     pub fn get<K: AsRef<[u8]>>(&self, key: K) -> Result<Option<Slice>> {
-        let version = self.versions.guard();
-        Self::get_from_tables(&version, key.as_ref())
+        self.get_as::<Slice>(key.as_ref())
     }
 
     /// Iterates over all latest key-value pairs.
@@ -86,10 +95,29 @@ impl Tree {
         &self,
         range: R,
     ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
+        self.range_as::<Slice, Slice, K, R>(range)
+    }
+
+    /// Iterates over all latest records using the specified owned bytes.
+    /// Record widths are checked while decoding.
+    #[must_use]
+    pub fn iter_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static {
+        self.range_as::<K, V, &[u8], _>(..)
+    }
+
+    /// Iterates over a range using the specified owned record bytes.
+    /// Record widths are checked while decoding.
+    #[must_use]
+    pub fn range_as<K: RecordBytes, V: RecordBytes, B: AsRef<[u8]>, R: RangeBounds<B>>(
+        &self,
+        range: R,
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V, B, R> {
         let bounds = Self::owned_bounds(&range);
         let version = self.versions.load();
 
-        Self::range_from(&version, bounds)
+        Self::range_from::<K, V>(&version, bounds)
             .map(|item| item.map(|value| (value.key.user_key, value.value)))
     }
 
@@ -100,6 +128,15 @@ impl Tree {
         prefix: K,
     ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.range(range::prefix_to_range(prefix.as_ref()))
+    }
+
+    /// Iterates over matching keys using the specified owned record bytes.
+    #[must_use]
+    pub fn prefix_as<K: RecordBytes, V: RecordBytes>(
+        &self,
+        prefix: &[u8],
+    ) -> impl DoubleEndedIterator<Item = Result<(K, V)>> + Send + 'static + use<K, V> {
+        self.range_as::<K, V, _, _>(range::prefix_to_range(prefix))
     }
 
     /// Returns the number of disjoint level-zero runs.
@@ -114,7 +151,15 @@ impl Tree {
     ///
     /// Returns an error when compaction cannot read, write, or publish its tables.
     pub fn compact(&self) -> Result<()> {
-        Worker::new(self).run()
+        self.compact_as::<Slice, Slice>()
+    }
+
+    /// Compacts a tree whose keys and values use the specified record bytes.
+    ///
+    /// # Errors
+    /// Returns an error if records have a different width, or compaction fails.
+    pub fn compact_as<K: RecordBytes, V: RecordBytes>(&self) -> Result<()> {
+        Worker::new(self).run::<K, V>()
     }
 
     /// Returns the currently published table-layout generation.
@@ -124,7 +169,16 @@ impl Tree {
         self.versions.guard().id()
     }
 
-    fn get_from_tables(version: &Version, key: &[u8]) -> Result<Option<Slice>> {
+    /// Reads a value into the specified owned bytes.
+    ///
+    /// # Errors
+    /// Returns an error if a table cannot be read or the value width does not match.
+    pub fn get_as<V: RecordBytes>(&self, key: &[u8]) -> Result<Option<V>> {
+        let version = self.versions.guard();
+        Self::get_from_tables::<V>(&version, key)
+    }
+
+    fn get_from_tables<V: RecordBytes>(version: &Version, key: &[u8]) -> Result<Option<V>> {
         let mut key_hash = None;
 
         for table in version
@@ -154,11 +208,12 @@ impl Tree {
         (start, end)
     }
 
-    fn range_from(
+    fn range_from<K: RecordBytes, V: RecordBytes>(
         version: &Version,
         bounds: (Bound<Slice>, Bound<Slice>),
-    ) -> impl DoubleEndedIterator<Item = Result<InternalValue>> + Send + 'static + use<> {
-        let mut readers: Vec<BoxedIterator<'static>> = Vec::new();
+    ) -> impl DoubleEndedIterator<Item = Result<InternalValue<K, V>>> + Send + 'static + use<K, V>
+    {
+        let mut readers: Vec<BoxedIterator<'static, K, V>> = Vec::new();
         let overlap = (
             bounds.0.as_ref().map(AsRef::as_ref),
             bounds.1.as_ref().map(AsRef::as_ref),
@@ -171,11 +226,13 @@ impl Tree {
                     if let Some(table) = run.first()
                         && table.check_key_range_overlap(&overlap)
                     {
-                        readers.push(BoxedIterator::new(table.range(bounds.clone())));
+                        readers.push(BoxedIterator::new(
+                            table.range_as::<K, V, _>(bounds.clone()),
+                        ));
                     }
                 }
                 _ => {
-                    if let Some(reader) = RunReader::new(run.clone(), bounds.clone()) {
+                    if let Some(reader) = RunReader::<K, V>::new(run.clone(), bounds.clone()) {
                         readers.push(BoxedIterator::new(reader));
                     }
                 }

@@ -7,20 +7,19 @@ use std::{mem, path::PathBuf};
 use log::debug;
 
 use super::{filter::BloomConstructionPolicy, id::next_table_id, writer::Writer};
-use crate::{CompressionType, Result, SequenceNumberCounter, value::InternalValue};
+use crate::{
+    CompressionType, RecordBytes, Result, SequenceNumberCounter, Slice, value::InternalValue,
+};
 
 /// Like `Writer` but will rotate to a new table, once a table grows larger than `target_size`
 ///
 /// This results in a sorted "run" of tables
-pub struct MultiWriter {
+pub struct MultiWriter<K = Slice, V = Slice> {
     pub base_path: PathBuf,
-
-    data_block_hash_ratio: f32,
 
     data_block_size: u32,
 
     data_block_restart_interval: u8,
-    index_block_restart_interval: u8,
 
     use_partitioned_index: bool,
     use_partitioned_filter: bool,
@@ -35,7 +34,7 @@ pub struct MultiWriter {
 
     table_id_generator: SequenceNumberCounter,
 
-    pub writer: Writer,
+    pub writer: Writer<K, V>,
 
     pub data_block_compression: CompressionType,
     pub index_block_compression: CompressionType,
@@ -43,7 +42,7 @@ pub struct MultiWriter {
     bloom_policy: BloomConstructionPolicy,
 }
 
-impl MultiWriter {
+impl<K: RecordBytes, V: RecordBytes> MultiWriter<K, V> {
     /// Sets up a new `MultiWriter` at the given tables folder
     pub fn new(
         base_path: PathBuf,
@@ -58,12 +57,9 @@ impl MultiWriter {
         Ok(Self {
             base_path,
 
-            data_block_hash_ratio: 0.0,
-
             data_block_size: 4_096,
 
             data_block_restart_interval: 16,
-            index_block_restart_interval: 1,
 
             target_size,
             results: Vec::new(),
@@ -102,20 +98,6 @@ impl MultiWriter {
     }
 
     #[must_use]
-    pub fn use_index_block_restart_interval(mut self, interval: u8) -> Self {
-        self.index_block_restart_interval = interval;
-        self.writer = self.writer.use_index_block_restart_interval(interval);
-        self
-    }
-
-    #[must_use]
-    pub fn use_data_block_hash_ratio(mut self, ratio: f32) -> Self {
-        self.data_block_hash_ratio = ratio;
-        self.writer = self.writer.use_data_block_hash_ratio(ratio);
-        self
-    }
-
-    #[must_use]
     pub fn use_data_block_size(mut self, size: u32) -> Self {
         assert!(
             size <= 4 * 1_024 * 1_024,
@@ -148,6 +130,8 @@ impl MultiWriter {
     }
 
     /// Flushes the current writer, stores its metadata, and sets up a new writer for the next table
+    #[cold]
+    #[inline(never)]
     fn rotate(&mut self) -> Result<()> {
         debug!("Rotating table writer");
 
@@ -159,9 +143,7 @@ impl MultiWriter {
             .use_index_block_compression(self.index_block_compression)
             .use_data_block_size(self.data_block_size)
             .use_data_block_restart_interval(self.data_block_restart_interval)
-            .use_index_block_restart_interval(self.index_block_restart_interval)
-            .use_bloom_policy(self.bloom_policy)
-            .use_data_block_hash_ratio(self.data_block_hash_ratio);
+            .use_bloom_policy(self.bloom_policy);
 
         if self.use_partitioned_index {
             new_writer = new_writer.use_partitioned_index();
@@ -180,7 +162,8 @@ impl MultiWriter {
     }
 
     /// Writes an item with a user key greater than the previous item.
-    pub fn write(&mut self, item: InternalValue) -> Result<()> {
+    #[inline]
+    pub fn write(&mut self, item: InternalValue<K, V>) -> Result<()> {
         if *self.writer.meta.file_pos >= self.target_size {
             self.rotate()?;
         }

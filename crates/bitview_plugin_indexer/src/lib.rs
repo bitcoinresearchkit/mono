@@ -22,7 +22,7 @@ use brk_types::{BlkPosition, BlockHash, Height};
 use constants::*;
 use lengths::IndexerLengths as _;
 use processor::{BlockBuffers, BlockProcessor};
-use rayon::join as RayonJoin;
+use read_pool::join as join_reads;
 use readers::Readers;
 use state::State;
 use stores::Stores;
@@ -40,6 +40,7 @@ mod constants;
 mod has;
 mod lengths;
 mod processor;
+mod read_pool;
 mod readers;
 mod safe_lengths;
 mod state;
@@ -525,7 +526,8 @@ impl Indexer {
             let txs = processor.compute_txids()?;
             processor.push_block_size_and_weight(&txs);
 
-            let (txins_result, txouts_result) = RayonJoin(
+            let (txins_result, txouts_result) = join_reads(
+                &txs,
                 || buffers.inputs.resolve(&processor, &txs),
                 || processor.process_outputs(&mut buffers.addresses),
             );

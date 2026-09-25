@@ -15,7 +15,6 @@ use brk_types::{
     AddrBytes, AddrHash, AddrIndexOutPoint, AddrIndexTxIndex, OutPoint, OutputType, Sats, SigOps,
     TxIndex, TxOutIndex, TypeIndex, Unit, Vout,
 };
-use rayon::prelude::*;
 use vecdb::{BytesVec, WritableVec, likely};
 
 use super::BlockProcessor;
@@ -24,34 +23,34 @@ use crate::{AddrsVecs, Lengths, OpReturnVecs, OutputsVecs, ScriptsVecs};
 impl<'a> BlockProcessor<'a> {
     pub fn process_outputs(&self, addresses: &mut BlockAddresses) -> Result<Vec<ProcessedOutput>> {
         let total_outputs: usize = self.block.txdata.iter().map(|tx| tx.output.len()).sum();
-        let mut items = Vec::with_capacity(total_outputs);
-        for tx in &self.block.txdata {
-            items.extend(&tx.output);
-        }
+        // Start address lookups without a temporary pointer list or another parallel barrier.
+        let mut outputs = Vec::with_capacity(total_outputs);
+        outputs.extend(
+            self.block
+                .txdata
+                .iter()
+                .flat_map(|tx| &tx.output)
+                .map(|txout| {
+                    let script = &txout.script_pubkey;
+                    let output_type = OutputType::from(script);
+                    let legacy_sigops = executed_legacy_sigops_for_output(output_type, script);
+                    let data = if output_type.is_addr() {
+                        ProcessedOutputData::Address(
+                            AddrHash::from_script(script, output_type).unwrap(),
+                        )
+                    } else if likely(output_type == OutputType::OpReturn) {
+                        ProcessedOutputData::OpReturn(op_return::analyze(script))
+                    } else {
+                        ProcessedOutputData::None
+                    };
 
-        let outputs = items
-            .into_par_iter()
-            .map(|txout| {
-                let script = &txout.script_pubkey;
-                let output_type = OutputType::from(script);
-                let legacy_sigops = executed_legacy_sigops_for_output(output_type, script);
-                let data = if output_type.is_addr() {
-                    ProcessedOutputData::Address(
-                        AddrHash::from_script(script, output_type).unwrap(),
-                    )
-                } else if likely(output_type == OutputType::OpReturn) {
-                    ProcessedOutputData::OpReturn(op_return::analyze(script))
-                } else {
-                    ProcessedOutputData::None
-                };
-
-                ProcessedOutput {
-                    output_type,
-                    legacy_sigops,
-                    data,
-                }
-            })
-            .collect::<Vec<_>>();
+                    ProcessedOutput {
+                        output_type,
+                        legacy_sigops,
+                        data,
+                    }
+                }),
+        );
 
         addresses.resolve(self, &outputs)?;
 

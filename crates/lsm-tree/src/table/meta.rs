@@ -4,8 +4,7 @@ use byteorder::{LittleEndian, ReadBytesExt};
 
 use super::{Block, BlockHandle, DataBlock};
 use crate::{
-    CompressionType, Error, KeyRange, Result, Slice, coding::Decode, hash::XXH3_TAG,
-    table::block::BlockType,
+    CompressionType, Error, KeyRange, Result, Slice, coding::Decode, table::block::BlockType,
 };
 
 /// Metadata required to read and compact a table.
@@ -31,8 +30,6 @@ impl ParsedMeta {
             )));
         }
         let block = DataBlock::new(block);
-
-        Self::validate_hash(&block, b"filter_hash_type")?;
 
         Ok(Self {
             id: Self::read_u32(&block, b"table_id")?,
@@ -70,17 +67,5 @@ impl ParsedMeta {
 
     fn read_compression(block: &DataBlock, name: &[u8]) -> Result<CompressionType> {
         CompressionType::decode_from(&mut Self::read(block, name).as_ref())
-    }
-
-    fn validate_hash(block: &DataBlock, name: &[u8]) -> Result<()> {
-        let hash = Self::read(block, name);
-        if hash.as_ref() == [XXH3_TAG] {
-            Ok(())
-        } else {
-            Err(Error::InvalidTag((
-                "HashType",
-                hash.first().copied().unwrap_or_default(),
-            )))
-        }
     }
 }

@@ -2,14 +2,14 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use std::{path::PathBuf, sync::Arc};
+use std::{marker::PhantomData, path::PathBuf, sync::Arc};
 
 use super::{
     BlockOffset, DataBlock, GlobalTableId, Table, bound::Bound,
     data_block::DataBlock as DataBlockDataBlock, owned_data_block_iter::OwnedDataBlockIter,
 };
 use crate::{
-    Cache, CompressionType, InternalValue, Result,
+    Cache, CompressionType, InternalValue, RecordBytes, Result, Slice,
     file_accessor::FileAccessor,
     table::{
         BlockHandle,
@@ -23,7 +23,8 @@ fn create_data_block_reader(block: DataBlock) -> OwnedDataBlockIter {
     OwnedDataBlockIter::new(block, DataBlockDataBlock::iter)
 }
 
-pub struct Iter {
+pub struct Iter<K = Slice, V = Slice> {
+    record: PhantomData<(K, V)>,
     _table: Table,
     table_id: GlobalTableId,
     path: Arc<PathBuf>,
@@ -48,7 +49,7 @@ pub struct Iter {
     range: (Option<Bound>, Option<Bound>),
 }
 
-impl Iter {
+impl<K: RecordBytes, V: RecordBytes> Iter<K, V> {
     pub fn new(table: Table, index_iter: BlockIndexIterImpl) -> Self {
         let table_id = table.global_id();
         let global_seqno = table.global_seqno();
@@ -58,6 +59,7 @@ impl Iter {
         let compression = table.metadata.data_block_compression;
 
         Self {
+            record: PhantomData,
             _table: table,
             table_id,
             path,
@@ -90,20 +92,19 @@ impl Iter {
     }
 }
 
-impl Iterator for Iter {
-    type Item = Result<InternalValue>;
+impl<K: RecordBytes, V: RecordBytes> Iterator for Iter<K, V> {
+    type Item = Result<InternalValue<K, V>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Always try to keep iterating inside the already-materialized low data block first; this
         // lets callers consume multiple entries without touching the index or cache again.
         if let Some(block) = &mut self.lo_data_block
-            && let Some(item) = block
-                .next()
-                .map(|mut v| {
-                    v.key.seqno += self.global_seqno;
-                    v
+            && let Some(item) = block.next_as::<K, V>().map(|item| {
+                item.map(|mut value| {
+                    value.key.seqno += self.global_seqno;
+                    value
                 })
-                .map(Ok)
+            })
         {
             return Some(item);
         }
@@ -150,13 +151,12 @@ impl Iterator for Iter {
                 // No more block handles coming from the index.  Flush any pending items buffered on
                 // the high side (used by reverse iteration) before signalling completion.
                 if let Some(block) = &mut self.hi_data_block
-                    && let Some(item) = block
-                        .next()
-                        .map(|mut v| {
-                            v.key.seqno += self.global_seqno;
-                            v
+                    && let Some(item) = block.next_as::<K, V>().map(|item| {
+                        item.map(|mut value| {
+                            value.key.seqno += self.global_seqno;
+                            value
                         })
-                        .map(Ok)
+                    })
                 {
                     return Some(item);
                 }
@@ -191,12 +191,13 @@ impl Iterator for Iter {
                 reader.seek_upper_bound(bound, u64::MAX);
             }
 
-            let item = reader.next();
+            let item = reader.next_as::<K, V>();
 
             self.lo_offset = handle.offset();
             self.lo_data_block = Some(reader);
 
-            if let Some(mut item) = item {
+            if let Some(item) = item {
+                let mut item = fail_iter!(item);
                 item.key.seqno += self.global_seqno;
 
                 // Serving the first item immediately avoids stashing it in a temporary buffer and
@@ -207,18 +208,17 @@ impl Iterator for Iter {
     }
 }
 
-impl DoubleEndedIterator for Iter {
+impl<K: RecordBytes, V: RecordBytes> DoubleEndedIterator for Iter<K, V> {
     fn next_back(&mut self) -> Option<Self::Item> {
         // Mirror the forward iterator: prefer consuming buffered items from the high data block to
         // avoid touching the index once a block has been materialized.
         if let Some(block) = &mut self.hi_data_block
-            && let Some(item) = block
-                .next_back()
-                .map(|mut v| {
-                    v.key.seqno += self.global_seqno;
-                    v
+            && let Some(item) = block.next_back_as::<K, V>().map(|item| {
+                item.map(|mut value| {
+                    value.key.seqno += self.global_seqno;
+                    value
                 })
-                .map(Ok)
+            })
         {
             return Some(item);
         }
@@ -258,13 +258,12 @@ impl DoubleEndedIterator for Iter {
                 // Once we exhaust the index in reverse order, flush any items that were buffered on
                 // the low side (set when iterating forward first) before signalling completion.
                 if let Some(block) = &mut self.lo_data_block
-                    && let Some(item) = block
-                        .next_back()
-                        .map(|mut v| {
-                            v.key.seqno += self.global_seqno;
-                            v
+                    && let Some(item) = block.next_back_as::<K, V>().map(|item| {
+                        item.map(|mut value| {
+                            value.key.seqno += self.global_seqno;
+                            value
                         })
-                        .map(Ok)
+                    })
                 {
                     return Some(item);
                 }
@@ -299,12 +298,13 @@ impl DoubleEndedIterator for Iter {
                 reader.seek_lower_bound(bound, u64::MAX);
             }
 
-            let item = reader.next_back();
+            let item = reader.next_back_as::<K, V>();
 
             self.hi_offset = handle.offset();
             self.hi_data_block = Some(reader);
 
-            if let Some(mut item) = item {
+            if let Some(item) = item {
+                let mut item = fail_iter!(item);
                 item.key.seqno += self.global_seqno;
 
                 // Emit the first materialized entry immediately to match the forward path and avoid
