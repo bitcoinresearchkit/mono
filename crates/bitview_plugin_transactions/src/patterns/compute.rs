@@ -80,43 +80,32 @@ pub fn compute(
             .truncate_if_needed_at(start_height)?;
     }
 
-    let first_txin = indexer
+    // The same boundaries give us both counts and candidate detail ranges.
+    let mut txin_starts = indexer
         .vecs()
         .transactions
         .first_txin_index
-        .collect_one_at(start_tx)
-        .unwrap()
-        .to_usize();
-    let first_txout = indexer
+        .range_cursor_at(start_tx, target_tx);
+    let mut txout_starts = indexer
         .vecs()
         .transactions
         .first_txout_index
-        .collect_one_at(start_tx)
-        .unwrap()
-        .to_usize();
+        .range_cursor_at(start_tx, target_tx);
+    let mut first_txin = txin_starts.next().unwrap().to_usize();
+    let mut first_txout = txout_starts.next().unwrap().to_usize();
+    let input_len = indexer.vecs().inputs.outpoint.len();
+    let output_len = indexer.vecs().outputs.value.len();
 
-    let mut input_count = mappings.tx_index.input_count.cursor();
-    let mut output_count = mappings.tx_index.output_count.cursor();
     let mut input_value = input_values.cursor();
     let mut input_type = indexer.vecs().inputs.output_type.cursor();
     let mut input_type_index = indexer.vecs().inputs.type_index.cursor();
-    let mut output_value = indexer.vecs().outputs.value.reader().cursor();
-    let mut output_type = indexer.vecs().outputs.output_type.reader().cursor();
-    let mut output_type_index = indexer.vecs().outputs.type_index.reader().cursor();
-    let mut has_op_return = features.has_op_return.range_cursor_at(start_tx, target_tx);
-    let mut has_inscription = features
-        .has_inscription
-        .range_cursor_at(start_tx, target_tx);
+    let output_value = indexer.vecs().outputs.value.reader();
+    let output_type = indexer.vecs().outputs.output_type.reader();
+    let output_type_index = indexer.vecs().outputs.type_index.reader();
+    let mut has_op_return = features.has_op_return.cursor();
+    let mut has_inscription = features.has_inscription.cursor();
     let mut tx_count = mappings.height.tx_index_count.cursor();
 
-    input_count.advance(start_tx);
-    output_count.advance(start_tx);
-    input_value.advance(first_txin);
-    input_type.advance(first_txin);
-    input_type_index.advance(first_txin);
-    output_value.advance(first_txout);
-    output_type.advance(first_txout);
-    output_type_index.advance(first_txout);
     tx_count.advance(start_height);
 
     let mut candidate = Candidate::default();
@@ -128,42 +117,37 @@ pub fn compute(
         let mut batch_payout_count = 0;
 
         for tx_index in block_start..block_end {
-            let inputs = usize::from(input_count.next().unwrap());
-            let outputs = usize::from(output_count.next().unwrap());
-            let op_return = has_op_return.next().unwrap().is_true();
-            let inscription = has_inscription.next().unwrap().is_true();
-            let token_related = op_return || inscription;
-
+            let next_txin = txin_starts
+                .next()
+                .map_or(input_len, |index| index.to_usize());
+            let next_txout = txout_starts
+                .next()
+                .map_or(output_len, |index| index.to_usize());
+            let inputs = next_txin.saturating_sub(first_txin);
+            let outputs = next_txout.saturating_sub(first_txout);
             let consolidation = is_consolidation(inputs, outputs);
             let batch_payout = is_batch_payout(inputs, outputs, tx_index == block_start);
-            let coinjoin_candidate = is_coinjoin_candidate(inputs, outputs, token_related);
-
-            let coinjoin = if coinjoin_candidate {
-                candidate.clear();
-                for _ in 0..inputs {
-                    candidate.add_input(
-                        input_value.next().unwrap(),
-                        input_type.next().unwrap(),
-                        input_type_index.next().unwrap(),
-                    );
-                }
-                for _ in 0..outputs {
-                    candidate.add_output(
-                        output_value.next().unwrap(),
-                        output_type.next().unwrap(),
-                        output_type_index.next().unwrap(),
-                    );
-                }
-                candidate.is_match(inputs, outputs)
-            } else {
-                input_value.advance(inputs);
-                input_type.advance(inputs);
-                input_type_index.advance(inputs);
-                output_value.advance(outputs);
-                output_type.advance(outputs);
-                output_type_index.advance(outputs);
-                false
+            let coinjoin_candidate = is_coinjoin_candidate(inputs, outputs)
+                && !has_op_return.get(tx_index).unwrap().is_true()
+                && !has_inscription.get(tx_index).unwrap().is_true();
+            let coinjoin = coinjoin_candidate && {
+                candidate.clear((inputs + outputs) / 2);
+                (first_txin..next_txin).all(|index| {
+                    candidate.add(
+                        input_value.get(index).unwrap(),
+                        input_type.get(index).unwrap(),
+                        input_type_index.get(index).unwrap(),
+                    )
+                }) && (first_txout..next_txout).all(|index| {
+                    candidate.add(
+                        output_value.get_at(index),
+                        output_type.get_at(index),
+                        output_type_index.get_at(index),
+                    )
+                })
             };
+            first_txin = next_txin;
+            first_txout = next_txout;
 
             coinjoin_count += coinjoin as u64;
             consolidation_count += consolidation as u64;
@@ -219,8 +203,8 @@ fn is_batch_payout(inputs: usize, outputs: usize, is_coinbase: bool) -> bool {
     !is_coinbase && outputs >= inputs * 5
 }
 
-fn is_coinjoin_candidate(inputs: usize, outputs: usize, token_related: bool) -> bool {
-    inputs >= 5 && outputs >= 5 && inputs < outputs * 5 && outputs < inputs * 5 && !token_related
+fn is_coinjoin_candidate(inputs: usize, outputs: usize) -> bool {
+    inputs >= 5 && outputs >= 5 && inputs < outputs * 5 && outputs < inputs * 5
 }
 
 #[cfg(test)]
@@ -232,9 +216,10 @@ mod tests {
         assert!(is_consolidation(25, 5));
         assert!(is_batch_payout(5, 25, false));
         assert!(!is_batch_payout(1, 5, true));
-        assert!(!is_coinjoin_candidate(25, 5, false));
-        assert!(!is_coinjoin_candidate(5, 25, false));
-        assert!(is_coinjoin_candidate(5, 5, false));
-        assert!(!is_coinjoin_candidate(5, 5, true));
+        assert!(!is_coinjoin_candidate(25, 5));
+        assert!(!is_coinjoin_candidate(5, 25));
+        assert!(!is_coinjoin_candidate(4, 5));
+        assert!(!is_coinjoin_candidate(5, 4));
+        assert!(is_coinjoin_candidate(5, 5));
     }
 }

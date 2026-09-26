@@ -8,7 +8,7 @@ use brk_types::{Height, TxInIndex, TxOutIndex};
 use tracing::{info, warn};
 use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
 
-use super::Vecs;
+use super::{Vecs, bootstrap};
 
 const HEIGHT_BATCH: u32 = 10_000;
 
@@ -19,6 +19,7 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
         + indexer.vecs().outputs.first_txout_index.version()
         + indexer.vecs().inputs.first_txin_index.version()
         + indexer.vecs().outputs.value.version();
+    bootstrap::reset_incomplete(vecs)?;
     vecs.txin_index
         .validate_computed_version_or_reset(dep_version)?;
 
@@ -91,6 +92,26 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
     );
 
     let mut batch_start_height = min_height;
+    let bootstrap_height =
+        Height::new(u32::from(target_height) / (HEIGHT_BATCH + 1) * (HEIGHT_BATCH + 1));
+    if vecs.txin_index.is_empty()
+        && first_txout_index_data[bootstrap_height.to_usize()].to_usize() > bootstrap::RANGE_LEN
+    {
+        // Preserve the same final checkpoint window as the block-batched path.
+        // An empty vector always starts at height zero, so offset is also zero.
+        bootstrap::build(
+            vecs,
+            txin_index_to_txout_index,
+            first_txin_index_data[bootstrap_height.to_usize()].to_usize(),
+            first_txout_index_data[bootstrap_height.to_usize()].to_usize(),
+            exit,
+        )?;
+        let _lock = exit.lock();
+        vecs.txin_index
+            .stamped_write_maybe_with_changes(Stamp::from(bootstrap_height), false)?;
+        vecs.txin_index.flush()?;
+        batch_start_height = bootstrap_height;
+    }
     while batch_start_height <= target_height {
         let batch_end_height = (batch_start_height + HEIGHT_BATCH).min(target_height);
 

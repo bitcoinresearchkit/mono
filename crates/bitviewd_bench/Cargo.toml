@@ -20,5 +20,8 @@ brk_types = { workspace = true }
 parking_lot = { workspace = true }
 tracing = { workspace = true }
 
+[dev-dependencies]
+tempfile = { workspace = true }
+
 [target.'cfg(target_os = "macos")'.dependencies]
 libproc = "0.14"

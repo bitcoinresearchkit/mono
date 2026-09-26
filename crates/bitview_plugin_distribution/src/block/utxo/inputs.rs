@@ -3,31 +3,22 @@ use std::collections::hash_map::Entry;
 use brk_types::{Height, OutputType, Sats, TxIndex, TypeIndex};
 use rustc_hash::FxHashMap;
 
-use crate::{
-    addr::{AddrTypeToTypeIndexMap, HeightToAddrTypeToVec},
-    block::TxIndexes,
-    state::Transacted,
-};
+use crate::{addr::AddrTypeToTypeIndexMap, block::TxIndexes, state::Transacted};
 
 /// Result of processing inputs for a block.
 pub struct InputsResult {
     /// Map from UTXO creation height -> aggregated sent supply.
     pub height_to_sent: FxHashMap<Height, Transacted>,
-    /// Per-height, per-address-type sent data: (type_index, value) for each address.
-    pub sent_data: HeightToAddrTypeToVec<(TypeIndex, Sats)>,
+    /// Address spends in input order within each creation height.
+    pub sent_data: FxHashMap<Height, Vec<(OutputType, TypeIndex, Sats)>>,
     /// Transaction indexes per address for tx_count tracking.
     pub tx_index_vecs: AddrTypeToTypeIndexMap<TxIndexes>,
 }
 
 /// Process inputs (spent UTXOs) for a block.
 ///
-/// For each input:
-/// 1. Use pre-collected outpoint (from reusable iterator, avoids PcoVec re-decompression)
-/// 2. Resolve outpoint to txout_index
-/// 3. Get the creation height from txout_index_to_height map
-/// 4. Read value and type from the referenced output (random access via mmap)
-/// 5. Accumulate into height_to_sent map
-/// 6. Track address-specific data for address cohort processing
+/// Accumulate pre-collected input metadata by creation height and track
+/// address-specific data for address cohort processing.
 pub fn process_inputs(
     txin_index_to_tx_index: &[TxIndex],
     txin_index_to_value: &[Sats],
@@ -53,7 +44,11 @@ pub fn process_inputs(
         estimated_unique_heights,
         Default::default(),
     );
-    let mut sent_data = HeightToAddrTypeToVec::with_capacity(estimated_unique_heights);
+    let mut sent_data =
+        FxHashMap::<Height, Vec<(OutputType, TypeIndex, Sats)>>::with_capacity_and_hasher(
+            estimated_unique_heights,
+            Default::default(),
+        );
     let mut tx_index_vecs = AddrTypeToTypeIndexMap::<TxIndexes>::with_capacity(estimated_per_type);
 
     for local_idx in 0..input_count {
@@ -74,9 +69,7 @@ pub fn process_inputs(
         sent_data
             .entry(prev_height)
             .or_default()
-            .get_mut(output_type)
-            .unwrap()
-            .push((type_index, value));
+            .push((output_type, type_index, value));
         match tx_index_vecs
             .get_mut(output_type)
             .unwrap()

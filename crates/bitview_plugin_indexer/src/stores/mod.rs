@@ -360,7 +360,6 @@ impl Stores {
         vecs: &Vecs,
         starting_lengths: &Lengths,
     ) -> Result<()> {
-        let tx_index_to_first_txout_index_reader = vecs.transactions.first_txout_index.reader();
         let txout_index_to_output_type_reader = vecs.outputs.output_type.reader();
         let txout_index_to_type_index_reader = vecs.outputs.type_index.reader();
 
@@ -406,41 +405,31 @@ impl Stores {
 
         let start = starting_lengths.txin_index.to_usize();
         let end = vecs.inputs.outpoint.len();
-        let outpoints: Vec<OutPoint> = vecs.inputs.outpoint.collect_range_at(start, end);
-        let spending_tx_indexes: Vec<TxIndex> = vecs.inputs.tx_index.collect_range_at(start, end);
+        let mut outpoints = vecs.inputs.outpoint.cursor();
+        let mut output_types = vecs.inputs.output_type.cursor();
+        let mut type_indexes = vecs.inputs.type_index.cursor();
+        let mut spending_tx_indexes = vecs.inputs.tx_index.cursor();
 
-        let outputs_to_unspend: Vec<_> = outpoints
-            .into_iter()
-            .zip(spending_tx_indexes)
-            .filter_map(|(outpoint, spending_tx_index)| {
-                if outpoint.is_coinbase() {
-                    return None;
-                }
-
-                let output_tx_index = outpoint.tx_index();
-                let vout = outpoint.vout();
-                let txout_index = tx_index_to_first_txout_index_reader.get(output_tx_index) + vout;
-
-                if txout_index < starting_lengths.txout_index {
-                    let output_type = txout_index_to_output_type_reader.get(txout_index);
-                    let type_index = txout_index_to_type_index_reader.get(txout_index);
-                    Some((outpoint, output_type, type_index, spending_tx_index))
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        for (outpoint, output_type, type_index, spending_tx_index) in outputs_to_unspend {
+        for index in start..end {
+            let outpoint = outpoints.get(index).data()?;
+            if outpoint.is_coinbase() {
+                continue;
+            }
+            let output_type = output_types.get(index).data()?;
             if output_type.is_addr() {
                 let addr_type = output_type;
-                let addr_index = type_index;
+                let addr_index = type_indexes.get(index).data()?;
+                let spending_tx_index = spending_tx_indexes.get(index).data()?;
 
                 addr_index_tx_index_to_remove.insert((addr_type, addr_index, spending_tx_index));
 
-                self.addr_type_to_addr_index_and_unspent_outpoint
-                    .get_mut_unwrap(addr_type)
-                    .insert(AddrIndexOutPoint::from((addr_index, outpoint)), Unit);
+                // Remove every discarded spend from address history, but only
+                // restore outputs created before the removed transactions.
+                if outpoint.tx_index() < starting_tx_index {
+                    self.addr_type_to_addr_index_and_unspent_outpoint
+                        .get_mut_unwrap(addr_type)
+                        .insert(AddrIndexOutPoint::from((addr_index, outpoint)), Unit);
+                }
             }
         }
 
@@ -509,9 +498,145 @@ fn txout_ranges(
 
 #[cfg(test)]
 mod tests {
+    use brk_types::TxInIndex;
     use tempfile::tempdir;
+    use vecdb::{AnyStoredVec, WritableVec};
 
     use super::*;
+    use crate::test_cache::init_cache;
+
+    #[test]
+    fn rollback_restores_only_surviving_outputs_and_preserves_older_address_history() -> Result<()>
+    {
+        init_cache();
+        let dir = tempdir()?;
+        let mut vecs = Vecs::forced_import(dir.path(), Version::ZERO)?;
+        let mut stores = Stores::forced_import(dir.path(), Version::ZERO)?;
+        let ty = OutputType::P2PKH;
+        let addr = TypeIndex::new(7);
+        let removed_addr = TypeIndex::new(8);
+        let intermediate_addr = TypeIndex::new(9);
+        let outpoint = |tx, vout| OutPoint::new(TxIndex::new(tx), Vout::from(vout));
+
+        for first in [0_usize, 3, 5] {
+            vecs.transactions
+                .first_txout_index
+                .push(TxOutIndex::from(first));
+        }
+        vecs.transactions.first_txout_index.write()?;
+        for (ty, index) in [
+            (ty, addr),
+            (ty, addr),
+            (OutputType::OpReturn, TypeIndex::new(0)),
+            (ty, intermediate_addr),
+            (ty, removed_addr),
+            (ty, removed_addr),
+        ] {
+            vecs.outputs.output_type.push(ty);
+            vecs.outputs.type_index.push(index);
+        }
+        vecs.outputs.output_type.write()?;
+        vecs.outputs.type_index.write()?;
+
+        for (point, ty, index, tx) in [
+            (
+                OutPoint::COINBASE,
+                OutputType::Unknown,
+                TypeIndex::COINBASE,
+                0,
+            ),
+            (
+                OutPoint::COINBASE,
+                OutputType::Unknown,
+                TypeIndex::COINBASE,
+                1,
+            ),
+            (outpoint(0, 0_u32), ty, addr, 1),
+            (outpoint(0, 1_u32), ty, addr, 2),
+            (
+                outpoint(0, 2_u32),
+                OutputType::OpReturn,
+                TypeIndex::new(0),
+                2,
+            ),
+            (outpoint(1, 0_u32), ty, intermediate_addr, 2),
+        ] {
+            vecs.inputs.outpoint.push(point);
+            vecs.inputs.output_type.push(ty);
+            vecs.inputs.type_index.push(index);
+            vecs.inputs.tx_index.push(TxIndex::new(tx));
+        }
+        for (index, tx) in [
+            (addr, 0),
+            (addr, 1),
+            (addr, 2),
+            (removed_addr, 1),
+            (removed_addr, 2),
+            (intermediate_addr, 1),
+            (intermediate_addr, 2),
+        ] {
+            stores
+                .addr_type_to_addr_index_and_tx_index
+                .get_mut_unwrap(ty)
+                .insert(AddrIndexTxIndex::from((index, TxIndex::new(tx))), Unit);
+        }
+        for point in [outpoint(1, 1_u32), outpoint(2, 0_u32)] {
+            stores
+                .addr_type_to_addr_index_and_unspent_outpoint
+                .get_mut_unwrap(ty)
+                .insert(AddrIndexOutPoint::from((removed_addr, point)), Unit);
+        }
+        let checkpoint = stores.begin_commit(Height::new(2))?;
+        stores.persist(checkpoint)?.publish()?;
+
+        stores.rollback_outputs_and_inputs(
+            &vecs,
+            &Lengths {
+                tx_index: TxIndex::new(1),
+                txout_index: TxOutIndex::new(3),
+                txin_index: TxInIndex::new(1),
+                ..Lengths::default()
+            },
+        )?;
+        let checkpoint = stores.begin_commit(Height::ZERO)?;
+        stores.persist(checkpoint)?.publish()?;
+        drop(stores);
+
+        let stores = Stores::forced_import(dir.path(), Version::ZERO)?;
+        assert_eq!(
+            stores.addr_unspent_outpoints(ty, addr)?.collect::<Vec<_>>(),
+            [
+                (TxIndex::ZERO, Vout::ZERO),
+                (TxIndex::ZERO, Vout::from(1_u32))
+            ]
+        );
+        assert_eq!(stores.addr_unspent_outpoints(ty, removed_addr)?.count(), 0);
+        assert_eq!(
+            stores
+                .addr_unspent_outpoints(ty, intermediate_addr)?
+                .count(),
+            0
+        );
+        assert_eq!(
+            stores
+                .addr_tx_indexes_before(ty, intermediate_addr, TxIndex::new(3))?
+                .count(),
+            0
+        );
+        assert_eq!(
+            stores
+                .addr_tx_indexes_before(ty, addr, TxIndex::new(3))?
+                .collect::<Vec<_>>(),
+            [TxIndex::ZERO]
+        );
+        assert_eq!(
+            stores
+                .addr_tx_indexes_before(ty, removed_addr, TxIndex::new(3))?
+                .count(),
+            0
+        );
+        Ok(())
+    }
 
     #[test]
     fn empty_stores_initialize_zero_checkpoint() -> Result<()> {

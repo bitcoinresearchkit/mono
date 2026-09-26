@@ -1311,6 +1311,7 @@ dependencies = [
  "brk_types",
  "libproc",
  "parking_lot",
+ "tempfile",
  "tracing",
  "vecdb",
 ]

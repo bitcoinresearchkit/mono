@@ -21,7 +21,16 @@ let viz = Visualizer::from_cargo_env()?;
 viz.generate()?;
 ```
 
-Or run `cargo run --release -p bitviewd_bench_visualizer`.
+To chart reports in a Bitview data directory, pass the same path used for
+`bitviewd_bench --bitviewdir`:
+
+```sh
+cargo run --release -p bitviewd_bench_visualizer -- /Volumes/External/bitview
+```
+
+With no argument, it still reads the source workspace's `benches/bitviewd/`
+collection, including historical runs. The equivalent API call is
+`Visualizer::new(bitviewdir).generate()?`.
 
 ## Chart Types
 
@@ -32,5 +41,5 @@ Or run `cargo run --release -p bitviewd_bench_visualizer`.
 
 ## Input Format
 
-Reads CSV files from `benches/bitviewd/<run_id>/`:
+Reads CSV files from `<bitviewdir>/benches/bitviewd/<run_id>/`:
 - `disk.csv`, `memory.csv`, `progress.csv`, `io.csv`

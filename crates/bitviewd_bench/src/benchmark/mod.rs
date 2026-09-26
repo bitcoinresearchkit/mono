@@ -72,7 +72,7 @@ impl Benchmark {
             .parent()
             .and_then(Path::parent)
             .ok_or(Error::Internal("Invalid benchmark crate path"))?;
-        let runs = workspace.join("benches").join("bitviewd");
+        let runs = data_path.join("benches").join("bitviewd");
         fs::create_dir_all(&runs)?;
         let path = runs.join(format!("run-{timestamp}"));
         fs::create_dir(&path)?;
@@ -85,7 +85,7 @@ impl Benchmark {
             .map_err(|error| IoError::new(ErrorKind::AlreadyExists, error))?;
 
         Ok(Self(Arc::new(Inner {
-            disk: Mutex::new(DiskMonitor::new(data_path, &path.join("disk.csv"))?),
+            disk: Mutex::new(DiskMonitor::new(data_path, &runs, &path.join("disk.csv"))?),
             run: Mutex::new(RunMonitor::new(&path.join("run.csv"))?),
             trace,
             path,
@@ -199,3 +199,6 @@ impl Benchmark {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
