@@ -56,6 +56,8 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
     let sources = Database::open(&directory.path().join("sources")).unwrap();
     let mut first_tx = import_cached::<Height, TxIndex>(&sources, "first", Version::ONE).unwrap();
     let mut counts = import_cached::<Height, StoredU64>(&sources, "counts", Version::ONE).unwrap();
+    let mut inscription_counts =
+        import_cached::<Height, StoredU64>(&sources, "inscription_counts", Version::ONE).unwrap();
     let mut fees = import_cached::<TxIndex, Sats>(&sources, "fees", Version::ONE).unwrap();
     let mut flags = import_cached::<TxIndex, StoredBool>(&sources, "flags", Version::ONE).unwrap();
     let mut timestamps =
@@ -89,16 +91,27 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         false, true, false, true, false, false, false, false, true, false,
     ];
     let shares = [2.0 / 3.0, 0.0, 1.0, 0.0].map(PartsPerMillion32::from);
-    for (from, fee_len, flag_len, expected) in [
-        (0usize, 4, 3, vec![]),
-        (0, 4, 4, vec![40u64]),
-        (1, 7, 7, vec![40, 40]),
-        (2, 9, 8, vec![40, 40]),
-        (2, 8, 9, vec![40, 40]),
-        (2, 9, 9, vec![40, 40, 130]),
-        (3, 10, 10, vec![40, 40, 130, 130]),
-        (4, 10, 10, vec![40, 40, 130, 130]),
+    for (from, fee_len, flag_len, count_len, expected) in [
+        (0usize, 4, 4, 0, vec![]),
+        (0, 4, 3, 4, vec![]),
+        (0, 4, 4, 4, vec![40u64]),
+        (1, 7, 7, 1, vec![40]),
+        (1, 6, 7, 4, vec![40]),
+        (1, 7, 6, 4, vec![40]),
+        (1, 7, 7, 4, vec![40, 40]),
+        (2, 9, 8, 4, vec![40, 40]),
+        (2, 8, 9, 4, vec![40, 40]),
+        (2, 9, 9, 4, vec![40, 40, 130]),
+        (3, 10, 10, 4, vec![40, 40, 130, 130]),
+        (4, 10, 10, 4, vec![40, 40, 130, 130]),
     ] {
+        replace(
+            &mut inscription_counts,
+            [2u64, 0, 1, 0][..count_len]
+                .iter()
+                .copied()
+                .map(StoredU64::from),
+        );
         replace(
             &mut fees,
             all_fees[..fee_len].iter().copied().map(Sats::from),
@@ -107,8 +120,16 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
             &mut flags,
             all_flags[..flag_len].iter().copied().map(StoredBool::from),
         );
-        vecs.compute_fees(Height::from(from), &first_tx, &counts, &flags, &fees, &exit)
-            .unwrap();
+        vecs.compute_fees(
+            Height::from(from),
+            &first_tx,
+            &counts,
+            &inscription_counts,
+            &flags,
+            &fees,
+            &exit,
+        )
+        .unwrap();
         checkpoint(&mut vecs);
         cache.clear();
         assert_eq!(
@@ -188,6 +209,10 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
 
     // Reorg changes both membership and fees, preserving only block 0.
     replace(
+        &mut inscription_counts,
+        [2u64, 1, 0, 0].map(StoredU64::from),
+    );
+    replace(
         &mut fees,
         [0u64, 10, 20, 30, 0, 100, 100, 0, 90, 0].map(Sats::from),
     );
@@ -202,6 +227,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         Height::from(1usize),
         &first_tx,
         &counts,
+        &inscription_counts,
         &flags,
         &fees,
         &exit,
@@ -224,6 +250,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         Height::from(2usize),
         &first_tx,
         &counts,
+        &inscription_counts,
         &flags,
         &fees,
         &exit,
@@ -246,10 +273,12 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         flags.read_only_boxed_clone(),
         |_, flag: StoredBool| StoredBool::from(!flag.is_true()),
     );
+    replace(&mut inscription_counts, [2u64, 2].map(StoredU64::from));
     vecs.compute_fees(
         Height::from(2usize),
         &first_tx,
         &counts,
+        &inscription_counts,
         &revised_flags,
         &fees,
         &exit,

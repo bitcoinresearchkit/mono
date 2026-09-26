@@ -2,6 +2,7 @@ mod addr;
 mod block;
 mod cohort;
 mod cost_basis;
+mod live;
 mod pending;
 mod transacted;
 mod utxo;
@@ -13,6 +14,7 @@ pub use cost_basis::{
     CoreRealizedState, CostBasisData, CostBasisOps, CostBasisRaw, MinimalRealizedState,
     RealizedOps, RealizedState, UnrealizedState, WithCapital, WithoutCapital,
 };
+pub use live::LiveState;
 pub use pending::PendingDelta;
 pub use transacted::Transacted;
 pub use utxo::{PercentileResult, SendPrecomputed, UTXOStates, tick_tock_next_block};

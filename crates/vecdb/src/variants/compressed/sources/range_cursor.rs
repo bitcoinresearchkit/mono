@@ -18,7 +18,7 @@ where
 }
 
 #[cfg(all(test, feature = "pco"))]
-mod sorted_tests {
+mod tests {
     use super::{
         CompressedIoSource, CompressedMmapSource, CompressedRangeCursor, CursorState, Owner,
     };
@@ -47,6 +47,38 @@ mod sorted_tests {
             let mut actual = vec![99];
             cursor.read_sorted_into(&indices, &mut actual);
             assert_eq!(&actual[1..], indices.map(|i| expected[i]));
+        }
+    }
+
+    #[test]
+    fn bulk_collection_keeps_io_and_mmap_cursors_ready_for_scalar_reads() {
+        let directory = tempdir().unwrap();
+        let db = Database::open(directory.path()).unwrap();
+        let mut source = PcoVec::<usize, u64>::import(&db, "bulk", Version::ONE).unwrap();
+        let expected: Vec<_> = (0..20_137u64).map(|i| i * 7).collect();
+        for &value in &expected {
+            source.push(value);
+        }
+        source.write().unwrap();
+        for owner in [
+            Owner::Io(CompressedIoSource::new(&source, 997, expected.len())),
+            Owner::Mmap(CompressedMmapSource::new(&source, 997, expected.len())),
+        ] {
+            let mut cursor = CompressedRangeCursor {
+                owner,
+                state: CursorState::new(997, expected.len()),
+            };
+            let mut actual = vec![99];
+            cursor.collect_into(4_003, &mut actual);
+            assert_eq!(actual, expected[997..5_000]);
+            assert_eq!(cursor.next(), Some(expected[5_000]));
+            assert_eq!(
+                cursor.fold(7, 0, |sum, value| sum + value),
+                expected[5_001..5_008].iter().sum::<u64>()
+            );
+            cursor.collect_into(usize::MAX, &mut actual);
+            assert_eq!(actual, expected[5_008..]);
+            assert_eq!(cursor.next(), None);
         }
     }
 }
@@ -257,6 +289,27 @@ where
     #[inline]
     pub fn for_each(&mut self, n: usize, mut f: impl FnMut(T)) {
         self.fold(n, (), |(), value| f(value));
+    }
+
+    /// Collects up to the next `n` values into reusable scratch, clearing it first.
+    pub fn collect_into(&mut self, n: usize, out: &mut Vec<T>) {
+        out.clear();
+        let end = self.state.position.saturating_add(n).min(self.state.end);
+        out.reserve(end - self.state.position);
+        while self.state.position < end {
+            let page_index = self.state.page_index();
+            let page = match &mut self.owner {
+                Owner::Mmap(source) => source.decoded_page(page_index),
+                Owner::Io(source) => source.decoded_page(page_index),
+            };
+            let Some(page) = page else { break };
+            let page_start = page_index * CursorState::<T>::PER_PAGE;
+            let from = self.state.position - page_start;
+            let to = (end - page_start).min(page.len());
+            self.state.set_page(page_index, page.as_ptr(), page.len());
+            out.extend_from_slice(&page[from..to]);
+            self.state.position = page_start + to;
+        }
     }
 
     /// Consume a sorted request directly from decoded pages, without copying

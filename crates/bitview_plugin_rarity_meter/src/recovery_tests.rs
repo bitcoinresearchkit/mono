@@ -1,5 +1,5 @@
 #[cfg(test)]
-use crate::test_cache::init_cache;
+use crate::test_common::init_cache;
 use std::{array, ops::Range};
 
 use bitview_plugin_indexer::Lengths;

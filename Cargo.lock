@@ -569,6 +569,7 @@ name = "bitview_plugin_bedrock"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
@@ -611,6 +612,7 @@ dependencies = [
 name = "bitview_plugin_capital_sentiment"
 version = "0.12.2"
 dependencies = [
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
@@ -1022,6 +1024,7 @@ name = "bitview_plugin_transactions"
 version = "0.12.2"
 dependencies = [
  "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
@@ -1041,6 +1044,7 @@ dependencies = [
  "rustc-hash",
  "smallvec",
  "tempfile",
+ "tracing",
  "vecdb",
 ]
 
@@ -1124,11 +1128,13 @@ dependencies = [
  "bitview_cohort",
  "bitview_default",
  "bitview_plugin",
+ "bitview_plugin_blocks",
  "bitview_plugin_distribution",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
+ "bitview_plugin_mining",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
  "bitview_plugin_transactions",
@@ -1242,6 +1248,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "tracing",
  "vecdb",
 ]
 

@@ -3,7 +3,7 @@ use std::result::Result;
 
 use super::{super::RawStrategy, ReadOnlyRawVec};
 use crate::{
-    HEADER_OFFSET, ReadWriteRawVec, ReadableVec, VecIndex, VecValue,
+    HEADER_OFFSET, RawMmapSource, ReadWriteRawVec, ReadableVec, VecIndex, VecValue,
     cache::{CachePolicy, Request},
     traits::chunk_folds::for_each_chunk,
 };
@@ -95,7 +95,16 @@ where
 
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let Some(cache) = C::cache(&self.cache) else {
-            return for_each_chunk(self, from, to, f);
+            if !RawMmapSource::<I, T, S>::try_for_each_chunk(
+                self.base.region(),
+                self.base.len(),
+                from,
+                to,
+                f,
+            ) {
+                for_each_chunk(self, from, to, f);
+            }
+            return;
         };
         cache.for_each_source(
             from,

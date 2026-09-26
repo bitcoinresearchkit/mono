@@ -25,6 +25,7 @@ rayon = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+tracing = { workspace = true }
 vecdb = { workspace = true }
 
 [dev-dependencies]

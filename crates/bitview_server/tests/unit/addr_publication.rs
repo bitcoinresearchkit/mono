@@ -207,7 +207,7 @@ impl AddrPublication {
         #[cfg(feature = "price")]
         fixture.aggregates.check_live_outputs(fixture.address).await;
         let mut requests = JoinSet::new();
-        for path in fixture.paths.iter().cloned() {
+        for path in &fixture.paths {
             for method in ["GET", "HEAD"] {
                 let path = path.clone();
                 let address = fixture.address;

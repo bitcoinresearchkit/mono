@@ -33,8 +33,7 @@ pub fn forced_import(
 
     Ok(Vecs {
         count,
-        input_value: EagerVec::forced_import(db, "input_value", version)?,
-        output_value: EagerVec::forced_import(db, "output_value", version)?,
+        coinbase_value: EagerVec::forced_import(db, "coinbase_value", v)?,
         fee: PerTxDistribution::forced_import(db, "fee", v, mappings)?,
         fee_rate: EagerVec::forced_import(db, "fee_rate", v)?,
         effective_fee_rate: PerTxDistribution::forced_import(

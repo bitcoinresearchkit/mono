@@ -1,6 +1,7 @@
 use std::iter;
 
 use bitview_cohort::AgeRange;
+use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
@@ -52,7 +53,7 @@ impl ComputePlugin for Vecs {
             indexer,
             mappings,
             distribution,
-            utxo_states,
+            age_urpds,
             cointime,
             coinflow,
         } = dependencies;
@@ -117,19 +118,17 @@ impl ComputePlugin for Vecs {
             .chain(coinflow_spending_rate.iter().map(|vec| vec.len()))
             .min()
             .unwrap_or_default();
-        let mut start = mappings
+        let from = mappings
             .height
             .recompute_day(indexer.safe_lengths().height)
             .map(usize::from)
             .unwrap_or_default()
             .min(end);
-        for vec in self.model_stored_vecs_mut() {
-            vec.any_validate_computed_version_or_reset(source_version)?;
-            start = start.min(vec.len());
-        }
-        for vec in self.model_stored_vecs_mut() {
-            vec.any_truncate_if_needed_at(start)?;
-        }
+        let start = prepare_computed(
+            self.model_stored_vecs_mut().collect::<Vec<_>>(),
+            source_version,
+            from,
+        )?;
         let mut calibration =
             Calibration::from_sources(raw_loss_share, &weighted_loss_shares, start);
         for index in start..end {
@@ -141,7 +140,7 @@ impl ComputePlugin for Vecs {
                 && let Some(date) = mappings.day1.date.collect_one(day)
             {
                 let weights = Self::mode_weights(day, &age_supplies, cointime, coinflow);
-                if let Some(urpds) = utxo_states.with_urpd_entries(
+                if let Some(urpds) = age_urpds.with_entries(
                     &distribution.states_path,
                     date,
                     index + 1 == mappings.day1.date.len(),

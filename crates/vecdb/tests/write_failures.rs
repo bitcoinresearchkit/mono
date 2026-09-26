@@ -62,24 +62,40 @@ fn raw_encoding_panic_fences_the_writer() -> Result<()> {
 
 #[test]
 fn raw_update_encoding_panic_fences_the_writer() -> Result<()> {
-    let dir = tempdir()?;
-    let db = Database::open(dir.path())?;
-    let mut values =
-        MutableVec::<BytesVec<usize, PanicValue>>::import(&db, "values", Version::ONE)?;
-    values.push(PanicValue(10));
-    values.push(PanicValue(20));
-    values.stamped_write(Stamp::new(1))?;
-    values.update_at(0, PanicValue(30))?;
-    values.update_at(1, PanicValue(u64::MAX))?;
+    for checkpoint in 0..3 {
+        let dir = tempdir()?;
+        let db = Database::open(dir.path())?;
+        let mut values =
+            MutableVec::<BytesVec<usize, PanicValue>>::import(&db, "values", Version::ONE)?;
+        values.push(PanicValue(10));
+        values.push(PanicValue(20));
+        values.stamped_write(Stamp::new(1))?;
+        values.update_at(0, PanicValue(30))?;
+        values.update_at(1, PanicValue(u64::MAX))?;
 
-    assert!(catch_unwind(AssertUnwindSafe(|| values.stamped_write(Stamp::new(2)))).is_err());
-    assert_eq!(values.stamp(), Stamp::new(1));
-    assert!(matches!(values.write(), Err(Error::WriteFailed)));
-    assert!(matches!(values.flush(), Err(Error::WriteFailed)));
-    assert!(matches!(
-        values.update_at(0, PanicValue(40)),
-        Err(Error::WriteFailed)
-    ));
+        assert!(
+            catch_unwind(AssertUnwindSafe(|| match checkpoint {
+                0 => values.stamped_write(Stamp::new(2)),
+                1 => values.stamped_write_maybe_with_changes(Stamp::new(2), false),
+                _ => values.any_stamped_write_maybe_with_changes(Stamp::new(2), false),
+            }))
+            .is_err()
+        );
+        assert_eq!(values.stamp(), Stamp::new(1));
+        assert!(matches!(values.write(), Err(Error::WriteFailed)));
+        assert!(matches!(values.flush(), Err(Error::WriteFailed)));
+        assert!(matches!(
+            values.update_at(0, PanicValue(40)),
+            Err(Error::WriteFailed)
+        ));
+        assert!(catch_unwind(AssertUnwindSafe(|| values.extend([PanicValue(40)]))).is_err());
+        assert!(
+            catch_unwind(AssertUnwindSafe(|| {
+                let _ = values.pushed_mut();
+            }))
+            .is_err()
+        );
+    }
     Ok(())
 }
 

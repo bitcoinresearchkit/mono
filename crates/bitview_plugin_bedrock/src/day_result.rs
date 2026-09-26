@@ -1,4 +1,3 @@
-use bitview_urpd::UrpdRaw;
 use brk_types::{BoundedRatio, Cents, CentsCompact, Sats};
 
 use super::{
@@ -40,15 +39,14 @@ impl DayResult {
     pub fn evaluate(&mut self, urpds: &DayUrpds) {
         for mode in ModeId::ALL {
             let urpd = urpds.mode(mode);
-            let denominator = urpd.map.values().copied().map(u64::from).sum::<u64>();
             let mode_result = self.by_mode.select_mut(mode);
             let thresholds = &mode_result.supply_in_loss_threshold;
             if thresholds.iter().all(|threshold| threshold.is_nan()) {
                 continue;
             }
+            let denominator = urpd.iter().map(|(_, sats)| u64::from(*sats)).sum::<u64>();
             if denominator == 0
                 || !urpd
-                    .map
                     .iter()
                     .any(|(price, sats)| price.inner() != 0 && *sats != Sats::ZERO)
             {
@@ -58,7 +56,7 @@ impl DayResult {
             let mut remaining_loss = denominator;
             let mut floors = Percentiles::from_fn(|_| Cents::NAN);
             let mut p95_floor = None;
-            for (price, sats) in &urpd.map {
+            for (index, (price, sats)) in urpd.iter().enumerate() {
                 remaining_loss -= u64::from(*sats);
                 let remaining_share = remaining_loss as f64 / denominator as f64;
                 for percentile in LossPercentileId::ALL {
@@ -68,7 +66,8 @@ impl DayResult {
                     {
                         *floor = Cents::from(*price);
                         if percentile == LossPercentileId::Pct95 {
-                            p95_floor = Some(*price);
+                            // Conditional levels include the floor bucket itself.
+                            p95_floor = Some((index, remaining_loss + u64::from(*sats)));
                         }
                     }
                 }
@@ -77,26 +76,21 @@ impl DayResult {
                 }
             }
             mode_result.prices.floor = floors;
-            if let Some(p95_floor) = p95_floor {
-                mode_result.prices.level = Self::conditional_levels(urpd, p95_floor);
+            if let Some((index, supply)) = p95_floor {
+                mode_result.prices.level = Self::conditional_levels(&urpd[index..], supply);
             }
         }
     }
 
-    fn conditional_levels(urpd: &UrpdRaw, lower: CentsCompact) -> Levels<Cents> {
+    fn conditional_levels(entries: &[(CentsCompact, Sats)], total: u64) -> Levels<Cents> {
         let mut levels = Levels::from_fn(|_| Cents::NAN);
-        let total = urpd
-            .map
-            .range(lower..)
-            .map(|(_, sats)| u64::from(*sats))
-            .sum::<u64>();
         if total == 0 {
             return levels;
         }
 
         let mut cumulative = 0_u64;
         let mut percentiles = LEVEL_IDS.iter().copied().peekable();
-        for (price, sats) in urpd.map.range(lower..) {
+        for (price, sats) in entries {
             let sats = u64::from(*sats);
             if sats == 0 {
                 continue;
@@ -166,6 +160,20 @@ mod tests {
         let mut result = DayResult::from_thresholds(&thresholds);
         result.evaluate(&urpds);
         assert!(result.by_mode.raw.prices.floor.pct95.is_nan());
+    }
+
+    #[test]
+    fn conditional_supply_includes_the_floor_bucket() {
+        let urpds = repeated_urpds([(0, 2), (100, 8), (150, 0), (200, 30), (300, 60)]);
+        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.65)));
+        let mut result = DayResult::from_thresholds(&thresholds);
+        result.evaluate(&urpds);
+        for mode in result.by_mode.iter() {
+            assert_eq!(mode.prices.floor.pct95, Cents::new(200));
+            // The conditional supply is 90, including 30 at the floor.
+            assert_eq!(mode.prices.level.pct30, Cents::new(200));
+            assert_eq!(mode.prices.level.pct40, Cents::new(300));
+        }
     }
 
     #[test]

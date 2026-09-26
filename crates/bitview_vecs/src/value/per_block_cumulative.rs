@@ -1,10 +1,9 @@
-use bitview_compute::compute_cumulative_sum_from_indexes;
 use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecIndex, VecValue};
+use vecdb::{BinaryTransform, Database, ReadableVec, Rw, StorageMode, VecValue};
 
 use crate::{IndexSources, LazyValueBlock, ValuePerBlock};
 
@@ -67,33 +66,6 @@ impl ValuePerBlockCumulative {
         self.compute_cents(max_from, price_cents, exit)
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub fn compute_filtered_from_indexes<A, B>(
-        &mut self,
-        max_from: Height,
-        price_cents: &impl ReadableVec<Height, Cents>,
-        first_indexes: &impl ReadableVec<Height, A>,
-        indexes_count: &impl ReadableVec<Height, B>,
-        source: &impl ReadableVec<A, Sats>,
-        filter: impl FnMut(&Sats) -> bool,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecIndex + VecValue,
-        B: VecValue,
-        usize: From<B>,
-    {
-        self.compute_sats_from_indexes(
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            filter,
-            exit,
-        )?;
-        self.compute_cents(max_from, price_cents, exit)
-    }
-
     fn compute_sats_from<S>(
         &mut self,
         max_from: Height,
@@ -150,33 +122,6 @@ impl ValuePerBlockCumulative {
                 *cumulative += transform(height, value1, value2);
                 (height, *cumulative)
             },
-            exit,
-        )?;
-        Ok(())
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    fn compute_sats_from_indexes<A, B>(
-        &mut self,
-        max_from: Height,
-        first_indexes: &impl ReadableVec<Height, A>,
-        indexes_count: &impl ReadableVec<Height, B>,
-        source: &impl ReadableVec<A, Sats>,
-        mut filter: impl FnMut(&Sats) -> bool,
-        exit: &Exit,
-    ) -> Result<()>
-    where
-        A: VecIndex + VecValue,
-        B: VecValue,
-        usize: From<B>,
-    {
-        compute_cumulative_sum_from_indexes(
-            &mut self.cumulative.sats.height,
-            max_from,
-            first_indexes,
-            indexes_count,
-            source,
-            |value| if filter(&value) { value } else { Sats::ZERO },
             exit,
         )?;
         Ok(())

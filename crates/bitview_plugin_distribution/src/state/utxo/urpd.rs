@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use bitview_cohort::AgeRangeId;
-use bitview_urpd::{AgeRangeUrpds, prune_snapshots, rounded_entries};
+use bitview_urpd::{AgeRangeUrpds, prune_snapshots};
 use brk_error::Result;
 use brk_types::{CentsCompact, Date, Sats};
 
@@ -21,30 +21,12 @@ impl UTXOStates {
         Ok(())
     }
 
-    pub fn with_urpd_entries<T>(
-        &self,
-        states_path: &Path,
-        date: Date,
-        current: bool,
-        compute: impl FnOnce(&mut dyn Iterator<Item = (AgeRangeId, CentsCompact, Sats)>) -> T,
-    ) -> Result<Option<T>> {
-        if current {
-            let mut entries = AgeRangeId::ALL.iter().copied().flat_map(|age| {
-                rounded_entries(self.age_range_entries(age)).map(move |(p, s)| (age, p, s))
-            });
-            return Ok(Some(compute(&mut entries)));
-        }
-        if !AgeRangeUrpds::path(states_path, date).try_exists()? {
-            return Ok(None);
-        }
-        let source = AgeRangeUrpds::read(states_path, date)?;
-        let mut entries = source.iter();
-        Ok(Some(compute(&mut entries)))
+    pub fn age_urpds(&self) -> AgeRangeUrpds {
+        AgeRangeUrpds::from_sorted_entries(|age| self.age_range_entries(age))
     }
 
     pub fn write_urpds(&self, date: Date, states_path: &Path) -> Result<()> {
-        AgeRangeUrpds::from_sorted_entries(|age| self.age_range_entries(age))
-            .write(states_path, date)
+        self.age_urpds().write(states_path, date)
     }
 
     fn age_range_entries(&self, id: AgeRangeId) -> impl Iterator<Item = (CentsCompact, Sats)> + '_ {
@@ -90,18 +72,20 @@ mod tests {
         for date in dates {
             states.write_urpds(date, root.path()).unwrap();
         }
+        let age_urpds = states.age_urpds();
         let weighted = |current| {
-            states
-                .with_urpd_entries(root.path(), dates[1], current, |entries| {
-                    DailyUrpds::from_age_entries(entries, &AgeRange::from_fn(|_| 0.7))
-                        .all
-                        .map
+            age_urpds
+                .with_entries(root.path(), dates[1], current, |entries| {
+                    DailyUrpds::from_age_entries(entries, &AgeRange::from_fn(|_| 0.7)).all
                 })
                 .unwrap()
                 .unwrap()
         };
         assert_eq!(weighted(true), weighted(false));
-        assert_eq!(weighted(true)[&CentsCompact::new(100)], Sats::from(7_u64));
+        assert_eq!(
+            weighted(true).as_ref(),
+            [(CentsCompact::new(100), Sats::from(7_u64))]
+        );
 
         // Recovered state is the last block of the preceding day. Its saved
         // snapshot may still contain outputs from removed blocks of that day.

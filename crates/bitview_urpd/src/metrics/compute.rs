@@ -1,15 +1,17 @@
 use std::{fs, iter};
 
 use bitview_cohort::{AgeRange, UTXOAggregateId};
-use bitview_compute::collect_cohort_weights;
+use bitview_compute::{collect_cohort_weights, prepare_computed};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Date, Day1, Sats, StoredF64, Version};
 use vecdb::{ReadableVec, WritableVec};
 
-use super::{Metrics, WRITE_INTERVAL_DAYS, capitalized_price, prepare::prepare};
-use crate::distribution::DailyUrpds;
-use crate::{COMPUTE_VERSION, cost_basis_percentiles};
+use super::{Metrics, WRITE_INTERVAL_DAYS};
+use crate::{
+    COMPUTE_VERSION,
+    distribution::{DailyUrpds, PriceStats},
+};
 
 impl Metrics {
     #[allow(clippy::too_many_arguments)]
@@ -40,7 +42,11 @@ impl Metrics {
             .chain(supplies.iter().map(|v| v.len()))
             .min()
             .unwrap_or_default();
-        let start = prepare(self.stored_vecs_mut(), version, from, end)?;
+        let start = prepare_computed(
+            self.stored_vecs_mut().collect::<Vec<_>>(),
+            version,
+            from.min(end),
+        )?;
         self.prune_snapshots(start, current)?;
         for index in start..end {
             let day = Day1::from(index);
@@ -52,14 +58,11 @@ impl Metrics {
             let close = spot.collect_one(day).flatten().unwrap_or(Cents::NAN);
             for &id in UTXOAggregateId::ALL {
                 let urpd = urpds.as_ref().map(|u| u.aggregate(id));
-                let entries = || {
-                    urpd.into_iter()
-                        .flat_map(|u| u.map.iter().map(|(&p, &s)| (p, s)))
-                };
-                id.select_mut(&mut self.cost_basis)
-                    .push(&cost_basis_percentiles(entries()));
+                let stats =
+                    PriceStats::from_entries(urpd.into_iter().flat_map(|u| u.iter().copied()));
+                id.select_mut(&mut self.cost_basis).push(&stats.cost_basis);
                 id.select_mut(&mut self.capitalized_price_stored)
-                    .push(capitalized_price(entries()));
+                    .push(stats.capitalized_price);
                 if let (Some(urpd), Some(date)) = (urpd, date) {
                     self.write_snapshot(id, date, urpd)?;
                 }

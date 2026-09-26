@@ -48,11 +48,7 @@ where
         first_tx_index: &impl ReadableVec<Height, TxIndex>,
         exit: &Exit,
         skip_count: usize,
-    ) -> Result<()>
-    where
-        T: Copy + Ord + From<f64> + Default,
-        f64: From<T>,
-    {
+    ) -> Result<()> {
         self.distribution.derive_from_with_skip(
             indexes,
             starting_lengths,
@@ -71,11 +67,7 @@ where
         vsize_source: &impl ReadableVec<TxIndex, VSize>,
         exit: &Exit,
         skip_count: usize,
-    ) -> Result<()>
-    where
-        T: Copy + Ord + From<f64> + Default,
-        f64: From<T>,
-    {
+    ) -> Result<()> {
         self.distribution.derive_from_with_skip_weighted(
             indexes,
             starting_lengths,

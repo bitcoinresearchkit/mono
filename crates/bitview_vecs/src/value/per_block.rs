@@ -1,4 +1,4 @@
-use bitview_compute::{NumericValue, compute_cumulative_sum_from_indexes};
+use bitview_compute::NumericValue;
 use bitview_transforms::{CentsUnsignedToDollars, SatsSignedToBitcoin, SatsToBitcoin};
 use brk_error::Result;
 use brk_exit::Exit;
@@ -72,14 +72,13 @@ impl ValuePerBlock {
         B: VecValue,
         usize: From<B>,
     {
-        compute_cumulative_sum_from_indexes(
-            &mut self.sats.height,
+        Ok(self.sats.height.compute_cumulative_sum_from_indexes(
             max_from,
             first_indexes,
             indexes_count,
             source,
             |value| value,
             exit,
-        )
+        )?)
     }
 }

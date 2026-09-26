@@ -9,7 +9,7 @@ use bitview_plugin_capital_sentiment::{
 use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
 use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
 use bitview_plugin_distribution::{
-    Dependencies as DistributionDependencies, ID as DISTRIBUTION_ID, UTXOStates,
+    Dependencies as DistributionDependencies, ID as DISTRIBUTION_ID,
 };
 use bitview_plugin_indexer::ID as INDEXER_ID;
 use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
@@ -166,7 +166,7 @@ impl DefaultPlugins {
             Ok(())
         })?;
 
-        let utxo_states = thread::scope(|scope| -> Result<UTXOStates> {
+        let age_urpds = thread::scope(|scope| {
             let pools = scope.spawn(|| {
                 timed(Phase::Compute, POOLS_ID, || {
                     self.pools.compute(
@@ -180,7 +180,7 @@ impl DefaultPlugins {
                 })
             });
 
-            let utxo_states = timed(Phase::Compute, DISTRIBUTION_ID, || {
+            let age_urpds = timed(Phase::Compute, DISTRIBUTION_ID, || {
                 self.distribution.compute(
                     DistributionDependencies {
                         indexer,
@@ -194,8 +194,7 @@ impl DefaultPlugins {
                 )
             })?;
 
-            pools.join().unwrap()?;
-            Ok(utxo_states)
+            pools.join().unwrap().map(|()| age_urpds)
         })?;
 
         // Supply feeds Cointime while Coinflow is independent. Bedrock and
@@ -248,7 +247,7 @@ impl DefaultPlugins {
                             CointimeDependencies {
                                 indexer,
                                 mappings: self.mappings.as_ref(),
-                                utxo_states: &utxo_states,
+                                age_urpds: &age_urpds,
                                 price: self.price.as_ref(),
                                 blocks: self.blocks.as_ref(),
                                 inflation_rate: &self.supply.inflation_rate,
@@ -266,7 +265,7 @@ impl DefaultPlugins {
                             CoinflowDependencies {
                                 indexer,
                                 price: self.price.as_ref(),
-                                utxo_states: &utxo_states,
+                                age_urpds: &age_urpds,
                                 mappings: self.mappings.as_ref(),
                                 distribution: self.distribution.as_ref(),
                             },
@@ -284,7 +283,7 @@ impl DefaultPlugins {
                         indexer,
                         mappings: self.mappings.as_ref(),
                         distribution: self.distribution.as_ref(),
-                        utxo_states: &utxo_states,
+                        age_urpds: &age_urpds,
                         cointime: self.cointime.as_ref(),
                         coinflow: self.coinflow.as_ref(),
                     },

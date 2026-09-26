@@ -3,8 +3,8 @@ use std::result::Result;
 
 use super::{super::RawStrategy, ReadWriteRawVec};
 use crate::{
-    AnyStoredVec, HEADER_OFFSET, ReadableVec, VecIndex, VecValue, cache::CachePolicy,
-    cache::Request, traits::chunk_folds::for_each_chunk,
+    AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, RawMmapSource, ReadableVec, VecIndex, VecValue,
+    cache::CachePolicy, cache::Request, traits::chunk_folds::for_each_chunk,
 };
 
 impl<I, T, S, C: CachePolicy> ReadableVec<I, T> for ReadWriteRawVec<I, T, S, C>
@@ -103,7 +103,22 @@ where
 
     fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[T])) {
         let Some(cache) = C::cache(&self.cache) else {
-            return for_each_chunk(self, from, to, f);
+            let to = to.min(self.base.len());
+            if from >= to {
+                return;
+            }
+            let stored = self.stored_len();
+            if !RawMmapSource::<I, T, S>::try_for_each_chunk(self.region(), stored, from, to, f) {
+                return for_each_chunk(self, from, to, f);
+            }
+            if to > stored {
+                let start = from.max(stored);
+                let pushed = &self.base.pushed()[start - stored..to - stored];
+                for (index, values) in pushed.chunks(READ_CHUNK_SIZE).enumerate() {
+                    f(start + index * READ_CHUNK_SIZE, values);
+                }
+            }
+            return;
         };
         cache.for_each_source(
             from,

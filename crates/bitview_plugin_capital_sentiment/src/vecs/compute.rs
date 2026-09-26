@@ -1,3 +1,4 @@
+use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use brk_types::{CapitalSentimentPhase, Cents, Day1, Height, StoredBool, StoredU8, Version};
@@ -66,13 +67,6 @@ impl ComputePlugin for Vecs {
         ]
         .into_iter()
         .sum();
-        self.phase_code
-            .day1
-            .any_validate_computed_version_or_reset(source_version)?;
-        self.is_long
-            .day1
-            .any_validate_computed_version_or_reset(source_version)?;
-
         let height_end = [spot.len(), sma.len(), all.len(), sth.len(), lth.len()]
             .into_iter()
             .min()
@@ -84,15 +78,14 @@ impl ComputePlugin for Vecs {
             .recompute_day(indexer.safe_lengths().height)
             .map(usize::from)
             .unwrap_or_default();
-        let start = self
-            .phase_code
-            .day1
-            .len()
-            .min(self.is_long.day1.len())
-            .min(recompute_from)
-            .min(source_end);
-        self.phase_code.day1.any_truncate_if_needed_at(start)?;
-        self.is_long.day1.any_truncate_if_needed_at(start)?;
+        let start = prepare_computed(
+            [
+                &mut self.phase_code.day1 as &mut dyn AnyStoredVec,
+                &mut self.is_long.day1,
+            ],
+            source_version,
+            recompute_from.min(source_end),
+        )?;
 
         let mut is_long = start
             .checked_sub(1)

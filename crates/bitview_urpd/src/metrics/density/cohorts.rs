@@ -47,7 +47,7 @@ impl DensityMetrics {
         ];
         for (target, source) in targets.zip(sources) {
             let density = source
-                .map(|u| SupplyDensity::from_entries(u.map.iter().map(|(&p, &s)| (p, s)), spot))
+                .map(|u| SupplyDensity::from_entries(u.iter().copied(), spot))
                 .unwrap_or(SupplyDensity::NAN);
             target.push(&density);
         }

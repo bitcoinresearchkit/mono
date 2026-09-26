@@ -113,49 +113,11 @@ fn cumulative_values_reopen_resume_and_rewind_from_stored_totals() {
         .collect();
     let source = stored::<Height, _>(&db, "amounts", amounts.iter().copied());
     let price_source = stored::<Height, _>(&db, "prices", prices.iter().copied());
-    let mut offset = 0usize;
-    let first = stored::<Height, _>(
-        &db,
-        "first",
-        (0..length).map(|i| {
-            let start = TxIndex::from(offset);
-            offset += i % 4;
-            start
-        }),
-    );
-    let counts = stored::<Height, _>(&db, "counts", (0..length).map(|i| StoredU64::from(i % 4)));
-    let tx_amounts: Vec<_> = (0..offset)
-        .map(|i| {
-            if i % 5 == 0 {
-                Sats::MAX
-            } else {
-                Sats::from(i as u64 + 1)
-            }
-        })
-        .collect();
-    let mut tx_source =
-        PcoVec::<TxIndex, Sats>::forced_import(&db, "tx_amounts", Version::ONE).unwrap();
-    for &sats in &tx_amounts {
-        tx_source.push(sats);
-    }
-    tx_source.write().unwrap();
-
-    for mode in 0..3 {
+    for mode in 0..2 {
         let name = format!("cumulative_{mode}");
         let mut block_amounts = amounts.clone();
         if mode == 1 {
             block_amounts.iter_mut().for_each(|sats| *sats += *sats);
-        } else if mode == 2 {
-            let mut offset = 0;
-            for (i, amount) in block_amounts.iter_mut().enumerate() {
-                let end = offset + i % 4;
-                *amount = tx_amounts[offset..end]
-                    .iter()
-                    .copied()
-                    .filter(|sats| !sats.is_max())
-                    .sum();
-                offset = end;
-            }
         }
         let block_cents: Vec<_> = block_amounts
             .iter()
@@ -200,21 +162,12 @@ fn cumulative_values_reopen_resume_and_rewind_from_stored_totals() {
             let exit = Exit::new();
             match mode {
                 0 => output.compute_from(from, &price_source, &source, |_, sats| sats, &exit),
-                1 => output.compute_from_pair(
+                _ => output.compute_from_pair(
                     from,
                     &price_source,
                     &source,
                     &source,
                     |_, a, b| a + b,
-                    &exit,
-                ),
-                _ => output.compute_filtered_from_indexes(
-                    from,
-                    &price_source,
-                    &first,
-                    &counts,
-                    &tx_source,
-                    |sats| !sats.is_max(),
                     &exit,
                 ),
             }

@@ -4,7 +4,7 @@ use bitcoin::Amount;
 use brk_error::{Error, Result};
 use brk_types::{CentsCompact, Sats};
 
-/// Mutable price distribution used by live state and weighted calculations.
+/// Mutable price distribution used by live UTXO state.
 #[derive(Debug, Clone, Default)]
 pub struct UrpdRaw {
     pub map: BTreeMap<CentsCompact, Sats>,

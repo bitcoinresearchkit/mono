@@ -1,5 +1,7 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
-use bitview_compute::{AgeBand, resolve_cohort_value, resolve_cohort_weight};
+use bitview_compute::{
+    AgeBand, MINIMUM_DURATION_DAYS, resolve_cohort_value, resolve_cohort_weight,
+};
 use brk_types::{Day1, Sats};
 use vecdb::{ReadableVec, StorageMode};
 
@@ -9,9 +11,37 @@ pub(crate) fn horizon_mobilities(
     hazards: &AgeRange<f64>,
     bounds: &AgeRange<AgeBand>,
 ) -> Horizons<AgeRange<f64>> {
-    HorizonId::from_fn(|horizon| {
-        AgeRange::from_fn(|age| AgeBand::horizon_mobility(hazards, age, horizon.days(), bounds))
-    })
+    let mut weights = HorizonId::from_fn(|_| AgeRange::from_fn(|_| 0.0));
+    for &start_band in AgeRangeId::ALL {
+        let start = *start_band.select(bounds);
+        let mut age = if start.upper.is_finite() {
+            (start.lower + start.upper) / 2.0
+        } else {
+            start.lower
+        };
+        let mut remaining = HorizonId::ALL.map(HorizonId::days);
+        let mut exposures = [0.0; HorizonId::ALL.len()];
+        for &band in &AgeRangeId::ALL[start_band.index()..] {
+            if remaining.iter().all(|&duration| duration <= 0.0) {
+                break;
+            }
+            let upper = band.select(bounds).upper;
+            let duration = (upper - age).max(MINIMUM_DURATION_DAYS);
+            let hazard = band.select(hazards).max(0.0);
+            for (remaining, exposure) in remaining.iter_mut().zip(&mut exposures) {
+                if *remaining > 0.0 {
+                    let covered = remaining.min(duration);
+                    *exposure += hazard * covered;
+                    *remaining -= covered;
+                }
+            }
+            age = upper;
+        }
+        for (horizon, exposure) in HorizonId::ALL.into_iter().zip(exposures) {
+            *start_band.select_mut(horizon.select_mut(&mut weights)) = AgeBand::mobility(exposure);
+        }
+    }
+    weights
 }
 
 impl<M: StorageMode> Vecs<M> {

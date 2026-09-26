@@ -274,11 +274,10 @@ impl AddrStateVecs {
                 .map(|(type_index, state)| (I::from(usize::from(type_index)), state)),
         )?;
 
-        vec.reserve_pushed(updates.len());
-        for (offset, (type_index, state)) in updates.enumerate() {
+        vec.extend(updates.enumerate().map(|(offset, (type_index, state))| {
             debug_assert_eq!(usize::from(type_index), len + offset);
-            vec.push(state);
-        }
+            state
+        }));
         Ok(())
     }
 }

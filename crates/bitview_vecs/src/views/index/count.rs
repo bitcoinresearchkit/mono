@@ -13,7 +13,7 @@ use vecdb::{
 use super::terminal_len::TerminalLen;
 
 /// Per-item count derived by subtracting adjacent values in one first-index
-/// source. Range reads fetch all required boundaries in one operation.
+/// source. Range reads borrow source chunks and carry their shared boundary.
 #[derive(Clone)]
 pub struct LazyIndexCountVec<I, S>
 where
@@ -55,6 +55,34 @@ where
         StoredU64::from(next.checked_sub(current).unwrap_or_default())
     }
 
+    fn for_each_input(
+        &self,
+        from: usize,
+        to: usize,
+        mut each: impl FnMut(Option<StoredU64>, &[S]),
+    ) {
+        let len = self.len();
+        let to = to.min(len);
+        if from >= to {
+            return;
+        }
+        let terminal = (to == len).then(|| S::from(self.terminal_len.get()));
+        let mut previous = None;
+        self.first_indexes
+            .for_each_chunk_at(from, (to + 1).min(len), &mut |_, boundaries| {
+                if let Some(&first) = boundaries.first() {
+                    each(
+                        previous.map(|previous| Self::count(previous, first)),
+                        boundaries,
+                    );
+                    previous = boundaries.last().copied();
+                }
+            });
+        if let (Some(previous), Some(terminal)) = (previous, terminal) {
+            each(Some(Self::count(previous, terminal)), &[]);
+        }
+    }
+
     fn try_fold_values<B, E>(
         &self,
         from: usize,
@@ -62,29 +90,22 @@ where
         init: B,
         mut fold: impl FnMut(B, StoredU64) -> Result<B, E>,
     ) -> Result<B, E> {
-        let len = self.len();
-        let to = to.min(len);
-        if from >= to {
-            return Ok(init);
-        }
-
-        let mut boundaries = self
-            .first_indexes
-            .collect_range_dyn(from, (to + 1).min(len));
-        if to == len {
-            boundaries.push(S::from(self.terminal_len.get()));
-        }
-        boundaries.windows(2).try_fold(init, |accumulator, pair| {
-            fold(accumulator, Self::count(pair[0], pair[1]))
-        })
-    }
-
-    fn for_each_value(&self, from: usize, to: usize, mut each: impl FnMut(StoredU64)) {
-        self.try_fold_values(from, to, (), |(), value| {
-            each(value);
-            Ok::<_, Infallible>(())
-        })
-        .unwrap();
+        let mut accumulator = Some(Ok(init));
+        self.for_each_input(from, to, |first, boundaries| {
+            accumulator = Some(accumulator.take().unwrap().and_then(|accumulator| {
+                let accumulator = if let Some(first) = first {
+                    fold(accumulator, first)?
+                } else {
+                    accumulator
+                };
+                boundaries
+                    .windows(2)
+                    .try_fold(accumulator, |accumulator, pair| {
+                        fold(accumulator, Self::count(pair[0], pair[1]))
+                    })
+            }));
+        });
+        accumulator.unwrap()
     }
 }
 
@@ -142,12 +163,19 @@ where
     }
 
     fn read_into_at(&self, from: usize, to: usize, buf: &mut Vec<StoredU64>) {
-        buf.reserve(to.saturating_sub(from));
-        self.for_each_value(from, to, |value| buf.push(value));
+        buf.reserve(to.min(self.len()).saturating_sub(from));
+        self.for_each_input(from, to, |first, boundaries| {
+            buf.extend(first);
+            buf.extend(
+                boundaries
+                    .windows(2)
+                    .map(|pair| Self::count(pair[0], pair[1])),
+            );
+        });
     }
 
     fn for_each_range_dyn_at(&self, from: usize, to: usize, each: &mut dyn FnMut(StoredU64)) {
-        self.for_each_value(from, to, each);
+        self.fold_range_at(from, to, (), |(), value| each(value));
     }
 
     fn fold_range_at<B, F: FnMut(B, StoredU64) -> B>(
@@ -174,20 +202,7 @@ where
     }
 
     fn collect_one_at(&self, index: usize) -> Option<StoredU64> {
-        if index >= self.len() {
-            return None;
-        }
-
-        let (current, next) = if index + 1 < self.len() {
-            let boundaries = self.first_indexes.collect_range_dyn(index, index + 2);
-            (*boundaries.first()?, *boundaries.get(1)?)
-        } else {
-            (
-                self.first_indexes.collect_one_at(index)?,
-                S::from(self.terminal_len.get()),
-            )
-        };
-        Some(Self::count(current, next))
+        self.fold_range_at(index, index.saturating_add(1), None, |_, value| Some(value))
     }
 
     fn read_sorted_into_at(&self, indices: &[usize], out: &mut Vec<StoredU64>) {

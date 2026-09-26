@@ -12,14 +12,7 @@ use crate::{
     state::{AddrStates, BlockState, UTXOStates},
 };
 
-/// Flush checkpoint to disk (pure I/O, no processing).
-///
-/// Writes all accumulated data in parallel:
-/// - Cohort stored vectors (parallel internally)
-/// - Height-indexed vectors
-/// - Address indexes and data
-/// - Transaction output index mappings
-/// - Chain state
+/// Flush stored vectors before serializing and writing cohort checkpoints.
 ///
 /// Set `with_changes=true` near chain tip to enable rollback support.
 pub fn write(

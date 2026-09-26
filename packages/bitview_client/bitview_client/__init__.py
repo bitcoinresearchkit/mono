@@ -4861,8 +4861,6 @@ class SeriesTree_Transactions_Fees:
 
     def __init__(self, client: BitviewClient, base_path: str = ''):
         self.count: SeriesTree_Transactions_Fees_Count = SeriesTree_Transactions_Fees_Count(client)
-        self.input_value: SeriesPattern19[Sats] = SeriesPattern19(client, 'input_value')
-        self.output_value: SeriesPattern19[Sats] = SeriesPattern19(client, 'output_value')
         self.fee: _6bBlockTxPattern[Sats] = _6bBlockTxPattern(client, 'fee')
         self.fee_rate: SeriesPattern19[FeeRate] = SeriesPattern19(client, 'fee_rate')
         self.effective_fee_rate: _6bBlockTxPattern[FeeRate] = _6bBlockTxPattern(client, 'effective_fee_rate')

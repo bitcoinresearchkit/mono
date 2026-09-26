@@ -1,4 +1,5 @@
 use bitview_collections::Windows;
+use bitview_compute::prepare_computed;
 use bitview_vecs::PerBlockCumulativeRolling;
 use brk_exit::Exit;
 use brk_types::{Height, StoredU32, StoredU64, TxIndex, Version};
@@ -7,6 +8,61 @@ use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadableVec, WritableVec};
 
 mod common;
+
+#[test]
+fn computed_outputs_share_the_shortest_valid_prefix() {
+    init_cache();
+    let directory = tempdir().unwrap();
+    let db = Database::open(directory.path()).unwrap();
+    let mut left = stored::<Height, StoredU64>(&db, "left", []);
+    let mut right = stored::<Height, StoredU32>(&db, "right", []);
+    for (left_len, right_len, right_version, max_from, expected) in [
+        (5, 3, Version::ONE, 9, 3),
+        (3, 5, Version::ONE, 9, 3),
+        (5, 5, Version::ONE, 2, 2),
+        (5, 5, Version::TWO, 9, 0),
+        (0, 5, Version::ONE, 9, 0),
+        (5, 5, Version::ONE, 0, 0),
+        (5, 5, Version::ONE, 5, 5),
+    ] {
+        left.validate_computed_version_or_reset(Version::ONE)
+            .unwrap();
+        right
+            .validate_computed_version_or_reset(right_version)
+            .unwrap();
+        left.truncate_if_needed_at(0).unwrap();
+        right.truncate_if_needed_at(0).unwrap();
+        for value in 0..left_len {
+            left.push(StoredU64::from(value as u64));
+        }
+        for value in 0..right_len {
+            right.push(StoredU32::from(value as u32));
+        }
+        left.write().unwrap();
+        right.write().unwrap();
+        assert_eq!(
+            prepare_computed(
+                [&mut left as &mut dyn AnyStoredVec, &mut right],
+                Version::ONE,
+                max_from,
+            )
+            .unwrap(),
+            expected,
+        );
+        assert_eq!(
+            left.collect(),
+            (0..expected)
+                .map(|n| StoredU64::from(n as u64))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            right.collect(),
+            (0..expected)
+                .map(|n| StoredU32::from(n as u32))
+                .collect::<Vec<_>>()
+        );
+    }
+}
 
 #[test]
 fn mutable_checkpoint_access_invalidates_same_length_cumulative_state() {

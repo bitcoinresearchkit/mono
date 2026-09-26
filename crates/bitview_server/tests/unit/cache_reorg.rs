@@ -40,8 +40,6 @@ fn production_transaction_flags_and_fee_sources_remain_uncached() {
         assert_uncached(&tx.patterns.flags.is_batch_payout);
         assert_uncached(&tx.fees.cpfp_flags.is_cpfp_parent);
         assert_uncached(&tx.fees.cpfp_flags.is_cpfp_child);
-        assert_uncached(&tx.fees.input_value);
-        assert_uncached(&tx.fees.output_value);
         assert_uncached(&tx.fees.fee.tx_index);
         assert_uncached(&tx.fees.fee_rate);
         assert_uncached(&tx.fees.effective_fee_rate.tx_index);

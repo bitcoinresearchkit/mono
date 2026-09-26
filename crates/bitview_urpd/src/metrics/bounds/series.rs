@@ -1,3 +1,4 @@
+use bitview_compute::prepare_computed;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, DailyMappings, LazyDailyPrice, import_cached};
 use brk_error::{Error, Result};
@@ -6,10 +7,7 @@ use brk_types::{Cents, Date, Day1, Version};
 use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use super::PriceBounds;
-use crate::{
-    distribution::AgeCutoffs,
-    metrics::{WRITE_INTERVAL_DAYS, prepare::prepare},
-};
+use crate::{distribution::AgeCutoffs, metrics::WRITE_INTERVAL_DAYS};
 
 #[derive(Traversable)]
 pub struct AgeBoundsMetrics<M: StorageMode = Rw> {
@@ -80,7 +78,11 @@ impl AgeBoundsMetrics {
         exit: &Exit,
     ) -> Result<()> {
         let end = dates.len();
-        let start = prepare(self.stored_vecs_mut(), version + dates.version(), from, end)?;
+        let start = prepare_computed(
+            self.stored_vecs_mut().collect::<Vec<_>>(),
+            version + dates.version(),
+            from.min(end),
+        )?;
         for index in start..end {
             let day = Day1::from(index);
             let bounds = dates

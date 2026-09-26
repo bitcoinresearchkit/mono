@@ -11,7 +11,7 @@ pub const COMPUTE_VERSION: Version = Version::ONE;
 
 pub use distribution::{
     AgeCutoffs, COST_BASIS_PRICE_DIGITS, DailyUrpds, UrpdRaw, accumulate_masses, collect_mass,
-    cost_basis_percentiles, rounded_entries, weighted_entries,
+    rounded_entries, weighted_entries,
 };
 pub use metrics::{Metrics, bounds::AgeBoundsMetrics};
 pub use response::build_response;

@@ -65,7 +65,6 @@ pub fn compute(
         .range_cursor_at(start_tx, target_tx);
     let mut fee = fees.fee.tx_index.cursor();
     let mut tx_count = mappings.height.tx_index_count.cursor();
-    fee.advance(start_tx);
     tx_count.advance(start_height);
 
     let mut block_start = start_tx;
@@ -73,18 +72,11 @@ pub fn compute(
         let block_end = (block_start + u64::from(tx_count.next().unwrap()) as usize).min(target_tx);
         let mut count = 0;
 
-        for _ in block_start..block_end {
+        for tx_index in block_start..block_end {
             let raw = unconditional.next().unwrap().is_true();
             let dust = has_dust.next().unwrap().is_true();
-            let nonstandard = if raw {
-                fee.advance(1);
-                true
-            } else if dust {
-                dust_is_nonstandard(height, fee.next().unwrap())
-            } else {
-                fee.advance(1);
-                false
-            };
+            let nonstandard =
+                raw || (dust && dust_is_nonstandard(height, || fee.get(tx_index).unwrap()));
             count += nonstandard as u64;
             vecs.is_nonstandard.push(StoredBool::from(nonstandard));
         }
@@ -105,8 +97,8 @@ pub fn compute(
     Ok(())
 }
 
-fn dust_is_nonstandard(height: usize, fee: Sats) -> bool {
-    height < FIRST_EPHEMERAL_DUST_HEIGHT || fee != Sats::ZERO
+fn dust_is_nonstandard(height: usize, fee: impl FnOnce() -> Sats) -> bool {
+    height < FIRST_EPHEMERAL_DUST_HEIGHT || fee() != Sats::ZERO
 }
 
 #[cfg(test)]
@@ -119,15 +111,13 @@ mod tests {
     fn zero_fee_ephemeral_dust_starts_at_activation() {
         assert!(dust_is_nonstandard(
             FIRST_EPHEMERAL_DUST_HEIGHT - 1,
-            Sats::ZERO
+            || panic!("fees are irrelevant before activation"),
         ));
-        assert!(!dust_is_nonstandard(
-            FIRST_EPHEMERAL_DUST_HEIGHT,
+        assert!(!dust_is_nonstandard(FIRST_EPHEMERAL_DUST_HEIGHT, || {
             Sats::ZERO
-        ));
-        assert!(dust_is_nonstandard(
-            FIRST_EPHEMERAL_DUST_HEIGHT,
+        }));
+        assert!(dust_is_nonstandard(FIRST_EPHEMERAL_DUST_HEIGHT, || {
             Sats::new(1)
-        ));
+        }));
     }
 }

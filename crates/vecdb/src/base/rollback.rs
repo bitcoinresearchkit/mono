@@ -32,7 +32,7 @@ where
         let stored_len = self.stored_len();
         let truncated = prev_stored_len.saturating_sub(stored_len);
 
-        let value_count = truncated + self.prev_pushed().len() + self.pushed().len();
+        let value_count = truncated + self.prev_pushed().len();
         let mut bytes = Vec::with_capacity(6 * SIZE_OF_U64 + value_count * size_of::<T>());
 
         bytes.extend(self.header.stamp().to_bytes());
@@ -48,8 +48,8 @@ where
         bytes.extend(self.prev_pushed().len().to_bytes());
         write_values(self.prev_pushed(), &mut bytes);
 
-        bytes.extend(self.pushed().len().to_bytes());
-        write_values(self.pushed(), &mut bytes);
+        // Rollback drops newly appended values by restoring the previous length.
+        bytes.extend(0_usize.to_bytes());
 
         Ok(bytes)
     }

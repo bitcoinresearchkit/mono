@@ -1,10 +1,14 @@
 use brk_types::{Cents, Timestamp};
 
-use super::{compute::PriceRangeMax, state::BlockState};
+use super::{
+    compute::PriceRangeMax,
+    state::{BlockState, LiveState},
+};
 
 /// Transient computation state, absent from the read-only distribution view.
 #[derive(Default)]
 pub struct Inner {
+    pub live: Option<LiveState>,
     pub chain_state: Vec<BlockState>,
     pub prices: Vec<Cents>,
     pub timestamps: Vec<Timestamp>,
@@ -47,6 +51,7 @@ mod tests {
         let directory = tempdir().unwrap();
         let db = Database::open(directory.path()).unwrap();
         let mut inner = Inner {
+            live: Some(LiveState::new(directory.path())),
             prices: vec![Cents::new(10), Cents::new(20)],
             timestamps: vec![Timestamp::default(); 2],
             ..Default::default()
@@ -69,6 +74,7 @@ mod tests {
         };
         let reader: Projection<Ro> = writer.read_only_clone();
 
+        assert!(writer.inner.live.is_some());
         assert_eq!(writer.inner.prices.len(), 2);
         assert_eq!(writer.inner.timestamps.len(), 2);
         assert_eq!(writer.inner.chain_state.len(), 1);

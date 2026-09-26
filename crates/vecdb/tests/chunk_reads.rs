@@ -240,6 +240,49 @@ fn chunked_transforms_preserve_emitted_indices_across_holes_and_empty_pages() {
 }
 
 #[test]
+fn uncached_raw_chunks_preserve_persisted_and_pushed_ranges() {
+    let directory = tempdir().unwrap();
+    let db = Database::open(directory.path()).unwrap();
+    let mut source = BytesVec::<usize, u64>::import(&db, "uncached", Version::ONE).unwrap();
+    for value in 0..10_000 {
+        source.push(value);
+    }
+    source.write().unwrap();
+    for value in 10_000..10_007 {
+        source.push(value);
+    }
+    for (from, to) in [
+        (0, 10_007),
+        (9_998, usize::MAX),
+        (10_002, 10_006),
+        (8, 3),
+        (usize::MAX, usize::MAX),
+    ] {
+        let mut actual = Vec::new();
+        source.for_each_chunk_at(from, to, &mut |at, values| {
+            assert!(!values.is_empty());
+            assert!(values.len() <= source.cursor_chunk_size());
+            assert_eq!(at, from + actual.len());
+            actual.extend_from_slice(values);
+        });
+        assert_eq!(actual, source.collect_range_at(from, to));
+    }
+    source.write().unwrap();
+    let reader = source.read_only_boxed_clone();
+    assert_boxed_folds(&reader, &(0..10_007).collect::<Vec<_>>());
+    source.truncate_if_needed_at(4).unwrap();
+    source.push(99);
+    source.write().unwrap();
+    assert_eq!(
+        reader.fold_range_at(0, usize::MAX, Vec::new(), |mut out, value| {
+            out.push(value);
+            out
+        }),
+        [0, 1, 2, 3, 99]
+    );
+}
+
+#[test]
 fn chunks_borrow_warm_caches_and_preserve_budget_admission_and_rewrites() {
     let directory = tempdir().unwrap();
     let db = Database::open(directory.path()).unwrap();

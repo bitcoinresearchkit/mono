@@ -1,5 +1,5 @@
 use bitview_traversable::Traversable;
-use brk_types::{FeeRate, Sats, StoredBool, TxIndex};
+use brk_types::{FeeRate, Height, Sats, StoredBool, TxIndex};
 use derive_more::{Deref, DerefMut};
 use vecdb::{EagerVec, PcoVec, Rw, StorageMode};
 
@@ -14,12 +14,9 @@ pub use cpfp_flags::CpfpFlags;
 #[derive(Deref, DerefMut, Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     pub count: CountVecs<M>,
-    /// Sum of the transaction's referenced previous-output values, in
-    /// satoshis. Coinbase uses `Sats::MAX` as a sentinel because it has no
-    /// previous outputs to spend.
-    pub input_value: M::Stored<EagerVec<PcoVec<TxIndex, Sats>>>,
-    /// Sum of the transaction's output values, in satoshis.
-    pub output_value: M::Stored<EagerVec<PcoVec<TxIndex, Sats>>>,
+    /// Coinbase output sum retained from the fee pass for mining rewards.
+    #[traversable(hidden)]
+    pub coinbase_value: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
     /// Transaction fee in satoshis: input value minus output value; coinbase is
     /// zero. The transaction-index series includes zero-fee transactions.
     /// Distribution series count every included transaction equally and

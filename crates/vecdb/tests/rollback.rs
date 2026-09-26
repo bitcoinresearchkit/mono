@@ -64,8 +64,10 @@ mod generic_rollback {
         assert_eq!(vec.stamp(), Stamp::new(1));
 
         // Stamp 2: [0, 1, 2, 3, 4, 5, 6]
+        let undo = vec.serialize_changes()?;
         vec.push(5);
         vec.push(6);
+        assert_eq!(vec.serialize_changes()?, undo);
         vec.stamped_write_with_changes(Stamp::new(2))?;
         assert_eq!(vec.collect(), vec![0, 1, 2, 3, 4, 5, 6]);
         assert_eq!(vec.stamp(), Stamp::new(2));
@@ -978,24 +980,61 @@ mod raw_rollback {
     where
         V: RollbackVec,
     {
-        let (db, _temp) = setup_db()?;
-        let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
+        for erased in [false, true] {
+            let (db, temp) = setup_db()?;
+            let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
+            for i in 0..100 {
+                vec.push(i);
+            }
+            vec.stamped_write_with_changes(Stamp::new(1))?;
 
-        for i in 0..100 {
-            vec.push(i);
+            // An intermediate write may already have collected rollback values.
+            vec.update(65, 650)?;
+            vec.write()?;
+            vec.update(65, 651)?;
+            vec.update(66, 660)?;
+            assert_eq!(vec.take(67), Some(67));
+            vec.truncate_if_needed_at(90)?;
+            vec.push(900);
+            if erased {
+                let stored: &mut dyn AnyStoredVec = &mut vec;
+                stored.any_stamped_write_maybe_with_changes(Stamp::new(2), false)?;
+            } else {
+                vec.stamped_write_maybe_with_changes(Stamp::new(2), false)?;
+            }
+            vec.flush()?;
+            assert_eq!(vec.find_rollback_files()?.len(), 1);
+            let mut baseline: Vec<_> = (0..90).map(Some).chain([Some(900)]).collect();
+            baseline[65] = Some(651);
+            baseline[66] = Some(660);
+            baseline[67] = None;
+            assert_eq!(vec.collect_holed(), baseline);
+            drop((vec, db));
+
+            let db = Database::open(temp.path())?;
+            let (mut vec, _) = V::import_with_changes(&db, "test", 10)?;
+            assert_eq!(vec.stamp(), Stamp::new(2));
+            assert_eq!(vec.collect_holed(), baseline);
+            vec.update(65, 999)?;
+            vec.update(67, 670)?;
+            vec.push(901);
+            if erased {
+                let stored: &mut dyn AnyStoredVec = &mut vec;
+                stored.any_stamped_write_maybe_with_changes(Stamp::new(3), true)?;
+            } else {
+                vec.stamped_write_maybe_with_changes(Stamp::new(3), true)?;
+            }
+            vec.rollback()?;
+            assert_eq!(vec.collect_holed(), baseline);
+            assert_eq!(vec.stamp(), Stamp::new(2));
+            vec.flush()?;
+            drop((vec, db));
+
+            let db = Database::open(temp.path())?;
+            let (vec, _) = V::import_with_changes(&db, "test", 10)?;
+            assert_eq!(vec.collect_holed(), baseline);
+            assert_eq!(vec.stamp(), Stamp::new(2));
         }
-
-        AnyStoredVec::any_stamped_write_maybe_with_changes(&mut vec, Stamp::new(1), false)?;
-
-        vec.update(65, 999)?;
-        AnyStoredVec::any_stamped_write_maybe_with_changes(&mut vec, Stamp::new(2), true)?;
-
-        vec.rollback()?;
-
-        assert_eq!(vec.len(), 100);
-        assert_eq!(vec.collect()[65], 65);
-        assert_eq!(vec.stamp(), Stamp::new(1));
-
         Ok(())
     }
 

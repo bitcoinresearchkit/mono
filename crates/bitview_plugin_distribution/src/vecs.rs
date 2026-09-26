@@ -8,7 +8,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_outputs::ByTypeVecs as OutputsByTypeVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_traversable::Traversable;
-use bitview_urpd::{AgeBoundsMetrics, AgeCutoffs};
+use bitview_urpd::{AgeBoundsMetrics, AgeCutoffs, AgeRangeUrpds};
 use bitview_vecs::{DailyMappings, LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
 use brk_oracle::VERSION as ORACLE_VERSION;
@@ -20,7 +20,7 @@ use vecdb::{
 };
 
 use super::{
-    AddrStateVecs, AllChainSources, CohortMetrics, UTXOStates,
+    AddrStateVecs, AllChainSources, CohortMetrics,
     addr::{
         AddrActivityVecs, AddrCountsVecs, AddrVecs, AvgAmountVecs, DeltaVecs, ExposedAddrVecs,
         FundedAddrCountsVecs, NewAddrCountVecs, ReusedAddrVecs, TotalAddrCountVecs,
@@ -30,7 +30,7 @@ use super::{
 use crate::{
     Dependencies, STORAGE,
     compute::{ComputeContext, StartMode, determine_start_mode, process_blocks},
-    state::{AddrStates, BlockState},
+    state::{AddrStates, BlockState, LiveState, UTXOStates},
 };
 
 const COMPUTE_VERSION: Version = Version::new(30 + ORACLE_VERSION);
@@ -266,7 +266,7 @@ pub fn flush(vecs: &Vecs) -> Result<()> {
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = UTXOStates;
+    type Output = AgeRangeUrpds;
 
     /// Main computation loop.
     ///
@@ -290,9 +290,10 @@ impl ComputePlugin for Vecs {
             price: prices,
         } = dependencies;
         let exit = context.exit();
+        // Remove state before any fallible work. Only a completed update can
+        // leave reusable state behind; errors resume through checkpoint recovery.
+        let live = self.inner.live.take();
         self.db.sync_bg_tasks()?;
-        let mut utxo_states = UTXOStates::new(&self.states_path);
-        let mut addr_states = AddrStates::new(&self.states_path);
 
         let base_version = COMPUTE_VERSION
             + [
@@ -350,9 +351,20 @@ impl ComputePlugin for Vecs {
             );
         }
         let start_mode = determine_start_mode(min_resume_len, resume_target);
+        let live = live.filter(|state| {
+            matches!(start_mode, StartMode::Resume(height)
+                if height == current_height && state.height == height)
+        });
+        let reuse_live = live.is_some();
+        let LiveState {
+            mut utxos,
+            mut addrs,
+            ..
+        } = live.unwrap_or_else(|| LiveState::new(&self.states_path));
 
         // Try to resume from checkpoint, fall back to fresh start if needed
         let recovered_height = match start_mode {
+            StartMode::Resume(height) if reuse_live => height,
             StartMode::Resume(height) => {
                 // Roll back only on a reorg. A clean resume has nothing to undo, and an
                 // interrupted run wrote no rollback metadata (periodic flushes use
@@ -361,12 +373,8 @@ impl ComputePlugin for Vecs {
                 let chain_state_rollback = (height < current_height)
                     .then(|| self.supply_state.rollback_before(Stamp::from(height)));
 
-                let recovered = self.recover_state(
-                    height,
-                    chain_state_rollback,
-                    &mut utxo_states,
-                    &mut addr_states,
-                )?;
+                let recovered =
+                    self.recover_state(height, chain_state_rollback, &mut utxos, &mut addrs)?;
 
                 debug!("recover_state completed, starting_height={}", recovered);
                 recovered
@@ -384,7 +392,7 @@ impl ComputePlugin for Vecs {
         }
 
         if needs_fresh_start {
-            self.reset_state(&mut utxo_states, &mut addr_states)?;
+            self.reset_state(&mut utxos, &mut addrs)?;
             info!("Building distribution history from genesis...");
         }
 
@@ -477,20 +485,22 @@ impl ComputePlugin for Vecs {
             last_height, starting_height
         );
 
-        // Invalidate snapshots from the recovered day. If the next block belongs
-        // to a new day (or the chain ends here), republish the recovered day now.
-        let previous_date = usize::from(starting_height)
-            .checked_sub(1)
-            .and_then(|height| self.inner.timestamps.get(height))
-            .copied()
-            .map(Date::from);
-        let next_date = self
-            .inner
-            .timestamps
-            .get(usize::from(starting_height))
-            .copied()
-            .map(Date::from);
-        utxo_states.prepare_urpds(&self.states_path, previous_date, next_date)?;
+        // Successful appends already have valid snapshots. Only recovery needs
+        // to prune and republish the recovered day before processing new blocks.
+        if !reuse_live {
+            let previous_date = usize::from(starting_height)
+                .checked_sub(1)
+                .and_then(|height| self.inner.timestamps.get(height))
+                .copied()
+                .map(Date::from);
+            let next_date = self
+                .inner
+                .timestamps
+                .get(usize::from(starting_height))
+                .copied()
+                .map(Date::from);
+            utxos.prepare_urpds(&self.states_path, previous_date, next_date)?;
+        }
 
         // 4. Process blocks
         if starting_height <= last_height {
@@ -522,8 +532,8 @@ impl ComputePlugin for Vecs {
 
             process_blocks(
                 self,
-                &mut utxo_states,
-                &mut addr_states,
+                &mut utxos,
+                &mut addrs,
                 indexer,
                 mappings,
                 inputs,
@@ -586,6 +596,7 @@ impl ComputePlugin for Vecs {
         debug!("Computing rest part 2...");
         self.cohorts.compute_rest_part2(&starting_lengths, exit)?;
 
+        let age_urpds = utxos.age_urpds();
         let from = mappings
             .height
             .recompute_day(starting_lengths.height)
@@ -596,7 +607,7 @@ impl ComputePlugin for Vecs {
             from,
             &mappings.day1.date,
             |day, date| {
-                utxo_states.with_urpd_entries(
+                age_urpds.with_entries(
                     &self.states_path,
                     date,
                     usize::from(day) + 1 == mappings.day1.date.len(),
@@ -606,6 +617,11 @@ impl ComputePlugin for Vecs {
             exit,
         )?;
         context.compact_database(&self.db);
-        Ok(utxo_states)
+        self.inner.live = Some(LiveState {
+            height: Height::from(self.inner.chain_state.len()),
+            utxos,
+            addrs,
+        });
+        Ok(age_urpds)
     }
 }

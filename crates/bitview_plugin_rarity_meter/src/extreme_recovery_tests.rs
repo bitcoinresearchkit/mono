@@ -1,13 +1,18 @@
 #[cfg(test)]
-use crate::test_cache::init_cache;
+use crate::test_common::init_cache;
 use brk_types::StoredF32;
 use tempfile::tempdir;
+use vecdb::AnyVec;
 
 use super::*;
 use crate::test_common as common;
 
 fn check(extreme: &Extreme<StoredF32>, len: usize) {
-    for threshold in extreme.thresholds.iter() {
+    for threshold in [
+        &extreme.thresholds.threshold_pct0_1,
+        &extreme.thresholds.threshold_pct0_05,
+        &extreme.thresholds.threshold_pct0_025,
+    ] {
         assert_eq!(threshold.height.len(), len);
         assert_eq!(threshold.height.collect().len(), len);
     }

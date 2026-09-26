@@ -13,7 +13,7 @@ use crate::{
 
 use super::lookup::AddrLookup;
 
-const MIN_PARALLEL_LOADS: usize = 512;
+const MIN_LOAD_CHUNK_SIZE: usize = 32;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
@@ -126,21 +126,13 @@ impl AddrCache {
         self.block_addresses.sort_unstable();
         self.block_addresses.dedup();
 
-        self.block_sources.clear();
-        if self.block_addresses.len() < MIN_PARALLEL_LOADS {
-            self.block_sources.extend(
-                self.block_addresses
-                    .iter()
-                    .copied()
-                    .map(|address| address.load(vr, state)),
-            );
-        } else {
-            self.block_addresses
-                .par_iter()
-                .copied()
-                .map(|address| address.load(vr, state))
-                .collect_into_vec(&mut self.block_sources);
-        }
+        // Keep cold reads concurrent without scheduling tiny tasks.
+        self.block_addresses
+            .par_iter()
+            .with_min_len(MIN_LOAD_CHUNK_SIZE)
+            .copied()
+            .map(|address| address.load(vr, state))
+            .collect_into_vec(&mut self.block_sources);
 
         for (address, source) in self
             .block_addresses

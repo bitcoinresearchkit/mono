@@ -1,10 +1,7 @@
-#![cfg(feature = "lz4")]
-
 use tempfile::TempDir;
-use vecdb::{
-    AnyStoredVec, Bytes, Database, Error, ImportableVec, LZ4Vec, ReadableVec, Result, Version,
-    WritableVec,
-};
+#[cfg(feature = "lz4")]
+use vecdb::LZ4Vec;
+use vecdb::{Bytes, BytesVec, Database, Error, ReadableVec, Result, StoredVec, Version};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct HeapValue(Box<u64>);
@@ -25,11 +22,10 @@ impl Bytes for HeapValue {
     }
 }
 
-#[test]
-fn compressed_fold_clones_non_copy_values() -> Result<()> {
+fn check_non_copy_reads<V: StoredVec<I = usize, T = HeapValue>>() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;
-    let mut vec: LZ4Vec<usize, HeapValue> = LZ4Vec::import(&db, "heap", Version::ONE)?;
+    let mut vec = V::import(&db, "heap", Version::ONE)?;
 
     for value in 0..5_000 {
         vec.push(HeapValue(Box::new(value)));
@@ -38,6 +34,24 @@ fn compressed_fold_clones_non_copy_values() -> Result<()> {
 
     let sum = vec.fold(0_u64, |sum, value| sum + *value.0);
     assert_eq!(sum, (0..5_000_u64).sum::<u64>());
+    let reader = vec.read_only_boxed_clone();
+    let mut values = Vec::new();
+    reader.for_each_chunk_at(17, usize::MAX, &mut |at, chunk| {
+        assert_eq!(at, 17 + values.len());
+        values.extend(chunk.iter().map(|value| *value.0));
+    });
+    assert_eq!(values, (17..5_000).collect::<Vec<_>>());
 
     Ok(())
+}
+
+#[cfg(feature = "lz4")]
+#[test]
+fn compressed_fold_clones_non_copy_values() -> Result<()> {
+    check_non_copy_reads::<LZ4Vec<usize, HeapValue>>()
+}
+
+#[test]
+fn raw_chunks_decode_non_native_values() -> Result<()> {
+    check_non_copy_reads::<BytesVec<usize, HeapValue>>()
 }

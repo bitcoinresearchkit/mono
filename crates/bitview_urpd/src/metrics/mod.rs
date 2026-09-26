@@ -1,11 +1,9 @@
 //! Derive, store and expose daily URPD metrics.
 pub(super) mod bounds;
-mod capitalized_price;
 mod compute;
 mod cost_basis;
 mod density;
 mod import;
-mod prepare;
 mod snapshots;
 
 use std::path::PathBuf;
@@ -16,7 +14,6 @@ use bitview_vecs::{CachedSeries, LazyDailyPriceWithRatio};
 use brk_types::{Cents, Day1};
 use vecdb::{AnyStoredVec, Rw, StorageMode};
 
-pub(crate) use capitalized_price::capitalized_price;
 use cost_basis::CostBasisMetrics;
 use density::DensityMetrics;
 

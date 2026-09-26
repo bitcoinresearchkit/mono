@@ -2,7 +2,6 @@ use bitview_cohort::{AgeRange, AgeRangeId, Term, UTXOAggregateId};
 use brk_types::{CentsCompact, Sats};
 
 use super::{AgeCutoffs, accumulate_masses, collect_mass};
-use crate::UrpdRaw;
 
 #[derive(Default)]
 struct Masses {
@@ -11,10 +10,11 @@ struct Masses {
     long: f64,
 }
 
+/// Finished distributions in increasing price order, ready to scan or serialize.
 pub struct DailyUrpds {
-    pub all: UrpdRaw,
-    pub age: AgeCutoffs<UrpdRaw>,
-    pub long: UrpdRaw,
+    pub all: Box<[(CentsCompact, Sats)]>,
+    pub age: AgeCutoffs<Box<[(CentsCompact, Sats)]>>,
+    pub long: Box<[(CentsCompact, Sats)]>,
 }
 
 impl DailyUrpds {
@@ -22,7 +22,7 @@ impl DailyUrpds {
         entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
         weights: &AgeRange<f64>,
     ) -> Self {
-        let buckets = accumulate_masses(entries, |bucket: &mut Masses, age, _, mass| {
+        let buckets = accumulate_masses(entries, |bucket: &mut Masses, age, mass| {
             let mass = u64::from(mass) as f64 * *age.select(weights);
             bucket.all += mass;
             for value in bucket.age.containing_mut(age) {
@@ -43,7 +43,7 @@ impl DailyUrpds {
         }
     }
 
-    pub fn aggregate(&self, id: UTXOAggregateId) -> &UrpdRaw {
+    pub fn aggregate(&self, id: UTXOAggregateId) -> &[(CentsCompact, Sats)] {
         match id {
             UTXOAggregateId::All => &self.all,
             UTXOAggregateId::Sth => &self.age.under_5m,
@@ -57,7 +57,7 @@ mod tests {
     use super::*;
     use brk_types::Cents;
 
-    use crate::metrics::capitalized_price;
+    use crate::distribution::PriceStats;
 
     #[test]
     fn cohorts_share_rounding_but_keep_their_exact_age_boundaries() {
@@ -70,9 +70,8 @@ mod tests {
         ]
         .map(|(age, p, s)| (age, CentsCompact::new(p), Sats::from(s as u64)));
         let urpds = DailyUrpds::from_age_entries(entries, &AgeRange::from_fn(|_| 0.5));
-        let values = |urpd: &UrpdRaw| {
-            urpd.map
-                .iter()
+        let values = |urpd: &[(CentsCompact, Sats)]| {
+            urpd.iter()
                 .map(|(p, s)| (p.inner(), u64::from(*s)))
                 .collect::<Vec<_>>()
         };
@@ -82,7 +81,7 @@ mod tests {
         assert_eq!(values(&urpds.age.under_6m), [(100, 1), (200, 1), (300, 2)]);
         assert_eq!(values(&urpds.long), [(300, 2), (400, 1)]);
         assert_eq!(
-            capitalized_price(urpds.all.map.iter().map(|(&p, &s)| (p, s))),
+            PriceStats::from_entries(urpds.all.iter().copied()).capitalized_price,
             Cents::new(300)
         );
         let bounds = AgeCutoffs::from_age_entries(entries);
@@ -101,8 +100,8 @@ mod tests {
             )],
             &AgeRange::from_fn(|_| 0.0),
         );
-        assert!(urpds.all.map.is_empty());
-        assert!(urpds.age.iter().all(|u| u.map.is_empty()));
-        assert!(urpds.long.map.is_empty());
+        assert!(urpds.all.is_empty());
+        assert!(urpds.age.iter().all(|u| u.is_empty()));
+        assert!(urpds.long.is_empty());
     }
 }

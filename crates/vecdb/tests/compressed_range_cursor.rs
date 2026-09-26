@@ -26,6 +26,20 @@ macro_rules! range_cursor_test {
                 let sum = cursor.fold(4_000, 0_u64, u64::wrapping_add);
                 assert_eq!(sum, values[2_032..6_032].iter().copied().sum::<u64>());
 
+                let mut collected = vec![u64::MAX];
+                cursor.collect_into(5_000, &mut collected);
+                assert_eq!(collected, values[6_032..11_032]);
+                assert_eq!(cursor.next(), Some(values[11_032]));
+                cursor.collect_into(0, &mut collected);
+                assert!(collected.is_empty());
+                let sum = cursor.fold(17, 0_u64, u64::wrapping_add);
+                assert_eq!(sum, values[11_033..11_050].iter().copied().sum::<u64>());
+                cursor.collect_into(usize::MAX, &mut collected);
+                assert_eq!(collected, values[11_050..18_000]);
+                assert_eq!(cursor.remaining(), 0);
+                cursor.collect_into(1, &mut collected);
+                assert!(collected.is_empty());
+
                 let read_only = vec.read_only_clone();
                 let mut cursor = read_only.range_cursor_at(17_990, usize::MAX);
                 let mut tail = Vec::new();

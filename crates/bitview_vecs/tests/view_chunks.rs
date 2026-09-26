@@ -538,6 +538,20 @@ fn sparse_sources_keep_legacy_emitted_value_alignment() {
             })
             .collect();
         assert_eq!(delta.collect_range_at(from, to), expected);
+        assert_eq!(
+            delta.fold_range_at(from, to, Vec::new(), |mut out, value| {
+                out.push(value);
+                out
+            }),
+            expected
+        );
+        assert_eq!(
+            delta.try_fold_range_at(from, to, Vec::new(), |mut out, value| {
+                out.push(value);
+                Ok::<_, ()>(out)
+            }),
+            Ok(expected)
+        );
         // The retained scalar fallible paths define legacy sparse alignment.
         let expected = window
             .try_fold_range_at(from, to, Vec::new(), |mut out, value| {

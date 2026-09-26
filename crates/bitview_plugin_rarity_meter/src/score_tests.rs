@@ -3,7 +3,7 @@ use brk_types::{Day1, PartsPerMillion32};
 use tempfile::tempdir;
 
 use super::*;
-use crate::{test_cache::init_cache, test_common as common};
+use crate::test_common::{self as common, init_cache};
 
 #[test]
 fn expanded_v2_scores_cap_overflowing_totals() {

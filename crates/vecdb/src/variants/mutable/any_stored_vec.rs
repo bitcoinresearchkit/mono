@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, path::PathBuf};
+use std::path::PathBuf;
 
 use rawdb::{Database, Region};
 
@@ -57,6 +57,20 @@ where
         <Self as WritableVec<V::I, V::T>>::stamped_write_with_changes(self, stamp)
     }
 
+    fn any_stamped_write_maybe_with_changes(
+        &mut self,
+        stamp: Stamp,
+        with_changes: bool,
+    ) -> Result<()> {
+        if with_changes {
+            self.any_stamped_write_with_changes(stamp)
+        } else {
+            // Advance the baseline without collecting old values that this
+            // checkpoint explicitly discards.
+            self.write_saved_changes(stamp)
+        }
+    }
+
     fn any_save_rollback_state(&mut self) {
         <Self as WritableVec<V::I, V::T>>::save_rollback_state(self)
     }
@@ -64,13 +78,21 @@ where
     fn serialize_changes(&self) -> Result<Vec<u8>> {
         let mut bytes = self.vec.serialize_changes()?;
         let rollback_len = self.vec.rollback_len();
-        let indices = self
+        let mut indices = self
             .current_updated()
             .keys()
             .chain(self.previous_updated().keys())
             .filter(|&&index| index < rollback_len)
             .copied()
-            .collect::<BTreeSet<_>>();
+            .collect::<Vec<_>>();
+        indices.sort_unstable();
+        indices.dedup();
+
+        let previous_holes = self.holes.previous();
+        bytes.reserve(
+            indices.len() * (size_of::<usize>() + size_of::<V::T>())
+                + (previous_holes.len() + 2) * size_of::<usize>(),
+        );
 
         bytes.extend(indices.len().to_bytes());
         for index in &indices {
@@ -79,7 +101,6 @@ where
         self.vec
             .append_previous_values(&indices, self.previous_updated(), &mut bytes);
 
-        let previous_holes = self.holes.previous();
         bytes.extend(previous_holes.len().to_bytes());
         for hole in previous_holes.iter() {
             bytes.extend(hole.to_bytes());

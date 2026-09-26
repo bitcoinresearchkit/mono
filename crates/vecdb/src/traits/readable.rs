@@ -82,6 +82,8 @@ pub trait ReadableVec<I: VecIndex, T: VecValue>: AnyVec {
     /// holes this is not the physical position of every value in the slice.
     /// Slices are valid only during the callback. Sources may choose any chunk
     /// size. Empty chunks and ranges do not invoke the callback.
+    /// Callbacks must finish before mutating the source or growing its database:
+    /// borrowed chunks may hold the region and mapping read locks.
     ///
     /// The default reuses one read buffer. Resident sources can lend their
     /// storage directly, avoiding copies through type-erased readers.

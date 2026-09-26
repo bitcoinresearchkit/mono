@@ -1,4 +1,4 @@
-use std::{iter::once, marker::PhantomData, sync::Arc};
+use std::{convert::Infallible, iter::once, marker::PhantomData, mem, sync::Arc};
 
 use bitview_traversable::{Traversable, TreeNode, make_leaf};
 use schemars::JsonSchema;
@@ -127,38 +127,6 @@ where
     T: VecValue,
     F: UnaryTransform<S, T>,
 {
-    fn try_fold_delta<B, E>(
-        &self,
-        from: usize,
-        to: usize,
-        init: B,
-        mut fold: impl FnMut(B, T) -> Result<B, E>,
-    ) -> Result<B, E> {
-        let mut accumulator = init;
-        let to = to.min(self.len());
-        if from >= to {
-            return Ok(accumulator);
-        }
-
-        let read_from = from.saturating_sub(1);
-        let values = self.source.collect_range_dyn(read_from, to);
-        let mut values = values.into_iter();
-        let mut previous = if from == 0 {
-            S::default()
-        } else {
-            values.next().unwrap()
-        };
-
-        for current in values {
-            accumulator = fold(
-                accumulator,
-                F::apply(current.clone().checked_sub(previous).unwrap_or_default()),
-            )?;
-            previous = current;
-        }
-        Ok(accumulator)
-    }
-
     fn for_each_input(&self, from: usize, to: usize, mut each: impl FnMut(usize, &[S], &mut S)) {
         let to = to.min(self.len());
         if from >= to {
@@ -244,11 +212,10 @@ where
         init: B,
         mut f: G,
     ) -> B {
-        let mut acc = Some(init);
-        self.for_each_chunk_at(from, to, &mut |_, values| {
-            acc = Some(values.iter().cloned().fold(acc.take().unwrap(), &mut f));
-        });
-        acc.unwrap()
+        self.try_fold_range_at(from, to, init, |accumulator, value| {
+            Ok::<_, Infallible>(f(accumulator, value))
+        })
+        .unwrap()
     }
 
     fn try_fold_range_at<B, E, G: FnMut(B, T) -> Result<B, E>>(
@@ -256,9 +223,24 @@ where
         from: usize,
         to: usize,
         init: B,
-        f: G,
+        mut fold: G,
     ) -> Result<B, E> {
-        self.try_fold_delta(from, to, init, f)
+        let mut accumulator = Some(Ok(init));
+        self.for_each_input(from, to, |_, values, previous| {
+            accumulator = Some(accumulator.take().unwrap().and_then(|accumulator| {
+                values
+                    .iter()
+                    .cloned()
+                    .try_fold(accumulator, |accumulator, current| {
+                        let previous = mem::replace(previous, current.clone());
+                        fold(
+                            accumulator,
+                            F::apply(current.checked_sub(previous).unwrap_or_default()),
+                        )
+                    })
+            }));
+        });
+        accumulator.unwrap()
     }
 
     fn collect_one_at(&self, index: usize) -> Option<T> {

@@ -85,7 +85,6 @@ impl DefaultPlugins {
                     timed(Phase::Import, MINING_ID, || {
                         Ok(Box::new(Mining::import(
                             context,
-                            &indexer,
                             &mappings,
                             &window_starts,
                         )?))

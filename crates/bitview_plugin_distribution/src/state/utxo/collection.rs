@@ -231,25 +231,36 @@ impl UTXOStates {
     }
 
     pub fn write(&mut self, height: Height, cleanup: bool) -> Result<()> {
+        // Each cohort owns its checkpoint directory; let all groups share the pool.
         self.age_range
             .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        self.epoch
-            .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        self.class
-            .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        self.entry
-            .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        self.amount_range
-            .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        self.type_
-            .par_iter_mut()
-            .try_for_each(|state| state.write(height, cleanup))?;
-        Ok(())
+            .map(|state| state.write(height, cleanup))
+            .chain(
+                self.epoch
+                    .par_iter_mut()
+                    .map(|state| state.write(height, cleanup)),
+            )
+            .chain(
+                self.class
+                    .par_iter_mut()
+                    .map(|state| state.write(height, cleanup)),
+            )
+            .chain(
+                self.entry
+                    .par_iter_mut()
+                    .map(|state| state.write(height, cleanup)),
+            )
+            .chain(
+                self.amount_range
+                    .par_iter_mut()
+                    .map(|state| state.write(height, cleanup)),
+            )
+            .chain(
+                self.type_
+                    .par_iter_mut()
+                    .map(|state| state.write(height, cleanup)),
+            )
+            .try_for_each(|result| result)
     }
 
     pub fn init_fenwick_if_needed(&mut self) {

@@ -1,8 +1,8 @@
 use brk_exit::Exit;
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, EagerVec, ImportableVec, ReadableVec, StoredVec, Version,
-    WritableVec,
+    AnyStoredVec, AnyVec, BytesVec, Database, EagerVec, ImportableVec, ReadableVec, StoredVec,
+    Version, WritableVec,
 };
 
 #[cfg(feature = "pco")]
@@ -38,6 +38,8 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
             source.push(value);
         }
     }
+    // Ignore an orphan count whose first index has not been written yet.
+    counts.push(0);
     first.write().unwrap();
     counts.write().unwrap();
     source.write().unwrap();
@@ -47,14 +49,28 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
         .iter()
         .map(|group| group.iter().copied().fold(0u64, u64::saturating_add))
         .collect();
+    let expected_cumulative: Vec<_> = groups
+        .iter()
+        .scan(0, |total, group| {
+            *total += group.iter().map(|value| value % 10).sum::<u64>();
+            Some(*total)
+        })
+        .collect();
     let mut output: EagerVec<V> = EagerVec::forced_import(&db, "all", Version::ONE).unwrap();
+    let mut cumulative: EagerVec<V> =
+        EagerVec::forced_import(&db, "grouped_cumulative", Version::ONE).unwrap();
     for phase in 0..5 {
         if phase == 2 {
             drop(output);
             output = EagerVec::forced_import(&db, "all", Version::ONE).unwrap();
+            drop(cumulative);
+            cumulative = EagerVec::forced_import(&db, "grouped_cumulative", Version::ONE).unwrap();
         }
         if phase == 4 {
             output
+                .validate_computed_version_or_reset(Version::ZERO)
+                .unwrap();
+            cumulative
                 .validate_computed_version_or_reset(Version::ZERO)
                 .unwrap();
         }
@@ -62,7 +78,18 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
         output
             .compute_sum_from_indexes(from, &first, &counts, &source, &exit)
             .unwrap();
+        cumulative
+            .compute_cumulative_sum_from_indexes(
+                from,
+                &first,
+                &counts,
+                &source,
+                |value| value % 10,
+                &exit,
+            )
+            .unwrap();
         assert_eq!(output.collect(), expected, "phase={phase}");
+        assert_eq!(cumulative.collect(), expected_cumulative, "phase={phase}");
     }
 
     let empty_first: BytesVec<usize, usize> =
@@ -72,6 +99,43 @@ fn check_indexed_sums<V: StoredVec<I = usize, T = u64>>() {
         .compute_sum_from_indexes(0, &empty_first, &counts, &source, &exit)
         .unwrap();
     assert!(output.collect().is_empty());
+}
+
+#[test]
+fn empty_groups_preserve_the_cumulative_signed_zero() {
+    let directory = tempdir().unwrap();
+    let db = Database::open(directory.path()).unwrap();
+    let mut first = BytesVec::<usize, usize>::forced_import(&db, "first", Version::ONE).unwrap();
+    let mut counts = BytesVec::<usize, usize>::forced_import(&db, "counts", Version::ONE).unwrap();
+    let source = BytesVec::<usize, f64>::forced_import(&db, "source", Version::ONE).unwrap();
+    for _ in 0..3 {
+        first.push(0);
+        counts.push(0);
+    }
+    let mut target =
+        EagerVec::<BytesVec<usize, f64>>::forced_import(&db, "cumulative", Version::ONE).unwrap();
+    target
+        .validate_computed_version_or_reset(first.version() + counts.version() + source.version())
+        .unwrap();
+    target.push(-0.0);
+    target
+        .compute_cumulative_sum_from_indexes(
+            1,
+            &first,
+            &counts,
+            &source,
+            |value| value,
+            &Exit::new(),
+        )
+        .unwrap();
+    assert_eq!(
+        target
+            .collect()
+            .into_iter()
+            .map(f64::to_bits)
+            .collect::<Vec<_>>(),
+        [(-0.0f64).to_bits(); 3]
+    );
 }
 
 #[test]

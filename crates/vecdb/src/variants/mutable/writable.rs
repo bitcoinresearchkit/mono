@@ -3,6 +3,12 @@ use std::{collections::BTreeMap, path::PathBuf, sync::Arc};
 use super::{MutableRawVec, MutableVec};
 use crate::{AnyStoredVec, Result, Stamp, WritableVec};
 
+impl<V: MutableRawVec> Extend<V::T> for MutableVec<V> {
+    fn extend<T: IntoIterator<Item = V::T>>(&mut self, values: T) {
+        self.vec.pushed_mut().extend(values);
+    }
+}
+
 impl<V> WritableVec<V::I, V::T> for MutableVec<V>
 where
     V: MutableRawVec,

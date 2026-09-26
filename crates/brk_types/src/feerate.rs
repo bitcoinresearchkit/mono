@@ -253,13 +253,10 @@ impl PartialOrd for FeeRate {
 }
 
 impl Ord for FeeRate {
+    #[inline]
     fn cmp(&self, other: &Self) -> Ordering {
-        match (self.is_nan(), other.is_nan()) {
-            (true, true) => Ordering::Equal,
-            (true, false) => Ordering::Less,
-            (false, true) => Ordering::Greater,
-            (false, false) => self.0.cmp(&other.0),
-        }
+        // Move the NaN sentinel to zero while preserving the finite values' order.
+        self.0.wrapping_add(1).cmp(&other.0.wrapping_add(1))
     }
 }
 
@@ -361,6 +358,28 @@ mod tests {
             FeeRate::from_milli(1_230)
         );
         assert!(FeeRate::NAN < FeeRate::ZERO);
+    }
+
+    #[test]
+    fn fee_rate_ordering_keeps_nan_first_and_all_finite_values_unsigned() {
+        let ordered = [
+            FeeRate::NAN,
+            FeeRate::ZERO,
+            FeeRate::from_milli(1),
+            FeeRate::MIN,
+            FeeRate::from_milli((1_u64 << 63) - 1),
+            FeeRate::from_milli(1_u64 << 63),
+            FeeRate::from_milli((1_u64 << 63) + 1),
+            FeeRate::from_milli(u64::MAX - 2),
+            FeeRate::MAX_FINITE,
+        ];
+        for (i, left) in ordered.iter().enumerate() {
+            for (j, right) in ordered.iter().enumerate() {
+                assert_eq!(left.cmp(right), i.cmp(&j));
+                assert_eq!(left.partial_cmp(right), Some(i.cmp(&j)));
+                assert_eq!(left == right, i == j);
+            }
+        }
     }
 
     #[test]

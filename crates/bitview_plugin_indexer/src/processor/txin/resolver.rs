@@ -103,6 +103,8 @@ impl InputResolver {
             },
         )?;
 
+        // Recent parents already have a cheap lookup in the store's pending map.
+        let stored_tx_count = processor.readers.tx_index_to_first_txout_index.len();
         for (input, resolved) in self.inputs.iter().zip(&self.resolved) {
             if let (
                 UnresolvedInput::PreviousBlock { prefix, vout },
@@ -112,6 +114,7 @@ impl InputResolver {
                     ..
                 },
             ) = (input, resolved)
+                && usize::from(outpoint.tx_index()) < stored_tx_count
             {
                 self.cache.insert(
                     *prefix,

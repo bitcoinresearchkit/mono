@@ -199,15 +199,7 @@ where
     /// Flushes with the given stamp, optionally saving changes for rollback.
     #[inline]
     fn stamped_write_maybe_with_changes(&mut self, stamp: Stamp, with_changes: bool) -> Result<()> {
-        if with_changes {
-            self.stamped_write_with_changes(stamp)
-        } else {
-            self.stamped_write(stamp)?;
-            if self.saved_stamped_changes() > 0 {
-                self.save_rollback_state();
-            }
-            Ok(())
-        }
+        self.any_stamped_write_maybe_with_changes(stamp, with_changes)
     }
 
     /// Validates the computed version against the stored version, resetting if they don't match.

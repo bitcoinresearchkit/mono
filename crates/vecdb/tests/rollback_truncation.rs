@@ -166,8 +166,7 @@ where
         expected.extend(value.to_le_bytes());
     }
     expected.extend(0_u64.to_le_bytes()); // previous pushed count
-    expected.extend(1_u64.to_le_bytes()); // current pushed count
-    expected.extend(100_u32.to_le_bytes());
+    expected.extend(0_u64.to_le_bytes()); // newly appended values need no undo
     assert_eq!(&original[..expected.len()], expected);
     for length in 0..original.len() {
         fs::write(path, &original[..length])?;

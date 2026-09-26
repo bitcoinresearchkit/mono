@@ -1,96 +1,63 @@
+use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
-use brk_error::Result;
+use bitview_vecs::CachedSeries;
+use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_types::{Height, OutputType, Sats, TxOutIndex};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, BytesVec, OverflowVec, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 
 pub fn compute(vecs: &mut Vecs, indexer: &Indexer, prices: &PriceVecs, exit: &Exit) -> Result<()> {
-    let starting_lengths = indexer.safe_lengths();
-    let height_vec = &mut vecs.op_return.cumulative.sats.height;
-
-    // Validate computed versions against dependencies
-    let dep_version = indexer.vecs().outputs.first_txout_index.version()
-        + indexer.vecs().outputs.output_type.version()
-        + indexer.vecs().outputs.value.version();
-    height_vec.validate_computed_version_or_reset(dep_version)?;
-
-    // Get target height
-    let target_len = indexer.vecs().outputs.first_txout_index.len();
-    if target_len == 0 {
-        vecs.op_return
-            .compute_cents(starting_lengths.height, &prices.spot.cents.height, exit)?;
-        return Ok(());
-    }
-    let target_height = Height::from(target_len - 1);
-
-    // Find starting height for this vec
-    let current_len = height_vec.len();
-    let starting_height = Height::from(current_len.min(starting_lengths.height.to_usize()));
-
-    if starting_height <= target_height {
-        // Pre-collect height-indexed data
-        let first_txout_indexes: Vec<TxOutIndex> = indexer
-            .vecs()
-            .outputs
-            .first_txout_index
-            .collect_range_at(starting_height.to_usize(), target_len);
-
-        let mut output_types_buf: Vec<OutputType> = Vec::new();
-        let mut values_buf: Vec<Sats> = Vec::new();
-        let mut cumulative = starting_height
-            .decremented()
-            .and_then(|height| height_vec.collect_one(height))
-            .unwrap_or_default();
-
-        height_vec.truncate_if_needed(starting_height)?;
-
-        // Iterate blocks
-        for h in starting_height.to_usize()..=target_height.to_usize() {
-            let local_idx = h - starting_height.to_usize();
-
-            // Get output range for this block
-            let first_txout_index = first_txout_indexes[local_idx];
-            let next_first_txout_index = if let Some(&next) = first_txout_indexes.get(local_idx + 1)
-            {
-                next
-            } else {
-                TxOutIndex::from(indexer.vecs().outputs.value.len())
-            };
-
-            let out_start = first_txout_index.to_usize();
-            let out_end = next_first_txout_index.to_usize();
-
-            // Pre-collect both vecs into reusable buffers
-            indexer.vecs().outputs.output_type.collect_range_into_at(
-                out_start,
-                out_end,
-                &mut output_types_buf,
-            );
-            indexer
-                .vecs()
-                .outputs
-                .value
-                .collect_range_into_at(out_start, out_end, &mut values_buf);
-
-            let mut op_return_value = Sats::ZERO;
-            for (ot, val) in output_types_buf.iter().zip(values_buf.iter()) {
-                if *ot == OutputType::OpReturn {
-                    op_return_value += *val;
-                }
-            }
-
-            cumulative += op_return_value;
-            height_vec.push(cumulative);
-        }
-
-        height_vec.write()?;
-    }
-
+    let outputs = &indexer.vecs().outputs;
+    let max_from = indexer.safe_lengths().height;
+    compute_sats(
+        &mut vecs.op_return.cumulative.sats.height,
+        max_from,
+        &outputs.first_txout_index,
+        &outputs.output_type,
+        &outputs.value,
+        exit,
+    )?;
     vecs.op_return
-        .compute_cents(starting_lengths.height, &prices.spot.cents.height, exit)?;
+        .compute_cents(max_from, &prices.spot.cents.height, exit)
+}
 
+pub(super) fn compute_sats(
+    target: &mut CachedSeries<Height, Sats>,
+    max_from: Height,
+    first_txout: &impl ReadableVec<Height, TxOutIndex>,
+    output_types: &BytesVec<TxOutIndex, OutputType>,
+    values: &OverflowVec<TxOutIndex, Sats>,
+    exit: &Exit,
+) -> Result<()> {
+    let version = first_txout.version() + output_types.version() + values.version();
+    let end = first_txout.len();
+    let start = prepare_computed(
+        [target as &mut dyn AnyStoredVec],
+        version,
+        usize::from(max_from).min(end),
+    )?;
+    if start < end {
+        let mut first_txout = first_txout.cursor();
+        first_txout.advance(start);
+        let mut output_index = first_txout.next().data()?.to_usize();
+        let values = values.reader();
+        let mut output_types = output_types.range_cursor_at(output_index, values.len());
+        let mut cumulative = target.collect_last().unwrap_or_default();
+        for _ in start..end {
+            let next_output = first_txout.next().map_or(values.len(), |i| i.to_usize());
+            output_types.for_each(next_output - output_index, |output_type| {
+                if output_type == OutputType::OpReturn {
+                    cumulative += values.get_at(output_index);
+                }
+                output_index += 1;
+            });
+            target.push(cumulative);
+        }
+    }
+    let _lock = exit.lock();
+    target.write()?;
     Ok(())
 }

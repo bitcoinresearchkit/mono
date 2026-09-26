@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use bitview_cohort::UTXOAggregateId;
 use brk_error::Result;
-use brk_types::{Date, Day1};
+use brk_types::{CentsCompact, Date, Day1, Sats};
 use vecdb::StorageMode;
 
 use super::Metrics;
@@ -23,13 +23,13 @@ impl Metrics {
         &self,
         id: UTXOAggregateId,
         date: Date,
-        urpd: &UrpdRaw,
+        urpd: &[(CentsCompact, Sats)],
     ) -> Result<()> {
         UrpdRaw::write(
             &self.states_path,
             id.cohort_name().id,
             date,
-            urpd.map.iter().map(|(&price, &sats)| (price, sats)),
+            urpd.iter().copied(),
         )
     }
 

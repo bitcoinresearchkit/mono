@@ -15,6 +15,8 @@ mod chain_rpc;
 #[cfg(feature = "chain")]
 mod cumulative_sources;
 #[cfg(feature = "chain")]
+mod distribution_lifetime;
+#[cfg(feature = "chain")]
 mod genesis_routes;
 #[cfg(feature = "chain")]
 mod header_integrity;
@@ -46,6 +48,7 @@ mod server_routes;
 mod sync_success;
 #[cfg(feature = "chain")]
 mod transaction_publication;
+mod transaction_values;
 #[cfg(feature = "urpd")]
 mod urpd;
 #[cfg(feature = "urpd")]

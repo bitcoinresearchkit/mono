@@ -3,7 +3,7 @@ use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::UnaryTransform;
 
-use crate::{LazyBlockRollingDistribution, LazyDistribution, TxDerivedDistribution};
+use crate::{LazyDistribution, TxDerivedDistribution};
 use bitview_compute::ComputedVecValue;
 
 #[derive(Clone, Traversable)]
@@ -13,8 +13,8 @@ where
     S1T: ComputedVecValue,
 {
     pub block: LazyDistribution<Height, T, S1T>,
-    #[traversable(flatten)]
-    pub distribution: LazyBlockRollingDistribution<T, S1T>,
+    /// Uses the six-block window ending at the represented block.
+    pub _6b: LazyDistribution<Height, T, S1T>,
 }
 
 impl<T, S1T> LazyTxDerivedDistribution<T, S1T>
@@ -28,16 +28,8 @@ where
         source: &TxDerivedDistribution<S1T>,
     ) -> Self {
         let block = LazyDistribution::from_distribution::<F>(name, version, &source.block);
-        let distribution = LazyBlockRollingDistribution {
-            _6b: LazyDistribution::from_distribution::<F>(
-                &format!("{name}_6b"),
-                version,
-                &source.distribution._6b,
-            ),
-        };
-        Self {
-            block,
-            distribution,
-        }
+        let _6b =
+            LazyDistribution::from_distribution::<F>(&format!("{name}_6b"), version, &source._6b);
+        Self { block, _6b }
     }
 }

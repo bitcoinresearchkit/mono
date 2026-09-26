@@ -11,14 +11,6 @@ pub struct ThresholdVecs<T> {
 }
 
 impl<T> ThresholdVecs<T> {
-    pub fn iter(&self) -> impl Iterator<Item = &T> {
-        [
-            &self.threshold_pct0_1,
-            &self.threshold_pct0_05,
-            &self.threshold_pct0_025,
-        ]
-        .into_iter()
-    }
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [
             &mut self.threshold_pct0_1,

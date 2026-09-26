@@ -6655,8 +6655,6 @@ function createTermPattern(client, acc) {
 /**
  * @typedef {Object} SeriesTree_Transactions_Fees
  * @property {SeriesTree_Transactions_Fees_Count} count
- * @property {SeriesPattern19<Sats>} inputValue
- * @property {SeriesPattern19<Sats>} outputValue
  * @property {_6bBlockTxPattern<Sats>} fee
  * @property {SeriesPattern19<FeeRate>} feeRate
  * @property {_6bBlockTxPattern<FeeRate>} effectiveFeeRate
@@ -12925,8 +12923,6 @@ class BitviewClient extends BitviewClientBase {
             cpfpParent: createAverageBlockCumulativeSumPattern(client, 'cpfp_parent_count'),
             cpfpChild: createAverageBlockCumulativeSumPattern(client, 'cpfp_child_count'),
           })); },
-          inputValue: createSeriesPattern19(client, 'input_value'),
-          outputValue: createSeriesPattern19(client, 'output_value'),
           fee: create_6bBlockTxPattern(client, 'fee'),
           feeRate: createSeriesPattern19(client, 'fee_rate'),
           effectiveFeeRate: create_6bBlockTxPattern(client, 'effective_fee_rate'),

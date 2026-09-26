@@ -3,7 +3,7 @@ use std::iter;
 use bitview_cohort::{AgeRange, AgeRangeId, ByTerm, UTXOAggregateId};
 use bitview_compute::{
     AgeBand, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, WeightedCohortContribution,
-    WeightedCohortState, WeightedRatio,
+    WeightedCohortState, WeightedRatio, prepare_computed,
 };
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_plugin_indexer::Lengths;
@@ -41,7 +41,7 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         let Dependencies {
-            utxo_states,
+            age_urpds,
             price,
             indexer,
             mappings,
@@ -121,7 +121,7 @@ impl ComputePlugin for Vecs {
             &weights,
             &supplies,
             |day, date, weights| {
-                utxo_states.with_urpd_entries(
+                age_urpds.with_entries(
                     &distribution.states_path,
                     date,
                     usize::from(day) + 1 == mappings.day1.date.len(),
@@ -357,20 +357,11 @@ impl Vecs {
                 .chain(capitalized_cap_raw.iter().map(|vec| vec.version())),
         );
 
-        for vec in self.primary_vecs_mut() {
-            vec.any_validate_computed_version_or_reset(source_version)?;
-        }
-
-        let start = self
-            .primary_vecs_mut()
-            .map(|vec| vec.len())
-            .min()
-            .unwrap_or_default()
-            .min(usize::from(starting_lengths.height));
-
-        for vec in self.primary_vecs_mut() {
-            vec.any_truncate_if_needed_at(start)?;
-        }
+        let start = prepare_computed(
+            self.primary_vecs_mut().collect::<Vec<_>>(),
+            source_version,
+            usize::from(starting_lengths.height),
+        )?;
 
         let source_end = transfer_volumes
             .iter()
@@ -743,6 +734,19 @@ mod tests {
         for horizon in HorizonId::ALL {
             let probability = *AgeRangeId::From1DTo1W.select(horizon.select(&probabilities));
             assert!((probability - AgeBand::mobility(0.01 * horizon.days())).abs() < 1e-12);
+        }
+        let hazards = AgeRange::from_fn(|age| match age {
+            AgeRangeId::From3MTo4M => 0.01,
+            AgeRangeId::From4MTo5M => 0.02,
+            AgeRangeId::From5MTo6M => 0.03,
+            AgeRangeId::From6MTo9M => 0.04,
+            _ => 0.0,
+        });
+        let probabilities = horizon_mobilities(&hazards, &bounds);
+        // Start at day 105: 15 days in the first band, then complete and partial bands.
+        for (horizon, exposure) in [(HorizonId::M1, 0.45), (HorizonId::M3, 2.25)] {
+            let probability = *AgeRangeId::From3MTo4M.select(horizon.select(&probabilities));
+            assert!((probability - AgeBand::mobility(exposure)).abs() < 1e-12);
         }
     }
 

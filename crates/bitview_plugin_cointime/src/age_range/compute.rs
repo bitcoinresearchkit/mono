@@ -1,10 +1,11 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
+use bitview_compute::prepare_computed;
 use bitview_plugin_distribution::Vecs as DistributionVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, BoundedRatio, Height, Sats, StoredF64, Version};
-use vecdb::{AnyVec, CheckedSub, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, CheckedSub, ReadableVec, WritableVec};
 
 use super::Vecs;
 
@@ -48,17 +49,13 @@ pub fn compute(
 }
 
 impl Vecs {
-    fn compute_consumed<V, D>(
+    fn compute_consumed(
         &mut self,
         starting_height: Height,
-        transfer_volumes: &AgeRange<&V>,
-        source_coindays_destroyed: &AgeRange<&D>,
+        transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
+        source_coindays_destroyed: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
         exit: &Exit,
-    ) -> Result<()>
-    where
-        V: ReadableVec<Height, Sats>,
-        D: ReadableVec<Height, StoredF64>,
-    {
+    ) -> Result<()> {
         let version = Version::combine_all(
             transfer_volumes
                 .iter()
@@ -72,19 +69,13 @@ impl Vecs {
             .min()
             .unwrap_or_default();
         let bounds = age_bounds_days();
-        for vec in self.coindays_consumed.iter_mut() {
-            vec.validate_computed_version_or_reset(version)?;
-        }
-        let start = self
-            .coindays_consumed
-            .iter()
-            .map(|v| v.cumulative.height.len())
-            .min()
-            .unwrap_or_default()
-            .min(usize::from(starting_height));
-        for vec in self.coindays_consumed.iter_mut() {
-            vec.truncate_if_needed_at(start)?;
-        }
+        let start = prepare_computed(
+            self.coindays_consumed
+                .as_array_mut()
+                .map(|vec| vec.stored_mut()),
+            version,
+            usize::from(starting_height),
+        )?;
         let mut chunk_start = start;
         while chunk_start < source_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
@@ -116,48 +107,49 @@ impl Vecs {
         Ok(())
     }
 
-    fn compute_rest<C>(
+    fn compute_rest(
         &mut self,
         starting_height: Height,
-        created: &AgeRange<&C>,
+        created: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
         exit: &Exit,
-    ) -> Result<()>
-    where
-        C: ReadableVec<Height, StoredF64>,
-    {
+    ) -> Result<()> {
         for id in AgeRangeId::ALL {
             let created = id.select(created);
             let consumed = &id.select(&self.coindays_consumed).cumulative.height;
-            id.select_mut(&mut self.coindays_stored)
-                .cumulative
-                .height
-                .compute_transform2(
-                    starting_height,
-                    *created,
-                    consumed,
-                    |(height, created, consumed, ..)| {
-                        (
-                            height,
-                            created
-                                .checked_sub(consumed)
-                                .expect("coindays stored underflow"),
-                        )
-                    },
-                    exit,
-                )?;
-            id.select_mut(&mut self.activity_sources)
-                .compute_transform2(
-                    starting_height,
-                    consumed,
-                    *created,
-                    |(height, consumed, created, ..)| {
-                        (
-                            height,
-                            BoundedRatio::from(f64::from(consumed) / f64::from(created)),
-                        )
-                    },
-                    exit,
-                )?;
+            let stored = id.select_mut(&mut self.coindays_stored);
+            let activity = id.select_mut(&mut self.activity_sources);
+            let source_end = created.len().min(consumed.len());
+            let mut start = prepare_computed(
+                [stored.stored_mut(), activity],
+                created.version() + consumed.version(),
+                usize::from(starting_height).min(source_end),
+            )?;
+            // Persist the common rewind before appending either output.
+            let mut end = start;
+            loop {
+                let mut consumed = consumed.collect_range_at(start, end).into_iter();
+                created.fold_range_at(start, end, (), |(), created| {
+                    let consumed = consumed.next().unwrap();
+                    stored.cumulative.height.push(
+                        created
+                            .checked_sub(consumed)
+                            .expect("coindays stored underflow"),
+                    );
+                    activity.push(BoundedRatio::from(f64::from(consumed) / f64::from(created)));
+                });
+                let _lock = exit.lock();
+                stored.write()?;
+                activity.write()?;
+                if end == source_end {
+                    break;
+                }
+                start = end;
+                end = stored
+                    .cumulative
+                    .height
+                    .batch_end(source_end)
+                    .min(activity.batch_end(source_end));
+            }
         }
         Ok(())
     }

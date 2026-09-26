@@ -4,7 +4,7 @@
 //! and rolling sums/averages are all derived lazily from it.
 
 use bitview_collections::Windows;
-use bitview_compute::{NumericValue, compute_cumulative_sum_from_indexes};
+use bitview_compute::NumericValue;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -130,15 +130,14 @@ where
         T: Copy,
     {
         self.last_cumulative = None;
-        compute_cumulative_sum_from_indexes(
-            &mut self.cumulative.height,
+        Ok(self.cumulative.height.compute_cumulative_sum_from_indexes(
             max_from,
             first_indexes,
             indexes_count,
             source,
             transform,
             exit,
-        )
+        )?)
     }
 
     pub fn validate_computed_version_or_reset(&mut self, version: Version) -> Result<()> {

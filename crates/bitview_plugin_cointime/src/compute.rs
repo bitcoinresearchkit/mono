@@ -18,7 +18,7 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<Self::Output> {
         let Dependencies {
-            utxo_states,
+            age_urpds,
             mappings,
             indexer,
             price: prices,
@@ -139,7 +139,7 @@ impl ComputePlugin for Vecs {
             &weights,
             &supplies,
             |day, date, weights| {
-                utxo_states.with_urpd_entries(
+                age_urpds.with_entries(
                     &distribution.states_path,
                     date,
                     usize::from(day) + 1 == mappings.day1.date.len(),

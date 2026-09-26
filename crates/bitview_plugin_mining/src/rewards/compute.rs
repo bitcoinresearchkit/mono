@@ -7,7 +7,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{CheckedSub, Halving, Height, Sats};
 use rayon::join;
-use vecdb::{ReadableVec, VecIndex};
+use vecdb::VecIndex;
 
 use super::Vecs;
 
@@ -47,14 +47,8 @@ pub fn compute(
             vecs.coinbase.compute_from(
                 starting_height,
                 &prices.spot.cents.height,
-                &indexer.vecs().transactions.first_tx_index,
-                |_, tx_index| {
-                    transactions
-                        .fees
-                        .output_value
-                        .collect_one(tx_index)
-                        .unwrap()
-                },
+                &transactions.fees.coinbase_value,
+                |_, value| value,
                 exit,
             )
         },

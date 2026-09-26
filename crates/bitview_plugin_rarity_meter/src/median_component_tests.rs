@@ -5,7 +5,10 @@ use tempfile::tempdir;
 use vecdb::{AnyStoredVec, WritableVec};
 
 use super::*;
-use crate::{START_HEIGHT, inner, test_cache::init_cache, test_common as common};
+use crate::{
+    START_HEIGHT, inner,
+    test_common::{self as common, init_cache},
+};
 
 #[test]
 fn combined_meter_refreshes_blocks_before_a_daily_median_resume() {

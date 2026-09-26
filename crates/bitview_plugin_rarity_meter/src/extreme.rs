@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, iter::repeat_n};
 
-use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue};
+use bitview_compute::{ExactOrderStats, FenwickTree, NumericValue, prepare_computed};
 use bitview_plugin_indexer::Indexer;
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
@@ -9,7 +9,7 @@ use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, StoredU8, Version};
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
 
 use crate::threshold_vecs::ThresholdVecs;
 
@@ -171,38 +171,18 @@ where
         config: Config,
         exit: &Exit,
     ) -> Result<()> {
-        let dependency_version = source.version();
-        for output in [
-            &mut self.thresholds.threshold_pct0_1.height as &mut dyn AnyStoredVec,
-            &mut self.thresholds.threshold_pct0_05.height,
-            &mut self.thresholds.threshold_pct0_025.height,
-            &mut self.tail.ppm.height,
-            &mut self.rank.height,
-        ] {
-            output.any_validate_computed_version_or_reset(dependency_version)?;
-        }
-
         let source_end = source.len();
-        let start = [
-            self.thresholds
-                .iter()
-                .map(|v| v.height.len())
-                .min()
-                .unwrap_or_default(),
-            self.tail.ppm.height.len(),
-            self.rank.height.len(),
-            starting_height.to_usize(),
-            source_end,
-        ]
-        .into_iter()
-        .min()
-        .unwrap_or_default();
-
-        for v in self.thresholds.iter_mut() {
-            v.height.any_truncate_if_needed_at(start)?;
-        }
-        self.tail.ppm.height.any_truncate_if_needed_at(start)?;
-        self.rank.height.any_truncate_if_needed_at(start)?;
+        let start = prepare_computed(
+            [
+                &mut self.thresholds.threshold_pct0_1.height as &mut dyn AnyStoredVec,
+                &mut self.thresholds.threshold_pct0_05.height,
+                &mut self.thresholds.threshold_pct0_025.height,
+                &mut self.tail.ppm.height,
+                &mut self.rank.height,
+            ],
+            source.version(),
+            starting_height.to_usize().min(source_end),
+        )?;
         self.write(exit)?;
 
         if source_end.saturating_sub(start) > BULK_BACKFILL_THRESHOLD {

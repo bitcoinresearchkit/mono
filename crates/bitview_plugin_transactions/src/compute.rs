@@ -2,9 +2,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
 use rayon::join;
 
-use super::{
-    Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions, volume,
-};
+use super::{Vecs, count, features, fees, inscription, patterns, policy, sigops, size, versions};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
@@ -53,6 +51,7 @@ impl ComputePlugin for Vecs {
             &inputs.value,
             mappings,
             &self.size,
+            &mut self.volume.transfer_volume.cumulative.sats.height,
             exit,
         )?;
 
@@ -62,12 +61,9 @@ impl ComputePlugin for Vecs {
 
         policy::compute(&mut self.policy, indexer, mappings, &self.fees, exit)?;
 
-        volume::compute(
-            &mut self.volume,
-            indexer,
-            mappings,
-            prices,
-            &self.fees,
+        self.volume.transfer_volume.compute_cents(
+            indexer.safe_lengths().height,
+            &prices.spot.cents.height,
             exit,
         )?;
 

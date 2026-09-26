@@ -3,7 +3,7 @@ use std::{marker::PhantomData, result::Result, slice};
 use rawdb::{Reader, Region};
 
 use super::super::{RawStrategy, ReadWriteRawVec};
-use crate::{AnyStoredVec, HEADER_OFFSET, VecIndex, VecValue, cache::CachePolicy};
+use crate::{AnyStoredVec, HEADER_OFFSET, READ_CHUNK_SIZE, VecIndex, VecValue, cache::CachePolicy};
 
 /// Read-only mmap-backed source over a raw (uncompressed) vector.
 ///
@@ -66,18 +66,57 @@ where
         if len == 0 {
             return;
         }
-        if S::IS_NATIVE_LAYOUT {
-            // SAFETY: native-layout values have the stored representation and
-            // alignment of T. The bounded range and mmap reader remain valid
-            // until the copy completes.
-            let values = unsafe {
-                slice::from_raw_parts(self.data.add(self.pos * Self::SIZE_OF_T).cast::<T>(), len)
-            };
+        if let Some(values) = self.as_slice() {
             output.extend_from_slice(values);
         } else {
             output.reserve(len);
             self.fold((), |(), value| output.push(value));
         }
+    }
+
+    /// Visit resident native-layout values without a staging buffer.
+    /// Returns false without visiting anything when decoding or file I/O is needed.
+    pub(crate) fn try_for_each_chunk(
+        region: &Region,
+        stored_len: usize,
+        from: usize,
+        to: usize,
+        each: &mut dyn FnMut(usize, &[T]),
+    ) -> bool {
+        let from = from.min(stored_len);
+        let to = to.min(stored_len);
+        if from >= to {
+            return true;
+        }
+        let offset = HEADER_OFFSET + from * Self::SIZE_OF_T;
+        let bytes = (to - from) * Self::SIZE_OF_T;
+        if !S::IS_NATIVE_LAYOUT || !region.prefers_mmap(offset, bytes) {
+            return false;
+        }
+        let source = Self::new_from_parts(region, stored_len, from, to);
+        for (index, values) in source
+            .as_slice()
+            .unwrap()
+            .chunks(READ_CHUNK_SIZE)
+            .enumerate()
+        {
+            each(from + index * READ_CHUNK_SIZE, values);
+        }
+        true
+    }
+
+    fn as_slice(&self) -> Option<&[T]> {
+        if !S::IS_NATIVE_LAYOUT {
+            return None;
+        }
+        // SAFETY: native-layout values have T's stored representation and alignment.
+        // The bounded range remains valid while this source owns the mmap reader.
+        Some(unsafe {
+            slice::from_raw_parts(
+                self.data.add(self.pos * Self::SIZE_OF_T).cast::<T>(),
+                self.end.saturating_sub(self.pos),
+            )
+        })
     }
 
     /// Fold all elements in the range — tight pointer loop.

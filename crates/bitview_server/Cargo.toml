@@ -70,6 +70,8 @@ tower-http = { workspace = true, features = ["limit"] }
 tower-layer = { workspace = true }
 
 [dev-dependencies]
+bitview_plugin_blocks = { workspace = true }
+bitview_plugin_mining = { workspace = true }
 bitview_urpd = { workspace = true }
 bitview_cohort = { workspace = true }
 vecdb = { workspace = true }

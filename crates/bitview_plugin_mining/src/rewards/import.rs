@@ -1,5 +1,4 @@
 use bitview_collections::Windows;
-use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::{OneMinusPpm, RatioSats};
 use bitview_vecs::{
@@ -8,26 +7,20 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_types::{PartsPerMillion32, PartsPerMillion64, Sats, Version};
-use vecdb::{AnyVec, Database, EagerVec, ImportableVec};
+use vecdb::{Database, EagerVec, ImportableVec};
 
 use super::Vecs;
 
 pub fn forced_import(
     db: &Database,
     version: Version,
-    indexer: &Indexer,
     mappings: &MappingsVecs,
     window_starts: &Windows<&LazyWindowStartVec>,
 ) -> Result<Vecs> {
-    let coinbase_version = version
-        + indexer.vecs().transactions.first_txout_index.version()
-        + mappings.tx_index.output_count.version()
-        + indexer.vecs().outputs.value.version();
-
     let coinbase = ValuePerBlockCumulativeRolling::forced_import(
         db,
         "coinbase",
-        coinbase_version,
+        version,
         mappings,
         window_starts,
     )?;

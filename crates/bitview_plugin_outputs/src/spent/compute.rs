@@ -1,10 +1,12 @@
+use std::iter::repeat_n;
+
 use brk_error::Result;
 
 use bitview_plugin_indexer::Indexer;
 use brk_exit::{Exit, ExitGuard};
 use brk_types::{Height, TxInIndex, TxOutIndex};
 use tracing::{info, warn};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, Error as VecError, ReadableVec, Stamp, VecIndex, WritableVec};
 
 use super::Vecs;
 
@@ -88,8 +90,6 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
         starting_lengths.height
     );
 
-    let mut pairs: Vec<(TxOutIndex, TxInIndex)> = Vec::new();
-
     let mut batch_start_height = min_height;
     while batch_start_height <= target_height {
         let batch_end_height = (batch_start_height + HEIGHT_BATCH).min(target_height);
@@ -103,11 +103,10 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
         // Keep the batch staged: fill_to may issue an unstamped write before
         // rollback data for a reorg truncation has been saved.
         let len = vecs.txin_index.len();
-        vecs.txin_index
-            .reserve_pushed(batch_txout_index.saturating_sub(len));
-        for _ in len..batch_txout_index {
-            vecs.txin_index.push(TxInIndex::UNSPENT);
-        }
+        vecs.txin_index.extend(repeat_n(
+            TxInIndex::UNSPENT,
+            batch_txout_index.saturating_sub(len),
+        ));
 
         // Get txin range for this height batch
         let txin_start = first_txin_index_data[batch_start_height.to_usize() - offset].to_usize();
@@ -117,30 +116,33 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
             first_txin_index_data[batch_end_height.to_usize() + 1 - offset].to_usize()
         };
 
-        // Stream txins directly into pairs — avoids intermediate Vec allocation
-        pairs.clear();
+        // Appended outputs are still in memory; only stored updates need sorting.
+        let mut stored_updates = Vec::new();
+        let stored_len = vecs.txin_index.stored_len();
+        let pushed = vecs.txin_index.pushed_mut();
         let mut j = txin_start;
-        txin_index_to_txout_index.for_each_range_at(
-            txin_start,
-            txin_end,
-            |txout_index: TxOutIndex| {
+        txin_index_to_txout_index
+            .try_for_each_range_at(txin_start, txin_end, |txout_index: TxOutIndex| {
                 if !txout_index.is_coinbase() {
-                    pairs.push((txout_index, TxInIndex::from(j)));
+                    let txin_index = TxInIndex::from(j);
+                    let index = txout_index.to_usize();
+                    if index < stored_len {
+                        stored_updates.push((txout_index, txin_index));
+                    } else {
+                        *pushed.get_mut(index - stored_len).ok_or(index)? = txin_index;
+                    }
                 }
                 j += 1;
-            },
-        );
+                Ok(())
+            })
+            .map_err(|index| VecError::IndexTooHigh {
+                index,
+                len: vecs.txin_index.len(),
+                name: vecs.txin_index.name().to_owned(),
+            })?;
 
-        pairs.sort_unstable_by_key(|(txout_index, _)| *txout_index);
-
-        // Build the stored mutation tree in bulk; appended outputs update directly.
-        let stored_len = vecs.txin_index.stored_len();
-        let stored_end = pairs.partition_point(|(index, _)| index.to_usize() < stored_len);
-        vecs.txin_index
-            .update_many(pairs[..stored_end].iter().copied())?;
-        for &(txout_index, txin_index) in &pairs[stored_end..] {
-            vecs.txin_index.update(txout_index, txin_index)?;
-        }
+        stored_updates.sort_unstable_by_key(|(txout_index, _)| *txout_index);
+        vecs.txin_index.update_many(stored_updates)?;
 
         if batch_end_height < target_height {
             let _lock = exit.lock();

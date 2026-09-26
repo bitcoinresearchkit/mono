@@ -1,14 +1,14 @@
 use std::iter;
 
 use bitview_cohort::{AgeRange, ByTerm};
-use bitview_compute::{WeightedCohortAggregates, WeightedCohortState};
+use bitview_compute::{WeightedCohortAggregates, WeightedCohortState, prepare_computed};
 use bitview_plugin_distribution::Vecs as DistributionVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::PerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{BoundedRatio, Cents, CentsSats, CentsSquaredSats, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, CachePolicy, EagerVec, PcoVec, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, CachePolicy, EagerVec, PcoVec, ReadableVec, WritableVec};
 
 use super::{super::AgeRangeVecs, Sources, Vecs};
 
@@ -87,24 +87,15 @@ impl Sources {
                 .chain(weights.iter().map(|vec| vec.version())),
         );
 
-        for vec in self.primary_vecs_mut() {
-            vec.any_validate_computed_version_or_reset(source_version)?;
-        }
-        all_supply_in_loss_share.any_validate_computed_version_or_reset(source_version)?;
-
-        let start = self
-            .primary_vecs_mut()
-            .into_iter()
-            .map(|vec| vec.len())
-            .chain(iter::once(all_supply_in_loss_share.len()))
-            .min()
-            .unwrap_or_default()
-            .min(usize::from(starting_height));
-
-        for vec in self.primary_vecs_mut() {
-            vec.any_truncate_if_needed_at(start)?;
-        }
-        all_supply_in_loss_share.truncate_if_needed_at(start)?;
+        let start = prepare_computed(
+            self.primary_vecs_mut()
+                .chain(iter::once(
+                    all_supply_in_loss_share as &mut dyn AnyStoredVec,
+                ))
+                .collect::<Vec<_>>(),
+            source_version,
+            usize::from(starting_height),
+        )?;
         let aggregate_end = supplies
             .iter()
             .map(|vec| vec.len())
@@ -119,18 +110,16 @@ impl Sources {
         let mut chunk_start = start;
         while chunk_start < aggregate_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(aggregate_end);
-            let aggregate_start = chunk_start.min(aggregate_end);
-            let aggregate_chunk_end = chunk_end.min(aggregate_end);
             let supply_batches = AgeRange::from_fn(|id| {
                 id.select(supplies).collect_range_at(chunk_start, chunk_end)
             });
             let loss_batches = AgeRange::from_fn(|id| {
                 id.select(loss_supplies)
-                    .collect_range_at(aggregate_start, aggregate_chunk_end)
+                    .collect_range_at(chunk_start, chunk_end)
             });
             let cap_batches = AgeRange::from_fn(|id| {
                 id.select(realized_caps)
-                    .collect_range_at(aggregate_start, aggregate_chunk_end)
+                    .collect_range_at(chunk_start, chunk_end)
             });
             let raw_batches =
                 AgeRange::from_fn(|id| id.select(cap_raw).collect_range_at(chunk_start, chunk_end));
@@ -234,9 +223,9 @@ impl Sources {
             .push(terms.long.supply_in_loss.value());
     }
 
-    fn primary_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        vec![
-            &mut self.over_4m_awake_price,
+    fn primary_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        [
+            &mut self.over_4m_awake_price as &mut dyn AnyStoredVec,
             &mut self.over_4m_awake_capitalized_price,
             &mut self.over_6m_awake_price,
             &mut self.over_6m_awake_capitalized_price,
@@ -262,6 +251,7 @@ impl Sources {
             &mut self.supply_in_loss_share.short,
             &mut self.supply_in_loss_share.long,
         ]
+        .into_iter()
     }
 }
 
@@ -271,7 +261,7 @@ mod tests {
 
     use bitview_cohort::AgeRangeId;
     use tempfile::tempdir;
-    use vecdb::{BytesVec, Database, ImportableVec};
+    use vecdb::{AnyVec, BytesVec, Database, ImportableVec};
 
     use super::*;
 

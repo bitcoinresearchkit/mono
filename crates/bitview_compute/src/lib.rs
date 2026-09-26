@@ -4,8 +4,8 @@
 mod age_band;
 mod block_walker;
 mod cohort_weight;
-mod cumulative_sum;
 mod drawdown;
+mod prepare;
 mod statistics;
 mod traits;
 mod weighted;
@@ -13,8 +13,8 @@ mod weighted;
 pub use age_band::{AgeBand, MINIMUM_DURATION_DAYS};
 pub use block_walker::{BlockAggregate, CoinbasePolicy, walk_blocks};
 pub use cohort_weight::{collect_cohort_weights, resolve_cohort_value, resolve_cohort_weight};
-pub use cumulative_sum::compute_cumulative_sum_from_indexes;
 pub use drawdown::ComputeDrawdown;
+pub use prepare::prepare_computed;
 pub use statistics::{
     ComputeRollingMedianFromStarts, ExactOrderStats, FenwickNode, FenwickTree,
     compute_rolling_distribution_from_starts,

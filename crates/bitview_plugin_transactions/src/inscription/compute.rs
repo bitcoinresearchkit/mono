@@ -1,10 +1,11 @@
+use bitview_compute::prepare_computed;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::RatioSats;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, PartsPerMillion32, Sats, StoredBool, StoredU64, TxIndex};
-use vecdb::{AnyStoredVec, AnyVec, BinaryTransform, ReadableVec, VecIndex, WritableVec};
+use vecdb::{AnyStoredVec, BinaryTransform, ReadableVec, VecIndex, WritableVec};
 
 use super::Vecs;
 use crate::FeesVecs;
@@ -30,6 +31,7 @@ pub fn compute(
         starting_height,
         &indexer.vecs().transactions.first_tx_index,
         &mappings.height.tx_index_count,
+        &features.count.inscription,
         &features.has_inscription,
         &fees.fee.tx_index,
         exit,
@@ -37,41 +39,33 @@ pub fn compute(
 }
 
 impl Vecs {
+    #[allow(clippy::too_many_arguments)]
     pub(super) fn compute_fees(
         &mut self,
         starting_height: Height,
         first_tx: &impl ReadableVec<Height, TxIndex>,
         tx_counts: &impl ReadableVec<Height, StoredU64>,
+        inscription_counts: &impl ReadableVec<Height, StoredU64>,
         inscriptions: &impl ReadableVec<TxIndex, StoredBool>,
         fees: &impl ReadableVec<TxIndex, Sats>,
         exit: &Exit,
     ) -> Result<()> {
-        let version =
-            first_tx.version() + tx_counts.version() + inscriptions.version() + fees.version();
-        self.fees.validate_and_truncate(version, starting_height)?;
-        self.fee_share
-            .ppm
-            .height
-            .validate_and_truncate(version, starting_height)?;
-
-        let end_height = first_tx.len().min(tx_counts.len());
-        let start_height = self
-            .fees
-            .cumulative
-            .height
+        let version = first_tx.version()
+            + tx_counts.version()
+            + inscription_counts.version()
+            + inscriptions.version()
+            + fees.version();
+        let end_height = first_tx
             .len()
-            .min(self.fee_share.ppm.height.len())
-            .min(end_height);
-        self.fees.truncate_if_needed_at(start_height)?;
-        self.fee_share
-            .ppm
-            .height
-            .truncate_if_needed_at(start_height)?;
+            .min(tx_counts.len())
+            .min(inscription_counts.len());
+        let start_height = prepare_computed(
+            [self.fees.stored_mut(), &mut self.fee_share.ppm.height],
+            version,
+            starting_height.to_usize().min(end_height),
+        )?;
         if start_height == end_height {
-            let _lock = exit.lock();
-            self.fees.stored_mut().write()?;
-            self.fee_share.ppm.height.write()?;
-            return Ok(());
+            return self.write_fees(exit);
         }
 
         let end_tx = inscriptions.len().min(fees.len());
@@ -79,9 +73,9 @@ impl Vecs {
         let mut inscriptions = inscriptions.cursor();
         let mut fees = fees.cursor();
         let mut counts = tx_counts.cursor();
-        inscriptions.advance(block_start);
-        fees.advance(block_start);
+        let mut inscription_counts = inscription_counts.cursor();
         counts.advance(start_height);
+        inscription_counts.advance(start_height);
 
         for height in start_height..end_height {
             let block_end = block_start + u64::from(counts.next().unwrap()) as usize;
@@ -91,12 +85,16 @@ impl Vecs {
             }
             let mut total = Sats::ZERO;
             let mut inscribed = Sats::ZERO;
-            for _ in block_start..block_end {
-                let fee = fees.next().unwrap();
-                total += fee;
-                if inscriptions.next().unwrap().is_true() {
-                    inscribed += fee;
-                }
+            // With no inscriptions, both the fee sum and share are zero.
+            if u64::from(inscription_counts.next().unwrap()) > 0 {
+                fees.advance(block_start - fees.position());
+                inscriptions.advance(block_start - inscriptions.position());
+                fees.for_each(block_end - block_start, |fee| {
+                    total += fee;
+                    if inscriptions.next().unwrap().is_true() {
+                        inscribed += fee;
+                    }
+                });
             }
             self.fees.push_block(inscribed);
             self.fee_share
@@ -106,13 +104,15 @@ impl Vecs {
             block_start = block_end;
 
             if (height + 1).is_multiple_of(WRITE_INTERVAL) {
-                let _lock = exit.lock();
-                self.fees.stored_mut().write()?;
-                self.fee_share.ppm.height.write()?;
+                self.write_fees(exit)?;
             }
         }
+        self.write_fees(exit)
+    }
+
+    fn write_fees(&mut self, exit: &Exit) -> Result<()> {
         let _lock = exit.lock();
-        self.fees.stored_mut().write()?;
+        self.fees.write()?;
         self.fee_share.ppm.height.write()?;
         Ok(())
     }

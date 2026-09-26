@@ -417,7 +417,7 @@ macro_rules! impl_mutable_raw_vec {
 
                 fn append_previous_values(
                     &self,
-                    indices: &BTreeSet<usize>,
+                    indices: &[usize],
                     previous: &BTreeMap<usize, T>,
                     bytes: &mut Vec<u8>,
                 ) {

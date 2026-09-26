@@ -8,7 +8,7 @@ use std::{
 
 use bitview_cohort::{AgeRange, AgeRangeId};
 use brk_error::Result;
-use brk_types::Date;
+use brk_types::{CentsCompact, Date, Sats};
 
 use super::{AgeRangeUrpds, format::HEADER_LEN};
 use crate::UrpdRaw;
@@ -22,6 +22,24 @@ impl AgeRangeUrpds {
 
     pub fn path(states_path: &Path, date: Date) -> PathBuf {
         Self::dir(states_path).join(date.to_string())
+    }
+
+    /// Use this update's snapshot for the current day, or load a completed day.
+    pub fn with_entries<T>(
+        &self,
+        states_path: &Path,
+        date: Date,
+        current: bool,
+        compute: impl FnOnce(&mut dyn Iterator<Item = (AgeRangeId, CentsCompact, Sats)>) -> T,
+    ) -> Result<Option<T>> {
+        if current {
+            return Ok(Some(compute(&mut self.iter())));
+        }
+        if !Self::path(states_path, date).try_exists()? {
+            return Ok(None);
+        }
+        let source = Self::read(states_path, date)?;
+        Ok(Some(compute(&mut source.iter())))
     }
 
     pub fn read(states_path: &Path, date: Date) -> Result<Self> {

@@ -10,6 +10,7 @@ pub struct Block {
     pub input_begin: usize,
     pub input_values: Vec<Sats>,
     pub output_values: Vec<Sats>,
+    pub transfer_volume: Sats,
     pub fees: Vec<Sats>,
     pub fee_rates: Vec<FeeRate>,
     pub effective_fee_rates: Vec<FeeRate>,
@@ -24,6 +25,7 @@ impl Block {
         self.first_tx = first_tx;
         self.input_values.clear();
         self.output_values.clear();
+        self.transfer_volume = Sats::ZERO;
         self.fees.clear();
         self.fee_rates.clear();
         self.vsizes.clear();
@@ -47,6 +49,7 @@ impl Block {
             let fee = if unlikely(input.is_max()) {
                 Sats::ZERO
             } else {
+                self.transfer_volume += input;
                 input - output
             };
             self.fees.push(fee);
@@ -101,8 +104,6 @@ impl Cluster {
         self.roots.clear();
         self.roots.extend(0..n);
         self.members.clear();
-        self.local_index.clear();
-        self.local_index.resize(n, usize::MAX);
 
         for child in 0..n {
             let mut parents: SmallVec<[usize; 2]> =
@@ -116,28 +117,31 @@ impl Cluster {
             self.parents[child] = parents;
         }
 
+        // Union attaches parent roots to children, so connected roots have parents.
+        // Transactions with neither parents nor children keep their raw rate.
         for tx in 0..n {
-            self.members.push((Self::root(&mut self.roots, tx), tx));
+            if !self.parents[tx].is_empty() || self.roots[tx] != tx {
+                self.members.push((Self::root(&mut self.roots, tx), tx));
+            }
         }
+        self.local_index.resize(n, 0);
         self.members.sort_unstable();
 
         let mut start = 0;
-        while start < n {
+        while start < self.members.len() {
             let component_root = self.members[start].0;
             let end = self.members[start..]
                 .partition_point(|&(candidate, _)| candidate == component_root)
                 + start;
-            if end - start > 1 {
-                Self::linearize_component(
-                    &self.members[start..end],
-                    &self.parents,
-                    fees,
-                    vsizes,
-                    effective_fee_rates,
-                    &mut self.local_index,
-                    &mut self.local_parents,
-                );
-            }
+            Self::linearize_component(
+                &self.members[start..end],
+                &self.parents,
+                fees,
+                vsizes,
+                effective_fee_rates,
+                &mut self.local_index,
+                &mut self.local_parents,
+            );
             start = end;
         }
     }
@@ -274,6 +278,45 @@ mod tests {
         );
 
         assert_eq!(rates, [FeeRate::new(1.0), FeeRate::new(3.0)]);
+
+        // Reuse the scratch state across changing block sizes, mixing isolated
+        // transactions with a chain whose first child spends its parent twice.
+        let mut cluster = Cluster::default();
+        for n in [7, 3, 9, 1, 0, 5, 10, 2] {
+            let mut starts = Vec::new();
+            let mut outpoints = Vec::new();
+            let mut fees = Vec::new();
+            for tx in 0..n {
+                starts.push(TxInIndex::from(outpoints.len()));
+                match tx {
+                    2 => outpoints.extend([
+                        OutPoint::new(TxIndex::from(10usize), Vout::ZERO),
+                        OutPoint::new(TxIndex::from(10usize), Vout::from(1u32)),
+                    ]),
+                    4 => outpoints.push(OutPoint::new(TxIndex::from(12usize), Vout::ZERO)),
+                    _ => outpoints.push(OutPoint::COINBASE),
+                }
+                fees.push(Sats::from(match tx {
+                    0 => 0u64,
+                    2 => 200,
+                    4 => 100,
+                    _ => (tx as u64 + 1) * 100,
+                }));
+            }
+            let sizes = vec![VSize::new(100); n];
+            let raw: Vec<_> = fees
+                .iter()
+                .map(|&fee| FeeRate::from((fee, sizes[0])))
+                .collect();
+            let mut expected = raw.clone();
+            if n >= 3 {
+                for tx in [0, 2, 4].into_iter().filter(|&tx| tx < n) {
+                    expected[tx] = FeeRate::new(1.0);
+                }
+            }
+            cluster.compute(&starts, &outpoints, 0, 10, &fees, &sizes, &raw, &mut rates);
+            assert_eq!(rates, expected, "block length {n}");
+        }
     }
 
     #[test]

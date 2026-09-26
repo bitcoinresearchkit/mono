@@ -21,7 +21,7 @@ pub trait MutableRawVec: StoredVec + ImportableVec + WritableVec<Self::I, Self::
     fn write_updates(&mut self, updated: BTreeMap<usize, Self::T>);
     fn append_previous_values(
         &self,
-        indices: &BTreeSet<usize>,
+        indices: &[usize],
         previous: &BTreeMap<usize, Self::T>,
         bytes: &mut Vec<u8>,
     );
@@ -143,6 +143,12 @@ where
     #[inline]
     pub fn reserve_pushed(&mut self, additional: usize) {
         self.vec.reserve_pushed(additional);
+    }
+
+    /// Borrows the staged values for mutation without changing their length.
+    #[inline]
+    pub fn pushed_mut(&mut self) -> &mut [V::T] {
+        self.vec.pushed_mut()
     }
 
     pub fn take(&mut self, index: V::I, reader: &V::Reader) -> Option<V::T> {
