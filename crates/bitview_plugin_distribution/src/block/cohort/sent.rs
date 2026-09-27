@@ -1,6 +1,6 @@
 use brk_error::Result;
 
-use bitview_cohort::AmountRangeId;
+use bitview_cohort::{AmountRangeId, ByAddrType};
 use brk_types::{Cents, Height, OutputType, Sats, TypeIndex};
 use rustc_hash::FxHashMap;
 use vecdb::VecIndex;
@@ -22,48 +22,191 @@ pub fn process_sent(
     addresses: &mut TransferAddressCache,
     height_to_price: &[Cents],
 ) -> Result<()> {
-    for (receive_height, spends) in sent_data {
-        let prev_price = height_to_price[receive_height.to_usize()];
-
-        for (output_type, type_index, value) in spends {
-            let mut lookup = lookup.select(output_type);
-            let mut metrics = state.select(output_type);
-
-            let addr_data = lookup.get_for_send(type_index);
-            let pre = AddrSendPreState::capture(addr_data, output_type);
-
-            let prev_balance = addr_data.balance();
-            let (is_first_encounter, also_received) =
+    let mut typed = ByAddrType::<Vec<(TypeIndex, Sats, Cents)>>::default();
+    // Group independent addresses by type without changing any address's spend order.
+    for (height, spends) in sent_data {
+        let previous_price = height_to_price[height.to_usize()];
+        for (ty, index, value) in spends {
+            typed
+                .get_mut_unwrap(ty)
+                .push((index, value, previous_price));
+        }
+    }
+    for (output_type, spends) in typed.into_iter() {
+        let mut lookup = lookup.select(output_type);
+        let mut metrics = state.select(output_type);
+        for group in spends.chunk_by(|a, b| a.0 == b.0) {
+            let type_index = group[0].0;
+            let (mut is_first_encounter, also_received) =
                 addresses.observe_send(output_type, type_index);
-            let will_be_empty = addr_data.has_1_utxos();
-
-            let prev_bucket = AmountRangeId::from(prev_balance);
-            let cohort_state = prev_bucket.select_mut(&mut cohorts.amount_range);
-
-            // Mutates addr_data.spent_txo_count (+= 1). on_send_applied reads the post-spend view.
-            cohort_state.send(addr_data, value, current_price, prev_price)?;
-            let new_bucket = AmountRangeId::from(addr_data.balance());
-            let crossing_boundary = prev_bucket != new_bucket;
-            metrics.on_send_applied(
-                addr_data,
-                &pre,
-                is_first_encounter,
-                also_received,
-                will_be_empty,
-            );
-
-            if will_be_empty || crossing_boundary {
-                cohort_state.subtract(addr_data);
+            let addr_data = lookup.get_for_send(type_index);
+            let mut emptied = false;
+            for &(_, value, prev_price) in group {
+                debug_assert!(!emptied);
+                let pre = AddrSendPreState::capture(addr_data, output_type);
+                let prev_balance = addr_data.balance();
+                let will_be_empty = addr_data.has_1_utxos();
+                let prev_bucket = AmountRangeId::from(prev_balance);
+                let cohort_state = prev_bucket.select_mut(&mut cohorts.amount_range);
+                cohort_state.send(addr_data, value, current_price, prev_price)?;
+                let new_bucket = AmountRangeId::from(addr_data.balance());
+                let crossing_boundary = prev_bucket != new_bucket;
+                metrics.on_send_applied(
+                    addr_data,
+                    &pre,
+                    is_first_encounter,
+                    also_received,
+                    will_be_empty,
+                );
+                is_first_encounter = false;
+                if will_be_empty || crossing_boundary {
+                    cohort_state.subtract(addr_data);
+                }
+                if will_be_empty {
+                    emptied = true;
+                } else if crossing_boundary {
+                    new_bucket
+                        .select_mut(&mut cohorts.amount_range)
+                        .add(addr_data);
+                }
             }
-            if will_be_empty {
+            if emptied {
                 lookup.move_to_empty(type_index);
-            } else if crossing_boundary {
-                new_bucket
-                    .select_mut(&mut cohorts.amount_range)
-                    .add(addr_data);
             }
         }
     }
-
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use brk_types::{Cents, Height, OutputType, Sats, TxIndex, TypeIndex};
+    use rustc_hash::FxHashMap;
+    use tempfile::tempdir;
+
+    use super::process_sent;
+    use crate::{
+        addr::{AddrMetricsState, AddrTypeToTypeIndexMap},
+        block::{AddrCache, Received, TransferAddressCache, process_received},
+        state::{AddrStates, RealizedOps},
+    };
+
+    #[test]
+    fn interleaved_spends_count_each_typed_address_once_and_empty_it() {
+        let dir = tempdir().unwrap();
+        let mut cohorts = AddrStates::new(dir.path());
+        let mut cache = AddrCache::default();
+        let mut metrics = AddrMetricsState::default();
+        let addresses = [
+            (OutputType::P2PKH, 7),
+            (OutputType::P2PKH, 8),
+            (OutputType::P2TR, 7),
+        ];
+        let mut funded = AddrTypeToTypeIndexMap::default();
+        for (ty, index) in addresses {
+            let mut received = Received::new(Sats::ONE_BTC, TxIndex::new(0));
+            received.add(Sats::ONE_BTC, TxIndex::new(1));
+            funded.insert_for_type(ty, TypeIndex::new(index), received);
+        }
+        process_received(
+            funded,
+            &mut cohorts,
+            &mut cache.as_lookup(),
+            Cents::new(100),
+            &mut metrics,
+        );
+        metrics.reset_per_block();
+
+        // A zero-value output still makes its address bidirectional, and must be spent.
+        let mut received = AddrTypeToTypeIndexMap::default();
+        received.insert_for_type(
+            OutputType::P2PKH,
+            TypeIndex::new(7),
+            Received::new(Sats::ZERO, TxIndex::new(2)),
+        );
+        let mut transfers = TransferAddressCache::default();
+        transfers.prepare([(OutputType::P2PKH, TypeIndex::new(7))].into_iter());
+        process_received(
+            received,
+            &mut cohorts,
+            &mut cache.as_lookup(),
+            Cents::new(200),
+            &mut metrics,
+        );
+
+        let sent = FxHashMap::from_iter([
+            (
+                Height::new(0),
+                vec![
+                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ONE_BTC),
+                    (OutputType::P2PKH, TypeIndex::new(8), Sats::ONE_BTC),
+                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ONE_BTC),
+                    (OutputType::P2TR, TypeIndex::new(7), Sats::ONE_BTC),
+                ],
+            ),
+            (
+                Height::new(1),
+                vec![
+                    (OutputType::P2PKH, TypeIndex::new(7), Sats::ZERO),
+                    (OutputType::P2PKH, TypeIndex::new(8), Sats::ONE_BTC),
+                    (OutputType::P2TR, TypeIndex::new(7), Sats::ONE_BTC),
+                ],
+            ),
+        ]);
+        process_sent(
+            sent,
+            &mut cohorts,
+            &mut cache.as_lookup(),
+            Cents::new(200),
+            &mut metrics,
+            &mut transfers,
+            &[Cents::new(100); 2],
+        )
+        .unwrap();
+
+        for (ty, expected) in [(OutputType::P2PKH, 2), (OutputType::P2TR, 1)] {
+            assert_eq!(*metrics.funded.get_unwrap(ty), 0);
+            assert_eq!(*metrics.empty.get_unwrap(ty), expected);
+            assert_eq!(u64::from(metrics.activity.get_unwrap(ty).sending), expected);
+            assert_eq!(*metrics.reused.active.get_unwrap(ty), expected);
+            assert_eq!(*metrics.respent.active.get_unwrap(ty), expected);
+            assert_eq!(*metrics.exposed.funded.get_unwrap(ty), 0);
+        }
+        assert_eq!(
+            metrics.activity.get_unwrap(OutputType::P2PKH).bidirectional,
+            1
+        );
+        assert_eq!(
+            metrics.activity.get_unwrap(OutputType::P2TR).bidirectional,
+            0
+        );
+        for (ty, index) in addresses {
+            let lookup = cache.as_lookup();
+            assert!(
+                !lookup
+                    .funded
+                    .get_unwrap(ty)
+                    .contains_key(&TypeIndex::new(index))
+            );
+            let empty = &lookup.empty.get_unwrap(ty)[&TypeIndex::new(index)];
+            assert_eq!(empty.transfered, Sats::ONE_BTC + Sats::ONE_BTC);
+            assert_eq!(
+                empty.funded_txo_count,
+                if ty == OutputType::P2PKH && index == 7 {
+                    3
+                } else {
+                    2
+                }
+            );
+        }
+        let mut profit = Cents::ZERO;
+        for cohort in cohorts.amount_range.iter() {
+            assert_eq!(cohort.addr_count, 0);
+            assert_eq!(cohort.inner.supply.value, Sats::ZERO);
+            assert_eq!(cohort.inner.supply.utxo_count, 0);
+            assert_eq!(cohort.inner.realized.cap(), Cents::ZERO);
+            profit += cohort.inner.realized.profit();
+        }
+        assert_eq!(profit, Cents::new(600));
+    }
 }
