@@ -3,7 +3,6 @@ use crate::test_common::init_cache;
 use std::{array, ops::Range};
 
 use bitview_plugin_indexer::Lengths;
-use bitview_vecs::{DailyView, RepeatDay};
 use brk_exit::Exit;
 use brk_types::{
     CentsSats, CentsSquaredSats, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
@@ -135,7 +134,7 @@ impl Pipeline {
             )
             .unwrap();
         }
-        let lower: [[&DailyView<Height, Cents, RepeatDay>; 5]; 0] = [];
+        let lower: [[&EagerVec<PcoVec<Height, Cents, Budgeted>>; 5]; 0] = [];
         inner::compute(
             &mut self.local,
             &[&self.components[0], &self.components[1]],

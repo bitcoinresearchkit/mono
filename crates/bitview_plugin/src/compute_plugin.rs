@@ -4,12 +4,12 @@ use crate::{Plugin, UpdateContext};
 
 /// Typed computation contract for plugins that participate in the update loop.
 pub trait ComputePlugin: Plugin {
-    /// Borrowed inputs required for one computation.
+    /// Read-only borrowed inputs required for one complete computation.
     type Dependencies<'a>;
-    /// Value made available to downstream plugins in the same update.
-    type Output;
 
-    /// Computes this plugin's next state.
+    /// Computes this plugin's complete next state. All internal phases and
+    /// progress belong to this method; callers only order complete computations.
+    /// Returning success must not require an external prepare/push/finish step.
     ///
     /// The runner owns the publication-gate lifecycle so several dependent
     /// plugins can be published together after the complete update succeeds.
@@ -17,5 +17,5 @@ pub trait ComputePlugin: Plugin {
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output>;
+    ) -> Result<()>;
 }

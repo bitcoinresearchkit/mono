@@ -1,51 +1,88 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
+use brk_exit::Exit;
+use brk_types::Height;
 use rayon::join;
+use vecdb::AnyVec;
 
-use super::{Vecs, by_type, count, spent, unspent, value};
+use super::{Vecs, by_type, count, spent, value};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let Dependencies {
             indexer,
-            inputs,
             blocks,
-            price: prices,
+            price,
         } = dependencies;
-        let exit = context.exit();
-
-        self.db.sync_bg_tasks()?;
-
-        let starting_lengths = indexer.safe_lengths();
-
-        count::compute(&mut self.count, indexer, blocks, exit)?;
-        let (value_result, by_type_result) = join(
-            || value::compute(&mut self.value, indexer, prices, exit),
-            || by_type::compute(&mut self.by_type, indexer, exit),
-        );
-        value_result?;
-        by_type_result?;
-        unspent::compute(
-            &mut self.unspent,
-            &self.count,
-            &inputs.count,
-            &self.by_type,
-            &starting_lengths,
-            exit,
+        self.compute_created(
+            indexer,
+            usize::from(indexer.safe_lengths().height),
+            indexer.vecs().outputs.first_txout_index.len(),
+            context.exit(),
         )?;
-        let lock = spent::compute(&mut self.spent, indexer, exit)?;
-        self.db.run_bg(move |db| {
+        let Vecs {
+            db,
+            value,
+            count,
+            by_type,
+            spent,
+            ..
+        } = self;
+
+        let exit = context.exit();
+        count::compute(count, indexer, blocks, exit)?;
+        let (fiat, types) = join(
+            || {
+                value.op_return.compute_cents(
+                    indexer.safe_lengths().height,
+                    &price.spot.cents.height,
+                    exit,
+                )
+            },
+            || by_type::compute(by_type, indexer, exit),
+        );
+        fiat?;
+        types?;
+        let lock = spent::compute(spent, indexer, exit)?;
+        db.run_bg(move |db| {
             let _lock = lock;
             db.compact_deferred_default()
         });
+        Ok(())
+    }
+}
+
+impl Vecs {
+    /// Price-independent output facts; requires neither Inputs nor transaction analysis.
+    fn compute_created(
+        &mut self,
+        indexer: &Indexer,
+        start: usize,
+        end: usize,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.db.sync_bg_tasks()?;
+        let outputs = &indexer.vecs().outputs;
+        value::compute_sats(
+            &mut self.value.op_return.cumulative.sats.height,
+            &mut self.creations,
+            Height::from(start),
+            end,
+            &outputs.first_txout_index,
+            &outputs.output_type,
+            &outputs.value,
+            &indexer.vecs().blocks.blockhash,
+            exit,
+        )?;
+        self.db.flush()?;
         Ok(())
     }
 }

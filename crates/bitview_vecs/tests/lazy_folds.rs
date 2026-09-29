@@ -6,17 +6,14 @@ use std::sync::{
 use bitview_transforms::RatioU64;
 use bitview_vecs::{
     LazyIndexCountVec, LazyIndexedVec, LazyLookbackVec, LazyPreviousDeltaVec, LazyRollingRatioVec,
-    LazySinceDayVec, LazyWindowVec,
+    LazyWindowVec,
 };
-use brk_types::{Day1, Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, BinaryTransform, Database, EagerVec, ImportableVec, PcoVec, PcoVecValue,
     ReadBounds, ReadableVec, ReverseOperands, VecValue, WritableVec,
 };
-
-#[allow(dead_code)]
-mod common;
 
 fn stored<T: PcoVecValue>(
     db: &Database,
@@ -84,7 +81,6 @@ fn folds_match_materialization_for_all_optimized_views_and_published_bounds() {
         (0..64_u64).map(|i| StoredU64::from(i * (i + 1))),
     );
     let starts = stored(&db, "starts", (0_usize..64).map(|i| Height::from(i / 3)));
-    let days = common::first_heights("days", (0..8usize).map(|i| Height::from(i * 8)));
     let cumulative = stored(
         &db,
         "cumulative",
@@ -99,14 +95,6 @@ fn folds_match_materialization_for_all_optimized_views_and_published_bounds() {
         &source,
         12,
         |current, previous| current - previous.unwrap_or_default(),
-    );
-    let since = LazySinceDayVec::new(
-        "since",
-        Version::ONE,
-        &source,
-        &days,
-        Day1::from(2),
-        |current, previous| current - previous,
     );
     let window = |inclusive| {
         LazyWindowVec::new(
@@ -147,7 +135,6 @@ fn folds_match_materialization_for_all_optimized_views_and_published_bounds() {
     let check = || {
         check_folds(&delta);
         check_folds(&lookback);
-        check_folds(&since);
         check_folds(&window(false));
         check_folds(&window(true));
         check_folds(&count);

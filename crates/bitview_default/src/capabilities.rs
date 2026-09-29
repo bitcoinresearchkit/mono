@@ -4,7 +4,8 @@ use bitview_plugin_capital_sentiment::{HasCapitalSentiment, Vecs as CapitalSenti
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
 use bitview_plugin_constants::{HasConstants, Vecs as Constants};
-use bitview_plugin_distribution::{HasDistribution, Vecs as Distribution};
+use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
+use bitview_plugin_distribution_size::{HasDistributionSize, Vecs as DistributionSize};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 use bitview_plugin_indicators::{HasIndicators, Vecs as Indicators};
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -18,6 +19,7 @@ use bitview_plugin_price::{HasPrice, Vecs as Price};
 use bitview_plugin_rarity_meter::{HasRarityMeter, Vecs as RarityMeter};
 use bitview_plugin_supply::{HasSupply, Vecs as Supply};
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
+use bitview_plugin_utxo_history::{HasUtxoHistory, Vecs as UtxoHistory};
 use vecdb::StorageMode;
 
 use crate::DefaultPlugins;
@@ -112,9 +114,9 @@ impl<M: StorageMode> HasPrice<M> for DefaultPlugins<M> {
     }
 }
 
-impl<M: StorageMode> HasDistribution<M> for DefaultPlugins<M> {
-    fn distribution(&self) -> &Distribution<M> {
-        self.distribution.as_ref()
+impl<M: StorageMode> HasDistributionAge<M> for DefaultPlugins<M> {
+    fn distribution_age(&self) -> &DistributionAge<M> {
+        self.distribution_age.as_ref()
     }
 }
 
@@ -136,8 +138,20 @@ impl<M: StorageMode> HasOutputs<M> for DefaultPlugins<M> {
     }
 }
 
+impl<M: StorageMode> HasUtxoHistory<M> for DefaultPlugins<M> {
+    fn utxo_history(&self) -> &UtxoHistory<M> {
+        self.utxo_history.as_ref()
+    }
+}
+
 impl<M: StorageMode> HasOpReturn<M> for DefaultPlugins<M> {
     fn op_return(&self) -> &OpReturn<M> {
         self.op_return.as_ref()
+    }
+}
+
+impl<M: StorageMode> HasDistributionSize<M> for DefaultPlugins<M> {
+    fn distribution_size(&self) -> &DistributionSize<M> {
+        self.distribution_size.as_ref()
     }
 }

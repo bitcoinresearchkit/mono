@@ -1145,7 +1145,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}",
         summary: "Latest URPD",
-        description: "URPD for the most recent available date in the cohort. The response's `date` field echoes which date was served. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.",
+        description: "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
         ],
@@ -1158,12 +1158,12 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "get-urpd-at",
         method: "GET",
-        path: "/api/urpd/{cohort}/{date}",
-        summary: "URPD at date",
-        description: "URPD for a (cohort, date) pair. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",
+        path: "/api/urpd/{cohort}/{point}",
+        summary: "URPD at block height or date",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
-            Parameter { api_name: "date", name: "date", required: true, value_name: "string", repeatable: false, description: Some("Calendar date of the URPD snapshot in `YYYY-MM-DD` format.") },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: None },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
@@ -1214,7 +1214,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/dates",
         summary: "Available URPD dates",
-        description: "Dates for which a URPD snapshot is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.",
+        description: "Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
         ],

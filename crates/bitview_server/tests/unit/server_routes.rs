@@ -1,12 +1,8 @@
 use super::broadcast;
 #[cfg(feature = "chain")]
-use super::urpd;
-#[cfg(feature = "chain")]
 use crate::test_cache::init_cache;
 #[cfg(feature = "chain")]
 use bitcoin::consensus::encode;
-#[cfg(all(feature = "chain", feature = "urpd"))]
-use bitview_cohort::UTXOAggregateId;
 #[cfg(feature = "chain")]
 use brk_types::BlockHash;
 #[cfg(any(feature = "chain", all(feature = "chain", feature = "series")))]
@@ -45,20 +41,14 @@ use axum::{body::to_bytes, http::header::ETAG};
 use bitview_default::DefaultPlugins;
 #[cfg(feature = "chain")]
 use bitview_plugin::ImportContext;
-#[cfg(all(feature = "chain", feature = "urpd"))]
-use bitview_plugin_distribution::HasDistribution;
 #[cfg(feature = "chain")]
 use bitview_query::AsyncQuery;
 #[cfg(all(feature = "chain", feature = "series"))]
 use bitview_types::{Limit, Pagination, SearchQuery};
-#[cfg(all(feature = "chain", feature = "urpd"))]
-use bitview_urpd::AgeRangeUrpds;
 #[cfg(feature = "chain")]
 use brk_reader::Reader;
 #[cfg(feature = "chain")]
 use brk_rpc::{Auth, Client};
-#[cfg(all(feature = "chain", feature = "urpd"))]
-use brk_types::UrpdWeight;
 #[cfg(feature = "chain")]
 use serde_json::Value;
 #[cfg(feature = "chain")]
@@ -833,8 +823,6 @@ fn server_routes_preserve_validation_and_errors_before_conditionals() {
         let client = Client::new(&format!("http://{}", node.local_addr().unwrap()), Auth::None).unwrap();
         let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);
         let plugins = DefaultPlugins::import(ImportContext::new(directory.path()), &reader).unwrap();
-        #[cfg(feature = "urpd")]
-        let states_path = plugins.distribution().states_path.clone();
         let query = AsyncQuery::build(&plugins, None);
         query.sync(|q| {
             let prices = &q.plugins().price.spot.cents.height;
@@ -1002,57 +990,18 @@ fn server_routes_preserve_validation_and_errors_before_conditionals() {
                     assert!(response.starts_with("HTTP/1.1 200"), "{response}");
                     assert!(response.ends_with("\r\n\r\n[]"), "{response}");
                     let etag = response.lines().find_map(|line| line.strip_prefix("etag: ")).unwrap();
-                    // Empty snapshot directories and cost-basis state are not publications.
-                    fs::create_dir_all(AgeRangeUrpds::dir(&states_path)).await.unwrap();
-                    fs::create_dir_all(states_path.join("checkpoint_only").join("cost_basis")).await.unwrap();
-                    let response = exchange_with_etag(address, "GET", "/api/urpd", etag).await;
-                    assert!(response.starts_with("HTTP/1.1 304"), "{response}");
-                    assert!(response.ends_with("\r\n\r\n"), "{response}");
-                    let response = exchange(address, "GET", "/api/urpd/unknown").await;
-                    assert!(response.starts_with("HTTP/1.1 404"), "{response}");
-                    let response = exchange(address, "GET", "/api/urpd/all").await;
-                    assert!(response.starts_with("HTTP/1.1 404"), "{response}");
-                    let path = "/api/urpd/all/dates";
-                    let response = exchange_with_etag(address, "GET", path, "\"old\"").await;
+                    for method in ["GET", "HEAD"] {
+                        for path in ["/api/urpd/all", "/api/urpd/all/0", "/api/urpd/unknown", "/api/urpd/unknown/dates"] {
+                            let response = exchange_with_etag(address, method, path, "*").await;
+                            assert!(response.starts_with("HTTP/1.1 404"), "{path}: {response}");
+                            assert!(!response.contains("\r\netag:"));
+                        }
+                    }
+                    let response = exchange_with_etag(address, "GET", "/api/urpd/all/dates", "\"old\"").await;
                     assert!(response.starts_with("HTTP/1.1 200"), "{response}");
                     assert!(response.ends_with("\r\n\r\n[]"), "{response}");
-                    let old = response.lines().find_map(|line| line.strip_prefix("etag: ")).unwrap();
-                    // Dates discovery reads filenames; no snapshot payload is read here.
-                    fs::write(AgeRangeUrpds::dir(&states_path).join("2026-09-01"), b"").await.unwrap();
                     let response = exchange_with_etag(address, "GET", "/api/urpd", etag).await;
-                    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-                    assert!(response.contains("\"all\""), "{response}");
-                    assert!(!response.contains("checkpoint_only"), "{response}");
-                    for weight in UrpdWeight::WEIGHTED {
-                        let weighted_dir = query.sync(|query| {
-                            match weight {
-                                UrpdWeight::Cointime => query.plugins().cointime.urpd.dir(UTXOAggregateId::All),
-                                UrpdWeight::Coinflow => query.plugins().coinflow.urpd.dir(UTXOAggregateId::All),
-                                UrpdWeight::Raw => unreachable!(),
-                            }
-                        });
-                        urpd::check_weighted_errors(address, &weighted_dir, weight).await;
-                    }
-                    let response = exchange_with_etag(address, "GET", path, old).await;
-                    assert!(response.starts_with("HTTP/1.1 200"), "{response}");
-                    assert!(response.ends_with("\r\n\r\n[\"2026-09-01\"]"), "{response}");
-                    let current = response.lines().find_map(|line| line.strip_prefix("etag: ")).unwrap();
-                    assert_ne!(old, current);
-                    for method in ["GET", "HEAD"] {
-                        // A discoverable filename is not a valid snapshot. Even wildcard
-                        // conditionals must preserve the snapshot validation failure.
-                        let response = exchange(address, method, "/api/urpd/all").await;
-                        assert!(response.starts_with("HTTP/1.1 500"), "{response}");
-                        assert!(!response.contains("\r\netag:"));
-                        if method == "HEAD" { assert!(response.ends_with("\r\n\r\n")); }
-                        let response = exchange_with_etag(address, method, path, current).await;
-                        assert!(response.starts_with("HTTP/1.1 304"), "{response}");
-                        assert!(response.ends_with("\r\n\r\n"));
-                        let response = exchange_with_etag(address, method, "/api/urpd/unknown/dates", "*").await;
-                        assert!(response.starts_with("HTTP/1.1 404"), "{response}");
-                        assert!(!response.contains("\r\netag:"));
-                        if method == "HEAD" { assert!(response.ends_with("\r\n\r\n")); }
-                    }
+                    assert!(response.starts_with("HTTP/1.1 304"), "{response}");
                 }
                 #[cfg(feature = "series")]
                 {

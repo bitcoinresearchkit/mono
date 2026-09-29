@@ -9,6 +9,7 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+bitview_urpd = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_bedrock = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
@@ -16,7 +17,8 @@ bitview_plugin_capital_sentiment = { workspace = true }
 bitview_plugin_coinflow = { workspace = true }
 bitview_plugin_constants = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
+bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_distribution_size = { workspace = true }
 bitview_plugin_indicators = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
@@ -30,6 +32,7 @@ bitview_plugin_price = { workspace = true }
 bitview_plugin_rarity_meter = { workspace = true }
 bitview_plugin_supply = { workspace = true }
 bitview_plugin_transactions = { workspace = true }
+bitview_plugin_utxo_history = { workspace = true }
 bitview_runtime = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_alloc = { workspace = true }
@@ -38,3 +41,7 @@ brk_reader = { workspace = true }
 rayon = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true }
+
+[dev-dependencies]
+brk_exit = { workspace = true }
+brk_rpc = { workspace = true }

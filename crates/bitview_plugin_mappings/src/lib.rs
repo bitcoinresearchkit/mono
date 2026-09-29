@@ -331,13 +331,12 @@ impl Vecs {
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let Dependencies { indexer } = dependencies;
         let exit = context.exit();
         self.db.sync_bg_tasks()?;

@@ -19,7 +19,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// observed age-specific spending rates and a fitted declining tail for
     /// ages beyond the measured ranges.
     pub age_range: AgeRangeVecs<M>,
-    /// Daily mobility-weighted UTXO price distributions.
+    /// Per-block mobility-weighted UTXO price distributions.
     pub urpd: UrpdMetrics<M>,
     #[traversable(flatten)]
     /// All-chain Coinflow aggregates weight every UTXO age range by its

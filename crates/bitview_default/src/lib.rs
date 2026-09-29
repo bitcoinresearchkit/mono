@@ -7,7 +7,8 @@ use bitview_plugin_capital_sentiment::Vecs as CapitalSentiment;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
 use bitview_plugin_constants::Vecs as Constants;
-use bitview_plugin_distribution::Vecs as Distribution;
+use bitview_plugin_distribution_age::Vecs as DistributionAge;
+use bitview_plugin_distribution_size::Vecs as DistributionSize;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_indicators::Vecs as Indicators;
 use bitview_plugin_inputs::Vecs as Inputs;
@@ -21,6 +22,7 @@ use bitview_plugin_price::Vecs as Price;
 use bitview_plugin_rarity_meter::Vecs as RarityMeter;
 use bitview_plugin_supply::Vecs as Supply;
 use bitview_plugin_transactions::Vecs as Transactions;
+use bitview_plugin_utxo_history::Vecs as UtxoHistory;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
@@ -49,9 +51,12 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     pools: Box<Pools<M>>,
     price: Box<Price<M>>,
     #[traversable(flatten)]
-    distribution: Box<Distribution<M>>,
+    distribution_age: Box<DistributionAge<M>>,
+    #[traversable(flatten)]
+    distribution_size: Box<DistributionSize<M>>,
     supply: Box<Supply<M>>,
     inputs: Box<Inputs<M>>,
     outputs: Box<Outputs<M>>,
+    utxo_history: Box<UtxoHistory<M>>,
     op_return: Box<OpReturn<M>>,
 }

@@ -1,4 +1,4 @@
-use bitview_collections::{ByDcaCagr, ByDcaPeriod, ByLookbackPeriod, Windows};
+use bitview_collections::{ByLookbackPeriod, Windows};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_transforms::RatioDiffDollars;
@@ -7,7 +7,7 @@ use brk_error::{Error, Result};
 use brk_types::{Dollars, Height, PartsPerMillionSigned64, Version};
 use vecdb::{BinaryTransform, Database, ReadableCloneableVec};
 
-use super::Vecs;
+use super::{Cagr, Vecs};
 
 pub fn forced_import(
     db: &Database,
@@ -37,15 +37,7 @@ pub fn forced_import(
             ))
         })?;
 
-    let dca_periods = ByDcaPeriod::from_lookback(&periods);
-    let cagr = ByDcaCagr::try_new(&dca_periods, |name, days, source| {
-        Ok::<_, Error>(LazyPercentPerBlock::from_lazy_cagr(
-            &format!("price_cagr_{name}"),
-            version,
-            (days / 365) as u8,
-            source,
-        ))
-    })?;
+    let cagr = Cagr::from_returns(version, &periods);
 
     let mut days_iter = Windows::<()>::DAYS.iter();
     let sd_24h = Windows::try_from_fn(|suffix| {

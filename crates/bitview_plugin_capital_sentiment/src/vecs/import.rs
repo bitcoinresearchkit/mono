@@ -1,6 +1,6 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{DailyMappings, DailyMetric, LazyDailyMetric};
+use bitview_vecs::{LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::{CapitalSentimentPhase, StoredBool, StoredI8, StoredU8};
 use vecdb::UnaryTransform;
@@ -46,32 +46,31 @@ impl Vecs {
     pub fn import(context: ImportContext<'_>, mappings: &MappingsVecs) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let version = STORAGE.schema_version();
-        let mappings = DailyMappings::new(mappings);
 
         let phase_code =
-            DailyMetric::forced_import(&db, "capital_sentiment_phase_code", version, &mappings)?;
-        let is_long = DailyMetric::<StoredBool>::forced_import(
+            PerBlock::forced_import(&db, "capital_sentiment_phase_code", version, &mappings)?;
+        let is_long = PerBlock::<StoredBool>::forced_import(
             &db,
             "capital_sentiment_is_long",
             version,
             &mappings,
         )?;
-        let is_short = LazyDailyMetric::from_source::<IsLongToIsShort>(
+        let is_short = LazyPerBlock::from_height_source::<IsLongToIsShort>(
             "capital_sentiment_is_short",
             version,
-            &is_long.day1,
+            &is_long.height,
             &mappings,
         );
-        let phase = LazyDailyMetric::from_source::<CodeToPhase>(
+        let phase = LazyPerBlock::from_height_source::<CodeToPhase>(
             "capital_sentiment_phase",
             version,
-            &phase_code.day1,
+            &phase_code.height,
             &mappings,
         );
-        let score = LazyDailyMetric::from_source::<PhaseToScore>(
+        let score = LazyPerBlock::from_height_source::<PhaseToScore>(
             "capital_sentiment_score",
             version,
-            &phase.day1,
+            &phase.height,
             &mappings,
         );
 

@@ -97,11 +97,8 @@ impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
         Ok(())
     }
 
-    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.last = Default::default();
-        self.stored
-            .iter_mut()
-            .map(|v| v as &mut dyn AnyStoredVec)
-            .collect()
+        self.stored.iter_mut().map(|v| v as &mut dyn AnyStoredVec)
     }
 }

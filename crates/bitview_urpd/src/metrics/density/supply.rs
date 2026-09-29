@@ -1,10 +1,13 @@
 use bitview_traversable::Traversable;
-use brk_types::{Cents, CentsCompact, PartsPerMillion32, Sats};
+use brk_types::PartsPerMillion32;
 
-#[derive(Clone, Debug, PartialEq, Traversable)]
+#[cfg(test)]
+use brk_types::{Cents, CentsCompact, Sats};
+
+#[derive(Clone, Copy, Debug, PartialEq, Traversable)]
 pub struct SupplyDensity<T> {
     /// Share of total weighted supply with cost basis within 5% below or above
-    /// daily closing spot, using rounded URPD creation-price buckets.
+    /// per-block closing spot, using rounded URPD creation-price buckets.
     pub total: T,
     /// Share of total weighted supply from the lower band boundary through spot.
     pub in_profit: T,
@@ -37,6 +40,7 @@ impl SupplyDensity<PartsPerMillion32> {
         in_loss: PartsPerMillion32::NAN,
     };
 
+    #[cfg(test)]
     pub fn from_entries(
         entries: impl IntoIterator<Item = (CentsCompact, Sats)>,
         spot: Cents,
@@ -66,6 +70,10 @@ impl SupplyDensity<PartsPerMillion32> {
                 }
             }
         }
+        Self::from_sums(total, profit, loss)
+    }
+
+    pub fn from_sums(total: u128, profit: u128, loss: u128) -> Self {
         if total == 0 {
             return Self::NAN;
         }

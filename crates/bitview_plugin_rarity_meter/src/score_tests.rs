@@ -1,5 +1,4 @@
-use bitview_vecs::{DailyView, RepeatDay};
-use brk_types::{Day1, PartsPerMillion32};
+use brk_types::PartsPerMillion32;
 use tempfile::tempdir;
 
 use super::*;
@@ -14,10 +13,7 @@ fn expanded_v2_scores_cap_overflowing_totals() {
         let indexes = common::indexes(&db);
         let spot = common::stored(&db, "spot", [1, 1000, 100].map(Cents::new));
         let reference = common::stored(&db, "reference", [Cents::new(100); 3]);
-        let daily_floor = common::stored(&db, "daily_floor", [Cents::new(100)]);
-        let days = common::stored(&db, "days", [Day1::from(0usize); 3]);
-        let floor =
-            DailyView::<Height, Cents, RepeatDay>::new("floor", Version::ONE, &daily_floor, &days);
+        let floor = common::stored(&db, "floor", [Cents::new(100); 3]);
         let mut component =
             component::forced_import(&db, "component", Version::ONE, &indexes, &reference).unwrap();
         for ratio in component.ratios.iter_mut() {

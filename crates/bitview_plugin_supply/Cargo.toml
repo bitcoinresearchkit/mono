@@ -13,7 +13,7 @@ bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_cointime = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
+bitview_plugin_distribution_age = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_plugin_outputs = { workspace = true }

@@ -13,7 +13,10 @@ use crate::{
     CacheParams, CacheStrategy, CdnCacheMode,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
-    params::{Empty, UrpdCohortParam, UrpdParams, UrpdQuery, UrpdWeightQuery},
+    params::{
+        Empty, HeightOrDate, HeightOrDateParam, UrpdCohortParam, UrpdParams, UrpdQuery,
+        UrpdWeightQuery,
+    },
     raw_body::RawBodyPermit,
     urpd_input,
 };
@@ -24,27 +27,31 @@ pub async fn serve_cohorts(state: AppState, headers: HeaderMap) -> Response {
         .await
 }
 
-async fn serve_snapshot(
+async fn serve_urpd(
     state: AppState,
     headers: HeaderMap,
     cohort: Cohort,
-    date: Option<Date>,
+    point: Option<HeightOrDate>,
     query: UrpdQuery,
 ) -> Result<Response> {
     let bodies = state.urpd_bodies.clone();
     let response = state
         .read_body(&state.urpd_query, &state.urpd_bodies, move |q, permit| {
-            let input = match date {
-                Some(date) => q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?,
+            let input = match point {
+                Some(HeightOrDate::Date(date)) => {
+                    q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?
+                }
+                Some(HeightOrDate::Height(height)) => {
+                    q.resolve_urpd_height(&cohort, height, query.aggregation, query.weight)?
+                }
                 None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
             };
-            let id = urpd_input::identity(&input);
+            let id = urpd_input::identity(&input)?;
             let params = CacheParams::resolve(
-                &CacheStrategy::Live(format!("urpd1-{id}").into()),
+                &CacheStrategy::Live(format!("urpd2-{id}").into()),
                 CdnCacheMode::Live,
             );
             if params.matches_etag(&headers) {
-                input.validate()?;
                 return Ok(Some(Response::new_not_modified(&params)));
             }
             let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&bodies)) else {
@@ -104,7 +111,7 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                         .urpd_tag()
                         .summary("Available URPD dates")
                         .description(
-                            "Dates for which a URPD snapshot is available for the cohort and \
+                            "Dates for which a published block is available for the cohort and \
                             selected `weight`. One entry per UTC day, sorted ascending.",
                         )
                         .json_response::<Vec<Date>>()
@@ -122,16 +129,16 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
                        Query(query): Query<UrpdQuery>,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    serve_snapshot(state, headers, params.cohort, None, query).await
+                    serve_urpd(state, headers, params.cohort, None, query).await
                 },
                 |op| {
                     op.id("get_urpd")
                         .urpd_tag()
                         .summary("Latest URPD")
                         .description(
-                            "URPD for the most recent available date in the cohort. \
+                            "URPD for the latest published block. \
                             The response's `date` field echoes which date was served. Returns \
-                            `{ cohort, date, weight, aggregation, close, total_supply, buckets }`. \
+                            `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. \
                             `close` and each bucket's `price_floor`, `realized_cap`, and \
                             `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. \
                             `unrealized_pnl` can be negative.",
@@ -144,22 +151,22 @@ impl ApiUrpdRoutes for ApiRouter<AppState> {
             ),
         )
         .api_route(
-            "/api/urpd/{cohort}/{date}",
+            "/api/urpd/{cohort}/{point}",
             get_with(
                 async |headers: HeaderMap,
                        Path(params): Path<UrpdParams>,
                        Query(query): Query<UrpdQuery>,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    serve_snapshot(state, headers, params.cohort, Some(params.date), query).await
+                    serve_urpd(state, headers, params.cohort, Some(HeightOrDateParam { point: params.point }.resolve()?), query).await
                 },
                 |op| {
                     op.id("get_urpd_at")
                         .urpd_tag()
-                        .summary("URPD at date")
+                        .summary("URPD at block height or date")
                         .description(
-                            "URPD for a (cohort, date) pair. Returns \
-                            `{ cohort, date, weight, aggregation, close, total_supply, buckets }` where \
+                            "URPD for a cohort at a block height or the last block of a UTC day. Returns \
+                            `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where \
                             each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. \
                             `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; \
                             `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.",

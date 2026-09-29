@@ -1,17 +1,14 @@
-use std::{fs, iter};
+use std::{iter, mem};
 
 use bitview_cohort::{AgeRange, UTXOAggregateId};
 use bitview_compute::{collect_cohort_weights, prepare_computed};
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Date, Day1, Sats, StoredF64, Version};
+use brk_types::{Height, Sats, StoredF64, Version};
 use vecdb::{ReadableVec, WritableVec};
 
-use super::{Metrics, WRITE_INTERVAL_DAYS};
-use crate::{
-    COMPUTE_VERSION,
-    distribution::{DailyUrpds, PriceStats},
-};
+use super::{Metrics, WRITE_INTERVAL_BLOCKS, metric_buckets::MetricBuckets};
+use crate::{COMPUTE_VERSION, ReplayInputs};
 
 impl Metrics {
     #[allow(clippy::too_many_arguments)]
@@ -19,25 +16,19 @@ impl Metrics {
         &mut self,
         version: Version,
         recompute_from: usize,
-        dates: &impl ReadableVec<Day1, Date>,
-        spot: &impl ReadableVec<Day1, Option<Cents>>,
-        weights: &AgeRange<&impl ReadableVec<Day1, Option<StoredF64>>>,
-        supplies: &AgeRange<&impl ReadableVec<Day1, Option<Sats>>>,
-        mut load: impl FnMut(Day1, Date, &AgeRange<f64>) -> Result<Option<DailyUrpds>>,
+        inputs: ReplayInputs<'_>,
+        weights: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+        supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
         exit: &Exit,
     ) -> Result<()> {
+        let spot = inputs.prices;
         let version = Version::combine_all(
             iter::once(version + COMPUTE_VERSION)
-                .chain(iter::once(dates.version()))
                 .chain(iter::once(spot.version()))
                 .chain(weights.iter().map(|v| v.version()))
                 .chain(supplies.iter().map(|v| v.version())),
         );
-        let marker = self.states_path.join("urpd.version");
-        let current = marker.try_exists()? && Version::try_from(marker.as_path())? == version;
-        let from = if current { recompute_from } else { 0 };
-        let end = iter::once(dates.len())
-            .chain(iter::once(spot.len()))
+        let end = iter::once(spot.len())
             .chain(weights.iter().map(|v| v.len()))
             .chain(supplies.iter().map(|v| v.len()))
             .min()
@@ -45,39 +36,45 @@ impl Metrics {
         let start = prepare_computed(
             self.stored_vecs_mut().collect::<Vec<_>>(),
             version,
-            from.min(end),
+            recompute_from.min(end),
         )?;
-        self.prune_snapshots(start, current)?;
-        for index in start..end {
-            let day = Day1::from(index);
-            let date = dates.collect_one(day);
-            let urpds = match (date, collect_cohort_weights(day, weights, supplies)) {
-                (Some(date), Some(weights)) => load(day, date, &weights)?,
-                _ => None,
-            };
-            let close = spot.collect_one(day).flatten().unwrap_or(Cents::NAN);
-            for &id in UTXOAggregateId::ALL {
-                let urpd = urpds.as_ref().map(|u| u.aggregate(id));
-                let stats =
-                    PriceStats::from_entries(urpd.into_iter().flat_map(|u| u.iter().copied()));
-                id.select_mut(&mut self.cost_basis).push(&stats.cost_basis);
-                id.select_mut(&mut self.capitalized_price_stored)
-                    .push(stats.capitalized_price);
-                if let (Some(urpd), Some(date)) = (urpd, date) {
-                    self.write_snapshot(id, date, urpd)?;
-                }
+        let mut replay = mem::take(&mut self.replay);
+        let mut buffer = mem::take(&mut self.buffer);
+        replay.for_each(start..end, inputs, |height, close, source| {
+            let supplies =
+                AgeRange::try_from_fn(|age| age.select(supplies).collect_one(height).ok_or(()))
+                    .ok();
+            let weights = supplies
+                .as_ref()
+                .and_then(|s| collect_cohort_weights(height, weights, s));
+            if let Some(weights) = &weights {
+                buffer.update(source.buckets(), weights, close);
             }
-            self.supply_density.push(urpds.as_ref(), close);
-            if (index + 1).is_multiple_of(WRITE_INTERVAL_DAYS) || index + 1 == end {
+            self.push_block(weights.as_ref().map(|_| &buffer));
+            if (usize::from(height) + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS)
+                || usize::from(height) + 1 == end
+            {
                 let _lock = exit.lock();
                 for vec in self.stored_vecs_mut() {
                     vec.write()?;
                 }
             }
-        }
-        fs::create_dir_all(&self.states_path)?;
-        let _lock = exit.lock();
-        version.write(&marker)?;
+            Ok(())
+        })?;
+        self.replay = replay;
+        self.buffer = buffer;
         Ok(())
+    }
+
+    fn push_block(&mut self, buckets: Option<&MetricBuckets>) {
+        for &id in UTXOAggregateId::ALL {
+            let stats = buckets
+                .map(|b| id.select(&b.prices).stats())
+                .unwrap_or_default();
+            id.select_mut(&mut self.cost_basis).push(&stats.cost_basis);
+            id.select_mut(&mut self.capitalized_price_stored)
+                .push(stats.capitalized_price);
+        }
+        self.supply_density.push(buckets.map(|b| &b.density));
     }
 }

@@ -75,6 +75,20 @@ impl<T: PcoVecValue + AddAssign> UTXOSources<T> {
             .push_with_aggregate(cohort_values.core, cohort_values.type_, aggregate);
     }
 
+    pub fn push_partition<const ORIGIN: bool>(
+        &mut self,
+        values: UTXOValues<T>,
+        aggregate: Option<&UTXOAggregate<T>>,
+    ) {
+        if !ORIGIN {
+            for (target, &value) in self.amount.iter_mut().zip(values.amount_range.iter()) {
+                target.push(value);
+            }
+        }
+        self.typed
+            .push_partition::<ORIGIN>(values.core, values.type_, aggregate);
+    }
+
     pub fn collect_last(&self) -> Option<UTXOValues<T>> {
         Some(UTXOValues {
             amount_range: AmountRange::try_from_fn(|id| {

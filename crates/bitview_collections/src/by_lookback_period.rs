@@ -1,7 +1,7 @@
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 
-/// Lookback period days (includes 24h, unlike DCA)
+/// Lookback period days (24 hours through 10 years).
 pub const LOOKBACK_PERIOD_DAYS: ByLookbackPeriod<u32> = ByLookbackPeriod {
     _24h: 1,
     _1w: 7,

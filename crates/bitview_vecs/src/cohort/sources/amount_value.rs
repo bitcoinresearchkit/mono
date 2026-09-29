@@ -89,10 +89,11 @@ impl<S: Clone> AmountValueSources<S> {
         self.len() == 0
     }
 
-    pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = self.stored.sats.collect_vecs_mut();
-        vecs.extend(self.stored.cents.collect_vecs_mut());
-        vecs
+    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.stored
+            .sats
+            .stored_vecs_mut()
+            .chain(self.stored.cents.stored_vecs_mut())
     }
 }
 use vecdb::ReadableCloneableVec;

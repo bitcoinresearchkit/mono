@@ -15,7 +15,7 @@ the composition data root to `PluginStorage`. Application startup initializes
 vecdb's shared cache budget once; import contexts do not carry it. Source writes
 own cache invalidation and preserve unchanged prefixes.
 Computing plugins declare their
-typed dependencies and output through `ComputePlugin`; its copyable
+read-only dependencies through `ComputePlugin` and update their own data; its copyable
 `UpdateContext` provides shared update control such as cancellation. Plugin
 dependencies stay explicit and typed instead of being hidden in either
 context.

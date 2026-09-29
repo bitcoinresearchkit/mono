@@ -1,4 +1,4 @@
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -12,14 +12,21 @@ use super::{
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
     activity: &activity::Vecs,
     supply: &supply::Vecs,
     cap: &cap::Vecs,
     exit: &Exit,
 ) -> Result<()> {
     let starting_lengths = indexer.safe_lengths();
-    let realized_price = &distribution.cohorts.realized.price.cohorts.all.cents.height;
+    let realized_price = &distribution_age
+        .cohorts
+        .realized
+        .price
+        .cohorts
+        .all
+        .cents
+        .height;
 
     vecs.vaulted.cents.height.compute_transform2(
         starting_lengths.height,

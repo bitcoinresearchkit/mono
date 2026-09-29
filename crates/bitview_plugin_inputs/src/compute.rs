@@ -1,32 +1,48 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::Result;
+use brk_types::Height;
 use rayon::join;
+use vecdb::AnyVec;
 
 use super::{Vecs, value};
 use crate::Dependencies;
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
-        let Dependencies { indexer, blocks } = dependencies;
+    ) -> Result<()> {
+        let Dependencies {
+            indexer,
+            blocks,
+            mappings,
+        } = dependencies;
         let exit = context.exit();
 
         self.db.sync_bg_tasks()?;
 
         let Vecs {
             value,
+            origins,
             count,
             by_type,
             ..
         } = self;
         let (value_result, rest_result) = join(
-            || value::compute(value, indexer, exit),
+            || {
+                value::compute(
+                    value,
+                    origins,
+                    indexer,
+                    mappings,
+                    indexer.safe_lengths().height,
+                    Height::from(indexer.vecs().blocks.blockhash.len()),
+                    exit,
+                )
+            },
             || {
                 count.compute(indexer, blocks, exit)?;
                 by_type.compute(indexer, exit)

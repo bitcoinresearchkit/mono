@@ -6,8 +6,10 @@ use bitview_plugin_blocks::HasBlocks;
 use bitview_plugin_coinflow::HasCoinflow;
 #[cfg(feature = "cointime")]
 use bitview_plugin_cointime::HasCointime;
-#[cfg(feature = "distribution")]
-use bitview_plugin_distribution::HasDistribution;
+#[cfg(feature = "distribution_age")]
+use bitview_plugin_distribution_age::HasDistributionAge;
+#[cfg(feature = "distribution_size")]
+use bitview_plugin_distribution_size::HasDistributionSize;
 use bitview_plugin_indexer::HasIndexer;
 #[cfg(feature = "inputs")]
 use bitview_plugin_inputs::HasInputs;
@@ -23,6 +25,8 @@ use bitview_plugin_pools::HasPools;
 use bitview_plugin_price::HasPrice;
 #[cfg(feature = "transactions")]
 use bitview_plugin_transactions::HasTransactions;
+#[cfg(feature = "utxo_history")]
+use bitview_plugin_utxo_history::HasUtxoHistory;
 use bitview_runtime::PluginSet;
 use bitview_traversable::Traversable;
 use vecdb::Ro;
@@ -47,7 +51,16 @@ plugin_capability!("bedrock", SupportsBedrock, HasBedrock);
 plugin_capability!("blocks", SupportsBlocks, HasBlocks);
 plugin_capability!("coinflow", SupportsCoinflow, HasCoinflow);
 plugin_capability!("cointime", SupportsCointime, HasCointime);
-plugin_capability!("distribution", SupportsDistribution, HasDistribution);
+plugin_capability!(
+    "distribution_size",
+    SupportsDistributionSize,
+    HasDistributionSize
+);
+plugin_capability!(
+    "distribution_age",
+    SupportsDistributionAge,
+    HasDistributionAge
+);
 plugin_capability!("inputs", SupportsInputs, HasInputs);
 plugin_capability!("mappings", SupportsMappings, HasMappings);
 plugin_capability!("mining", SupportsMining, HasMining);
@@ -55,6 +68,7 @@ plugin_capability!("outputs", SupportsOutputs, HasOutputs);
 plugin_capability!("pools", SupportsPools, HasPools);
 plugin_capability!("price", SupportsPrice, HasPrice);
 plugin_capability!("transactions", SupportsTransactions, HasTransactions);
+plugin_capability!("utxo_history", SupportsUtxoHistory, HasUtxoHistory);
 
 /// Composition contract for the individually enabled query plugins.
 ///
@@ -66,7 +80,8 @@ pub trait QueryPluginSet: PluginSet + Traversable {
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime
-        + SupportsDistribution
+        + SupportsDistributionAge
+        + SupportsDistributionSize
         + SupportsInputs
         + SupportsMappings
         + SupportsMining
@@ -74,6 +89,7 @@ pub trait QueryPluginSet: PluginSet + Traversable {
         + SupportsPools
         + SupportsPrice
         + SupportsTransactions
+        + SupportsUtxoHistory
         + ?Sized;
 
     fn query_capabilities(&self) -> &Self::Capabilities;
@@ -88,14 +104,16 @@ where
         + SupportsBlocks
         + SupportsCoinflow
         + SupportsCointime
-        + SupportsDistribution
+        + SupportsDistributionAge
+        + SupportsDistributionSize
         + SupportsInputs
         + SupportsMappings
         + SupportsMining
         + SupportsOutputs
         + SupportsPools
         + SupportsPrice
-        + SupportsTransactions,
+        + SupportsTransactions
+        + SupportsUtxoHistory,
 {
     type Capabilities = Self;
 

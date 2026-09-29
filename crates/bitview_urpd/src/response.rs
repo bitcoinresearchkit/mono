@@ -1,11 +1,12 @@
 use brk_types::{
-    Bitcoin, Cents, CentsCompact, CentsSats, CentsSigned, Cohort, Date, Dollars, Sats, Urpd,
-    UrpdAggregation, UrpdBucket, UrpdWeight,
+    Bitcoin, Cents, CentsCompact, CentsSats, CentsSigned, Cohort, Date, Dollars, Height, Sats,
+    Urpd, UrpdAggregation, UrpdBucket, UrpdWeight,
 };
 
 /// Build response buckets directly from validated, sorted source entries.
 pub fn build_response(
     cohort: Cohort,
+    height: Height,
     date: Date,
     weight: UrpdWeight,
     close: Cents,
@@ -47,6 +48,7 @@ pub fn build_response(
     Urpd {
         cohort,
         date,
+        height,
         weight,
         aggregation,
         close: Dollars::from(close),

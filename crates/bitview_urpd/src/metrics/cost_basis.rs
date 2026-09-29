@@ -1,13 +1,13 @@
 use bitview_traversable::Traversable;
-use bitview_vecs::{DailyMappings, DailyPercentilesVecs};
+use bitview_vecs::{IndexSources, PercentilesVecs};
 use brk_error::Result;
 use brk_types::{CostBasisByPercentile, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 #[derive(Traversable)]
 pub struct CostBasisMetrics<M: StorageMode = Rw> {
-    pub per_coin: DailyPercentilesVecs<M>,
-    pub per_dollar: DailyPercentilesVecs<M>,
+    pub per_coin: PercentilesVecs<M>,
+    pub per_dollar: PercentilesVecs<M>,
 }
 
 impl CostBasisMetrics {
@@ -15,16 +15,16 @@ impl CostBasisMetrics {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &DailyMappings,
+        mappings: &IndexSources,
     ) -> Result<Self> {
         Ok(Self {
-            per_coin: DailyPercentilesVecs::forced_import(
+            per_coin: PercentilesVecs::forced_import(
                 db,
                 &format!("{name}_per_coin"),
                 version,
                 mappings,
             )?,
-            per_dollar: DailyPercentilesVecs::forced_import(
+            per_dollar: PercentilesVecs::forced_import(
                 db,
                 &format!("{name}_per_dollar"),
                 version,

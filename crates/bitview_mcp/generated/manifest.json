@@ -13154,7 +13154,7 @@
       "tool": {
         "name": "get_urpd",
         "title": "Latest URPD",
-        "description": "URPD for the most recent available date in the cohort. The response's `date` field echoes which date was served. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}`.",
+        "description": "URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13230,10 +13230,16 @@
               "format": "double",
               "type": "number"
             },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
             "Urpd": {
               "required": [
                 "cohort",
                 "date",
+                "height",
                 "weight",
                 "aggregation",
                 "close",
@@ -13246,7 +13252,18 @@
                   "$ref": "#/$defs/Cohort"
                 },
                 "date": {
-                  "$ref": "#/$defs/Date"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Date"
+                    }
+                  ]
+                },
+                "height": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
                 },
                 "weight": {
                   "allOf": [
@@ -13378,19 +13395,18 @@
     {
       "tool": {
         "name": "get_urpd_at",
-        "title": "URPD at date",
-        "description": "URPD for a (cohort, date) pair. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}/{date}`.",
+        "title": "URPD at block height or date",
+        "description": "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.\n\nREST operation: `GET /api/urpd/{cohort}/{point}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "cohort": {
               "$ref": "#/$defs/Cohort"
             },
-            "date": {
+            "point": {
               "type": "string",
-              "description": "Calendar date of the URPD snapshot in `YYYY-MM-DD` format.",
               "examples": [
-                "2024-01-01"
+                "840000"
               ]
             },
             "agg": {
@@ -13405,7 +13421,7 @@
           "additionalProperties": false,
           "required": [
             "cohort",
-            "date"
+            "point"
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
@@ -13463,10 +13479,16 @@
               "format": "double",
               "type": "number"
             },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
             "Urpd": {
               "required": [
                 "cohort",
                 "date",
+                "height",
                 "weight",
                 "aggregation",
                 "close",
@@ -13479,7 +13501,18 @@
                   "$ref": "#/$defs/Cohort"
                 },
                 "date": {
-                  "$ref": "#/$defs/Date"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Date"
+                    }
+                  ]
+                },
+                "height": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
                 },
                 "weight": {
                   "allOf": [
@@ -13591,14 +13624,14 @@
       },
       "http": {
         "method": "GET",
-        "path": "/api/urpd/{cohort}/{date}",
+        "path": "/api/urpd/{cohort}/{point}",
         "parameters": [
           {
             "name": "cohort",
             "location": "path"
           },
           {
-            "name": "date",
+            "name": "point",
             "location": "path"
           },
           {
@@ -13756,7 +13789,7 @@
       "tool": {
         "name": "list_urpd_dates",
         "title": "Available URPD dates",
-        "description": "Dates for which a URPD snapshot is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.\n\nREST operation: `GET /api/urpd/{cohort}/dates`.",
+        "description": "Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.\n\nREST operation: `GET /api/urpd/{cohort}/dates`.",
         "inputSchema": {
           "type": "object",
           "properties": {

@@ -1,7 +1,11 @@
 use bitview_transforms::PriceTimesRatio;
 use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price};
 use brk_types::{Cents, CentsCompact, Height, PartsPerMillion32, Version};
-use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec};
+use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec, ReadableVec};
+
+#[cfg(test)]
+#[path = "component_price_tests.rs"]
+mod tests;
 
 #[derive(Clone)]
 pub struct ComponentPrice {
@@ -42,5 +46,28 @@ impl ComponentPrice {
         );
 
         Price::from_height_source(name, version, &source, mappings)
+    }
+
+    pub fn collect_boundary_prices(
+        &self,
+        ratios: [&impl ReadableVec<Height, PartsPerMillion32>; 10],
+        start: usize,
+        end: usize,
+    ) -> [Vec<Cents>; 10] {
+        let prices = self.price.collect_range_at(start, end);
+        ratios.map(|ratio| {
+            let mut out = Vec::with_capacity(prices.len());
+            ratio.for_each_chunk_at(start, start + prices.len(), &mut |at, values| {
+                out.extend(
+                    values
+                        .iter()
+                        .zip(&prices[at - start..])
+                        .map(|(&ratio, &price)| {
+                            PriceTimesRatio::<PartsPerMillion32>::apply(Cents::from(price), ratio)
+                        }),
+                );
+            });
+            out
+        })
     }
 }

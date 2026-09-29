@@ -1,5 +1,5 @@
 /// Writer-owned cumulative values. A length change reloads the persisted checkpoint.
-pub(crate) struct CumulativeState<R> {
+pub struct CumulativeState<R> {
     last: Option<(usize, R)>,
 }
 

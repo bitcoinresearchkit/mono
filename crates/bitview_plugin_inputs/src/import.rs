@@ -5,6 +5,8 @@ use bitview_vecs::{LazyPerSecondWindows, LazyWindowStartVec};
 use brk_error::Result;
 use vecdb::{ImportableVec, PcoVec};
 
+use crate::OriginSpends;
+
 use super::{ByTypeVecs, CountVecs, STORAGE, Vecs};
 
 impl Vecs {
@@ -21,7 +23,9 @@ impl Vecs {
         let per_sec = LazyPerSecondWindows::new("inputs_per_sec", version, &count.rolling.sum);
         let by_type = ByTypeVecs::forced_import(&db, version, mappings, window_starts)?;
 
+        let origins = OriginSpends::import(&context.data_path().join("origins"))?;
         let this = Self {
+            origins,
             db,
             value,
             count,

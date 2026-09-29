@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::prepare_computed;
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -15,29 +15,38 @@ const WRITE_INTERVAL: usize = 10_000;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
     let transfer_volumes = AgeRange::from_fn(|id| {
         &id.select(
-            &distribution
+            &distribution_age
                 .cohorts
                 .activity
                 .transfer_volume
                 .cohorts
-                .utxo
                 .age,
         )
         .block
         .sats
     });
     let coindays_destroyed = AgeRange::from_fn(|id| {
-        &id.select(&distribution.cohorts.activity.coindays_destroyed.cohorts.age)
-            .block
+        &id.select(
+            &distribution_age
+                .cohorts
+                .activity
+                .coindays_destroyed
+                .cohorts
+                .age,
+        )
+        .block
     });
-    let coindays_created =
-        AgeRange::from_fn(|id| &id.select(&distribution.coindays_created).cumulative.height);
+    let coindays_created = AgeRange::from_fn(|id| {
+        &id.select(&distribution_age.coindays_created)
+            .cumulative
+            .height
+    });
 
     vecs.compute_consumed(
         starting_height,

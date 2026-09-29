@@ -1,8 +1,10 @@
-use bitview_collections::{ByDcaCagr, ByLookbackPeriod, Windows};
+use bitview_collections::{ByLookbackPeriod, Windows};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPercentPerBlock, StdDevPerBlock};
 use brk_types::PartsPerMillionSigned64;
 use vecdb::{Rw, StorageMode};
+
+use super::Cagr;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -15,7 +17,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// corresponding whole-year trailing period: `(1 + return)^(1 / years) -
     /// 1`. Positive values are annualized gains and negative values are
     /// annualized losses.
-    pub cagr: ByDcaCagr<LazyPercentPerBlock<PartsPerMillionSigned64>>,
+    pub cagr: Cagr,
     /// Arithmetic mean and population standard deviation of per-block
     /// trailing-24-hour spot-price returns over a trailing
     /// monotonic-time window.

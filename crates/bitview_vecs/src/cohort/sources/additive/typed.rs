@@ -68,6 +68,21 @@ impl<T: PcoVecValue + AddAssign> UTXOTypedSources<T> {
         }
     }
 
+    pub fn push_partition<const ORIGIN: bool>(
+        &mut self,
+        core: UTXOCoreValues<T>,
+        type_: SpendableType<T>,
+        aggregate: Option<&UTXOAggregate<T>>,
+    ) {
+        if ORIGIN {
+            self.core.push_with_aggregate(core, aggregate);
+        } else {
+            for (target, &value) in self.type_.iter_mut().zip(type_.iter()) {
+                target.push(value);
+            }
+        }
+    }
+
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         let mut vecs = self.core.collect_vecs_mut();
         vecs.extend(self.type_.iter_mut().map(|v| v as &mut dyn AnyStoredVec));

@@ -2,7 +2,7 @@ use std::iter;
 
 use bitview_cohort::{AgeRange, ByTerm};
 use bitview_compute::{WeightedCohortAggregates, WeightedCohortState, prepare_computed};
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::PerBlock;
 use brk_error::Result;
@@ -17,30 +17,31 @@ const WRITE_INTERVAL: usize = 10_000;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
     age_range: &mut AgeRangeVecs,
     all_supply_in_loss_share: &mut PerBlock<BoundedRatio>,
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
     let supplies = AgeRange::from_fn(|id| {
-        &id.select(&distribution.cohorts.supply.total.cohorts.utxo.age)
+        &id.select(&distribution_age.cohorts.supply.total.cohorts.age)
             .sats
             .height
     });
     let loss_supplies = AgeRange::from_fn(|id| {
-        &id.select(&distribution.cohorts.supply.in_loss.cohorts.age)
+        &id.select(&distribution_age.cohorts.supply.in_loss.cohorts.age)
             .sats
             .height
     });
     let realized_caps = AgeRange::from_fn(|id| {
-        &id.select(&distribution.cohorts.realized.cap.cohorts.utxo.age)
+        &id.select(&distribution_age.cohorts.realized.cap.cohorts.age)
             .cents
             .height
     });
-    let cap_raw = AgeRange::from_fn(|id| id.select(&distribution.cohorts.realized.cap_raw.age));
-    let capitalized_cap_raw =
-        AgeRange::from_fn(|id| id.select(&distribution.cohorts.realized.capitalized_cap_raw.age));
+    let cap_raw = AgeRange::from_fn(|id| id.select(&distribution_age.cohorts.realized.cap_raw.age));
+    let capitalized_cap_raw = AgeRange::from_fn(|id| {
+        id.select(&distribution_age.cohorts.realized.capitalized_cap_raw.age)
+    });
     let weights = AgeRange::from_fn(|id| id.select(&age_range.activity_sources));
 
     vecs.sources.compute_primary(

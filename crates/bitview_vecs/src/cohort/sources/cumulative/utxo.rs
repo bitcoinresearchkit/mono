@@ -4,7 +4,7 @@ use bitview_cohort::UTXOValues;
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::Version;
-use vecdb::{AnyStoredVec, Database, PcoVecValue, Rw, StorageMode};
+use vecdb::{AnyStoredVec, AnyVec, Database, PcoVecValue, Rw, StorageMode};
 
 use super::super::UTXOSources;
 use crate::CumulativeState;
@@ -39,6 +39,27 @@ where
             |values| *values += cohort_values,
         );
         self.stored.push(cumulative);
+    }
+
+    pub fn push_partition<const ORIGIN: bool>(&mut self, values: UTXOValues<T>) {
+        let len = if ORIGIN {
+            self.stored.typed.core.min_len()
+        } else {
+            self.stored.amount.iter().map(AnyVec::len).min().unwrap()
+        };
+        let cumulative = self.last.accumulate(
+            len,
+            || self.stored.collect_last(),
+            |last| {
+                if ORIGIN {
+                    last.core += values.core;
+                } else {
+                    last.amount_range += values.amount_range;
+                    last.type_ += values.type_;
+                }
+            },
+        );
+        self.stored.push_partition::<ORIGIN>(cumulative, None);
     }
 
     pub fn min_len(&self) -> usize {

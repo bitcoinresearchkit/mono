@@ -6,10 +6,9 @@ use bitview_plugin::{
 };
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
-use bitview_vecs::{DailyView, RepeatDay};
 use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
@@ -19,7 +18,7 @@ use extremes::Extremes;
 use inner::RarityMeterInner;
 use rayon::{join, prelude::*};
 use reference_prices::ReferencePrices;
-use vecdb::{Database, Rw, StorageMode};
+use vecdb::{Database, LazyVec, Rw, StorageMode};
 
 mod band;
 mod block_decay_percentiles;
@@ -54,7 +53,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
 
     /// Model-specific realized and capitalized prices reconstructed from the
-    /// distribution's disjoint raw capitalization and supply histories.
+    /// distribution_age's disjoint raw capitalization and supply histories.
     pub reference_prices: ReferencePrices<M>,
 
     /// Reference-price components used by the Rarity Meter. A UTXO's creation
@@ -93,7 +92,7 @@ impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
-        distribution: &DistributionVecs,
+        distribution_age: &AgeVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
@@ -105,7 +104,7 @@ impl Vecs {
                 &db,
                 version,
                 mappings,
-                distribution,
+                distribution_age,
                 &reference_prices,
                 cointime,
                 coinflow,
@@ -136,18 +135,17 @@ where
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let exit = context.exit();
         let Dependencies {
             indexer,
             bedrock,
-            distribution,
+            distribution_age,
             cointime,
             coinflow,
             price: prices,
@@ -155,11 +153,11 @@ impl ComputePlugin for Vecs {
         self.db.sync_bg_tasks()?;
 
         let spot = &prices.spot.cents.height;
-        let metrics = &distribution.cohorts;
+        let metrics = &distribution_age.cohorts;
         let realized = &metrics.realized;
         let cap_raw = &realized.cap_raw;
         let capitalized_cap_raw = &realized.capitalized_cap_raw;
-        let supply = &metrics.supply.total.cohorts.utxo;
+        let supply = &metrics.supply.total.cohorts;
 
         self.reference_prices.compute(
             indexer.safe_lengths().height,
@@ -189,7 +187,7 @@ impl ComputePlugin for Vecs {
                 components::compute(
                     &mut self.components,
                     indexer,
-                    distribution,
+                    distribution_age,
                     &self.reference_prices,
                     cointime,
                     coinflow,
@@ -202,8 +200,8 @@ impl ComputePlugin for Vecs {
                     &mut self.extremes,
                     indexer,
                     &metrics.supply.in_loss.cohorts.all.btc.height,
-                    &realized.profit.cohorts.utxo.all.sum._24h.usd.height,
-                    &realized.loss.cohorts.utxo.all.sum._24h.usd.height,
+                    &realized.profit.cohorts.all.sum._24h.usd.height,
+                    &realized.loss.cohorts.all.sum._24h.usd.height,
                     &realized.peak_regret.series.all.sum._24h.usd.height,
                     &realized.sell_side_risk_ratio.all._24h.percent.height,
                     exit,
@@ -224,25 +222,25 @@ impl ComputePlugin for Vecs {
         // matching the rarity meter's P0.1, P0.5, P1, P2, and P5 order.
         let bedrock_floors = [
             [
-                &bedrock.raw.floor.pct99_9.cents.views.height,
-                &bedrock.raw.floor.pct99_5.cents.views.height,
-                &bedrock.raw.floor.pct99.cents.views.height,
-                &bedrock.raw.floor.pct98.cents.views.height,
-                &bedrock.raw.floor.pct95.cents.views.height,
+                &bedrock.raw.floor.pct99_9.cents.height,
+                &bedrock.raw.floor.pct99_5.cents.height,
+                &bedrock.raw.floor.pct99.cents.height,
+                &bedrock.raw.floor.pct98.cents.height,
+                &bedrock.raw.floor.pct95.cents.height,
             ],
             [
-                &bedrock.cointime.floor.pct99_9.cents.views.height,
-                &bedrock.cointime.floor.pct99_5.cents.views.height,
-                &bedrock.cointime.floor.pct99.cents.views.height,
-                &bedrock.cointime.floor.pct98.cents.views.height,
-                &bedrock.cointime.floor.pct95.cents.views.height,
+                &bedrock.cointime.floor.pct99_9.cents.height,
+                &bedrock.cointime.floor.pct99_5.cents.height,
+                &bedrock.cointime.floor.pct99.cents.height,
+                &bedrock.cointime.floor.pct98.cents.height,
+                &bedrock.cointime.floor.pct95.cents.height,
             ],
             [
-                &bedrock.coinflow.floor.pct99_9.cents.views.height,
-                &bedrock.coinflow.floor.pct99_5.cents.views.height,
-                &bedrock.coinflow.floor.pct99.cents.views.height,
-                &bedrock.coinflow.floor.pct98.cents.views.height,
-                &bedrock.coinflow.floor.pct95.cents.views.height,
+                &bedrock.coinflow.floor.pct99_9.cents.height,
+                &bedrock.coinflow.floor.pct99_5.cents.height,
+                &bedrock.coinflow.floor.pct99.cents.height,
+                &bedrock.coinflow.floor.pct98.cents.height,
+                &bedrock.coinflow.floor.pct95.cents.height,
             ],
         ];
 
@@ -283,16 +281,10 @@ impl ComputePlugin for Vecs {
             &self.components.coinflow_price,
         ];
         let starting_height = indexer.safe_lengths().height;
-        // Daily median revisions affect every block of their day, including
-        // blocks before the indexer's safe resume height.
-        let v2_starting_height = self
-            .components
-            .cointime_median_price_btc_weighted
-            .starting_height(starting_height);
         let jobs: [(
             &mut RarityMeterInner,
             &[&Component],
-            &[[&DailyView<Height, Cents, RepeatDay>; 5]],
+            &[[&LazyVec<Height, Cents, Height, Cents>; 5]],
             Height,
         ); 4] = [
             (&mut self.local, &local_components, &[], starting_height),
@@ -312,7 +304,7 @@ impl ComputePlugin for Vecs {
                 &mut self.cycle_v2,
                 &cycle_v2_components,
                 &bedrock_floors,
-                v2_starting_height,
+                starting_height,
             ),
         ];
         let has_work = jobs
@@ -343,7 +335,7 @@ impl ComputePlugin for Vecs {
             &mut self.full_v2,
             &[&self.local_v2, &self.cycle_v2],
             spot,
-            v2_starting_height,
+            starting_height,
             exit,
         )?;
 

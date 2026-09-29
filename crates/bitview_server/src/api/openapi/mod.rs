@@ -197,9 +197,9 @@ All errors return structured JSON with a consistent format:
         Tag {
             name: "URPD".to_string(),
             description: Some(
-                "UTXO Realized Price Distribution. For each (cohort, date) pair, supply is \
-                grouped by the close price at which each UTXO was last moved. One snapshot is \
-                emitted per UTC day.\n\n\
+                "UTXO Realized Price Distribution. For each (cohort, block) pair, supply is \
+                grouped by the price at which each UTXO was last moved. Distributions are \
+                reconstructed from UTXO history on demand.\n\n\
                 Each bucket carries `supply` (BTC), `realized_cap` (USD, = `price_floor * supply`), \
                 and `unrealized_pnl` (USD, = `(close - price_floor) * supply`, can be negative).\n\n\
                 Aggregate with the `agg` query parameter (alias `bucket`):\n\
@@ -210,10 +210,10 @@ All errors return structured JSON with a consistent format:
                 - `raw`: unweighted supply (default).\n\
                 - `cointime`: cointime-weighted supply.\n\
                 - `coinflow`: coinflow-weighted supply.\n\n\
-                Weighted `all`, `sth`, and `lth` snapshots are persisted. Weighted age-range \
-                cohorts are derived from their raw snapshot and daily cohort weight.\n\n\
+                Raw and weighted age-range, `all`, `sth`, and `lth` distributions share \
+                the same block state. Weights are evaluated at the requested block.\n\n\
                 Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
-                `GET /api/urpd/{cohort}/dates` (history), `GET /api/urpd/{cohort}/{date}` (specific)."
+                `GET /api/urpd/{cohort}/dates` (history), `GET /api/urpd/{cohort}/{point}` (specific)."
                     .to_string(),
             ),
             ..Default::default()

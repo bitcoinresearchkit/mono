@@ -3,9 +3,9 @@ use std::sync::atomic::{AtomicUsize, Ordering::Relaxed};
 
 use bitview_transforms::RatioU64;
 use bitview_traversable::Traversable;
-use bitview_vecs::{DailyMappings, DailyMetric, LazyPercentPerBlock, PerBlock, Resolutions};
+use bitview_vecs::{LazyPercentPerBlock, PerBlock, Resolutions};
 use brk_exit::Exit;
-use brk_types::{Day1, Height, PartsPerMillion32, StoredU64, Version};
+use brk_types::{Height, PartsPerMillion32, StoredU64, Version};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, Budgeted, Database, EagerVec, ImportableVec, LazyVec, PcoVec, ReadOnlyClone,
@@ -188,62 +188,6 @@ fn compute_helpers_share_the_same_source_owner() {
     source.write().unwrap();
     assert!(!reader.height.read_cached_into_at(0, 1, &mut Vec::new()));
     assert_eq!(reader.height.collect_last(), Some(StoredU64::from(2_u64)));
-}
-
-#[test]
-fn daily_views_retain_only_their_requested_points_and_catalog_reuses_them() {
-    init_cache();
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut indexes = common::indexes(&db);
-    indexes.height_day1 = common::stored(
-        &db,
-        "daily_view_mapping",
-        [Day1::from(0usize), Day1::from(4095usize)],
-    )
-    .read_only_boxed_clone();
-    let mappings = DailyMappings::new(&indexes);
-    let mut metric =
-        DailyMetric::<StoredU64>::forced_import(&db, "source_cache_day", Version::ONE, &mappings)
-            .unwrap();
-    let _: &EagerVec<PcoVec<Day1, StoredU64, Budgeted>> = &metric.day1;
-    for i in 0..4096_u64 {
-        metric.day1.push(StoredU64::from(i));
-    }
-    metric.day1.write().unwrap();
-    assert_eq!(
-        [
-            metric.views.height.collect_one_at(0).unwrap(),
-            metric.views.height.collect_one_at(1).unwrap(),
-        ],
-        [
-            Some(StoredU64::from(0_u64)),
-            Some(StoredU64::from(4095_u64))
-        ]
-    );
-    assert!(metric.day1.read_cached_into_at(0, 1, &mut Vec::new()));
-    assert!(metric.day1.read_cached_into_at(4095, 4096, &mut Vec::new()));
-    assert!(!metric.day1.read_cached_into_at(0, 4096, &mut Vec::new()));
-    let reader = metric.read_only_clone();
-    let mut json = Vec::new();
-    reader
-        .iter_any_exportable()
-        .find(|v| v.name() == "source_cache_day")
-        .unwrap()
-        .write_json(None, None, &mut json)
-        .unwrap();
-    assert!(metric.day1.read_cached_into_at(0, 4096, &mut Vec::new()));
-    metric
-        .day1
-        .truncate_if_needed(Day1::from(4095usize))
-        .unwrap();
-    metric.day1.push(StoredU64::from(7000_u64));
-    metric.day1.write().unwrap();
-    assert_eq!(reader.day1.collect_last(), Some(StoredU64::from(7000_u64)));
-    assert_eq!(
-        reader.views.height.collect_last(),
-        Some(Some(StoredU64::from(7000_u64)))
-    );
 }
 
 #[test]

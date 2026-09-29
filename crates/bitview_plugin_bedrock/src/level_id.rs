@@ -1,17 +1,6 @@
 use super::Levels;
 
 pub const LEVEL_COUNT: usize = 9;
-pub const LEVEL_IDS: [LevelId; LEVEL_COUNT] = [
-    LevelId::Pct10,
-    LevelId::Pct20,
-    LevelId::Pct30,
-    LevelId::Pct40,
-    LevelId::Pct50,
-    LevelId::Pct60,
-    LevelId::Pct70,
-    LevelId::Pct80,
-    LevelId::Pct90,
-];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LevelId {
@@ -38,20 +27,6 @@ impl LevelId {
             Self::Pct70 => &values.pct70,
             Self::Pct80 => &values.pct80,
             Self::Pct90 => &values.pct90,
-        }
-    }
-
-    pub fn select_mut<T>(self, values: &mut Levels<T>) -> &mut T {
-        match self {
-            Self::Pct10 => &mut values.pct10,
-            Self::Pct20 => &mut values.pct20,
-            Self::Pct30 => &mut values.pct30,
-            Self::Pct40 => &mut values.pct40,
-            Self::Pct50 => &mut values.pct50,
-            Self::Pct60 => &mut values.pct60,
-            Self::Pct70 => &mut values.pct70,
-            Self::Pct80 => &mut values.pct80,
-            Self::Pct90 => &mut values.pct90,
         }
     }
 }

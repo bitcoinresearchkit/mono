@@ -7,7 +7,7 @@ mod range_map_lookup;
 mod stored;
 mod window_starts;
 
-pub(crate) use cumulative_state::CumulativeState;
+pub use cumulative_state::CumulativeState;
 pub use indexes::IndexSources;
 pub use lazy_window_start_vec::LazyWindowStartVec;
 pub use lookback::Lookback;

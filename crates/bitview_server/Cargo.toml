@@ -15,7 +15,8 @@ bedrock = ["bitview_query/bedrock"]
 blocks = ["bitview_query/blocks"]
 coinflow = ["bitview_query/coinflow"]
 cointime = ["bitview_query/cointime"]
-distribution = ["bitview_query/distribution"]
+distribution_age = ["bitview_query/distribution_age"]
+distribution_size = ["bitview_query/distribution_size"]
 mappings = ["bitview_query/mappings"]
 inputs = ["bitview_query/inputs"]
 mining = ["bitview_query/mining"]
@@ -25,7 +26,7 @@ price = ["mappings", "bitview_query/price"]
 transactions = ["bitview_query/transactions"]
 chain = [
     "blocks",
-    "distribution",
+    "distribution_size",
     "mappings",
     "inputs",
     "mining",
@@ -39,7 +40,7 @@ series = ["mappings", "bitview_query/series"]
 urpd = [
     "coinflow",
     "cointime",
-    "distribution",
+    "distribution_age",
     "price",
     "bitview_query/urpd",
 ]
@@ -70,6 +71,7 @@ tower-http = { workspace = true, features = ["limit"] }
 tower-layer = { workspace = true }
 
 [dev-dependencies]
+bitview_plugin_utxo_history = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
 bitview_plugin_mining = { workspace = true }
 bitview_urpd = { workspace = true }
@@ -80,7 +82,8 @@ tower = { workspace = true }
 brk_exit = { workspace = true }
 bitview_default = { workspace = true }
 bitview_plugin = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
+bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_distribution_size = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 bitview_plugin_inputs = { workspace = true }
 bitview_plugin_mappings = { workspace = true }

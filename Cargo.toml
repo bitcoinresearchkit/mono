@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/*", "examples/custom_plugin"]
+members = ["crates/*"]
 package.description = "The Bitcoin Research Kit is a suite of tools designed to extract, compute and display data stored on a Bitcoin Core node"
 package.license = "MIT"
 package.edition = "2024"
@@ -52,11 +52,12 @@ bitview_plugin_capital_sentiment = { version = "0.12.2", path = "crates/bitview_
 bitview_plugin_coinflow = { version = "0.12.2", path = "crates/bitview_plugin_coinflow" }
 bitview_plugin_cointime = { version = "0.12.2", path = "crates/bitview_plugin_cointime" }
 bitview_plugin_constants = { version = "0.12.2", path = "crates/bitview_plugin_constants" }
-bitview_plugin_distribution = { version = "0.12.2", path = "crates/bitview_plugin_distribution" }
+bitview_plugin_distribution_common = { version = "0.12.2", path = "crates/bitview_plugin_distribution_common" }
+bitview_plugin_distribution_age = { version = "0.12.2", path = "crates/bitview_plugin_distribution_age" }
+bitview_plugin_distribution_size = { version = "0.12.2", path = "crates/bitview_plugin_distribution_size" }
 bitview_plugin_indexer = { version = "0.12.2", path = "crates/bitview_plugin_indexer" }
 bitview_plugin_indicators = { version = "0.12.2", path = "crates/bitview_plugin_indicators" }
 bitview_plugin_inputs = { version = "0.12.2", path = "crates/bitview_plugin_inputs" }
-bitview_plugin_investing = { version = "0.12.2", path = "crates/bitview_plugin_investing" }
 bitview_plugin_mappings = { version = "0.12.2", path = "crates/bitview_plugin_mappings" }
 bitview_plugin_market = { version = "0.12.2", path = "crates/bitview_plugin_market" }
 bitview_plugin_mining = { version = "0.12.2", path = "crates/bitview_plugin_mining" }
@@ -67,6 +68,7 @@ bitview_plugin_price = { version = "0.12.2", path = "crates/bitview_plugin_price
 bitview_plugin_rarity_meter = { version = "0.12.2", path = "crates/bitview_plugin_rarity_meter" }
 bitview_plugin_supply = { version = "0.12.2", path = "crates/bitview_plugin_supply" }
 bitview_plugin_transactions = { version = "0.12.2", path = "crates/bitview_plugin_transactions" }
+bitview_plugin_utxo_history = { version = "0.12.2", path = "crates/bitview_plugin_utxo_history" }
 bitview_query = { version = "0.12.2", path = "crates/bitview_query", default-features = false }
 bitview_runtime = { version = "0.12.2", path = "crates/bitview_runtime" }
 bitview_runtime_derive = { version = "0.12.2", path = "crates/bitview_runtime_derive" }
@@ -120,6 +122,7 @@ serde = "1.0.229"
 serde_bytes = "0.11.19"
 serde_json = { version = "1.0.151", features = ["float_roundtrip", "preserve_order"] }
 smallvec = "1.16.1"
+statedb = { path = "crates/statedb", version = "0.12.2" }
 tempfile = "3.27.0"
 tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
 tower = { version = "0.5.3", features = ["util"] }

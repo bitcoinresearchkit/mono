@@ -1,7 +1,5 @@
-use std::path::PathBuf;
-
 use bitview_cohort::UTXOAggregate;
-use bitview_vecs::{DailyMappings, IndexSources, LazyDailyPriceWithRatio, import_cached};
+use bitview_vecs::{IndexSources, LazyPriceWithRatioPerBlock, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
@@ -15,9 +13,8 @@ impl Metrics {
         version: Version,
         indexes: &IndexSources,
         spot: &ReadableBoxedVec<Height, Cents>,
-        states_path: PathBuf,
     ) -> Result<Self> {
-        let mappings = DailyMappings::new(indexes);
+        let version = version + Version::ONE;
         let name = format!("{owner}_urpd");
         let capitalized_price_stored = UTXOAggregate::try_from_fn(|id| {
             import_cached(
@@ -27,28 +24,28 @@ impl Metrics {
             )
         })?;
         let capitalized_price = UTXOAggregate::from_fn(|id| {
-            LazyDailyPriceWithRatio::from_day1_source(
+            LazyPriceWithRatioPerBlock::from_height_source(
                 &format!("{name}_{}_capitalized_price", id.cohort_name().id),
                 version,
                 id.select(&capitalized_price_stored),
                 indexes,
-                &mappings,
                 spot,
             )
         });
         Ok(Self {
+            replay: Default::default(),
+            buffer: Default::default(),
             cost_basis: UTXOAggregate::try_from_fn(|id| {
                 CostBasisMetrics::forced_import(
                     db,
                     &id.metric_name(&format!("{owner}_cost_basis")),
                     version,
-                    &mappings,
+                    indexes,
                 )
             })?,
             capitalized_price,
             capitalized_price_stored,
-            supply_density: DensityMetrics::forced_import(db, &name, version, &mappings)?,
-            states_path,
+            supply_density: DensityMetrics::forced_import(db, &name, version, indexes)?,
         })
     }
 }

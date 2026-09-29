@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use brk_types::{Day1, Sats, StoredF64};
+use brk_types::{Height, Sats, StoredF64};
 use vecdb::ReadableVec;
 
 /// Empty cohorts may have no observation; populated cohorts require a finite one.
@@ -22,13 +22,13 @@ where
 }
 
 pub fn collect_cohort_weights(
-    day: Day1,
-    weights: &AgeRange<&impl ReadableVec<Day1, Option<StoredF64>>>,
-    supplies: &AgeRange<&impl ReadableVec<Day1, Option<Sats>>>,
+    height: Height,
+    weights: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
+    supplies: &AgeRange<Sats>,
 ) -> Option<AgeRange<f64>> {
     AgeRange::try_from_fn(|age| {
-        let supply = age.select(supplies).collect_one(day).flatten().ok_or(())?;
-        resolve_cohort_weight(age.select(weights).collect_one(day).flatten(), supply).ok_or(())
+        let supply = *age.select(supplies);
+        resolve_cohort_weight(age.select(weights).collect_one(height), supply).ok_or(())
     })
     .ok()
 }

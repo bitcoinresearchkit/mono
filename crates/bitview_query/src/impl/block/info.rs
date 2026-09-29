@@ -426,8 +426,7 @@ impl Query {
         let input_counts = plugins.inputs.count.sum.collect_range_at(begin, end);
         let output_counts = plugins.outputs.count.total.sum.collect_range_at(begin, end);
         let utxo_set_sizes = plugins
-            .outputs
-            .unspent
+            .utxo_history
             .count
             .height
             .collect_range_at(begin, end);

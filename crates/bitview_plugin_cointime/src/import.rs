@@ -1,6 +1,6 @@
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution::{AllChainSources, Vecs as DistributionVecs};
+use bitview_plugin_distribution_age::{AllChainSources, Vecs as AgeVecs};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_urpd::Metrics as UrpdMetrics;
@@ -21,7 +21,7 @@ impl Vecs {
         prices: &PriceVecs,
         subsidy_cents: &PerBlock<Cents>,
         all_chain: &AllChainSources,
-        distribution: &DistributionVecs,
+        distribution_age: &AgeVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 250_000)?;
         let version = STORAGE.schema_version();
@@ -34,7 +34,7 @@ impl Vecs {
             mappings,
             window_starts,
             &spot_price,
-            distribution,
+            distribution_age,
         )?;
         let supply = supply::forced_import(&db, v1, mappings, &spot_price, &activity, all_chain)?;
         let aggregate = aggregate::forced_import(
@@ -57,14 +57,7 @@ impl Vecs {
         let adjusted = adjusted::forced_import(&db, version, mappings)?;
         let reserve_risk = reserve_risk::forced_import(&db, v1, mappings, &spot_price)?;
 
-        let urpd = UrpdMetrics::forced_import(
-            &db,
-            "cointime",
-            version,
-            mappings,
-            &spot_price,
-            STORAGE.path(context).join("states"),
-        )?;
+        let urpd = UrpdMetrics::forced_import(&db, "cointime", version, mappings, &spot_price)?;
         let this = Self {
             db,
             activity,

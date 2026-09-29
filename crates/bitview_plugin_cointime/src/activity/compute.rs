@@ -1,4 +1,4 @@
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -9,16 +9,15 @@ use super::Vecs;
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
-    let circulating_supply = &distribution
+    let circulating_supply = &distribution_age
         .cohorts
         .supply
         .total
         .cohorts
-        .utxo
         .all
         .sats
         .height;
@@ -33,13 +32,13 @@ pub fn compute(
     vecs.coinblocks_stored.cumulative.height.compute_subtract(
         starting_height,
         &vecs.coinblocks_created.cumulative.height,
-        &distribution.coinblocks_destroyed.cumulative.height,
+        &distribution_age.coinblocks_destroyed.cumulative.height,
         exit,
     )?;
 
     vecs.derived.liveliness_source.height.compute_transform2(
         starting_height,
-        &distribution.coinblocks_destroyed.cumulative.height,
+        &distribution_age.coinblocks_destroyed.cumulative.height,
         &vecs.coinblocks_created.cumulative.height,
         |(h, destroyed, created, ..)| {
             (

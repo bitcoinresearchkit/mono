@@ -4,4 +4,4 @@ mod supply;
 
 pub use cohorts::DensityMetrics;
 use series::DensitySeries;
-use supply::SupplyDensity;
+pub(crate) use supply::SupplyDensity;

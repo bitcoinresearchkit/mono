@@ -9,7 +9,6 @@
 
 mod block;
 mod cohort;
-mod daily;
 mod fiat;
 mod percent;
 mod ratio;
@@ -22,7 +21,6 @@ mod views;
 
 pub use block::*;
 pub use cohort::*;
-pub use daily::*;
 pub use fiat::*;
 pub use percent::*;
 pub use ratio::*;

@@ -16,7 +16,8 @@ bedrock = ["indexer", "dep:bitview_plugin_bedrock"]
 blocks = ["indexer", "dep:bitview_plugin_blocks"]
 coinflow = ["indexer", "dep:bitview_plugin_coinflow"]
 cointime = ["indexer", "dep:bitview_plugin_cointime"]
-distribution = ["indexer", "dep:bitview_plugin_distribution"]
+distribution_age = ["indexer", "dep:bitview_plugin_distribution_age"]
+distribution_size = ["indexer", "dep:bitview_plugin_distribution_size"]
 mappings = ["indexer", "dep:bitview_plugin_mappings"]
 inputs = ["indexer", "dep:bitview_plugin_inputs"]
 mining = ["indexer", "dep:bitview_plugin_mining"]
@@ -24,9 +25,10 @@ outputs = ["indexer", "dep:bitview_plugin_outputs"]
 pools = ["indexer", "dep:bitview_plugin_pools"]
 price = ["mappings", "dep:bitview_plugin_price"]
 transactions = ["indexer", "dep:bitview_plugin_transactions"]
+utxo_history = ["indexer", "dep:bitview_plugin_utxo_history"]
 chain = [
     "blocks",
-    "distribution",
+    "distribution_size",
     "mappings",
     "inputs",
     "mining",
@@ -34,13 +36,15 @@ chain = [
     "pools",
     "price",
     "transactions",
+    "utxo_history",
 ]
 series = ["mappings"]
 urpd = [
+    "utxo_history",
     "dep:bitview_urpd",
     "coinflow",
     "cointime",
-    "distribution",
+    "distribution_age",
     "price",
 ]
 tokio = ["indexer", "dep:tokio", "brk_error/tokio"]
@@ -52,7 +56,8 @@ bitview_plugin_bedrock = { workspace = true, optional = true }
 bitview_plugin_blocks = { workspace = true, optional = true }
 bitview_plugin_coinflow = { workspace = true, optional = true }
 bitview_plugin_cointime = { workspace = true, optional = true }
-bitview_plugin_distribution = { workspace = true, optional = true }
+bitview_plugin_distribution_age = { workspace = true, optional = true }
+bitview_plugin_distribution_size = { workspace = true, optional = true }
 bitview_plugin_mappings = { workspace = true, optional = true }
 bitview_plugin_inputs = { workspace = true, optional = true }
 bitview_plugin_mining = { workspace = true, optional = true }
@@ -60,6 +65,7 @@ bitview_plugin_outputs = { workspace = true, optional = true }
 bitview_plugin_pools = { workspace = true, optional = true }
 bitview_plugin_price = { workspace = true, optional = true }
 bitview_plugin_transactions = { workspace = true, optional = true }
+bitview_plugin_utxo_history = { workspace = true, optional = true }
 bitview_runtime = { workspace = true }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }

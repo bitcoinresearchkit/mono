@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext};
 use bitview_collections::Windows;
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_transforms::{BoundedOddsF64, BoundedToF64};
 use bitview_vecs::{
@@ -21,7 +21,7 @@ pub fn forced_import(
     mappings: &MappingsVecs,
     window_starts: &Windows<&LazyWindowStartVec>,
     spot_price: &ReadableBoxedVec<Height, Cents>,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
 ) -> Result<Vecs> {
     let version = parent_version + VERSION;
     let import_coindays = |metric: &str| {
@@ -68,7 +68,13 @@ pub fn forced_import(
     let import_supply = |side: &str, complement: bool| {
         AgeRangeId::series(CohortContext::Utxo, |id, name| {
             let name = format!("{name}_{side}_supply");
-            let supply = id.select(&distribution.cohorts.supply.total.stored.cohorts.age);
+            let supply = distribution_age
+                .cohorts
+                .supply
+                .total
+                .stored
+                .get(id.cohort())
+                .expect("age supply source");
             let weight = id.select(&activity_sources);
             if complement {
                 LazySpotValuePerBlock::from_weighted_supply::<true>(

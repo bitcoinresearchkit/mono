@@ -5,7 +5,7 @@
 - Version: `v0.12.2`
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
-- Metrics: 42119
+- Metrics: 41917
 - Operations: 97
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
@@ -1368,7 +1368,7 @@ curl -s "https://bitview.space/api/urpd"
 
 Latest URPD
 
-URPD for the most recent available date in the cohort. The response's `date` field echoes which date was served. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for the latest published block. The response's `date` field echoes which date was served. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
 
 Parameters:
 - `cohort` (path, Cohort, required)
@@ -1385,7 +1385,7 @@ curl -s "https://bitview.space/api/urpd/<cohort>?agg=<agg>&weight=<weight>"
 
 Available URPD dates
 
-Dates for which a URPD snapshot is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
+Dates for which a published block is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
 
 Parameters:
 - `cohort` (path, Cohort, required)
@@ -1397,22 +1397,22 @@ Returns: JSON `Date[]`
 curl -s "https://bitview.space/api/urpd/<cohort>/dates?weight=<weight>"
 ```
 
-#### GET `/api/urpd/{cohort}/{date}`
+#### GET `/api/urpd/{cohort}/{point}`
 
-URPD at date
+URPD at block height or date
 
-URPD for a (cohort, date) pair. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for a cohort at a block height or the last block of a UTC day. Returns `{ cohort, height, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
 
 Parameters:
 - `cohort` (path, Cohort, required)
-- `date` (path, string, required): Calendar date of the URPD snapshot in `YYYY-MM-DD` format.
+- `point` (path, string, required)
 - `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: raw (unweighted).
 
 Returns: JSON `Urpd`
 
 ```bash
-curl -s "https://bitview.space/api/urpd/<cohort>/<date>?agg=<agg>&weight=<weight>"
+curl -s "https://bitview.space/api/urpd/<cohort>/<point>?agg=<agg>&weight=<weight>"
 ```
 
 ### Validate Address
@@ -2050,10 +2050,11 @@ curl -s "https://bitview.space/version"
 ### `Urpd`
 
 - `cohort`: `Cohort` (required)
-- `date`: `Date` (required)
+- `date`: `Date` (required) — UTC date of the represented block.
+- `height`: `Height` (required) — Exact published block represented by this distribution.
 - `weight`: `UrpdWeight` (required) — Weighting applied to the source supply.
 - `aggregation`: `UrpdAggregation` (required) — Aggregation strategy applied to the buckets.
-- `close`: `Dollars` (required) — Close price on `date`, in USD. Anchor for `unrealized_pnl`.
+- `close`: `Dollars` (required) — Price at `height`, in USD. Anchor for `unrealized_pnl`.
 - `total_supply`: `Bitcoin` (required) — Sum of `supply` across all buckets, in BTC.
 - `buckets`: `UrpdBucket[]` (required)
 

@@ -1,51 +1,94 @@
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use bitcoin::Amount;
 use bitview_plugin::{ComputePlugin, ImportContext, PluginData, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
-use bitview_plugin_distribution::{Dependencies, HasDistribution, Vecs as Distribution};
+use bitview_plugin_distribution_age::{
+    Dependencies as AgeDependencies, HasDistributionAge, Vecs as Age,
+};
+use bitview_plugin_distribution_size::{
+    Dependencies as SizeDependencies, HasDistributionSize, Vecs as Size,
+};
 use bitview_plugin_indexer::HasIndexer;
 use bitview_plugin_inputs::HasInputs;
 use bitview_plugin_mappings::HasMappings;
 use bitview_plugin_outputs::HasOutputs;
 use bitview_plugin_price::HasPrice;
-use bitview_plugin_transactions::HasTransactions;
-use bitview_urpd::AgeRangeUrpds;
+use bitview_plugin_utxo_history::HasUtxoHistory;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::Version;
+use brk_types::{CentsSats, Version};
 use tempfile::tempdir;
-use vecdb::{ReadableVec, WritableVec};
+use vecdb::{
+    AnyStoredVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
+    ReadableCloneableVec, WritableVec,
+};
 
 use super::chain_fixture::{ChainFixture, raw_fixture_block, run_genesis};
 
+type Distribution = (Age, Size);
+
 fn import(path: &Path, fixture: &ChainFixture) -> Distribution {
-    Distribution::import(
-        ImportContext::new(path),
-        fixture.plugins.mappings(),
-        &fixture.plugins.blocks().lookback.window_starts(),
-        fixture.plugins.price(),
-        &fixture.plugins.inputs().by_type,
-        &fixture.plugins.outputs().by_type,
+    let plugins = &fixture.plugins;
+    let context = ImportContext::new(path);
+    let windows = plugins.blocks().lookback.window_starts();
+    let supply = plugins.utxo_history().supply.read_only_boxed_clone();
+    let count = plugins.utxo_history().count.height.read_only_boxed_clone();
+    (
+        Age::import(
+            context,
+            plugins.mappings(),
+            &windows,
+            plugins.price(),
+            &supply,
+            &count,
+        )
+        .unwrap(),
+        Size::import(
+            context,
+            plugins.mappings(),
+            &windows,
+            plugins.price(),
+            &plugins.inputs().by_type,
+            &plugins.outputs().by_type,
+            &supply,
+            &count,
+        )
+        .unwrap(),
     )
-    .unwrap()
 }
 
-fn compute(writer: &mut Distribution, fixture: &ChainFixture) -> Result<AgeRangeUrpds> {
-    writer.compute(
-        Dependencies {
-            indexer: fixture.plugins.indexer(),
-            mappings: fixture.plugins.mappings(),
-            inputs: fixture.plugins.inputs(),
-            outputs: fixture.plugins.outputs(),
-            transactions: fixture.plugins.transactions(),
-            price: fixture.plugins.price(),
+fn compute(writer: &mut Distribution, fixture: &ChainFixture) -> Result<()> {
+    let plugins = &fixture.plugins;
+    let history = plugins.utxo_history().reader(
+        plugins.inputs().origins.spends(),
+        &plugins.outputs().creations,
+    )?;
+    writer.0.compute(
+        AgeDependencies {
+            history: &history,
+            from: plugins.indexer().safe_lengths().height,
+            mappings: plugins.mappings(),
+            price: plugins.price(),
+        },
+        UpdateContext::new(&Exit::default()),
+    )?;
+    writer.1.compute(
+        SizeDependencies {
+            indexer: plugins.indexer(),
+            mappings: plugins.mappings(),
+            input_values: &plugins.inputs().value,
+            price: plugins.price(),
         },
         UpdateContext::new(&Exit::default()),
     )
 }
 
-fn series(writer: &Distribution) -> BTreeMap<String, Vec<u8>> {
+fn series(writer: &impl PluginData) -> BTreeMap<String, Vec<u8>> {
     let mut result = BTreeMap::new();
     writer.for_each_visible(&mut |vec| {
         let mut values = Vec::new();
@@ -55,58 +98,38 @@ fn series(writer: &Distribution) -> BTreeMap<String, Vec<u8>> {
     result
 }
 
-fn snapshots(writer: &Distribution) -> BTreeMap<String, Vec<u8>> {
-    fs::read_dir(AgeRangeUrpds::dir(&writer.states_path))
-        .unwrap()
-        .map(|entry| {
-            let entry = entry.unwrap();
-            (
-                entry.file_name().into_string().unwrap(),
-                fs::read(entry.path()).unwrap(),
-            )
-        })
-        .collect()
+fn compare(writer: &impl PluginData, fresh: &impl PluginData) {
+    let expected = series(fresh);
+    for (name, values) in series(writer) {
+        assert_eq!(values, expected[&name], "{name}");
+    }
 }
 
 fn check(writer: &mut Distribution, fixture: &ChainFixture) {
-    let actual = compute(writer, fixture).unwrap();
+    compute(writer, fixture).unwrap();
     let directory = tempdir().unwrap();
     let mut fresh = import(directory.path(), fixture);
-    let expected = compute(&mut fresh, fixture).unwrap();
-    assert_eq!(
-        actual.iter().collect::<Vec<_>>(),
-        expected.iter().collect::<Vec<_>>()
-    );
-    compare(writer, &fresh);
+    compute(&mut fresh, fixture).unwrap();
+    compare(&writer.0, &fresh.0);
+    compare(&writer.1, &fresh.1);
 }
 
 fn check_published(fixture: &ChainFixture) {
     let directory = tempdir().unwrap();
     let mut fresh = import(directory.path(), fixture);
     compute(&mut fresh, fixture).unwrap();
-    compare(fixture.plugins.distribution(), &fresh);
+    compare(fixture.plugins.distribution_age(), &fresh.0);
+    compare(fixture.plugins.distribution_size(), &fresh.1);
 }
 
-fn compare(writer: &Distribution, fresh: &Distribution) {
-    assert_eq!(
-        writer
-            .supply_state
-            .collect()
-            .iter()
-            .map(|s| (s.utxo_count, s.value))
-            .collect::<Vec<_>>(),
-        fresh
-            .supply_state
-            .collect()
-            .iter()
-            .map(|s| (s.utxo_count, s.value))
-            .collect::<Vec<_>>()
-    );
-    assert_eq!(snapshots(writer), snapshots(fresh));
-    let expected = series(fresh);
-    for (name, values) in series(writer) {
-        assert_eq!(values, expected[&name], "{name}");
-    }
+fn checkpoint_path(writer: &Distribution) -> PathBuf {
+    writer
+        .1
+        .addr_state
+        .p2a
+        .db_path()
+        .join("changes")
+        .join("cohort_caps/usize")
 }
 
 #[test]
@@ -131,7 +154,7 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
 
         // A clean update needs no cohort checkpoint reads. Temporarily hide one
         // checkpoint directory; rebuilding would recreate it.
-        let checkpoint = writer.states_path.join("utxos_under_1h_old/cost_basis");
+        let checkpoint = checkpoint_path(&writer);
         let saved = directory.path().join("saved-checkpoints");
         fs::rename(&checkpoint, &saved).unwrap();
         check(&mut writer, &fixture);
@@ -146,18 +169,57 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
         let mut writer = import(directory.path(), &fixture);
         check(&mut writer, &fixture);
 
+        // Missing or incomplete scalar state cannot resume against newer address
+        // state. Both cases must rebuild to the same result as a fresh writer.
+        for truncate in [true, false] {
+            let path = writer.1.addr_state.p2a.db_path();
+            drop(writer);
+            {
+                let db = Database::open(&path).unwrap();
+                let mut caps: MutableVec<BytesVec<usize, CentsSats>> =
+                    MutableVec::forced_import_with(
+                        ImportOptions::new(&db, "cohort_caps", Version::ONE)
+                            .with_saved_stamped_changes(10),
+                    )
+                    .unwrap();
+                if truncate {
+                    caps.truncate_if_needed_at(40).unwrap();
+                } else {
+                    caps.validate_computed_version_or_reset(Version::ZERO)
+                        .unwrap();
+                }
+                caps.flush().unwrap();
+            }
+            writer = import(directory.path(), &fixture);
+            check(&mut writer, &fixture);
+        }
+
         writer
+            .0
             .coinblocks_destroyed
             .stored_mut()
             .any_truncate_if_needed_at(1)
             .unwrap();
         check(&mut writer, &fixture);
         writer
-            .supply_state
+            .0
+            .coindays_created
+            .under_1h
+            .cumulative
+            .height
             .validate_computed_version_or_reset(Version::ZERO)
             .unwrap();
         check(&mut writer, &fixture);
 
+        writer
+            .0
+            .age_bounds
+            .stored
+            .under_4m
+            .min
+            .truncate_if_needed_at(0)
+            .unwrap();
+        check(&mut writer, &fixture);
         drop(writer);
         drop(directory);
 
@@ -172,17 +234,20 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
         let directory = tempdir().unwrap();
         let mut writer = import(directory.path(), &fixture);
         check(&mut writer, &fixture);
-        let checkpoint = writer.states_path.join("utxos_under_1h_old/cost_basis");
+        let checkpoint = checkpoint_path(&writer);
         let saved = directory.path().join("saved-checkpoints");
 
         // Fail after block processing has advanced the state and written vectors.
-        // Retry must recover from disk, discarding the partially advanced state.
+        // Failed vecdb writers must be discarded. Reopening must recover a
+        // consistent scalar/address checkpoint or rebuild from genesis.
         fixture.publish(4, 2);
         fs::rename(&checkpoint, &saved).unwrap();
         fs::write(&checkpoint, b"blocked checkpoint directory").unwrap();
         assert!(compute(&mut writer, &fixture).is_err());
         fs::remove_file(&checkpoint).unwrap();
         fs::rename(&saved, &checkpoint).unwrap();
+        drop(writer);
+        let mut writer = import(directory.path(), &fixture);
         check(&mut writer, &fixture);
         drop(writer);
         check(&mut import(directory.path(), &fixture), &fixture);

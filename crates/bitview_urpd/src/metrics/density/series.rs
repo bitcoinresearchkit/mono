@@ -1,9 +1,9 @@
 use bitview_collections::Percent;
 use bitview_transforms::{FixedToPercent, FixedToRatio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, DailyMappings, LazyDailyMetric, import_cached};
+use bitview_vecs::{CachedSeries, IndexSources, LazyPerBlock, import_cached};
 use brk_error::Result;
-use brk_types::{Day1, PartsPerMillion32, StoredF32, Version};
+use brk_types::{Height, PartsPerMillion32, StoredF32, Version};
 use vecdb::{AnyStoredVec, Database, Ident, Rw, StorageMode, WritableVec};
 
 use super::SupplyDensity;
@@ -13,12 +13,12 @@ pub struct DensitySeries<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub series: SupplyDensity<
         Percent<
-            LazyDailyMetric<PartsPerMillion32, PartsPerMillion32>,
-            LazyDailyMetric<StoredF32, PartsPerMillion32>,
+            LazyPerBlock<PartsPerMillion32, PartsPerMillion32>,
+            LazyPerBlock<StoredF32, PartsPerMillion32>,
         >,
     >,
     #[traversable(hidden)]
-    pub stored: SupplyDensity<CachedSeries<Day1, PartsPerMillion32, M>>,
+    pub stored: SupplyDensity<CachedSeries<Height, PartsPerMillion32, M>>,
 }
 
 impl DensitySeries {
@@ -26,27 +26,27 @@ impl DensitySeries {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &DailyMappings,
+        mappings: &IndexSources,
     ) -> Result<Self> {
         let stored = SupplyDensity::try_from_fn(|suffix| {
             import_cached(db, &format!("{name}{suffix}_ppm"), version)
         })?;
-        let view = |source: &CachedSeries<Day1, PartsPerMillion32>, suffix| {
+        let view = |source: &CachedSeries<Height, PartsPerMillion32>, suffix| {
             let name = format!("{name}{suffix}");
             Percent {
-                ppm: LazyDailyMetric::from_source::<Ident>(
+                ppm: LazyPerBlock::from_height_source::<Ident>(
                     &format!("{name}_ppm"),
                     version,
                     source,
                     mappings,
                 ),
-                ratio: LazyDailyMetric::from_source::<FixedToRatio>(
+                ratio: LazyPerBlock::from_height_source::<FixedToRatio>(
                     &format!("{name}_ratio"),
                     version,
                     source,
                     mappings,
                 ),
-                percent: LazyDailyMetric::from_source::<FixedToPercent>(
+                percent: LazyPerBlock::from_height_source::<FixedToPercent>(
                     &name, version, source, mappings,
                 ),
             }

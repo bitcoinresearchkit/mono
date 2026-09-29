@@ -1,4 +1,4 @@
-use bitview_plugin_distribution::AllChainSources;
+use bitview_plugin_distribution_age::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_vecs::LazyPerBlock;

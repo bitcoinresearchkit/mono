@@ -40,6 +40,7 @@ pub struct Component<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
 
+    price: M::WriteOnly<ComponentPrice>,
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
@@ -77,6 +78,7 @@ pub fn forced_import(
     Ok(Component {
         bands,
         ratios,
+        price: component_price,
         block_decay_pct: BlockDecayPercentiles::default(),
     })
 }
@@ -164,9 +166,8 @@ pub fn collect_boundary_prices(
     end: usize,
 ) -> [Vec<Cents>; 10] {
     component
-        .bands
-        .boundary_refs()
-        .map(|band| band.price.cents.height.collect_range_at(start, end))
+        .price
+        .collect_boundary_prices(component.ratios.boundary_refs(), start, end)
 }
 
 impl Component {

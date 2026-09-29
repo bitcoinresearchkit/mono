@@ -2,7 +2,7 @@ use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_compute::{
     AgeBand, MINIMUM_DURATION_DAYS, resolve_cohort_value, resolve_cohort_weight,
 };
-use brk_types::{Day1, Sats};
+use brk_types::{Height, Sats};
 use vecdb::{ReadableVec, StorageMode};
 
 use crate::{HorizonId, Horizons, Vecs};
@@ -45,25 +45,56 @@ pub(crate) fn horizon_mobilities(
 }
 
 impl<M: StorageMode> Vecs<M> {
-    /// Daily URPD weight from the age range's lifetime mobility.
-    pub fn urpd_weight(&self, age: AgeRangeId, day: Day1, supply: Sats) -> Option<f64> {
-        let source = &age.select(&self.age_range.spending_exposure.mobility).day1;
-        resolve_cohort_weight(source.collect_one(day).flatten(), supply)
+    /// Per-block URPD weight from the age range's lifetime mobility.
+    pub fn urpd_weight(&self, age: AgeRangeId, height: Height, supply: Sats) -> Option<f64> {
+        let source = &age
+            .select(&self.age_range.spending_exposure.mobility)
+            .height;
+        resolve_cohort_weight(source.collect_one(height), supply)
     }
 
-    /// Daily forward spending probabilities across all supported horizons.
+    /// Per-block forward spending probabilities across all supported horizons.
     pub fn horizon_weights(
         &self,
-        day: Day1,
+        height: Height,
         supplies: &AgeRange<Sats>,
     ) -> Option<Horizons<AgeRange<f64>>> {
         let hazards = AgeRange::try_from_fn(|age| {
-            let source = &age.select(&self.age_range.spending_rate).day1;
-            resolve_cohort_value(source.collect_one(day).flatten(), *age.select(supplies))
+            let source = &age.select(&self.age_range.spending_rate).height;
+            resolve_cohort_value(source.collect_one(height), *age.select(supplies))
                 .map(|value| value.max(0.0))
                 .ok_or(())
         })
         .ok()?;
         Some(horizon_mobilities(&hazards, &AgeBand::all()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fixed_horizon_compounds_hazards_across_age_ranges() {
+        let bounds = AgeBand::all();
+        let hazards = AgeRange::from_fn(|_| 0.01);
+        let probabilities = horizon_mobilities(&hazards, &bounds);
+        for horizon in HorizonId::ALL {
+            let probability = *AgeRangeId::From1DTo1W.select(horizon.select(&probabilities));
+            assert!((probability - AgeBand::mobility(0.01 * horizon.days())).abs() < 1e-12);
+        }
+        let hazards = AgeRange::from_fn(|age| match age {
+            AgeRangeId::From3MTo4M => 0.01,
+            AgeRangeId::From4MTo5M => 0.02,
+            AgeRangeId::From5MTo6M => 0.03,
+            AgeRangeId::From6MTo9M => 0.04,
+            _ => 0.0,
+        });
+        let probabilities = horizon_mobilities(&hazards, &bounds);
+        // Start at day 105: 15 days in the first band, then complete and partial bands.
+        for (horizon, exposure) in [(HorizonId::M1, 0.45), (HorizonId::M3, 2.25)] {
+            let probability = *AgeRangeId::From3MTo4M.select(horizon.select(&probabilities));
+            assert!((probability - AgeBand::mobility(exposure)).abs() < 1e-12);
+        }
     }
 }

@@ -1,10 +1,11 @@
-use bitview_cohort::UTXOAggregate;
+use bitview_cohort::{UTXOAggregate, UTXOAggregateId};
 use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
 use brk_types::{BoundedRatio, Cents, Height, Sats};
-use vecdb::{Rw, StorageMode};
+use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
-use super::super::{super::Horizons, Mobility};
+use super::super::Mobility;
+use crate::{HorizonId, Horizons, model::PrimaryValues};
 
 #[derive(Traversable)]
 pub struct AggregateSources<M: StorageMode = Rw> {
@@ -41,4 +42,87 @@ pub struct AggregateSources<M: StorageMode = Rw> {
     pub over_4m_capitalized_price: CachedSeries<Height, Cents, M>,
     pub over_6m_price: CachedSeries<Height, Cents, M>,
     pub over_6m_capitalized_price: CachedSeries<Height, Cents, M>,
+}
+
+impl AggregateSources {
+    pub(crate) fn push(&mut self, values: PrimaryValues) {
+        self.under_4m_price.push(values.under_4m.realized_price());
+        self.under_4m_capitalized_price
+            .push(values.under_4m.capitalized_price.value());
+        self.under_6m_price.push(values.under_6m.realized_price());
+        self.under_6m_capitalized_price
+            .push(values.under_6m.capitalized_price.value());
+        self.over_4m_price.push(values.over_4m.realized_price());
+        self.over_4m_capitalized_price
+            .push(values.over_4m.capitalized_price.value());
+        self.over_6m_price.push(values.over_6m.realized_price());
+        self.over_6m_capitalized_price
+            .push(values.over_6m.capitalized_price.value());
+        let all = values.terms.short.merged(values.terms.long);
+        for (id, state) in [
+            (UTXOAggregateId::All, all),
+            (UTXOAggregateId::Sth, values.terms.short),
+            (UTXOAggregateId::Lth, values.terms.long),
+        ] {
+            id.select_mut(&mut self.supply.mobile)
+                .push(state.weighted.weighted_supply);
+            id.select_mut(&mut self.supply.immobile)
+                .push(state.weighted.complement_supply);
+            id.select_mut(&mut self.supply_in_loss_share)
+                .push(state.weighted.supply_in_loss.value());
+            id.select_mut(&mut self.cap)
+                .push(state.weighted.weighted_cap);
+            id.select_mut(&mut self.capitalized_price)
+                .push(state.weighted.capitalized_price.value());
+            id.select_mut(&mut self.price)
+                .push(state.weighted.realized_price());
+            for horizon in HorizonId::ALL {
+                id.select_mut(horizon.select_mut(&mut self.horizon))
+                    .push(horizon.select(&state.horizon_supply_in_loss).value());
+            }
+        }
+    }
+
+    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        let Horizons {
+            _8y,
+            _4y,
+            _2y,
+            _1y,
+            _6m,
+            _3m,
+            _1m,
+        } = &mut self.horizon;
+        [&mut self.supply.mobile, &mut self.supply.immobile]
+            .into_iter()
+            .flat_map(|group| group.iter_mut())
+            .map(|v| v as &mut dyn AnyStoredVec)
+            .chain(
+                self.supply_in_loss_share
+                    .iter_mut()
+                    .map(|v| v as &mut dyn AnyStoredVec),
+            )
+            .chain(
+                [&mut self.cap, &mut self.price, &mut self.capitalized_price]
+                    .into_iter()
+                    .flat_map(|group| group.iter_mut())
+                    .map(|v| v as &mut dyn AnyStoredVec),
+            )
+            .chain([
+                &mut self.under_4m_price as &mut dyn AnyStoredVec,
+                &mut self.under_4m_capitalized_price,
+                &mut self.under_6m_price,
+                &mut self.under_6m_capitalized_price,
+                &mut self.over_4m_price,
+                &mut self.over_4m_capitalized_price,
+                &mut self.over_6m_price,
+                &mut self.over_6m_capitalized_price,
+            ])
+            .chain(
+                [_8y, _4y, _2y, _1y, _6m, _3m, _1m]
+                    .into_iter()
+                    .flat_map(|group| group.iter_mut())
+                    .map(|v| v as &mut dyn AnyStoredVec),
+            )
+    }
 }

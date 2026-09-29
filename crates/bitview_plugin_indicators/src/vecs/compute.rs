@@ -9,17 +9,17 @@ use crate::{Dependencies, gini};
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let Dependencies {
             indexer,
             mining,
-            distribution,
+            distribution_age,
+            size,
             market,
         } = dependencies;
         let exit = context.exit();
@@ -35,9 +35,9 @@ impl ComputePlugin for Vecs {
             ..
         } = self;
         let subsidy = &mining.rewards.subsidy;
-        let realized_cap = &distribution.cohorts.realized.cap.cohorts.utxo.age;
-        let supply = &distribution.cohorts.supply;
-        let supply_total_sats = &supply.total.cohorts.utxo.all.sats.height;
+        let realized_cap = &distribution_age.cohorts.realized.cap.cohorts.age;
+        let supply = &distribution_age.cohorts.supply;
+        let supply_total_sats = &supply.total.cohorts.all.sats.height;
 
         let compute_puell = || {
             puell_multiple
@@ -49,7 +49,7 @@ impl ComputePlugin for Vecs {
                     exit,
                 )
         };
-        let compute_gini = || gini::compute(gini, distribution, starting_height, exit);
+        let compute_gini = || gini::compute(gini, size, starting_height, exit);
         let compute_rhodl = || {
             rhodl_ratio.ppm.height.compute_transform3(
                 starting_height,

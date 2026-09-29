@@ -1,6 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, UTXOAggregate, UTXOAggregateId};
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_transforms::BoundedToF64;
@@ -158,7 +158,7 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         prices: &PriceVecs,
-        distribution: &DistributionVecs,
+        distribution_age: &AgeVecs,
     ) -> Result<Self> {
         let database = STORAGE.open_database(context, 250_000)?;
 
@@ -200,7 +200,13 @@ impl Vecs {
             let side = side.name();
             AgeRangeId::series(CohortContext::Utxo, |id, name| {
                 let name = format!("{name}_{side}_supply");
-                let supply = id.select(&distribution.cohorts.supply.total.stored.cohorts.age);
+                let supply = distribution_age
+                    .cohorts
+                    .supply
+                    .total
+                    .stored
+                    .get(id.cohort())
+                    .expect("age supply source");
                 let weight = id.select(&mobility_source);
                 if side == "immobile" {
                     LazySpotValuePerBlock::from_weighted_supply::<true>(
@@ -251,14 +257,7 @@ impl Vecs {
             &spot_price,
         );
 
-        let urpd = UrpdMetrics::forced_import(
-            db,
-            "coinflow",
-            version,
-            mappings,
-            &spot_price,
-            STORAGE.path(context).join("states"),
-        )?;
+        let urpd = UrpdMetrics::forced_import(db, "coinflow", version, mappings, &spot_price)?;
         let this = Self {
             db: database,
             urpd,

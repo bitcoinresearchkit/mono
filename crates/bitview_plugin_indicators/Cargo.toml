@@ -13,7 +13,8 @@ bitview_vecs = { workspace = true }
 brk_exit = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 bitview_plugin = { workspace = true }
-bitview_plugin_distribution = { workspace = true }
+bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_distribution_size = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_market = { workspace = true }

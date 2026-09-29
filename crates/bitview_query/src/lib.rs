@@ -71,8 +71,9 @@ pub use output::*;
 #[cfg(feature = "indexer")]
 pub use query_plugin_set::{
     QueryPluginSet, SupportsBedrock, SupportsBlocks, SupportsCoinflow, SupportsCointime,
-    SupportsDistribution, SupportsInputs, SupportsMappings, SupportsMining, SupportsOutputs,
-    SupportsPools, SupportsPrice, SupportsTransactions,
+    SupportsDistributionAge, SupportsDistributionSize, SupportsInputs, SupportsMappings,
+    SupportsMining, SupportsOutputs, SupportsPools, SupportsPrice, SupportsTransactions,
+    SupportsUtxoHistory,
 };
 #[cfg(feature = "indexer")]
 pub use query_plugins::QueryPlugins;

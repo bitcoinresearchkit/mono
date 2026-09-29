@@ -1,13 +1,13 @@
 use std::iter;
 
 use bitview_traversable::Traversable;
-use bitview_vecs::DailyMappings;
+use bitview_vecs::IndexSources;
 use brk_error::Result;
-use brk_types::{Cents, Version};
+use brk_types::{PartsPerMillion32, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::{DensitySeries, SupplyDensity};
-use crate::distribution::{AgeCutoffs, DailyUrpds};
+use crate::distribution::AgeCutoffs;
 
 #[derive(Traversable)]
 pub struct DensityMetrics<M: StorageMode = Rw> {
@@ -21,7 +21,7 @@ impl DensityMetrics {
         db: &Database,
         name: &str,
         version: Version,
-        mappings: &DailyMappings,
+        mappings: &IndexSources,
     ) -> Result<Self> {
         let import = |cohort: &str| {
             DensitySeries::forced_import(
@@ -37,19 +37,10 @@ impl DensityMetrics {
         })
     }
 
-    pub fn push(&mut self, urpds: Option<&DailyUrpds>, spot: Cents) {
+    pub fn push(&mut self, densities: Option<&[SupplyDensity<PartsPerMillion32>; 4]>) {
         let targets = iter::once(&mut self.all).chain(self.age.iter_mut());
-        let sources = [
-            urpds.map(|u| &u.all),
-            urpds.map(|u| &u.age.under_4m),
-            urpds.map(|u| &u.age.under_5m),
-            urpds.map(|u| &u.age.under_6m),
-        ];
-        for (target, source) in targets.zip(sources) {
-            let density = source
-                .map(|u| SupplyDensity::from_entries(u.iter().copied(), spot))
-                .unwrap_or(SupplyDensity::NAN);
-            target.push(&density);
+        for (target, density) in targets.zip(densities.unwrap_or(&[SupplyDensity::NAN; 4])) {
+            target.push(density);
         }
     }
 

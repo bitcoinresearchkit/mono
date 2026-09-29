@@ -52,7 +52,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// coin days that spending has consumed; one minus wakefulness is the share
     /// still stored.
     pub age_range: AgeRangeVecs<M>,
-    /// Daily wakefulness-weighted UTXO price distributions.
+    /// Per-block wakefulness-weighted UTXO price distributions.
     pub urpd: UrpdMetrics<M>,
     #[traversable(flatten)]
     /// Cointime-weighted cohort metrics use wakefulness—the share of an age

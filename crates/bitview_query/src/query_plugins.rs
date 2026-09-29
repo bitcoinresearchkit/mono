@@ -6,8 +6,10 @@ use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 #[cfg(feature = "cointime")]
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
-#[cfg(feature = "distribution")]
-use bitview_plugin_distribution::{HasDistribution, Vecs as Distribution};
+#[cfg(feature = "distribution_age")]
+use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
+#[cfg(feature = "distribution_size")]
+use bitview_plugin_distribution_size::{HasDistributionSize, Vecs as DistributionSize};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 #[cfg(feature = "inputs")]
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -23,14 +25,18 @@ use bitview_plugin_pools::{HasPools, Vecs as Pools};
 use bitview_plugin_price::{HasPrice, Vecs as Price};
 #[cfg(feature = "transactions")]
 use bitview_plugin_transactions::{HasTransactions, Vecs as Transactions};
+#[cfg(feature = "utxo_history")]
+use bitview_plugin_utxo_history::{HasUtxoHistory, Vecs as UtxoHistory};
 use vecdb::Ro;
 
 use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
+    #[cfg(feature = "distribution_size")]
+    pub distribution_size: &'a DistributionSize<Ro>,
     pub indexer: &'a Indexer<Ro>,
-    #[cfg(feature = "distribution")]
-    pub distribution: &'a Distribution<Ro>,
+    #[cfg(feature = "distribution_age")]
+    pub distribution_age: &'a DistributionAge<Ro>,
     #[cfg(feature = "mappings")]
     pub mappings: &'a Mappings<Ro>,
     #[cfg(feature = "blocks")]
@@ -41,6 +47,8 @@ pub struct QueryPlugins<'a> {
     pub mining: &'a Mining<Ro>,
     #[cfg(feature = "outputs")]
     pub outputs: &'a Outputs<Ro>,
+    #[cfg(feature = "utxo_history")]
+    pub utxo_history: &'a UtxoHistory<Ro>,
     #[cfg(feature = "pools")]
     pub pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
@@ -64,8 +72,10 @@ impl<'a> QueryPlugins<'a> {
 
         Self {
             indexer: plugins.indexer(),
-            #[cfg(feature = "distribution")]
-            distribution: plugins.distribution(),
+            #[cfg(feature = "distribution_size")]
+            distribution_size: plugins.distribution_size(),
+            #[cfg(feature = "distribution_age")]
+            distribution_age: plugins.distribution_age(),
             #[cfg(feature = "mappings")]
             mappings: plugins.mappings(),
             #[cfg(feature = "blocks")]
@@ -76,6 +86,8 @@ impl<'a> QueryPlugins<'a> {
             mining: plugins.mining(),
             #[cfg(feature = "outputs")]
             outputs: plugins.outputs(),
+            #[cfg(feature = "utxo_history")]
+            utxo_history: plugins.utxo_history(),
             #[cfg(feature = "pools")]
             pools: plugins.pools(),
             #[cfg(feature = "price")]

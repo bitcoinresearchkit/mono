@@ -5,7 +5,9 @@ mod has;
 
 mod compute;
 mod import;
+mod origins;
 mod value;
+pub use origins::OriginSpends;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
@@ -27,6 +29,10 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
+
+    /// Actual spends grouped by origin, retained for compute consumers.
+    #[traversable(skip)]
+    pub origins: M::WriteOnly<OriginSpends>,
 
     /// Value in satoshis of the indexed transaction output. At `txout_index`,
     /// this is the output's value; at `txin_index`, it is the value of the

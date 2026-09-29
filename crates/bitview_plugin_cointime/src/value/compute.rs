@@ -1,4 +1,4 @@
-use bitview_plugin_distribution::Vecs as DistributionVecs;
+use bitview_plugin_distribution_age::Vecs as AgeVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
@@ -12,22 +12,19 @@ pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
     prices: &PriceVecs,
-    distribution: &DistributionVecs,
+    distribution_age: &AgeVecs,
     activity: &activity::Vecs,
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
-    let coinblocks_destroyed = &distribution.coinblocks_destroyed;
-    let coindays_destroyed = &distribution.cohorts.activity.coindays_destroyed.cohorts.all;
-    let circulating_supply = &distribution
+    let coinblocks_destroyed = &distribution_age.coinblocks_destroyed;
+    let coindays_destroyed = &distribution_age
         .cohorts
-        .supply
-        .total
+        .activity
+        .coindays_destroyed
         .cohorts
-        .utxo
-        .all
-        .btc
-        .height;
+        .all;
+    let circulating_supply = &distribution_age.cohorts.supply.total.cohorts.all.btc.height;
 
     for (target, source) in [
         (

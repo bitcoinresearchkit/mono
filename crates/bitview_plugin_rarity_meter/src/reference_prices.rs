@@ -1,6 +1,6 @@
 use std::array;
 
-use bitview_plugin_distribution::RealizedTotals;
+use bitview_plugin_distribution_age::RealizedTotals;
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
 use brk_error::Result;

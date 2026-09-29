@@ -35,9 +35,9 @@ macro_rules! impl_named_row_formattable {
     };
 }
 
+mod block_result;
 mod calibration;
-mod day_result;
-mod day_urpds;
+mod cumulative_bucket;
 mod dependencies;
 mod has;
 mod level_id;
@@ -46,7 +46,6 @@ mod loss_percentile_id;
 mod mode_id;
 mod mode_result;
 mod mode_vecs;
-mod mode_weights;
 mod modes;
 mod percentiles;
 mod price_band_id;
@@ -55,18 +54,17 @@ mod thresholds;
 mod vecs;
 mod weighted;
 
+use block_result::BlockResult;
 use calibration::Calibration;
-use day_result::DayResult;
-use day_urpds::DayUrpds;
+use cumulative_bucket::CumulativeBucket;
 pub use dependencies::Dependencies;
 pub use has::HasBedrock;
-use level_id::{LEVEL_COUNT, LEVEL_IDS, LevelId};
+use level_id::{LEVEL_COUNT, LevelId};
 use levels::Levels;
 use loss_percentile_id::LossPercentileId;
 use mode_id::{MODE_COUNT, ModeId};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
-use mode_weights::ModeWeights;
 use modes::Modes;
 use percentiles::Percentiles;
 use price_band_id::PriceBandId;
@@ -79,7 +77,7 @@ use brk_types::Version;
 
 pub use vecs::Vecs;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(14));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("bedrock"), Version::new(15));
 pub const ID: PluginId = STORAGE.id();
 
-const WRITE_INTERVAL_DAYS: usize = 100;
+const WRITE_INTERVAL_BLOCKS: usize = 10_000;

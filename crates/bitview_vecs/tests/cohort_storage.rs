@@ -3,7 +3,7 @@ use std::ptr;
 
 use bitview_cohort::{
     AgeRange, AgeRangeId, AmountRange, AmountRangeId, CohortContext, CohortId, SpendableTypeId,
-    UTXOAggregate, UTXOValues,
+    Term, UTXOAggregate, UTXOValues,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -91,11 +91,9 @@ fn exact_totals_never_sum_independently_computed_values() {
         Some(Cents::from(17_u64))
     );
     assert!(
-        sources
-            .cohorts
-            .age
+        AgeRangeId::ALL
             .iter()
-            .all(|source| source.collect_one_at(0) == Some(maximum))
+            .all(|id| sources.get(id.cohort()).unwrap().collect_one_at(0) == Some(maximum))
     );
     assert!(
         sources
@@ -103,13 +101,9 @@ fn exact_totals_never_sum_independently_computed_values() {
             .iter()
             .all(|source| source.collect_one_at(0) == Some(maximum))
     );
-    assert!(
-        sources
-            .cohorts
-            .term
-            .iter()
-            .all(|source| source.collect_one_at(0) == Some(Cents::from(17_u64)))
-    );
+    assert!([Term::Sth, Term::Lth].iter().all(|&term| {
+        sources.get(CohortId::Term(term)).unwrap().collect_one_at(0) == Some(Cents::from(17_u64))
+    }));
 }
 
 #[test]
@@ -118,16 +112,6 @@ fn source_selection_borrows_the_named_owner_for_each_cohort_family() {
     let directory = tempdir().unwrap();
     let db = Database::open(directory.path()).unwrap();
     let sources = UTXOSources::<StoredU64>::forced_import(&db, "selection", Version::ONE).unwrap();
-    assert!(ptr::eq(
-        sources.get(CohortId::All).unwrap(),
-        &sources.cohorts.all
-    ));
-    for id in AgeRangeId::ALL {
-        assert!(ptr::eq(
-            sources.get(id.cohort()).unwrap(),
-            id.select(&sources.cohorts.age)
-        ));
-    }
     for id in AmountRangeId::ALL {
         assert!(ptr::eq(
             sources.get(id.cohort()).unwrap(),
@@ -199,13 +183,13 @@ fn amount_composition_keeps_checkpoint_invalidation_and_reader_projection() {
     for value in [2_u64, 3] {
         amounts.push_cumulative(&values(value));
     }
-    for vec in amounts.collect_vecs_mut() {
+    for vec in amounts.stored_vecs_mut() {
         vec.write().unwrap();
         vec.any_truncate_if_needed_at(1).unwrap();
     }
     amounts.push_cumulative(&values(10));
     amounts.push_cumulative(&values(1));
-    for vec in amounts.collect_vecs_mut() {
+    for vec in amounts.stored_vecs_mut() {
         vec.write().unwrap();
     }
     assert_eq!(amounts.len(), 3);

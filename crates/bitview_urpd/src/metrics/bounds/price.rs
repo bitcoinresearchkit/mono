@@ -47,3 +47,25 @@ impl AgeCutoffs<PriceBounds<Cents>> {
         bounds
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cutoffs_keep_their_exact_age_boundaries() {
+        let entries = [
+            (AgeRangeId::From3MTo4M, 100, 1),
+            (AgeRangeId::From4MTo5M, 200, 3),
+            (AgeRangeId::From5MTo6M, 300, 4),
+            (AgeRangeId::From6MTo9M, 400, 2),
+            (AgeRangeId::Under1H, 500, 0),
+        ]
+        .map(|(age, price, sats)| (age, CentsCompact::new(price), Sats::new(sats)));
+        let bounds = AgeCutoffs::from_age_entries(entries);
+        assert_eq!(bounds.under_4m.max, Cents::new(100));
+        assert_eq!(bounds.under_5m.max, Cents::new(200));
+        assert_eq!(bounds.under_6m.max, Cents::new(300));
+        assert!(bounds.iter().all(|b| b.min == Cents::new(100)));
+    }
+}

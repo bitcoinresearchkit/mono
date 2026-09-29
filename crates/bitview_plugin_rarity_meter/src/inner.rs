@@ -74,7 +74,7 @@ pub fn forced_import(
 pub fn compute(
     inner: &mut RarityMeterInner,
     components: &[&Component],
-    lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
+    lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
     spot: &impl ReadableVec<Height, Cents>,
     starting_height: Height,
     exit: &Exit,
@@ -228,7 +228,7 @@ impl RarityMeterInner {
     pub fn needs_compute(
         &self,
         components: &[&Component],
-        lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
+        lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
     ) -> bool {
@@ -289,7 +289,7 @@ impl RarityMeterInner {
     fn compute_score(
         &mut self,
         components: &[&Component],
-        lower_components: &[[&impl ReadableVec<Height, Option<Cents>>; 5]],
+        lower_components: &[[&impl ReadableVec<Height, Cents>; 5]],
         spot: &impl ReadableVec<Height, Cents>,
         starting_height: Height,
         exit: &Exit,
@@ -402,7 +402,7 @@ impl RarityMeterInner {
 
     fn combine_percentiles(
         component_prices: &[[Vec<Cents>; 10]],
-        lower_component_prices: &[[Vec<Option<Cents>>; 5]],
+        lower_component_prices: &[[Vec<Cents>; 5]],
         offset: usize,
     ) -> [Cents; RARITY_PERCENTILES_LEN] {
         let boundary_values = RarityPercentileId::BOUNDARIES.map(|id| {
@@ -413,7 +413,7 @@ impl RarityMeterInner {
             if id.is_lower_boundary() {
                 lower_component_prices
                     .iter()
-                    .filter_map(|component| component[index][offset])
+                    .map(|component| component[index][offset])
                     .filter(|value| !value.is_nan())
                     .chain(values)
                     .max()
@@ -451,10 +451,10 @@ impl RarityMeterInner {
         upper - lower
     }
 
-    fn lower_score_at(price: Cents, bands: &[Vec<Option<Cents>>; 5], index: usize) -> i8 {
+    fn lower_score_at(price: Cents, bands: &[Vec<Cents>; 5], index: usize) -> i8 {
         -(bands
             .iter()
-            .filter_map(|band| band[index])
+            .map(|band| band[index])
             .filter(|band| !band.is_nan() && price < *band)
             .count() as i8)
     }
@@ -491,11 +491,11 @@ mod tests {
     fn includes_finite_direct_lower_boundaries_only() {
         let components = [bands([10, 20, 30, 40, 50, 500, 600, 700, 800, 900])];
         let lower_components = [[
-            vec![Some(Cents::from(15_u64))],
-            vec![Some(Cents::NAN)],
-            vec![None],
-            vec![Some(Cents::from(45_u64))],
-            vec![Some(Cents::from(55_u64))],
+            vec![Cents::from(15_u64)],
+            vec![Cents::NAN],
+            vec![Cents::NAN],
+            vec![Cents::from(45_u64)],
+            vec![Cents::from(55_u64)],
         ]];
         let values = RarityMeterInner::combine_percentiles(&components, &lower_components, 0);
 

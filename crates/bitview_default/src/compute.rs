@@ -8,8 +8,9 @@ use bitview_plugin_capital_sentiment::{
 };
 use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
 use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
-use bitview_plugin_distribution::{
-    Dependencies as DistributionDependencies, ID as DISTRIBUTION_ID,
+use bitview_plugin_distribution_age::{Dependencies as AgeDependencies, ID as DISTRIBUTION_AGE_ID};
+use bitview_plugin_distribution_size::{
+    Dependencies as SizeDependencies, ID as DISTRIBUTION_SIZE_ID,
 };
 use bitview_plugin_indexer::ID as INDEXER_ID;
 use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
@@ -26,7 +27,9 @@ use bitview_plugin_supply::{Dependencies as SupplyDependencies, ID as SUPPLY_ID}
 use bitview_plugin_transactions::{
     Dependencies as TransactionsDependencies, ID as TRANSACTIONS_ID,
 };
+use bitview_plugin_utxo_history::{Dependencies as UtxoHistoryDependencies, ID as UTXO_HISTORY_ID};
 use bitview_runtime::{BootstrapAction, ComputePluginSet};
+use bitview_urpd::ReplayInputs;
 use brk_alloc::Mimalloc;
 use brk_error::Result;
 use rayon::join;
@@ -71,6 +74,7 @@ impl DefaultPlugins {
                     timed(Phase::Compute, INPUTS_ID, || {
                         self.inputs.compute(
                             InputsDependencies {
+                                mappings: self.mappings.as_ref(),
                                 indexer,
                                 blocks: self.blocks.as_ref(),
                             },
@@ -87,8 +91,8 @@ impl DefaultPlugins {
             inputs_result?;
             prices_result?;
 
-            // market, outputs, and (transactions → mining + OP_RETURN) are pairwise
-            // independent. Run all three in parallel.
+            // Market, Size, Outputs → History → Age, and Transactions → Mining +
+            // OP_RETURN are independent branches of complete plugin computations.
             let market = scope.spawn(|| {
                 timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
@@ -149,52 +153,73 @@ impl DefaultPlugins {
                 Ok(())
             });
 
-            timed(Phase::Compute, OUTPUTS_ID, || {
-                self.outputs.compute(
-                    OutputsDependencies {
-                        indexer,
-                        inputs: self.inputs.as_ref(),
-                        blocks: self.blocks.as_ref(),
-                        price: self.price.as_ref(),
-                    },
-                    context,
-                )
-            })?;
-
-            tx_mining_op_return.join().unwrap()?;
-            market.join().unwrap()?;
-            Ok(())
-        })?;
-
-        let age_urpds = thread::scope(|scope| {
-            let pools = scope.spawn(|| {
-                timed(Phase::Compute, POOLS_ID, || {
-                    self.pools.compute(
-                        PoolsDependencies {
+            let size = scope.spawn(|| {
+                timed(Phase::Compute, DISTRIBUTION_SIZE_ID, || {
+                    self.distribution_size.compute(
+                        SizeDependencies {
                             indexer,
-                            price: self.price.as_ref(),
-                            mining: self.mining.as_ref(),
+                            mappings: &self.mappings,
+                            input_values: &self.inputs.value,
+                            price: &self.price,
                         },
                         context,
                     )
                 })
             });
 
-            let age_urpds = timed(Phase::Compute, DISTRIBUTION_ID, || {
-                self.distribution.compute(
-                    DistributionDependencies {
+            timed(Phase::Compute, OUTPUTS_ID, || {
+                self.outputs.compute(
+                    OutputsDependencies {
                         indexer,
-                        mappings: self.mappings.as_ref(),
-                        inputs: self.inputs.as_ref(),
-                        outputs: self.outputs.as_ref(),
-                        transactions: self.transactions.as_ref(),
-                        price: self.price.as_ref(),
+                        blocks: &self.blocks,
+                        price: &self.price,
+                    },
+                    context,
+                )
+            })?;
+            let creations = &self.outputs.creations;
+
+            timed(Phase::Compute, UTXO_HISTORY_ID, || {
+                self.utxo_history.compute(
+                    UtxoHistoryDependencies {
+                        spends: self.inputs.origins.spends(),
+                        creations,
+                        from: indexer.safe_lengths().height,
+                        end: creations.len(),
                     },
                     context,
                 )
             })?;
 
-            pools.join().unwrap().map(|()| age_urpds)
+            timed(Phase::Compute, DISTRIBUTION_AGE_ID, || {
+                self.distribution_age.compute(
+                    AgeDependencies {
+                        history: &self
+                            .utxo_history
+                            .reader(self.inputs.origins.spends(), creations)?,
+                        from: indexer.safe_lengths().height,
+                        mappings: self.mappings.as_ref(),
+                        price: self.price.as_ref(),
+                    },
+                    context,
+                )
+            })?;
+            size.join().unwrap()?;
+
+            tx_mining_op_return.join().unwrap()?;
+            market.join().unwrap()?;
+            Ok(())
+        })?;
+
+        timed(Phase::Compute, POOLS_ID, || {
+            self.pools.compute(
+                PoolsDependencies {
+                    indexer,
+                    price: &self.price,
+                    mining: &self.mining,
+                },
+                context,
+            )
         })?;
 
         // Supply feeds Cointime while Coinflow is independent. Bedrock and
@@ -204,9 +229,10 @@ impl DefaultPlugins {
                 timed(Phase::Compute, INDICATORS_ID, || {
                     self.indicators.compute(
                         IndicatorsDependencies {
+                            size: &self.distribution_size,
                             indexer,
                             mining: self.mining.as_ref(),
-                            distribution: self.distribution.as_ref(),
+                            distribution_age: self.distribution_age.as_ref(),
                             market: self.market.as_ref(),
                         },
                         context,
@@ -218,9 +244,8 @@ impl DefaultPlugins {
                     self.capital_sentiment.compute(
                         CapitalSentimentDependencies {
                             indexer,
-                            mappings: self.mappings.as_ref(),
                             price: self.price.as_ref(),
-                            distribution: self.distribution.as_ref(),
+                            distribution_age: self.distribution_age.as_ref(),
                             moving_average: &self.market.moving_average,
                         },
                         context,
@@ -228,6 +253,14 @@ impl DefaultPlugins {
                 })
             });
 
+            let history = self
+                .utxo_history
+                .reader(self.inputs.origins.spends(), &self.outputs.creations)?;
+            let urpd = ReplayInputs {
+                history: &history,
+                prices: &self.price.spot.cents.height,
+                timestamps: &self.mappings.timestamp.monotonic,
+            };
             let (cointime, coinflow) = join(
                 || {
                     timed(Phase::Compute, SUPPLY_ID, || {
@@ -245,15 +278,14 @@ impl DefaultPlugins {
                     timed(Phase::Compute, COINTIME_ID, || {
                         self.cointime.compute(
                             CointimeDependencies {
+                                urpd,
                                 indexer,
-                                mappings: self.mappings.as_ref(),
-                                age_urpds: &age_urpds,
                                 price: self.price.as_ref(),
                                 blocks: self.blocks.as_ref(),
                                 inflation_rate: &self.supply.inflation_rate,
                                 velocity_native: &self.supply.velocity.native,
                                 velocity_fiat: &self.supply.velocity.fiat,
-                                distribution: self.distribution.as_ref(),
+                                distribution_age: self.distribution_age.as_ref(),
                             },
                             context,
                         )
@@ -263,11 +295,10 @@ impl DefaultPlugins {
                     timed(Phase::Compute, COINFLOW_ID, || {
                         self.coinflow.compute(
                             CoinflowDependencies {
+                                urpd,
                                 indexer,
-                                price: self.price.as_ref(),
-                                age_urpds: &age_urpds,
                                 mappings: self.mappings.as_ref(),
-                                distribution: self.distribution.as_ref(),
+                                distribution_age: self.distribution_age.as_ref(),
                             },
                             context,
                         )
@@ -280,12 +311,12 @@ impl DefaultPlugins {
             timed(Phase::Compute, BEDROCK_ID, || {
                 self.bedrock.compute(
                     BedrockDependencies {
+                        urpd,
                         indexer,
-                        mappings: self.mappings.as_ref(),
-                        distribution: self.distribution.as_ref(),
-                        age_urpds: &age_urpds,
-                        cointime: self.cointime.as_ref(),
-                        coinflow: self.coinflow.as_ref(),
+                        mappings: &self.mappings,
+                        distribution_age: &self.distribution_age,
+                        cointime: &self.cointime,
+                        coinflow: &self.coinflow,
                     },
                     context,
                 )
@@ -295,7 +326,7 @@ impl DefaultPlugins {
                     RarityMeterDependencies {
                         indexer,
                         bedrock: self.bedrock.as_ref(),
-                        distribution: self.distribution.as_ref(),
+                        distribution_age: self.distribution_age.as_ref(),
                         cointime: self.cointime.as_ref(),
                         coinflow: self.coinflow.as_ref(),
                         price: self.price.as_ref(),

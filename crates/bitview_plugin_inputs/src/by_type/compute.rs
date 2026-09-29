@@ -1,3 +1,5 @@
+use std::iter;
+
 use bitview_compute::{CoinbasePolicy, walk_blocks};
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::compute_type_counts;
@@ -27,41 +29,30 @@ impl Vecs {
             |skip, store| {
                 let fi_batch = first_tx_index.collect_range_at(skip, end);
                 let txid_len = indexer.vecs().transactions.txid.len();
-                let total_txin_len = indexer.vecs().inputs.output_type.len();
-
-                let mut fi_in_cursor = indexer.vecs().transactions.first_txin_index.cursor();
+                let types = &indexer.vecs().inputs.output_type;
                 let first_tx = fi_batch
                     .first()
                     .expect("block range is nonempty")
-                    .to_usize()
-                    + 1;
-                let first_txin = if first_tx < txid_len {
-                    fi_in_cursor.get(first_tx).data()?.to_usize()
-                } else {
-                    total_txin_len
-                };
-                let mut itype_cursor = indexer
+                    .to_usize();
+                let mut starts = indexer
                     .vecs()
-                    .inputs
-                    .output_type
-                    .range_cursor_at(first_txin, total_txin_len);
+                    .transactions
+                    .first_txin_index
+                    .range_cursor_at(first_tx, txid_len);
+                let first_entry = starts.next().data()?.to_usize();
+                let mut types_cursor = types.range_cursor_at(first_entry, types.len());
                 walk_blocks(
                     &fi_batch,
                     txid_len,
+                    first_entry..types.len(),
+                    iter::from_fn(|| starts.next().map(|index| index.to_usize())),
                     CoinbasePolicy::Skip,
-                    |tx_pos, per_tx| {
-                        let fi_in = fi_in_cursor.get(tx_pos).data()?.to_usize();
-                        let next_fi_in = if tx_pos + 1 < txid_len {
-                            fi_in_cursor.get(tx_pos + 1).data()?.to_usize()
+                    |count, target| {
+                        if let Some(per_tx) = target {
+                            types_cursor.for_each(count, |kind| per_tx[kind as usize] += 1);
                         } else {
-                            total_txin_len
-                        };
-
-                        itype_cursor.advance(fi_in - itype_cursor.position());
-                        itype_cursor.for_each(next_fi_in - fi_in, |otype| {
-                            per_tx[otype as usize] += 1;
-                        });
-                        Ok(())
+                            types_cursor.advance(count);
+                        }
                     },
                     store,
                 )

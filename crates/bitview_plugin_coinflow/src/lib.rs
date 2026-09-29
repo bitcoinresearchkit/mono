@@ -11,6 +11,7 @@ use vecs::{
 mod dependencies;
 mod has;
 mod horizon;
+mod model;
 mod vecs;
 mod weights;
 

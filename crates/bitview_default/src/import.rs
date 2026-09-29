@@ -1,3 +1,4 @@
+use bitview_plugin_distribution_size::{ID as DISTRIBUTION_SIZE_ID, Vecs as DistributionSize};
 use std::{thread, time::Instant};
 
 use bitview_plugin::ImportContext;
@@ -7,7 +8,7 @@ use bitview_plugin_capital_sentiment::{ID as CAPITAL_SENTIMENT_ID, Vecs as Capit
 use bitview_plugin_coinflow::{ID as COINFLOW_ID, Vecs as Coinflow};
 use bitview_plugin_cointime::{ID as COINTIME_ID, Vecs as Cointime};
 use bitview_plugin_constants::{ID as CONSTANTS_ID, Vecs as Constants};
-use bitview_plugin_distribution::{ID as DISTRIBUTION_ID, Vecs as Distribution};
+use bitview_plugin_distribution_age::{ID as DISTRIBUTION_AGE_ID, Vecs as DistributionAge};
 use bitview_plugin_indexer::{ID as INDEXER_ID, Indexer};
 use bitview_plugin_indicators::{ID as INDICATORS_ID, Vecs as Indicators};
 use bitview_plugin_inputs::{ID as INPUTS_ID, Vecs as Inputs};
@@ -21,6 +22,7 @@ use bitview_plugin_price::{ID as PRICE_ID, Vecs as Price};
 use bitview_plugin_rarity_meter::{ID as RARITY_METER_ID, Vecs as RarityMeter};
 use bitview_plugin_supply::{ID as SUPPLY_ID, Vecs as Supply};
 use bitview_plugin_transactions::{ID as TRANSACTIONS_ID, Vecs as Transactions};
+use bitview_plugin_utxo_history::{ID as UTXO_HISTORY_ID, Vecs as UtxoHistory};
 use brk_error::Result;
 use brk_reader::Reader;
 use tracing::info;
@@ -55,6 +57,10 @@ impl DefaultPlugins {
 
         let blocks = timed(Phase::Import, BLOCKS_ID, || -> Result<_> {
             Ok(Box::new(Blocks::import(context, &indexer, &mappings)?))
+        })?;
+
+        let utxo_history = timed(Phase::Import, UTXO_HISTORY_ID, || -> Result<_> {
+            Ok(Box::new(UtxoHistory::import(context, &mappings)?))
         })?;
 
         let window_starts = blocks.lookback.window_starts();
@@ -140,7 +146,7 @@ impl DefaultPlugins {
             })?;
 
         // Market and distribution are independent; import in parallel.
-        let (distribution, market) = thread::scope(|scope| -> Result<_> {
+        let (distribution_age, market) = thread::scope(|scope| -> Result<_> {
             let market_handle = big_thread().spawn_scoped(scope, || -> Result<_> {
                 timed(Phase::Import, MARKET_ID, || {
                     Ok(Box::new(Market::import(
@@ -149,22 +155,35 @@ impl DefaultPlugins {
                 })
             })?;
 
-            let distribution = timed(Phase::Import, DISTRIBUTION_ID, || -> Result<_> {
-                Ok(Box::new(Distribution::import(
+            let distribution_age = timed(Phase::Import, DISTRIBUTION_AGE_ID, || -> Result<_> {
+                Ok(Box::new(DistributionAge::import(
                     context,
                     &mappings,
                     &window_starts,
                     &price,
-                    &inputs.by_type,
-                    &outputs.by_type,
+                    &utxo_history.supply.read_only_boxed_clone(),
+                    &utxo_history.count.height.read_only_boxed_clone(),
                 )?))
             })?;
 
             let market = market_handle.join().unwrap()?;
-            Ok((distribution, market))
+            Ok((distribution_age, market))
         })?;
 
-        let all_chain = distribution.all_chain_sources();
+        let distribution_size = timed(Phase::Import, DISTRIBUTION_SIZE_ID, || -> Result<_> {
+            Ok(Box::new(DistributionSize::import(
+                context,
+                &mappings,
+                &window_starts,
+                &price,
+                &inputs.by_type,
+                &outputs.by_type,
+                &utxo_history.supply.read_only_boxed_clone(),
+                &utxo_history.count.height,
+            )?))
+        })?;
+
+        let all_chain = distribution_age.all_chain_sources();
 
         let (cointime, coinflow, bedrock, capital_sentiment, indicators) =
             thread::scope(|scope| -> Result<_> {
@@ -177,7 +196,7 @@ impl DefaultPlugins {
                             &price,
                             &mining.rewards.subsidy.cumulative.cents,
                             &all_chain,
-                            &distribution,
+                            &distribution_age,
                         )?))
                     })
                 })?;
@@ -187,7 +206,7 @@ impl DefaultPlugins {
                             context,
                             &mappings,
                             &price,
-                            &distribution,
+                            &distribution_age,
                         )?))
                     })
                 })?;
@@ -207,7 +226,7 @@ impl DefaultPlugins {
                         &mappings,
                         &all_chain,
                         &mining,
-                        &distribution,
+                        &distribution_age,
                         &transactions,
                     )?))
                 })?;
@@ -227,7 +246,7 @@ impl DefaultPlugins {
                         context,
                         &mappings,
                         &window_starts,
-                        &distribution,
+                        &distribution_age,
                         &cointime,
                         &all_chain,
                         &transactions,
@@ -239,7 +258,7 @@ impl DefaultPlugins {
                     Ok(Box::new(RarityMeter::import(
                         context,
                         &mappings,
-                        &distribution,
+                        &distribution_age,
                         &cointime,
                         &coinflow,
                     )?))
@@ -258,7 +277,8 @@ impl DefaultPlugins {
             constants,
             indicators,
             market,
-            distribution,
+            distribution_age,
+            distribution_size,
             supply,
             pools,
             cointime,
@@ -270,6 +290,7 @@ impl DefaultPlugins {
             inputs,
             price,
             outputs,
+            utxo_history,
             op_return,
         })
     }

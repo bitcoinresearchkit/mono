@@ -1,5 +1,3 @@
-use std::array;
-
 use super::order::ExactOrderStats;
 
 /// Sorted sliding window for rolling distribution/median computations.
@@ -73,61 +71,12 @@ impl SlidingWindowSorted {
     /// Extract a percentile (0.0-1.0) using linear interpolation.
     #[inline]
     pub fn percentile(&self, p: f64) -> f64 {
-        let len = self.sorted.len();
-        if len == 0 {
-            return 0.0;
-        }
-        if len == 1 {
-            return self.sorted.kth(0);
-        }
-        let rank = p * (len - 1) as f64;
-        let lo = rank.floor() as usize;
-        let hi = rank.ceil() as usize;
-        if lo == hi {
-            self.sorted.kth(lo)
-        } else {
-            let frac = rank - lo as f64;
-            self.sorted.kth(lo) * (1.0 - frac) + self.sorted.kth(hi) * frac
-        }
+        self.sorted.percentile(p)
     }
 
     /// Extract multiple percentiles in a single pass through the sorted blocks.
-    /// Percentiles must be sorted ascending. Returns interpolated values.
     pub fn percentiles(&self, ps: &[f64; 5]) -> [f64; 5] {
-        let len = self.sorted.len();
-        if len == 0 {
-            return [0.0; 5];
-        }
-        if len == 1 {
-            return [self.sorted.kth(0); 5];
-        }
-
-        let last = (len - 1) as f64;
-        let mut requests = [(0, 0); 10];
-        let mut fractions = [0.0; 5];
-
-        for (i, &p) in ps.iter().enumerate() {
-            let rank = p * last;
-            let lo = rank.floor() as usize;
-            let hi = rank.ceil() as usize;
-            requests[2 * i] = (lo, 2 * i);
-            requests[2 * i + 1] = (hi, 2 * i + 1);
-            fractions[i] = rank - lo as f64;
-        }
-        requests.sort_unstable_by_key(|request| request.0);
-
-        let ranks = requests.map(|request| request.0);
-        let mut sorted_values = [0.0; 10];
-        self.sorted.values_at(&ranks, &mut sorted_values);
-
-        let mut values = [0.0; 10];
-        for ((_, destination), value) in requests.into_iter().zip(sorted_values) {
-            values[destination] = value;
-        }
-        array::from_fn(|i| {
-            let fraction = fractions[i];
-            values[2 * i] * (1.0 - fraction) + values[2 * i + 1] * fraction
-        })
+        self.sorted.percentiles(ps)
     }
 }
 

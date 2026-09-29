@@ -1,7 +1,7 @@
 use bitview_cohort::AgeRange;
 use bitview_traversable::Traversable;
 use brk_types::{BoundedRatio, Height, StoredF64};
-use vecdb::{Rw, StorageMode};
+use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
 use bitview_vecs::{CachedSeries, LazySpotValuePerBlock, PerBlock};
 
@@ -26,4 +26,45 @@ pub struct AgeRangeVecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub mobility_source: AgeRange<CachedSeries<Height, BoundedRatio, M>>,
     pub supply: Mobility<AgeRange<LazySpotValuePerBlock>>,
+}
+
+impl AgeRangeVecs {
+    pub(crate) fn push(
+        &mut self,
+        spending_rate: &AgeRange<StoredF64>,
+        spending_exposure: &AgeRange<StoredF64>,
+        mobility: &AgeRange<BoundedRatio>,
+    ) {
+        for (target, value) in self.spending_rate.iter_mut().zip(spending_rate.iter()) {
+            target.height.push(*value);
+        }
+        for (target, value) in self
+            .spending_exposure
+            .age_range
+            .iter_mut()
+            .zip(spending_exposure.iter())
+        {
+            target.height.push(*value);
+        }
+        for (target, value) in self.mobility_source.iter_mut().zip(mobility.iter()) {
+            target.push(*value);
+        }
+    }
+
+    pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.spending_rate
+            .iter_mut()
+            .map(|v| &mut v.height as &mut dyn AnyStoredVec)
+            .chain(
+                self.spending_exposure
+                    .age_range
+                    .iter_mut()
+                    .map(|v| &mut v.height as &mut dyn AnyStoredVec),
+            )
+            .chain(
+                self.mobility_source
+                    .iter_mut()
+                    .map(|v| v as &mut dyn AnyStoredVec),
+            )
+    }
 }

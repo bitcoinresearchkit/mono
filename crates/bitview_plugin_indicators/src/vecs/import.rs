@@ -1,5 +1,5 @@
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution::{AllChainSources, Vecs as DistributionVecs};
+use bitview_plugin_distribution_age::{AllChainSources, Vecs as AgeVecs};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
@@ -22,7 +22,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,
         mining: &MiningVecs,
-        distribution: &DistributionVecs,
+        distribution_age: &AgeVecs,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
@@ -67,7 +67,7 @@ impl Vecs {
             mappings,
         );
 
-        let activity = &distribution.cohorts.activity;
+        let activity = &distribution_age.cohorts.activity;
         let cdd_source = all_chain.with_supply(
             "coindays_destroyed_supply_adj_source",
             v,

@@ -1,6 +1,5 @@
 use bitview_cohort::AgeRange;
 use bitview_plugin::{ComputePlugin, UpdateContext};
-use bitview_urpd::DailyUrpds;
 use brk_error::Result;
 use rayon::join;
 use vecdb::AnyVec;
@@ -8,25 +7,22 @@ use vecdb::AnyVec;
 use super::{Vecs, activity, adjusted, age_range, aggregate, cap, prices, reserve_risk, value};
 use crate::Dependencies;
 
-impl ComputePlugin for Vecs {
-    type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
-
-    fn compute(
+impl Vecs {
+    /// Compute the scalar inputs for this plugin's URPD metrics.
+    fn compute_primary(
         &mut self,
-        dependencies: Self::Dependencies<'_>,
+        dependencies: Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let Dependencies {
-            age_urpds,
-            mappings,
             indexer,
+            urpd: _,
             price: prices,
             blocks,
             inflation_rate,
             velocity_native,
             velocity_fiat,
-            distribution,
+            distribution_age,
         } = dependencies;
         let inflation_rate = &inflation_rate.ppm.height;
         let velocity_native = &velocity_native.height;
@@ -36,8 +32,8 @@ impl ComputePlugin for Vecs {
         self.db.sync_bg_tasks()?;
 
         // Activity computes first (liveliness, vaultedness, etc.)
-        activity::compute(&mut self.activity, indexer, distribution, exit)?;
-        age_range::compute(&mut self.age_range, indexer, distribution, exit)?;
+        activity::compute(&mut self.activity, indexer, distribution_age, exit)?;
+        age_range::compute(&mut self.age_range, indexer, distribution_age, exit)?;
 
         // Age-range supply is lazy over the same cached inputs as aggregates.
         // Adjusted and value compute independently.
@@ -46,7 +42,7 @@ impl ComputePlugin for Vecs {
                 aggregate::compute(
                     &mut self.aggregate,
                     indexer,
-                    distribution,
+                    distribution_age,
                     &mut self.age_range,
                     &mut self.supply.active_supply_in_loss_share.bounded,
                     exit,
@@ -70,7 +66,7 @@ impl ComputePlugin for Vecs {
                             &mut self.value,
                             indexer,
                             prices,
-                            distribution,
+                            distribution_age,
                             &self.activity,
                             exit,
                         )
@@ -86,7 +82,7 @@ impl ComputePlugin for Vecs {
         cap::compute(
             &mut self.cap,
             indexer,
-            distribution,
+            distribution_age,
             &self.activity,
             &self.value,
             exit,
@@ -98,7 +94,7 @@ impl ComputePlugin for Vecs {
                 prices::compute(
                     &mut self.prices,
                     indexer,
-                    distribution,
+                    distribution_age,
                     &self.activity,
                     &self.supply,
                     &self.cap,
@@ -119,38 +115,37 @@ impl ComputePlugin for Vecs {
         r3?;
         r4?;
 
+        Ok(())
+    }
+}
+
+impl ComputePlugin for Vecs {
+    type Dependencies<'a> = Dependencies<'a>;
+
+    fn compute(
+        &mut self,
+        dependencies: Self::Dependencies<'_>,
+        context: UpdateContext<'_>,
+    ) -> Result<()> {
+        self.compute_primary(dependencies, context)?;
+        let supplies = dependencies
+            .distribution_age
+            .cohorts
+            .supply
+            .total
+            .age_supplies();
         let weights =
-            AgeRange::from_fn(|age| &age.select(&self.age_range.activity.wakefulness).day1);
-        let supplies = AgeRange::from_fn(|age| {
-            &age.select(&distribution.cohorts.supply.total.cohorts.utxo.age)
-                .sats
-                .day1
-        });
-        let from = mappings
-            .height
-            .recompute_day(indexer.safe_lengths().height)
-            .map(usize::from)
-            .unwrap_or_default();
+            AgeRange::from_fn(|id| &id.select(&self.age_range.activity.wakefulness).height);
         self.urpd.compute(
-            distribution.supply_state.version(),
-            from,
-            &mappings.day1.date,
-            &prices.split.close.cents.day1,
+            dependencies.distribution_age.cohorts.all_supply().version()
+                + dependencies.urpd.timestamps.version(),
+            usize::from(dependencies.indexer.safe_lengths().height),
+            dependencies.urpd,
             &weights,
             &supplies,
-            |day, date, weights| {
-                age_urpds.with_entries(
-                    &distribution.states_path,
-                    date,
-                    usize::from(day) + 1 == mappings.day1.date.len(),
-                    |entries| DailyUrpds::from_age_entries(entries, weights),
-                )
-            },
-            exit,
+            context.exit(),
         )?;
-
         context.compact_database(&self.db);
-
         Ok(())
     }
 }

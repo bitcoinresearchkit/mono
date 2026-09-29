@@ -640,13 +640,8 @@ where
 
 impl ComputePlugin for Indexer {
     type Dependencies<'a> = ();
-    type Output = ();
 
-    fn compute(
-        &mut self,
-        (): Self::Dependencies<'_>,
-        context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    fn compute(&mut self, (): Self::Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         self.index_inner(context.exit(), cfg!(debug_assertions))
     }
 }
