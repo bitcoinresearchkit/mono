@@ -19,6 +19,16 @@ Together they turn a Bitcoin Core node into a local Bitcoin data platform for
 chain exploration, mempool data, and on-chain research. The official free
 hosted instance is [bitview.space](https://bitview.space).
 
+**Used by**
+
+<a href="https://x.com/_checkonchain"><img src="https://pbs.twimg.com/profile_images/2090310945637855234/YA09g3v9_400x400.jpg" width="50" alt="Checkonchain" title="Checkonchain" style="border-radius:50%" /></a>
+<a href="https://x.com/newhedge_io"><img src="https://pbs.twimg.com/profile_images/1575960313916178448/taaprZ6q_400x400.jpg" width="50" alt="Newhedge" title="Newhedge" style="border-radius:50%" /></a>
+<a href="https://x.com/qfilabs"><img src="https://pbs.twimg.com/profile_images/2087768325904322560/z2xeJsWy_400x400.jpg" width="50" alt="QFI Labs" title="QFI Labs" style="border-radius:50%" /></a>
+<a href="https://x.com/TheBitcoinLayer"><img src="https://pbs.twimg.com/profile_images/1674609666507112449/yP-mZb5H_400x400.jpg" width="50" alt="The Bitcoin Layer" title="The Bitcoin Layer" style="border-radius:50%" /></a>
+<a href="https://x.com/PapangLabs"><img src="https://pbs.twimg.com/profile_images/2090676888054231040/mIX07S9f_400x400.jpg" width="50" alt="Papang Labs" title="Papang Labs" style="border-radius:50%" /></a>
+<a href="https://x.com/atreidis_app"><img src="https://pbs.twimg.com/profile_images/2050569617890783232/S8T4kt6w_400x400.png" width="50" alt="Atreidis" title="Atreidis" style="border-radius:50%" /></a>
+<a href="https://x.com/SparrowWallet"><img src="https://pbs.twimg.com/profile_images/1299262054977556481/p8Za-LLX_400x400.jpg" width="50" alt="Sparrow Wallet" title="Sparrow Wallet" style="border-radius:50%" /></a>
+
 ```text
 Bitcoin Core ──> BRK reader, RPC, and mempool ──> Bitview plugins
                                                       │
@@ -130,6 +140,14 @@ June 2027.
 [X](https://x.com/_nym21_) ·
 [Issues](https://github.com/bitcoinresearchkit/brk/issues) ·
 [Support](mailto:support@bitcoinresearchkit.org)
+
+### Donations
+
+<a href="https://x.com/_Checkmatey_"><img src="https://pbs.twimg.com/profile_images/1657255419172253698/ncG0Gt8e_400x400.jpg" width="50" alt="_Checkmatey_" title="_Checkmatey_" style="border-radius:50%" /></a>
+<a href="https://x.com/JohanMBergman"><img src="https://pbs.twimg.com/profile_images/1958587470120988673/7rlY5csu_400x400.jpg" width="50" alt="Johan Bergman" title="Johan Bergman" style="border-radius:50%" /></a>
+<a href="https://x.com/alonshvartsman"><img src="https://pbs.twimg.com/profile_images/2057096517954007041/7nv7ygDB_400x400.jpg" width="50" alt="Alon Shvartsman" title="Alon Shvartsman" style="border-radius:50%" /></a>
+<a href="https://x.com/clearmined1"><img src="https://pbs.twimg.com/profile_images/1657777901830541313/6OAaR8XF_400x400.png" width="50" alt="ClearMined" title="ClearMined" style="border-radius:50%" /></a>
+<a href="https://x.com/PositiveCrypto"><img src="https://pbs.twimg.com/profile_images/1506441769424142336/msV99x2s_400x400.jpg" width="50" alt="Philip Swift" title="Philip Swift" style="border-radius:50%" /></a>
 
 <img src="./qr.png" alt="Bitcoin donation QR code" width="120" />
 
