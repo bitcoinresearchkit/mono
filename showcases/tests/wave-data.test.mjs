@@ -129,6 +129,33 @@ test("hiding the complement renormalizes visible bands without fetching or mutat
   assert.deepEqual(visibleRow(raw), original);
 });
 
+test("all-relative shares keep the raw denominator when an age band or complement is hidden", async () => {
+  const { fetchMode, visibleRow, calls, modes } = fixture();
+  for (const mode of Object.keys(modes)) {
+    const [raw] = await fetchMode(mode);
+    const original = structuredClone(raw);
+    const count = calls.length;
+
+    const ageHidden = visibleRow(raw, new Set(["young"]), true);
+    const selectedAge = visibleRow(raw, new Set(["young"]));
+    const denominator = raw.total + raw.complementValue;
+    assert.deepEqual(ageHidden.shares, [0, raw.weights[1] / denominator * 100]);
+    assert.equal(ageHidden.complementShare, raw.complementValue / denominator * 100);
+    assert.notDeepEqual(ageHidden.shares, selectedAge.shares);
+
+    if (raw.complementLabel) {
+      const complementHidden = visibleRow(raw, new Set([raw.complementLabel]), true);
+      assert.deepEqual(complementHidden.shares, raw.weights.map(value => value / denominator * 100));
+      assert.equal(complementHidden.complementValue, 0);
+      assert.equal(complementHidden.complementShare, 0);
+      assert.equal(complementHidden.shareValues.at(-1), raw.total / denominator * 100);
+    }
+
+    assert.equal(calls.length, count);
+    assert.deepEqual(raw, original);
+  }
+});
+
 test("age bands and complements can all be hidden and restored for either basis", async () => {
   const { fetchMode, visibleRow } = fixture();
   for (const mode of ["cointime", "capital-cointime"]) {
@@ -145,6 +172,26 @@ test("age bands and complements can all be hidden and restored for either basis"
     // Hiding Dormant must not hide a different complement in another mode.
     const [dormant] = await fetchMode(mode.replace("cointime", "dormant"));
     assert.equal(visibleRow(dormant, new Set(["Dormant"])).complementValue, dormant.complementValue);
+  }
+});
+
+test("all-relative shares stay finite when every band and the complement is hidden", async () => {
+  const { fetchMode, visibleRow, calls, modes } = fixture();
+  for (const mode of Object.keys(modes)) {
+    const [raw] = await fetchMode(mode);
+    const original = structuredClone(raw);
+    const count = calls.length;
+    const hidden = new Set(["young", "old"]);
+    if (raw.complementLabel) hidden.add(raw.complementLabel);
+    const empty = visibleRow(raw, hidden, true);
+    assert.ok(empty.shares.every(Number.isFinite));
+    assert.ok(empty.shareValues.every(Number.isFinite));
+    assert.ok(empty.shares.every(value => value === 0));
+    assert.ok(empty.shareValues.every(value => value === 0));
+    assert.equal(empty.total, 0);
+    assert.equal(empty.complementValue, 0);
+    assert.equal(calls.length, count);
+    assert.deepEqual(raw, original);
   }
 });
 

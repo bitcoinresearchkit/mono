@@ -451,10 +451,10 @@
         text-underline-offset: 3px;
       }
 
-      @media (max-width: 780px) {
+      @media (max-width: 960px) {
         :root {
           --legend-height: calc(38px + env(safe-area-inset-top));
-          --controls-height: calc(112px + env(safe-area-inset-bottom));
+          --controls-height: calc(120px + env(safe-area-inset-bottom));
         }
 
         #overview {
@@ -531,14 +531,10 @@
         }
 
         button {
-          flex: 1 1 27%;
-          min-width: 72px;
-          padding: 5px 6px;
+          flex: 1;
+          min-width: 0;
+          padding: 5px 4px;
           font-size: 9px;
-        }
-
-        #view-controls button {
-          flex: 1 1 50%;
         }
 
         #credit {
@@ -759,8 +755,11 @@
             <button type="button" role="tab" data-view="absolute" aria-selected="false">
               Absolute
             </button>
-            <button type="button" role="tab" data-view="share" aria-selected="true">
+            <button type="button" role="tab" data-view="share-all" aria-selected="false" title="Percentage of all supply or capital, including hidden bands">
               Relative
+            </button>
+            <button type="button" role="tab" data-view="share" aria-selected="true" title="Percentage of selected bands, rescaled to 100%">
+              Normalized
             </button>
           </div>
         </div>
@@ -919,6 +918,7 @@
         const viewControlsElement = document.getElementById("view-controls");
         const modeButtons = [...modeControlsElement.querySelectorAll("button")];
         const viewButtons = [...viewControlsElement.querySelectorAll("button")];
+        const views = viewButtons.map((button) => button.dataset.view);
         const buttons = [...basisButtons, ...modeButtons, ...viewButtons];
         const cache = new Map();
         const seriesCache = new Map();
@@ -974,7 +974,7 @@
         }
 
         function updateAxisUnit(rows) {
-          if (activeView === "share") {
+          if (activeView !== "absolute") {
             axisDivisor = 1;
             axisUnitElement.hidden = true;
             return;
@@ -1002,7 +1002,7 @@
 
         function formatAxis(value) {
           if (!Number.isFinite(value)) return "";
-          if (activeView === "share") return `${value.toFixed(0)}%`;
+          if (activeView !== "absolute") return `${value.toFixed(0)}%`;
           const scaled = value / axisDivisor;
           const precision = Math.abs(scaled) < 10 && scaled !== 0 ? 1 : 0;
           return scaled.toFixed(precision).replace(/\.0$/, "");
@@ -1072,7 +1072,7 @@
             const visible = !hiddenBands.has(ranges[index].id);
             legendRows[index].row.setAttribute("aria-pressed", String(visible));
             legendRows[index].value.textContent = !visible ? "—" :
-              activeView === "share"
+              activeView !== "absolute"
                 ? `${share.toFixed(1)}%`
                 : formatAbsolute(absolute);
           });
@@ -1085,7 +1085,7 @@
             complementLegend.row.setAttribute("aria-pressed", String(visible));
             complementLegend.label.textContent = row.complementLabel;
             complementLegend.value.textContent = !visible ? "—" :
-              activeView === "share"
+              activeView !== "absolute"
                 ? `${row.complementShare.toFixed(1)}%`
                 : formatAbsolute(row.complementValue);
           }
@@ -1170,7 +1170,7 @@
           return request;
         }
 
-        function visibleRow(row, hidden = new Set()) {
+        function visibleRow(row, hidden = new Set(), relativeToAll = false) {
           const weights = row.weights.map((value, index) =>
             hidden.has(ranges[index].id) ? 0 : value,
           );
@@ -1178,12 +1178,13 @@
             ? 0 : row.complementValue;
           const total = weights.reduce((sum, value) => sum + value, 0);
           const chartTotal = total + complementValue;
-          const shares = weights.map((value) => chartTotal > 0 ? value / chartTotal * 100 : 0);
-          const complementShare = chartTotal > 0 ? complementValue / chartTotal * 100 : 0;
+          const shareTotal = relativeToAll ? row.total + row.complementValue : chartTotal;
+          const shares = weights.map((value) => shareTotal > 0 ? value / shareTotal * 100 : 0);
+          const complementShare = shareTotal > 0 ? complementValue / shareTotal * 100 : 0;
           const absoluteValues = [0];
           weights.forEach((value) => absoluteValues.push(absoluteValues.at(-1) + value));
           if (row.complementLabel) absoluteValues.push(chartTotal);
-          const shareValues = absoluteValues.map((value) => chartTotal > 0 ? value / chartTotal * 100 : 0);
+          const shareValues = absoluteValues.map((value) => shareTotal > 0 ? value / shareTotal * 100 : 0);
           return {
             ...row, weights, total, complementValue, shares, complementShare,
             absoluteValues, shareValues,
@@ -1504,6 +1505,9 @@
           colors,
           lastValueVisible: false,
           priceLineVisible: false,
+          autoscaleInfoProvider: (original) => activeView === "absolute"
+            ? original()
+            : { priceRange: { minValue: 0, maxValue: 100 } },
           priceFormat: {
             type: "custom",
             formatter: formatAxis,
@@ -1517,9 +1521,9 @@
             ? chart.timeScale().getVisibleLogicalRange()
             : null;
           const valueKey =
-            activeView === "share" ? "shareValues" : "absoluteValues";
+            activeView === "absolute" ? "absoluteValues" : "shareValues";
           const displayRows = activeRows.map((row) => {
-            const visible = visibleRow(row, hiddenBands);
+            const visible = visibleRow(row, hiddenBands, activeView === "share-all");
             return { ...visible, values: visible[valueKey] };
           });
           updateAxisUnit(displayRows);
@@ -1545,11 +1549,13 @@
             fitted = true;
           }
 
-          legendElement.setAttribute(
+          const viewDescription = activeView === "absolute"
+            ? "Absolute age range values"
+            : `Age range percentages of ${activeView === "share-all" ? "all" : "selected"} ${modes[activeMode].basis}`;
+          legendElement.setAttribute("aria-label", viewDescription);
+          chartElement.setAttribute(
             "aria-label",
-            activeView === "share"
-              ? "Age range shares"
-              : "Absolute age range values",
+            `Bitcoin ${modes[activeMode].name} by UTXO age, ${viewDescription.toLowerCase()}`,
           );
           updateReadout(latestRow);
           highlightBand();
@@ -1564,10 +1570,6 @@
           modeDescriptionElement.textContent = definition.description;
           totalLabelElement.textContent = definition.totalLabel;
           document.title = `Bitcoin ${definition.name}`;
-          chartElement.setAttribute(
-            "aria-label",
-            `Bitcoin ${definition.name} by UTXO age, ${activeView} view`,
-          );
           renderActiveRows();
         }
 
@@ -1594,7 +1596,7 @@
         }
 
         function activateView(view, initial = false) {
-          if (view !== "share" && view !== "absolute") return;
+          if (!views.includes(view)) return;
           if (!initial && view === activeView) return;
 
           activeView = view;
@@ -1725,12 +1727,12 @@
 
         function initialView() {
           const queryView = new URLSearchParams(location.search).get("view");
-          if (queryView === "absolute" || queryView === "share") {
+          if (views.includes(queryView)) {
             return queryView;
           }
           try {
             const stored = localStorage.getItem(VIEW_PREFERENCE_KEY);
-            if (stored === "absolute" || stored === "share") return stored;
+            if (views.includes(stored)) return stored;
           } catch (_) {}
           return "share";
         }
