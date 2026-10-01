@@ -5,11 +5,10 @@ use brk_types::{Sats, SupplyState};
 use statedb::Amount;
 
 pub use bitview_plugin_distribution_common::state::{
-    CoreRealizedState, PendingDelta, RealizedOps, SendPrecomputed, UnrealizedState, WithCapital,
-    WithoutCapital,
+    CoreRealizedState, RealizedOps, SendPrecomputed, UnrealizedState, WithCapital, WithoutCapital,
 };
 pub use cost_basis::RealizedState;
-pub use utxo::{PercentileResult, UTXOStates, tick_tock_next_block};
+pub use utxo::{UTXOStates, tick_tock_next_block};
 
 #[inline]
 pub(crate) fn supply(amount: Amount) -> SupplyState {

@@ -1,5 +1,6 @@
 use bitview_plugin::ImportContext;
-use bitview_plugin_distribution_age::{AllChainSources, Vecs as AgeVecs};
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_mining::Vecs as MiningVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
@@ -22,7 +23,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         all_chain: &AllChainSources,
         mining: &MiningVecs,
-        distribution_age: &AgeVecs,
+        distribution_aggregated: &AggregatedVecs,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
@@ -67,11 +68,11 @@ impl Vecs {
             mappings,
         );
 
-        let activity = &distribution_age.cohorts.activity;
+        let activity = &distribution_aggregated.cohorts.all.activity;
         let cdd_source = all_chain.with_supply(
             "coindays_destroyed_supply_adj_source",
             v,
-            &activity.coindays_destroyed.cohorts.all.sum._24h.height,
+            &activity.coindays_destroyed.sum._24h.height,
             |_, cdd, supply| Self::supply_adjusted(f64::from(cdd), supply),
         );
         let coindays_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
@@ -84,7 +85,7 @@ impl Vecs {
         let cyd_source = all_chain.with_supply(
             "coinyears_destroyed_supply_adj_source",
             cyd_version,
-            &activity.coinyears_destroyed.all.height,
+            &activity.coinyears_destroyed.height,
             |_, cyd, supply| Self::supply_adjusted(f64::from(cyd), supply),
         );
         let coinyears_destroyed_supply_adj = LazyPerBlock::from_height_source::<Ident>(
@@ -93,7 +94,14 @@ impl Vecs {
             &cyd_source,
             mappings,
         );
-        let dormancy_24h = activity.dormancy.all._24h.resolutions.height_source();
+        let dormancy_24h = distribution_aggregated
+            .cohorts
+            .all
+            .ratios
+            .dormancy
+            ._24h
+            .resolutions
+            .height_source();
         let dormancy_supply_source = all_chain.with_supply(
             "dormancy_supply_adj_source",
             v,

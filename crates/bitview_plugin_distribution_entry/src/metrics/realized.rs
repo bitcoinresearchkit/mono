@@ -1,6 +1,5 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
-use bitview_plugin_distribution_common::metrics::NegRealizedLoss;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -39,9 +38,6 @@ pub struct RealizedMetrics<M: StorageMode = Rw> {
     pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
     /// Spot price divided by this cohort's realized price.
     pub mvrv: LazyPerBlock<StoredF32>,
-    #[traversable(wrap = "loss", rename = "negative")]
-    /// Realized loss expressed as a negative value.
-    pub negative_loss: NegRealizedLoss,
 }
 
 impl RealizedMetrics {
@@ -69,8 +65,6 @@ impl RealizedMetrics {
             mappings,
             windows,
         );
-        let negative_loss =
-            NegRealizedLoss::from_source(&name("realized_loss_neg"), version, &loss, mappings);
         let mvrv = LazyPerBlock::from_lazy::<Ident, PriceRatio>(
             &name("mvrv"),
             version,
@@ -111,7 +105,6 @@ impl RealizedMetrics {
                 windows,
             ),
             mvrv,
-            negative_loss,
         })
     }
 }

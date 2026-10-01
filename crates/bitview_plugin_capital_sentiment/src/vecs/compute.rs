@@ -22,7 +22,7 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             price: prices,
-            distribution_age,
+            distribution_aggregated,
             moving_average,
         } = dependencies;
         let exit = context.exit();
@@ -31,28 +31,25 @@ impl ComputePlugin for Vecs {
 
         let spot = &prices.spot.cents.height;
         let sma = &moving_average.sma._1y.cents.height;
-        let all = &distribution_age
+        let all = &distribution_aggregated
             .cohorts
-            .realized
-            .capitalized_price
-            .series
             .all
-            .cents
-            .height;
-        let sth = &distribution_age
-            .cohorts
             .realized
             .capitalized_price
-            .series
+            .cents
+            .height;
+        let sth = &distribution_aggregated
+            .cohorts
             .sth
-            .cents
-            .height;
-        let lth = &distribution_age
-            .cohorts
             .realized
             .capitalized_price
-            .series
+            .cents
+            .height;
+        let lth = &distribution_aggregated
+            .cohorts
             .lth
+            .realized
+            .capitalized_price
             .cents
             .height;
 

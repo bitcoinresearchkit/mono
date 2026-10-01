@@ -375,7 +375,7 @@ fn check_lifecycle() {
         .iter_any_visible()
         .map(|v| v.name().to_owned())
         .collect::<BTreeSet<_>>();
-    assert_eq!(names.len(), 630);
+    assert_eq!(names.len(), 610);
     assert!(names.contains("veteran_supply_sats"));
     assert!(names.contains("rookie_sopr_24h"));
     // Derived repair does not require replaying intact accounting sources.

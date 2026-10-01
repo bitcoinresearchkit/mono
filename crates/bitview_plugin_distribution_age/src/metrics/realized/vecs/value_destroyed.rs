@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -7,14 +7,14 @@ use brk_error::Result;
 use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeUTXOCoreSources;
+use crate::metrics::CumulativeCreationSources;
 
 #[derive(Traversable)]
 pub struct CumulativeValueDestroyedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyFiatPerBlockCumulativeRolling<Cents>>,
+    pub cohorts: CreationCohorts<LazyFiatPerBlockCumulativeRolling<Cents>>,
     #[traversable(hidden)]
-    pub stored: CumulativeUTXOCoreSources<Cents, M>,
+    pub stored: CumulativeCreationSources<Cents, M>,
 }
 
 impl CumulativeValueDestroyedByCohort {
@@ -25,12 +25,12 @@ impl CumulativeValueDestroyedByCohort {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let metric = "value_destroyed";
-        let stored = CumulativeUTXOCoreSources::forced_import(
+        let stored = CumulativeCreationSources::forced_import(
             db,
             "value_destroyed_cumulative_cents",
             version,
         )?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored
                 .stored

@@ -2,7 +2,7 @@ use bitview::{BootstrapAction, QueryPluginSet};
 use bitview_default::DefaultPlugins;
 use bitview_plugin::{ComputePlugin, ImportContext, Publication, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
-use bitview_plugin_distribution_age::HasDistributionAge;
+use bitview_plugin_distribution_aggregated::HasDistributionAggregated;
 use bitview_plugin_distribution_entry::{
     Dependencies, HasDistributionEntry, Vecs as DistributionEntry,
 };
@@ -35,7 +35,7 @@ impl Plugins {
             defaults.mappings(),
             &defaults.blocks().lookback.window_starts(),
             &defaults.price().spot.cents.height.read_only_boxed_clone(),
-            defaults.distribution_age().cohorts.all_supply(),
+            defaults.distribution_aggregated().all_supply(),
         )?;
         Ok(Self {
             defaults,
@@ -67,11 +67,11 @@ impl Plugins {
                     .read_only_boxed_clone(),
                 capitalized_price: &self
                     .defaults
-                    .distribution_age()
+                    .distribution_aggregated()
                     .cohorts
+                    .all
                     .realized
                     .capitalized_price
-                    .all
                     .cents
                     .height
                     .read_only_boxed_clone(),

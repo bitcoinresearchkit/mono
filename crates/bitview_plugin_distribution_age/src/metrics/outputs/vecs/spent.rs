@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -7,14 +7,14 @@ use brk_error::Result;
 use brk_types::{StoredU64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeUTXOCoreSources;
+use crate::metrics::CumulativeCreationSources;
 
 #[derive(Traversable)]
 pub struct SpentOutputCount<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyPerBlockCumulativeRolling<StoredU64>>,
+    pub cohorts: CreationCohorts<LazyPerBlockCumulativeRolling<StoredU64>>,
     #[traversable(hidden)]
-    pub stored: CumulativeUTXOCoreSources<StoredU64, M>,
+    pub stored: CumulativeCreationSources<StoredU64, M>,
 }
 
 impl SpentOutputCount {
@@ -26,8 +26,8 @@ impl SpentOutputCount {
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let stored =
-            CumulativeUTXOCoreSources::forced_import(db, "spent_utxo_count_cumulative", version)?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+            CumulativeCreationSources::forced_import(db, "spent_utxo_count_cumulative", version)?;
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "spent_utxo_count");
             LazyPerBlockCumulativeRolling::from_cumulative_source(
                 &name,

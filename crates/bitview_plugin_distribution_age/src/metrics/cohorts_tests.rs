@@ -10,7 +10,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{LazyWindowStartVec, import_cached};
 use brk_reader::Reader;
 use brk_rpc::{Auth, Client};
-use brk_types::{Cents, CentsSats, CentsSquaredSats, Height, Sats, StoredU64, Version};
+use brk_types::{Cents, CentsSats, CentsSquaredSats, Height, Sats, Version};
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, WritableVec};
 
@@ -59,7 +59,6 @@ fn check_block_writes() {
         _1y: &starts,
     };
     let mut supply = import_cached::<Height, Sats>(&db, "global_supply", Version::ONE).unwrap();
-    let mut count = import_cached::<Height, StoredU64>(&db, "global_count", Version::ONE).unwrap();
     let mut cohorts = CohortMetrics::forced_import(
         &db,
         Version::ONE,
@@ -67,7 +66,6 @@ fn check_block_writes() {
         &windows,
         &spot.read_only_boxed_clone(),
         &supply.read_only_boxed_clone(),
-        &count.read_only_boxed_clone(),
     )
     .unwrap();
     // Global views keep observing the external source; Age owns neither vector.
@@ -81,20 +79,8 @@ fn check_block_writes() {
             .is_none()
     );
     supply.push(Sats::new(123));
-    count.push(StoredU64::from(7_u64));
     supply.write().unwrap();
-    count.write().unwrap();
     assert_eq!(cohorts.all_supply().collect_one_at(0), Some(Sats::new(123)));
-    assert_eq!(
-        cohorts
-            .outputs
-            .unspent_count
-            .cohorts
-            .all
-            .height
-            .collect_one_at(0),
-        Some(StoredU64::from(7_u64))
-    );
     let mut states = UTXOStates::new();
     for &id in AgeRangeId::ALL {
         let state = id.select_mut(&mut states.age_range);
@@ -107,7 +93,6 @@ fn check_block_writes() {
     }
     for _ in 0..2 {
         cohorts.push_realized(&states);
-        cohorts.push_aggregate(&states, Cents::ZERO, &Default::default());
     }
     for source in cohorts.realized.collect_vecs_mut() {
         source.write().unwrap();

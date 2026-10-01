@@ -4,7 +4,7 @@
     feature = "coinflow",
     feature = "cointime",
     feature = "distribution_age",
-    feature = "distribution_size",
+    feature = "distribution_addresses",
     feature = "inputs",
     feature = "mappings",
     feature = "mining",

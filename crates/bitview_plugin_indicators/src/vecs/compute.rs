@@ -19,7 +19,8 @@ impl ComputePlugin for Vecs {
             indexer,
             mining,
             distribution_age,
-            size,
+            distribution_aggregated,
+            utxos,
             market,
         } = dependencies;
         let exit = context.exit();
@@ -36,8 +37,8 @@ impl ComputePlugin for Vecs {
         } = self;
         let subsidy = &mining.rewards.subsidy;
         let realized_cap = &distribution_age.cohorts.realized.cap.cohorts.age;
-        let supply = &distribution_age.cohorts.supply;
-        let supply_total_sats = &supply.total.cohorts.all.sats.height;
+        let supply = &distribution_aggregated.cohorts.all.supply;
+        let supply_total_sats = &supply.total.sats.height;
 
         let compute_puell = || {
             puell_multiple
@@ -49,7 +50,7 @@ impl ComputePlugin for Vecs {
                     exit,
                 )
         };
-        let compute_gini = || gini::compute(gini, size, starting_height, exit);
+        let compute_gini = || gini::compute(gini, utxos, starting_height, exit);
         let compute_rhodl = || {
             rhodl_ratio.ppm.height.compute_transform3(
                 starting_height,
@@ -74,7 +75,7 @@ impl ComputePlugin for Vecs {
         let compute_seller_exhaustion = || {
             seller_exhaustion.height.compute_transform3(
                 starting_height,
-                &supply.in_profit.cohorts.all.sats.height,
+                &supply.in_profit.sats.height,
                 &market.volatility._1m.height,
                 supply_total_sats,
                 |(height, profit_sats, volatility, total_sats, ..)| {

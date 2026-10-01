@@ -33,13 +33,13 @@ impl LazyRatioPerBlock<PriceRatio> {
     ) -> Self {
         let version = version + PRICE_RATIO_VERSION;
         let source = LazyIndexedVec::new(
-            &format!("{name}_ratio_ppm_source"),
+            &format!("{name}_ppm_source"),
             version,
             price,
             spot,
             |_, price, spot| price_ratio(spot, price),
         );
-        Self::from_height_source(&format!("{name}_ratio"), version, &source, indexes)
+        Self::from_height_source(name, version, &source, indexes)
     }
 }
 

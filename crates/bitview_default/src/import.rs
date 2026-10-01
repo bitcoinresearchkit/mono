@@ -1,4 +1,6 @@
-use bitview_plugin_distribution_size::{ID as DISTRIBUTION_SIZE_ID, Vecs as DistributionSize};
+use bitview_plugin_distribution_aggregated::{
+    ID as DISTRIBUTION_AGGREGATED_ID, Vecs as DistributionAggregated,
+};
 use std::{thread, time::Instant};
 
 use bitview_plugin::{ImportContext, Plugin};
@@ -8,7 +10,11 @@ use bitview_plugin_capital_sentiment::{ID as CAPITAL_SENTIMENT_ID, Vecs as Capit
 use bitview_plugin_coinflow::{ID as COINFLOW_ID, Vecs as Coinflow};
 use bitview_plugin_cointime::{ID as COINTIME_ID, Vecs as Cointime};
 use bitview_plugin_constants::{ID as CONSTANTS_ID, Vecs as Constants};
+use bitview_plugin_distribution_addresses::{
+    ID as DISTRIBUTION_ADDRESSES_ID, Vecs as DistributionAddresses,
+};
 use bitview_plugin_distribution_age::{ID as DISTRIBUTION_AGE_ID, Vecs as DistributionAge};
+use bitview_plugin_distribution_utxos::{ID as DISTRIBUTION_UTXOS_ID, Vecs as DistributionUtxos};
 use bitview_plugin_indexer::{ID as INDEXER_ID, Indexer};
 use bitview_plugin_indicators::{ID as INDICATORS_ID, Vecs as Indicators};
 use bitview_plugin_inputs::{ID as INPUTS_ID, Vecs as Inputs};
@@ -167,7 +173,6 @@ impl DefaultPlugins {
                     &window_starts,
                     &price,
                     &utxo_history.supply.read_only_boxed_clone(),
-                    &utxo_history.count.height.read_only_boxed_clone(),
                 )?))
             })?;
 
@@ -175,20 +180,43 @@ impl DefaultPlugins {
             Ok((distribution_age, market))
         })?;
 
-        let distribution_size = timed(Phase::Import, DISTRIBUTION_SIZE_ID, || -> Result<_> {
-            Ok(Box::new(DistributionSize::import(
+        let distribution_utxos = timed(Phase::Import, DISTRIBUTION_UTXOS_ID, || -> Result<_> {
+            Ok(Box::new(DistributionUtxos::import(
                 context,
                 &mappings,
                 &window_starts,
                 &price,
-                &inputs.by_type,
-                &outputs.by_type,
                 &utxo_history.supply.read_only_boxed_clone(),
-                &utxo_history.count.height,
             )?))
         })?;
 
-        let all_chain = distribution_age.all_chain_sources();
+        let distribution_addresses =
+            timed(Phase::Import, DISTRIBUTION_ADDRESSES_ID, || -> Result<_> {
+                Ok(Box::new(DistributionAddresses::import(
+                    context,
+                    &mappings,
+                    &window_starts,
+                    &price,
+                    &inputs.by_type,
+                    &outputs.by_type,
+                    &utxo_history.supply.read_only_boxed_clone(),
+                )?))
+            })?;
+
+        let distribution_aggregated = timed(
+            Phase::Import,
+            DISTRIBUTION_AGGREGATED_ID,
+            || -> Result<_> {
+                Ok(Box::new(DistributionAggregated::import(
+                    context,
+                    &mappings,
+                    &window_starts,
+                    &price,
+                    &utxo_history.supply.read_only_boxed_clone(),
+                )?))
+            },
+        )?;
+        let all_chain = distribution_aggregated.all_chain_sources();
 
         let (cointime, coinflow, bedrock, capital_sentiment, indicators) =
             thread::scope(|scope| -> Result<_> {
@@ -231,7 +259,7 @@ impl DefaultPlugins {
                         &mappings,
                         &all_chain,
                         &mining,
-                        &distribution_age,
+                        &distribution_aggregated,
                         &transactions,
                     )?))
                 })?;
@@ -251,7 +279,7 @@ impl DefaultPlugins {
                         context,
                         &mappings,
                         &window_starts,
-                        &distribution_age,
+                        &distribution_aggregated,
                         &cointime,
                         &all_chain,
                         &transactions,
@@ -263,7 +291,7 @@ impl DefaultPlugins {
                     Ok(Box::new(RarityMeter::import(
                         context,
                         &mappings,
-                        &distribution_age,
+                        &distribution_aggregated,
                         &cointime,
                         &coinflow,
                     )?))
@@ -283,7 +311,9 @@ impl DefaultPlugins {
             indicators,
             market,
             distribution_age,
-            distribution_size,
+            distribution_aggregated,
+            distribution_utxos,
+            distribution_addresses,
             supply,
             pools,
             cointime,

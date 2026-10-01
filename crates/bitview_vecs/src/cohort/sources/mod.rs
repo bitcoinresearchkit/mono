@@ -1,20 +1,14 @@
-mod additive;
-mod age;
 mod amount;
 mod amount_value;
+mod creation;
 mod cumulative;
-mod term;
+mod disjoint_age;
 
-pub use additive::{UTXOCoreSources, UTXOSources, UTXOTypedSources};
-pub use age::UTXOAgeSources;
 pub use amount::AmountSources;
 pub use amount_value::AmountValueSources;
-pub use cumulative::{
-    CumulativeUTXOCoreSources, CumulativeUTXOCoreValueSources, CumulativeUTXOSources,
-    CumulativeUTXOValueSources,
-};
-pub use term::UTXOTermSources;
+pub use creation::CreationSources;
+pub use cumulative::{CumulativeCreationSources, CumulativeCreationValueSources};
+pub use disjoint_age::DisjointAgeSources;
 
 #[cfg(test)]
-#[path = "tests.rs"]
 mod tests;

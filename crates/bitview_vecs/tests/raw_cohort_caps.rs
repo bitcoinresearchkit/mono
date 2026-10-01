@@ -1,5 +1,5 @@
-use bitview_cohort::{AgeRange, AgeRangeId, AmountRange, CohortContext, UTXOAggregate};
-use bitview_vecs::{UTXOAgeSources, UTXOTermSources};
+use bitview_cohort::{AgeRange, AgeRangeId, AmountRange, CohortContext};
+use bitview_vecs::DisjointAgeSources;
 use brk_types::{CentsSats, CentsSquaredSats, Height, Version};
 use tempfile::tempdir;
 use vecdb::{AnyStoredVec, BytesVec, Database, ImportableVec, ReadableVec, WritableVec};
@@ -19,9 +19,9 @@ fn raw_age_caps_preserve_every_threshold_price_through_rollback_and_reopen() {
     let directory = tempdir().unwrap();
     {
         let db = Database::open(directory.path()).unwrap();
-        let mut caps = UTXOAgeSources::forced_import(&db, "cap_raw", Version::ONE).unwrap();
+        let mut caps = DisjointAgeSources::forced_import(&db, "cap_raw", Version::ONE).unwrap();
         let mut capitals =
-            UTXOAgeSources::forced_import(&db, "capitalized_cap_raw", Version::ONE).unwrap();
+            DisjointAgeSources::forced_import(&db, "capitalized_cap_raw", Version::ONE).unwrap();
         for row in 0..3 {
             caps.push_age(&AgeRange::from_fn(|id| {
                 CentsSats::new(raw(id.index(), row).0)
@@ -29,12 +29,10 @@ fn raw_age_caps_preserve_every_threshold_price_through_rollback_and_reopen() {
             capitals.push_age(&AgeRange::from_fn(|id| {
                 CentsSquaredSats::new(raw(id.index(), row).1)
             }));
-            caps.push(&UTXOAggregate::default());
-            capitals.push(&UTXOAggregate::default());
         }
         assert_eq!(caps.len(), 3);
         assert_eq!(capitals.len(), 3);
-        assert_eq!(caps.collect_vecs_mut().len(), AgeRangeId::ALL.len() + 2);
+        assert_eq!(caps.collect_vecs_mut().len(), AgeRangeId::ALL.len());
         for source in caps
             .collect_vecs_mut()
             .into_iter()
@@ -49,8 +47,6 @@ fn raw_age_caps_preserve_every_threshold_price_through_rollback_and_reopen() {
         capitals.push_age(&AgeRange::from_fn(|id| {
             CentsSquaredSats::new(raw(id.index(), 7).1)
         }));
-        caps.push(&UTXOAggregate::default());
-        capitals.push(&UTXOAggregate::default());
         for source in caps
             .collect_vecs_mut()
             .into_iter()
@@ -61,10 +57,14 @@ fn raw_age_caps_preserve_every_threshold_price_through_rollback_and_reopen() {
         db.flush().unwrap();
     }
     let db = Database::open(directory.path()).unwrap();
-    let caps = UTXOAgeSources::<CentsSats>::forced_import(&db, "cap_raw", Version::ONE).unwrap();
-    let capitals =
-        UTXOAgeSources::<CentsSquaredSats>::forced_import(&db, "capitalized_cap_raw", Version::ONE)
-            .unwrap();
+    let caps =
+        DisjointAgeSources::<CentsSats>::forced_import(&db, "cap_raw", Version::ONE).unwrap();
+    let capitals = DisjointAgeSources::<CentsSquaredSats>::forced_import(
+        &db,
+        "capitalized_cap_raw",
+        Version::ONE,
+    )
+    .unwrap();
     assert_eq!(caps.len(), 2);
     assert_eq!(capitals.len(), 2);
     for (height, row) in [0, 7].into_iter().enumerate() {
@@ -95,25 +95,6 @@ fn raw_age_caps_preserve_every_threshold_price_through_rollback_and_reopen() {
             }
         }
     }
-}
-
-#[test]
-fn new_age_histories_force_resume_before_existing_holder_histories() {
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut old =
-        UTXOTermSources::<CentsSats>::forced_import(&db, "cap_raw", Version::ONE).unwrap();
-    old.push(&UTXOAggregate::default());
-    for source in old.collect_vecs_mut() {
-        source.write().unwrap();
-    }
-    drop(old);
-    let mut sources =
-        UTXOAgeSources::<CentsSats>::forced_import(&db, "cap_raw", Version::ONE).unwrap();
-    assert_eq!(sources.aggregate.len(), 1);
-    assert_eq!(sources.len(), 0);
-    sources.push_age(&AgeRange::default());
-    assert_eq!(sources.len(), 1);
 }
 
 #[test]

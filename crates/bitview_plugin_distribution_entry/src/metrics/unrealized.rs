@@ -1,9 +1,9 @@
 use bitview_cohort::{CohortContext, CohortId};
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::{MvrvToNupl, NegCentsUnsignedToDollars};
+use bitview_transforms::MvrvToNupl;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock};
-use brk_types::{Cents, CentsSigned, Dollars, PartsPerMillionSigned32, PriceRatio, Version};
+use bitview_vecs::{LazyFiatPerBlock, LazyPriceWithRatioPerBlock, LazyRatioPerBlock};
+use brk_types::{Cents, CentsSigned, PartsPerMillionSigned32, PriceRatio, Version};
 
 use super::Sources;
 
@@ -17,9 +17,6 @@ pub struct UnrealizedMetrics {
     pub net_pnl: LazyFiatPerBlock<CentsSigned>,
     /// Net unrealized profit/loss as a share of this cohort's own market cap.
     pub nupl: LazyRatioPerBlock<PartsPerMillionSigned32, PriceRatio>,
-    #[traversable(wrap = "loss", rename = "negative")]
-    /// Unrealized loss expressed as a negative value.
-    pub negative_loss: LazyPerBlock<Dollars, Cents>,
 }
 
 impl UnrealizedMetrics {
@@ -36,11 +33,6 @@ impl UnrealizedMetrics {
             version,
             &sources.unrealized_loss,
             mappings,
-        );
-        let negative_loss = LazyPerBlock::from_lazy::<NegCentsUnsignedToDollars, Cents>(
-            &name("unrealized_loss_neg"),
-            version,
-            &loss.cents,
         );
         Self {
             profit: LazyFiatPerBlock::from_cents_source(
@@ -61,7 +53,6 @@ impl UnrealizedMetrics {
                 version,
                 &price.relative.ppm,
             ),
-            negative_loss,
         }
     }
 }

@@ -1,20 +1,14 @@
-use bitview_cohort::{CohortId, UTXOAggregate, UTXOAggregateId, UTXOCoreValues};
+use bitview_cohort::UTXOCoreValues;
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{DaysToYears, SatsToCents};
+use bitview_transforms::SatsToCents;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, LazyWindowStartVec, RollingWindows};
+use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, StoredF32, StoredF64, Version};
+use brk_types::{Cents, Sats, StoredF64, Version};
 use vecdb::{AnyStoredVec, BinaryTransform, Database, Rw, StorageMode};
 
-use super::{
-    ActivitySources, CoindaysDestroyedByCohort, CoreCumulativeValueByCohort,
-    CumulativeValueByCohort,
-};
-
-const COINYEARS_DESTROYED_VERSION: Version = Version::ONE;
+use super::{CoindaysDestroyedByCohort, CoreCumulativeValueByCohort, CumulativeValueByCohort};
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
@@ -33,14 +27,6 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     /// Transfer volume whose spending price is below the spent outputs'
     /// creation price.
     pub transfer_volume_in_loss: Box<CoreCumulativeValueByCohort<M>>,
-    /// Coin years destroyed over the trailing 365-day window: the window's
-    /// total coin days destroyed divided by 365.
-    pub coinyears_destroyed: UTXOAggregate<LazyPerBlock<StoredF64, StoredF64>>,
-    /// For each supported trailing window, average age in days of transferred
-    /// bitcoin: coin days destroyed divided by transfer volume in BTC. Higher
-    /// values mean older coins moved on average. Returns zero when transfer
-    /// volume is zero.
-    pub dormancy: UTXOAggregate<RollingWindows<StoredF32, M>>,
 }
 
 impl ActivityVecs {
@@ -50,7 +36,6 @@ impl ActivityVecs {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Box<Self>> {
-        let aggregate_version = version;
         let version = version + Version::ONE;
         let transfer_volume = Box::new(CumulativeValueByCohort::forced_import(
             db,
@@ -75,56 +60,12 @@ impl ActivityVecs {
             mappings,
             window_starts,
         )?);
-        let coinyears_destroyed = UTXOAggregate::from_fn(|id| {
-            let cohort_id = id.cohort();
-            let name = id.metric_name("coinyears_destroyed");
-            let source = coindays_destroyed
-                .cohorts
-                .get(cohort_id)
-                .expect("aggregate coindays-destroyed source")
-                .sum
-                ._1y
-                .height
-                .clone();
-            LazyPerBlock::from_height_source::<DaysToYears>(
-                &name,
-                Self::aggregate_version(aggregate_version, id) + COINYEARS_DESTROYED_VERSION,
-                &source,
-                mappings,
-            )
-        });
-        let dormancy = UTXOAggregate::try_from_fn(|id| {
-            RollingWindows::forced_import(
-                db,
-                &id.metric_name("dormancy"),
-                Self::aggregate_version(aggregate_version, id),
-                mappings,
-            )
-        })?;
         Ok(Box::new(Self {
             transfer_volume,
             coindays_destroyed,
             transfer_volume_in_profit,
             transfer_volume_in_loss,
-            coinyears_destroyed,
-            dormancy,
         }))
-    }
-
-    fn aggregate_version(version: Version, id: UTXOAggregateId) -> Version {
-        version
-            + Version::ONE
-            + if matches!(id, UTXOAggregateId::All) {
-                Version::ONE
-            } else {
-                Version::ZERO
-            }
-    }
-
-    pub fn sources(&self, cohort_id: CohortId) -> Option<ActivitySources> {
-        Some(ActivitySources {
-            transfer_volume: self.transfer_volume.cohorts.get(cohort_id)?.clone(),
-        })
     }
 
     #[inline(always)]
@@ -167,55 +108,6 @@ impl ActivityVecs {
         vecs.extend(self.coindays_destroyed.stored.collect_vecs_mut());
         vecs.extend(self.transfer_volume_in_profit.collect_vecs_mut());
         vecs.extend(self.transfer_volume_in_loss.collect_vecs_mut());
-        vecs.extend(
-            self.dormancy
-                .iter_mut()
-                .flat_map(|value| value.as_mut_array())
-                .map(|value| &mut value.height as &mut dyn AnyStoredVec),
-        );
         vecs
-    }
-
-    pub fn compute_dormancy(&mut self, max_from: Height, exit: &Exit) -> Result<()> {
-        for id in UTXOAggregateId::ALL {
-            let cohort_id = id.cohort();
-            let coindays_destroyed = &self
-                .coindays_destroyed
-                .cohorts
-                .get(cohort_id)
-                .expect("aggregate coindays-destroyed cohort")
-                .sum;
-            let transfer_volume = &self
-                .transfer_volume
-                .cohorts
-                .get(cohort_id)
-                .expect("aggregate transfer-volume cohort")
-                .sum
-                .0;
-            for ((target, coindays), volume) in id
-                .select_mut(&mut self.dormancy)
-                .as_mut_array()
-                .into_iter()
-                .zip(coindays_destroyed.as_array())
-                .zip(transfer_volume.as_array())
-            {
-                target.height.compute_transform2(
-                    max_from,
-                    &coindays.height,
-                    &volume.btc.height,
-                    |(height, rolling_coindays, rolling_btc, _)| {
-                        let btc = f64::from(rolling_btc);
-                        let value = if btc == 0.0 {
-                            0.0
-                        } else {
-                            (f64::from(rolling_coindays) / btc) as f32
-                        };
-                        (height, StoredF32::from(value))
-                    },
-                    exit,
-                )?;
-            }
-        }
-        Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use brk_types::{Bitcoin, Cents, CentsSigned, Sats, StoredF64, StoredU64, SupplyState};
+use brk_types::{Bitcoin, CentsSigned, Sats, StoredF64, StoredU64, SupplyState};
 use derive_more::{Deref, DerefMut};
 
 use super::super::CohortState;
@@ -56,17 +56,11 @@ impl<R: RealizedOps, C: CostBasisOps> UTXOCohortState<R, C> {
         let cap = self.realized.cap();
         let profit = self.realized.profit();
         let loss = self.realized.loss();
-        let price = cap_raw
-            .as_u128()
-            .checked_div(supply.as_u128())
-            .map(|price| Cents::new(price as u64))
-            .unwrap_or_default();
 
         RealizedBlockData {
             cap_raw,
             supply,
             cap,
-            price,
             profit,
             loss,
             net_pnl: CentsSigned::new(profit.inner() as i64 - loss.inner() as i64),

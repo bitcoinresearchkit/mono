@@ -1,3 +1,6 @@
+use bitview_plugin_distribution_aggregated::{
+    Dependencies as AggregatedDependencies, HasDistributionAggregated, Vecs as Aggregated,
+};
 use std::{
     collections::BTreeMap,
     fs,
@@ -5,13 +8,17 @@ use std::{
 };
 
 use bitcoin::Amount;
+use bitview_cohort::AmountRangeId;
 use bitview_plugin::{ComputePlugin, ImportContext, PluginData, UpdateContext};
 use bitview_plugin_blocks::HasBlocks;
+use bitview_plugin_distribution_addresses::{
+    Dependencies as AddressesDependencies, HasDistributionAddresses, Vecs as Addresses,
+};
 use bitview_plugin_distribution_age::{
     Dependencies as AgeDependencies, HasDistributionAge, Vecs as Age,
 };
-use bitview_plugin_distribution_size::{
-    Dependencies as SizeDependencies, HasDistributionSize, Vecs as Size,
+use bitview_plugin_distribution_utxos::{
+    Dependencies as UtxosDependencies, HasDistributionUtxos, Vecs as Utxos,
 };
 use bitview_plugin_indexer::HasIndexer;
 use bitview_plugin_inputs::HasInputs;
@@ -21,23 +28,22 @@ use bitview_plugin_price::HasPrice;
 use bitview_plugin_utxo_history::HasUtxoHistory;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{CentsSats, Version};
+use brk_types::{CentsSats, Height, Version};
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
-    ReadableCloneableVec, WritableVec,
+    AnyStoredVec, AnyVec, BytesVec, Database, ImportOptions, ImportableVec, MutableVec,
+    ReadableCloneableVec, ReadableVec, WritableVec,
 };
 
 use super::chain_fixture::{ChainFixture, raw_fixture_block, run_genesis};
 
-type Distribution = (Age, Size);
+type Distribution = (Age, Utxos, Addresses, Aggregated);
 
 fn import(path: &Path, fixture: &ChainFixture) -> Distribution {
     let plugins = &fixture.plugins;
     let context = ImportContext::new(path);
     let windows = plugins.blocks().lookback.window_starts();
     let supply = plugins.utxo_history().supply.read_only_boxed_clone();
-    let count = plugins.utxo_history().count.height.read_only_boxed_clone();
     (
         Age::import(
             context,
@@ -45,10 +51,17 @@ fn import(path: &Path, fixture: &ChainFixture) -> Distribution {
             &windows,
             plugins.price(),
             &supply,
-            &count,
         )
         .unwrap(),
-        Size::import(
+        Utxos::import(
+            context,
+            plugins.mappings(),
+            &windows,
+            plugins.price(),
+            &supply,
+        )
+        .unwrap(),
+        Addresses::import(
             context,
             plugins.mappings(),
             &windows,
@@ -56,7 +69,14 @@ fn import(path: &Path, fixture: &ChainFixture) -> Distribution {
             &plugins.inputs().by_type,
             &plugins.outputs().by_type,
             &supply,
-            &count,
+        )
+        .unwrap(),
+        Aggregated::import(
+            context,
+            plugins.mappings(),
+            &windows,
+            plugins.price(),
+            &supply,
         )
         .unwrap(),
     )
@@ -77,12 +97,51 @@ fn compute(writer: &mut Distribution, fixture: &ChainFixture) -> Result<()> {
         },
         UpdateContext::new(&Exit::default()),
     )?;
+    writer.3.compute(
+        AggregatedDependencies {
+            history: &history,
+            from: plugins.indexer().safe_lengths().height,
+            age: &writer.0,
+            mappings: plugins.mappings(),
+            price: plugins.price(),
+        },
+        UpdateContext::new(&Exit::default()),
+    )?;
     writer.1.compute(
-        SizeDependencies {
+        UtxosDependencies {
             indexer: plugins.indexer(),
             mappings: plugins.mappings(),
             input_values: &plugins.inputs().value,
             price: plugins.price(),
+        },
+        UpdateContext::new(&Exit::default()),
+    )?;
+    let history = plugins.utxo_history();
+    for h in 0..history.count.height.len() {
+        let height = Height::from(h);
+        let supply = history.supply.collect_one(height).unwrap();
+        let count = history.count.height.collect_one(height).unwrap();
+        assert_eq!(
+            writer
+                .1
+                .cohorts
+                .outputs
+                .avg_amount
+                .all
+                .sats
+                .height
+                .collect_one(height),
+            Some(supply / count),
+            "average UTXO amount at {h}",
+        );
+    }
+    writer.2.compute(
+        AddressesDependencies {
+            indexer: plugins.indexer(),
+            mappings: plugins.mappings(),
+            input_values: &plugins.inputs().value,
+            price: plugins.price(),
+            type_supply: writer.1.type_supply(),
         },
         UpdateContext::new(&Exit::default()),
     )
@@ -112,6 +171,8 @@ fn check(writer: &mut Distribution, fixture: &ChainFixture) {
     compute(&mut fresh, fixture).unwrap();
     compare(&writer.0, &fresh.0);
     compare(&writer.1, &fresh.1);
+    compare(&writer.2, &fresh.2);
+    compare(&writer.3, &fresh.3);
 }
 
 fn check_published(fixture: &ChainFixture) {
@@ -119,12 +180,14 @@ fn check_published(fixture: &ChainFixture) {
     let mut fresh = import(directory.path(), fixture);
     compute(&mut fresh, fixture).unwrap();
     compare(fixture.plugins.distribution_age(), &fresh.0);
-    compare(fixture.plugins.distribution_size(), &fresh.1);
+    compare(fixture.plugins.distribution_utxos(), &fresh.1);
+    compare(fixture.plugins.distribution_addresses(), &fresh.2);
+    compare(fixture.plugins.distribution_aggregated(), &fresh.3);
 }
 
 fn checkpoint_path(writer: &Distribution) -> PathBuf {
     writer
-        .1
+        .2
         .addr_state
         .p2a
         .db_path()
@@ -172,18 +235,19 @@ fn distribution_live_state_matches_rebuild_after_append_reopen_reorg_and_failure
         // Missing or incomplete scalar state cannot resume against newer address
         // state. Both cases must rebuild to the same result as a fresh writer.
         for truncate in [true, false] {
-            let path = writer.1.addr_state.p2a.db_path();
+            let path = writer.2.addr_state.p2a.db_path();
             drop(writer);
             {
                 let db = Database::open(&path).unwrap();
                 let mut caps: MutableVec<BytesVec<usize, CentsSats>> =
                     MutableVec::forced_import_with(
-                        ImportOptions::new(&db, "cohort_caps", Version::ONE)
+                        ImportOptions::new(&db, "cohort_caps", Version::TWO)
                             .with_saved_stamped_changes(10),
                     )
                     .unwrap();
                 if truncate {
-                    caps.truncate_if_needed_at(40).unwrap();
+                    caps.truncate_if_needed_at(AmountRangeId::ALL.len() - 1)
+                        .unwrap();
                 } else {
                     caps.validate_computed_version_or_reset(Version::ZERO)
                         .unwrap();

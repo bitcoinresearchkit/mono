@@ -59,4 +59,7 @@ mod utxo_core_values;
 pub use utxo_core_values::UTXOCoreValues;
 
 mod age_crossings;
-pub use age_crossings::for_each_age_crossing;
+pub use age_crossings::{for_each_age_crossing, for_each_age_cutoff};
+
+mod creation_cohorts;
+pub use creation_cohorts::CreationCohorts;

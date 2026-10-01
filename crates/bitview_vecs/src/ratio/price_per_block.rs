@@ -16,7 +16,7 @@ impl PriceWithRatioPerBlock {
     ) -> Result<Self> {
         let price = Price::forced_import(db, name, version, indexes)?;
         let ratio = LazyRatioPerBlock::from_price_source(
-            name,
+            &format!("{name}_ratio"),
             version,
             price.cents.resolutions.height_source(),
             spot_price,

@@ -73,7 +73,7 @@ impl CohortMetrics {
         s.supply_in_loss.push(unrealized.supply_in_loss);
         s.unspent_count.push(unspent);
         s.realized_cap.push(realized.cap);
-        s.realized_price.push(realized.price);
+        s.realized_price.push(realized.price());
         s.unrealized_profit.push(unrealized.unrealized_profit);
         s.unrealized_loss.push(unrealized.unrealized_loss);
         s.unrealized_net_pnl.push(CentsSigned::new(

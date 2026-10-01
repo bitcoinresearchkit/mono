@@ -1,7 +1,7 @@
 mod compute;
 mod import;
 
-use crate::{AllChainSources, live::LiveState, metrics::CohortMetrics};
+use crate::{live::LiveState, metrics::CohortMetrics};
 use bitview_cohort::AgeRange;
 use bitview_traversable::Traversable;
 use bitview_urpd::AgeBoundsMetrics;
@@ -22,10 +22,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub coindays_created: AgeRange<PerBlockCumulativeRolling<StoredF64, M>>,
     #[traversable(wrap = "cointime/activity")]
     pub coinblocks_destroyed: PerBlockCumulativeRolling<StoredF64, M>,
-}
-
-impl Vecs {
-    pub fn all_chain_sources(&self) -> AllChainSources {
-        AllChainSources::new(self.cohorts.all_supply(), self.cohorts.all_market_cap())
-    }
 }

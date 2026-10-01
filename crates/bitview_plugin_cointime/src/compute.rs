@@ -23,6 +23,7 @@ impl Vecs {
             velocity_native,
             velocity_fiat,
             distribution_age,
+            distribution_aggregated,
         } = dependencies;
         let inflation_rate = &inflation_rate.ppm.height;
         let velocity_native = &velocity_native.height;
@@ -32,7 +33,13 @@ impl Vecs {
         self.db.sync_bg_tasks()?;
 
         // Activity computes first (liveliness, vaultedness, etc.)
-        activity::compute(&mut self.activity, indexer, distribution_age, exit)?;
+        activity::compute(
+            &mut self.activity,
+            indexer,
+            distribution_age,
+            distribution_aggregated,
+            exit,
+        )?;
         age_range::compute(&mut self.age_range, indexer, distribution_age, exit)?;
 
         // Age-range supply is lazy over the same cached inputs as aggregates.
@@ -67,6 +74,7 @@ impl Vecs {
                             indexer,
                             prices,
                             distribution_age,
+                            distribution_aggregated,
                             &self.activity,
                             exit,
                         )
@@ -82,7 +90,7 @@ impl Vecs {
         cap::compute(
             &mut self.cap,
             indexer,
-            distribution_age,
+            distribution_aggregated,
             &self.activity,
             &self.value,
             exit,
@@ -94,7 +102,7 @@ impl Vecs {
                 prices::compute(
                     &mut self.prices,
                     indexer,
-                    distribution_age,
+                    distribution_aggregated,
                     &self.activity,
                     &self.supply,
                     &self.cap,

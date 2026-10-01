@@ -7,7 +7,7 @@ use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_urpd::AgeBoundsMetrics;
 use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling};
 use brk_error::Result;
-use brk_types::{Height, Sats, StoredU64, Version};
+use brk_types::{Height, Sats, Version};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
 use super::Vecs;
@@ -19,14 +19,12 @@ impl Vecs {
         windows: &Windows<&LazyWindowStartVec>,
         prices: &PriceVecs,
         all_supply: &ReadableBoxedVec<Height, Sats>,
-        all_count: &ReadableBoxedVec<Height, StoredU64>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = prices.spot.cents.height.read_only_boxed_clone();
-        let cohorts = CohortMetrics::forced_import(
-            &db, version, mappings, windows, &spot, all_supply, all_count,
-        )?;
+        let cohorts =
+            CohortMetrics::forced_import(&db, version, mappings, windows, &spot, all_supply)?;
         let age_bounds = AgeBoundsMetrics::forced_import(&db, version, mappings)?;
         let coindays_created = AgeRange::try_from_fn(|id| {
             PerBlockCumulativeRolling::forced_import(

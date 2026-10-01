@@ -8,7 +8,7 @@ pub trait CostBasisOps: Send + Sync + 'static {
     fn init(&mut self);
 }
 
-// Size cohorts need realized accounting but no price distribution.
+// UTXO amount/type cohorts need realized accounting but no price distribution.
 impl CostBasisOps for () {
     fn increment(&mut self, _price: Cents, _sats: Sats) {}
     fn decrement(&mut self, _price: Cents, _sats: Sats) {}

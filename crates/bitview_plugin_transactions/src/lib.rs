@@ -30,7 +30,7 @@ use inscription::Vecs as InscriptionVecs;
 use patterns::Vecs as PatternsVecs;
 use policy::Vecs as PolicyVecs;
 use sigops::Vecs as SigopsVecs;
-use size::Vecs as SizeVecs;
+use size::Vecs as UtxosVecs;
 use versions::Vecs as VersionsVecs;
 use volume::Vecs as VolumeVecs;
 
@@ -44,7 +44,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 
     pub count: CountVecs<M>,
     pub features: FeaturesVecs<M>,
-    pub size: SizeVecs<M>,
+    pub size: UtxosVecs<M>,
     pub fees: FeesVecs<M>,
     pub inscription: InscriptionVecs<M>,
     pub patterns: PatternsVecs<M>,

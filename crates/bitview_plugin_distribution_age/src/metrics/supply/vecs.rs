@@ -1,26 +1,21 @@
-use bitview_cohort::{
-    AgeRange, AgeRangeId, CohortContext, CohortId, UTXOCoreValues, UTXOGroupsWithoutAmountOrType,
-};
+use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, CreationCohorts, UTXOCoreValues};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{
-    HalveDollars, HalveSatsToBitcoin, SatsToCents, StoredU64ToCents, StoredU64ToSats,
-};
+use bitview_transforms::{SatsToCents, StoredU64ToCents, StoredU64ToSats};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyValuePerBlock,
-    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
+    LazyPercentPerBlock, LazyRollingDeltasAmountFromHeight, LazyValuePerBlockCumulativeRolling,
+    LazyWindowStartVec, PerBlockCumulativeRolling, SatsCents,
 };
 use brk_error::Result;
 use brk_types::{
     Cents, Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, StoredU64, Version,
 };
 use vecdb::{
-    AnyStoredVec, AnyVec, BinaryTransform, Database, Halve, LazyVec, ReadableBoxedVec, Rw,
-    StorageMode,
+    AnyStoredVec, AnyVec, BinaryTransform, Database, LazyVec, ReadableBoxedVec, Rw, StorageMode,
 };
 
-use super::{SupplyBase, SupplyByCohort, SupplySources, SupplyTotal};
+use super::{SupplyBase, SupplyByCohort, SupplyTotal};
 use crate::state::UnrealizedState;
 
 const MATURED_VERSION: Version = Version::new(5);
@@ -34,21 +29,19 @@ pub struct SupplyVecs<M: StorageMode = Rw> {
     pub matured: AgeRange<LazyValuePerBlockCumulativeRolling>,
     #[traversable(hidden)]
     matured_sources: AgeRange<SatsCents<PerBlockCumulativeRolling<StoredU64, M>>>,
-    /// One half of a UTXO cohort's unspent supply.
-    pub half: UTXOGroupsWithoutAmountOrType<LazyValuePerBlock>,
     /// Unspent supply in profit: UTXO cohort outputs whose creation price is
     /// less than or equal to the represented block's spot price.
     pub in_profit: SupplyByCohort<M>,
     /// Unspent supply in loss: UTXO cohort outputs whose creation price is
     /// greater than the represented block's spot price.
     pub in_loss: SupplyByCohort<M>,
-    /// Change in a UTXO or address-balance cohort's unspent supply over a trailing window, with
+    /// Change in a creation cohort's unspent supply over a trailing window, with
     /// the relative change measured against the window's starting value.
-    pub delta: UTXOGroupsWithoutAmountOrType<
+    pub delta: CreationCohorts<
         LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     >,
-    /// Share of all unspent supply held by a UTXO or address-balance cohort.
-    pub dominance: UTXOGroupsWithoutAmountOrType<LazyPercentPerBlock<PartsPerMillion32>>,
+    /// Share of all unspent supply held by a creation cohort.
+    pub dominance: CreationCohorts<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 
 impl SupplyVecs {
@@ -67,35 +60,19 @@ impl SupplyVecs {
         let in_loss =
             SupplyByCohort::forced_import(db, "supply_in_loss", version, mappings, spot_price)?;
         let utxo = total.cohorts.map_with_id(|cohort_id, total| {
-            if matches!(cohort_id, CohortId::All) {
-                SupplyBase::from_all_total(version, total.clone(), mappings, window_starts)
-            } else {
-                SupplyBase::from_total(
-                    CohortContext::Utxo,
-                    cohort_id,
-                    version,
-                    total.clone(),
-                    all_supply,
-                    mappings,
-                    window_starts,
-                )
-            }
+            SupplyBase::from_total(
+                CohortContext::Utxo,
+                cohort_id,
+                version,
+                total.clone(),
+                all_supply,
+                mappings,
+                window_starts,
+            )
         });
         let bases = utxo;
         let delta = bases.map_with_id(|_, base| base.delta.clone());
         let dominance = bases.map_with_id(|_, base| base.dominance.clone());
-        let half = in_profit.cohorts.map_with_id(|cohort_id, _| {
-            LazyValuePerBlock::from_spot_block_source::<
-                Halve,
-                HalveSatsToBitcoin,
-                Halve,
-                HalveDollars,
-            >(
-                &CohortContext::Utxo.metric_name(cohort_id, "supply_half"),
-                total.get(cohort_id).expect("supported half-supply view"),
-                version,
-            )
-        });
         let matured_version = version + MATURED_VERSION;
         let matured_sources = AgeRange::try_from_fn(|id| -> Result<_> {
             let name = format!(
@@ -149,19 +126,11 @@ impl SupplyVecs {
             total,
             matured,
             matured_sources,
-            half,
             in_profit,
             in_loss,
             delta,
             dominance,
         }))
-    }
-
-    pub fn sources(&self, cohort_id: CohortId) -> Option<SupplySources> {
-        Some(SupplySources {
-            total: self.total.get(cohort_id)?.clone(),
-            in_profit: self.in_profit.get(cohort_id)?.clone(),
-        })
     }
 
     pub fn min_resume_len(&self) -> usize {

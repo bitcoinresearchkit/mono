@@ -1,7 +1,7 @@
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_types::{Height, Lengths, Version};
+use brk_types::{Height, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
 
@@ -35,7 +35,6 @@ impl ComputePlugin for Vecs {
             }
             self.coinblocks_destroyed
                 .validate_computed_version_or_reset(base_version)?;
-            self.cohorts.validate_computed_versions(base_version)?;
         }
         let end = deps
             .history
@@ -145,12 +144,6 @@ impl ComputePlugin for Vecs {
             self.save(cursor.state().len(), next == end, exit)?;
             from = next;
         }
-        let lengths = Lengths {
-            height: Height::from(start),
-            ..Default::default()
-        };
-        self.cohorts.compute_rest_part1(&lengths, exit)?;
-        self.cohorts.compute_rest_part2(&lengths, exit)?;
         context.compact_database(&self.db);
         self.live = Some(LiveState {
             origins,

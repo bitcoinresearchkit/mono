@@ -31,6 +31,7 @@ impl ComputePlugin for Vecs {
             indexer,
             mappings,
             distribution_age,
+            distribution_aggregated: _,
             cointime,
             coinflow,
         } = dependencies;

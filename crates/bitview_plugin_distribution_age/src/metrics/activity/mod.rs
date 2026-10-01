@@ -1,3 +1,3 @@
 mod vecs;
 
-pub use vecs::{ActivitySources, ActivityVecs};
+pub use vecs::ActivityVecs;

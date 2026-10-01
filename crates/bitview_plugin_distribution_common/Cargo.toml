@@ -8,6 +8,9 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+statedb = { workspace = true }
+bitview_compute = { workspace = true }
+bitview_urpd = { workspace = true }
 bitview_collections = { workspace = true }
 bitview_transforms = { workspace = true }
 bitview_vecs = { workspace = true }
@@ -18,3 +21,8 @@ brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 vecdb = { workspace = true }
 rustc-hash = { workspace = true }
+bitview_plugin_indexer = { workspace = true }
+brk_error = { workspace = true, features = ["vecdb"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }

@@ -1,7 +1,8 @@
 use bitview_collections::Windows;
 use bitview_plugin::ImportContext;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
-use bitview_plugin_distribution_age::{AllChainSources, Vecs as AgeVecs};
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
+use bitview_plugin_distribution_common::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_vecs::{
@@ -21,14 +22,14 @@ impl Vecs {
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        distribution_age: &AgeVecs,
+        distribution_aggregated: &AggregatedVecs,
         cointime: &CointimeVecs,
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 1_000_000)?;
         let version = STORAGE.schema_version();
-        let supply_metrics = &distribution_age.cohorts.supply.total.cohorts.all;
+        let supply_metrics = &distribution_aggregated.cohorts.all.supply.total;
 
         let circulating =
             LazyValuePerBlock::spot_identity("circulating_supply", supply_metrics, version);
@@ -73,12 +74,11 @@ impl Vecs {
         );
 
         let growth_version = version + Version::new(3);
-        let realized_cap = &distribution_age
-            .cohorts
-            .realized
-            .cap
+        let realized_cap = &distribution_aggregated
             .cohorts
             .all
+            .realized
+            .cap
             .cents
             .height;
         let market_minus_realized_cap_growth_rate =

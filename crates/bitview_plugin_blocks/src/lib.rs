@@ -23,7 +23,7 @@ use halving::Vecs as HalvingVecs;
 pub use has::HasBlocks;
 use interval::Vecs as IntervalVecs;
 pub use lookback::Vecs as LookbackVecs;
-use size::Vecs as SizeVecs;
+use size::Vecs as UtxosVecs;
 use weight::Vecs as WeightVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("blocks"), Version::new(9));
@@ -45,7 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub lookback: LookbackVecs,
     pub interval: IntervalVecs<M>,
     #[traversable(flatten)]
-    pub size: SizeVecs<M>,
+    pub size: UtxosVecs<M>,
     #[traversable(flatten)]
     pub weight: WeightVecs,
     pub difficulty: DifficultyVecs,

@@ -17,7 +17,7 @@ blocks = ["bitview_server/blocks"]
 coinflow = ["bitview_server/coinflow"]
 cointime = ["bitview_server/cointime"]
 distribution_age = ["bitview_server/distribution_age"]
-distribution_size = ["bitview_server/distribution_size"]
+distribution_addresses = ["bitview_server/distribution_addresses"]
 mappings = ["bitview_server/mappings"]
 inputs = ["bitview_server/inputs"]
 mining = ["bitview_server/mining"]
@@ -27,7 +27,7 @@ price = ["mappings", "bitview_server/price"]
 transactions = ["bitview_server/transactions"]
 chain = [
     "blocks",
-    "distribution_size",
+    "distribution_addresses",
     "mappings",
     "inputs",
     "mining",

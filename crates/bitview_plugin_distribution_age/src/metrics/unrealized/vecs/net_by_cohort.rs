@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyFiatPerBlock;
@@ -6,21 +6,21 @@ use brk_error::Result;
 use brk_types::{CentsSigned, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::UTXOCoreSources;
+use crate::metrics::CreationSources;
 
 #[derive(Traversable)]
 pub struct NetUnrealizedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyFiatPerBlock<CentsSigned>>,
+    pub cohorts: CreationCohorts<LazyFiatPerBlock<CentsSigned>>,
     #[traversable(hidden)]
-    pub stored: UTXOCoreSources<CentsSigned, M>,
+    pub stored: CreationSources<CentsSigned, M>,
 }
 
 impl NetUnrealizedByCohort {
     pub fn forced_import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
         let metric = "net_unrealized_pnl";
-        let stored = UTXOCoreSources::forced_import(db, "net_unrealized_pnl_cents", version)?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+        let stored = CreationSources::forced_import(db, "net_unrealized_pnl_cents", version)?;
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored
                 .get(cohort_id)

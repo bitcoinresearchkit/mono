@@ -8,6 +8,7 @@ homepage = "https://bitview.dev"
 repository.workspace = true
 
 [dependencies]
+bitview_plugin_distribution_common = { workspace = true }
 bitview_urpd = { workspace = true }
 bitview_transforms = { workspace = true }
 bitview_collections = { workspace = true, features = ["storage"] }
@@ -16,6 +17,7 @@ brk_exit = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
+bitview_plugin_distribution_aggregated = { workspace = true }
 bitview_plugin_distribution_age = { workspace = true }
 bitview_plugin_mappings = { workspace = true }
 bitview_plugin_price = { workspace = true }

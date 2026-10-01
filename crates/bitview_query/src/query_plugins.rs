@@ -6,10 +6,12 @@ use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 #[cfg(feature = "cointime")]
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
+#[cfg(feature = "distribution_addresses")]
+use bitview_plugin_distribution_addresses::{
+    HasDistributionAddresses, Vecs as DistributionAddresses,
+};
 #[cfg(feature = "distribution_age")]
 use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
-#[cfg(feature = "distribution_size")]
-use bitview_plugin_distribution_size::{HasDistributionSize, Vecs as DistributionSize};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 #[cfg(feature = "inputs")]
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -32,8 +34,8 @@ use vecdb::Ro;
 use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
-    #[cfg(feature = "distribution_size")]
-    pub distribution_size: &'a DistributionSize<Ro>,
+    #[cfg(feature = "distribution_addresses")]
+    pub distribution_addresses: &'a DistributionAddresses<Ro>,
     pub indexer: &'a Indexer<Ro>,
     #[cfg(feature = "distribution_age")]
     pub distribution_age: &'a DistributionAge<Ro>,
@@ -72,8 +74,8 @@ impl<'a> QueryPlugins<'a> {
 
         Self {
             indexer: plugins.indexer(),
-            #[cfg(feature = "distribution_size")]
-            distribution_size: plugins.distribution_size(),
+            #[cfg(feature = "distribution_addresses")]
+            distribution_addresses: plugins.distribution_addresses(),
             #[cfg(feature = "distribution_age")]
             distribution_age: plugins.distribution_age(),
             #[cfg(feature = "mappings")]

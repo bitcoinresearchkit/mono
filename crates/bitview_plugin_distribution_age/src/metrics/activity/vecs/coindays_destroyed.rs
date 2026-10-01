@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -7,14 +7,14 @@ use brk_error::Result;
 use brk_types::{StoredF64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeUTXOCoreSources;
+use crate::metrics::CumulativeCreationSources;
 
 #[derive(Traversable)]
 pub struct CoindaysDestroyedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyPerBlockCumulativeRolling<StoredF64>>,
+    pub cohorts: CreationCohorts<LazyPerBlockCumulativeRolling<StoredF64>>,
     #[traversable(hidden)]
-    pub stored: CumulativeUTXOCoreSources<StoredF64, M>,
+    pub stored: CumulativeCreationSources<StoredF64, M>,
 }
 
 impl CoindaysDestroyedByCohort {
@@ -25,8 +25,8 @@ impl CoindaysDestroyedByCohort {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored =
-            CumulativeUTXOCoreSources::forced_import(db, "coindays_destroyed_cumulative", version)?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+            CumulativeCreationSources::forced_import(db, "coindays_destroyed_cumulative", version)?;
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "coindays_destroyed");
             let source = stored
                 .stored

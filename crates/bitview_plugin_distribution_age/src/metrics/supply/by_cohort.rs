@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, CohortId, UTXOCoreValues, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CohortId, CreationCohorts, UTXOCoreValues};
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazySpotValuePerBlock;
@@ -6,14 +6,14 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 
-use crate::metrics::UTXOCoreSources;
+use crate::metrics::CreationSources;
 
 #[derive(Traversable)]
 pub struct SupplyByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazySpotValuePerBlock>,
+    pub cohorts: CreationCohorts<LazySpotValuePerBlock>,
     #[traversable(hidden)]
-    pub stored: UTXOCoreSources<Sats, M>,
+    pub stored: CreationSources<Sats, M>,
 }
 
 impl SupplyByCohort {
@@ -24,8 +24,8 @@ impl SupplyByCohort {
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let stored = UTXOCoreSources::forced_import(db, &format!("{metric}_sats"), version)?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+        let stored = CreationSources::forced_import(db, &format!("{metric}_sats"), version)?;
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let source = stored.get(cohort_id).expect("supported supply cohort");
             LazySpotValuePerBlock::from_sats_source(&name, version, source, mappings, spot_price)

@@ -4,8 +4,14 @@ use bitview_plugin_capital_sentiment::{HasCapitalSentiment, Vecs as CapitalSenti
 use bitview_plugin_coinflow::{HasCoinflow, Vecs as Coinflow};
 use bitview_plugin_cointime::{HasCointime, Vecs as Cointime};
 use bitview_plugin_constants::{HasConstants, Vecs as Constants};
+use bitview_plugin_distribution_addresses::{
+    HasDistributionAddresses, Vecs as DistributionAddresses,
+};
 use bitview_plugin_distribution_age::{HasDistributionAge, Vecs as DistributionAge};
-use bitview_plugin_distribution_size::{HasDistributionSize, Vecs as DistributionSize};
+use bitview_plugin_distribution_aggregated::{
+    HasDistributionAggregated, Vecs as DistributionAggregated,
+};
+use bitview_plugin_distribution_utxos::{HasDistributionUtxos, Vecs as DistributionUtxos};
 use bitview_plugin_indexer::{HasIndexer, Indexer};
 use bitview_plugin_indicators::{HasIndicators, Vecs as Indicators};
 use bitview_plugin_inputs::{HasInputs, Vecs as Inputs};
@@ -150,8 +156,20 @@ impl<M: StorageMode> HasOpReturn<M> for DefaultPlugins<M> {
     }
 }
 
-impl<M: StorageMode> HasDistributionSize<M> for DefaultPlugins<M> {
-    fn distribution_size(&self) -> &DistributionSize<M> {
-        self.distribution_size.as_ref()
+impl<M: StorageMode> HasDistributionUtxos<M> for DefaultPlugins<M> {
+    fn distribution_utxos(&self) -> &DistributionUtxos<M> {
+        self.distribution_utxos.as_ref()
+    }
+}
+
+impl<M: StorageMode> HasDistributionAddresses<M> for DefaultPlugins<M> {
+    fn distribution_addresses(&self) -> &DistributionAddresses<M> {
+        self.distribution_addresses.as_ref()
+    }
+}
+
+impl<M: StorageMode> HasDistributionAggregated<M> for DefaultPlugins<M> {
+    fn distribution_aggregated(&self) -> &DistributionAggregated<M> {
+        self.distribution_aggregated.as_ref()
     }
 }

@@ -4,8 +4,8 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyWindowStartVec;
 use brk_error::Result;
-use brk_types::{Height, StoredU64, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use brk_types::{StoredU64, Version};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
 use super::{SpentOutputCount, UnspentOutputCount};
 
@@ -23,16 +23,9 @@ impl OutputsVecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        all_count: &ReadableBoxedVec<Height, StoredU64>,
     ) -> Result<Box<Self>> {
         Ok(Box::new(Self {
-            unspent_count: UnspentOutputCount::forced_import(
-                db,
-                version,
-                mappings,
-                window_starts,
-                all_count,
-            )?,
+            unspent_count: UnspentOutputCount::forced_import(db, version, mappings, window_starts)?,
             spent_count: SpentOutputCount::forced_import(db, version, mappings, window_starts)?,
         }))
     }

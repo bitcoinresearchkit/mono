@@ -18,7 +18,7 @@ impl LazyPriceWithRatioPerBlock {
     {
         let price = Price::from_height_source(name, version, source, indexes);
         let ratio = LazyRatioPerBlock::from_price_source(
-            name,
+            &format!("{name}_ratio"),
             version,
             &price.cents.height,
             spot_price,

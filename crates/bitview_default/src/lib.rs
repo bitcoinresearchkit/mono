@@ -7,8 +7,10 @@ use bitview_plugin_capital_sentiment::Vecs as CapitalSentiment;
 use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_cointime::Vecs as Cointime;
 use bitview_plugin_constants::Vecs as Constants;
+use bitview_plugin_distribution_addresses::Vecs as DistributionAddresses;
 use bitview_plugin_distribution_age::Vecs as DistributionAge;
-use bitview_plugin_distribution_size::Vecs as DistributionSize;
+use bitview_plugin_distribution_aggregated::Vecs as DistributionAggregated;
+use bitview_plugin_distribution_utxos::Vecs as DistributionUtxos;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_indicators::Vecs as Indicators;
 use bitview_plugin_inputs::Vecs as Inputs;
@@ -52,8 +54,11 @@ pub struct DefaultPlugins<M: StorageMode = Rw> {
     price: Box<Price<M>>,
     #[traversable(flatten)]
     distribution_age: Box<DistributionAge<M>>,
+    distribution_aggregated: Box<DistributionAggregated<M>>,
     #[traversable(flatten)]
-    distribution_size: Box<DistributionSize<M>>,
+    distribution_utxos: Box<DistributionUtxos<M>>,
+    #[traversable(flatten)]
+    distribution_addresses: Box<DistributionAddresses<M>>,
     supply: Box<Supply<M>>,
     inputs: Box<Inputs<M>>,
     outputs: Box<Outputs<M>>,

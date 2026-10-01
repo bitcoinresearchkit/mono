@@ -1,6 +1,7 @@
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_urpd::ReplayInputs;
@@ -14,6 +15,7 @@ pub struct Dependencies<'a> {
     pub urpd: ReplayInputs<'a>,
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
+    pub distribution_aggregated: &'a AggregatedVecs,
     pub distribution_age: &'a AgeVecs,
     pub cointime: &'a CointimeVecs,
     pub coinflow: &'a CoinflowVecs,
@@ -22,12 +24,11 @@ pub struct Dependencies<'a> {
 impl Dependencies<'_> {
     pub(crate) fn raw_loss_share(&self) -> &impl ReadableVec<Height, PartsPerMillion32> {
         &self
-            .distribution_age
+            .distribution_aggregated
             .cohorts
-            .relative
-            .supply_profitability_shares
-            .supply_in_loss_share
             .all
+            .relative
+            .supply_in_loss_share
             .ppm
             .height
     }

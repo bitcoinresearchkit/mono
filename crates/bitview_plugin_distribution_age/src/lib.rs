@@ -15,7 +15,7 @@ use vecdb::StorageMode;
 pub use vecs::Vecs;
 const STORAGE: PluginStorage = PluginStorage::new(
     PluginId::new("distribution_age"),
-    Version::new(41 + ORACLE_VERSION),
+    Version::new(42 + ORACLE_VERSION),
 );
 pub const ID: PluginId = STORAGE.id();
 
@@ -32,7 +32,5 @@ where
 mod test_cache;
 
 mod accounting_sources;
-mod all_chain_sources;
+
 pub use accounting_sources::AccountingSources;
-pub use all_chain_sources::AllChainSources;
-pub use bitview_plugin_distribution_common::metrics::RealizedTotals;

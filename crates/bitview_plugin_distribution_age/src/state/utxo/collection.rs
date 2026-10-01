@@ -1,11 +1,11 @@
 use crate::compute::ComputeContext;
-use bitview_cohort::{AgeRange, AgeRangeId, ByEpoch, Class, Term};
+use bitview_cohort::{AgeRange, ByEpoch, Class};
 use brk_error::Result;
 use brk_types::{Age, CostBasisSnapshot, Height};
 use rayon::scope as RayonScope;
 use statedb::Amount;
 
-use super::{CostBasisFenwick, UTXOCohortState, UTXOTransientState};
+use super::{UTXOCohortState, UTXOTransientState};
 use crate::state::{CoreRealizedState, RealizedState, WithCapital, WithoutCapital, supply};
 
 pub struct UTXOStates {
@@ -106,46 +106,5 @@ impl UTXOStates {
         self.class
             .iter_mut()
             .for_each(|state| state.reset_single_iteration_values());
-    }
-
-    pub fn init_fenwick_if_needed(&mut self) {
-        if self.transient.fenwick.is_initialized() {
-            return;
-        }
-
-        let Self {
-            age_range,
-            transient,
-            ..
-        } = self;
-        transient.fenwick.compute_is_sth();
-        let maps = AgeRangeId::ALL.iter().filter_map(|&id| {
-            let map = id.select(age_range).cost_basis_map();
-            (!map.is_empty()).then(|| (map, id.term() == Term::Sth))
-        });
-        transient.fenwick.bulk_init(maps);
-    }
-
-    pub fn update_fenwick_from_pending(&mut self) {
-        if !self.transient.fenwick.is_initialized() {
-            return;
-        }
-
-        let Self {
-            age_range,
-            transient,
-            ..
-        } = self;
-        for &id in AgeRangeId::ALL {
-            let is_sth = transient.fenwick.is_sth(id);
-            id.select(age_range)
-                .for_each_cost_basis_pending(|&price, delta| {
-                    transient.fenwick.apply_delta(price, delta, is_sth);
-                });
-        }
-    }
-
-    pub fn fenwick(&self) -> &CostBasisFenwick {
-        &self.transient.fenwick
     }
 }

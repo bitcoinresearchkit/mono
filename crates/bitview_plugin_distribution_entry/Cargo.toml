@@ -26,7 +26,7 @@ vecdb = { workspace = true }
 bitview = { workspace = true, default-features = false }
 bitview_default = { workspace = true }
 bitview_plugin_blocks = { workspace = true }
-bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_distribution_aggregated = { workspace = true }
 bitview_plugin_inputs = { workspace = true }
 bitview_plugin_outputs = { workspace = true }
 bitview_plugin_price = { workspace = true }

@@ -493,8 +493,10 @@ dependencies = [
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_constants",
+ "bitview_plugin_distribution_addresses",
  "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_size",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_utxos",
  "bitview_plugin_indexer",
  "bitview_plugin_indicators",
  "bitview_plugin_inputs",
@@ -561,6 +563,7 @@ dependencies = [
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
  "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_transforms",
@@ -603,7 +606,7 @@ version = "0.12.2"
 dependencies = [
  "bitview_compute",
  "bitview_plugin",
- "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
@@ -650,6 +653,8 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_common",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -679,6 +684,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview_plugin_distribution_addresses"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_collections",
+ "bitview_plugin",
+ "bitview_plugin_distribution_common",
+ "bitview_plugin_indexer",
+ "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
+ "bitview_plugin_outputs",
+ "bitview_plugin_price",
+ "bitview_transforms",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_oracle",
+ "brk_types",
+ "derive_more",
+ "rayon",
+ "rustc-hash",
+ "smallvec",
+ "tempfile",
+ "tracing",
+ "vecdb",
+]
+
+[[package]]
 name = "bitview_plugin_distribution_age"
 version = "0.12.2"
 dependencies = [
@@ -700,11 +734,36 @@ dependencies = [
  "brk_reader",
  "brk_rpc",
  "brk_types",
- "derive_more",
  "rayon",
  "statedb",
  "tempfile",
  "tracing",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_distribution_aggregated"
+version = "0.12.2"
+dependencies = [
+ "bitview_cohort",
+ "bitview_collections",
+ "bitview_compute",
+ "bitview_plugin",
+ "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_common",
+ "bitview_plugin_indexer",
+ "bitview_plugin_mappings",
+ "bitview_plugin_price",
+ "bitview_transforms",
+ "bitview_traversable",
+ "bitview_vecs",
+ "brk_error",
+ "brk_exit",
+ "brk_reader",
+ "brk_rpc",
+ "brk_types",
+ "statedb",
+ "tempfile",
  "vecdb",
 ]
 
@@ -714,13 +773,19 @@ version = "0.12.2"
 dependencies = [
  "bitview_cohort",
  "bitview_collections",
+ "bitview_compute",
+ "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_transforms",
  "bitview_traversable",
+ "bitview_urpd",
  "bitview_vecs",
+ "brk_error",
  "brk_types",
  "derive_more",
  "rustc-hash",
+ "statedb",
+ "tempfile",
  "vecdb",
 ]
 
@@ -734,7 +799,7 @@ dependencies = [
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_blocks",
- "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
  "bitview_plugin_distribution_common",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
@@ -759,7 +824,40 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_plugin_distribution_size"
+name = "bitview_plugin_distribution_profitability"
+version = "0.12.2"
+dependencies = [
+ "bitview",
+ "bitview_cohort",
+ "bitview_collections",
+ "bitview_compute",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_blocks",
+ "bitview_plugin_distribution_common",
+ "bitview_plugin_indexer",
+ "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
+ "bitview_plugin_outputs",
+ "bitview_plugin_price",
+ "bitview_plugin_utxo_history",
+ "bitview_query",
+ "bitview_runtime",
+ "bitview_traversable",
+ "bitview_vecs",
+ "bitviewd",
+ "brk_error",
+ "brk_exit",
+ "brk_reader",
+ "brk_rpc",
+ "brk_types",
+ "statedb",
+ "tempfile",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_distribution_utxos"
 version = "0.12.2"
 dependencies = [
  "bitview_cohort",
@@ -767,7 +865,6 @@ dependencies = [
  "bitview_plugin",
  "bitview_plugin_distribution_common",
  "bitview_plugin_indexer",
- "bitview_plugin_inputs",
  "bitview_plugin_mappings",
  "bitview_plugin_outputs",
  "bitview_plugin_price",
@@ -778,10 +875,7 @@ dependencies = [
  "brk_exit",
  "brk_oracle",
  "brk_types",
- "derive_more",
  "rayon",
- "rustc-hash",
- "smallvec",
  "tempfile",
  "tracing",
  "vecdb",
@@ -823,7 +917,9 @@ dependencies = [
  "bitview_cohort",
  "bitview_plugin",
  "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_size",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_common",
+ "bitview_plugin_distribution_utxos",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_market",
@@ -1029,7 +1125,7 @@ dependencies = [
  "bitview_plugin_bedrock",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
- "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_price",
@@ -1054,7 +1150,8 @@ dependencies = [
  "bitview_collections",
  "bitview_plugin",
  "bitview_plugin_cointime",
- "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_common",
  "bitview_plugin_indexer",
  "bitview_plugin_mappings",
  "bitview_plugin_mining",
@@ -1126,8 +1223,8 @@ dependencies = [
  "bitview_plugin_blocks",
  "bitview_plugin_coinflow",
  "bitview_plugin_cointime",
+ "bitview_plugin_distribution_addresses",
  "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_size",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",
@@ -1197,8 +1294,10 @@ dependencies = [
  "bitview_default",
  "bitview_plugin",
  "bitview_plugin_blocks",
+ "bitview_plugin_distribution_addresses",
  "bitview_plugin_distribution_age",
- "bitview_plugin_distribution_size",
+ "bitview_plugin_distribution_aggregated",
+ "bitview_plugin_distribution_utxos",
  "bitview_plugin_indexer",
  "bitview_plugin_inputs",
  "bitview_plugin_mappings",

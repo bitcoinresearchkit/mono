@@ -1,3 +1,6 @@
+use bitview_plugin_distribution_aggregated::{
+    Dependencies as AggregatedDependencies, ID as DISTRIBUTION_AGGREGATED_ID,
+};
 use std::{thread, time::Duration};
 
 use bitview_plugin::{ComputePlugin, Publication, UpdateContext};
@@ -8,9 +11,12 @@ use bitview_plugin_capital_sentiment::{
 };
 use bitview_plugin_coinflow::{Dependencies as CoinflowDependencies, ID as COINFLOW_ID};
 use bitview_plugin_cointime::{Dependencies as CointimeDependencies, ID as COINTIME_ID};
+use bitview_plugin_distribution_addresses::{
+    Dependencies as AddressesDependencies, ID as DISTRIBUTION_ADDRESSES_ID,
+};
 use bitview_plugin_distribution_age::{Dependencies as AgeDependencies, ID as DISTRIBUTION_AGE_ID};
-use bitview_plugin_distribution_size::{
-    Dependencies as SizeDependencies, ID as DISTRIBUTION_SIZE_ID,
+use bitview_plugin_distribution_utxos::{
+    Dependencies as UtxosDependencies, ID as DISTRIBUTION_UTXOS_ID,
 };
 use bitview_plugin_indexer::ID as INDEXER_ID;
 use bitview_plugin_indicators::{Dependencies as IndicatorsDependencies, ID as INDICATORS_ID};
@@ -91,8 +97,8 @@ impl DefaultPlugins {
             inputs_result?;
             prices_result?;
 
-            // Market, Size, Outputs → History → Age, and Transactions → Mining +
-            // OP_RETURN are independent branches of complete plugin computations.
+            // Market, UTXOs → Addresses, Outputs → History → Age → Aggregated, and Transactions
+            // → Mining + OP_RETURN are independent complete-plugin branches.
             let market = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
@@ -153,10 +159,10 @@ impl DefaultPlugins {
                 Ok(self.mining.as_ref())
             });
 
-            let size = scope.spawn(|| -> Result<_> {
-                timed(Phase::Compute, DISTRIBUTION_SIZE_ID, || {
-                    self.distribution_size.compute(
-                        SizeDependencies {
+            let utxos = scope.spawn(|| -> Result<_> {
+                timed(Phase::Compute, DISTRIBUTION_UTXOS_ID, || {
+                    self.distribution_utxos.compute(
+                        UtxosDependencies {
                             indexer,
                             mappings: &self.mappings,
                             input_values: &self.inputs.value,
@@ -165,7 +171,19 @@ impl DefaultPlugins {
                         context,
                     )
                 })?;
-                Ok(self.distribution_size.as_ref())
+                timed(Phase::Compute, DISTRIBUTION_ADDRESSES_ID, || {
+                    self.distribution_addresses.compute(
+                        AddressesDependencies {
+                            indexer,
+                            mappings: &self.mappings,
+                            input_values: &self.inputs.value,
+                            price: &self.price,
+                            type_supply: self.distribution_utxos.type_supply(),
+                        },
+                        context,
+                    )
+                })?;
+                Ok(self.distribution_utxos.as_ref())
             });
 
             timed(Phase::Compute, OUTPUTS_ID, || {
@@ -192,12 +210,13 @@ impl DefaultPlugins {
                 )
             })?;
 
+            let history = self
+                .utxo_history
+                .reader(self.inputs.origins.spends(), creations)?;
             timed(Phase::Compute, DISTRIBUTION_AGE_ID, || {
                 self.distribution_age.compute(
                     AgeDependencies {
-                        history: &self
-                            .utxo_history
-                            .reader(self.inputs.origins.spends(), creations)?,
+                        history: &history,
                         from: indexer.safe_lengths().height,
                         mappings: self.mappings.as_ref(),
                         price: self.price.as_ref(),
@@ -205,9 +224,18 @@ impl DefaultPlugins {
                     context,
                 )
             })?;
-            let history = self
-                .utxo_history
-                .reader(self.inputs.origins.spends(), creations)?;
+            timed(Phase::Compute, DISTRIBUTION_AGGREGATED_ID, || {
+                self.distribution_aggregated.compute(
+                    AggregatedDependencies {
+                        history: &history,
+                        from: indexer.safe_lengths().height,
+                        age: &self.distribution_age,
+                        mappings: &self.mappings,
+                        price: &self.price,
+                    },
+                    context,
+                )
+            })?;
             let urpd = ReplayInputs {
                 history: &history,
                 prices: &self.price.spot.cents.height,
@@ -235,7 +263,7 @@ impl DefaultPlugins {
                             CapitalSentimentDependencies {
                                 indexer,
                                 price: self.price.as_ref(),
-                                distribution_age: self.distribution_age.as_ref(),
+                                distribution_aggregated: self.distribution_aggregated.as_ref(),
                                 moving_average: &market.moving_average,
                             },
                             context,
@@ -279,6 +307,7 @@ impl DefaultPlugins {
                             velocity_native: &self.supply.velocity.native,
                             velocity_fiat: &self.supply.velocity.fiat,
                             distribution_age: self.distribution_age.as_ref(),
+                            distribution_aggregated: self.distribution_aggregated.as_ref(),
                         },
                         context,
                     )
@@ -292,6 +321,7 @@ impl DefaultPlugins {
                             indexer,
                             mappings: &self.mappings,
                             distribution_age: &self.distribution_age,
+                            distribution_aggregated: &self.distribution_aggregated,
                             cointime: &self.cointime,
                             coinflow,
                         },
@@ -303,7 +333,7 @@ impl DefaultPlugins {
                         RarityMeterDependencies {
                             indexer,
                             bedrock: self.bedrock.as_ref(),
-                            distribution_age: self.distribution_age.as_ref(),
+                            distribution_aggregated: self.distribution_aggregated.as_ref(),
                             cointime: self.cointime.as_ref(),
                             coinflow,
                             price: self.price.as_ref(),
@@ -312,14 +342,15 @@ impl DefaultPlugins {
                     )
                 })?;
                 let market = capital_sentiment.join().unwrap()?;
-                let size = size.join().unwrap()?;
+                let utxos = utxos.join().unwrap()?;
                 timed(Phase::Compute, INDICATORS_ID, || {
                     self.indicators.compute(
                         IndicatorsDependencies {
-                            size,
+                            utxos,
                             indexer,
                             mining,
                             distribution_age: self.distribution_age.as_ref(),
+                            distribution_aggregated: self.distribution_aggregated.as_ref(),
                             market,
                         },
                         context,

@@ -11,8 +11,6 @@ pub fn replay_origins(
     cursor: &mut Cursor<'_>,
     mut on_block: impl FnMut(Height, &UTXOStates) -> Result<()>,
 ) -> Result<()> {
-    states.init_fenwick_if_needed();
-
     for h in usize::from(ctx.starting_height)..=usize::from(ctx.last_height) {
         let height = Height::from(h);
         let timestamp = ctx.height_to_timestamp[h];
@@ -36,16 +34,16 @@ pub fn replay_origins(
         vecs.coinblocks_destroyed.push_block(StoredF64::from(
             satblocks as f64 / Sats::ONE_BTC_U128 as f64,
         ));
-        states.update_fenwick_from_pending();
+
         states.apply_pending();
 
-        let unrealized = vecs.cohorts.push_supply_and_unrealized(states, price);
+        vecs.cohorts.push_supply_and_unrealized(states, price);
         vecs.cohorts.push_outputs(states);
         vecs.cohorts.push_activity(states, price);
         vecs.cohorts.push_realized(states);
-        vecs.cohorts.push_aggregate(states, price, &unrealized);
+
         states.reset_block();
-        vecs.cohorts.push_aggregate_percentiles(states, price);
+
         on_block(height, states)?;
     }
 

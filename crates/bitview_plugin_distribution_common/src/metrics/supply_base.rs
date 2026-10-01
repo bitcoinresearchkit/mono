@@ -8,7 +8,7 @@ use bitview_vecs::{
     LazyWindowStartVec,
 };
 use brk_types::{Height, PartsPerMillion32, PartsPerMillionSigned64, Sats, SatsSigned, Version};
-use vecdb::{BinaryTransform, LazyVec, ReadableCloneableVec};
+use vecdb::{BinaryTransform, ReadableCloneableVec};
 
 #[derive(Clone, Traversable)]
 pub struct SupplyBase {
@@ -50,33 +50,6 @@ impl SupplyBase {
         )
     }
 
-    pub fn from_all_total(
-        version: Version,
-        total: LazySpotValuePerBlock,
-        mappings: &MappingsVecs,
-        window_starts: &Windows<&LazyWindowStartVec>,
-    ) -> Self {
-        let dominance_name = CohortContext::Utxo.metric_name(CohortId::All, "supply_dominance");
-        let source = LazyVec::init(
-            &format!("{dominance_name}_ppm_source"),
-            version,
-            total.sats.height.read_only_boxed_clone(),
-            Self::all_dominance,
-        );
-        let dominance =
-            LazyPercentPerBlock::from_height_source(&dominance_name, version, &source, mappings);
-
-        Self::new(
-            CohortContext::Utxo,
-            CohortId::All,
-            version,
-            total,
-            dominance,
-            mappings,
-            window_starts,
-        )
-    }
-
     fn new(
         context: CohortContext,
         cohort: CohortId,
@@ -99,26 +72,5 @@ impl SupplyBase {
             delta,
             dominance,
         }
-    }
-
-    fn all_dominance(_height: Height, supply: Sats) -> PartsPerMillion32 {
-        RatioSats::<PartsPerMillion32>::apply(supply, supply)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn all_dominance_preserves_zero_supply() {
-        assert_eq!(
-            SupplyBase::all_dominance(Height::ZERO, Sats::ZERO),
-            PartsPerMillion32::ZERO
-        );
-        assert_eq!(
-            SupplyBase::all_dominance(Height::ZERO, Sats::new(1)),
-            PartsPerMillion32::ONE
-        );
     }
 }

@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOCoreValues, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts, UTXOCoreValues};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -7,16 +7,16 @@ use brk_error::Result;
 use brk_types::{Cents, Sats, Version};
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeUTXOCoreValueSources;
+use crate::metrics::CumulativeCreationValueSources;
 
 #[derive(Traversable)]
 pub struct CumulativeValueByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
     /// UTXO groups and spent output value grouped by the spending address's
     /// balance immediately before the spend.
-    pub cohorts: UTXOGroupsWithoutAmountOrType<LazyValuePerBlockCumulativeRolling>,
+    pub cohorts: CreationCohorts<LazyValuePerBlockCumulativeRolling>,
     #[traversable(hidden)]
-    pub stored: CumulativeUTXOCoreValueSources<M>,
+    pub stored: CumulativeCreationValueSources<M>,
 }
 
 impl CumulativeValueByCohort {
@@ -27,12 +27,12 @@ impl CumulativeValueByCohort {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = CumulativeUTXOCoreValueSources::forced_import(
+        let stored = CumulativeCreationValueSources::forced_import(
             db,
             &format!("{metric}_cumulative"),
             version,
         )?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, metric);
             let SatsCents { sats, cents } = stored
                 .sources(cohort_id, &name, version)

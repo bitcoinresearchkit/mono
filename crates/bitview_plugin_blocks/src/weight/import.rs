@@ -6,7 +6,7 @@ use bitview_vecs::{LazyPerBlockRolling, LazyPercentVec, LazyWindowStartVec};
 use brk_types::{Height, PartsPerMillion32, Version, Weight};
 
 use super::Vecs;
-use crate::SizeVecs;
+use crate::UtxosVecs;
 
 fn block_fullness(_: Height, weight: Weight) -> PartsPerMillion32 {
     PartsPerMillion32::from(weight.fullness())
@@ -18,7 +18,7 @@ impl Vecs {
         indexer: &Indexer,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
-        size: &SizeVecs,
+        size: &UtxosVecs,
     ) -> Self {
         let weight = LazyPerBlockRolling::from_full_parts::<VBytesToWeight>(
             "block_weight",

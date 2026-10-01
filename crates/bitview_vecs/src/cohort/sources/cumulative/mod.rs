@@ -1,9 +1,5 @@
-mod core;
-mod utxo;
-mod value;
-mod value_core;
+mod creation;
+mod creation_value;
 
-pub use core::CumulativeUTXOCoreSources;
-pub use utxo::CumulativeUTXOSources;
-pub use value::CumulativeUTXOValueSources;
-pub use value_core::CumulativeUTXOCoreValueSources;
+pub use creation::CumulativeCreationSources;
+pub use creation_value::CumulativeCreationValueSources;

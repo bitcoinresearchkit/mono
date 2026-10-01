@@ -1,6 +1,6 @@
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -10,9 +10,7 @@ use brk_types::{Cents, Height, Version};
 use rayon::prelude::*;
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use super::{
-    Component, component, median_component::MedianComponent, reference_prices::ReferencePrices,
-};
+use super::{Component, component, median_component::MedianComponent};
 
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
@@ -131,14 +129,11 @@ pub fn forced_import(
     db: &Database,
     version: Version,
     mappings: &MappingsVecs,
-    distribution_age: &AgeVecs,
-    reference_prices: &ReferencePrices,
+    distribution_aggregated: &AggregatedVecs,
     cointime: &CointimeVecs,
     coinflow: &CoinflowVecs,
 ) -> Result<Components> {
-    let utxos = &distribution_age.cohorts;
-    let realized_price = &utxos.realized.price.cohorts;
-    let capitalized_price = &utxos.realized.capitalized_price.series;
+    let utxos = &distribution_aggregated.cohorts;
 
     macro_rules! import {
         ($name:expr, $source:expr) => {
@@ -146,52 +141,50 @@ pub fn forced_import(
         };
     }
 
-    let cost_basis = &utxos.cost_basis.cohorts;
-
     Ok(Components {
-        realized_price: import!("realized_price", realized_price.all),
-        capitalized_price: import!("capitalized_price", capitalized_price.all),
+        realized_price: import!("realized_price", utxos.all.realized.price),
+        capitalized_price: import!("capitalized_price", utxos.all.realized.capitalized_price),
         median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "median_price_btc_weighted",
             version,
             mappings,
-            &cost_basis.all.per_coin.pct50.cents.height,
+            &utxos.all.cost_basis.per_coin.pct50.cents.height,
         )?,
         median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "median_price_usd_weighted",
             version,
             mappings,
-            &cost_basis.all.per_dollar.pct50.cents.height,
+            &utxos.all.cost_basis.per_dollar.pct50.cents.height,
         )?,
         sth_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "sth_median_price_btc_weighted",
             version,
             mappings,
-            &cost_basis.sth.per_coin.pct50.cents.height,
+            &utxos.sth.cost_basis.per_coin.pct50.cents.height,
         )?,
         sth_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "sth_median_price_usd_weighted",
             version,
             mappings,
-            &cost_basis.sth.per_dollar.pct50.cents.height,
+            &utxos.sth.cost_basis.per_dollar.pct50.cents.height,
         )?,
         lth_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "lth_median_price_btc_weighted",
             version,
             mappings,
-            &cost_basis.lth.per_coin.pct50.cents.height,
+            &utxos.lth.cost_basis.per_coin.pct50.cents.height,
         )?,
         lth_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "lth_median_price_usd_weighted",
             version,
             mappings,
-            &cost_basis.lth.per_dollar.pct50.cents.height,
+            &utxos.lth.cost_basis.per_dollar.pct50.cents.height,
         )?,
         cointime_median_price_btc_weighted: MedianComponent::forced_import(
             db,
@@ -373,21 +366,27 @@ pub fn forced_import(
                 .cents
                 .height,
         )?,
-        sth_realized_price: import!("sth_realized_price", realized_price.term.short),
-        sth_capitalized_price: import!("sth_capitalized_price", capitalized_price.sth),
-        lth_realized_price: import!("lth_realized_price", realized_price.term.long),
-        lth_capitalized_price: import!("lth_capitalized_price", capitalized_price.lth),
-        over_6m_realized_price: import!("over_6m_realized_price", reference_prices.over_6m),
-        over_4m_realized_price: import!("over_4m_realized_price", reference_prices.over_4m),
-        under_4m_realized_price: import!("under_4m_realized_price", reference_prices.under_4m),
-        under_6m_realized_price: import!("under_6m_realized_price", reference_prices.under_6m),
+        sth_realized_price: import!("sth_realized_price", utxos.sth.realized.price),
+        sth_capitalized_price: import!(
+            "sth_capitalized_price",
+            utxos.sth.realized.capitalized_price
+        ),
+        lth_realized_price: import!("lth_realized_price", utxos.lth.realized.price),
+        lth_capitalized_price: import!(
+            "lth_capitalized_price",
+            utxos.lth.realized.capitalized_price
+        ),
+        over_6m_realized_price: import!("over_6m_realized_price", utxos.over_6m.realized.price),
+        over_4m_realized_price: import!("over_4m_realized_price", utxos.over_4m.realized.price),
+        under_4m_realized_price: import!("under_4m_realized_price", utxos.under_4m.realized.price),
+        under_6m_realized_price: import!("under_6m_realized_price", utxos.under_6m.realized.price),
         under_4m_capitalized_price: import!(
             "under_4m_capitalized_price",
-            reference_prices.under_4m_capitalized_price
+            utxos.under_4m.realized.capitalized_price
         ),
         under_6m_capitalized_price: import!(
             "under_6m_capitalized_price",
-            reference_prices.under_6m_capitalized_price
+            utxos.under_6m.realized.capitalized_price
         ),
         vaulted_price: import!("vaulted_price", cointime.prices.vaulted),
         active_price: import!("active_price", cointime.prices.active),
@@ -402,17 +401,14 @@ pub fn forced_import(
 pub fn compute(
     components: &mut Components,
     indexer: &Indexer,
-    distribution_age: &AgeVecs,
-    reference_prices: &ReferencePrices,
+    distribution_aggregated: &AggregatedVecs,
     cointime: &CointimeVecs,
     coinflow: &CoinflowVecs,
     spot: &impl ReadableVec<Height, Cents>,
     exit: &Exit,
 ) -> Result<()> {
     let starting_lengths = indexer.safe_lengths();
-    let utxos = &distribution_age.cohorts;
-    let realized_price = &utxos.realized.price.cohorts;
-    let capitalized_price = &utxos.realized.capitalized_price.series;
+    let utxos = &distribution_aggregated.cohorts;
 
     [
         &mut components.median_price_btc_weighted,
@@ -440,56 +436,60 @@ pub fn compute(
     let jobs = [
         (
             &mut components.realized_price,
-            &realized_price.all.relative.ratio.height,
+            &utxos.all.realized.mvrv.ratio.height,
         ),
         (
             &mut components.capitalized_price,
-            &capitalized_price.all.relative.ratio.height,
+            &utxos.all.realized.capitalized_price.relative.ratio.height,
         ),
         (
             &mut components.sth_realized_price,
-            &realized_price.term.short.relative.ratio.height,
+            &utxos.sth.realized.mvrv.ratio.height,
         ),
         (
             &mut components.sth_capitalized_price,
-            &capitalized_price.sth.relative.ratio.height,
+            &utxos.sth.realized.capitalized_price.relative.ratio.height,
         ),
         (
             &mut components.lth_realized_price,
-            &realized_price.term.long.relative.ratio.height,
+            &utxos.lth.realized.mvrv.ratio.height,
         ),
         (
             &mut components.lth_capitalized_price,
-            &capitalized_price.lth.relative.ratio.height,
+            &utxos.lth.realized.capitalized_price.relative.ratio.height,
         ),
         (
             &mut components.over_6m_realized_price,
-            &reference_prices.over_6m.relative.ratio.height,
+            &utxos.over_6m.realized.mvrv.ratio.height,
         ),
         (
             &mut components.over_4m_realized_price,
-            &reference_prices.over_4m.relative.ratio.height,
+            &utxos.over_4m.realized.mvrv.ratio.height,
         ),
         (
             &mut components.under_4m_realized_price,
-            &reference_prices.under_4m.relative.ratio.height,
+            &utxos.under_4m.realized.mvrv.ratio.height,
         ),
         (
             &mut components.under_6m_realized_price,
-            &reference_prices.under_6m.relative.ratio.height,
+            &utxos.under_6m.realized.mvrv.ratio.height,
         ),
         (
             &mut components.under_4m_capitalized_price,
-            &reference_prices
-                .under_4m_capitalized_price
+            &utxos
+                .under_4m
+                .realized
+                .capitalized_price
                 .relative
                 .ratio
                 .height,
         ),
         (
             &mut components.under_6m_capitalized_price,
-            &reference_prices
-                .under_6m_capitalized_price
+            &utxos
+                .under_6m
+                .realized
+                .capitalized_price
                 .relative
                 .ratio
                 .height,

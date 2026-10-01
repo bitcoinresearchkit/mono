@@ -6,7 +6,7 @@ use bitview_plugin::{
 };
 use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_plugin_distribution_aggregated::Vecs as AggregatedVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
@@ -17,7 +17,7 @@ use components::Components;
 use extremes::Extremes;
 use inner::RarityMeterInner;
 use rayon::{join, prelude::*};
-use reference_prices::ReferencePrices;
+
 use vecdb::{Database, LazyVec, Rw, StorageMode};
 
 mod band;
@@ -33,8 +33,7 @@ mod inner;
 mod median_component;
 #[cfg(test)]
 mod recovery_tests;
-mod reference_price;
-mod reference_prices;
+
 #[cfg(test)]
 #[path = "../../bitview_vecs/tests/common/mod.rs"]
 mod test_common;
@@ -53,8 +52,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
 
     /// Model-specific realized and capitalized prices reconstructed from the
-    /// distribution_age's disjoint raw capitalization and supply histories.
-    pub reference_prices: ReferencePrices<M>,
+    /// distribution_aggregated's disjoint raw capitalization and supply histories.
 
     /// Reference-price components used by the Rarity Meter. A UTXO's creation
     /// price is Bitcoin's spot price when that output was created. Realized
@@ -92,24 +90,21 @@ impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
-        distribution_age: &AgeVecs,
+        distribution_aggregated: &AggregatedVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let version = STORAGE.schema_version();
-        let reference_prices = ReferencePrices::forced_import(&db, version, mappings)?;
         let this = Self {
             components: components::forced_import(
                 &db,
                 version,
                 mappings,
-                distribution_age,
-                &reference_prices,
+                distribution_aggregated,
                 cointime,
                 coinflow,
             )?,
-            reference_prices,
             extremes: extremes::forced_import(&db, version, mappings)?,
             full: inner::forced_import(&db, "rarity_meter", version, mappings)?,
             full_v2: inner::forced_import(&db, "rarity_meter_v2", version, mappings)?,
@@ -145,7 +140,7 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             indexer,
             bedrock,
-            distribution_age,
+            distribution_aggregated,
             cointime,
             coinflow,
             price: prices,
@@ -153,42 +148,14 @@ impl ComputePlugin for Vecs {
         self.db.sync_bg_tasks()?;
 
         let spot = &prices.spot.cents.height;
-        let metrics = &distribution_age.cohorts;
+        let metrics = &distribution_aggregated.cohorts.all;
         let realized = &metrics.realized;
-        let cap_raw = &realized.cap_raw;
-        let capitalized_cap_raw = &realized.capitalized_cap_raw;
-        let supply = &metrics.supply.total.cohorts;
-
-        self.reference_prices.compute(
-            indexer.safe_lengths().height,
-            [
-                &cap_raw.term.short,
-                &cap_raw.term.long,
-                &cap_raw.age._4m_to_5m,
-                &cap_raw.age._5m_to_6m,
-            ],
-            [
-                &supply.term.short.sats.height,
-                &supply.term.long.sats.height,
-                &supply.age._4m_to_5m.sats.height,
-                &supply.age._5m_to_6m.sats.height,
-            ],
-            [
-                &capitalized_cap_raw.term.short,
-                &capitalized_cap_raw.age._4m_to_5m,
-                &capitalized_cap_raw.age._5m_to_6m,
-            ],
-            spot,
-            exit,
-        )?;
-
         let (components_result, extremes_result) = join(
             || {
                 components::compute(
                     &mut self.components,
                     indexer,
-                    distribution_age,
-                    &self.reference_prices,
+                    distribution_aggregated,
                     cointime,
                     coinflow,
                     spot,
@@ -199,11 +166,11 @@ impl ComputePlugin for Vecs {
                 extremes::compute(
                     &mut self.extremes,
                     indexer,
-                    &metrics.supply.in_loss.cohorts.all.btc.height,
-                    &realized.profit.cohorts.all.sum._24h.usd.height,
-                    &realized.loss.cohorts.all.sum._24h.usd.height,
-                    &realized.peak_regret.series.all.sum._24h.usd.height,
-                    &realized.sell_side_risk_ratio.all._24h.percent.height,
+                    &metrics.supply.in_loss.btc.height,
+                    &realized.profit.sum._24h.usd.height,
+                    &realized.loss.sum._24h.usd.height,
+                    &realized.peak_regret.sum._24h.usd.height,
+                    &metrics.ratios.sell_side_risk_ratio._24h.percent.height,
                     exit,
                 )
             },

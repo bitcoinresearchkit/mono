@@ -1,4 +1,4 @@
-use bitview_cohort::{CohortContext, UTXOGroupsWithoutAmountOrType};
+use bitview_cohort::{CohortContext, CreationCohorts};
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
@@ -7,12 +7,12 @@ use brk_error::Result;
 use brk_types::{CentsSigned, PartsPerMillionSigned64, Version};
 use vecdb::{Database, Rw, StorageMode};
 
-use crate::metrics::CumulativeUTXOCoreSources;
+use crate::metrics::CumulativeCreationSources;
 
 #[derive(Traversable)]
 pub struct CumulativeNetRealizedByCohort<M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub cohorts: UTXOGroupsWithoutAmountOrType<
+    pub cohorts: CreationCohorts<
         LazyFiatPerBlockCumulativeWithSumsAndDeltas<
             CentsSigned,
             CentsSigned,
@@ -20,7 +20,7 @@ pub struct CumulativeNetRealizedByCohort<M: StorageMode = Rw> {
         >,
     >,
     #[traversable(hidden)]
-    pub stored: CumulativeUTXOCoreSources<CentsSigned, M>,
+    pub stored: CumulativeCreationSources<CentsSigned, M>,
 }
 
 impl CumulativeNetRealizedByCohort {
@@ -31,12 +31,12 @@ impl CumulativeNetRealizedByCohort {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let stored = CumulativeUTXOCoreSources::forced_import(
+        let stored = CumulativeCreationSources::forced_import(
             db,
             "net_realized_pnl_cumulative_cents",
             version,
         )?;
-        let cohorts = UTXOGroupsWithoutAmountOrType::new(|cohort_id| {
+        let cohorts = CreationCohorts::new(|cohort_id| {
             let name = CohortContext::Utxo.metric_name(cohort_id, "net_realized_pnl");
             let source = stored
                 .stored

@@ -20,7 +20,15 @@ fn typed_series_path_initializes_on_the_default_stack() {
     assert_eq!(pattern_name(&price.split.close.usd), "price_close");
     assert_eq!(usd.name(), "price_close");
     assert_eq!(
-        client.series().cohorts.supply.total.all.btc.name(),
+        client
+            .series()
+            .distribution_aggregated
+            .cohorts
+            .all
+            .supply
+            .total
+            .btc
+            .name(),
         "supply"
     );
 }

@@ -2,11 +2,10 @@ use bitview_cohort::{CohortContext, CohortId};
 use bitview_collections::Windows;
 use bitview_plugin_distribution_common::metrics::SupplyBase;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_transforms::{HalveDollars, HalveSatsToBitcoin};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazySpotValuePerBlock, LazyValuePerBlock, LazyWindowStartVec};
+use bitview_vecs::{LazySpotValuePerBlock, LazyWindowStartVec};
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{Halve, ReadableBoxedVec};
+use vecdb::ReadableBoxedVec;
 
 use super::Sources;
 
@@ -18,8 +17,6 @@ pub struct SupplyMetrics {
     pub in_profit: LazySpotValuePerBlock,
     /// Unspent supply whose creation price is above current spot price.
     pub in_loss: LazySpotValuePerBlock,
-    /// Half of this cohort's unspent supply.
-    pub half: LazyValuePerBlock,
 }
 
 impl SupplyMetrics {
@@ -40,12 +37,6 @@ impl SupplyMetrics {
             mappings,
             prices,
         );
-        let half = LazyValuePerBlock::from_spot_block_source::<
-            Halve,
-            HalveSatsToBitcoin,
-            Halve,
-            HalveDollars,
-        >(&name("supply_half"), &total, version);
         Self {
             base: SupplyBase::from_total(
                 CohortContext::Utxo,
@@ -70,7 +61,6 @@ impl SupplyMetrics {
                 mappings,
                 prices,
             ),
-            half,
         }
     }
 }

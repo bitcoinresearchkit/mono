@@ -26,14 +26,14 @@ impl Query {
     ) -> Result<AddrStats> {
         let plugins = self.plugins();
         let state = plugins
-            .distribution_size
+            .distribution_addresses
             .addr_state
             .get_once(output_type, type_index)?;
 
         let (addr_data, is_funded) = match state.decode() {
             DecodedAddrState::Funded(index) => {
                 let data = plugins
-                    .distribution_size
+                    .distribution_addresses
                     .addr_state
                     .funded
                     .collect_one(index)
@@ -42,7 +42,7 @@ impl Query {
             }
             DecodedAddrState::ExtendedEmpty(index) => {
                 let data = plugins
-                    .distribution_size
+                    .distribution_addresses
                     .addr_state
                     .extended_empty
                     .collect_one(index)
