@@ -6,7 +6,7 @@
 
 # Interface: BlockCumulativeSumPattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5995](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5995)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4973](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4973)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5995](https://github
 
 > **block**: [`CentsUsdPattern3`](CentsUsdPattern3.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5996](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5996)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4974](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4974)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5996](https://github
 
 > **cumulative**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5997](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5997)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4975](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4975)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5997](https://github
 
 > **sum**: [`_1m1w1y24hPattern7`](1m1w1y24hPattern7.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5998](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5998)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4976](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4976)

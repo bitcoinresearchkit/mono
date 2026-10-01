@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Price\_Term
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11958](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11958)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9823](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9823)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11958](https://githu
 
 > **long**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11960](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11960)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9825](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9825)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11960](https://githu
 
 > **short**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11959](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11959)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9824](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9824)

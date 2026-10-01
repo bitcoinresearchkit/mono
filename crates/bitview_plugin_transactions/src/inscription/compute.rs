@@ -34,6 +34,7 @@ pub fn compute(
         &features.count.inscription,
         &features.has_inscription,
         &fees.fee.tx_index,
+        &fees.total,
         exit,
     )
 }
@@ -48,21 +49,25 @@ impl Vecs {
         inscription_counts: &impl ReadableVec<Height, StoredU64>,
         inscriptions: &impl ReadableVec<TxIndex, StoredBool>,
         fees: &impl ReadableVec<TxIndex, Sats>,
+        total_fees: &impl ReadableVec<Height, Sats>,
         exit: &Exit,
     ) -> Result<()> {
         let version = first_tx.version()
             + tx_counts.version()
             + inscription_counts.version()
             + inscriptions.version()
-            + fees.version();
+            + fees.version()
+            + total_fees.version();
         let end_height = first_tx
             .len()
             .min(tx_counts.len())
-            .min(inscription_counts.len());
+            .min(inscription_counts.len())
+            .min(total_fees.len());
         let start_height = prepare_computed(
             [self.fees.stored_mut(), &mut self.fee_share.ppm.height],
             version,
             starting_height.to_usize().min(end_height),
+            exit,
         )?;
         if start_height == end_height {
             return self.write_fees(exit);
@@ -83,14 +88,13 @@ impl Vecs {
             if block_end > end_tx {
                 break;
             }
-            let mut total = Sats::ZERO;
+            let total = total_fees.collect_one_at(height).unwrap();
             let mut inscribed = Sats::ZERO;
-            // With no inscriptions, both the fee sum and share are zero.
+            // With no inscriptions, avoid reading transaction fees or flags.
             if u64::from(inscription_counts.next().unwrap()) > 0 {
                 fees.advance(block_start - fees.position());
                 inscriptions.advance(block_start - inscriptions.position());
                 fees.for_each(block_end - block_start, |fee| {
-                    total += fee;
                     if inscriptions.next().unwrap().is_true() {
                         inscribed += fee;
                     }

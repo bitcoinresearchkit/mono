@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Sopr\_Class
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12985](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12985)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10351](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10351)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12985](https://githu
 
 > **\_2009**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12986](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12986)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10352](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10352)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12986](https://githu
 
 > **\_2010**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12987](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12987)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10353](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10353)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12987](https://githu
 
 > **\_2011**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12988](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12988)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10354](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10354)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12988](https://githu
 
 > **\_2012**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12989](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12989)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10355](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10355)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12989](https://githu
 
 > **\_2013**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12990](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12990)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10356](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10356)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12990](https://githu
 
 > **\_2014**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12991](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12991)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10357](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10357)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12991](https://githu
 
 > **\_2015**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12992](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12992)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10358](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10358)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12992](https://githu
 
 > **\_2016**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12993](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12993)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10359](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10359)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12993](https://githu
 
 > **\_2017**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12994](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12994)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10360](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10360)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12994](https://githu
 
 > **\_2018**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12995](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12995)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10361](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10361)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12995](https://githu
 
 > **\_2019**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12996](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12996)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10362](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10362)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12996](https://githu
 
 > **\_2020**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12997](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12997)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10363](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10363)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12997](https://githu
 
 > **\_2021**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12998](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12998)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10364](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10364)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12998](https://githu
 
 > **\_2022**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12999](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12999)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10365](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10365)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12999](https://githu
 
 > **\_2023**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13000](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13000)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10366](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10366)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13000](https://githu
 
 > **\_2024**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13001](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13001)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10367](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10367)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13001](https://githu
 
 > **\_2025**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13002](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13002)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10368](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10368)
 
 ***
 
@@ -150,4 +150,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13002](https://githu
 
 > **\_2026**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13003](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13003)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10369](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10369)

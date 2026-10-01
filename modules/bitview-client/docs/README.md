@@ -61,3 +61,9 @@ const client = new BitviewClient({
   memCache: 100,
 });
 ```
+
+The memory cache retains parsed responses by URL and ETag. Node.js sends
+`If-None-Match` when it retains a response. A `304` reuses the parsed value
+without downloading or parsing another body.
+Browsers handle HTTP revalidation themselves, preserving their HTTP cache and
+avoiding extra CORS preflights. Changed responses are parsed and replace the cached value.

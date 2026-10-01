@@ -6,7 +6,7 @@
 
 # Interface: PoolHashrateEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:930](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L930)
+Defined in: [Developer/mono/modules/bitview-client/index.js:929](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L929)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:930](https://github.
 
 > **avgHashrate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:932](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L932)
+Defined in: [Developer/mono/modules/bitview-client/index.js:931](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L931)
 
 Average hashrate (H/s)
 
@@ -24,7 +24,7 @@ Average hashrate (H/s)
 
 > **poolName**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:934](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L934)
+Defined in: [Developer/mono/modules/bitview-client/index.js:933](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L933)
 
 Pool name
 
@@ -34,7 +34,7 @@ Pool name
 
 > **share**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:933](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L933)
+Defined in: [Developer/mono/modules/bitview-client/index.js:932](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L932)
 
 Pool's share of total network hashrate (0.0 - 1.0)
 
@@ -44,6 +44,6 @@ Pool's share of total network hashrate (0.0 - 1.0)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:931](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L931)
+Defined in: [Developer/mono/modules/bitview-client/index.js:930](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L930)
 
 Unix timestamp

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_SoprRatioExtended
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13027](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13027)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10466](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10466)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13027](https://githu
 
 > **all**: [`_1m1w1yPattern`](1m1w1yPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13028](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13028)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10467](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10467)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13028](https://githu
 
 > **lth**: [`_1m1w1yPattern`](1m1w1yPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13030](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13030)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10469](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10469)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13030](https://githu
 
 > **sth**: [`_1m1w1yPattern`](1m1w1yPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13029](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13029)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10468](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10468)

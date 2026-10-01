@@ -6,7 +6,7 @@
 
 # Interface: IndexInfo
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:700](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L700)
+Defined in: [Developer/mono/modules/bitview-client/index.js:699](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L699)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:700](https://github.
 
 > **aliases**: `string`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:702](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L702)
+Defined in: [Developer/mono/modules/bitview-client/index.js:701](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L701)
 
 All Accepted query aliases
 
@@ -24,6 +24,6 @@ All Accepted query aliases
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:701](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L701)
+Defined in: [Developer/mono/modules/bitview-client/index.js:700](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L700)
 
 The canonical index name

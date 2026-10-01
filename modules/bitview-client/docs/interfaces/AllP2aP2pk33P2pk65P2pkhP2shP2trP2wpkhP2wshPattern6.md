@@ -6,7 +6,7 @@
 
 # Interface: AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4616](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4616)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3657](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3657)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4616](https://github
 
 > **all**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4617](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4617)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3658](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3658)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4617](https://github
 
 > **p2a**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4618](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4618)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3659](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3659)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4618](https://github
 
 > **p2pk33**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4619](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4619)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3660](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3660)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4619](https://github
 
 > **p2pk65**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4620](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4620)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3661](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3661)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4620](https://github
 
 > **p2pkh**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4621](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4621)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3662](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3662)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4621](https://github
 
 > **p2sh**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4622](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4622)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3663](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3663)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4622](https://github
 
 > **p2tr**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4623](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4623)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3664](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3664)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4623](https://github
 
 > **p2wpkh**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4624](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4624)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3665](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3665)
 
 ***
 
@@ -78,4 +78,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:4624](https://github
 
 > **p2wsh**: [`AverageBlockCumulativeSumPattern`](AverageBlockCumulativeSumPattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:4625](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L4625)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3666](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3666)

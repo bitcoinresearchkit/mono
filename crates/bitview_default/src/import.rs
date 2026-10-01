@@ -1,7 +1,7 @@
 use bitview_plugin_distribution_size::{ID as DISTRIBUTION_SIZE_ID, Vecs as DistributionSize};
 use std::{thread, time::Instant};
 
-use bitview_plugin::ImportContext;
+use bitview_plugin::{ImportContext, Plugin};
 use bitview_plugin_bedrock::{ID as BEDROCK_ID, Vecs as Bedrock};
 use bitview_plugin_blocks::{ID as BLOCKS_ID, Vecs as Blocks};
 use bitview_plugin_capital_sentiment::{ID as CAPITAL_SENTIMENT_ID, Vecs as CapitalSentiment};
@@ -57,10 +57,6 @@ impl DefaultPlugins {
 
         let blocks = timed(Phase::Import, BLOCKS_ID, || -> Result<_> {
             Ok(Box::new(Blocks::import(context, &indexer, &mappings)?))
-        })?;
-
-        let utxo_history = timed(Phase::Import, UTXO_HISTORY_ID, || -> Result<_> {
-            Ok(Box::new(UtxoHistory::import(context, &mappings)?))
         })?;
 
         let window_starts = blocks.lookback.window_starts();
@@ -144,6 +140,15 @@ impl DefaultPlugins {
 
                 Ok((inputs, outputs, mining, transactions, pools, op_return))
             })?;
+
+        let utxo_history = timed(Phase::Import, UTXO_HISTORY_ID, || -> Result<_> {
+            Ok(Box::new(UtxoHistory::import(
+                context,
+                &mappings,
+                inputs.storage().path(context),
+                outputs.storage().path(context),
+            )?))
+        })?;
 
         // Market and distribution are independent; import in parallel.
         let (distribution_age, market) = thread::scope(|scope| -> Result<_> {

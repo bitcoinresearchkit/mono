@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_Exposed\_Supply
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8036](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8036)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6726](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6726)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8036](https://github
 
 > **all**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8037](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8037)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6727](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6727)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8037](https://github
 
 > **p2a**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8045](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8045)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6735](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6735)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8045](https://github
 
 > **p2pk33**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8039](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8039)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6729](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6729)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8039](https://github
 
 > **p2pk65**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8038](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8038)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6728](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6728)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8038](https://github
 
 > **p2pkh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8040](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8040)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6730](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6730)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8040](https://github
 
 > **p2sh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8041](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8041)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6731](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6731)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8041](https://github
 
 > **p2tr**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8044](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8044)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6734](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6734)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8044](https://github
 
 > **p2wpkh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8042](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8042)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6732](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6732)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8042](https://github
 
 > **p2wsh**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8043](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8043)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6733](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6733)
 
 ***
 
@@ -86,4 +86,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8043](https://github
 
 > **share**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8046](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8046)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6736](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6736)

@@ -6,7 +6,7 @@
 
 # Interface: SkippedBuilder\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1781](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1781)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1774](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1774)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1781](https://github
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1783](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1783)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1776](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1776)
 
 Fetch from skipped position to end
 
@@ -44,7 +44,7 @@ Fetch from skipped position to end
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1784](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1784)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1777](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1777)
 
 Fetch as CSV
 
@@ -64,7 +64,7 @@ Fetch as CSV
 
 > **take**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1782](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1782)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1775](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1775)
 
 Take n items after skipped position
 
@@ -84,6 +84,6 @@ Take n items after skipped position
 
 > **then**: [`Thenable`](../type-aliases/Thenable.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1785](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1785)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1778](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1778)
 
 Thenable

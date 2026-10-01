@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Pools\_Major
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9675](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9675)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8445](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8445)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9675](https://github
 
 > **antpool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9684](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9684)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8454](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8454)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9684](https://github
 
 > **binancepool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9691](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9691)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8461](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8461)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9691](https://github
 
 > **bitfury**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9687](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9687)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8457](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8457)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9687](https://github
 
 > **braiinspool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9683](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9683)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8453](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8453)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9683](https://github
 
 > **btcc**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9685](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9685)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8455](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8455)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9685](https://github
 
 > **btccom**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9678](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9678)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8448](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8448)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9678](https://github
 
 > **btcguild**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9680](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9680)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8450](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8450)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9680](https://github
 
 > **btctop**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9679](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9679)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8449](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8449)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9679](https://github
 
 > **bwpool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9686](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9686)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8456](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8456)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9686](https://github
 
 > **eligius**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9681](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9681)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8451](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8451)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9681](https://github
 
 > **f2pool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9682](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9682)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8452](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8452)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9682](https://github
 
 > **foundryusa**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9692](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9692)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8462](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8462)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9692](https://github
 
 > **luxor**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9677](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9677)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8447](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8447)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9677](https://github
 
 > **marapool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9694](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9694)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8464](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8464)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9694](https://github
 
 > **ocean**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9696](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9696)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8466](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8466)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9696](https://github
 
 > **poolin**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9689](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9689)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8459](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8459)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9689](https://github
 
 > **sbicrypto**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9693](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9693)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8463](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8463)
 
 ***
 
@@ -150,7 +150,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9693](https://github
 
 > **secpool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9695](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9695)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8465](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8465)
 
 ***
 
@@ -158,7 +158,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9695](https://github
 
 > **spiderpool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9690](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9690)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8460](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8460)
 
 ***
 
@@ -166,7 +166,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9690](https://github
 
 > **unknown**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9676](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9676)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8446](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8446)
 
 ***
 
@@ -174,7 +174,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9676](https://github
 
 > **viabtc**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9688](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9688)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8458](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8458)
 
 ***
 
@@ -182,4 +182,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9688](https://github
 
 > **whitepool**: [`BlocksDominanceRewardsPattern`](BlocksDominanceRewardsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9697](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9697)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8467](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8467)

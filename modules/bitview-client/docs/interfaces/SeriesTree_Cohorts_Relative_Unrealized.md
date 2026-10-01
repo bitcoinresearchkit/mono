@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Relative\_Unrealized
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14022](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14022)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11047](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11047)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14022](https://githu
 
 > **loss**: [`ToPattern2`](ToPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14024](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14024)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11049](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11049)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14024](https://githu
 
 > **netPnl**: [`SeriesTree_Cohorts_Relative_Unrealized_NetPnl`](SeriesTree_Cohorts_Relative_Unrealized_NetPnl.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14025](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14025)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11050](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11050)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14025](https://githu
 
 > **profit**: [`ToPattern2`](ToPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14023](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14023)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11048](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11048)

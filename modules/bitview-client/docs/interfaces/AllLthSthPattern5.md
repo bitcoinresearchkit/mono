@@ -6,28 +6,28 @@
 
 # Interface: AllLthSthPattern5
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5925](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5925)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4882](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4882)
 
 ## Properties
 
 ### all
 
-> **all**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **all**: [`BtcCentsDeltaSatsUsdPattern`](BtcCentsDeltaSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5926](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5926)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4883](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4883)
 
 ***
 
 ### lth
 
-> **lth**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **lth**: [`BtcCentsDeltaSatsUsdPattern`](BtcCentsDeltaSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5927](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5927)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4884](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4884)
 
 ***
 
 ### sth
 
-> **sth**: [`CentsUsdPattern`](CentsUsdPattern.md)
+> **sth**: [`BtcCentsDeltaSatsUsdPattern`](BtcCentsDeltaSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5928](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5928)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4885](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4885)

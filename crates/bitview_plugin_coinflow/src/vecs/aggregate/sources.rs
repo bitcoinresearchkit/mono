@@ -5,7 +5,7 @@ use brk_types::{BoundedRatio, Cents, Height, Sats};
 use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
 use super::super::Mobility;
-use crate::{HorizonId, Horizons, model::PrimaryValues};
+use crate::model::PrimaryValues;
 
 #[derive(Traversable)]
 pub struct AggregateSources<M: StorageMode = Rw> {
@@ -15,12 +15,6 @@ pub struct AggregateSources<M: StorageMode = Rw> {
     /// the sum of total supply multiplied by that probability. Returns NaN
     /// when the weighted supply is zero.
     pub supply_in_loss_share: UTXOAggregate<CachedSeries<Height, BoundedRatio, M>>,
-    /// For each supported forward horizon, the share of supply likely to move
-    /// within that horizon that is in loss at the represented block. Each age
-    /// range is weighted by one minus exp of the
-    /// negative sum of its observed spending hazards times days across that
-    /// horizon. Returns NaN when the weighted supply is zero.
-    pub horizon: Horizons<UTXOAggregate<CachedSeries<Height, BoundedRatio, M>>>,
     /// Sum of creation-date USD value multiplied by remaining-lifetime spending
     /// probability across a set of UTXO age ranges. Creation-date value is each
     /// unspent output's BTC value multiplied by Bitcoin's spot price when it was
@@ -65,34 +59,19 @@ impl AggregateSources {
             (UTXOAggregateId::Lth, values.terms.long),
         ] {
             id.select_mut(&mut self.supply.mobile)
-                .push(state.weighted.weighted_supply);
+                .push(state.weighted_supply);
             id.select_mut(&mut self.supply.immobile)
-                .push(state.weighted.complement_supply);
+                .push(state.complement_supply);
             id.select_mut(&mut self.supply_in_loss_share)
-                .push(state.weighted.supply_in_loss.value());
-            id.select_mut(&mut self.cap)
-                .push(state.weighted.weighted_cap);
+                .push(state.supply_in_loss.value());
+            id.select_mut(&mut self.cap).push(state.weighted_cap);
             id.select_mut(&mut self.capitalized_price)
-                .push(state.weighted.capitalized_price.value());
-            id.select_mut(&mut self.price)
-                .push(state.weighted.realized_price());
-            for horizon in HorizonId::ALL {
-                id.select_mut(horizon.select_mut(&mut self.horizon))
-                    .push(horizon.select(&state.horizon_supply_in_loss).value());
-            }
+                .push(state.capitalized_price.value());
+            id.select_mut(&mut self.price).push(state.realized_price());
         }
     }
 
     pub(crate) fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        let Horizons {
-            _8y,
-            _4y,
-            _2y,
-            _1y,
-            _6m,
-            _3m,
-            _1m,
-        } = &mut self.horizon;
         [&mut self.supply.mobile, &mut self.supply.immobile]
             .into_iter()
             .flat_map(|group| group.iter_mut())
@@ -118,11 +97,5 @@ impl AggregateSources {
                 &mut self.over_6m_price,
                 &mut self.over_6m_capitalized_price,
             ])
-            .chain(
-                [_8y, _4y, _2y, _1y, _6m, _3m, _1m]
-                    .into_iter()
-                    .flat_map(|group| group.iter_mut())
-                    .map(|v| v as &mut dyn AnyStoredVec),
-            )
     }
 }

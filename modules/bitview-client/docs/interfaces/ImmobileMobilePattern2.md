@@ -6,7 +6,7 @@
 
 # Interface: ImmobileMobilePattern2
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6928](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6928)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5678](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5678)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6928](https://github
 
 > **immobile**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6929](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6929)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5679](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5679)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6929](https://github
 
 > **mobile**: [`BtcCentsInSatsUsdPattern`](BtcCentsInSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6930](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6930)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5680](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5680)

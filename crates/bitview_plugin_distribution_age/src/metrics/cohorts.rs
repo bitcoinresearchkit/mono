@@ -1,8 +1,8 @@
 use std::thread;
 
 use bitview_cohort::{
-    AgeRange, AgeRangeId, ByEntry, ByEpoch, Class, Term, UTXOAggregate, UTXOAllAndSth,
-    UTXOCoreValues, UTXOGroupsWithoutAmountOrType,
+    AgeRange, AgeRangeId, ByEpoch, Class, Term, UTXOAggregate, UTXOAllAndSth, UTXOCoreValues,
+    UTXOGroupsWithoutAmountOrType,
 };
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -168,7 +168,6 @@ impl CohortMetrics<Rw> {
             age_range,
             epoch,
             class,
-            entry,
             ..
         } = states;
 
@@ -176,7 +175,6 @@ impl CohortMetrics<Rw> {
             age_range: AgeRange::from_fn(|id| id.select(age_range).supply_value()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).supply_value()),
             class: Class::from_fn(|id| id.select(class).supply_value()),
-            entry: ByEntry::from_fn(|id| id.select(entry).supply_value()),
         };
         let profitability = UTXOCoreValues {
             age_range: AgeRange::from_fn(|id| {
@@ -187,9 +185,6 @@ impl CohortMetrics<Rw> {
                 id.select_mut(epoch).compute_unrealized_state(height_price)
             }),
             class: Class::from_fn(|id| id.select_mut(class).compute_unrealized_state(height_price)),
-            entry: ByEntry::from_fn(|id| {
-                id.select_mut(entry).compute_unrealized_state(height_price)
-            }),
         };
 
         let mut aggregates = UTXOAggregate::default();
@@ -215,7 +210,6 @@ impl CohortMetrics<Rw> {
             age_range,
             epoch,
             class,
-            entry,
             ..
         } = states;
 
@@ -223,7 +217,6 @@ impl CohortMetrics<Rw> {
             age_range: AgeRange::from_fn(|id| id.select(age_range).output_counts()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).output_counts()),
             class: Class::from_fn(|id| id.select(class).output_counts()),
-            entry: ByEntry::from_fn(|id| id.select(entry).output_counts()),
         };
         let unspent_count = cohort_values.map(|counts| counts.0);
         let spent_count = cohort_values.map(|counts| counts.1);
@@ -237,7 +230,6 @@ impl CohortMetrics<Rw> {
             age_range,
             epoch,
             class,
-            entry,
             ..
         } = states;
 
@@ -245,13 +237,11 @@ impl CohortMetrics<Rw> {
             age_range: AgeRange::from_fn(|id| id.select(age_range).transfer_volume()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).transfer_volume()),
             class: Class::from_fn(|id| id.select(class).transfer_volume()),
-            entry: ByEntry::from_fn(|id| id.select(entry).transfer_volume()),
         };
         let core = UTXOCoreValues {
             age_range: AgeRange::from_fn(|id| id.select(age_range).core_activity()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).core_activity()),
             class: Class::from_fn(|id| id.select(class).core_activity()),
-            entry: ByEntry::from_fn(|id| id.select(entry).core_activity()),
         };
         let coindays_destroyed = core.map(|values| values.0);
         let transfer_volume_in_profit = core.map(|values| values.1);
@@ -273,7 +263,6 @@ impl CohortMetrics<Rw> {
             age_range,
             epoch,
             class,
-            entry,
             ..
         } = states;
 
@@ -290,7 +279,6 @@ impl CohortMetrics<Rw> {
             age_range: AgeRange::from_fn(|id| id.select(age_range).realized_block_data()),
             epoch: ByEpoch::from_fn(|id| id.select(epoch).realized_block_data()),
             class: Class::from_fn(|id| id.select(class).realized_block_data()),
-            entry: ByEntry::from_fn(|id| id.select(entry).realized_block_data()),
         };
         realized.push(&cohort_values);
     }
@@ -435,7 +423,7 @@ impl CohortMetrics<Rw> {
         states: &UTXOStates,
         height_price: Cents,
         unrealized_states: &UTXOAggregate<UnrealizedState>,
-    ) -> Cents {
+    ) {
         let Self {
             realized,
             cost_basis,
@@ -455,10 +443,8 @@ impl CohortMetrics<Rw> {
             }
         }
 
-        let all_capitalized_price = realized.push_aggregate(&accumulated);
+        realized.push_aggregate(&accumulated);
 
         cost_basis.push_prices(height_price, unrealized_states);
-
-        all_capitalized_price
     }
 }

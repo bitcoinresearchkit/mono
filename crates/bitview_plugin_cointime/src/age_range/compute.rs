@@ -84,6 +84,7 @@ impl Vecs {
                 .map(|vec| vec.stored_mut()),
             version,
             usize::from(starting_height),
+            exit,
         )?;
         let mut chunk_start = start;
         while chunk_start < source_end {
@@ -132,6 +133,7 @@ impl Vecs {
                 [stored.stored_mut(), activity],
                 created.version() + consumed.version(),
                 usize::from(starting_height).min(source_end),
+                exit,
             )?;
             // Persist the common rewind before appending either output.
             let mut end = start;

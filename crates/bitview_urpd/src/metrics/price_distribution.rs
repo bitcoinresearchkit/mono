@@ -42,16 +42,19 @@ impl PriceDistribution {
         let value = price.as_u128() * sats.as_u128();
         self.total_sats += sats.as_u128();
         self.total_value += value;
-        self.second_moment = self.second_moment.and_then(|sum| {
-            value
-                .checked_mul(price.as_u128())
-                .and_then(|value| sum.checked_add(value))
-        });
+        // A u32 price squared times u64 sats fits u128; only the sum can overflow.
+        self.second_moment = self
+            .second_moment
+            .and_then(|sum| sum.checked_add(value * price.as_u128()));
         self.entries.push(PricePrefix {
             price,
             sats: self.total_sats,
             value: self.total_value,
         });
+    }
+
+    pub fn total_sats(&self) -> u128 {
+        self.total_sats
     }
 
     pub fn stats(&self) -> PriceStats {

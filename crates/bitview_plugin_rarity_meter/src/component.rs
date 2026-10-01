@@ -90,8 +90,11 @@ pub fn compute(
     exit: &Exit,
 ) -> Result<()> {
     let block_decay_pct = &mut component.block_decay_pct;
-    for vec in component.ratios.iter_mut() {
-        vec.validate_computed_version_or_reset(ratio_source.version())?;
+    {
+        let _lock = exit.lock();
+        for vec in component.ratios.iter_mut() {
+            vec.validate_computed_version_or_reset(ratio_source.version())?;
+        }
     }
     let start = component
         .ratios

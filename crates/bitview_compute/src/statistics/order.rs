@@ -1,4 +1,4 @@
-use std::array;
+use std::{array, mem};
 
 /// Exact order-statistics multiset backed by sqrt-decomposed sorted blocks.
 ///
@@ -75,8 +75,14 @@ impl ExactOrderStats {
         block.insert(position, value);
 
         if block.len() > 2 * self.block_size {
-            let right = block.split_off(block.len() / 2);
-            self.blocks.insert(block_index + 1, right);
+            // Histories initialized empty must not retain tiny blocks as they grow.
+            if self.len.isqrt() * 3 > 2 * self.block_size {
+                let values = mem::take(&mut self.blocks).into_iter().flatten().collect();
+                *self = Self::from_sorted(values);
+            } else {
+                let right = block.split_off(block.len() / 2);
+                self.blocks.insert(block_index + 1, right);
+            }
         }
     }
 
@@ -281,5 +287,67 @@ mod tests {
         assert_eq!(stats.kth(1).to_bits(), 0.0_f64.to_bits());
         assert_eq!(stats.count_lt(0.0), 1);
         assert_eq!(stats.count_le(-0.0), 1);
+    }
+
+    #[test]
+    fn growing_history_preserves_ranks_and_removal_after_repartitioning() {
+        let values: Vec<_> = (0..20_000)
+            .map(|i| match i % 17 {
+                0 => -0.0,
+                1 => 0.0,
+                _ => ((i * 7919) % 1009) as f64 - 504.0,
+            })
+            .collect();
+        let mut stats = ExactOrderStats::new(0);
+        let initial_size = stats.block_size;
+        for &value in &values {
+            stats.insert(value);
+        }
+        assert!(stats.block_size > initial_size);
+
+        let check = |stats: &ExactOrderStats, values: &[f64]| {
+            let mut sorted = values.to_vec();
+            sorted.sort_unstable_by(f64::total_cmp);
+            assert_eq!(stats.len(), sorted.len());
+            for (i, value) in sorted.iter().enumerate() {
+                assert_eq!(stats.kth(i).to_bits(), value.to_bits());
+            }
+            for value in [-505.0, -0.0, 0.0, 504.0, 505.0] {
+                assert_eq!(
+                    stats.count_lt(value),
+                    sorted
+                        .iter()
+                        .filter(|v| v.total_cmp(&value).is_lt())
+                        .count()
+                );
+                assert_eq!(
+                    stats.count_le(value),
+                    sorted
+                        .iter()
+                        .filter(|v| !v.total_cmp(&value).is_gt())
+                        .count()
+                );
+            }
+            let ps = [0.05, 0.25, 0.5, 0.95, 0.999];
+            let expected = ps.map(|p| {
+                let rank = p * (sorted.len() - 1) as f64;
+                let fraction = rank - rank.floor();
+                sorted[rank.floor() as usize] * (1.0 - fraction)
+                    + sorted[rank.ceil() as usize] * fraction
+            });
+            assert_eq!(
+                stats.percentiles(&ps).map(f64::to_bits),
+                expected.map(f64::to_bits)
+            );
+        };
+        check(&stats, &values);
+        for &value in &values[..15_000] {
+            assert!(stats.remove(value));
+        }
+        check(&stats, &values[15_000..]);
+        for &value in &values[15_000..] {
+            assert!(stats.remove(value));
+        }
+        assert!(stats.is_empty());
     }
 }

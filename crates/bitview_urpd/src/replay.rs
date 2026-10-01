@@ -45,7 +45,6 @@ impl Replay {
         let price_start = if cached.is_some() { range.start } else { 0 };
         let prices = prices.collect_range_dyn(price_start, range.end);
         let mut state = if let Some(mut state) = cached {
-            state.source.extend_prices(&prices)?;
             state
                 .timestamps
                 .extend(timestamps.collect_range_dyn(range.start, range.end));
@@ -53,7 +52,8 @@ impl Replay {
         } else {
             let timestamps = timestamps.collect_range_dyn(0, range.end);
             let origins = history.state_at(range.start)?;
-            let source = OriginUrpd::new(&origins, &prices, &timestamps)?;
+            let source =
+                OriginUrpd::new(&origins, &prices[..range.start], &timestamps[..range.start])?;
             ReplayState {
                 origins,
                 source,
@@ -63,12 +63,10 @@ impl Replay {
         };
         let mut cursor = history.cursor(&mut state.origins)?;
         for index in range {
+            let price = prices[index - price_start];
+            state.source.extend_prices(&[price])?;
             state.source.advance(&mut cursor, &state.timestamps)?;
-            consume(
-                Height::from(index),
-                prices[index - price_start],
-                &state.source,
-            )?;
+            consume(Height::from(index), price, &state.source)?;
         }
         drop(cursor);
         self.state = Some(state);

@@ -1,13 +1,15 @@
+use std::collections::BTreeSet;
 use std::ops::Range;
 
 use brk_error::Error;
-use brk_types::{Cents, Height, Timestamp, Version};
+use brk_types::{Cents, CentsCompact, Height, Timestamp, Version};
 use statedb::{Amount, Creations, History, Spends};
 use tempfile::tempdir;
 use vecdb::{
     AnyStoredVec, BytesVec, Database, ImportableVec, LazyVec, ReadableCloneableVec, WritableVec,
 };
 
+use crate::COST_BASIS_PRICE_DIGITS;
 use crate::{OriginUrpd, Replay, ReplayInputs};
 
 fn check(replay: &mut Replay, range: Range<usize>, inputs: ReplayInputs<'_>) {
@@ -19,14 +21,22 @@ fn check(replay: &mut Replay, range: Range<usize>, inputs: ReplayInputs<'_>) {
             let h = usize::from(height);
             assert_eq!(h, range.start + seen);
             assert_eq!(close, prices[h]);
+            let known_prices: BTreeSet<_> = prices[..=h]
+                .iter()
+                .map(|&price| CentsCompact::from(price).round_to_dollar(COST_BASIS_PRICE_DIGITS))
+                .collect();
+            assert_eq!(source.buckets().count(), known_prices.len());
             let state = inputs.history.state_at(h + 1)?;
             let rebuilt = OriginUrpd::new(&state, &prices, &timestamps)?;
-            // A resident replay can have fewer known future price buckets. Compare
-            // its nonzero entries rather than the layout of empty scratch buckets.
-            assert_eq!(
-                source.iter().collect::<Vec<_>>(),
-                rebuilt.iter().collect::<Vec<_>>()
-            );
+            // Reconstruction can know future prices. Compare occupied buckets.
+            let occupied = |source: &OriginUrpd| {
+                source
+                    .buckets()
+                    .filter(|(_, amounts)| amounts.iter().any(|&sats| sats != 0))
+                    .map(|(price, amounts)| (price, *amounts))
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(occupied(source), occupied(&rebuilt));
             seen += 1;
             Ok(())
         })

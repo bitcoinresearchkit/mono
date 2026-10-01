@@ -88,28 +88,6 @@ export function createPartialOptions() {
 
             lazyGroup("LTH", () => createCohortFolderLongTerm(data().termLong)),
 
-            lazyGroup("Entry", () => {
-              const { cohortAll, entry } = data();
-              return {
-                name: "Entry",
-                tree: [
-                  lazyGroup("Compare", () =>
-                    createGroupedCohortFolderCore({
-                      name: "Compare",
-                      title: "Veteran vs Rookie",
-                      list: entry,
-                      all: cohortAll,
-                    }),
-                  ),
-                  ...entry.map((cohort) =>
-                    lazyGroup(cohort.name, () =>
-                      createCohortFolderCore(cohort),
-                    ),
-                  ),
-                ],
-              };
-            }),
-
             lazyGroup("UTXO Age", () => {
               const { ageRange, cohortAll } = data();
               return {

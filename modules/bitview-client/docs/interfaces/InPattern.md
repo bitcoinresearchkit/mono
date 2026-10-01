@@ -6,7 +6,7 @@
 
 # Interface: InPattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6934](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6934)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5684](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5684)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6934](https://github
 
 > **inLoss**: [`SharePattern`](SharePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6935](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6935)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5685](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5685)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6935](https://github
 
 > **inProfit**: [`SharePattern`](SharePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6936](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6936)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5686](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5686)

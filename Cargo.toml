@@ -53,6 +53,7 @@ bitview_plugin_coinflow = { version = "0.12.2", path = "crates/bitview_plugin_co
 bitview_plugin_cointime = { version = "0.12.2", path = "crates/bitview_plugin_cointime" }
 bitview_plugin_constants = { version = "0.12.2", path = "crates/bitview_plugin_constants" }
 bitview_plugin_distribution_common = { version = "0.12.2", path = "crates/bitview_plugin_distribution_common" }
+bitview_plugin_distribution_entry = { version = "0.12.2", path = "crates/bitview_plugin_distribution_entry" }
 bitview_plugin_distribution_age = { version = "0.12.2", path = "crates/bitview_plugin_distribution_age" }
 bitview_plugin_distribution_size = { version = "0.12.2", path = "crates/bitview_plugin_distribution_size" }
 bitview_plugin_indexer = { version = "0.12.2", path = "crates/bitview_plugin_indexer" }

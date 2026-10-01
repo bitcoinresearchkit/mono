@@ -1,17 +1,22 @@
-use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket};
-use bitview_cohort::{AGE_RANGE_COUNT, AGE_RANGE_IDS, AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId, for_each_age_crossing};
 use brk_error::{Error, Result};
-use brk_types::{Age, Cents, CentsCompact, Sats, Timestamp};
+use brk_types::{Age, Cents, CentsCompact, Timestamp};
+use rustc_hash::FxHashMap;
 use statedb::{Cursor, State};
 
-/// One in-memory price histogram for a sequential history pass. Origin amounts
-/// remain owned by the history cursor; this stores only their price/age grouping.
+use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket, projection::Projection};
+
+/// A price/age view of reconstructed history. Queries build it for one block;
+/// sequential consumers retain it and apply diffs without rebuilding it. Origin
+/// amounts remain owned by statedb; this stores only their price/age grouping.
 pub struct OriginUrpd {
-    prices: Vec<CentsCompact>,
+    prices: Vec<(CentsCompact, u32)>,
     amounts: Vec<[u64; AGE_RANGE_COUNT]>,
-    order: Vec<u32>,
+    /// Nonzero ages per stable slot; four bytes avoid scanning 23 cells per bucket.
+    occupied: Vec<u32>,
     origin_buckets: Vec<u32>,
     crossings: [usize; AGE_RANGE_COUNT - 1],
+    reorder_at: usize,
 }
 impl OriginUrpd {
     pub fn new(state: &State, prices: &[Cents], timestamps: &[Timestamp]) -> Result<Self> {
@@ -22,28 +27,44 @@ impl OriginUrpd {
             return Err(Error::Internal("invalid origin price/timestamp coverage"));
         }
         let rounded = |p: Cents| CentsCompact::from(p).round_to_dollar(COST_BASIS_PRICE_DIGITS);
-        let mut buckets: Vec<_> = prices.iter().copied().map(rounded).collect();
-        buckets.sort_unstable();
-        buckets.dedup();
-        buckets.shrink_to_fit();
+        let mut slots = FxHashMap::default();
         let origin_buckets: Vec<_> = prices
             .iter()
-            .map(|&p| buckets.binary_search(&rounded(p)).unwrap() as u32)
+            .map(|&price| {
+                let next = slots.len() as u32;
+                *slots.entry(rounded(price)).or_insert(next)
+            })
             .collect();
-        let mut amounts = vec![[0; AGE_RANGE_COUNT]; buckets.len()];
+        let mut sorted: Vec<_> = slots.into_iter().collect();
+        sorted.sort_unstable_by_key(|&(price, _)| price);
+        let mut amounts = vec![[0; AGE_RANGE_COUNT]; sorted.len()];
         if let Some(&current) = timestamps.get(state.len().wrapping_sub(1)) {
             for (h, amount) in state.amounts().iter().enumerate() {
+                if amount.sats == 0 {
+                    continue;
+                }
                 let age = AgeRangeId::from(Age::new(current, timestamps[h]));
                 amounts[origin_buckets[h] as usize][age.index()] += amount.sats;
             }
         }
-        Ok(Self {
-            order: (0..buckets.len() as u32).collect(),
-            prices: buckets,
+        let occupied = amounts
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .enumerate()
+                    .fold(0, |mask, (age, &sats)| mask | (u32::from(sats != 0) << age))
+            })
+            .collect();
+        let mut source = Self {
+            prices: sorted,
             amounts,
+            occupied,
             origin_buckets,
             crossings: [0; AGE_RANGE_COUNT - 1],
-        })
+            reorder_at: 0,
+        };
+        source.reorder_slots();
+        Ok(source)
     }
     /// Append newly available creation prices without rebuilding the occupied histogram.
     pub fn extend_prices(&mut self, prices: &[Cents]) -> Result<()> {
@@ -52,19 +73,47 @@ impl OriginUrpd {
         }
         for &price in prices {
             let price = CentsCompact::from(price).round_to_dollar(COST_BASIS_PRICE_DIGITS);
-            let slot = match self.prices.binary_search(&price) {
-                Ok(position) => self.order[position],
+            let slot = match self
+                .prices
+                .binary_search_by_key(&price, |&(price, _)| price)
+            {
+                Ok(position) => self.prices[position].1,
                 Err(position) => {
                     let slot = self.amounts.len() as u32;
-                    self.prices.insert(position, price);
-                    self.order.insert(position, slot);
+                    self.prices.insert(position, (price, slot));
                     self.amounts.push([0; AGE_RANGE_COUNT]);
+                    self.occupied.push(0);
                     slot
                 }
             };
             self.origin_buckets.push(slot);
         }
+        if self.amounts.len() >= self.reorder_at {
+            self.reorder_slots();
+        }
         Ok(())
+    }
+    /// Keep supply rows in scan order, amortizing remaps over bucket doublings.
+    fn reorder_slots(&mut self) {
+        let len = self.prices.len();
+        let mut slots = vec![0; len];
+        for (index, (_, slot)) in self.prices.iter_mut().enumerate() {
+            slots[*slot as usize] = index as u32;
+            *slot = index as u32;
+        }
+        for slot in &mut self.origin_buckets {
+            *slot = slots[*slot as usize];
+        }
+        // Origins now use the new slots; consume the map to reorder rows in place.
+        for index in 0..len {
+            while slots[index] as usize != index {
+                let target = slots[index] as usize;
+                self.amounts.swap(index, target);
+                self.occupied.swap(index, target);
+                slots.swap(index, target);
+            }
+        }
+        self.reorder_at = len.max(1).saturating_mul(2);
     }
     /// Apply exactly one block, including all age crossings before its spends.
     pub fn advance(&mut self, cursor: &mut Cursor<'_>, timestamps: &[Timestamp]) -> Result<()> {
@@ -81,67 +130,61 @@ impl OriginUrpd {
             &mut self.crossings,
             |origin, younger, older, _| {
                 let sats = cursor.state().amounts()[origin].sats;
-                let row = &mut self.amounts[self.origin_buckets[origin] as usize];
-                row[younger.index()] -= sats;
-                row[older.index()] += sats;
+                if sats != 0 {
+                    let slot = self.origin_buckets[origin] as usize;
+                    let row = &mut self.amounts[slot];
+                    row[younger.index()] -= sats;
+                    row[older.index()] += sats;
+                    if row[younger.index()] == 0 {
+                        self.occupied[slot] &= !(1 << younger.index());
+                    }
+                    self.occupied[slot] |= 1 << older.index();
+                }
             },
         );
         let diff = cursor
             .advance()?
             .ok_or(Error::Internal("incomplete origin history"))?;
-        self.amounts[self.origin_buckets[h] as usize][AgeRangeId::Under1H.index()] +=
-            diff.created.sats;
-        for &(origin, amount) in diff.removed() {
+        let slot = self.origin_buckets[h] as usize;
+        self.amounts[slot][AgeRangeId::Under1H.index()] += diff.created.sats;
+        if diff.created.sats != 0 {
+            self.occupied[slot] |= 1 << AgeRangeId::Under1H.index();
+        }
+        for (origin, amount) in diff.removed() {
+            if amount.sats == 0 {
+                continue;
+            }
             let origin = origin as usize;
             let age = AgeRangeId::from(Age::new(current, timestamps[origin]));
-            self.amounts[self.origin_buckets[origin] as usize][age.index()] -= amount.sats;
+            let slot = self.origin_buckets[origin] as usize;
+            self.amounts[slot][age.index()] -= amount.sats;
+            if self.amounts[slot][age.index()] == 0 {
+                self.occupied[slot] &= !(1 << age.index());
+            }
         }
         Ok(())
     }
-    pub fn buckets(&self) -> impl Iterator<Item = (CentsCompact, &[u64; AGE_RANGE_COUNT])> + Clone {
-        self.prices
-            .iter()
-            .copied()
-            .zip(&self.order)
-            .map(|(price, &slot)| (price, &self.amounts[slot as usize]))
+    fn price_slots(&self) -> impl Iterator<Item = (CentsCompact, u32)> {
+        self.prices.iter().copied()
     }
-    pub fn iter(&self) -> impl Iterator<Item = (AgeRangeId, CentsCompact, Sats)> + '_ {
-        self.buckets().flat_map(|(price, values)| {
-            AGE_RANGE_IDS
-                .into_iter()
-                .zip(values)
-                .filter_map(move |(age, &sats)| {
-                    (sats != 0).then_some((age, price, Sats::new(sats)))
-                })
-        })
+    #[cfg(test)]
+    pub(crate) fn buckets(&self) -> impl Iterator<Item = (CentsCompact, &[u64; AGE_RANGE_COUNT])> {
+        self.price_slots()
+            .map(|(price, slot)| (price, &self.amounts[slot as usize]))
     }
-
     /// Project all requested weights together, visiting each bucket's ages once.
     /// The caller can consume this view directly or retain its rows for repeated reads.
     /// Weighted entries retain input order; missing weights produce zero. Rounding
     /// happens after combining all ages in each price bucket.
-    pub fn project<'a, const N: usize>(
+    pub fn project<'a, const N: usize, const C: usize>(
         &'a self,
-        weights: &'a [Option<&AgeRange<f64>>; N],
-    ) -> impl Iterator<Item = ProjectedBucket<N>> + Clone + 'a {
-        self.buckets().filter_map(move |(price, supplies)| {
-            let mut raw = 0;
-            let mut masses = [0.0_f64; N];
-            for (&age, &sats) in AgeRangeId::ALL.iter().zip(supplies) {
-                raw += sats;
-                if sats != 0 {
-                    for (mass, weights) in masses.iter_mut().zip(weights) {
-                        if let Some(weights) = weights {
-                            *mass += sats as f64 * *age.select(weights);
-                        }
-                    }
-                }
-            }
-            (raw != 0).then(|| ProjectedBucket {
-                price,
-                raw: Sats::new(raw),
-                weighted: masses.map(|mass| Sats::new(mass.floor() as u64)),
-            })
+        weights: &[Option<&AgeRange<f64>>; N],
+        cohorts: [&[AgeRangeId]; C],
+    ) -> impl Iterator<Item = ProjectedBucket<N, C>> + 'a + use<'a, N, C> {
+        let projection = Projection::new(weights, cohorts);
+        self.price_slots().filter_map(move |(price, slot)| {
+            let slot = slot as usize;
+            projection.bucket(price, &self.amounts[slot], self.occupied[slot])
         })
     }
 }

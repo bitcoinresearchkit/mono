@@ -8,7 +8,16 @@ use std::net::SocketAddr;
 /// Exercise history reconstruction through both native and HTTP queries.
 pub async fn check(state: &AppState, address: SocketAddr) {
     let date = Date::new(2009, 1, 3);
-    for name in ["all", "sth", "lth", "utxos_under_1h_old"] {
+    for name in [
+        "all",
+        "sth",
+        "lth",
+        "under_4m",
+        "under_6m",
+        "over_4m",
+        "over_6m",
+        "utxos_under_1h_old",
+    ] {
         let cohort = Cohort::new(name).unwrap();
         for aggregation in [
             UrpdAggregation::Raw,

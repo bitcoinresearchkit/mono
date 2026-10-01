@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_Respent
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7998](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7998)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6688](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6688)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7998](https://github
 
 > **count**: [`FundedTotalPattern`](FundedTotalPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7999](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7999)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6689](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6689)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7999](https://github
 
 > **events**: [`SeriesTree_Addrs_Respent_Events`](SeriesTree_Addrs_Respent_Events.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8000](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8000)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6690](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6690)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8000](https://github
 
 > **supply**: [`SeriesTree_Addrs_Respent_Supply`](SeriesTree_Addrs_Respent_Supply.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8001](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8001)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6691](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6691)

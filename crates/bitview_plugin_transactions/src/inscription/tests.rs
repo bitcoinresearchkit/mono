@@ -14,8 +14,8 @@ use brk_types::{
 };
 use tempfile::tempdir;
 use vecdb::{
-    AnyStoredVec, Budgeted, Database, LazyVec, PcoVecValue, ReadableCloneableVec, ReadableVec,
-    VecIndex, WritableVec,
+    AnyStoredVec, Database, LazyVec, PcoVecValue, ReadableCloneableVec, ReadableVec, VecIndex,
+    WritableVec,
 };
 
 use super::{Vecs, forced_import};
@@ -39,7 +39,7 @@ fn checkpoint(vecs: &mut Vecs) {
 
 #[test]
 fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
-    let cache = Budgeted::init_global(16 * 1024 * 1024).unwrap();
+    let cache = crate::test_common::init_cache();
     let directory = tempdir().unwrap();
     let client = Client::new("http://127.0.0.1:1", Auth::None).unwrap();
     let reader = Reader::new_without_rlimit(directory.path().join("blocks"), &client);
@@ -59,6 +59,9 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
     let mut inscription_counts =
         import_cached::<Height, StoredU64>(&sources, "inscription_counts", Version::ONE).unwrap();
     let mut fees = import_cached::<TxIndex, Sats>(&sources, "fees", Version::ONE).unwrap();
+    let mut total_fees =
+        import_cached::<Height, Sats>(&sources, "total_fees", Version::ONE).unwrap();
+    replace(&mut total_fees, [60u64, 100, 90, 0].map(Sats::from));
     let mut flags = import_cached::<TxIndex, StoredBool>(&sources, "flags", Version::ONE).unwrap();
     let mut timestamps =
         import_cached::<Height, Timestamp>(&sources, "timestamps", Version::ONE).unwrap();
@@ -127,6 +130,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
             &inscription_counts,
             &flags,
             &fees,
+            &total_fees,
             &exit,
         )
         .unwrap();
@@ -216,6 +220,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         &mut fees,
         [0u64, 10, 20, 30, 0, 100, 100, 0, 90, 0].map(Sats::from),
     );
+    replace(&mut total_fees, [60u64, 200, 90, 0].map(Sats::from));
     replace(
         &mut flags,
         [
@@ -230,6 +235,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         &inscription_counts,
         &flags,
         &fees,
+        &total_fees,
         &exit,
     )
     .unwrap();
@@ -253,6 +259,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         &inscription_counts,
         &flags,
         &fees,
+        &total_fees,
         &exit,
     )
     .unwrap();
@@ -281,6 +288,7 @@ fn inscription_fees_survive_partial_inputs_reorgs_reopen_and_version_changes() {
         &inscription_counts,
         &revised_flags,
         &fees,
+        &total_fees,
         &exit,
     )
     .unwrap();

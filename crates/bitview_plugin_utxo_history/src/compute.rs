@@ -32,14 +32,15 @@ impl ComputePlugin for Vecs {
             ],
             version,
             usize::from(from).min(end),
+            context.exit(),
         )?;
+        let _lock = context.exit().lock();
         self.history
             .advance(start, end, spends, creations, |_, amount| {
                 self.supply.push(Sats::new(amount.sats));
                 self.count.height.push(StoredU64::from(amount.count));
                 Ok(())
             })?;
-        let _lock = context.exit().lock();
         self.supply.write()?;
         self.count.height.write()?;
         self.db.flush()?;

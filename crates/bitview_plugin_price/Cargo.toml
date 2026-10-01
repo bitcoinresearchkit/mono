@@ -9,6 +9,7 @@ repository.workspace = true
 exclude = ["examples/"]
 
 [dependencies]
+brk_exit = { workspace = true }
 bitview_vecs = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_mappings = { workspace = true }

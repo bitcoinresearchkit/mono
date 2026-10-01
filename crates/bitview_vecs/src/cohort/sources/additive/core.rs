@@ -1,7 +1,7 @@
 use std::ops::AddAssign;
 
 use bitview_cohort::{
-    AgeRange, ByEntry, ByEpoch, Class, CohortContext, CohortId, UTXOAggregate, UTXOCoreValues,
+    AgeRange, ByEpoch, Class, CohortContext, CohortId, UTXOAggregate, UTXOCoreValues,
     UTXOGroupsWithoutAmountOrType,
 };
 use bitview_traversable::Traversable;
@@ -105,13 +105,6 @@ impl<T: PcoVecValue + AddAssign> UTXOCoreSources<T> {
             .ok()?,
             class: Class::try_from_fn(|id| {
                 id.select(&self.cohorts.class)
-                    .as_ref()
-                    .and_then(ReadableVec::collect_last)
-                    .ok_or(())
-            })
-            .ok()?,
-            entry: ByEntry::try_from_fn(|id| {
-                id.select(&self.cohorts.entry)
                     .as_ref()
                     .and_then(ReadableVec::collect_last)
                     .ok_or(())

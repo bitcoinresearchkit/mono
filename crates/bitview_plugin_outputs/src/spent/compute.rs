@@ -19,34 +19,38 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
         + indexer.vecs().outputs.first_txout_index.version()
         + indexer.vecs().inputs.first_txin_index.version()
         + indexer.vecs().outputs.value.version();
-    bootstrap::reset_incomplete(vecs)?;
-    vecs.txin_index
-        .validate_computed_version_or_reset(dep_version)?;
-
+    {
+        let _lock = exit.lock();
+        bootstrap::reset_incomplete(vecs)?;
+        vecs.txin_index
+            .validate_computed_version_or_reset(dep_version)?;
+    }
     let target_height = indexer.vecs().blocks.blockhash.len();
     if target_height == 0 {
         return Ok(exit.lock());
     }
     let target_height = Height::from(target_height - 1);
 
-    // Zero means uninitialized; every checkpoint counts completed blocks.
-    let starting_stamp = Stamp::from(starting_lengths.height.incremented());
-    if vecs.txin_index.stamp() >= starting_stamp
-        && !vecs
+    let min_txout_index = {
+        let _lock = exit.lock();
+        // Zero means uninitialized; every checkpoint counts completed blocks.
+        let starting_stamp = Stamp::from(starting_lengths.height.incremented());
+        if vecs.txin_index.stamp() >= starting_stamp
+            && vecs.txin_index.rollback_before(starting_stamp)? >= starting_stamp
+        {
+            warn!("Could not roll back spent outputs; rebuilding");
+            vecs.txin_index.reset()?;
+        }
+        let min_txout_index = vecs
             .txin_index
-            .rollback_before(starting_stamp)
-            .is_ok_and(|stamp| stamp < starting_stamp)
-    {
-        warn!("Could not roll back spent outputs; rebuilding");
-        vecs.txin_index.reset()?;
-    }
-    let min_txout_index = vecs
-        .txin_index
-        .len()
-        .min(starting_lengths.txout_index.to_usize());
+            .len()
+            .min(starting_lengths.txout_index.to_usize());
 
-    vecs.txin_index
-        .truncate_if_needed(TxOutIndex::from(min_txout_index))?;
+        vecs.txin_index
+            .truncate_if_needed(TxOutIndex::from(min_txout_index))?;
+
+        min_txout_index
+    };
 
     let txin_index_to_txout_index = &indexer.vecs().inputs.txout_index;
     // Find min_height via binary search (first_txout_index is monotonically non-decreasing)
@@ -163,6 +167,7 @@ pub fn compute(vecs: &mut Vecs, indexer: &Indexer, exit: &Exit) -> Result<ExitGu
             })?;
 
         stored_updates.sort_unstable_by_key(|(txout_index, _)| *txout_index);
+        let _lock = exit.lock();
         vecs.txin_index.update_many(stored_updates)?;
 
         if batch_end_height < target_height {

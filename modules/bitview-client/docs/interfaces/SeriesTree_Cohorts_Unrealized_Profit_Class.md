@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_Profit\_Class
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13337](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13337)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10677](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10677)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13337](https://githu
 
 > **\_2009**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13338](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13338)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10678](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10678)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13338](https://githu
 
 > **\_2010**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13339](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13339)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10679](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10679)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13339](https://githu
 
 > **\_2011**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13340](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13340)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10680](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10680)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13340](https://githu
 
 > **\_2012**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13341](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13341)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10681](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10681)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13341](https://githu
 
 > **\_2013**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13342](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13342)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10682](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10682)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13342](https://githu
 
 > **\_2014**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13343](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13343)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10683](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10683)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13343](https://githu
 
 > **\_2015**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13344](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13344)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10684](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10684)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13344](https://githu
 
 > **\_2016**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13345](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13345)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10685](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10685)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13345](https://githu
 
 > **\_2017**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13346](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13346)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10686](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10686)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13346](https://githu
 
 > **\_2018**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13347](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13347)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10687](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10687)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13347](https://githu
 
 > **\_2019**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13348](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13348)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10688](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10688)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13348](https://githu
 
 > **\_2020**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13349](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13349)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10689](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10689)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13349](https://githu
 
 > **\_2021**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13350](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13350)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10690](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10690)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13350](https://githu
 
 > **\_2022**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13351](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13351)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10691](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10691)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13351](https://githu
 
 > **\_2023**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13352](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13352)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10692](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10692)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13352](https://githu
 
 > **\_2024**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13353](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13353)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10693](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10693)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13353](https://githu
 
 > **\_2025**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13354](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13354)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10694](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10694)
 
 ***
 
@@ -150,4 +150,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13354](https://githu
 
 > **\_2026**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13355](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13355)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10695](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10695)

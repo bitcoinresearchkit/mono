@@ -6,7 +6,7 @@
 
 # Interface: \_1m1w1y24hPattern\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5792](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5792)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4791](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4791)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5792](https://github
 
 > **\_1m**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5793](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5793)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4792](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4792)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5793](https://github
 
 > **\_1w**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5794](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5794)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4793](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4793)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5794](https://github
 
 > **\_1y**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5795](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5795)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4794](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4794)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5795](https://github
 
 > **\_24h**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5796](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5796)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4795](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4795)

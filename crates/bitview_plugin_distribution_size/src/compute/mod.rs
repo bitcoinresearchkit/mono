@@ -4,4 +4,4 @@ mod readers;
 mod write;
 pub use block_loop::process_chunk;
 pub use context::ComputeContext;
-pub use readers::{AddrReaders, IndexToTxIndexBuf, TxInReaders, TxOutData, TxOutReaders};
+pub use readers::{AddrReaders, Workspace};

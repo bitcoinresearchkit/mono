@@ -61,7 +61,6 @@ impl<T> UTXOGroups<T> {
             .chain(self.core.age.iter())
             .chain(self.core.epoch.iter())
             .chain(self.core.class.iter())
-            .chain(self.core.entry.iter())
             .chain(self.type_.iter())
     }
 
@@ -73,7 +72,6 @@ impl<T> UTXOGroups<T> {
             .chain(self.core.age.iter_mut())
             .chain(self.core.epoch.iter_mut())
             .chain(self.core.class.iter_mut())
-            .chain(self.core.entry.iter_mut())
             .chain(self.type_.iter_mut())
     }
 
@@ -88,7 +86,6 @@ impl<T> UTXOGroups<T> {
             .chain(self.core.age.par_iter_mut())
             .chain(self.core.epoch.par_iter_mut())
             .chain(self.core.class.par_iter_mut())
-            .chain(self.core.entry.par_iter_mut())
             .chain(self.type_.par_iter_mut())
     }
 }

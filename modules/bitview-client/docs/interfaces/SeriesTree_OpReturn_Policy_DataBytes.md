@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_OpReturn\_Policy\_DataBytes
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8288](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8288)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6978](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6978)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8288](https://github
 
 > **multiple**: [`AverageBlockChainCumulativeDataSumPattern`](AverageBlockChainCumulativeDataSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8292](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8292)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6982](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6982)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8292](https://github
 
 > **oversized**: [`AverageBlockChainCumulativeDataSumPattern`](AverageBlockChainCumulativeDataSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8291](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8291)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6981](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6981)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8291](https://github
 
 > **preV30Nonstandard**: [`AverageBlockChainCumulativeDataSumPattern`](AverageBlockChainCumulativeDataSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8290](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8290)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6980](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6980)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8290](https://github
 
 > **preV30Standard**: [`AverageBlockChainCumulativeDataSumPattern`](AverageBlockChainCumulativeDataSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8289](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8289)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6979](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6979)

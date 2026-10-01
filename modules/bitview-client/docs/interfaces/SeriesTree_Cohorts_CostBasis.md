@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_CostBasis
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13997](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13997)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11022](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11022)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13997](https://githu
 
 > **all**: [`SeriesTree_Cohorts_CostBasis_All`](SeriesTree_Cohorts_CostBasis_All.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13998](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13998)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11023](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11023)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13998](https://githu
 
 > **lth**: [`InMaxMinPerSupplyPattern`](InMaxMinPerSupplyPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14000](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14000)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11025](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11025)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14000](https://githu
 
 > **sth**: [`InMaxMinPerSupplyPattern`](InMaxMinPerSupplyPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13999](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13999)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11024](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11024)

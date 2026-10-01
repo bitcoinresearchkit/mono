@@ -5,9 +5,9 @@ mod chain_counts;
 mod dependencies;
 mod has;
 mod height;
+mod height_lookup;
 mod resolution;
 mod timestamp;
-mod tx_heights;
 mod tx_index;
 mod txin_index;
 mod txout_index;
@@ -29,9 +29,9 @@ use brk_types::{
 };
 use chain_counts::ChainCounts;
 use height::Vecs as HeightVecs;
+use height_lookup::HeightLookup;
 use resolution::{DatedResolutionVecs, ResolutionVecs};
 use timestamp::Timestamps;
-use tx_heights::TxHeights;
 use tx_index::Vecs as TxIndexVecs;
 use txin_index::Vecs as TxInIndexVecs;
 use txout_index::Vecs as TxOutIndexVecs;
@@ -39,7 +39,7 @@ use vecdb::{Database, IndexVec, ReadableBoxedVec, ReadableCloneableVec, Rw, Stor
 
 pub use dependencies::Dependencies;
 pub use has::HasMappings;
-pub use tx_heights::TxHeightMap;
+pub use height_lookup::HeightMap;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mappings"), Version::new(9));
 pub const ID: PluginId = STORAGE.id();
@@ -52,7 +52,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     sources: IndexSources,
     #[traversable(skip)]
-    pub tx_heights: TxHeights,
+    pub tx_heights: HeightLookup<TxIndex>,
+    #[traversable(skip)]
+    pub output_heights: HeightLookup<TxOutIndex>,
     pub addr: AddrVecs,
     pub height: HeightVecs,
     pub epoch: ResolutionVecs<Epoch>,
@@ -283,7 +285,8 @@ impl Vecs {
         let this = Self {
             chain_counts,
             sources,
-            tx_heights: TxHeights::init(indexer),
+            tx_heights: HeightLookup::init(&indexer.vecs().transactions.first_tx_index),
+            output_heights: HeightLookup::init(&indexer.vecs().outputs.first_txout_index),
             addr,
             height,
             epoch,
@@ -343,7 +346,10 @@ impl ComputePlugin for Vecs {
 
         let starting_height = indexer.safe_lengths().height;
 
-        self.tx_heights.update(indexer, starting_height);
+        self.tx_heights
+            .update(&indexer.vecs().transactions.first_tx_index, starting_height);
+        self.output_heights
+            .update(&indexer.vecs().outputs.first_txout_index, starting_height);
 
         // timestamp_monotonic must be computed first — other mappings read it
         self.timestamp

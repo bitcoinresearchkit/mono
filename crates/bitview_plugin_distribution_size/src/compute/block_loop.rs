@@ -1,28 +1,41 @@
+use std::ops::Range;
+
 use bitview_cohort::ByAddrType;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Sats, TxInIndex, TxIndex, TypeIndex};
+use brk_types::{Height, TxIndex, TypeIndex};
 use rayon::{join, prelude::*};
 use tracing::{debug, info};
-use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex, unlikely};
+use vecdb::{AnyVec, ReadableVec, VecIndex, unlikely};
 
 use super::{
     super::{
         state::{AddrStates, UTXOStates},
         vecs::Vecs,
     },
-    AddrReaders, ComputeContext, IndexToTxIndexBuf, TxInReaders, TxOutReaders,
+    AddrReaders, ComputeContext, Workspace,
 };
 use crate::{
     addr::AddrMetricsState,
     block::{
-        AddrCache, TransferAddressCache, normalize_supply, process_inputs_lean, process_outputs,
+        TransferAddressCache, normalize_supply, process_inputs_lean, process_outputs,
         process_received, process_typed_sent,
     },
     compute::write::write,
 };
+
+const BATCH_BLOCKS: usize = 16;
+
+fn index_range<I: VecIndex>(
+    first_indexes: &[I],
+    from: usize,
+    to: usize,
+    source_len: usize,
+) -> Range<usize> {
+    first_indexes[from].to_usize()..first_indexes.get(to).map_or(source_len, |i| i.to_usize())
+}
 
 /// Process all blocks from starting_height to last_height.
 #[allow(clippy::too_many_arguments)]
@@ -32,7 +45,7 @@ pub fn process_chunk(
     addr_states: &mut AddrStates,
     indexer: &Indexer,
     mappings: &MappingsVecs,
-    input_values: &PcoVec<TxInIndex, Sats>,
+    workspace: &mut Workspace<'_>,
     ctx: &ComputeContext<'_>,
     final_chunk: bool,
     exit: &Exit,
@@ -72,18 +85,13 @@ pub fn process_chunk(
     let vr = AddrReaders::new(&vecs.addr_state);
     debug!("AddrReaders created");
 
-    // Create reusable iterators and buffers for per-block reads
-    let tx_heights = mappings.tx_heights.read();
-    let mut txout_iters = TxOutReaders::new(indexer);
-    let mut txin_iters = TxInReaders::new(
-        input_values,
-        &indexer.vecs().inputs.outpoint,
-        &indexer.vecs().inputs.output_type,
-        &indexer.vecs().inputs.type_index,
-        &tx_heights,
-    );
-    let mut txout_to_tx_index_buf = IndexToTxIndexBuf::new();
-    let mut txin_to_tx_index_buf = IndexToTxIndexBuf::new();
+    let Workspace {
+        outputs,
+        inputs,
+        output_txs,
+        input_txs,
+        addresses: cache,
+    } = workspace;
 
     // Pre-collect first address mappings per type for the block range
     let first_p2a_vec = indexer
@@ -142,13 +150,10 @@ pub fn process_chunk(
     let mut state = AddrMetricsState::from((&vecs.addrs, starting_height));
     debug!("addr metrics state recovered");
 
-    debug!("creating AddrCache");
-    let mut cache = AddrCache::default();
-    debug!("AddrCache created, entering main loop");
-
     // Pre-truncate all stored vecs to starting_height (one-time).
     // This eliminates per-push truncation checks inside the block loop.
     {
+        let _lock = exit.lock();
         let start = starting_height.to_usize();
         vecs.cohorts
             .par_iter_vecs_mut()
@@ -158,39 +163,37 @@ pub fn process_chunk(
 
     let mut transfer_addresses = TransferAddressCache::default();
 
-    // Main block iteration
-    for height in starting_height.to_usize()..=last_height.to_usize() {
-        let height = Height::from(height);
+    // Bound source buffers while loading cold address state once for several blocks.
+    for batch_start in (start_usize..end_usize).step_by(BATCH_BLOCKS) {
+        let batch_end = (batch_start + BATCH_BLOCKS).min(end_usize);
+        let offset = batch_start - start_usize;
+        let end_offset = batch_end - start_usize;
+        let batch_outputs = index_range(
+            &height_to_first_txout_index_vec,
+            offset,
+            end_offset,
+            indexer.vecs().outputs.value.len(),
+        );
+        let batch_inputs = index_range(
+            &height_to_first_txin_index_vec,
+            offset,
+            end_offset,
+            indexer.vecs().inputs.outpoint.len(),
+        );
+        let (output_columns, input_columns) = join(
+            || outputs.collect_outputs(batch_outputs.start, batch_outputs.len()),
+            || {
+                inputs.collect_inputs(
+                    batch_inputs.start,
+                    batch_inputs.len(),
+                    Height::from(batch_start),
+                )
+            },
+        );
+        let (output_values, output_types, output_indexes) = output_columns?;
+        let (input_values, input_heights, input_types, input_indexes) = input_columns?;
 
-        if unlikely(height.is_multiple_of(100)) {
-            info!("Computing metrics at block {height}...");
-        } else {
-            debug!("Processing chain at {}...", height);
-        }
-
-        // Get block metadata from pre-collected vecs
-        let offset = height.to_usize() - start_usize;
-        let first_tx_index = height_to_first_tx_index_vec[offset];
-        let tx_count = (height_to_first_tx_index_vec
-            .get(offset + 1)
-            .map_or(indexer.vecs().transactions.txid.len(), |i| i.to_usize())
-            - first_tx_index.to_usize()) as u64;
-        let first_txout_index = height_to_first_txout_index_vec[offset].to_usize();
-        let output_count = height_to_first_txout_index_vec
-            .get(offset + 1)
-            .map_or(indexer.vecs().outputs.value.len(), |i| i.to_usize())
-            - first_txout_index;
-        let first_txin_index = height_to_first_txin_index_vec[offset].to_usize();
-        let input_count = height_to_first_txin_index_vec
-            .get(offset + 1)
-            .map_or(indexer.vecs().inputs.outpoint.len(), |i| i.to_usize())
-            - first_txin_index;
-        let block_price = height_to_price_collected[offset];
-
-        // Debug validation: verify context methods match pre-collected values
-        debug_assert_eq!(ctx.price_at(height), block_price);
-
-        // Get first address mappings for this height from pre-collected vecs
+        // Addresses created within this batch start at these per-type indexes.
         let first_addr_indexes = ByAddrType {
             p2a: TypeIndex::from(first_p2a_vec[offset].to_usize()),
             p2pk33: TypeIndex::from(first_p2pk33_vec[offset].to_usize()),
@@ -202,139 +205,145 @@ pub fn process_chunk(
             p2wsh: TypeIndex::from(first_p2wsh_vec[offset].to_usize()),
         };
 
-        state.reset_per_block();
-
-        debug_assert!(input_count > 0);
-
-        let (outputs_result, inputs_result) = {
-            // Collect both sides concurrently, then load their shared addresses once.
-            let (
-                (txout_index_to_tx_index, txout_data_vec),
-                (
-                    txin_index_to_tx_index,
-                    (input_values, input_prev_heights, input_output_types, input_type_indexes),
+        cache.load_addresses(
+            output_types
+                .iter()
+                .copied()
+                .zip(output_indexes.iter().copied())
+                .chain(
+                    input_types
+                        .iter()
+                        .copied()
+                        .zip(input_indexes.iter().copied()),
                 ),
-            ) = join(
-                || {
-                    let txout_index_to_tx_index = txout_to_tx_index_buf.build(
-                        first_tx_index,
-                        tx_count,
-                        tx_index_to_output_count,
-                    );
-                    let txout_data_vec =
-                        txout_iters.collect_block_outputs(first_txout_index, output_count);
-                    (txout_index_to_tx_index, txout_data_vec)
-                },
-                || {
-                    let txin_index_to_tx_index = txin_to_tx_index_buf.build(
-                        first_tx_index,
-                        tx_count,
-                        tx_index_to_input_count,
-                    );
-                    let input_data = txin_iters.collect_block_inputs(
-                        first_txin_index + 1,
-                        input_count - 1,
-                        height,
-                    );
-                    (txin_index_to_tx_index, input_data)
-                },
-            );
+            &first_addr_indexes,
+            &vr,
+            &vecs.addr_state,
+        );
 
-            cache.load_block_addresses(
-                txout_data_vec
-                    .iter()
-                    .map(|data| (data.output_type, data.type_index))
-                    .chain(
-                        input_output_types
-                            .iter()
-                            .copied()
-                            .zip(input_type_indexes.iter().copied()),
-                    ),
-                &first_addr_indexes,
-                &vr,
-                &vecs.addr_state,
+        for height in batch_start..batch_end {
+            let height = Height::from(height);
+            if unlikely(height.is_multiple_of(100)) {
+                info!("Computing metrics at block {height}...");
+            } else {
+                debug!("Processing chain at {height}...");
+            }
+            let offset = height.to_usize() - start_usize;
+            let transactions = index_range(
+                &height_to_first_tx_index_vec,
+                offset,
+                offset + 1,
+                indexer.vecs().transactions.txid.len(),
             );
+            let outputs = index_range(
+                &height_to_first_txout_index_vec,
+                offset,
+                offset + 1,
+                indexer.vecs().outputs.value.len(),
+            );
+            let inputs = index_range(
+                &height_to_first_txin_index_vec,
+                offset,
+                offset + 1,
+                indexer.vecs().inputs.outpoint.len(),
+            );
+            let block_price = height_to_price_collected[offset];
+            debug_assert_eq!(ctx.price_at(height), block_price);
+            let output_range =
+                outputs.start - batch_outputs.start..outputs.end - batch_outputs.start;
+            // Omit this block's coinbase, including coinbase-only blocks.
+            let input_range =
+                inputs.start + 1 - batch_inputs.start..inputs.end - batch_inputs.start;
+            state.reset_per_block();
+
+            debug_assert!(!inputs.is_empty());
+
             let (outputs_result, inputs_result) = join(
-                || process_outputs(txout_index_to_tx_index, txout_data_vec),
+                || {
+                    process_outputs(
+                        output_txs.build(
+                            TxIndex::from(transactions.start),
+                            transactions.len() as u64,
+                            tx_index_to_output_count,
+                        ),
+                        &output_values[output_range.clone()],
+                        &output_types[output_range.clone()],
+                        &output_indexes[output_range],
+                    )
+                },
                 || {
                     process_inputs_lean(
-                        &txin_index_to_tx_index[1..],
-                        input_values,
-                        input_output_types,
-                        input_type_indexes,
-                        input_prev_heights,
+                        input_txs
+                            .build(
+                                TxIndex::from(transactions.start),
+                                transactions.len() as u64,
+                                tx_index_to_input_count,
+                            )
+                            .skip(1),
+                        &input_values[input_range.clone()],
+                        &input_types[input_range.clone()],
+                        &input_indexes[input_range.clone()],
+                        &input_heights[input_range],
                         block_price,
                         height_to_price_vec,
                     )
                 },
             );
-            (outputs_result, inputs_result)
-        };
 
-        // Update tx_count from the transaction-ordered output and input maps.
-        cache.update_tx_counts(&outputs_result.received, inputs_result.tx_index_vecs);
+            // Update tx_count from the transaction-ordered output and input maps.
+            cache.update_tx_counts(&outputs_result.received, inputs_result.tx_index_vecs);
 
-        let mut transacted = outputs_result.transacted;
-        let mut detailed = inputs_result.detailed;
+            let mut transacted = outputs_result.transacted;
+            let mut detailed = inputs_result.detailed;
 
-        normalize_supply(height, &mut transacted, &mut detailed, height_to_price_vec);
+            normalize_supply(height, &mut transacted, &mut detailed, height_to_price_vec);
 
-        transfer_addresses.prepare(
-            outputs_result
-                .received
-                .iter()
-                .flat_map(|(ty, entries)| entries.keys().copied().map(move |index| (ty, index))),
-        );
+            transfer_addresses.prepare(
+                outputs_result.received.iter().flat_map(|(ty, entries)| {
+                    entries.keys().copied().map(move |index| (ty, index))
+                }),
+            );
 
-        // Process UTXO cohorts and Addr cohorts in parallel
-        let (_, addr_result) = join(
-            || {
-                utxo_states.receive_details(&transacted, block_price);
-                detailed.apply(utxo_states);
-            },
-            || -> Result<()> {
-                let mut lookup = cache.as_lookup();
+            utxo_states.receive_details(&transacted, block_price);
+            detailed.apply(utxo_states);
+            let mut lookup = cache.as_lookup();
+            process_received(
+                outputs_result.received,
+                addr_states,
+                &mut lookup,
+                block_price,
+                &mut state,
+            );
+            process_typed_sent(
+                inputs_result.sent_data.into_typed(height_to_price_vec),
+                addr_states,
+                &mut lookup,
+                block_price,
+                &mut state,
+                &mut transfer_addresses,
+            )?;
 
-                process_received(
-                    outputs_result.received,
-                    addr_states,
-                    &mut lookup,
-                    block_price,
-                    &mut state,
-                );
+            let active_addr_count = state.activity.active();
+            vecs.addrs.push_height(&state, active_addr_count);
 
-                process_typed_sent(
-                    inputs_result.sent_data.into_typed(height_to_price_vec),
-                    addr_states,
-                    &mut lookup,
-                    block_price,
-                    &mut state,
-                    &mut transfer_addresses,
-                )
-            },
-        );
-        addr_result?;
-
-        let active_addr_count = state.activity.active();
-        vecs.addrs.push_height(&state, active_addr_count);
-
-        addr_states.push(&mut vecs.cohorts, &mut vecs.addrs.funded, block_price);
-        vecs.cohorts.push(utxo_states, block_price);
-        utxo_states
-            .type_
-            .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
-        utxo_states
-            .amount_range
-            .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
-        addr_states.reset_block();
+            addr_states.push(&mut vecs.cohorts, &mut vecs.addrs.funded, block_price);
+            vecs.cohorts.push(utxo_states, block_price);
+            utxo_states
+                .type_
+                .iter_mut()
+                .for_each(|state| state.reset_single_iteration_values());
+            utxo_states
+                .amount_range
+                .iter_mut()
+                .for_each(|state| state.reset_single_iteration_values());
+            addr_states.reset_block();
+        }
     }
     drop(vr);
+    let _lock = exit.lock();
     cache.flush_into(&mut vecs.addr_state)?;
     // Final write - always save changes for rollback support
 
-    let _lock = exit.lock();
     // Write to disk (pure I/O) - save changes for rollback
     write(vecs, utxo_states, addr_states, last_height, final_chunk)?;
     if !final_chunk {

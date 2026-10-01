@@ -6,7 +6,7 @@
 
 # Interface: BlocksDominancePattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6656](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6656)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5507](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5507)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6656](https://github
 
 > **blocksMined**: [`BlockCumulativeSumPattern2`](BlockCumulativeSumPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6657](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6657)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5508](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5508)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6657](https://github
 
 > **dominance**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6658](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6658)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5509](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5509)

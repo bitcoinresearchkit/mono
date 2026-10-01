@@ -1,4 +1,3 @@
-mod aggregate;
 mod batch;
 mod decay;
 mod values;

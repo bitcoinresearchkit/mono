@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Returns\_Sd24h
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9511](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9511)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8281](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8281)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9511](https://github
 
 > **\_1m**: [`SeriesTree_Market_Returns_Sd24h_1m`](SeriesTree_Market_Returns_Sd24h_1m.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9514](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9514)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8284](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8284)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9514](https://github
 
 > **\_1w**: [`SeriesTree_Market_Returns_Sd24h_1w`](SeriesTree_Market_Returns_Sd24h_1w.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9513](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9513)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8283](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8283)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9513](https://github
 
 > **\_1y**: [`SeriesTree_Market_Returns_Sd24h_1y`](SeriesTree_Market_Returns_Sd24h_1y.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9515](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9515)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8285](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8285)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9515](https://github
 
 > **\_24h**: [`SeriesTree_Market_Returns_Sd24h_24h`](SeriesTree_Market_Returns_Sd24h_24h.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9512](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9512)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8282](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8282)

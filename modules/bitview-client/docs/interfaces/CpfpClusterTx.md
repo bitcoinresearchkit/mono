@@ -6,7 +6,7 @@
 
 # Interface: CpfpClusterTx
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:447](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L447)
+Defined in: [Developer/mono/modules/bitview-client/index.js:446](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L446)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:447](https://github.
 
 > **fee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:450](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L450)
+Defined in: [Developer/mono/modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L449)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:450](https://github.
 
 > **parents**: `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:451](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L451)
+Defined in: [Developer/mono/modules/bitview-client/index.js:450](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L450)
 
 In-cluster parents of this tx.
 
@@ -32,7 +32,7 @@ In-cluster parents of this tx.
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:448](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L448)
+Defined in: [Developer/mono/modules/bitview-client/index.js:447](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L447)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:448](https://github.
 
 > **weight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:449](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L449)
+Defined in: [Developer/mono/modules/bitview-client/index.js:448](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L448)

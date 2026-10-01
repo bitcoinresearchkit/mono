@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Market\_Technical\_Macd
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9634](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9634)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8404](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8404)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9634](https://github
 
 > **\_1m**: [`SeriesTree_Market_Technical_Macd_1m`](SeriesTree_Market_Technical_Macd_1m.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9637](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9637)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8407](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8407)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9637](https://github
 
 > **\_1w**: [`SeriesTree_Market_Technical_Macd_1w`](SeriesTree_Market_Technical_Macd_1w.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9636](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9636)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8406](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8406)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9636](https://github
 
 > **\_24h**: [`SeriesTree_Market_Technical_Macd_24h`](SeriesTree_Market_Technical_Macd_24h.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9635](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9635)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8405](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8405)

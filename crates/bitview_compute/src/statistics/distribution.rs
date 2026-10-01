@@ -40,16 +40,19 @@ where
     } = outputs;
     let version = window_starts.version() + values.version();
 
-    for v in [
-        &mut *min_out,
-        &mut *max_out,
-        &mut *p10_out,
-        &mut *p25_out,
-        &mut *median_out,
-        &mut *p75_out,
-        &mut *p90_out,
-    ] {
-        v.validate_and_truncate(version, max_from)?;
+    {
+        let _lock = exit.lock();
+        for v in [
+            &mut *min_out,
+            &mut *max_out,
+            &mut *p10_out,
+            &mut *p25_out,
+            &mut *median_out,
+            &mut *p75_out,
+            &mut *p90_out,
+        ] {
+            v.validate_and_truncate(version, max_from)?;
+        }
     }
 
     let skip = [

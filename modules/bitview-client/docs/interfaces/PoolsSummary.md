@@ -6,7 +6,7 @@
 
 # Interface: PoolsSummary
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:979](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L979)
+Defined in: [Developer/mono/modules/bitview-client/index.js:978](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L978)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:979](https://github.
 
 > **blockCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:981](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L981)
+Defined in: [Developer/mono/modules/bitview-client/index.js:980](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L980)
 
 Total blocks in the time period
 
@@ -24,7 +24,7 @@ Total blocks in the time period
 
 > **lastEstimatedHashrate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:982](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L982)
+Defined in: [Developer/mono/modules/bitview-client/index.js:981](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L981)
 
 Estimated network hashrate (H/s)
 
@@ -34,7 +34,7 @@ Estimated network hashrate (H/s)
 
 > **lastEstimatedHashrate1w**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:984](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L984)
+Defined in: [Developer/mono/modules/bitview-client/index.js:983](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L983)
 
 Estimated network hashrate over last 1 week (H/s)
 
@@ -44,7 +44,7 @@ Estimated network hashrate over last 1 week (H/s)
 
 > **lastEstimatedHashrate3d**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:983](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L983)
+Defined in: [Developer/mono/modules/bitview-client/index.js:982](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L982)
 
 Estimated network hashrate over last 3 days (H/s)
 
@@ -54,6 +54,6 @@ Estimated network hashrate over last 3 days (H/s)
 
 > **pools**: [`PoolStats`](PoolStats.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:980](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L980)
+Defined in: [Developer/mono/modules/bitview-client/index.js:979](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L979)
 
 List of pools sorted by block count descending

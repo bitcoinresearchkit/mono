@@ -6,7 +6,7 @@
 
 # Interface: AddrHashPrefixParam
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:41](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L41)
+Defined in: [Developer/mono/modules/bitview-client/index.js:41](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L41)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:41](https://github.c
 
 > **addrType**: [`OutputType`](../type-aliases/OutputType.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:42](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L42)
+Defined in: [Developer/mono/modules/bitview-client/index.js:42](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L42)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:42](https://github.c
 
 > **prefix**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:43](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L43)
+Defined in: [Developer/mono/modules/bitview-client/index.js:43](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L43)
 
 First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 address payload bytes.

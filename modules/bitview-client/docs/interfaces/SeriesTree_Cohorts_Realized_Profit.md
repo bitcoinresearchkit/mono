@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Profit
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11979](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11979)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9863](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9863)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11979](https://githu
 
 > **addrBalance**: [`SeriesTree_Cohorts_Realized_Profit_AddrBalance`](SeriesTree_Cohorts_Realized_Profit_AddrBalance.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11988](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11988)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9871](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9871)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11988](https://githu
 
 > **age**: [`SeriesTree_Cohorts_Realized_Profit_Age`](SeriesTree_Cohorts_Realized_Profit_Age.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11981](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11981)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9865](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9865)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11981](https://githu
 
 > **all**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11980](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11980)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9864](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9864)
 
 ***
 
@@ -38,15 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11980](https://githu
 
 > **class**: [`SeriesTree_Cohorts_Realized_Profit_Class`](SeriesTree_Cohorts_Realized_Profit_Class.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11983](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11983)
-
-***
-
-### entry
-
-> **entry**: [`DiscountPremiumPattern5`](DiscountPremiumPattern5.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:11984](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11984)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9867](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9867)
 
 ***
 
@@ -54,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11984](https://githu
 
 > **epoch**: [`SeriesTree_Cohorts_Realized_Profit_Epoch`](SeriesTree_Cohorts_Realized_Profit_Epoch.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11982](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11982)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9866](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9866)
 
 ***
 
@@ -62,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11982](https://githu
 
 > **term**: [`LongShortPattern7`](LongShortPattern7.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11986](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11986)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9868](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9868)
 
 ***
 
@@ -70,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11986](https://githu
 
 > **type**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern5`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern5.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11987](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11987)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9870](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9870)
 
 ***
 
@@ -78,4 +70,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11987](https://githu
 
 > **utxoAmount**: [`SeriesTree_Cohorts_Realized_Profit_UtxoAmount`](SeriesTree_Cohorts_Realized_Profit_UtxoAmount.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11985](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11985)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9869](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9869)

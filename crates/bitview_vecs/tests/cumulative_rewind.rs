@@ -45,6 +45,7 @@ fn computed_outputs_share_the_shortest_valid_prefix() {
                 [&mut left as &mut dyn AnyStoredVec, &mut right],
                 Version::ONE,
                 max_from,
+                &Exit::new(),
             )
             .unwrap(),
             expected,

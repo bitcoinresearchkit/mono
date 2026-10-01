@@ -1,5 +1,5 @@
 use brk_error::Result;
-use brk_types::{BlockHash, Height, Sats, SupplyState, Version};
+use brk_types::{BlockHash, Height, SupplyState, Version};
 use rustc_hash::FxHashMap;
 use statedb::{Amount, Spends};
 use std::path::Path;
@@ -39,20 +39,8 @@ impl OriginSpends {
     pub fn version(&self) -> Version {
         Version::ONE + Version::from(self.store.version() as u32)
     }
-    pub fn total(&self, height: Height) -> Result<SupplyState> {
-        let (_, v) = self
-            .store
-            .read(usize::from(height), &mut Vec::new(), &mut Vec::new())?;
-        Ok(SupplyState {
-            value: Sats::new(v.sats),
-            utxo_count: v.count,
-        })
-    }
-    pub(super) fn hash(&self, height: usize) -> Option<BlockHash> {
-        self.store
-            .hash(height)
-            .ok()
-            .and_then(|h| BlockHash::from_bytes(&h).ok())
+    pub(super) fn hash(&self, height: usize) -> Result<BlockHash> {
+        Ok(BlockHash::from_bytes(&self.store.hash(height)?)?)
     }
     pub(super) fn push(
         &mut self,
@@ -73,26 +61,6 @@ impl OriginSpends {
                 )
             }),
         )?;
-        Ok(())
-    }
-    pub fn read(
-        &self,
-        height: Height,
-        bytes: &mut Vec<u8>,
-        spent: &mut Vec<(Height, SupplyState)>,
-    ) -> Result<()> {
-        let mut rows = Vec::new();
-        self.store.read(usize::from(height), bytes, &mut rows)?;
-        spent.clear();
-        spent.extend(rows.into_iter().map(|(h, v)| {
-            (
-                Height::new(h),
-                SupplyState {
-                    value: Sats::new(v.sats),
-                    utxo_count: v.count,
-                },
-            )
-        }));
         Ok(())
     }
     pub(super) fn commit(&mut self) -> Result<()> {

@@ -6,7 +6,7 @@
 
 # Interface: SeriesNameWithIndex
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1143](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1143)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1142](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1142)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1143](https://github
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1145](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1145)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1144](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1144)
 
 Aggregation index
 
@@ -24,6 +24,6 @@ Aggregation index
 
 > **series**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1144](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1144)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1143](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1143)
 
 Series name

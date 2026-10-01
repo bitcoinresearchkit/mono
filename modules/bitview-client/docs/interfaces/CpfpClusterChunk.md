@@ -6,7 +6,7 @@
 
 # Interface: CpfpClusterChunk
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:440](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L440)
+Defined in: [Developer/mono/modules/bitview-client/index.js:439](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L439)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:440](https://github.
 
 > **feerate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:442](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L442)
+Defined in: [Developer/mono/modules/bitview-client/index.js:441](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L441)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:442](https://github.
 
 > **txs**: `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:441](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L441)
+Defined in: [Developer/mono/modules/bitview-client/index.js:440](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L440)

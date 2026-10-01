@@ -10,6 +10,7 @@ import {
   percentRatioDots,
   sumsAndAveragesCumulative,
 } from "../../series.js";
+import { AGE_CUTOFFS } from "../../age-cutoffs.js";
 import { ageRanges } from "../../age-ranges.js";
 import { satsBtcUsd, simplePriceRatioTree } from "../../shared.js";
 import {
@@ -52,6 +53,21 @@ export function createCointimeSection() {
     { name: "All", color: colors.awake, tree: cointime },
     { name: "STH", color: colors.term.short, tree: cointime.sth },
     { name: "LTH", color: colors.term.long, tree: cointime.lth },
+  ];
+
+  const awakePrices = [
+    ...awakeCohorts.map(({ name, color, tree }) => ({
+      name,
+      color,
+      price: tree.awake.price,
+      capitalizedPrice: tree.awake.capitalizedPrice,
+    })),
+    ...AGE_CUTOFFS.map(({ key, name }, index, all) => ({
+      name,
+      color: colors.at(index, all.length),
+      price: cointime[`${key}AwakePrice`],
+      capitalizedPrice: cointime[`${key}AwakeCapitalizedPrice`],
+    })),
   ];
 
   // Reference lines for cap comparisons
@@ -219,9 +235,9 @@ export function createCointimeSection() {
               ...prices.map(({ pattern, name, color, defaultActive }) =>
                 price({ series: pattern, name, color, defaultActive }),
               ),
-              ...awakeCohorts.map(({ name, color, tree }) =>
+              ...awakePrices.map(({ name, color, price: awakePrice }) =>
                 price({
-                  series: tree.awake.price,
+                  series: awakePrice,
                   name: name === "All" ? "Awake" : `${name} Awake`,
                   color,
                 }),
@@ -237,10 +253,10 @@ export function createCointimeSection() {
             });
             return { ...chart, name };
           }),
-          ...awakeCohorts.map(({ name, color, tree }) => {
+          ...awakePrices.map(({ name, color, price: awakePrice }) => {
             const awakeName = name === "All" ? "Awake" : `${name} Awake`;
             const [chart] = simplePriceRatioTree({
-              pattern: tree.awake.price,
+              pattern: awakePrice,
               title: `${awakeName} Price`,
               legend: awakeName,
               color,
@@ -255,18 +271,18 @@ export function createCointimeSection() {
         tree: [
           {
             name: "Compare",
-            title: "Awake Capitalized Price by Holder Term",
-            top: awakeCohorts.map(({ name, color, tree }) =>
-              price({ series: tree.awake.capitalizedPrice, name, color }),
+            title: "Awake Capitalized Price by Holder Age",
+            top: awakePrices.map(({ name, color, capitalizedPrice }) =>
+              price({ series: capitalizedPrice, name, color }),
             ),
           },
-          ...awakeCohorts.map(({ name, color, tree }) => {
+          ...awakePrices.map(({ name, color, capitalizedPrice }) => {
             const title =
               name === "All"
                 ? "Awake Capitalized Price"
                 : `${name} Awake Capitalized Price`;
             const [chart] = simplePriceRatioTree({
-              pattern: tree.awake.capitalizedPrice,
+              pattern: capitalizedPrice,
               title,
               legend: name,
               color,
@@ -413,6 +429,12 @@ export function createCointimeSection() {
                     color: colors.loss,
                     unit: Unit.ratio,
                   }),
+                  line({
+                    series: cointimeSupply.active.inLoss.share.bounded,
+                    name: "Bounded Share",
+                    color: colors.active,
+                    unit: Unit.ratio,
+                  }),
                 ],
               },
               {
@@ -477,19 +499,17 @@ export function createCointimeSection() {
                   unit: Unit.coinblocks,
                 }),
               },
-              ...coinblocks.map(
-                ({ pattern, name, title: metric, color }) => ({
-                  name,
-                  tree: sumsAndAveragesCumulative({
-                    sum: pattern.sum,
-                    average: pattern.average,
-                    cumulative: pattern.cumulative,
-                    metric,
-                    unit: Unit.coinblocks,
-                    color,
-                  }),
+              ...coinblocks.map(({ pattern, name, title: metric, color }) => ({
+                name,
+                tree: sumsAndAveragesCumulative({
+                  sum: pattern.sum,
+                  average: pattern.average,
+                  cumulative: pattern.cumulative,
+                  metric,
+                  unit: Unit.coinblocks,
+                  color,
                 }),
-              ),
+              })),
             ],
           },
           createCointimeAgeRangeActivitySection(cointimeAgeRanges),

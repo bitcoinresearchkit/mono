@@ -2,7 +2,6 @@ use crate::{
     compute::{ComputeContext, PriceRangeMax},
     state::UTXOStates,
 };
-use bitview_cohort::EntryPrice;
 use brk_types::{Cents, Height, Sats, SupplyState, Timestamp};
 #[test]
 fn aggregated_origins_match_individual_spends() {
@@ -12,24 +11,23 @@ fn aggregated_origins_match_individual_spends() {
     individual.reset().unwrap();
     let price = Cents::new(10_000);
     let timestamp = Timestamp::new(1_700_000_000);
-    let entry = EntryPrice::from_is_discount(true);
     let supply = SupplyState {
         value: Sats::ONE_BTC * 2u64,
         utxo_count: 2,
     };
-    grouped.receive_origins(supply, Height::ZERO, timestamp, price, entry);
-    individual.receive_origins(supply, Height::ZERO, timestamp, price, entry);
+    grouped.receive_origins(supply, Height::ZERO, timestamp, price);
+    individual.receive_origins(supply, Height::ZERO, timestamp, price);
     let mut peak = PriceRangeMax::default();
-    peak.extend(&[price]);
+    peak.extend(&[price; 3]);
     let ctx = ComputeContext {
         starting_height: Height::ZERO,
-        last_height: Height::ZERO,
-        height_to_timestamp: &[timestamp],
-        height_to_price: &[price],
+        last_height: Height::new(2),
+        height_to_timestamp: &[timestamp; 3],
+        height_to_price: &[price; 3],
         price_range_max: &peak,
     };
-    grouped.send_origins([(Height::ZERO, supply)], Height::ZERO, &[entry], &ctx);
-    individual.send_origins(
+    let grouped_blocks = grouped.send_origins([(Height::ZERO, supply)], Height::new(2), &ctx);
+    let individual_blocks = individual.send_origins(
         [
             (
                 Height::ZERO,
@@ -46,10 +44,11 @@ fn aggregated_origins_match_individual_spends() {
                 },
             ),
         ],
-        Height::ZERO,
-        &[entry],
+        Height::new(2),
         &ctx,
     );
+    assert_eq!(grouped_blocks, 4 * Sats::ONE_BTC_U128);
+    assert_eq!(grouped_blocks, individual_blocks);
     grouped.apply_pending();
     individual.apply_pending();
     for (a, b) in grouped.age_range.iter().zip(individual.age_range.iter()) {
@@ -70,12 +69,11 @@ fn zero_value_spends_reduce_supply_and_increment_spent_counts() {
     states.reset().unwrap();
     let price = Cents::new(10_000);
     let timestamp = Timestamp::new(1_700_000_000);
-    let entry = EntryPrice::from_is_discount(true);
     let supply = SupplyState {
         value: Sats::ZERO,
         utxo_count: 3,
     };
-    states.receive_origins(supply, Height::ZERO, timestamp, price, entry);
+    states.receive_origins(supply, Height::ZERO, timestamp, price);
     let mut peak = PriceRangeMax::default();
     peak.extend(&[price]);
     let ctx = ComputeContext {
@@ -85,7 +83,7 @@ fn zero_value_spends_reduce_supply_and_increment_spent_counts() {
         height_to_price: &[price],
         price_range_max: &peak,
     };
-    states.send_origins([(Height::ZERO, supply)], Height::ZERO, &[entry], &ctx);
+    states.send_origins([(Height::ZERO, supply)], Height::ZERO, &ctx);
     states.apply_pending();
     for counts in [
         states
@@ -100,11 +98,6 @@ fn zero_value_spends_reduce_supply_and_increment_spent_counts() {
             .sum(),
         states
             .class
-            .iter()
-            .map(|s| u64::from(s.output_counts().1))
-            .sum(),
-        states
-            .entry
             .iter()
             .map(|s| u64::from(s.output_counts().1))
             .sum(),

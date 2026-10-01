@@ -1,6 +1,6 @@
 use brk_types::{Cents, CentsSats, CentsSquaredSats, Sats};
 
-use super::{CoreRealizedState, RealizedOps};
+use crate::state::{CoreRealizedState, RealizedOps};
 
 /// Full realized state used by age-range cohorts.
 #[derive(Debug, Default, Clone)]

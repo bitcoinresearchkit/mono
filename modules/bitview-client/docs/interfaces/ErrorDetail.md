@@ -6,7 +6,7 @@
 
 # Interface: ErrorDetail
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:574](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L574)
+Defined in: [Developer/mono/modules/bitview-client/index.js:573](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L573)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:574](https://github.
 
 > **code**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:576](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L576)
+Defined in: [Developer/mono/modules/bitview-client/index.js:575](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L575)
 
 Machine-readable error code (e.g. "invalid_addr", "series_not_found")
 
@@ -24,7 +24,7 @@ Machine-readable error code (e.g. "invalid_addr", "series_not_found")
 
 > **docUrl**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:578](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L578)
+Defined in: [Developer/mono/modules/bitview-client/index.js:577](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L577)
 
 Link to API documentation
 
@@ -34,7 +34,7 @@ Link to API documentation
 
 > **message**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:577](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L577)
+Defined in: [Developer/mono/modules/bitview-client/index.js:576](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L576)
 
 Human-readable description
 
@@ -44,6 +44,6 @@ Human-readable description
 
 > **type**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:575](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L575)
+Defined in: [Developer/mono/modules/bitview-client/index.js:574](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L574)
 
 Error category: "invalid_request", "forbidden", "not_found", "unavailable", or "internal"

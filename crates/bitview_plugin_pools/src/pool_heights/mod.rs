@@ -23,7 +23,7 @@ struct State {
 pub struct PoolHeights(Arc<RwLock<State>>);
 
 impl PoolHeights {
-    pub fn build(pool: &BytesVec<Height, PoolSlug>) -> Self {
+    pub(crate) fn build(pool: &BytesVec<Height, PoolSlug>) -> Self {
         let len = pool.len();
         let mut by_pool: FxHashMap<PoolSlug, Vec<Height>> = FxHashMap::default();
         let reader = pool.reader();
@@ -40,20 +40,22 @@ impl PoolHeights {
         })))
     }
 
-    pub fn truncate(&self, min: usize) {
+    pub(crate) fn update(&self, min: usize, version: Version, slugs: &[PoolSlug]) {
         let mut state = self.0.write();
         for heights in state.by_pool.values_mut() {
             let cut = heights.partition_point(|h| h.to_usize() < min);
             heights.truncate(cut);
         }
         state.len = min;
-    }
-
-    pub fn push(&self, slug: PoolSlug, height: Height) {
-        let mut state = self.0.write();
-        debug_assert_eq!(height.to_usize(), state.len);
-        state.by_pool.entry(slug).or_default().push(height);
-        state.len = height.to_usize() + 1;
+        state.version = version;
+        for (offset, &slug) in slugs.iter().enumerate() {
+            state
+                .by_pool
+                .entry(slug)
+                .or_default()
+                .push(Height::from(min + offset));
+        }
+        state.len += slugs.len();
     }
 
     pub fn block_numbers(&self, slugs: &[PoolSlug], first_height: Height) -> Vec<u64> {
@@ -283,24 +285,88 @@ impl ReadOnlyClone for PoolCumulativeVec {
 
 #[cfg(test)]
 mod tests {
-    use vecdb::ReadableVec;
+    use brk_exit::Exit;
+    use tempfile::tempdir;
+    use vecdb::{AnyStoredVec, Database, EagerVec, ImportableVec, PcoVec, WritableVec};
 
     use super::*;
 
+    #[test]
+    fn attribution_changes_invalidate_rewards_in_memory_and_after_reopen() {
+        let directory = tempdir().unwrap();
+        for reopen in [false, true] {
+            let db = Database::open(directory.path()).unwrap();
+            let mut attribution =
+                BytesVec::<Height, PoolSlug>::forced_import(&db, "pool", Version::ONE).unwrap();
+            let mut rewards =
+                EagerVec::<PcoVec<Height, StoredU64>>::forced_import(&db, "rewards", Version::ONE)
+                    .unwrap();
+            attribution
+                .validate_computed_version_or_reset(Version::ONE)
+                .unwrap();
+            attribution.truncate_if_needed_at(0).unwrap();
+            for slug in [PoolSlug::F2Pool, PoolSlug::Unknown] {
+                attribution.push(slug);
+            }
+            attribution.write().unwrap();
+            let heights = PoolHeights::build(&attribution);
+            let source = PoolCumulativeVec::new("counts", PoolSlug::F2Pool, heights.clone());
+            let exit = Exit::new();
+            rewards
+                .compute_transform(Height::ZERO, &source, |(h, count, _)| (h, count), &exit)
+                .unwrap();
+            assert_eq!(rewards.collect(), [1_u64, 1].map(StoredU64::from));
+            attribution
+                .validate_computed_version_or_reset(Version::TWO)
+                .unwrap();
+            for slug in [PoolSlug::Unknown, PoolSlug::F2Pool] {
+                attribution.push(slug);
+            }
+            attribution.write().unwrap();
+            heights.update(
+                0,
+                attribution.header().computed_version(),
+                &[PoolSlug::Unknown, PoolSlug::F2Pool],
+            );
+            drop(attribution);
+            drop(rewards);
+            db.flush().unwrap();
+            drop(db);
+            let db = Database::open(directory.path()).unwrap();
+            let attribution =
+                BytesVec::<Height, PoolSlug>::import(&db, "pool", Version::ONE).unwrap();
+            let mut rewards =
+                EagerVec::<PcoVec<Height, StoredU64>>::import(&db, "rewards", Version::ONE)
+                    .unwrap();
+            let heights = if reopen {
+                PoolHeights::build(&attribution)
+            } else {
+                heights
+            };
+            let source = PoolCumulativeVec::new("counts", PoolSlug::F2Pool, heights);
+            assert_ne!(source.version(), attribution.header().vec_version());
+            // A near-tip request must still rebuild the stale historical prefix.
+            rewards
+                .compute_transform(Height::new(2), &source, |(h, count, _)| (h, count), &exit)
+                .unwrap();
+            assert_eq!(rewards.collect(), [0_u64, 1].map(StoredU64::from));
+            db.flush().unwrap();
+        }
+    }
+
     fn fixture() -> (PoolHeights, PoolCumulativeVec) {
         let pool_heights = PoolHeights::default();
-        for (height, slug) in [
-            PoolSlug::F2Pool,
-            PoolSlug::Unknown,
-            PoolSlug::F2Pool,
-            PoolSlug::F2Pool,
-            PoolSlug::Unknown,
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            pool_heights.push(slug, Height::from(height));
-        }
+        pool_heights.update(
+            0,
+            Version::ONE,
+            &[
+                PoolSlug::F2Pool,
+                PoolSlug::Unknown,
+                PoolSlug::F2Pool,
+                PoolSlug::F2Pool,
+                PoolSlug::Unknown,
+            ],
+        );
         let cumulative = PoolCumulativeVec::new(
             "f2pool_blocks_mined_cumulative",
             PoolSlug::F2Pool,
@@ -341,11 +407,10 @@ mod tests {
     fn truncate_and_push_keep_length_and_counts_in_sync() {
         let (pool_heights, cumulative) = fixture();
 
-        pool_heights.truncate(3);
+        pool_heights.update(3, Version::ONE, &[]);
         assert_eq!(cumulative.collect(), [1_u64, 1, 2].map(StoredU64::from));
 
-        pool_heights.push(PoolSlug::Unknown, Height::from(3_u32));
-        pool_heights.push(PoolSlug::F2Pool, Height::from(4_u32));
+        pool_heights.update(3, Version::ONE, &[PoolSlug::Unknown, PoolSlug::F2Pool]);
         assert_eq!(
             cumulative.collect(),
             [1_u64, 1, 2, 2, 3].map(StoredU64::from)

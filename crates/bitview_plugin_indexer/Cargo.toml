@@ -15,7 +15,6 @@ bitview_plugin = { workspace = true }
 bitview_cohort = { workspace = true, features = ["storage"] }
 brk_error = { workspace = true, features = ["fjall", "vecdb"] }
 brk_exit = { workspace = true }
-brk_logger = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_store = { workspace = true }
@@ -31,6 +30,7 @@ tracing = { workspace = true }
 vecdb = { workspace = true }
 
 [dev-dependencies]
+brk_logger = { workspace = true }
 brk_alloc = { workspace = true }
 color-eyre = { workspace = true }
 tempfile = { workspace = true }

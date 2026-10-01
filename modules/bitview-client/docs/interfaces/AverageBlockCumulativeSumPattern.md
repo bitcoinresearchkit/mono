@@ -6,7 +6,7 @@
 
 # Interface: AverageBlockCumulativeSumPattern\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5817](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5817)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4816](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4816)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5817](https://github
 
 > **average**: [`_1m1w1y24hPattern`](1m1w1y24hPattern.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5818](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5818)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4817](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4817)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5818](https://github
 
 > **block**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5819](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5819)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4818](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4818)
 
 ***
 
@@ -36,7 +36,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5819](https://github
 
 > **cumulative**: [`SeriesPattern1`](../type-aliases/SeriesPattern1.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5820](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5820)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4819](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4819)
 
 ***
 
@@ -44,4 +44,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:5820](https://github
 
 > **sum**: [`_1m1w1y24hPattern`](1m1w1y24hPattern.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:5821](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L5821)
+Defined in: [Developer/mono/modules/bitview-client/index.js:4820](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L4820)

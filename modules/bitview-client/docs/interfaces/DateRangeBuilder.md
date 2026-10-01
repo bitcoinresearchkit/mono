@@ -6,7 +6,7 @@
 
 # Interface: DateRangeBuilder\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1801](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1801)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1794](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1794)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1801](https://github
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1802](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1802)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1795](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1795)
 
 Fetch the range
 
@@ -44,7 +44,7 @@ Fetch the range
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1803](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1803)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1796](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1796)
 
 Fetch as CSV
 
@@ -64,6 +64,6 @@ Fetch as CSV
 
 > **then**: [`DateThenable`](../type-aliases/DateThenable.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1804](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1804)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1797](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1797)
 
 Thenable

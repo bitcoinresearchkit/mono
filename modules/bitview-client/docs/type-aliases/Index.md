@@ -8,6 +8,6 @@
 
 > **Index** = `"minute10"` \| `"minute30"` \| `"hour1"` \| `"hour4"` \| `"hour12"` \| `"day1"` \| `"day3"` \| `"week1"` \| `"month1"` \| `"month3"` \| `"month6"` \| `"year1"` \| `"year10"` \| `"halving"` \| `"epoch"` \| `"height"` \| `"tx_index"` \| `"txin_index"` \| `"txout_index"` \| `"empty_output_index"` \| `"op_return_index"` \| `"p2a_addr_index"` \| `"p2ms_output_index"` \| `"p2pk33_addr_index"` \| `"p2pk65_addr_index"` \| `"p2pkh_addr_index"` \| `"p2sh_addr_index"` \| `"p2tr_addr_index"` \| `"p2wpkh_addr_index"` \| `"p2wsh_addr_index"` \| `"unknown_output_index"` \| `"funded_addr_index"` \| `"empty_addr_index"` \| `"extended_empty_addr_index"`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:695](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L695)
+Defined in: [Developer/mono/modules/bitview-client/index.js:694](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L694)
 
 ## Type Parameters

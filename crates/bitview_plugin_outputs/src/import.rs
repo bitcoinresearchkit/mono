@@ -23,8 +23,7 @@ impl Vecs {
         let by_type = by_type::forced_import(&db, version, mappings, window_starts)?;
         let value = value::forced_import(&db, version, mappings)?;
 
-        let path = context.data_path().join("origins");
-        let creations = Creations::open(&path)?;
+        let creations = Creations::open(db.path())?;
         let this = Self {
             creations,
             db,

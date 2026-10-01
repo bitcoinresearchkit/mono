@@ -6,7 +6,7 @@
 
 # Interface: Pct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99Pattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3216](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3216)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2957](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2957)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3216](https://github
 
 > **pct01**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3217](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3217)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2958](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2958)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3217](https://github
 
 > **pct05**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3218](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3218)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2959](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2959)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3218](https://github
 
 > **pct1**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3219](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3219)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2960](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2960)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3219](https://github
 
 > **pct10**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3220](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3220)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2961](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2961)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3220](https://github
 
 > **pct2**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3221](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3221)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2962](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2962)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3221](https://github
 
 > **pct20**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3222](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3222)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2963](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2963)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3222](https://github
 
 > **pct30**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3223](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3223)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2964](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2964)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3223](https://github
 
 > **pct40**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3224](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3224)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2965](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2965)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3224](https://github
 
 > **pct5**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3225](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3225)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2966](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2966)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3225](https://github
 
 > **pct50**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3226](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3226)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2967](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2967)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3226](https://github
 
 > **pct60**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3227](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3227)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2968](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2968)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3227](https://github
 
 > **pct70**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3228](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3228)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2969](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2969)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3228](https://github
 
 > **pct80**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3229](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3229)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2970](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2970)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3229](https://github
 
 > **pct90**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3230](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3230)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2971](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2971)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3230](https://github
 
 > **pct95**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3231](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3231)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2972](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2972)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3231](https://github
 
 > **pct98**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3232](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3232)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2973](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2973)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3232](https://github
 
 > **pct99**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3233](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3233)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2974](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2974)
 
 ***
 
@@ -150,7 +150,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3233](https://github
 
 > **pct995**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3234](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3234)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2975](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2975)
 
 ***
 
@@ -158,4 +158,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3234](https://github
 
 > **pct999**: [`PpmPriceRatioPattern`](PpmPriceRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3235](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3235)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2976](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2976)

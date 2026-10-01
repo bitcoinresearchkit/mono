@@ -416,6 +416,18 @@ export function createMarketSection() {
       // Price
       { name: "Price", title: "Bitcoin Price" },
 
+      {
+        name: "Price Components",
+        title: "Bitcoin Open, High, Low and Close Prices",
+        top: /** @type {const} */ (["open", "high", "low", "close"]).map(
+          (key, index, all) => price({
+            series: prices.split[key],
+            name: key[0].toUpperCase() + key.slice(1),
+            color: colors.at(index, all.length),
+          }),
+        ),
+      },
+
       // Sats/$
       {
         name: "Sats/$",
@@ -750,6 +762,20 @@ export function createMarketSection() {
               ...ROLLING_WINDOWS_TO_1M.map((w) => ({
                 name: w.name,
                 title: `${w.title} MACD`,
+                top: [
+                  line({
+                    series: technical.macd[w.key].emaFast,
+                    name: "Fast EMA",
+                    color: colors.indicator.fast,
+                    unit: Unit.usd,
+                  }),
+                  line({
+                    series: technical.macd[w.key].emaSlow,
+                    name: "Slow EMA",
+                    color: colors.indicator.slow,
+                    unit: Unit.usd,
+                  }),
+                ],
                 bottom: [
                   line({
                     series: technical.macd[w.key].line,
@@ -777,6 +803,27 @@ export function createMarketSection() {
           {
             name: "Volatility",
             tree: [
+              {
+                name: "Daily Returns",
+                tree: ROLLING_WINDOWS.map((w) => ({
+                  name: w.name,
+                  title: `${w.title} Daily Return Statistics`,
+                  bottom: [
+                    line({
+                      series: returns.sd24h[w.key].sma,
+                      name: "Mean",
+                      color: colors.indicator.fast,
+                      unit: Unit.ratio,
+                    }),
+                    line({
+                      series: returns.sd24h[w.key].sd,
+                      name: "Standard Deviation",
+                      color: colors.indicator.slow,
+                      unit: Unit.ratio,
+                    }),
+                  ],
+                })),
+              },
               {
                 name: "Index",
                 tree: [

@@ -1,3 +1,4 @@
+use bitview_compute::compute_rolling_extrema_from_starts;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use brk_error::Result;
@@ -44,14 +45,9 @@ pub fn compute(
         exit,
     )?;
 
-    chain.rsi_min.ppm.height.compute_rolling_min_from_starts(
-        starting_height,
-        ws_rma,
-        &chain.rsi.ppm.height,
-        exit,
-    )?;
-
-    chain.rsi_max.ppm.height.compute_rolling_max_from_starts(
+    compute_rolling_extrema_from_starts(
+        &mut chain.rsi_min.ppm.height,
+        &mut chain.rsi_max.ppm.height,
         starting_height,
         ws_rma,
         &chain.rsi.ppm.height,

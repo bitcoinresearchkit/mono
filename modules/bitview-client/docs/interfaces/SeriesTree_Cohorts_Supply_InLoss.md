@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Supply\_InLoss
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10320](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10320)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8918](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8918)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10320](https://githu
 
 > **age**: [`SeriesTree_Cohorts_Supply_InLoss_Age`](SeriesTree_Cohorts_Supply_InLoss_Age.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10322](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10322)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8920](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8920)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10322](https://githu
 
 > **all**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10321](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10321)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8919](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8919)
 
 ***
 
@@ -30,15 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10321](https://githu
 
 > **class**: [`SeriesTree_Cohorts_Supply_InLoss_Class`](SeriesTree_Cohorts_Supply_InLoss_Class.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10324](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10324)
-
-***
-
-### entry
-
-> **entry**: [`DiscountPremiumPattern13`](DiscountPremiumPattern13.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:10325](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10325)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8922](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8922)
 
 ***
 
@@ -46,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10325](https://githu
 
 > **epoch**: [`SeriesTree_Cohorts_Supply_InLoss_Epoch`](SeriesTree_Cohorts_Supply_InLoss_Epoch.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10323](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10323)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8921](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8921)
 
 ***
 
@@ -54,12 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10323](https://githu
 
 > **term**: [`LongShortPattern15`](LongShortPattern15.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10326](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10326)
-
-***
-
-### type
-
-> **type**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern10.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:10327](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10327)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8923](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8923)

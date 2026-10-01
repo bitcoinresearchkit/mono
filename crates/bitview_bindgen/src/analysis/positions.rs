@@ -258,6 +258,14 @@ fn collect_instance_analyses(
                 }
             }
 
+            // A parent factory also constructs its descendants; any descendant
+            // requiring explicit names prevents safely templating the parent.
+            analysis.has_outlier |= children.keys().any(|field| {
+                node_bases
+                    .get(&build_child_path(path, field))
+                    .is_some_and(|child| child.has_outlier)
+            });
+
             // Store the base result for this node
             node_bases.insert(
                 path.to_string(),

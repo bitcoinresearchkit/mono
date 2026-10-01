@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Blocks\_Time
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7353](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7353)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6085](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6085)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7353](https://github
 
 > **timestamp**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7354](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7354)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6086](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6086)

@@ -4,7 +4,7 @@ use brk_types::OutputType;
 #[test]
 fn identity_roundtrips_through_composed_groups() {
     let cohorts = UTXOGroups::new(|id| id);
-    assert_eq!(cohorts.iter().count(), 77);
+    assert_eq!(cohorts.iter().count(), 75);
     for &id in cohorts.iter() {
         assert_eq!(cohorts.get(id), Some(&id));
     }
@@ -16,6 +16,7 @@ fn identity_roundtrips_through_composed_groups() {
         assert_eq!(core.get(id), Some(&id));
     }
     assert_eq!(core.get(CohortId::Term(Term::Sth)), None);
+    assert_eq!(core.get(CohortId::Entry(EntryPrice::Discount)), None);
     assert_eq!(core.get(AmountRangeId::Zero.cohort()), None);
     assert_eq!(core.get(CohortId::Type(OutputType::P2PKH)), None);
 }

@@ -6,7 +6,7 @@
 
 # Interface: BlockWeightEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:347](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L347)
+Defined in: [Developer/mono/modules/bitview-client/index.js:347](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L347)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:347](https://github.
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:348](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L348)
+Defined in: [Developer/mono/modules/bitview-client/index.js:348](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L348)
 
 Average block height in this window
 
@@ -24,7 +24,7 @@ Average block height in this window
 
 > **avgWeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:350](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L350)
+Defined in: [Developer/mono/modules/bitview-client/index.js:350](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L350)
 
 Rolling 24h median block weight (weight units)
 
@@ -34,6 +34,6 @@ Rolling 24h median block weight (weight units)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:349](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L349)
+Defined in: [Developer/mono/modules/bitview-client/index.js:349](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L349)
 
 Unix timestamp at the window midpoint

@@ -6,7 +6,7 @@
 
 # Interface: OptionalTimestampParam
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:807](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L807)
+Defined in: [Developer/mono/modules/bitview-client/index.js:806](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L806)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:807](https://github.
 
 > `optional` **timestamp?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:808](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L808)
+Defined in: [Developer/mono/modules/bitview-client/index.js:807](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L807)

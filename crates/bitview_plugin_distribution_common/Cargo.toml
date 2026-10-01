@@ -1,6 +1,6 @@
 [package]
 name = "bitview_plugin_distribution_common"
-description = "Shared cohort accounting for Distribution Age and Size"
+description = "Shared cohort accounting and price maps for distribution plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -17,3 +17,4 @@ bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 vecdb = { workspace = true }
+rustc-hash = { workspace = true }

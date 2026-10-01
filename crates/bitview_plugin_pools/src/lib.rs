@@ -146,7 +146,10 @@ impl Vecs {
                 self.pool.len()
             );
         }
-        self.pool.validate_computed_version_or_reset(dep_version)?;
+        {
+            let _lock = exit.lock();
+            self.pool.validate_computed_version_or_reset(dep_version)?;
+        }
 
         let first_txout_index = indexer.vecs().transactions.first_txout_index.reader();
         let output_type = indexer.vecs().outputs.output_type.reader();
@@ -157,8 +160,10 @@ impl Vecs {
 
         let min = starting_height.to_usize().min(self.pool.len());
 
-        self.pool.truncate_if_needed_at(min)?;
-        self.heights.truncate(min);
+        {
+            let _lock = exit.lock();
+            self.pool.truncate_if_needed_at(min)?;
+        }
 
         let len = indexer.vecs().blocks.coinbase_tag.len();
         let coinbase_tags = indexer.vecs().blocks.coinbase_tag.reader();
@@ -191,13 +196,13 @@ impl Vecs {
             })
             .collect::<Vec<_>>();
 
-        for (offset, slug) in pool_slugs.into_iter().enumerate() {
+        for &slug in &pool_slugs {
             self.pool.push(slug);
-            self.heights.push(slug, Height::from(min + offset));
         }
 
         let _lock = exit.lock();
         self.pool.write()?;
+        self.heights.update(min, self.pool.version(), &pool_slugs);
         Ok(())
     }
 }

@@ -6,7 +6,7 @@
 
 # Interface: AddrHashPrefixMatches
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:34](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L34)
+Defined in: [Developer/mono/modules/bitview-client/index.js:34](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L34)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:34](https://github.c
 
 > **addresses**: `string`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:38](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L38)
+Defined in: [Developer/mono/modules/bitview-client/index.js:38](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L38)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:38](https://github.c
 
 > **addrType**: [`OutputType`](../type-aliases/OutputType.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:35](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L35)
+Defined in: [Developer/mono/modules/bitview-client/index.js:35](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L35)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:35](https://github.c
 
 > **prefix**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:36](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L36)
+Defined in: [Developer/mono/modules/bitview-client/index.js:36](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L36)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:36](https://github.c
 
 > **truncated**: `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:37](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L37)
+Defined in: [Developer/mono/modules/bitview-client/index.js:37](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L37)

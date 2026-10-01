@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Lth\_Awake
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8672](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8672)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7454](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7454)
 
 ## Properties
 
@@ -14,7 +14,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8672](https://github
 
 > **cap**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8674](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8674)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7456](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7456)
+
+***
+
+### capitalizedPrice
+
+> **capitalizedPrice**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:7458](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7458)
 
 ***
 
@@ -22,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8674](https://github
 
 > **price**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8675](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8675)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7457](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7457)
 
 ***
 
@@ -30,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8675](https://github
 
 > **supply**: [`SeriesTree_Cointime_Lth_Awake_Supply`](SeriesTree_Cointime_Lth_Awake_Supply.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8673](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8673)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7455](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7455)

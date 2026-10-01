@@ -44,8 +44,11 @@ where
     where
         F: FnMut(&mut Self) -> Result<()>,
     {
-        self.validate_computed_version_or_reset(version)?;
-        self.truncate_if_needed(max_from)?;
+        {
+            let _lock = exit.lock();
+            self.validate_computed_version_or_reset(version)?;
+            self.truncate_if_needed(max_from)?;
+        }
         self.repeat_until_complete(exit, f)
     }
 

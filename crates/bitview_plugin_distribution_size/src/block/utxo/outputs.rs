@@ -1,8 +1,8 @@
 use std::collections::hash_map::Entry;
 
-use brk_types::TxIndex;
+use brk_types::{OutputType, Sats, TxIndex, TypeIndex};
 
-use crate::{addr::AddrTypeToTypeIndexMap, block::Received, compute::TxOutData, state::Transacted};
+use crate::{addr::AddrTypeToTypeIndexMap, block::Received, state::Transacted};
 
 /// Result of processing outputs for a block.
 pub struct OutputsResult {
@@ -19,40 +19,38 @@ pub struct OutputsResult {
 /// 2. Accumulate into Transacted by type and amount
 /// 3. Track address-specific data for address cohort processing
 pub fn process_outputs(
-    txout_index_to_tx_index: &[TxIndex],
-    txout_data_vec: &[TxOutData],
+    mut txs: impl Iterator<Item = TxIndex>,
+    values: &[Sats],
+    types: &[OutputType],
+    indexes: &[TypeIndex],
 ) -> OutputsResult {
-    let output_count = txout_data_vec.len();
-    debug_assert_eq!(txout_index_to_tx_index.len(), output_count);
-    let txout_index_to_tx_index = &txout_index_to_tx_index[..output_count];
+    let output_count = values.len();
+    debug_assert_eq!(types.len(), output_count);
+    debug_assert_eq!(indexes.len(), output_count);
 
     let estimated_per_type = (output_count / 8).max(8);
     let mut transacted = Transacted::default();
     let mut received = AddrTypeToTypeIndexMap::<Received>::with_capacity(estimated_per_type);
 
-    for local_idx in 0..output_count {
-        let txout_data = &txout_data_vec[local_idx];
-        let value = txout_data.value;
-        let output_type = txout_data.output_type;
+    for ((&value, &output_type), &type_index) in values.iter().zip(types).zip(indexes) {
+        let tx_index = txs.next().expect("incomplete output transaction ranges");
         transacted.iterate(value, output_type);
 
         if output_type.is_not_addr() {
             continue;
         }
 
-        let type_index = txout_data.type_index;
         match received.get_mut(output_type).unwrap().entry(type_index) {
             Entry::Occupied(mut entry) => {
-                entry
-                    .get_mut()
-                    .add(value, txout_index_to_tx_index[local_idx]);
+                entry.get_mut().add(value, tx_index);
             }
             Entry::Vacant(entry) => {
-                entry.insert(Received::new(value, txout_index_to_tx_index[local_idx]));
+                entry.insert(Received::new(value, tx_index));
             }
         }
     }
 
+    assert!(txs.next().is_none(), "excess output transaction ranges");
     OutputsResult {
         transacted,
         received,
@@ -68,14 +66,38 @@ mod tests {
     use tempfile::tempdir;
     use vecdb::{Bytes, Database, ReadableVec, Stamp};
 
-    use super::process_outputs;
+    use super::{OutputsResult, process_outputs as compute_outputs};
     use crate::{
         addr::{AddrMetricsState, AddrStateVecs, AddrTypeToTypeIndexMap, SourcedAddrData},
         block::{AddrCache, TxIndexes, process_received},
-        compute::TxOutData,
         state::AddrStates,
         test_cache,
     };
+
+    struct TxOutData {
+        value: Sats,
+        output_type: OutputType,
+        type_index: TypeIndex,
+    }
+    fn process_outputs(txs: &[TxIndex], data: &[TxOutData]) -> OutputsResult {
+        compute_outputs(
+            txs.iter().copied(),
+            &data.iter().map(|d| d.value).collect::<Vec<_>>(),
+            &data.iter().map(|d| d.output_type).collect::<Vec<_>>(),
+            &data.iter().map(|d| d.type_index).collect::<Vec<_>>(),
+        )
+    }
+
+    #[test]
+    #[should_panic(expected = "excess output transaction ranges")]
+    fn rejects_transaction_ranges_longer_than_the_output_columns() {
+        compute_outputs(
+            [TxIndex::ZERO; 2].into_iter(),
+            &[Sats::ZERO],
+            &[OutputType::P2PKH],
+            &[TypeIndex::new(0)],
+        );
+    }
 
     #[test]
     fn groups_value_count_and_unique_transactions_per_typed_address() {

@@ -13,3 +13,19 @@ These are endpoint resource limits, not a total process-memory limit.
 
 Regression fixtures under `tests/unit/urpd*.rs` exercise actual packed/weighted
 sources, publication/reorgs, invalid inputs, conditionals and retained responses.
+
+## Age filters
+
+The aggregate filters are `all`, `sth`, `lth`, `under_4m`, `under_6m`,
+`over_4m`, and `over_6m`. The boundaries are 120, 150 and 180 days;
+`under` is strict and `over` includes the boundary. Individual disjoint age
+ranges remain available under names such as `utxos_4m_to_5m_old`.
+All filters support raw, Cointime and Coinflow weights through the same history
+reconstruction. For example:
+
+`/api/urpd/under_4m/900000?weight=cointime&agg=raw`
+
+Cointime and Coinflow expose the same per-block URPD metric layout for each
+aggregate: cost-basis percentiles per coin/per dollar, capitalized price and
+supply density. Each plugin projects all requested cohorts in one pass; the
+age filters do not require separate copies of UTXO history or saved URPDs.

@@ -1,6 +1,6 @@
 use std::{net::SocketAddr, time::Duration};
 
-use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_plugin_price::feed_blocks_for_warmup;
 use brk_oracle::Oracle;
 use brk_types::{Date, Day1};
 use serde_json::{Value, from_str, to_value};
@@ -14,7 +14,7 @@ pub async fn check(state: &AppState, address: SocketAddr) {
         let safe = q.indexer().safe_lengths();
         let run = |range, cap| {
             let mut oracle = Oracle::from_seed();
-            PriceVecs::feed_blocks_for_warmup(&mut oracle, q.indexer(), range, Some(&cap))
+            feed_blocks_for_warmup(&mut oracle, q.indexer(), range, Some(&cap))
         };
         assert!(run(0..1, safe).is_ok());
         assert!(run(usize::MAX..usize::MAX, safe).is_err());

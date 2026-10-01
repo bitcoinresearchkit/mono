@@ -1,52 +1,28 @@
-use std::array;
-
-use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId, Term, UTXOAggregate};
-use brk_types::{Cents, CentsCompact, PartsPerMillion32, Sats};
+use bitview_cohort::{AgeAggregate, AgeAggregateId};
+use brk_types::{Cents, PartsPerMillion32};
 
 use super::{density::SupplyDensity, price_distribution::PriceDistribution};
-use crate::distribution::AgeCutoffs;
+use crate::ProjectedBucket;
 
-#[derive(Default)]
-struct Masses {
-    all: f64,
-    age: AgeCutoffs<f64>,
-    long: f64,
-}
-
-impl Masses {
-    fn add(&mut self, age: AgeRangeId, sats: u64, weights: &AgeRange<f64>) {
-        let mass = sats as f64 * *age.select(weights);
-        self.all += mass;
-        for value in self.age.containing_mut(age) {
-            *value += mass;
-        }
-        if age.term() == Term::Lth {
-            self.long += mass;
-        }
-    }
-}
-
-/// Only percentile calculations retain buckets; density is accumulated directly.
+/// One shared projection populates every cohort's statistics and supply density.
 pub(super) struct MetricBuckets {
-    pub prices: UTXOAggregate<PriceDistribution>,
-    /// All, under 4 months, under 5 months (STH), and under 6 months.
-    pub density: [SupplyDensity<PartsPerMillion32>; 4],
+    pub prices: AgeAggregate<PriceDistribution>,
+    pub density: AgeAggregate<SupplyDensity<PartsPerMillion32>>,
 }
 
 impl Default for MetricBuckets {
     fn default() -> Self {
         Self {
-            prices: UTXOAggregate::default(),
-            density: [SupplyDensity::NAN; 4],
+            prices: AgeAggregate::default(),
+            density: AgeAggregate::from_fn(|_| SupplyDensity::NAN),
         }
     }
 }
 
 impl MetricBuckets {
-    pub fn update<'a>(
+    pub fn update(
         &mut self,
-        entries: impl Iterator<Item = (CentsCompact, &'a [u64; AGE_RANGE_COUNT])>,
-        weights: &AgeRange<f64>,
+        entries: impl Iterator<Item = ProjectedBucket<1, { AgeAggregateId::ALL.len() }>>,
         spot: Cents,
     ) {
         for prices in self.prices.iter_mut() {
@@ -55,51 +31,43 @@ impl MetricBuckets {
         let spot = spot.finite_inner().filter(|&p| p > 0).map(u128::from);
         let mut valid = spot.is_some();
         let spot = spot.unwrap_or_default();
-        let mut totals = [0_u128; 4];
-        let mut profits = [0_u128; 4];
-        let mut losses = [0_u128; 4];
-        for (price, supplies) in entries {
-            let mut bucket = Masses::default();
-            for (&age, &sats) in AgeRangeId::ALL.iter().zip(supplies) {
-                if sats != 0 {
-                    bucket.add(age, sats, weights);
+        let lower = spot * 95;
+        let upper = spot * 105;
+        let mut profits = AgeAggregate::<u128>::default();
+        let mut losses = AgeAggregate::<u128>::default();
+        for bucket in entries {
+            let price = bucket.price;
+            let finite = price.finite_inner().map(u128::from);
+            valid &= finite.is_some();
+            let mut band = match finite {
+                Some(price) if price * 100 >= lower && price * 100 <= upper => {
+                    Some(if price <= spot {
+                        &mut profits
+                    } else {
+                        &mut losses
+                    })
                 }
-            }
-            let sats = [
-                bucket.all,
-                bucket.age.under_4m,
-                bucket.age.under_5m,
-                bucket.age.under_6m,
-            ]
-            .map(|mass| mass.floor() as u64);
-            self.prices.all.push(price, Sats::new(sats[0]));
-            self.prices.sth.push(price, Sats::new(sats[2]));
-            self.prices
-                .lth
-                .push(price, Sats::new(bucket.long.floor() as u64));
-            for (total, sats) in totals.iter_mut().zip(sats) {
-                *total += u128::from(sats);
-            }
-            let Some(price) = price.finite_inner().map(u128::from) else {
-                valid = false;
-                continue;
+                _ => None,
             };
-            if price * 100 >= spot * 95 && price * 100 <= spot * 105 {
-                let target = if price <= spot {
-                    &mut profits
-                } else {
-                    &mut losses
-                };
-                for (target, sats) in target.iter_mut().zip(sats) {
-                    *target += u128::from(sats);
+            for &id in AgeAggregateId::ALL {
+                let [sats] = bucket.weighted[id.index()];
+                id.select_mut(&mut self.prices).push(price, sats);
+                if let Some(target) = band.as_deref_mut() {
+                    *id.select_mut(target) += sats.as_u128();
                 }
             }
         }
-        self.density = if valid {
-            array::from_fn(|i| SupplyDensity::from_sums(totals[i], profits[i], losses[i]))
-        } else {
-            [SupplyDensity::NAN; 4]
-        };
+        self.density = AgeAggregate::from_fn(|id| {
+            if valid {
+                SupplyDensity::from_sums(
+                    id.select(&self.prices).total_sats(),
+                    *id.select(&profits),
+                    *id.select(&losses),
+                )
+            } else {
+                SupplyDensity::NAN
+            }
+        });
     }
 }
 

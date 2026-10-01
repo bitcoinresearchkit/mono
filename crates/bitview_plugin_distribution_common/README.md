@@ -1,7 +1,7 @@
 # Distribution Common
 
-Shared accounting primitives and metric helpers used by Age and Size.
-This is a library, not a scheduled plugin. It owns no database, producer,
-checkpoint directory or pipeline loop. Age owns its advanced price maps;
-Size owns its scalar checkpoint vector. Optional price-map operations are
-compiled out for Size; realized balances live only in shared accounting state.
+Shared accounting, price-map state and metric helpers used by Age, Size and the
+optional Entry plugin. This library owns no database, producer, checkpoint or
+pipeline loop. Age and Entry each own their derived price-map instances and
+recovery; Size owns its scalar checkpoint. Optional price-map operations are
+compiled out for Size. Realized balances live only in shared accounting state.

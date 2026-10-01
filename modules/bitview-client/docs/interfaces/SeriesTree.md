@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7297](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7297)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6030](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6030)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7297](https://github
 
 > **addrs**: [`SeriesTree_Addrs`](SeriesTree_Addrs.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7302](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7302)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6035](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6035)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7302](https://github
 
 > **bedrock**: [`SeriesTree_Bedrock`](SeriesTree_Bedrock.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7308](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7308)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6041](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6041)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7308](https://github
 
 > **blocks**: [`SeriesTree_Blocks`](SeriesTree_Blocks.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7298](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7298)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6031](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6031)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7298](https://github
 
 > **capitalSentiment**: [`SeriesTree_CapitalSentiment`](SeriesTree_CapitalSentiment.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7309](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7309)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6042](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6042)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7309](https://github
 
 > **cohorts**: [`SeriesTree_Cohorts`](SeriesTree_Cohorts.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7319](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7319)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6050](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6050)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7319](https://github
 
 > **coinflow**: [`SeriesTree_Coinflow`](SeriesTree_Coinflow.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7307](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7307)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6040](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6040)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7307](https://github
 
 > **cointime**: [`SeriesTree_Cointime`](SeriesTree_Cointime.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7306](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7306)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6039](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6039)
 
 ***
 
@@ -70,15 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7306](https://github
 
 > **constants**: [`SeriesTree_Constants`](SeriesTree_Constants.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7311](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7311)
-
-***
-
-### frameworks
-
-> **frameworks**: [`SeriesTree_Frameworks`](SeriesTree_Frameworks.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:7320](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7320)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6044](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6044)
 
 ***
 
@@ -86,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7320](https://github
 
 > **indicators**: [`SeriesTree_Indicators`](SeriesTree_Indicators.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7313](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7313)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6046](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6046)
 
 ***
 
@@ -94,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7313](https://github
 
 > **inputs**: [`SeriesTree_Inputs`](SeriesTree_Inputs.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7300](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7300)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6033](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6033)
 
 ***
 
@@ -102,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7300](https://github
 
 > **mappings**: [`SeriesTree_Mappings`](SeriesTree_Mappings.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7312](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7312)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6045](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6045)
 
 ***
 
@@ -110,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7312](https://github
 
 > **market**: [`SeriesTree_Market`](SeriesTree_Market.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7315](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7315)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6047](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6047)
 
 ***
 
@@ -118,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7315](https://github
 
 > **mining**: [`SeriesTree_Mining`](SeriesTree_Mining.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7305](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7305)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6038](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6038)
 
 ***
 
@@ -126,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7305](https://github
 
 > **opReturn**: [`SeriesTree_OpReturn`](SeriesTree_OpReturn.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7304](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7304)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6037](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6037)
 
 ***
 
@@ -134,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7304](https://github
 
 > **outputs**: [`SeriesTree_Outputs`](SeriesTree_Outputs.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7301](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7301)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6034](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6034)
 
 ***
 
@@ -142,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7301](https://github
 
 > **pools**: [`SeriesTree_Pools`](SeriesTree_Pools.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7316](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7316)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6048](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6048)
 
 ***
 
@@ -150,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7316](https://github
 
 > **price**: [`SeriesTree_Price`](SeriesTree_Price.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7317](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7317)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6049](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6049)
 
 ***
 
@@ -158,7 +150,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7317](https://github
 
 > **rarityMeter**: [`SeriesTree_RarityMeter`](SeriesTree_RarityMeter.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7310](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7310)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6043](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6043)
 
 ***
 
@@ -166,7 +158,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7310](https://github
 
 > **scripts**: [`SeriesTree_Scripts`](SeriesTree_Scripts.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7303](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7303)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6036](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6036)
 
 ***
 
@@ -174,7 +166,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7303](https://github
 
 > **supply**: [`SeriesTree_Supply`](SeriesTree_Supply.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7318](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7318)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6051](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6051)
 
 ***
 
@@ -182,4 +174,12 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7318](https://github
 
 > **transactions**: [`SeriesTree_Transactions`](SeriesTree_Transactions.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7299](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7299)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6032](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6032)
+
+***
+
+### utxoHistory
+
+> **utxoHistory**: [`SeriesTree_UtxoHistory`](SeriesTree_UtxoHistory.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:6052](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6052)

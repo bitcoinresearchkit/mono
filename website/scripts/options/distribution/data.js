@@ -34,7 +34,6 @@ export function buildCohortData() {
     AMOUNT_RANGE_NAMES,
     SPENDABLE_TYPE_NAMES,
     CLASS_NAMES,
-    ENTRY_NAMES,
     PROFITABILITY_RANGE_NAMES,
   } = bitview;
 
@@ -161,20 +160,6 @@ export function buildCohortData() {
       })),
   );
 
-  const entryColors = {
-    discount: colors.arr[11],
-    premium: colors.arr[0],
-  };
-
-  const entry = lazy(() =>
-    entries(ENTRY_NAMES).map(([key, names]) => ({
-      name: names.short,
-      title: `UTXOs ${names.long}`,
-      color: entryColors[key],
-      tree: selectCohortTree({ tree: cohorts, path: `entry.${key}` }),
-    })),
-  );
-
   const profitability = lazy(() => {
     const profitability = cohorts.profitability;
     /** @param {keyof typeof profitability.supply} key */
@@ -226,9 +211,6 @@ export function buildCohortData() {
     },
     get class() {
       return class_();
-    },
-    get entry() {
-      return entry();
     },
     get profitabilityRange() {
       return profitability();

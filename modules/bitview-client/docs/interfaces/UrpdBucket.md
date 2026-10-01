@@ -6,7 +6,7 @@
 
 # Interface: UrpdBucket
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1401](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1401)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1394](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1394)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1401](https://github
 
 > **priceFloor**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1402](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1402)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1395](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1395)
 
 Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
 
@@ -24,7 +24,7 @@ Lower bound of the bucket, in USD. Equals the exact realized price for `Raw`.
 
 > **realizedCap**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1404](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1404)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1397](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1397)
 
 Realized cap contribution in USD: sum of `realized_price * supply` over the coins in this bucket.
 
@@ -34,7 +34,7 @@ Realized cap contribution in USD: sum of `realized_price * supply` over the coin
 
 > **supply**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1403](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1403)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1396](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1396)
 
 Supply held with a last-move price inside this bucket, in BTC.
 
@@ -44,6 +44,6 @@ Supply held with a last-move price inside this bucket, in BTC.
 
 > **unrealizedPnl**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1405](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1405)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1398](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1398)
 
 Unrealized P&L in USD against the close on the snapshot date: `close * supply - realized_cap`. Can be negative.

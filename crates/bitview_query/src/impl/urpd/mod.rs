@@ -1,8 +1,8 @@
-use bitview_cohort::{AgeRange, AgeRangeId, CohortContext, UTXOAggregateId};
-use bitview_urpd::{AgeRangeUrpds, accumulate_masses, collect_mass, weighted_entries};
+use bitview_cohort::{AgeAggregateId, AgeRange, AgeRangeId, CohortContext};
+use bitview_urpd::OriginUrpd;
 use brk_error::{Error, OptionData, Result};
 use brk_types::{
-    Cents, CentsCompact, Cohort, Date, Day1, Height, Sats, Term, UrpdAggregation, UrpdWeight,
+    Cents, CentsCompact, Cohort, Date, Day1, Height, Sats, UrpdAggregation, UrpdWeight,
 };
 use vecdb::{AnyVec, ReadableVec};
 
@@ -32,9 +32,9 @@ impl Query {
             .iter()
             .filter_map(|id| Cohort::new(CohortContext::Utxo.prefixed(id.name().id)))
             .chain(
-                UTXOAggregateId::ALL
+                AgeAggregateId::ALL
                     .iter()
-                    .filter_map(|id| Cohort::new(id.cohort_name().id)),
+                    .filter_map(|id| Cohort::new(id.name())),
             )
             .collect();
         cohorts.sort_unstable();
@@ -44,7 +44,7 @@ impl Query {
     /// Calendar aliases are derived from block coverage, never snapshot filenames.
     pub fn urpd_dates_with_weight(&self, cohort: &Cohort, weight: UrpdWeight) -> Result<Vec<Date>> {
         let _guard = self.read_publication()?;
-        Self::validate_urpd_cohort(cohort)?;
+        let ages = Self::urpd_ages(cohort)?;
         let view = self.plugins().utxo_history.view()?;
         let reader = view.reader()?;
         let end = reader.len().min(usize::from(self.safe_lengths().height));
@@ -53,7 +53,7 @@ impl Query {
             let date = Date::from(Day1::from(index));
             if let Ok(height) = self.urpd_date_height(date, end)
                 && usize::from(height) + 1 >= reader.start()
-                && self.urpd_weights(cohort, height, weight).is_ok()
+                && self.urpd_weights(ages, height, weight).is_ok()
             {
                 dates.push(date);
             }
@@ -113,40 +113,23 @@ impl Query {
         Ok(Height::from(next - 1))
     }
 
-    fn urpd_age_range_id(cohort: &Cohort) -> Option<AgeRangeId> {
-        AgeRangeId::from_cohort_name(CohortContext::Utxo, cohort)
-    }
-
-    fn urpd_aggregate_id(cohort: &Cohort) -> Option<UTXOAggregateId> {
-        UTXOAggregateId::from_cohort_name(cohort)
-    }
-
-    fn validate_urpd_cohort(cohort: &Cohort) -> Result<()> {
-        if Self::urpd_age_range_id(cohort).is_none() && Self::urpd_aggregate_id(cohort).is_none() {
-            return Err(Error::NotFound(format!("Unknown URPD cohort '{cohort}'")));
+    fn urpd_ages(cohort: &Cohort) -> Result<&'static [AgeRangeId]> {
+        if let Some(age) = AgeRangeId::from_cohort_name(CohortContext::Utxo, cohort) {
+            return Ok(&AgeRangeId::ALL[age.index()..age.index() + 1]);
         }
-        Ok(())
-    }
-
-    fn urpd_contains(cohort: &Cohort, age: AgeRangeId) -> bool {
-        if let Some(single) = Self::urpd_age_range_id(cohort) {
-            return age == single;
-        }
-        match Self::urpd_aggregate_id(cohort).expect("validated URPD cohort") {
-            UTXOAggregateId::All => true,
-            UTXOAggregateId::Sth => age.term() == Term::Sth,
-            UTXOAggregateId::Lth => age.term() == Term::Lth,
-        }
+        AgeAggregateId::from_name(cohort)
+            .map(AgeAggregateId::age_range_ids)
+            .ok_or_else(|| Error::NotFound(format!("Unknown URPD cohort '{cohort}'")))
     }
 
     fn urpd_weights(
         &self,
-        cohort: &Cohort,
+        ages: &[AgeRangeId],
         height: Height,
         weight: UrpdWeight,
     ) -> Result<AgeRange<f64>> {
         AgeRange::try_from_fn(|age| {
-            if weight == UrpdWeight::Raw || !Self::urpd_contains(cohort, age) {
+            if weight == UrpdWeight::Raw || !ages.contains(&age) {
                 return Ok(1.0);
             }
             let plugins = self.plugins();
@@ -172,13 +155,13 @@ impl Query {
         aggregation: UrpdAggregation,
         weight: UrpdWeight,
     ) -> Result<ResolvedUrpd> {
-        Self::validate_urpd_cohort(cohort)?;
+        let ages = Self::urpd_ages(cohort)?;
         let end = usize::from(height) + 1;
         if end > usize::from(self.safe_lengths().height) {
             return Err(Error::NotFound("Block is not published".into()));
         }
         let plugins = self.plugins();
-        let weights = self.urpd_weights(cohort, height, weight)?;
+        let weights = self.urpd_weights(ages, height, weight)?;
         let view = plugins.utxo_history.view()?;
         let reader = view.reader()?;
         if end < reader.start() || end > reader.len() {
@@ -203,17 +186,20 @@ impl Query {
             .timestamp
             .monotonic
             .collect_range_at(0, end);
-        let source = AgeRangeUrpds::from_origins(&state, &prices, &timestamps)?;
-        let entries = if let Some(age) = Self::urpd_age_range_id(cohort) {
-            weighted_entries(source.get(age).iter().copied(), *age.select(&weights)).collect()
+        let source = OriginUrpd::new(&state, &prices, &timestamps)?;
+        let entries = if weight == UrpdWeight::Raw {
+            source
+                .project(&[], [ages])
+                .map(|b| (b.price, b.raw[0]))
+                .collect()
         } else {
-            let buckets = accumulate_masses(
-                source
-                    .iter()
-                    .filter(|(age, _, _)| Self::urpd_contains(cohort, *age)),
-                |mass: &mut f64, age, sats| *mass += u64::from(sats) as f64 * *age.select(&weights),
-            );
-            collect_mass(&buckets, |mass| *mass)
+            source
+                .project(&[Some(&weights)], [ages])
+                .filter_map(|b| {
+                    let sats = b.weighted[0][0];
+                    (sats != Sats::ZERO).then_some((b.price, sats))
+                })
+                .collect()
         };
         Ok(ResolvedUrpd {
             cohort: cohort.clone(),

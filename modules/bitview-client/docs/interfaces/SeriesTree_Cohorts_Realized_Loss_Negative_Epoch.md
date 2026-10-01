@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Loss\_Negative\_Epoch
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12564](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12564)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10078](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10078)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12564](https://githu
 
 > **\_0**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12565](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12565)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10079](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10079)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12565](https://githu
 
 > **\_1**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12566](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12566)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10080](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10080)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12566](https://githu
 
 > **\_2**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12567](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12567)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10081](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10081)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12567](https://githu
 
 > **\_3**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12568](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12568)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10082](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10082)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12568](https://githu
 
 > **\_4**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12569](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12569)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10083](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10083)

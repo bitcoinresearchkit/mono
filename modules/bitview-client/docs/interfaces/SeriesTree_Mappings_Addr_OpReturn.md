@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Addr\_OpReturn
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9204](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9204)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8051](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8051)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9204](https://github
 
 > **identity**: [`SeriesPattern23`](../type-aliases/SeriesPattern23.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9205](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9205)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8052](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8052)

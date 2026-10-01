@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_NetPnl\_Term
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13737](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13737)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10901](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10901)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13737](https://githu
 
 > **long**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13739](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13739)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10903](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10903)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13739](https://githu
 
 > **short**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13738](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13738)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10902](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10902)

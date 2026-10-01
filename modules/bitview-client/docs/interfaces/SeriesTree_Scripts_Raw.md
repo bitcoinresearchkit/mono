@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Scripts\_Raw
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8074](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8074)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6764](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6764)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8074](https://github
 
 > **empty**: [`SeriesTree_Scripts_Raw_Empty`](SeriesTree_Scripts_Raw_Empty.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8075](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8075)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6765](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6765)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8075](https://github
 
 > **p2ms**: [`SeriesTree_Scripts_Raw_P2ms`](SeriesTree_Scripts_Raw_P2ms.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8076](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8076)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6766](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6766)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8076](https://github
 
 > **unknown**: [`SeriesTree_Scripts_Raw_Unknown`](SeriesTree_Scripts_Raw_Unknown.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8077](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8077)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6767](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6767)

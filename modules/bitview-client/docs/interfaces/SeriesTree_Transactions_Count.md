@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Count
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7551](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7551)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6283](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6283)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7551](https://github
 
 > **total**: [`AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern`](AverageBlockCumulativeMaxMedianMinPct10Pct25Pct75Pct90SumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7552](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7552)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6284](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6284)

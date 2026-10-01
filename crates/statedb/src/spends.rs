@@ -1,9 +1,4 @@
-use crate::{
-    Amount,
-    codec::{decode, encode},
-    journal::Journal,
-    util::invalid,
-};
+use crate::{Amount, journal::Journal, journal_reader::JournalReader, util::invalid};
 use std::{io::Result, path::Path};
 
 pub struct Spends {
@@ -54,59 +49,51 @@ impl Spends {
     ) -> Result<()> {
         self.buffer.clear();
         self.buffer.extend_from_slice(&hash);
-        Amount::default().encode(&mut self.buffer);
+        self.buffer.extend_from_slice(&Amount::default().encode());
         let mut total = Amount::default();
         for (origin, amount) in rows {
             if origin as usize > self.len() || amount.count == 0 {
                 return Err(invalid("invalid spent origin"));
             }
             total = total.checked_add(amount)?;
-            encode(origin.into(), &mut self.buffer);
-            encode(amount.sats, &mut self.buffer);
-            encode(amount.count, &mut self.buffer);
+            let count =
+                u32::try_from(amount.count).map_err(|_| invalid("spent count exceeds u32"))?;
+            let mut row = [0; 16];
+            row[..4].copy_from_slice(&origin.to_le_bytes());
+            row[4..8].copy_from_slice(&count.to_le_bytes());
+            row[8..].copy_from_slice(&amount.sats.to_le_bytes());
+            self.buffer.extend_from_slice(&row);
         }
         self.buffer[32..40].copy_from_slice(&total.sats.to_le_bytes());
         self.buffer[40..48].copy_from_slice(&total.count.to_le_bytes());
         self.journal.push(&self.buffer)
     }
-    pub fn read(
-        &self,
-        height: usize,
-        bytes: &mut Vec<u8>,
-        rows: &mut Vec<(u32, Amount)>,
-    ) -> Result<([u8; 32], Amount)> {
-        self.journal.read(height, bytes)?;
-        if bytes.len() < 48 {
-            return Err(invalid("invalid spend header"));
+    pub(crate) fn cursor(&self, end: usize) -> JournalReader<'_> {
+        JournalReader::new(&self.journal, end)
+    }
+    pub(crate) fn header(bytes: &[u8]) -> Result<([u8; 32], Amount)> {
+        if bytes.len() < 48 || !(bytes.len() - 48).is_multiple_of(16) {
+            return Err(invalid("invalid fixed spend rows"));
         }
-        let hash = bytes[..32].try_into().unwrap();
-        let expected = Amount::decode(&bytes[32..48])?;
-        let mut input = &bytes[48..];
-        let mut total = Amount::default();
-        rows.clear();
-        while !input.is_empty() {
-            let origin = decode(&mut input)?;
-            let amount = Amount {
-                sats: decode(&mut input)?,
-                count: decode(&mut input)?,
-            };
-            if origin > height as u64 || amount.count == 0 {
-                return Err(invalid("invalid origin row"));
-            }
-            total = total.checked_add(amount)?;
-            rows.push((origin as u32, amount));
-        }
-        if total != expected {
-            return Err(invalid("origin total mismatch"));
-        }
-        Ok((hash, total))
+        Ok((
+            bytes[..32].try_into().unwrap(),
+            Amount::decode(&bytes[32..48])?,
+        ))
+    }
+    pub(crate) fn rows(bytes: &[u8]) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
+        bytes.chunks_exact(16).map(|row| {
+            (
+                u32::from_le_bytes(row[..4].try_into().unwrap()),
+                Amount {
+                    sats: u64::from_le_bytes(row[8..16].try_into().unwrap()),
+                    count: u32::from_le_bytes(row[4..8].try_into().unwrap()) as u64,
+                },
+            )
+        })
     }
     pub fn hash(&self, height: usize) -> Result<[u8; 32]> {
-        let mut bytes = Vec::new();
-        self.journal.read(height, &mut bytes)?;
-        bytes
-            .get(..32)
-            .ok_or_else(|| invalid("missing spend hash"))
-            .map(|b| b.try_into().unwrap())
+        let mut hash = [0; 32];
+        self.journal.read_prefix(height, &mut hash)?;
+        Ok(hash)
     }
 }

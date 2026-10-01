@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Inputs\_ByType
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7657](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7657)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6394](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6394)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7657](https://github
 
 > **inputCount**: [`SeriesTree_Inputs_ByType_InputCount`](SeriesTree_Inputs_ByType_InputCount.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7658](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7658)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6395](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6395)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7658](https://github
 
 > **inputShare**: [`SeriesTree_Inputs_ByType_InputShare`](SeriesTree_Inputs_ByType_InputShare.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7659](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7659)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6396](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6396)
 
 ***
 
@@ -30,12 +30,12 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7659](https://github
 
 > **txCount**: [`SeriesTree_Inputs_ByType_TxCount`](SeriesTree_Inputs_ByType_TxCount.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7660](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7660)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6397](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6397)
 
 ***
 
 ### txShare
 
-> **txShare**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern13.md)
+> **txShare**: [`EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern12`](EmptyP2aP2msP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshUnknownPattern12.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7661](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7661)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6398](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6398)

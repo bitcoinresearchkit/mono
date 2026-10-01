@@ -1,6 +1,7 @@
 use bitview_collections::Windows;
-use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, PerTxDistribution};
+use bitview_vecs::{
+    IndexSources, LazyWindowStartVec, PerBlockCumulativeRolling, PerTxDistribution,
+};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::{Database, EagerVec, ImportableVec};
@@ -13,7 +14,7 @@ const VERSION: Version = Version::new(5);
 pub fn forced_import(
     db: &Database,
     version: Version,
-    mappings: &MappingsVecs,
+    mappings: &IndexSources,
     window_starts: &Windows<&LazyWindowStartVec>,
 ) -> Result<Vecs> {
     let v = version + VERSION;
@@ -33,6 +34,7 @@ pub fn forced_import(
 
     Ok(Vecs {
         count,
+        total: EagerVec::forced_import(db, "fee_total", v)?,
         coinbase_value: EagerVec::forced_import(db, "coinbase_value", v)?,
         fee: PerTxDistribution::forced_import(db, "fee", v, mappings)?,
         fee_rate: EagerVec::forced_import(db, "fee_rate", v)?,

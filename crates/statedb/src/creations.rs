@@ -1,4 +1,4 @@
-use crate::{Amount, journal::Journal, util::invalid};
+use crate::{Amount, journal::Journal, journal_reader::JournalReader, util::invalid};
 use std::{io::Result, path::Path};
 
 /// Output facts are the second column of each complete block diff.
@@ -54,18 +54,35 @@ impl Creations {
         {
             return Err(invalid("invalid output correction"));
         }
-        let mut bytes = Vec::with_capacity(68);
-        bytes.extend_from_slice(&hash);
-        amount.encode(&mut bytes);
-        if let Some((origin, removed)) = correction {
-            bytes.extend_from_slice(&origin.to_le_bytes());
-            removed.encode(&mut bytes);
-        }
-        self.journal.push(&bytes)
+        let mut bytes = [0; 68];
+        bytes[..32].copy_from_slice(&hash);
+        bytes[32..48].copy_from_slice(&amount.encode());
+        let len = if let Some((origin, removed)) = correction {
+            bytes[48..52].copy_from_slice(&origin.to_le_bytes());
+            bytes[52..].copy_from_slice(&removed.encode());
+            68
+        } else {
+            48
+        };
+        self.journal.push(&bytes[..len])
+    }
+    pub(crate) fn hash(&self, height: usize) -> Result<[u8; 32]> {
+        let mut hash = [0; 32];
+        self.journal.read_prefix(height, &mut hash)?;
+        Ok(hash)
     }
     pub fn read(&self, height: usize) -> Result<([u8; 32], Amount, Option<(u32, Amount)>)> {
         let mut bytes = Vec::new();
         self.journal.read(height, &mut bytes)?;
+        Self::decode(height, &bytes)
+    }
+    pub(crate) fn cursor(&self, end: usize) -> JournalReader<'_> {
+        JournalReader::new(&self.journal, end)
+    }
+    pub(crate) fn decode(
+        height: usize,
+        bytes: &[u8],
+    ) -> Result<([u8; 32], Amount, Option<(u32, Amount)>)> {
         if bytes.len() != 48 && bytes.len() != 68 {
             return Err(invalid("invalid creation record"));
         }

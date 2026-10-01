@@ -1,7 +1,5 @@
-mod cohorts;
 mod series;
 mod supply;
 
-pub use cohorts::DensityMetrics;
-use series::DensitySeries;
+pub use series::DensitySeries;
 pub(crate) use supply::SupplyDensity;

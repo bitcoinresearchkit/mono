@@ -1,9 +1,7 @@
 //! URPD reconstruction and derived metrics from canonical UTXO history.
-mod age_ranges;
-mod distribution;
 mod metrics;
-mod origins;
 mod projected_bucket;
+mod projection;
 mod response;
 
 use brk_types::Version;
@@ -11,11 +9,8 @@ use brk_types::Version;
 /// Computation revision shared by consumers of weighted URPD buckets.
 pub const COMPUTE_VERSION: Version = Version::ONE;
 
-pub use age_ranges::AgeRangeUrpds;
-pub use distribution::{
-    AgeCutoffs, COST_BASIS_PRICE_DIGITS, accumulate_masses, collect_mass, rounded_entries,
-    weighted_entries,
-};
+/// Rounding precision for UTXO cost basis prices (5 significant digits in dollars).
+pub const COST_BASIS_PRICE_DIGITS: i32 = 5;
 pub use metrics::{Metrics, bounds::AgeBoundsMetrics};
 pub use projected_bucket::ProjectedBucket;
 pub use response::build_response;

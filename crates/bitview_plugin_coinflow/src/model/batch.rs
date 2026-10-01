@@ -1,62 +1,41 @@
-use bitview_cohort::{AgeRange, ByTerm};
-use bitview_compute::{AgeBand, MINIMUM_DURATION_DAYS, WeightedCohortAggregates};
-use brk_types::{
-    Bitcoin, BoundedRatio, Cents, CentsSats, CentsSquaredSats, Height, Sats, StoredF64, Timestamp,
+use bitview_cohort::AgeRange;
+use bitview_compute::{
+    AgeBand, CohortAccounting, MINIMUM_DURATION_DAYS, WeightedCohortAggregates, collect_age_range,
 };
+use bitview_plugin_distribution_age::AccountingSources;
+use brk_types::{Bitcoin, BoundedRatio, Height, Sats, StoredF64, Timestamp};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
-use vecdb::{ReadableVec, VecValue};
+use vecdb::ReadableVec;
 
-use super::{PrimaryValues, aggregate::AggregateState, decay::DecayFit};
-use crate::weights::horizon_mobilities;
+use super::{PrimaryValues, decay::DecayFit};
 
+#[derive(Default)]
 pub(crate) struct PrimaryBatch {
     timestamps: Vec<Timestamp>,
     transfer_volumes: AgeRange<Vec<Sats>>,
     coindays_created: AgeRange<Vec<StoredF64>>,
-    supplies: AgeRange<Vec<Sats>>,
-    loss_supplies: AgeRange<Vec<Sats>>,
-    realized_caps: AgeRange<Vec<Cents>>,
-    cap_raw: AgeRange<Vec<CentsSats>>,
-    capitalized_cap_raw: AgeRange<Vec<CentsSquaredSats>>,
+    accounting: CohortAccounting,
 }
 
 impl PrimaryBatch {
-    #[allow(clippy::too_many_arguments)]
-    pub(crate) fn collect(
+    pub(crate) fn collect_into(
+        &mut self,
         timestamps: &impl ReadableVec<Height, Timestamp>,
         transfer_volumes: &AgeRange<&impl ReadableVec<Height, Sats>>,
         coindays_created: &AgeRange<&impl ReadableVec<Height, StoredF64>>,
-        supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
-        loss_supplies: &AgeRange<&impl ReadableVec<Height, Sats>>,
-        realized_caps: &AgeRange<&impl ReadableVec<Height, Cents>>,
-        cap_raw: &AgeRange<&impl ReadableVec<Height, CentsSats>>,
-        capitalized_cap_raw: &AgeRange<&impl ReadableVec<Height, CentsSquaredSats>>,
+        accounting: &AccountingSources<'_>,
         start: usize,
         end: usize,
-    ) -> Self {
-        Self {
-            timestamps: timestamps.collect_range_at(start, end),
-            transfer_volumes: Self::collect_age_range(transfer_volumes, start, end),
-            coindays_created: Self::collect_age_range(coindays_created, start, end),
-            supplies: Self::collect_age_range(supplies, start, end),
-            loss_supplies: Self::collect_age_range(loss_supplies, start, end),
-            realized_caps: Self::collect_age_range(realized_caps, start, end),
-            cap_raw: Self::collect_age_range(cap_raw, start, end),
-            capitalized_cap_raw: Self::collect_age_range(capitalized_cap_raw, start, end),
-        }
+    ) {
+        timestamps.collect_range_into_at(start, end, &mut self.timestamps);
+        collect_age_range(transfer_volumes, &mut self.transfer_volumes, start, end);
+        collect_age_range(coindays_created, &mut self.coindays_created, start, end);
+        accounting.collect_into(start, end, &mut self.accounting);
     }
 
     #[inline]
     fn len(&self) -> usize {
         self.timestamps.len()
-    }
-
-    fn collect_age_range<T, V>(sources: &AgeRange<&V>, start: usize, end: usize) -> AgeRange<Vec<T>>
-    where
-        T: VecValue,
-        V: ReadableVec<Height, T>,
-    {
-        AgeRange::par_from_fn(|id| id.select(sources).collect_range_at(start, end))
     }
 
     pub(crate) fn primary_values_batch(
@@ -88,33 +67,10 @@ impl PrimaryBatch {
         let exposures = DecayFit::exposures(&hazards, network_age, bounds);
         let mobilities =
             AgeRange::from_fn(|id| BoundedRatio::from(AgeBand::mobility(*id.select(&exposures))));
-        let horizon_mobilities = horizon_mobilities(&hazards, bounds);
-        let mut terms = ByTerm::<AggregateState>::default();
         let aggregates = WeightedCohortAggregates::from_fn(|id| {
             let mobility = *id.select(&mobilities);
-            let total_supply = id.select(&self.supplies)[offset];
-            let total_cap = id.select(&self.realized_caps)[offset];
-            let loss_supply = id.select(&self.loss_supplies)[offset];
-
-            let mut contribution = AggregateState::default();
-            contribution.weighted.capitalized_price.add(
-                id.select(&self.cap_raw)[offset],
-                id.select(&self.capitalized_cap_raw)[offset],
-                mobility,
-            );
-            contribution.add(
-                total_supply,
-                loss_supply,
-                total_cap,
-                mobility,
-                &horizon_mobilities,
-                id,
-            );
-            terms.get_mut(id.term()).merge_horizons(&contribution);
-            contribution.weighted
+            self.accounting.weighted(id, offset, mobility)
         });
-        terms.short.weighted = aggregates.terms.short;
-        terms.long.weighted = aggregates.terms.long;
 
         PrimaryValues {
             spending_rate: AgeRange::from_fn(|id| StoredF64::from(*id.select(&hazards))),
@@ -124,7 +80,7 @@ impl PrimaryBatch {
             under_6m: aggregates.under_6m,
             over_4m: aggregates.over_4m,
             over_6m: aggregates.over_6m,
-            terms,
+            terms: aggregates.terms,
         }
     }
 
@@ -144,6 +100,7 @@ mod tests {
     use super::*;
     use bitview_cohort::AgeRangeId;
     use bitview_compute::WeightedCohortState;
+    use brk_types::{Cents, CentsSats, CentsSquaredSats};
 
     #[test]
     fn mobility_is_the_complement_of_survival() {
@@ -182,17 +139,18 @@ mod tests {
                 vec![Sats::from((100_000_000.0 * (-age / 1_000.0).exp()) as u64)]
             }),
             coindays_created: AgeRange::from_fn(|_| vec![StoredF64::from(100.0)]),
-            supplies: AgeRange::from_fn(|_| vec![supply]),
-            loss_supplies: AgeRange::from_fn(|_| vec![Sats::from(10_u64)]),
-            realized_caps: AgeRange::from_fn(|_| vec![cap]),
-            cap_raw: AgeRange::from_fn(|_| {
-                vec![CentsSats::new(cap.as_u128() * Sats::ONE_BTC_U128)]
-            }),
-            capitalized_cap_raw: AgeRange::from_fn(|_| {
-                vec![CentsSquaredSats::new(
-                    3_000 * cap.as_u128() * Sats::ONE_BTC_U128,
-                )]
-            }),
+            accounting: CohortAccounting {
+                supplies: AgeRange::from_fn(|_| vec![supply]),
+                loss_supplies: AgeRange::from_fn(|_| vec![Sats::from(10_u64)]),
+                cap_raw: AgeRange::from_fn(|_| {
+                    vec![CentsSats::new(cap.as_u128() * Sats::ONE_BTC_U128)]
+                }),
+                capitalized_cap_raw: AgeRange::from_fn(|_| {
+                    vec![CentsSquaredSats::new(
+                        3_000 * cap.as_u128() * Sats::ONE_BTC_U128,
+                    )]
+                }),
+            },
         };
         let values = batch.primary_values(0, Timestamp::ZERO, &bounds);
         let mut expected = WeightedCohortState::default();
@@ -213,9 +171,9 @@ mod tests {
             values.terms.long,
             values.terms.short.merged(values.terms.long),
         ] {
-            assert_eq!(state.weighted.capitalized_price.value(), Cents::new(3_000));
+            assert_eq!(state.capitalized_price.value(), Cents::new(3_000));
         }
-        let all = values.terms.short.merged(values.terms.long).weighted;
+        let all = values.terms.short.merged(values.terms.long);
         assert_eq!(all.weighted_supply, expected.weighted_supply);
         assert_eq!(all.complement_supply, expected.complement_supply);
         assert_eq!(all.weighted_cap, expected.weighted_cap);
@@ -230,27 +188,28 @@ mod tests {
                 vec![Sats::from(100_000_000_u64 / (id.index() as u64 + 1))]
             }),
             coindays_created: AgeRange::from_fn(|_| vec![StoredF64::from(100.0)]),
-            supplies: AgeRange::from_fn(|_| vec![Sats::from(100_000_000_u64)]),
-            loss_supplies: AgeRange::from_fn(|_| vec![Sats::ZERO]),
-            realized_caps: AgeRange::from_fn(|id| vec![Cents::new((id.index() as u64 + 1) * 100)]),
-            cap_raw: AgeRange::from_fn(|id| {
-                vec![CentsSats::new(
-                    (id.index() as u128 + 1) * 100 * Sats::ONE_BTC_U128,
-                )]
-            }),
-            capitalized_cap_raw: AgeRange::from_fn(|id| {
-                vec![CentsSquaredSats::new(
-                    ((id.index() as u128 + 1) * 100).pow(2) * Sats::ONE_BTC_U128,
-                )]
-            }),
+            accounting: CohortAccounting {
+                supplies: AgeRange::from_fn(|_| vec![Sats::from(100_000_000_u64)]),
+                loss_supplies: AgeRange::from_fn(|_| vec![Sats::ZERO]),
+                cap_raw: AgeRange::from_fn(|id| {
+                    vec![CentsSats::new(
+                        (id.index() as u128 + 1) * 100 * Sats::ONE_BTC_U128,
+                    )]
+                }),
+                capitalized_cap_raw: AgeRange::from_fn(|id| {
+                    vec![CentsSquaredSats::new(
+                        ((id.index() as u128 + 1) * 100).pow(2) * Sats::ONE_BTC_U128,
+                    )]
+                }),
+            },
         };
         let values = batch.primary_values(0, Timestamp::ZERO, &bounds);
         for (days, older, actual) in [
             (120, false, values.under_4m),
-            (150, false, values.terms.short.weighted),
+            (150, false, values.terms.short),
             (180, false, values.under_6m),
             (120, true, values.over_4m),
-            (150, true, values.terms.long.weighted),
+            (150, true, values.terms.long),
             (180, true, values.over_6m),
         ] {
             let mut expected = WeightedCohortState::default();
@@ -265,14 +224,14 @@ mod tests {
                 }
                 let weight = *id.select(&values.mobility);
                 expected.add(
-                    id.select(&batch.supplies)[0],
+                    id.select(&batch.accounting.supplies)[0],
                     Sats::ZERO,
-                    id.select(&batch.realized_caps)[0],
+                    Cents::new((id.index() as u64 + 1) * 100),
                     weight,
                 );
                 expected.capitalized_price.add(
-                    id.select(&batch.cap_raw)[0],
-                    id.select(&batch.capitalized_cap_raw)[0],
+                    id.select(&batch.accounting.cap_raw)[0],
+                    id.select(&batch.accounting.capitalized_cap_raw)[0],
                     weight,
                 );
             }

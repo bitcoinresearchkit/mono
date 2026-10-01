@@ -2,24 +2,23 @@ use crate::{
     compute::ComputeContext,
     state::{SendPrecomputed, UTXOStates},
 };
-use bitview_cohort::EntryPrice;
 use brk_types::{Age, Cents, CostBasisSnapshot, Height, Sats, SupplyState, Timestamp};
 impl UTXOStates {
+    /// Returns satoshi-blocks destroyed while applying each spent origin.
     pub fn send_origins(
         &mut self,
         height_to_sent: impl IntoIterator<Item = (Height, SupplyState)>,
         send_height: Height,
-        entries: &[EntryPrice],
         ctx: &ComputeContext<'_>,
-    ) -> Option<Height> {
+    ) -> u128 {
+        let mut satblocks = 0;
+        let send = usize::from(send_height);
         let last_timestamp = ctx.height_to_timestamp[usize::from(send_height)];
         let current_price = ctx.height_to_price[usize::from(send_height)];
-        let mut min_receive_height: Option<Height> = None;
 
         for (receive_height, sent) in height_to_sent {
-            min_receive_height =
-                Some(min_receive_height.map_or(receive_height, |cur| cur.min(receive_height)));
             let origin = usize::from(receive_height);
+            satblocks += (send - origin) as u128 * u128::from(sent.value);
             let prev_price = ctx.height_to_price[origin];
             let origin_timestamp = ctx.height_to_timestamp[origin];
             let age = Age::new(last_timestamp, origin_timestamp);
@@ -45,9 +44,6 @@ impl UTXOStates {
                 if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
                     v.send_utxo_precomputed(&sent, &pre);
                 }
-                self.entry
-                    .get_mut(entries[origin])
-                    .send_utxo_precomputed(&sent, &pre);
             } else if sent.utxo_count > 0 {
                 // Zero-value outputs still contribute to spent-output counts.
                 self.age_range.get_mut(age).send_utxo(
@@ -63,17 +59,9 @@ impl UTXOStates {
                 if let Some(v) = self.class.mut_vec_from_timestamp(origin_timestamp) {
                     v.send_utxo(&sent, current_price, prev_price, peak_price, age);
                 }
-                self.entry.get_mut(entries[origin]).send_utxo(
-                    &sent,
-                    current_price,
-                    prev_price,
-                    peak_price,
-                    age,
-                );
             }
         }
-
-        min_receive_height
+        satblocks
     }
     pub fn receive_origins(
         &mut self,
@@ -81,7 +69,6 @@ impl UTXOStates {
         height: Height,
         timestamp: Timestamp,
         price: Cents,
-        entry: EntryPrice,
     ) {
         let snapshot = CostBasisSnapshot::from_utxo(price, &supply);
         self.age_range
@@ -93,9 +80,6 @@ impl UTXOStates {
         if let Some(v) = self.class.mut_vec_from_timestamp(timestamp) {
             v.receive_utxo_snapshot(&supply, &snapshot);
         }
-        self.entry
-            .get_mut(entry)
-            .receive_utxo_snapshot(&supply, &snapshot);
     }
 }
 

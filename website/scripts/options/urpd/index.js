@@ -3,7 +3,7 @@ import { createSupplyDensitySection } from "./supply-density.js";
 
 /**
  * @param {string} label
- * @param {Bitview.CapitalizedCostSupplyPattern} urpd
+ * @param {Bitview.SeriesTree_Cointime_Urpd | Bitview.SeriesTree_Coinflow_Urpd} urpd
  * @returns {PartialOptionsGroup}
  */
 export function createWeightedUrpdSection(label, urpd) {
@@ -11,7 +11,7 @@ export function createWeightedUrpdSection(label, urpd) {
     name: "URPD",
     tree: [
       createCostBasisSection(label, urpd),
-      createSupplyDensitySection(label, urpd.supplyDensity),
+      createSupplyDensitySection(label, urpd),
     ],
   };
 }

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Hour1
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9249](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9249)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8096](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8096)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9249](https://github
 
 > **firstHeight**: [`SeriesPattern5`](../type-aliases/SeriesPattern5.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9250](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9250)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8097](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8097)

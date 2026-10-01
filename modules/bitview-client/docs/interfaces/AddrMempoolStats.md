@@ -6,7 +6,7 @@
 
 # Interface: AddrMempoolStats
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:51](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L51)
+Defined in: [Developer/mono/modules/bitview-client/index.js:51](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L51)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:51](https://github.c
 
 > **balanceDelta**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:52](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L52)
+Defined in: [Developer/mono/modules/bitview-client/index.js:52](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L52)
 
 Net pending (unconfirmed) balance change in satoshis; negative when pending spends exceed receipts
 
@@ -24,7 +24,7 @@ Net pending (unconfirmed) balance change in satoshis; negative when pending spen
 
 > **fundedTxoCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:53](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L53)
+Defined in: [Developer/mono/modules/bitview-client/index.js:53](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L53)
 
 Number of unconfirmed transaction outputs funding this address
 
@@ -34,7 +34,7 @@ Number of unconfirmed transaction outputs funding this address
 
 > **fundedTxoSum**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:54](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L54)
+Defined in: [Developer/mono/modules/bitview-client/index.js:54](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L54)
 
 Total amount in satoshis being received in unconfirmed transactions
 
@@ -44,7 +44,7 @@ Total amount in satoshis being received in unconfirmed transactions
 
 > **spentTxoCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:55](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L55)
+Defined in: [Developer/mono/modules/bitview-client/index.js:55](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L55)
 
 Number of unconfirmed transaction inputs spending from this address
 
@@ -54,7 +54,7 @@ Number of unconfirmed transaction inputs spending from this address
 
 > **spentTxoSum**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:56](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L56)
+Defined in: [Developer/mono/modules/bitview-client/index.js:56](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L56)
 
 Total amount in satoshis being spent in unconfirmed transactions
 
@@ -64,6 +64,6 @@ Total amount in satoshis being spent in unconfirmed transactions
 
 > **txCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:57](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L57)
+Defined in: [Developer/mono/modules/bitview-client/index.js:57](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L57)
 
 Number of unconfirmed transactions involving this address

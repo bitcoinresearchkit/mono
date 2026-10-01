@@ -1,45 +1,38 @@
 use crate::{Amount, Creations, Spends, util::invalid};
 use std::io::Result;
-
-/// Complete block changes, with distinct views of actual spends and all state removals.
-#[derive(Default)]
-pub struct BlockDiff {
+/// A block view into the cursor's read window; no decoded row buffer or copy.
+#[derive(Clone, Copy)]
+pub struct BlockDiff<'a> {
     pub hash: [u8; 32],
     pub created: Amount,
-    bytes: Vec<u8>,
-    removed: Vec<(u32, Amount)>,
-    spent_len: usize,
+    pub(crate) removed_total: Amount,
+    rows: &'a [u8],
+    correction: Option<(u32, Amount)>,
 }
-
-impl BlockDiff {
-    /// Actual input spends, excluding historical output overwrites.
-    pub fn spent(&self) -> &[(u32, Amount)] {
-        &self.removed[..self.spent_len]
+impl<'a> BlockDiff<'a> {
+    pub fn spent(&self) -> impl ExactSizeIterator<Item = (u32, Amount)> + Clone + '_ {
+        Spends::rows(self.rows)
     }
-
-    /// All removals from the UTXO state: actual spends followed by any overwrite.
-    pub fn removed(&self) -> &[(u32, Amount)] {
-        &self.removed
+    pub fn removed(&self) -> impl Iterator<Item = (u32, Amount)> + Clone + '_ {
+        self.spent().chain(self.correction)
     }
-
-    pub(crate) fn read(
-        &mut self,
-        height: usize,
-        spends: &Spends,
-        creations: &Creations,
-    ) -> Result<()> {
-        self.spent_len = 0;
-        let (input_hash, _) = spends.read(height, &mut self.bytes, &mut self.removed)?;
-        let (output_hash, created, correction) = creations.read(height)?;
-        if input_hash != output_hash {
+    pub(crate) fn decode(height: usize, input: &'a [u8], output: &[u8]) -> Result<Self> {
+        let (hash, total) = Spends::header(input)?;
+        let (output_hash, created, correction) = Creations::decode(height, output)?;
+        if hash != output_hash {
             return Err(invalid("origin producer chain mismatch"));
         }
-        self.hash = input_hash;
-        self.created = created;
-        self.spent_len = self.removed.len();
-        if let Some(correction) = correction {
-            self.removed.push(correction);
-        }
-        Ok(())
+        let removed_total = if let Some((_, amount)) = correction {
+            total.checked_add(amount)?
+        } else {
+            total
+        };
+        Ok(Self {
+            hash,
+            created,
+            removed_total,
+            rows: &input[48..],
+            correction,
+        })
     }
 }

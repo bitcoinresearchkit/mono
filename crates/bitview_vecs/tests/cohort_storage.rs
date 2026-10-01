@@ -82,7 +82,7 @@ fn exact_totals_never_sum_independently_computed_values() {
     let direct = UTXOValues::<Cents>::default().map(|_| maximum);
     let aggregate = UTXOAggregate::<Cents>::default().map(|_| Cents::from(17_u64));
     sources.push_exact(direct, aggregate);
-    assert_eq!(sources.collect_vecs_mut().len(), 77);
+    assert_eq!(sources.collect_vecs_mut().len(), 75);
     for source in sources.collect_vecs_mut() {
         source.write().unwrap();
     }

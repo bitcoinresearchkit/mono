@@ -13,6 +13,8 @@ pub fn i64_to_usize(i: i64, len: usize) -> usize {
 
 /// Common trait for all vectors providing metadata and utility methods.
 pub trait AnyVec: Send + Sync {
+    /// Provenance for consumers: a stored vector's computed version when set,
+    /// otherwise its schema version. Appending rows does not change provenance.
     fn version(&self) -> Version;
     fn name(&self) -> &str;
     fn len(&self) -> usize;

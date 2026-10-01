@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Activity
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11223](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11223)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9399](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9399)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11223](https://githu
 
 > **coindaysDestroyed**: [`SeriesTree_Cohorts_Activity_CoindaysDestroyed`](SeriesTree_Cohorts_Activity_CoindaysDestroyed.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11225](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11225)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9401](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9401)
 
 ***
 
@@ -22,15 +22,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11225](https://githu
 
 > **coinyearsDestroyed**: [`SeriesTree_Cohorts_Activity_CoinyearsDestroyed`](SeriesTree_Cohorts_Activity_CoinyearsDestroyed.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11226](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11226)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9402](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9402)
 
 ***
 
 ### dormancy
 
-> **dormancy**: [`AllLthSthPattern3`](AllLthSthPattern3.md)
+> **dormancy**: [`AllLthSthPattern2`](AllLthSthPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11227](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11227)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9403](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9403)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:11227](https://githu
 
 > **transferVolume**: [`SeriesTree_Cohorts_Activity_TransferVolume`](SeriesTree_Cohorts_Activity_TransferVolume.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:11224](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L11224)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9400](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9400)

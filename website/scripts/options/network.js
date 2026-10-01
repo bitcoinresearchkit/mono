@@ -1082,6 +1082,14 @@ export function createNetworkSection() {
                 ],
               })),
               {
+                name: "Daily Average",
+                tree: averagesArray({
+                  windows: blocks.count.total.average,
+                  metric: "Daily Block Count",
+                  unit: Unit.count,
+                }),
+              },
+              {
                 name: "Cumulative",
                 title: "Cumulative Block Count",
                 bottom: [
@@ -1142,7 +1150,7 @@ export function createNetworkSection() {
             title: "UTXO Count",
             bottom: [
               line({
-                series: outputs.unspent.count,
+                series: cohorts.outputs.unspentCount.all.base,
                 name: "Count",
                 unit: Unit.count,
               }),

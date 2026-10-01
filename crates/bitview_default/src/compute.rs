@@ -93,7 +93,7 @@ impl DefaultPlugins {
 
             // Market, Size, Outputs → History → Age, and Transactions → Mining +
             // OP_RETURN are independent branches of complete plugin computations.
-            let market = scope.spawn(|| {
+            let market = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, MARKET_ID, || {
                     self.market.compute(
                         MarketDependencies {
@@ -104,10 +104,11 @@ impl DefaultPlugins {
                         },
                         context,
                     )
-                })
+                })?;
+                Ok(self.market.as_ref())
             });
 
-            let tx_mining_op_return = scope.spawn(|| -> Result<()> {
+            let tx_mining_op_return = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, TRANSACTIONS_ID, || {
                     self.transactions.compute(
                         TransactionsDependencies {
@@ -127,7 +128,6 @@ impl DefaultPlugins {
                             self.mining.compute(
                                 MiningDependencies {
                                     indexer,
-                                    mappings: self.mappings.as_ref(),
                                     blocks: self.blocks.as_ref(),
                                     transactions: self.transactions.as_ref(),
                                     price: self.price.as_ref(),
@@ -150,10 +150,10 @@ impl DefaultPlugins {
                 );
                 mining?;
                 op_return?;
-                Ok(())
+                Ok(self.mining.as_ref())
             });
 
-            let size = scope.spawn(|| {
+            let size = scope.spawn(|| -> Result<_> {
                 timed(Phase::Compute, DISTRIBUTION_SIZE_ID, || {
                     self.distribution_size.compute(
                         SizeDependencies {
@@ -164,7 +164,8 @@ impl DefaultPlugins {
                         },
                         context,
                     )
-                })
+                })?;
+                Ok(self.distribution_size.as_ref())
             });
 
             timed(Phase::Compute, OUTPUTS_ID, || {
@@ -204,94 +205,16 @@ impl DefaultPlugins {
                     context,
                 )
             })?;
-            size.join().unwrap()?;
-
-            tx_mining_op_return.join().unwrap()?;
-            market.join().unwrap()?;
-            Ok(())
-        })?;
-
-        timed(Phase::Compute, POOLS_ID, || {
-            self.pools.compute(
-                PoolsDependencies {
-                    indexer,
-                    price: &self.price,
-                    mining: &self.mining,
-                },
-                context,
-            )
-        })?;
-
-        // Supply feeds Cointime while Coinflow is independent. Bedrock and
-        // Rarity Meter then consume both Cointime and Coinflow.
-        thread::scope(|scope| -> Result<()> {
-            let indicators = scope.spawn(|| {
-                timed(Phase::Compute, INDICATORS_ID, || {
-                    self.indicators.compute(
-                        IndicatorsDependencies {
-                            size: &self.distribution_size,
-                            indexer,
-                            mining: self.mining.as_ref(),
-                            distribution_age: self.distribution_age.as_ref(),
-                            market: self.market.as_ref(),
-                        },
-                        context,
-                    )
-                })
-            });
-            let capital_sentiment = scope.spawn(|| {
-                timed(Phase::Compute, CAPITAL_SENTIMENT_ID, || {
-                    self.capital_sentiment.compute(
-                        CapitalSentimentDependencies {
-                            indexer,
-                            price: self.price.as_ref(),
-                            distribution_age: self.distribution_age.as_ref(),
-                            moving_average: &self.market.moving_average,
-                        },
-                        context,
-                    )
-                })
-            });
-
             let history = self
                 .utxo_history
-                .reader(self.inputs.origins.spends(), &self.outputs.creations)?;
+                .reader(self.inputs.origins.spends(), creations)?;
             let urpd = ReplayInputs {
                 history: &history,
                 prices: &self.price.spot.cents.height,
                 timestamps: &self.mappings.timestamp.monotonic,
             };
-            let (cointime, coinflow) = join(
-                || {
-                    timed(Phase::Compute, SUPPLY_ID, || {
-                        self.supply.compute(
-                            SupplyDependencies {
-                                indexer,
-                                outputs: self.outputs.as_ref(),
-                                mining: self.mining.as_ref(),
-                                price: self.price.as_ref(),
-                            },
-                            context,
-                        )
-                    })?;
-
-                    timed(Phase::Compute, COINTIME_ID, || {
-                        self.cointime.compute(
-                            CointimeDependencies {
-                                urpd,
-                                indexer,
-                                price: self.price.as_ref(),
-                                blocks: self.blocks.as_ref(),
-                                inflation_rate: &self.supply.inflation_rate,
-                                velocity_native: &self.supply.velocity.native,
-                                velocity_fiat: &self.supply.velocity.fiat,
-                                distribution_age: self.distribution_age.as_ref(),
-                            },
-                            context,
-                        )
-                    })
-                },
-                || {
+            thread::scope(|scope| -> Result<()> {
+                let coinflow = scope.spawn(|| -> Result<_> {
                     timed(Phase::Compute, COINFLOW_ID, || {
                         self.coinflow.compute(
                             CoinflowDependencies {
@@ -302,40 +225,109 @@ impl DefaultPlugins {
                             },
                             context,
                         )
+                    })?;
+                    Ok(self.coinflow.as_ref())
+                });
+                let capital_sentiment = scope.spawn(|| -> Result<_> {
+                    let market = market.join().unwrap()?;
+                    timed(Phase::Compute, CAPITAL_SENTIMENT_ID, || {
+                        self.capital_sentiment.compute(
+                            CapitalSentimentDependencies {
+                                indexer,
+                                price: self.price.as_ref(),
+                                distribution_age: self.distribution_age.as_ref(),
+                                moving_average: &market.moving_average,
+                            },
+                            context,
+                        )
+                    })?;
+                    Ok(market)
+                });
+                let mining = tx_mining_op_return.join().unwrap()?;
+                let pools = scope.spawn(|| {
+                    timed(Phase::Compute, POOLS_ID, || {
+                        self.pools.compute(
+                            PoolsDependencies {
+                                indexer,
+                                price: &self.price,
+                                mining,
+                            },
+                            context,
+                        )
                     })
-                },
-            );
-            cointime?;
-            coinflow?;
+                });
+                timed(Phase::Compute, SUPPLY_ID, || {
+                    self.supply.compute(
+                        SupplyDependencies {
+                            indexer,
+                            outputs: self.outputs.as_ref(),
+                            mining,
+                            price: self.price.as_ref(),
+                        },
+                        context,
+                    )
+                })?;
 
-            timed(Phase::Compute, BEDROCK_ID, || {
-                self.bedrock.compute(
-                    BedrockDependencies {
-                        urpd,
-                        indexer,
-                        mappings: &self.mappings,
-                        distribution_age: &self.distribution_age,
-                        cointime: &self.cointime,
-                        coinflow: &self.coinflow,
-                    },
-                    context,
-                )
+                timed(Phase::Compute, COINTIME_ID, || {
+                    self.cointime.compute(
+                        CointimeDependencies {
+                            urpd,
+                            indexer,
+                            price: self.price.as_ref(),
+                            blocks: self.blocks.as_ref(),
+                            inflation_rate: &self.supply.inflation_rate,
+                            velocity_native: &self.supply.velocity.native,
+                            velocity_fiat: &self.supply.velocity.fiat,
+                            distribution_age: self.distribution_age.as_ref(),
+                        },
+                        context,
+                    )
+                })?;
+                let coinflow = coinflow.join().unwrap()?;
+
+                timed(Phase::Compute, BEDROCK_ID, || {
+                    self.bedrock.compute(
+                        BedrockDependencies {
+                            urpd,
+                            indexer,
+                            mappings: &self.mappings,
+                            distribution_age: &self.distribution_age,
+                            cointime: &self.cointime,
+                            coinflow,
+                        },
+                        context,
+                    )
+                })?;
+                timed(Phase::Compute, RARITY_METER_ID, || {
+                    self.rarity_meter.compute(
+                        RarityMeterDependencies {
+                            indexer,
+                            bedrock: self.bedrock.as_ref(),
+                            distribution_age: self.distribution_age.as_ref(),
+                            cointime: self.cointime.as_ref(),
+                            coinflow,
+                            price: self.price.as_ref(),
+                        },
+                        context,
+                    )
+                })?;
+                let market = capital_sentiment.join().unwrap()?;
+                let size = size.join().unwrap()?;
+                timed(Phase::Compute, INDICATORS_ID, || {
+                    self.indicators.compute(
+                        IndicatorsDependencies {
+                            size,
+                            indexer,
+                            mining,
+                            distribution_age: self.distribution_age.as_ref(),
+                            market,
+                        },
+                        context,
+                    )
+                })?;
+                pools.join().unwrap()?;
+                Ok(())
             })?;
-            timed(Phase::Compute, RARITY_METER_ID, || {
-                self.rarity_meter.compute(
-                    RarityMeterDependencies {
-                        indexer,
-                        bedrock: self.bedrock.as_ref(),
-                        distribution_age: self.distribution_age.as_ref(),
-                        cointime: self.cointime.as_ref(),
-                        coinflow: self.coinflow.as_ref(),
-                        price: self.price.as_ref(),
-                    },
-                    context,
-                )
-            })?;
-            capital_sentiment.join().unwrap()?;
-            indicators.join().unwrap()?;
             Ok(())
         })?;
 

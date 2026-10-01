@@ -1,8 +1,10 @@
 use bitview_compute::prepare_computed;
 use bitview_plugin::{ComputePlugin, UpdateContext};
+use bitview_vecs::CachedSeries;
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::{CapitalSentimentPhase as Phase, Cents, Height, StoredBool, StoredU8, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, Cursor, ReadableVec, WritableVec};
 
 use super::Vecs;
 use crate::Dependencies;
@@ -54,71 +56,73 @@ impl ComputePlugin for Vecs {
             .cents
             .height;
 
-        let source_version: Version = [
-            spot.version(),
-            sma.version(),
-            all.version(),
-            sth.version(),
-            lth.version(),
-        ]
-        .into_iter()
-        .sum();
-        let height_end = [spot.len(), sma.len(), all.len(), sth.len(), lth.len()]
-            .into_iter()
-            .min()
-            .unwrap_or_default();
-        let source_end = height_end;
-        let recompute_from = usize::from(indexer.safe_lengths().height);
-        let start = prepare_computed(
-            [
-                &mut self.phase_code.height as &mut dyn AnyStoredVec,
-                &mut self.is_long.height,
-            ],
-            source_version,
-            recompute_from.min(source_end),
+        compute_series(
+            &mut self.phase_code.height,
+            &mut self.is_long.height,
+            [spot, all, sth, lth, sma],
+            usize::from(indexer.safe_lengths().height),
+            exit,
         )?;
-
-        let mut is_long = start
-            .checked_sub(1)
-            .map(Height::from)
-            .and_then(|height| self.is_long.height.collect_one(height))
-            .is_some_and(|value| value.is_true());
-        let mut previous_over_sth = start.checked_sub(1).map(|index| {
-            let height = Height::from(index);
-            is_over_sth(spot.collect_one(height), sth.collect_one(height))
-        });
-        for block_index in start..source_end {
-            let height = Height::from(block_index);
-            let price = spot.collect_one(height);
-            let sth_price = sth.collect_one(height);
-            let over_sth = is_over_sth(price, sth_price);
-            let code = classify_phase_code(
-                price,
-                all.collect_one(height),
-                sth_price,
-                lth.collect_one(height),
-                sma.collect_one(height),
-            );
-            is_long = next_is_long(is_long, previous_over_sth, over_sth, code);
-
-            self.phase_code.height.push(code);
-            self.is_long.height.push(StoredBool::from(is_long));
-            previous_over_sth = Some(over_sth);
-
-            if (block_index + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS)
-                || block_index + 1 == source_end
-            {
-                let _lock = exit.lock();
-                self.phase_code.height.write()?;
-                self.is_long.height.write()?;
-            }
-        }
 
         context.compact_database(&self.db);
 
         Ok(())
     }
 }
+
+fn compute_series(
+    phase: &mut CachedSeries<Height, StoredU8>,
+    position: &mut CachedSeries<Height, StoredBool>,
+    sources: [&dyn ReadableVec<Height, Cents>; 5],
+    recompute_from: usize,
+    exit: &Exit,
+) -> Result<()> {
+    let source_version: Version = sources.iter().map(|source| source.version()).sum();
+    let source_end = sources
+        .iter()
+        .map(|source| source.len())
+        .min()
+        .unwrap_or_default();
+    let start = prepare_computed(
+        [&mut *phase as &mut dyn AnyStoredVec, &mut *position],
+        source_version,
+        recompute_from.min(source_end),
+        exit,
+    )?;
+
+    let mut is_long = start
+        .checked_sub(1)
+        .map(Height::from)
+        .and_then(|height| position.collect_one(height))
+        .is_some_and(|value| value.is_true());
+    let mut sources = sources.map(Cursor::new);
+    let mut previous_over_sth = start
+        .checked_sub(1)
+        .map(|index| is_over_sth(sources[0].get(index), sources[2].get(index)));
+    for block_index in start..source_end {
+        let [price, all, sth, lth, sma] = sources.each_mut().map(|source| source.get(block_index));
+        let over_sth = is_over_sth(price, sth);
+        let code = classify_phase_code(price, all, sth, lth, sma);
+        is_long = next_is_long(is_long, previous_over_sth, over_sth, code);
+
+        phase.push(code);
+        position.push(StoredBool::from(is_long));
+        previous_over_sth = Some(over_sth);
+
+        if (block_index + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS) || block_index + 1 == source_end
+        {
+            let _lock = exit.lock();
+            phase.write()?;
+            position.write()?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+#[path = "recovery_tests.rs"]
+mod recovery_tests;
 
 /// Advance the stateful short/long strategy used by BRK Signal.
 fn next_is_long(

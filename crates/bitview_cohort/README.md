@@ -9,10 +9,12 @@ Enable the `storage` feature for traversal, vecdb formatting traits, and
 storage-enabled BRK types. The Rust client leaves this feature disabled.
 
 `UTXOGroupCore` supplies the common logical group fields; amount and type
-extensions retain it by composition. `UTXOCoreValues` contains the four shared
-disjoint cohort families, and `UTXOValues` adds amount/type values. Public groups
+extensions retain it by composition. `UTXOCoreValues` contains the three shared
+disjoint cohort families (age, epoch, and creation year), and `UTXOValues` adds amount/type values. Public groups
 also retain the independently stored all/STH/LTH aggregates. Generic under/over
 threshold cohorts are reconstructed by their consumers when needed.
+Entry-price cohorts use their own `ByEntry` collection in the optional
+`bitview_plugin_distribution_entry` plugin.
 
 `UTXOAndAddrGroups<T>` adds address-balance groups to `UTXOGroups<T>` as one
 composed shape. It keeps output-value and controlling-address-balance cohorts

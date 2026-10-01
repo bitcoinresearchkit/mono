@@ -6,7 +6,7 @@
 
 # Interface: ErrorBody
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:570](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L570)
+Defined in: [Developer/mono/modules/bitview-client/index.js:569](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L569)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:570](https://github.
 
 > **error**: [`ErrorDetail`](ErrorDetail.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:571](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L571)
+Defined in: [Developer/mono/modules/bitview-client/index.js:570](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L570)

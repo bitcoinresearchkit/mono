@@ -33,3 +33,4 @@ vecdb = { workspace = true }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 tempfile = { workspace = true }
+rangeindex = { workspace = true }

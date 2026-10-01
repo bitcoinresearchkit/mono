@@ -1,105 +1,107 @@
 # statedb
 
-A prototype database for historical state, stored as full snapshots and per-block
-diffs. Its current state is remaining sats and UTXO counts aggregated by creation
-height: `creation_height -> { sats, count }`. An **origin** means a creation
-height throughout the API and format. This is not an outpoint database: it cannot
-identify individual UTXOs, scripts, or owners. It depends on no other Bitview
-crate or vecdb and stores no prices, cohorts, or derived analytics.
+UTXO state aggregated by creation height: `height -> { sats, count }`. This is
+not an outpoint database. It stores no prices, cohorts, or derived analytics and
+depends on neither vecdb nor another Bitview crate.
 
-Each block has two producer contributions:
+Inputs writes grouped `Spends` while resolving input values. Outputs writes
+`Creations` while scanning new outputs, excluding unspendable outputs and keeping
+historical overwrite corrections separate from actual spends. UTXO History joins
+these two contributions, checks their block hashes, updates the canonical `State`,
+and publishes snapshots plus global supply/count. Neither producer rescans outputs.
 
-- `Spends`: sats and UTXO counts removed from each creation height.
-- `Creations`: new spendable sats and UTXOs, plus an optional historical overwrite
-  correction kept separate from actual spends.
+Height arguments are exclusive prefixes: `reader.state_at(700_001)` returns the
+state after block 700,000. Seeded histories cannot reconstruct before their seed.
 
-`History` joins those contributions, checks their block hashes, applies them to a
-`State`, and writes full snapshots every 5,000 blocks and at the latest published
-block. Height arguments are exclusive prefixes: `reader.state_at(700_001)` returns
-state after block 700,000. A seeded history cannot answer before its seed.
+## Read and update paths
 
-Inputs writes `Spends` while resolving input values. Outputs writes `Creations`
-while already scanning new outputs, excluding OP_RETURN and genesis outputs and
-handling historical overwrites. Neither needs to scan outputs again to produce
-these records.
+- `Cursor` borrows the consumer's state and reads sequentially in windows bounded
+  by 128 blocks and 1 MiB per producer. One larger record may exceed the window
+  limit. It reads adjacent index entries and payloads together; readers never copy
+  the full producer index.
+- `BlockDiff` borrows fixed-width spend rows directly from the read window. Its
+  cloneable iterators expose actual `spent()` rows or all `removed()` rows,
+  including an overwrite correction. No decoded row vector or extra row copy is
+  needed. The view remains valid until the cursor advances again.
+- State application validates removals and their recorded total in the same pass.
+  A failed block restores every touched cell, the prefix, hash and total. Same-block
+  spends follow creation, and zero-sat outputs retain their counts.
+- Snapshot opening reads identity only. Latest restoration reads the latest full
+  page directly, without diff replay. Ordinary latest pages read straight into the
+  `Amount` array using safe zerocopy traits; there is no intermediate byte buffer.
+- Warm writers retain their state. Producer versions, prefix and block hashes
+  decide whether it can be reused; failed updates discard it. No-op advances and
+  commits do not rewrite files.
 
-The `bitview_plugin_utxo_history` stage publishes history once both contributions
-are committed, writing global supply/count from the same state update. Outputs
-owns neither snapshots nor combined supply accounting. The pipeline assembles a
-single `Reader` for Age and query code; consumers know nothing about the producer
-plugins or the two underlying files. Prices, timestamps, and weighting models
-belong to those consumers.
+`History` owns reconstruction and snapshot publication. `Reader` exposes one
+immutable published prefix, `state_at`, `cursor`, `replay`, and identity checks
+for reusable analytical state. `View` opens read-only files for queries. The
+caller holds the pipeline publication guard through state capture, excluding
+snapshot writes and producer rewinds. Each plugin still owns its complete
+`ComputePlugin::compute()` update with read-only dependencies.
 
-`Reader` borrows an immutable published prefix. It exposes `state_at`,
-`read_block` into a reusable `BlockDiff`, and state `replay`. It rejects
-unpublished ranges and a published tip whose hash no longer matches either
-producer. Both snapshot replay and consumer iteration use the same decoder and
-hash checks. The block record owns its reusable buffers; consumers keep their
-ordinary loops without seeing encoding or files. There is no merged log or
-allocation of a full batch of records.
+## Storage
 
-`BlockDiff::spent()` excludes historical overwrites; `removed()` includes them
-for state accounting. Both are slices of one reused buffer, keeping the hot
-loops over removals simple without duplicating records.
+The three stores are opened from their owning plugin roots: Inputs provides
+`plugins/inputs/` for `spends/`, Outputs provides `plugins/outputs/` for
+`creations/`, and UTXO History provides `plugins/utxo_history/` for
+`snapshots/`. Readers accept these roots separately, so the database does not
+require a shared `data/origins/` directory. Existing stores can be moved into
+the corresponding owner directories and reopened without replaying the chain.
 
-## Files and recovery
+Each producer owns `data`, `index`, `commit`, and a writer-lock file. The manifest
+publishes its version, base, record count and data end. Unpublished tails are
+excluded from reads and discarded by a writer on reopen. A failed modifying
+write invalidates that writer until reopen.
 
-Each producer uses an append-only data file, a fixed-width offset/checksum index,
-and an atomically replaced commit manifest. Reopening discards unpublished tails
-and reports incomplete or corrupt committed data. A failed write invalidates the
-writer until it is reopened. One process may write each producer column.
+Full states use `snapshots/data` plus `snapshots/pages`, like a paged vector with
+variable-size pages. The compact page index stores exclusive heights and offsets.
+Periodic snapshots are permanent; one nonperiodic latest page replaces its
+predecessor. Rewinds discard descendants. A periodic snapshot also serves as
+latest when the update ends on that boundary. Ordinary latest pages are raw for
+fast reads and writes; periodic pages compress dense sats and count columns
+separately with PCO. The default interval is 5,000 blocks.
 
-Snapshots include the prefix, final block hash, producer versions, and a checksum.
-A rewind publishes the recovered ancestor before removing descendant snapshots.
-Queries load the nearest matching snapshot and replay the suffix. Zero-sat
-origins with remaining UTXOs are preserved. Same-block spends apply after creation.
+Periodic pages are published as they finish, followed by the final latest page.
+If a block or callback fails before another write, the last completed checkpoint
+remains readable and can be reopened. Failures during file modification invalidate
+the snapshot writer.
 
-The diff encoding retains producer order and uses unsigned varints.
-Snapshots compress dense sats and count arrays independently with LZ4;
-heights are implicit. When a periodic snapshot is also latest, both names share
-its immutable file; replacing either uses a new file and atomic rename.
+All fixed-width integers are little-endian. The format has **no checksums**.
+Bounds, record shapes, producer identities, checked arithmetic and state invariants
+remain validated.
 
-## Binary layout and tradeoffs
-
-Fixed-width integers are little-endian; varints are canonical unsigned LEB128.
-Each producer has its own `data`, `index`, and `commit` files. Record lengths come
-from consecutive index offsets, so variable rows need neither padding nor a
-stored row count.
-
-| File or record | Encoding |
+| Record | Layout |
 | --- | --- |
-| Spend record | Block hash (32 bytes), total sats/count (two u64), then `(origin, sats, count)` varints to the end of the record |
-| Creation record | Block hash (32 bytes), new sats/count (two u64); optional overwrite correction `(origin: u32, sats: u64, count: u64)` |
-| Index entry | Exclusive end offset (u64) and record CRC32 (u32): 12 bytes per block |
-| Commit manifest | `ORIGIN02`, producer version, base height, record count, data end (four u64), CRC32: 44 bytes |
-| Full snapshot | `ORGSNAP2`, exclusive height, final block hash, two producer versions, compressed sats length; LZ4 sats and count sections; CRC32 |
+| Spend | Block hash (32 bytes), total sats/count (two u64), then 16-byte rows: origin u32, count u32, sats u64 |
+| Creation | Block hash (32 bytes), new sats/count (two u64), optional overwrite: origin u32, sats/count u64 |
+| Producer index | Exclusive payload end u64: 8 bytes per block |
+| Commit | `ORIGIN03`, version, base, record count, data end: 40 bytes |
+| Snapshot page index | `STAPAGE4`, one latest-retention byte, then height u32 and exclusive payload end u64 per page |
+| Snapshot page | `STATER04` for raw or `STATEP04` for PCO; exclusive height, block hash, two producer versions, compressed sats length; payload |
 
-Snapshot headers occupy 72 bytes. Each decoded section has one u64 per creation
-height. Separate sections keep like values together for compression; height is
-the array index. Zero sats with nonzero count must be retained. The two producer
-hashes detect mismatched chains when joining contributions; CRCs detect damaged
-records and snapshots. Format identifiers and the `origins` data directory are
-unchanged by the crate rename.
+Snapshot headers occupy 72 bytes. Raw payloads contain `{ sats: u64, count: u64 }`
+for each creation height. Compressed payloads contain two dense u64 streams using
+PCO level 3, Classic mode, and no delta transform. Creation height is implicit.
+Spend counts are bounded by u32 per origin per block; state and aggregate counts
+remain u64.
 
-Tests at 700k, 800k, and 900k compared these encodings with sorted delta origins
-and sparse snapshots. Sorting saved about 26% of diff bytes but nearly doubled
-append time. Sparse snapshots saved about 26% and wrote faster but restored
-slower. The retained format favors direct appends and state restoration, without
-optional codecs. A 5,000-block interval reduced snapshot bytes by about 73%
-against 1,000-block spacing in the measured 21,000-block corpora, with roughly
-90–121 ms warm restoration near the interval boundary. These are measured
-tradeoffs, not a claim that the format is optimal for every workload.
+## Persistence contract and format changes
 
-## Prototype boundary
+The owner **locks exit, writes, then unlocks exit**, using the project's exit guard
+across the complete update. statedb installs no shutdown handler and owns no
+application exit lock. Crashes, forced termination and power loss are unsupported;
+there is no crash-recovery protocol or compatibility reader.
 
-Sequential writers retain their validated tip in memory and reuse it for appends.
-A no-op does not rewrite snapshots. Reorgs, producer-version changes, or failed
-updates discard the resident state before recovery. Queries use a separately
-opened read-only `View`, validating the published prefix and producer hashes.
-There is no segment rotation or sats-only decode path. Files use Unix positional
-reads. The prototype default graph and URPD HTTP endpoints use this history;
-URPD price distributions are reconstructed and are not persisted.
+This format replaces the earlier varint/CRC journals and LZ4 snapshot directory.
+Existing stores using the earlier format must be converted offline or rebuilt
+before using them.
+Conversion tooling and representative measurements are retained under the
+repository's ignored `tmp/statedb-hotpath-20260930` directory. Live data is not
+modified by the tests.
 
-Integration tests cover replay, reorgs, restart, incomplete writes, corruption,
-producer mismatch, zero-value outputs, and historical corrections. They do not
-constitute a complete power-loss or production-storage audit.
+Fixed-width diffs deliberately favor sequential throughput over disk size. The
+measured spend payloads are about 2.2–2.3 times larger than the earlier varints.
+Compressed diff pages and packed rows were tested and rejected for slower reads.
+Snapshot compression remains useful for permanent history; the latest page favors
+latency. These are component measurements, not an end-to-end daemon speedup.

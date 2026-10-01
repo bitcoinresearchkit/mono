@@ -1,7 +1,9 @@
 use crate::util::invalid;
 use std::io::Result;
+use zerocopy::{FromBytes, Immutable, IntoBytes};
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, Eq)]
+#[repr(C)]
+#[derive(Clone, Copy, Default, Debug, PartialEq, Eq, FromBytes, Immutable, IntoBytes)]
 pub struct Amount {
     pub sats: u64,
     pub count: u64,
@@ -31,9 +33,11 @@ impl Amount {
                 .ok_or_else(|| invalid("count underflow"))?,
         })
     }
-    pub(crate) fn encode(self, out: &mut Vec<u8>) {
-        out.extend_from_slice(&self.sats.to_le_bytes());
-        out.extend_from_slice(&self.count.to_le_bytes());
+    pub(crate) fn encode(self) -> [u8; 16] {
+        let mut bytes = [0; 16];
+        bytes[..8].copy_from_slice(&self.sats.to_le_bytes());
+        bytes[8..].copy_from_slice(&self.count.to_le_bytes());
+        bytes
     }
     pub(crate) fn decode(bytes: &[u8]) -> Result<Self> {
         if bytes.len() != 16 {

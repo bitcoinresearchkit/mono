@@ -38,7 +38,7 @@ plugins retain provider policy. Investment-specific stacks retain the existing
 Opening-price views batch first-price lookups (or the preceding close for empty
 periods) directly against the shared spot source; they do not build full candles.
 
-`UTXOCoreSources` owns native age/epoch/class/entry collections.
+`UTXOCoreSources` owns native age/epoch/class collections.
 `UTXOTypedSources` composes that core with output types; `UTXOSources` adds
 output amounts. Every metric/cohort has one independently stored, cached source.
 Logical membership and value collections remain in `bitview_cohort`. Plugins keep these

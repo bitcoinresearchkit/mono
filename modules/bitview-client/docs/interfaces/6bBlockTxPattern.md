@@ -6,7 +6,7 @@
 
 # Interface: \_6bBlockTxPattern\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6495](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6495)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5340](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5340)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6495](https://github
 
 > **\_6b**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6496](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6496)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5341](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5341)
 
 ***
 
@@ -28,7 +28,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6496](https://github
 
 > **block**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6497](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6497)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5342](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5342)
 
 ***
 
@@ -36,4 +36,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6497](https://github
 
 > **txIndex**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6498](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6498)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5343](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5343)

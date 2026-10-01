@@ -1,4 +1,3 @@
-use bitview_cohort::EntryPrice;
 use brk_types::{Cents, Timestamp, Version};
 use statedb::State;
 
@@ -8,7 +7,6 @@ use crate::{compute::PriceRangeMax, state::UTXOStates};
 pub(crate) struct LiveState {
     pub origins: State,
     pub states: UTXOStates,
-    pub entries: Vec<EntryPrice>,
     pub prices: Vec<Cents>,
     pub timestamps: Vec<Timestamp>,
     pub max: PriceRangeMax,

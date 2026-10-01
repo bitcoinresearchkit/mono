@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_AdjustedSopr
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13007](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13007)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10373](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10373)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13007](https://githu
 
 > **ratio**: [`SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio`](SeriesTree_Cohorts_Realized_AdjustedSopr_Ratio.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13008](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13008)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10374](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10374)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13008](https://githu
 
 > **transferVolume**: [`AllSthPattern2`](AllSthPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13009](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13009)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10375](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10375)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13009](https://githu
 
 > **valueDestroyed**: [`AllSthPattern2`](AllSthPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13010](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13010)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10376](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10376)

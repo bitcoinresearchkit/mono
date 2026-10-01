@@ -6,7 +6,7 @@
 
 # Interface: HistoricalPriceEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:684](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L684)
+Defined in: [Developer/mono/modules/bitview-client/index.js:683](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L683)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:684](https://github.
 
 > **time**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:685](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L685)
+Defined in: [Developer/mono/modules/bitview-client/index.js:684](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L684)
 
 Unix timestamp
 
@@ -24,6 +24,6 @@ Unix timestamp
 
 > **uSD**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:686](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L686)
+Defined in: [Developer/mono/modules/bitview-client/index.js:685](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L685)
 
 BTC/USD price

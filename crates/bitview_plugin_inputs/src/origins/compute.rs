@@ -1,8 +1,7 @@
 use super::OriginSpends;
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_mappings::TxHeightMap;
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, Height, OutPoint, Sats, SupplyState, TxInIndex};
+use brk_types::{BlockHash, Height, Sats, SupplyState, TxInIndex};
 use rustc_hash::FxHashMap;
 use vecdb::{AnyVec, PcoVec, ReadableVec, VecIndex};
 
@@ -16,15 +15,15 @@ impl OriginSpends {
         let vecs = indexer.vecs();
         self.validate_sources(
             input_values.version()
-                + vecs.inputs.outpoint.version()
+                + vecs.inputs.txout_index.version()
                 + vecs.inputs.first_txin_index.version()
-                + vecs.transactions.first_tx_index.version(),
+                + vecs.outputs.first_txout_index.version(),
         )?;
         if usize::from(from) < self.len() {
             self.truncate(usize::from(from))?;
         }
         if self.len() > self.start()
-            && self.hash(self.len() - 1)
+            && Some(self.hash(self.len() - 1)?)
                 != vecs
                     .blocks
                     .blockhash
@@ -35,18 +34,18 @@ impl OriginSpends {
         Ok(())
     }
 
-    /// Appends complete blocks using values already resolved into input order.
+    /// Appends complete blocks from values and origins resolved into input order.
     pub(crate) fn append_blocks(
         &mut self,
         boundaries: &[TxInIndex],
         values: &[Sats],
-        outpoints: &impl ReadableVec<TxInIndex, OutPoint>,
+        heights: &[Height],
         hashes: &impl ReadableVec<Height, BlockHash>,
-        tx_heights: &TxHeightMap,
     ) -> Result<()> {
         if boundaries.len() < 2
             || boundaries.windows(2).any(|w| w[0] >= w[1])
             || boundaries.last().unwrap().to_usize() - boundaries[0].to_usize() != values.len()
+            || heights.len() != values.len()
         {
             return Err(Error::NotFound("incomplete origin block boundaries".into()));
         }
@@ -57,22 +56,16 @@ impl OriginSpends {
             return Err(Error::NotFound("incomplete origin block hashes".into()));
         }
         let base = boundaries[0].to_usize();
-        let mut cursor = outpoints.cursor();
-        let mut points = Vec::new();
+        let mut spent = FxHashMap::default();
         for (offset, pair) in boundaries.windows(2).enumerate() {
             // The first input belongs to the coinbase and has no previous output.
             let from = pair[0].to_usize() + 1;
             let to = pair[1].to_usize();
-            cursor.collect_range_into_at(from, to, &mut points);
-            if points.len() != to - from {
-                return Err(Error::NotFound("incomplete origin outpoints".into()));
-            }
-            let mut spent =
-                FxHashMap::with_capacity_and_hasher(((to - from) / 4).max(16), Default::default());
-            for (&value, outpoint) in values[from - base..to - base].iter().zip(&points) {
-                let origin = tx_heights
-                    .get_shared(outpoint.tx_index())
-                    .ok_or_else(|| Error::NotFound("spent output creation height".into()))?;
+            spent.clear();
+            for (&value, &origin) in values[from - base..to - base]
+                .iter()
+                .zip(&heights[from - base..to - base])
+            {
                 *spent.entry(origin).or_default() += SupplyState {
                     value,
                     utxo_count: 1,

@@ -6,7 +6,7 @@
 
 # Class: BitviewError
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1548](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1548)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1541](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1541)
 
 Custom error class for Bitview client errors
 
@@ -20,7 +20,7 @@ Custom error class for Bitview client errors
 
 > **new BitviewError**(`message`, `status?`): `BitviewError`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1553](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1553)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1546](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1546)
 
 #### Parameters
 

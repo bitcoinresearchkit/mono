@@ -1,12 +1,13 @@
 use std::array;
 
+use bitview_compute::prepare_computed;
 use bitview_plugin_distribution_age::RealizedTotals;
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, CentsSats, CentsSquaredSats, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::{COMPUTE_BATCH_SIZE, reference_price::ReferencePrice};
 
@@ -80,18 +81,12 @@ impl ReferencePrices {
             &mut self.under_4m_capitalized_price.cents.height,
             &mut self.under_6m_capitalized_price.cents.height,
         ];
-        let mut start = usize::from(starting_height).min(source_end);
-        for target in &mut targets {
-            target.validate_computed_version_or_reset(version)?;
-            start = start.min(target.len());
-        }
-        {
-            let _lock = exit.lock();
-            for target in &mut targets {
-                target.truncate_if_needed_at(start)?;
-                target.write()?;
-            }
-        }
+        let mut start = prepare_computed(
+            &mut targets,
+            version,
+            usize::from(starting_height).min(source_end),
+            exit,
+        )?;
 
         while start < source_end {
             let end = (start + COMPUTE_BATCH_SIZE).min(source_end);

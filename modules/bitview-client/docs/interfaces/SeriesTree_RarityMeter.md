@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_RarityMeter
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9023](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9023)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7835](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7835)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9023](https://github
 
 > **components**: [`SeriesTree_RarityMeter_Components`](SeriesTree_RarityMeter_Components.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9024](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9024)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7837](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7837)
 
 ***
 
@@ -22,7 +22,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9024](https://github
 
 > **cycle**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9028](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9028)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7843](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7843)
+
+***
+
+### cycleV2
+
+> **cycleV2**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:7844](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7844)
 
 ***
 
@@ -30,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9028](https://github
 
 > **extremes**: [`SeriesTree_RarityMeter_Extremes`](SeriesTree_RarityMeter_Extremes.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9025](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9025)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7838](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7838)
 
 ***
 
@@ -38,7 +46,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9025](https://github
 
 > **full**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9026](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9026)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7839](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7839)
+
+***
+
+### fullV2
+
+> **fullV2**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:7840](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7840)
 
 ***
 
@@ -46,4 +62,20 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9026](https://github
 
 > **local**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9027](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9027)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7841](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7841)
+
+***
+
+### localV2
+
+> **localV2**: [`IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern`](IndexPct0Pct1Pct10Pct2Pct20Pct30Pct40Pct5Pct50Pct60Pct70Pct80Pct90Pct95Pct98Pct99ScorePattern.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:7842](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7842)
+
+***
+
+### referencePrices
+
+> **referencePrices**: [`SeriesTree_RarityMeter_ReferencePrices`](SeriesTree_RarityMeter_ReferencePrices.md)
+
+Defined in: [Developer/mono/modules/bitview-client/index.js:7836](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7836)

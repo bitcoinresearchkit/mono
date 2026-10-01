@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Coinflow\_Lth
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8952](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8952)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7797](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7797)
 
 ## Properties
 
@@ -14,15 +14,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8952](https://github
 
 > **cap**: [`CentsUsdPattern`](CentsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8955](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8955)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7799](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7799)
 
 ***
 
-### horizon
+### capitalizedPrice
 
-> **horizon**: [`_1m1y2y3m4y6m8yPattern`](1m1y2y3m4y6m8yPattern.md)
+> **capitalizedPrice**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8954](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8954)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7801](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7801)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8954](https://github
 
 > **price**: [`CentsPpmRatioSatsUsdPattern`](CentsPpmRatioSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8956](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8956)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7800](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7800)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8956](https://github
 
 > **supply**: [`SeriesTree_Coinflow_Lth_Supply`](SeriesTree_Coinflow_Lth_Supply.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8953](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8953)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7798](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7798)

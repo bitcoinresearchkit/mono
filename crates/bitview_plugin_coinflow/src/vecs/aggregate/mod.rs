@@ -9,7 +9,7 @@ use bitview_vecs::{
     LazyFiatPerBlock, LazyPerBlock, LazyPriceWithRatioPerBlock, LazySpotValuePerBlock,
 };
 
-use super::{super::Horizons, HorizonVecs, Mobility};
+use super::Mobility;
 
 #[derive(Clone, Traversable)]
 pub struct AggregateVecs {
@@ -20,12 +20,6 @@ pub struct AggregateVecs {
     /// when the weighted supply is zero.
     #[traversable(wrap = "supply/mobile/in_loss", rename = "share")]
     pub supply_in_loss_share: LazyPerBlock<StoredF64, BoundedRatio>,
-    /// For each supported forward horizon, the share of supply likely to move
-    /// within that horizon that is in loss at the represented block. Each age
-    /// range is weighted by one minus exp of the
-    /// negative sum of its observed spending hazards times days across that
-    /// horizon. Returns NaN when the weighted supply is zero.
-    pub horizon: Horizons<HorizonVecs>,
     /// Sum of creation-date USD value multiplied by remaining-lifetime spending
     /// probability across a set of UTXO age ranges. Creation-date value is each
     /// unspent output's BTC value multiplied by Bitcoin's spot price when it was

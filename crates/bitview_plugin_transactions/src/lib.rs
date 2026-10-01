@@ -71,3 +71,7 @@ where
         STORAGE
     }
 }
+
+#[cfg(test)]
+#[path = "../../bitview_vecs/tests/common/mod.rs"]
+mod test_common;

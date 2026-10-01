@@ -24,12 +24,14 @@ pub fn compute(
         + fees.fee.tx_index.version()
         + indexer.vecs().transactions.first_tx_index.version()
         + mappings.height.tx_index_count.version();
-    vecs.is_nonstandard
-        .validate_computed_version_or_reset(version)?;
-    vecs.count
-        .nonstandard
-        .validate_computed_version_or_reset(version)?;
-
+    {
+        let _lock = exit.lock();
+        vecs.is_nonstandard
+            .validate_computed_version_or_reset(version)?;
+        vecs.count
+            .nonstandard
+            .validate_computed_version_or_reset(version)?;
+    }
     let starting_lengths = indexer.safe_lengths();
     let target_tx = fees.fee.tx_index.len();
     let target_height = mappings.height.tx_index_count.len();
@@ -54,9 +56,11 @@ pub fn compute(
 
     let first_tx = &indexer.vecs().transactions.first_tx_index;
     let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
-    vecs.is_nonstandard.truncate_if_needed_at(start_tx)?;
-    vecs.count.nonstandard.truncate_if_needed_at(start_height)?;
-
+    {
+        let _lock = exit.lock();
+        vecs.is_nonstandard.truncate_if_needed_at(start_tx)?;
+        vecs.count.nonstandard.truncate_if_needed_at(start_height)?;
+    }
     let mut unconditional = features
         .is_unconditionally_nonstandard
         .range_cursor_at(start_tx, target_tx);

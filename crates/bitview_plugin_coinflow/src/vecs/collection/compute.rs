@@ -67,26 +67,7 @@ impl Vecs {
             .sats
             .height
         });
-        let supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.cohorts.supply.total.cohorts.age)
-                .sats
-                .height
-        });
-        let loss_supplies = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.cohorts.supply.in_loss.cohorts.age)
-                .sats
-                .height
-        });
-        let realized_caps = AgeRange::from_fn(|id| {
-            &id.select(&distribution_age.cohorts.realized.cap.cohorts.age)
-                .cents
-                .height
-        });
-        let cap_raw =
-            AgeRange::from_fn(|id| id.select(&distribution_age.cohorts.realized.cap_raw.age));
-        let capitalized_cap_raw = AgeRange::from_fn(|id| {
-            id.select(&distribution_age.cohorts.realized.capitalized_cap_raw.age)
-        });
+        let accounting = distribution_age.accounting_sources();
         let coindays_created = AgeRange::from_fn(|id| {
             &id.select(&distribution_age.coindays_created)
                 .cumulative
@@ -99,31 +80,24 @@ impl Vecs {
             iter::once(timestamps.version())
                 .chain(transfer_volumes.iter().map(|vec| vec.version()))
                 .chain(coindays_created.iter().map(|vec| vec.version()))
-                .chain(supplies.iter().map(|vec| vec.version()))
-                .chain(loss_supplies.iter().map(|vec| vec.version()))
-                .chain(realized_caps.iter().map(|vec| vec.version()))
-                .chain(cap_raw.iter().map(|vec| vec.version()))
-                .chain(capitalized_cap_raw.iter().map(|vec| vec.version())),
+                .chain(iter::once(accounting.version())),
         );
-
-        let start = prepare_computed(
-            self.primary_vecs_mut().collect::<Vec<_>>(),
-            source_version,
-            usize::from(starting_lengths.height),
-        )?;
 
         let source_end = transfer_volumes
             .iter()
             .map(|vec| vec.len())
             .chain(coindays_created.iter().map(|vec| vec.len()))
-            .chain(supplies.iter().map(|vec| vec.len()))
-            .chain(loss_supplies.iter().map(|vec| vec.len()))
-            .chain(realized_caps.iter().map(|vec| vec.len()))
-            .chain(cap_raw.iter().map(|vec| vec.len()))
-            .chain(capitalized_cap_raw.iter().map(|vec| vec.len()))
+            .chain(iter::once(accounting.len()))
             .chain(iter::once(timestamps.len()))
             .min()
             .unwrap_or_default();
+
+        let start = prepare_computed(
+            self.primary_vecs_mut().collect::<Vec<_>>(),
+            source_version,
+            usize::from(starting_lengths.height).min(source_end),
+            exit,
+        )?;
 
         if source_end == 0 {
             return Ok(());
@@ -133,18 +107,15 @@ impl Vecs {
             .collect_one(Height::ZERO)
             .unwrap_or(Timestamp::ZERO);
         let bounds = AgeBand::all();
+        let mut batch = PrimaryBatch::default();
         let mut chunk_start = start;
         while chunk_start < source_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(source_end);
-            let batch = PrimaryBatch::collect(
+            batch.collect_into(
                 timestamps,
                 &transfer_volumes,
                 &coindays_created,
-                &supplies,
-                &loss_supplies,
-                &realized_caps,
-                &cap_raw,
-                &capitalized_cap_raw,
+                &accounting,
                 chunk_start,
                 chunk_end,
             );

@@ -4,9 +4,7 @@ use bitview_cohort::{
 };
 use bitview_collections::Windows;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_transforms::{
-    NegCentsUnsignedToDollars, RatioCents, RatioCentsF32, RatioCentsSignedCents, SoprRatio,
-};
+use bitview_transforms::{RatioCents, RatioCentsF32, RatioCentsSignedCents, SoprRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock, LazyWindowStartVec, PercentRollingWindows,
@@ -244,21 +242,7 @@ impl RealizedVecs {
             let loss = loss.cohorts.get(cohort_id).expect("realized-loss cohort");
             let name = CohortContext::Utxo.metric_name(cohort_id, "realized_loss_neg");
             let version = Self::cohort_version(version, cohort_id) + Version::ONE;
-            let base = LazyVec::transformed::<NegCentsUnsignedToDollars>(
-                &name,
-                version,
-                loss.block.cents.read_only_boxed_clone(),
-            );
-            let sum = loss.sum.0.map_with_suffix(|suffix, slot| {
-                let source = slot.cents.height.clone();
-                LazyPerBlock::from_height_source::<NegCentsUnsignedToDollars>(
-                    &format!("{name}_sum_{suffix}"),
-                    version,
-                    &source,
-                    mappings,
-                )
-            });
-            NegRealizedLoss { base, sum }
+            NegRealizedLoss::from_source(&name, version, loss, mappings)
         });
         let cap_to_own_mcap = UTXOAggregate::from_fn(|id| {
             let cohort_id = id.cohort();
@@ -373,10 +357,7 @@ impl RealizedVecs {
     }
 
     #[inline(always)]
-    pub fn push_aggregate(
-        &mut self,
-        cohort_values: &UTXOAggregate<RealizedAggregateState>,
-    ) -> Cents {
+    pub fn push_aggregate(&mut self, cohort_values: &UTXOAggregate<RealizedAggregateState>) {
         let prices = cohort_values.map(RealizedAggregateState::capitalized_price);
         self.gross_pnl
             .push_block(cohort_values.map(RealizedAggregateState::gross_pnl));
@@ -387,7 +368,6 @@ impl RealizedVecs {
             .push(&cohort_values.map(|values| values.cap_raw));
         self.capitalized_cap_raw
             .push(&cohort_values.map(|values| values.capitalized_cap_raw));
-        prices.all
     }
 
     pub fn compute_sopr(

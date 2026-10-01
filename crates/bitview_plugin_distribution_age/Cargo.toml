@@ -9,7 +9,6 @@ repository.workspace = true
 
 [dependencies]
 derive_more = { workspace = true }
-rustc-hash = { workspace = true }
 statedb = { workspace = true }
 bitview_plugin_distribution_common = { workspace = true }
 bitview_urpd = { workspace = true }

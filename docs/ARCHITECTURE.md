@@ -88,8 +88,19 @@ The default data directory is `~/.bitview/`:
     |-- indexer/
     |-- mappings/
     |-- blocks/
+    |-- inputs/
+    |   `-- spends/
+    |-- outputs/
+    |   `-- creations/
+    |-- utxo_history/
+    |   `-- snapshots/
     `-- ... one directory per active plugin ID
 ```
+
+The UTXO history stores are split by owner: Inputs owns `spends/`, Outputs owns
+`creations/`, and UTXO History owns `snapshots/` and its aggregate metrics. This
+keeps every persisted file below the plugin that creates it and lets the runtime
+clean up inactive plugin roots without a project-level `origins/` directory.
 
 The current default composition occupies about 290 GiB at the indexed tip.
 Bitcoin Core storage, filesystem overhead, chain growth, and resync headroom

@@ -1,6 +1,4 @@
-use crate::{
-    Amount, BlockDiff, Creations, Cursor, History, Spends, State, snapshot::Snapshot, util::invalid,
-};
+use crate::{Amount, Creations, Cursor, History, Spends, State, snapshot::Snapshot, util::invalid};
 use std::{io::Result, ops::Range};
 
 /// An immutable view of one published prefix. Its borrows prevent producer mutation.
@@ -30,7 +28,7 @@ impl Reader<'_> {
         }
         Ok(len == self.start()
             || (state.hash() == self.spends.hash(len - 1)?
-                && state.hash() == self.creations.read(len - 1)?.0))
+                && state.hash() == self.creations.hash(len - 1)?))
     }
 
     pub fn len(&self) -> usize {
@@ -47,14 +45,6 @@ impl Reader<'_> {
         }
         self.history
             .restore(end, self.spends, self.creations, self.latest.as_ref())
-    }
-
-    /// Decodes one published block into reusable scratch. Use it only after a successful read.
-    pub fn read_block(&self, height: usize, diff: &mut BlockDiff) -> Result<()> {
-        if height >= self.end {
-            return Err(invalid("height exceeds published origin history"));
-        }
-        diff.read(height, self.spends, self.creations)
     }
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {

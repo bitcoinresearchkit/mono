@@ -6,8 +6,8 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
-crc32fast = "1.5.0"
-lz4_flex = { workspace = true }
+pco = { workspace = true }
+zerocopy = { version = "0.8.58", features = ["derive"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

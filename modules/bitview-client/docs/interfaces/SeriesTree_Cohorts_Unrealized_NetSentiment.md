@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_NetSentiment
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13778](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13778)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10942](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10942)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13778](https://githu
 
 > **all**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13779](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13779)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10943](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10943)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13779](https://githu
 
 > **lth**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13781](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13781)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10945](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10945)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13781](https://githu
 
 > **sth**: [`CentsUsdPattern2`](CentsUsdPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13780](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13780)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10944](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10944)

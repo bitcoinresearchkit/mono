@@ -52,6 +52,6 @@ where
 
     #[inline(always)]
     pub fn version(&self) -> Version {
-        self.header.vec_version()
+        self.header.source_version()
     }
 }

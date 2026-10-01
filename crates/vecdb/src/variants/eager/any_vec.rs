@@ -8,7 +8,7 @@ where
 {
     #[inline]
     fn version(&self) -> Version {
-        self.0.header().computed_version()
+        self.0.version()
     }
 
     #[inline]

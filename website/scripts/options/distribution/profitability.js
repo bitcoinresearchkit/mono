@@ -6,8 +6,8 @@
  *   full realized with relToRcap, peakRegret, profitToLossRatio, grossPnl
  * - Mid (Core/AgeRange): unrealized profit/loss/netPnl/nupl (no rel, no invested, no sentiment);
  *   realized with netPnl + delta (no relToRcap, no peakRegret)
- * - Basic (UtxoAmount, Empty, Address): nupl only unrealized;
- *   basic realized profit/loss (no netPnl, no relToRcap)
+ * - Basic (UtxoAmount, Type): NUPL from the realized tree, basic realized profit/loss
+ * - Address balance: basic realized profit/loss
  */
 
 import { Unit } from "../../utils/units.js";
@@ -527,6 +527,11 @@ function realizedSubfolderFull(r, title) {
         title,
         extraChange: [
           {
+            name: "% of Market Cap",
+            title: title("Net Realized P&L Change (% of Market Cap)"),
+            bottom: percentRatioBaseline({ pattern: r.netPnl.change1m.toMcap, name: "1m Change" }),
+          },
+          {
             name: "% of Realized Cap",
             title: title("Net Realized P&L Change (% of Realized Cap)"),
             bottom: percentRatioBaseline({
@@ -712,15 +717,17 @@ function realizedSubfolderBasic(r, title) {
 // ============================================================================
 
 /**
- * Basic profitability section (NUPL only unrealized, basic realized)
- * @param {{ cohort: UtxoCohortObject, title: (name: string) => string }} args
+ * @param {{ cohort: CohortBasicWithMarketCap | CohortAddr | CohortWithoutRelative, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createProfitabilitySection({ cohort, title }) {
   return {
     name: "Profitability",
     tree: [
-      { name: "Unrealized", tree: [{ name: "NUPL", title: title("NUPL"), bottom: nuplSeries(cohort.tree.unrealized.nupl) }] },
+      {
+        name: "Unrealized",
+        tree: [{ name: "NUPL", title: title("NUPL"), bottom: nuplSeries(cohort.tree.realized.nupl) }],
+      },
       realizedSubfolderBasic(cohort.tree.realized, title),
     ],
   };
@@ -728,69 +735,13 @@ export function createProfitabilitySection({ cohort, title }) {
 
 /**
  * Realized profit and loss without unrealized metrics.
- * @param {{ cohort: AddrCohortObject, title: (name: string) => string }} args
+ * @param {{ cohort: CohortWithRealizedProfitLoss, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createProfitabilitySectionRealized({ cohort, title }) {
   return {
     name: "Profitability",
     tree: [realizedSubfolderBasic(cohort.tree.realized, title)],
-  };
-}
-
-/**
- * Profitability section with unrealized P&L + NUPL (no netPnl, no rel)
- * For: CohortWithoutRelative (p2ms, unknown, empty)
- * @param {{ cohort: CohortWithoutRelative, title: (name: string) => string }} args
- * @returns {PartialOptionsGroup}
- */
-export function createProfitabilitySectionWithProfitLoss({ cohort, title }) {
-  const u = cohort.tree.unrealized;
-  return {
-    name: "Profitability",
-    tree: [
-      {
-        name: "Unrealized",
-        tree: [
-          {
-            name: "Overview",
-            title: title("Unrealized P&L"),
-            bottom: [
-              line({ series: u.profit.usd, name: "Profit", color: colors.profit, unit: Unit.usd }),
-              line({ series: u.loss.negative, name: "Negated Loss", color: colors.loss, unit: Unit.usd }),
-              line({ series: u.loss.usd, name: "Loss", color: colors.loss, unit: Unit.usd, defaultActive: false }),
-              priceLine({ unit: Unit.usd }),
-            ],
-          },
-          { name: "NUPL", title: title("NUPL"), bottom: nuplSeries(u.nupl) },
-          {
-            name: "Profit",
-            title: title("Unrealized Profit"),
-            bottom: [
-              line({
-                series: u.profit.usd,
-                name: "Profit",
-                color: colors.profit,
-                unit: Unit.usd,
-              }),
-            ],
-          },
-          {
-            name: "Loss",
-            title: title("Unrealized Loss"),
-            bottom: [
-              line({
-                series: u.loss.usd,
-                name: "Loss",
-                color: colors.loss,
-                unit: Unit.usd,
-              }),
-            ],
-          },
-        ],
-      },
-      realizedSubfolderBasic(cohort.tree.realized, title),
-    ],
   };
 }
 
@@ -1223,15 +1174,25 @@ function groupedSentiment(list, all, title) {
 // ============================================================================
 
 /**
- * Grouped profitability section (basic — NUPL only)
- * @param {{ list: readonly (UtxoCohortObject | CohortWithoutRelative)[], all: CohortAll, title: (name: string) => string }} args
+ * @param {{ list: readonly (CohortBasicWithMarketCap | CohortAddr | CohortWithoutRelative)[], all: CohortAll, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createGroupedProfitabilitySection({ list, all, title }) {
   return {
     name: "Profitability",
     tree: [
-      { name: "Unrealized", tree: groupedNuplCharts(list, all, title) },
+      {
+        name: "Unrealized",
+        tree: [{
+          name: "NUPL",
+          title: title("NUPL"),
+          bottom: mapCohortsWithAll(
+            list.map(({ name, color, tree }) => ({ name, color, nupl: tree.realized.nupl })),
+            { name: "All", color: all.color, nupl: all.tree.unrealized.nupl },
+            ({ name, color, nupl }) => baseline({ series: nupl.ratio, name, color, unit: Unit.ratio }),
+          ),
+        }],
+      },
       groupedRealizedSubfolder(list, all, title),
     ],
   };
@@ -1239,7 +1200,7 @@ export function createGroupedProfitabilitySection({ list, all, title }) {
 
 /**
  * Grouped realized profit and loss without unrealized metrics.
- * @param {{ list: readonly AddrCohortObject[], all: CohortAll, title: (name: string) => string }} args
+ * @param {{ list: readonly CohortWithRealizedProfitLoss[], all: CohortAll, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createGroupedProfitabilitySectionRealized({
@@ -1252,56 +1213,6 @@ export function createGroupedProfitabilitySectionRealized({
     tree: [groupedRealizedSubfolder(list, all, title)],
   };
 }
-
-/**
- * Grouped profitability with unrealized profit/loss + NUPL
- * For: CohortWithoutRelative (p2ms, unknown, empty)
- * @param {{ list: readonly CohortWithoutRelative[], all: CohortAll, title: (name: string) => string }} args
- * @returns {PartialOptionsGroup}
- */
-export function createGroupedProfitabilitySectionWithProfitLoss({
-  list,
-  all,
-  title,
-}) {
-  return {
-    name: "Profitability",
-    tree: [
-      {
-        name: "Unrealized",
-        tree: [
-          ...groupedNuplCharts(list, all, title),
-          {
-            name: "Profit",
-            title: title("Unrealized Profit"),
-            bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-              line({
-                series: tree.unrealized.profit.usd,
-                name,
-                color,
-                unit: Unit.usd,
-              }),
-            ),
-          },
-          {
-            name: "Loss",
-            title: title("Unrealized Loss"),
-            bottom: mapCohortsWithAll(list, all, ({ name, color, tree }) =>
-              line({
-                series: tree.unrealized.loss.usd,
-                name,
-                color,
-                unit: Unit.usd,
-              }),
-            ),
-          },
-        ],
-      },
-      groupedRealizedSubfolder(list, all, title),
-    ],
-  };
-}
-
 
 /**
  * Grouped section for Core/AgeRange cohorts

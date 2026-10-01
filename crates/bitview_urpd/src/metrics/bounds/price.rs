@@ -1,8 +1,6 @@
-use bitview_cohort::AgeRangeId;
+use bitview_cohort::{AgeAggregate, AgeRangeId};
 use bitview_traversable::Traversable;
 use brk_types::{Cents, CentsCompact, Sats};
-
-use crate::distribution::AgeCutoffs;
 
 #[derive(Clone, Copy, Traversable)]
 pub struct PriceBounds<T> {
@@ -32,11 +30,11 @@ impl PriceBounds<Cents> {
     }
 }
 
-impl AgeCutoffs<PriceBounds<Cents>> {
+impl PriceBounds<Cents> {
     pub fn from_age_entries(
         entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
-    ) -> Self {
-        let mut bounds = Self::default();
+    ) -> AgeAggregate<Self> {
+        let mut bounds = AgeAggregate::<Self>::default();
         for (age, price, sats) in entries {
             if sats != Sats::ZERO {
                 for cohort in bounds.containing_mut(age) {
@@ -62,10 +60,13 @@ mod tests {
             (AgeRangeId::Under1H, 500, 0),
         ]
         .map(|(age, price, sats)| (age, CentsCompact::new(price), Sats::new(sats)));
-        let bounds = AgeCutoffs::from_age_entries(entries);
+        let bounds = PriceBounds::from_age_entries(entries);
         assert_eq!(bounds.under_4m.max, Cents::new(100));
-        assert_eq!(bounds.under_5m.max, Cents::new(200));
+        assert_eq!(bounds.sth.max, Cents::new(200));
         assert_eq!(bounds.under_6m.max, Cents::new(300));
-        assert!(bounds.iter().all(|b| b.min == Cents::new(100)));
+        assert_eq!(bounds.all.min, Cents::new(100));
+        assert_eq!(bounds.over_4m.min, Cents::new(200));
+        assert_eq!(bounds.lth.min, Cents::new(300));
+        assert_eq!(bounds.over_6m.min, Cents::new(400));
     }
 }

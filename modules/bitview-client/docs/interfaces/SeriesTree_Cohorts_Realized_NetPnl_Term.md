@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_NetPnl\_Term
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12737](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12737)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10221](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10221)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12737](https://githu
 
 > **long**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12739](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12739)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10223](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10223)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12739](https://githu
 
 > **short**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12738](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12738)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10222](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10222)

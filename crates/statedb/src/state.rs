@@ -41,26 +41,38 @@ impl State {
         &mut self,
         hash: [u8; 32],
         created: Amount,
-        rows: &[(u32, Amount)],
+        rows: impl Iterator<Item = (u32, Amount)>,
+        removed_total: Amount,
         scratch: &mut Vec<(usize, Amount)>,
     ) -> Result<()> {
         scratch.clear();
-        let mut total = self.total.checked_add(created)?;
+        let total = self
+            .total
+            .checked_add(created)?
+            .checked_sub(removed_total)?;
         // Apply provisionally, recording previous values. On failure undo in reverse order.
         self.amounts.push(created);
         let result = (|| {
-            for &(origin, removed) in rows {
-                let old = *self
+            let mut actual = Amount::default();
+            for (origin, removed) in rows {
+                if removed.count == 0 {
+                    return Err(invalid("removal without outputs"));
+                }
+                actual = actual.checked_add(removed)?;
+                let current = self
                     .amounts
-                    .get(origin as usize)
+                    .get_mut(origin as usize)
                     .ok_or_else(|| invalid("origin exceeds current block"))?;
+                let old = *current;
                 let new = old.checked_sub(removed)?;
                 if new.count == 0 && new.sats != 0 {
                     return Err(invalid("remaining sats without outputs"));
                 }
-                total = total.checked_sub(removed)?;
                 scratch.push((origin as usize, old));
-                self.amounts[origin as usize] = new;
+                *current = new;
+            }
+            if actual != removed_total {
+                return Err(invalid("origin total mismatch"));
             }
             Ok(())
         })();

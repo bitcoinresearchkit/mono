@@ -24,11 +24,12 @@ pub const ENTRY_NAMES: ByEntry<CohortName> = ByEntry {
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByEntry<T> {
-    /// Uses UTXOs created when spot price was at or below the then-current
+    /// Uses UTXOs created when spot price was at or below the previous block's
     /// all-chain capitalized price, the mean creation price of all unspent
-    /// outputs weighted by each output's creation-date USD value.
+    /// outputs weighted by each output's creation-date USD value. A zero
+    /// capitalized price also selects this cohort.
     pub discount: T,
-    /// Uses UTXOs created when spot price was above the then-current all-chain
+    /// Uses UTXOs created when spot price was above the previous block's all-chain
     /// capitalized price, the mean creation price of all unspent outputs
     /// weighted by each output's creation-date USD value.
     pub premium: T,

@@ -13177,7 +13177,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13426,7 +13426,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },
@@ -13752,7 +13752,7 @@
       "tool": {
         "name": "list_urpd_cohorts",
         "title": "Available URPD cohorts",
-        "description": "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `utxos_under_1h_old`.\n\nREST operation: `GET /api/urpd`.",
+        "description": "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.\n\nREST operation: `GET /api/urpd`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -13808,7 +13808,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`; custom snapshot cohorts are supported.\nAvailability is determined by the producer's published snapshots.",
+              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and published UTXO history.",
               "type": "string",
               "pattern": "^[a-z0-9_]+$"
             },

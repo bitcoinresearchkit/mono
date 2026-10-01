@@ -1,19 +1,17 @@
 import { colors } from "../../utils/colors.js";
-import { price, pricePercentileSeries } from "../series.js";
+import { Unit } from "../../utils/units.js";
+import { line, price, pricePercentileSeries } from "../series.js";
+import { URPD_COHORTS } from "./cohorts.js";
 
 /**
  * @param {string} label
- * @param {Bitview.CapitalizedCostSupplyPattern} urpd
+ * @param {Bitview.SeriesTree_Cointime_Urpd | Bitview.SeriesTree_Coinflow_Urpd} urpd
  * @returns {PartialOptionsGroup}
  */
 export function createCostBasisSection(label, urpd) {
   return {
     name: "Cost Basis",
-    tree: /** @type {const} */ ([
-      { key: "all", name: "All" },
-      { key: "sth", name: "STH" },
-      { key: "lth", name: "LTH" },
-    ]).map(({ key: cohort, name }) => ({
+    tree: URPD_COHORTS.map(({ key: cohort, name }) => ({
       name,
       tree: /** @type {const} */ ([
         { key: "perCoin", name: "Per Coin" },
@@ -25,14 +23,25 @@ export function createCostBasisSection(label, urpd) {
           ...(key === "perDollar"
             ? [
                 price({
-                  series: urpd.capitalizedPrice[cohort],
+                  series: urpd[cohort].capitalizedPrice,
                   name: "Capitalized Price",
                   color: colors.capitalized,
                 }),
               ]
             : []),
-          ...pricePercentileSeries(urpd.costBasis[cohort][key]),
+          ...pricePercentileSeries(urpd[cohort].costBasis[key]),
         ],
+        bottom:
+          key === "perDollar"
+            ? [
+                line({
+                  series: urpd[cohort].capitalizedPrice.ratio,
+                  name: "Spot / Capitalized Price",
+                  color: colors.capitalized,
+                  unit: Unit.ratio,
+                }),
+              ]
+            : [],
       })),
     })),
   };

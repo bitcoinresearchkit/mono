@@ -1,17 +1,55 @@
-use bitview_cohort::{AGE_BOUNDARIES, AgeRange, AgeRangeId};
-use bitview_urpd::{AgeRangeUrpds, OriginUrpd, accumulate_masses, collect_mass};
-use brk_types::{Cents, CentsCompact, ONE_HOUR_IN_SEC, Sats, Timestamp};
-use statedb::{Amount, Creations, History, Reader, Spends};
+use std::{array, collections::BTreeMap, slice};
+
+use bitview_cohort::{AGE_BOUNDARIES, AgeAggregateId, AgeRange, AgeRangeId};
+use bitview_urpd::{COST_BASIS_PRICE_DIGITS, OriginUrpd};
+use brk_types::{Age, Cents, CentsCompact, ONE_HOUR_IN_SEC, Sats, Timestamp};
+use statedb::{Amount, Creations, History, Reader, Spends, State};
 use tempfile::tempdir;
 
 fn project(
     entries: impl IntoIterator<Item = (AgeRangeId, CentsCompact, Sats)>,
     weights: &AgeRange<f64>,
 ) -> Box<[(CentsCompact, Sats)]> {
-    let buckets = accumulate_masses(entries, |mass: &mut f64, age, sats| {
-        *mass += u64::from(sats) as f64 * *age.select(weights);
-    });
-    collect_mass(&buckets, |&mass| mass)
+    let mut buckets = BTreeMap::<_, f64>::new();
+    for (age, price, sats) in entries {
+        *buckets.entry(price).or_default() += u64::from(sats) as f64 * *age.select(weights);
+    }
+    buckets
+        .into_iter()
+        .filter_map(|(price, mass)| {
+            let sats = Sats::new(mass.floor() as u64);
+            (sats != Sats::ZERO).then_some((price, sats))
+        })
+        .collect()
+}
+
+// Independent oracle: rebuild from origin amounts with ordered maps, rather than
+// incrementally updating the production histogram and its stable bucket slots.
+fn rebuild(
+    state: &State,
+    prices: &[Cents],
+    timestamps: &[Timestamp],
+) -> AgeRange<BTreeMap<CentsCompact, Sats>> {
+    let mut groups = AgeRange::<BTreeMap<CentsCompact, Sats>>::default();
+    if let Some(&current) = timestamps.get(state.len().wrapping_sub(1)) {
+        for (h, amount) in state.amounts().iter().enumerate() {
+            if amount.sats != 0 {
+                let age = AgeRangeId::from(Age::new(current, timestamps[h]));
+                let price = CentsCompact::from(prices[h]).round_to_dollar(COST_BASIS_PRICE_DIGITS);
+                *age.select_mut(&mut groups).entry(price).or_default() += Sats::new(amount.sats);
+            }
+        }
+    }
+    groups
+}
+
+fn entries(
+    groups: &AgeRange<BTreeMap<CentsCompact, Sats>>,
+) -> impl Iterator<Item = (AgeRangeId, CentsCompact, Sats)> + '_ {
+    AgeRangeId::ALL
+        .iter()
+        .copied()
+        .flat_map(|age| age.select(groups).iter().map(move |(&p, &s)| (age, p, s)))
 }
 
 fn hash(h: usize) -> [u8; 32] {
@@ -19,6 +57,58 @@ fn hash(h: usize) -> [u8; 32] {
     hash[..8].copy_from_slice(&(h as u64).to_le_bytes());
     hash
 }
+
+#[test]
+fn projected_view_owns_its_weights_and_filters() {
+    let state = State::new(vec![Amount { sats: 7, count: 1 }], [0; 32]).unwrap();
+    let source = OriginUrpd::new(&state, &[Cents::new(100)], &[Timestamp::ZERO]).unwrap();
+    let mut view = {
+        let weights = AgeRange::from_fn(|_| 0.5);
+        let ages = vec![AgeRangeId::Under1H];
+        source.project(&[Some(&weights)], [ages.as_slice()])
+    };
+    let row = view.next().unwrap();
+    assert_eq!(row.raw, [Sats::new(7)]);
+    assert_eq!(row.weighted, [[Sats::new(3)]]);
+    assert!(view.next().is_none());
+}
+
+#[test]
+fn filters_handle_empty_duplicate_and_overlapping_ages() {
+    let state = State::new(
+        [3, 7, 11].map(|sats| Amount { sats, count: 1 }).to_vec(),
+        [0; 32],
+    )
+    .unwrap();
+    let source = OriginUrpd::new(
+        &state,
+        &[Cents::new(100), Cents::new(200), Cents::new(300)],
+        &[
+            Timestamp::ZERO,
+            Timestamp::new(3600),
+            Timestamp::new(200 * 86400),
+        ],
+    )
+    .unwrap();
+    let young = AgeRangeId::Under1H;
+    let old = AgeRangeId::From6MTo9M;
+    let rows: Vec<_> = source
+        .project::<0, 4>(&[], [&[], &[young], &[old], &[young, old, young]])
+        .map(|row| (row.price, row.raw.map(u64::from)))
+        .collect();
+    assert_eq!(
+        rows,
+        [
+            (CentsCompact::new(100), [0, 0, 3, 3]),
+            (CentsCompact::new(200), [0, 0, 7, 7]),
+            (CentsCompact::new(300), [0, 11, 0, 11]),
+        ]
+    );
+    assert_eq!(source.project::<0, 0>(&[], []).count(), 0);
+    assert_eq!(source.project(&[], [&[]]).count(), 0);
+    assert_eq!(source.project(&[], [&[AgeRangeId::From1HTo1D]]).count(), 0);
+}
+
 fn verify(
     reader: &Reader<'_>,
     prices: &[Cents],
@@ -36,47 +126,84 @@ fn verify(
             incremental.extend_prices(&prices[h..h + 1]).unwrap();
         }
         incremental.advance(&mut cursor, timestamps).unwrap();
-        let direct = AgeRangeUrpds::from_origins(cursor.state(), prices, timestamps).unwrap();
+        let direct = rebuild(cursor.state(), prices, timestamps);
         for &age in AgeRangeId::ALL {
             let actual: Vec<_> = incremental
-                .iter()
-                .filter(|(a, _, _)| *a == age)
-                .map(|(_, p, s)| (p, s))
+                .project(&[], [slice::from_ref(&age)])
+                .map(|row| (row.price, row.raw[0]))
                 .collect();
             assert_eq!(
                 actual,
-                direct.get(age),
+                age.select(&direct)
+                    .iter()
+                    .map(|(&p, &s)| (p, s))
+                    .collect::<Vec<_>>(),
                 "height={h} start={start} age={age:?}"
             );
         }
-        let raw = project(direct.iter(), &AgeRange::from_fn(|_| 1.0));
+        let raw = project(entries(&direct), &AgeRange::from_fn(|_| 1.0));
         assert_eq!(
             incremental
-                .project(&[])
-                .map(|b| (b.price, b.raw))
+                .project(&[], [AgeAggregateId::All.age_range_ids()])
+                .map(|b| (b.price, b.raw[0]))
                 .collect::<Vec<_>>(),
             raw.as_ref()
         );
         let zero = AgeRange::from_fn(|_| 0.0);
         assert!(
             incremental
-                .project(&[Some(&zero), None])
-                .all(|b| b.weighted == [Sats::ZERO; 2])
+                .project(&[Some(&zero), None], [AgeAggregateId::All.age_range_ids()])
+                .all(|b| b.weighted.iter().all(|mass| *mass == [Sats::ZERO; 2]))
         );
+        let cohorts: [_; AgeAggregateId::ALL.len()] =
+            array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
         for offset in 0..3 {
             let weights =
                 AgeRange::from_fn(|age| ((age.index() * 7 + offset * 3) % 17) as f64 / 17.0);
-            let expected = project(direct.iter(), &weights);
             let selected = [Some(&weights)];
-            let view = incremental
-                .project(&selected)
-                .filter_map(|b| (b.weighted[0] != Sats::ZERO).then_some((b.price, b.weighted[0])));
-            assert_eq!(view.clone().collect::<Vec<_>>(), expected.as_ref());
-            assert_eq!(view.collect::<Vec<_>>(), expected.as_ref());
+            let projected: Vec<_> = incremental.project(&selected, cohorts).collect();
+            for &age in AgeRangeId::ALL {
+                let expected = project(entries(&direct).filter(|(a, _, _)| *a == age), &weights);
+                let actual: Vec<_> = incremental
+                    .project(&selected, [slice::from_ref(&age)])
+                    .filter_map(|b| {
+                        let sats = b.weighted[0][0];
+                        (sats != Sats::ZERO).then_some((b.price, sats))
+                    })
+                    .collect();
+                assert_eq!(actual, expected.as_ref(), "{age:?} at {h}");
+            }
+            for &id in AgeAggregateId::ALL {
+                let expected = project(
+                    entries(&direct).filter(|(age, _, _)| id.contains(*age)),
+                    &weights,
+                );
+                let actual: Vec<_> = projected
+                    .iter()
+                    .filter_map(|b| {
+                        let sats = b.weighted[id.index()][0];
+                        (sats != Sats::ZERO).then_some((b.price, sats))
+                    })
+                    .collect();
+                assert_eq!(actual, expected.as_ref(), "{id:?} at {h}");
+                let single: Vec<_> = incremental
+                    .project(&selected, [id.age_range_ids()])
+                    .filter_map(|b| {
+                        let sats = b.weighted[0][0];
+                        (sats != Sats::ZERO).then_some((b.price, sats))
+                    })
+                    .collect();
+                assert_eq!(actual, single);
+            }
         }
-        let total: u64 = incremental.iter().map(|(_, _, s)| u64::from(s)).sum();
+        let total: u64 = incremental
+            .project(&[], [AgeAggregateId::All.age_range_ids()])
+            .map(|row| {
+                assert_ne!(row.raw[0], Sats::ZERO);
+                u64::from(row.raw[0])
+            })
+            .sum();
         assert_eq!(total, cursor.state().total().sats);
-        assert!(incremental.iter().all(|(_, _, sats)| sats != Sats::ZERO));
     }
 }
 

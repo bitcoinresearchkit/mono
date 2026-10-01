@@ -6,124 +6,124 @@
 
 # Interface: \_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern10
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3560](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3560)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3391](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3391)
 
 ## Properties
 
 ### \_0sats
 
-> **\_0sats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_0sats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3561](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3561)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3392](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3392)
 
 ***
 
 ### \_100btcTo1kBtc
 
-> **\_100btcTo1kBtc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_100btcTo1kBtc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3562](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3562)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3393](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3393)
 
 ***
 
 ### \_100kSatsTo1mSats
 
-> **\_100kSatsTo1mSats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_100kSatsTo1mSats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3563](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3563)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3394](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3394)
 
 ***
 
 ### \_100satsTo1kSats
 
-> **\_100satsTo1kSats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_100satsTo1kSats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3564](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3564)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3395](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3395)
 
 ***
 
 ### \_10btcTo100btc
 
-> **\_10btcTo100btc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_10btcTo100btc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3565](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3565)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3396](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3396)
 
 ***
 
 ### \_10kBtcTo100kBtc
 
-> **\_10kBtcTo100kBtc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_10kBtcTo100kBtc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3566](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3566)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3397](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3397)
 
 ***
 
 ### \_10kSatsTo100kSats
 
-> **\_10kSatsTo100kSats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_10kSatsTo100kSats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3567](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3567)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3398](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3398)
 
 ***
 
 ### \_10mSatsTo1btc
 
-> **\_10mSatsTo1btc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_10mSatsTo1btc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3568](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3568)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3399](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3399)
 
 ***
 
 ### \_10satsTo100sats
 
-> **\_10satsTo100sats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_10satsTo100sats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3569](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3569)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3400](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3400)
 
 ***
 
 ### \_1btcTo10btc
 
-> **\_1btcTo10btc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_1btcTo10btc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3570](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3570)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3401](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3401)
 
 ***
 
 ### \_1kBtcTo10kBtc
 
-> **\_1kBtcTo10kBtc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_1kBtcTo10kBtc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3571](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3571)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3402](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3402)
 
 ***
 
 ### \_1kSatsTo10kSats
 
-> **\_1kSatsTo10kSats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_1kSatsTo10kSats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3572](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3572)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3403](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3403)
 
 ***
 
 ### \_1mSatsTo10mSats
 
-> **\_1mSatsTo10mSats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_1mSatsTo10mSats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3573](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3573)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3404](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3404)
 
 ***
 
 ### \_1satTo10sats
 
-> **\_1satTo10sats**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **\_1satTo10sats**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3574](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3574)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3405](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3405)
 
 ***
 
 ### over100kBtc
 
-> **over100kBtc**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
+> **over100kBtc**: [`PercentPpmRatioPattern2`](PercentPpmRatioPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3575](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3575)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3406](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3406)

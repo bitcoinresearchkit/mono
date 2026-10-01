@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Outputs\_UnspentCount\_Epoch
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10845](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10845)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9206](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9206)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10845](https://githu
 
 > **\_0**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10846](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10846)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9207](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9207)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10846](https://githu
 
 > **\_1**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10847](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10847)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9208](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9208)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10847](https://githu
 
 > **\_2**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10848](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10848)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9209](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9209)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10848](https://githu
 
 > **\_3**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10849](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10849)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9210](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9210)
 
 ***
 
@@ -46,4 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10849](https://githu
 
 > **\_4**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10850](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10850)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9211](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9211)

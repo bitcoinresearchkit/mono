@@ -24,7 +24,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     #[traversable(skip)]
-    path: PathBuf,
+    spends_path: PathBuf,
+    #[traversable(skip)]
+    creations_path: PathBuf,
     #[traversable(skip)]
     history: M::WriteOnly<History>,
     /// Remaining satoshis after each block.
@@ -46,7 +48,11 @@ impl Vecs {
 impl<M: StorageMode> Vecs<M> {
     /// Open published history while the caller holds the pipeline publication guard.
     pub fn view(&self) -> Result<View> {
-        Ok(View::open(&self.path)?)
+        Ok(View::open(
+            self.db.path(),
+            &self.spends_path,
+            &self.creations_path,
+        )?)
     }
 }
 

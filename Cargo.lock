@@ -475,8 +475,10 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
+ "rayon",
  "schemars",
  "serde",
+ "tempfile",
  "vecdb",
 ]
 
@@ -568,6 +570,7 @@ dependencies = [
  "brk_error",
  "brk_types",
  "derive_more",
+ "log",
  "schemars",
  "serde",
  "statedb",
@@ -608,7 +611,9 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
+ "brk_exit",
  "brk_types",
+ "tempfile",
  "vecdb",
 ]
 
@@ -697,7 +702,6 @@ dependencies = [
  "brk_types",
  "derive_more",
  "rayon",
- "rustc-hash",
  "statedb",
  "tempfile",
  "tracing",
@@ -716,6 +720,41 @@ dependencies = [
  "bitview_vecs",
  "brk_types",
  "derive_more",
+ "rustc-hash",
+ "vecdb",
+]
+
+[[package]]
+name = "bitview_plugin_distribution_entry"
+version = "0.12.2"
+dependencies = [
+ "bitview",
+ "bitview_cohort",
+ "bitview_collections",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_blocks",
+ "bitview_plugin_distribution_age",
+ "bitview_plugin_distribution_common",
+ "bitview_plugin_indexer",
+ "bitview_plugin_inputs",
+ "bitview_plugin_mappings",
+ "bitview_plugin_outputs",
+ "bitview_plugin_price",
+ "bitview_plugin_utxo_history",
+ "bitview_query",
+ "bitview_runtime",
+ "bitview_transforms",
+ "bitview_traversable",
+ "bitview_vecs",
+ "bitviewd",
+ "brk_error",
+ "brk_exit",
+ "brk_reader",
+ "brk_rpc",
+ "brk_types",
+ "statedb",
+ "tempfile",
  "vecdb",
 ]
 
@@ -850,6 +889,7 @@ name = "bitview_plugin_market"
 version = "0.12.2"
 dependencies = [
  "bitview_collections",
+ "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_blocks",
  "bitview_plugin_indexer",
@@ -953,6 +993,7 @@ dependencies = [
  "parking_lot",
  "rayon",
  "rustc-hash",
+ "tempfile",
  "tracing",
  "vecdb",
 ]
@@ -967,6 +1008,7 @@ dependencies = [
  "bitview_traversable",
  "bitview_vecs",
  "brk_error",
+ "brk_exit",
  "brk_oracle",
  "brk_reader",
  "brk_rpc",
@@ -1048,6 +1090,7 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
+ "rangeindex",
  "rayon",
  "rustc-hash",
  "smallvec",
@@ -1249,6 +1292,7 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
+ "rustc-hash",
  "statedb",
  "tempfile",
  "vecdb",
@@ -3956,9 +4000,9 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 name = "statedb"
 version = "0.12.2"
 dependencies = [
- "crc32fast",
- "lz4_flex",
+ "brk_pco",
  "tempfile",
+ "zerocopy",
 ]
 
 [[package]]

@@ -80,6 +80,17 @@ impl Header {
         self.inner.read().computed_version
     }
 
+    /// Computed sources carry their provenance; raw sources carry their schema.
+    #[inline(always)]
+    pub(crate) fn source_version(&self) -> Version {
+        let inner = self.inner.read();
+        if inner.computed_version == Version::ZERO {
+            inner.vec_version
+        } else {
+            inner.computed_version
+        }
+    }
+
     #[inline(always)]
     pub fn stamp(&self) -> Stamp {
         self.inner.read().stamp

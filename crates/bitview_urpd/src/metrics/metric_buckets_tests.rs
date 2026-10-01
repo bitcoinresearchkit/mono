@@ -1,7 +1,26 @@
-use bitview_cohort::UTXOAggregateId;
+use std::array;
+
+use bitview_cohort::{AGE_RANGE_COUNT, AgeAggregateId, AgeRange, AgeRangeId};
+use brk_types::{CentsCompact, Sats};
 
 use super::*;
-use crate::metrics::price_stats::PriceStats;
+use crate::{metrics::price_stats::PriceStats, projection::Projection};
+
+fn projected<'a>(
+    entries: &'a [(CentsCompact, [u64; AGE_RANGE_COUNT])],
+    weights: &AgeRange<f64>,
+) -> impl Iterator<Item = ProjectedBucket<1, { AgeAggregateId::ALL.len() }>> + 'a {
+    let cohorts: [_; AgeAggregateId::ALL.len()] =
+        array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
+    let projection = Projection::new(&[Some(weights)], cohorts);
+    entries.iter().filter_map(move |(price, supplies)| {
+        let occupied = supplies
+            .iter()
+            .enumerate()
+            .fold(0, |mask, (age, &sats)| mask | (u32::from(sats != 0) << age));
+        projection.bucket(*price, supplies, occupied)
+    })
+}
 
 #[test]
 fn fused_statistics_match_independent_cohort_projection_and_density() {
@@ -30,7 +49,7 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
                 2 => 0.5,
                 _ => ((age.index() * 7 + offset * 3) % 17) as f64 / 17.0,
             });
-            buffer.update(entries.iter().map(|(p, s)| (*p, s)), &weights, spot);
+            buffer.update(projected(&entries, &weights), spot);
             let project = |accept: &dyn Fn(AgeRangeId) -> bool| {
                 entries
                     .iter()
@@ -45,34 +64,24 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
                     })
                     .collect::<Vec<_>>()
             };
-            for &id in UTXOAggregateId::ALL {
+            for &id in AgeAggregateId::ALL {
                 let expected = project(&|age| id.age_range_ids().contains(&age));
                 let expected = PriceStats::from_entries(expected.into_iter());
                 let actual = id.select(&buffer.prices).stats();
                 assert_eq!(actual.cost_basis, expected.cost_basis);
                 assert_eq!(actual.capitalized_price, expected.capitalized_price);
             }
-            for (i, excluded) in [
-                None,
-                Some(AgeRangeId::From4MTo5M),
-                Some(AgeRangeId::From5MTo6M),
-                Some(AgeRangeId::From6MTo9M),
-            ]
-            .into_iter()
-            .enumerate()
-            {
-                let expected =
-                    project(&|age| excluded.is_none_or(|excluded| age.index() < excluded.index()));
+            for &id in AgeAggregateId::ALL {
+                let expected = project(&|age| id.age_range_ids().contains(&age));
                 assert_eq!(
-                    buffer.density[i],
+                    *id.select(&buffer.density),
                     SupplyDensity::from_entries(expected, spot)
                 );
             }
         }
     }
     buffer.update(
-        entries[..0].iter().map(|(p, s)| (*p, s)),
-        &AgeRange::from_fn(|_| 1.0),
+        projected(&entries[..0], &AgeRange::from_fn(|_| 1.0)),
         Cents::new(100),
     );
     assert!(
@@ -81,5 +90,5 @@ fn fused_statistics_match_independent_cohort_projection_and_density() {
             .iter()
             .all(|p| p.stats().capitalized_price.is_nan())
     );
-    assert_eq!(buffer.density, [SupplyDensity::NAN; 4]);
+    assert!(buffer.density.iter().all(|d| *d == SupplyDensity::NAN));
 }

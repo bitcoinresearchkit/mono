@@ -1,5 +1,5 @@
 use crate::compute::ComputeContext;
-use bitview_cohort::{AgeRange, AgeRangeId, ByEntry, ByEpoch, Class, EntryPrice, Term};
+use bitview_cohort::{AgeRange, AgeRangeId, ByEpoch, Class, Term};
 use brk_error::Result;
 use brk_types::{Age, CostBasisSnapshot, Height};
 use rayon::scope as RayonScope;
@@ -12,7 +12,6 @@ pub struct UTXOStates {
     pub age_range: AgeRange<UTXOCohortState<RealizedState, WithCapital>>,
     pub epoch: ByEpoch<UTXOCohortState<CoreRealizedState, WithoutCapital>>,
     pub class: Class<UTXOCohortState<CoreRealizedState, WithoutCapital>>,
-    pub entry: ByEntry<UTXOCohortState<CoreRealizedState, WithoutCapital>>,
     pub transient: UTXOTransientState,
 }
 
@@ -22,7 +21,6 @@ impl UTXOStates {
             age_range: AgeRange::new(|_| UTXOCohortState::new()),
             epoch: ByEpoch::new(|_| UTXOCohortState::new()),
             class: Class::new(|_| UTXOCohortState::new()),
-            entry: ByEntry::new(|_| UTXOCohortState::new()),
             transient: UTXOTransientState::default(),
         }
     }
@@ -40,20 +38,11 @@ impl UTXOStates {
             state.reset();
             state.init_cost_basis();
         }
-        for state in self.entry.iter_mut() {
-            state.reset();
-            state.init_cost_basis();
-        }
         self.transient = UTXOTransientState::default();
         Ok(())
     }
 
-    pub fn restore_origins(
-        &mut self,
-        amounts: &[Amount],
-        entries: &[EntryPrice],
-        ctx: &ComputeContext<'_>,
-    ) -> Result<()> {
+    pub fn restore_origins(&mut self, amounts: &[Amount], ctx: &ComputeContext<'_>) -> Result<()> {
         self.reset()?;
         let Some(last) = amounts.len().checked_sub(1) else {
             return Ok(());
@@ -71,7 +60,6 @@ impl UTXOStates {
             if let Some(state) = self.class.mut_vec_from_timestamp(origin_timestamp) {
                 state.increment_snapshot(&snapshot);
             }
-            self.entry.get_mut(entries[h]).increment_snapshot(&snapshot);
         }
         RayonScope(|scope| {
             for state in self.age_range.iter_mut() {
@@ -81,9 +69,6 @@ impl UTXOStates {
                 scope.spawn(move |_| state.finish_restore());
             }
             for state in self.class.iter_mut() {
-                scope.spawn(move |_| state.finish_restore());
-            }
-            for state in self.entry.iter_mut() {
                 scope.spawn(move |_| state.finish_restore());
             }
         });
@@ -96,7 +81,6 @@ impl UTXOStates {
             age_range,
             epoch,
             class,
-            entry,
             ..
         } = self;
         RayonScope(|scope| {
@@ -107,9 +91,6 @@ impl UTXOStates {
                 scope.spawn(move |_| state.apply_pending());
             }
             for state in class.iter_mut() {
-                scope.spawn(move |_| state.apply_pending());
-            }
-            for state in entry.iter_mut() {
                 scope.spawn(move |_| state.apply_pending());
             }
         });
@@ -123,9 +104,6 @@ impl UTXOStates {
             .iter_mut()
             .for_each(|state| state.reset_single_iteration_values());
         self.class
-            .iter_mut()
-            .for_each(|state| state.reset_single_iteration_values());
-        self.entry
             .iter_mut()
             .for_each(|state| state.reset_single_iteration_values());
     }

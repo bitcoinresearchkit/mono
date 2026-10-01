@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining\_Hashrate
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8369](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8369)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7059](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7059)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8369](https://github
 
 > **price**: [`PhsReboundThsPattern`](PhsReboundThsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8371](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8371)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7061](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7061)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8371](https://github
 
 > **rate**: [`SeriesTree_Mining_Hashrate_Rate`](SeriesTree_Mining_Hashrate_Rate.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8370](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8370)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7060](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7060)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8370](https://github
 
 > **value**: [`PhsReboundThsPattern`](PhsReboundThsPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8372](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8372)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7062](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7062)

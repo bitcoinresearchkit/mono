@@ -23,6 +23,25 @@ pub struct ValuePerBlockFull<M: StorageMode = Rw> {
 const VERSION: Version = Version::TWO;
 
 impl ValuePerBlockFull {
+    pub fn compute_from(
+        &mut self,
+        max_from: Height,
+        windows: &WindowStarts<'_>,
+        price_cents: &impl ReadableVec<Height, Cents>,
+        source: &impl ReadableVec<Height, Sats>,
+        exit: &Exit,
+    ) -> Result<()> {
+        self.inner
+            .compute_from(max_from, price_cents, source, |_, value| value, exit)?;
+        self.distribution.compute(
+            max_from,
+            windows,
+            &self.inner.block.sats,
+            &self.inner.block.cents,
+            exit,
+        )
+    }
+
     pub fn cumulative_sats_source(&self) -> &(impl ReadableCloneableVec<Height, Sats> + use<>) {
         self.cumulative.sats.resolutions.height_source()
     }

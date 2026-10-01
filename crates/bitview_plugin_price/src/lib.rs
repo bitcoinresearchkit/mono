@@ -10,6 +10,8 @@ use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
 mod compute;
+mod oracle_feed;
+pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
 mod dependencies;
 mod has;
 

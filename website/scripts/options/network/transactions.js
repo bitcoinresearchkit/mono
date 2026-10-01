@@ -9,6 +9,7 @@ import {
   chartsFromCountEntries,
   chartsFromFullPerBlock,
   line,
+  percentRatio,
 } from "../series.js";
 import { satsBtcUsdFullTree } from "../shared.js";
 
@@ -178,6 +179,20 @@ export function createTransactionsSection() {
             metric: "Transactions with Inscriptions",
             pattern: transactions.inscription.count,
           }),
+          createCountFolder({
+            name: "Inscription Fees",
+            metric: "Inscription Fees",
+            pattern: transactions.inscription.fees,
+            unit: Unit.sats,
+          }),
+          {
+            name: "Inscription Fee Share",
+            title: "Inscription Share of Transaction Fees",
+            bottom: percentRatio({
+              pattern: transactions.inscription.feeShare,
+              name: "Inscriptions",
+            }),
+          },
           createCountFolder({
             name: "Taproot Annexes",
             metric: "Transactions with Taproot Annexes",

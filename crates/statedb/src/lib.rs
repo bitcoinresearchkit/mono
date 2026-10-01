@@ -3,13 +3,14 @@
 //! No prices, cohorts, analytics, or vecdb storage belong here.
 mod amount;
 mod block_diff;
-mod codec;
 mod creations;
 mod cursor;
 mod history;
 mod journal;
+mod journal_reader;
 mod reader;
 mod snapshot;
+mod snapshots;
 mod spends;
 mod state;
 mod util;

@@ -37,7 +37,6 @@ fn work() -> Result<()> {
     mining.compute(
         Dependencies {
             indexer: &indexer,
-            mappings: &mappings,
             blocks: &blocks,
             transactions: &transactions,
             price: &price,

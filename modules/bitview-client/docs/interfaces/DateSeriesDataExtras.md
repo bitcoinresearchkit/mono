@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesDataExtras\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1711](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1711)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1704](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1704)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1711](https://github
 
 > **dateEntries**: () => \[`Date`, `T`\][]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1713](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1713)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1706](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1706)
 
 Get [date, value] pairs
 
@@ -34,7 +34,7 @@ Get [date, value] pairs
 
 > **dates**: () => `Date`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1712](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1712)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1705](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1705)
 
 Get dates for each data point
 
@@ -48,7 +48,7 @@ Get dates for each data point
 
 > **toDateMap**: () => `Map`\<`Date`, `T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1714](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1714)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1707](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1707)
 
 Convert to Map<date, value>
 

@@ -32,12 +32,18 @@ impl ComputePlugin for Vecs {
             + txs.weight.version()
             + fees.fee.tx_index.version();
 
-        self.validate_and_truncate(version, starting_lengths.height)?;
+        {
+            let _lock = exit.lock();
+            self.validate_and_truncate(version, starting_lengths.height)?;
+        }
 
         let skip = self.min_len();
         let end = raw.first_index.len();
         if skip < end {
-            self.truncate_if_needed_at(skip)?;
+            {
+                let _lock = exit.lock();
+                self.truncate_if_needed_at(skip)?;
+            }
 
             for batch_start in (skip..end).step_by(WRITE_INTERVAL) {
                 let batch_end = (batch_start + WRITE_INTERVAL).min(end);

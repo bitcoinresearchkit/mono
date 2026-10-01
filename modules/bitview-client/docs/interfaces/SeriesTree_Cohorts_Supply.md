@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Supply
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9908](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9908)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8661](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8661)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9908](https://github
 
 > **delta**: [`SeriesTree_Cohorts_Supply_Delta`](SeriesTree_Cohorts_Supply_Delta.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9914](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9914)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8667](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8667)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9914](https://github
 
 > **dominance**: [`SeriesTree_Cohorts_Supply_Dominance`](SeriesTree_Cohorts_Supply_Dominance.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9915](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9915)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8668](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8668)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9915](https://github
 
 > **half**: [`SeriesTree_Cohorts_Supply_Half`](SeriesTree_Cohorts_Supply_Half.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9911](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9911)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8664](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8664)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9911](https://github
 
 > **inLoss**: [`SeriesTree_Cohorts_Supply_InLoss`](SeriesTree_Cohorts_Supply_InLoss.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9913](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9913)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8666](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8666)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9913](https://github
 
 > **inProfit**: [`SeriesTree_Cohorts_Supply_InProfit`](SeriesTree_Cohorts_Supply_InProfit.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9912](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9912)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8665](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8665)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9912](https://github
 
 > **matured**: [`SeriesTree_Cohorts_Supply_Matured`](SeriesTree_Cohorts_Supply_Matured.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9910](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9910)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8663](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8663)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9910](https://github
 
 > **total**: [`SeriesTree_Cohorts_Supply_Total`](SeriesTree_Cohorts_Supply_Total.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9909](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9909)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8662](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8662)

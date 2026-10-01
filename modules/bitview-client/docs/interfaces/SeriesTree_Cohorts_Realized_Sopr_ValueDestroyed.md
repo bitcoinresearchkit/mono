@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Sopr\_ValueDestroyed
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12759](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12759)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10242](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10242)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12759](https://githu
 
 > **age**: [`SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age`](SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Age.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12761](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12761)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10244](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10244)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12761](https://githu
 
 > **all**: [`AverageBlockCumulativeSumPattern3`](AverageBlockCumulativeSumPattern3.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12760](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12760)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10243](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10243)
 
 ***
 
@@ -30,15 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12760](https://githu
 
 > **class**: [`SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class`](SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Class.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12763](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12763)
-
-***
-
-### entry
-
-> **entry**: [`SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry`](SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Entry.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:12764](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12764)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10246](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10246)
 
 ***
 
@@ -46,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12764](https://githu
 
 > **epoch**: [`SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch`](SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Epoch.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12762](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12762)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10245](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10245)
 
 ***
 
@@ -54,4 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12762](https://githu
 
 > **term**: [`SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term`](SeriesTree_Cohorts_Realized_Sopr_ValueDestroyed_Term.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12765](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12765)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10247](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10247)

@@ -6,7 +6,7 @@
 
 # Interface: EmptyAddrData
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:562](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L562)
+Defined in: [Developer/mono/modules/bitview-client/index.js:561](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L561)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:562](https://github.
 
 > **fundedTxoCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:564](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L564)
+Defined in: [Developer/mono/modules/bitview-client/index.js:563](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L563)
 
 Total funded/spent transaction output count (equal since address is empty)
 
@@ -24,7 +24,7 @@ Total funded/spent transaction output count (equal since address is empty)
 
 > **transfered**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:565](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L565)
+Defined in: [Developer/mono/modules/bitview-client/index.js:564](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L564)
 
 Total satoshis transferred
 
@@ -34,6 +34,6 @@ Total satoshis transferred
 
 > **txCount**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:563](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L563)
+Defined in: [Developer/mono/modules/bitview-client/index.js:562](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L562)
 
 Total transaction count

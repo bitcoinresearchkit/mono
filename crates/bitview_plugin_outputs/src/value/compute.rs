@@ -22,13 +22,18 @@ pub(crate) fn compute_sats(
 ) -> Result<()> {
     let version = first_txout.version() + output_types.version() + values.version();
     let end = end.min(first_txout.len());
-    created.validate_version(u32::from(version).into())?;
-    let start = prepare_computed(
-        [target as &mut dyn AnyStoredVec],
-        version,
-        usize::from(max_from).min(end).min(created.len()),
-    )?;
-    created.truncate(start)?;
+    let start = {
+        let _lock = exit.lock();
+        created.validate_version(u32::from(version).into())?;
+        let start = prepare_computed(
+            [target as &mut dyn AnyStoredVec],
+            version,
+            usize::from(max_from).min(end).min(created.len()),
+            exit,
+        )?;
+        created.truncate(start)?;
+        start
+    };
     if start < end {
         let mut first_txout = first_txout.cursor();
         first_txout.advance(start);
@@ -66,6 +71,7 @@ pub(crate) fn compute_sats(
                     },
                 )
             });
+            let _lock = exit.lock();
             created.push(
                 hashes.collect_one(Height::from(h)).data()?.to_bytes(),
                 Amount {

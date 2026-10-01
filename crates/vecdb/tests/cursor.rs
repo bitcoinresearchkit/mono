@@ -142,3 +142,35 @@ fn cursor_try_fold_resumes_after_a_cross_page_error() -> Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn range_visitor_rewinds_retained_pages_and_stops_on_errors() -> Result<()> {
+    let temp = TempDir::new()?;
+    let db = Database::open(temp.path())?;
+    let mut source = PcoVec::<usize, u64>::import(&db, "visitor", Version::ONE)?;
+    for n in 0..20_000 {
+        source.push(n as u64);
+    }
+    source.write()?;
+    let mut cursor = source.cursor();
+    for (from, to) in [(16_380, 16_400), (19_999, 20_000), (3, 8), (8, 3)] {
+        let mut result = Vec::new();
+        cursor
+            .try_for_each_range_at(from, to, |value| {
+                result.push(value);
+                Ok::<_, ()>(())
+            })
+            .unwrap();
+        assert_eq!(result, source.collect_range_at(from, to));
+    }
+    let result =
+        cursor.try_for_each_range_at(
+            100,
+            200,
+            |value| if value == 103 { Err(value) } else { Ok(()) },
+        );
+    assert_eq!(result, Err(103));
+    assert_eq!(cursor.position(), 104);
+    assert_eq!(cursor.next(), Some(104));
+    Ok(())
+}

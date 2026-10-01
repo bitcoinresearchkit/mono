@@ -9,6 +9,8 @@ use axum::{
     serve as serve_http,
 };
 use bitcoin::Amount;
+#[cfg(feature = "chain")]
+use bitview_query::AsyncQuery;
 use brk_types::{Cents, Cohort, Height, UrpdAggregation, UrpdWeight};
 use std::{fs, net::SocketAddr, time::Duration};
 use tokio::{
@@ -27,6 +29,7 @@ fn populated_urpd_history() {
     first.header.merkle_root = first.compute_merkle_root().unwrap();
     chain_fixture::run_genesis(first, |mut fixture| async move {
         fixture.publish(1, 1);
+        check_plugin_storage(&fixture);
         check_reconstruction(&fixture.state, fixture.address).await;
         let route = "/api/urpd/all/1";
         let before = exchange_with_etag(fixture.address, "GET", route, "\"old\"").await;
@@ -42,11 +45,12 @@ fn populated_urpd_history() {
             after.split_once("\r\n\r\n").unwrap().1
         );
 
-        let path = fixture.directory.path().join("origins/snapshots/latest");
+        let path = fixture
+            .directory
+            .path()
+            .join("plugins/utxo_history/snapshots/data");
         let saved = fs::read(&path).unwrap();
-        let mut corrupt = saved.clone();
-        let last = corrupt.len() - 1;
-        corrupt[last] ^= 1;
+        let corrupt = &saved[..saved.len() - 1];
         fs::write(&path, corrupt).unwrap();
         for method in ["GET", "HEAD"] {
             let response = exchange_with_etag(fixture.address, method, route, "*").await;
@@ -55,6 +59,43 @@ fn populated_urpd_history() {
         }
         fs::write(path, saved).unwrap();
     });
+}
+
+#[cfg(feature = "chain")]
+fn check_plugin_storage(fixture: &chain_fixture::ChainFixture) {
+    let root = fixture.directory.path();
+    assert!(!root.join("origins").exists());
+    for path in [
+        "plugins/inputs/spends/data",
+        "plugins/inputs/spends/index",
+        "plugins/inputs/spends/commit",
+        "plugins/inputs/spends/writer",
+        "plugins/outputs/creations/data",
+        "plugins/outputs/creations/index",
+        "plugins/outputs/creations/commit",
+        "plugins/outputs/creations/writer",
+        "plugins/utxo_history/snapshots/data",
+        "plugins/utxo_history/snapshots/pages",
+    ] {
+        assert!(root.join(path).is_file(), "missing {path}");
+    }
+
+    let state = read_only_state(&fixture.query);
+    let reopened = read_only_state(&fixture.query);
+    assert_eq!(reopened, state);
+}
+
+#[cfg(feature = "chain")]
+fn read_only_state(query: &AsyncQuery) -> (usize, (u64, u64)) {
+    query.sync(|query| {
+        let plugins = query.plugins();
+        let view = plugins.utxo_history.view().unwrap();
+        let reader = view.reader().unwrap();
+        assert!(!reader.is_empty());
+        let end = reader.len();
+        let total = reader.state_at(end).unwrap().total();
+        (end, (total.sats, total.count))
+    })
 }
 pub async fn check_reconstruction(state: &AppState, address: SocketAddr) {
     check_cancelled_admission(state).await;

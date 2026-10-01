@@ -6,7 +6,7 @@
 
 # Interface: PoolDetail
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:907](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L907)
+Defined in: [Developer/mono/modules/bitview-client/index.js:906](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L906)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:907](https://github.
 
 > **blockCount**: [`PoolBlockCounts`](PoolBlockCounts.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:909](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L909)
+Defined in: [Developer/mono/modules/bitview-client/index.js:908](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L908)
 
 Block counts for different time periods
 
@@ -24,7 +24,7 @@ Block counts for different time periods
 
 > **blockShare**: [`PoolBlockShares`](PoolBlockShares.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:910](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L910)
+Defined in: [Developer/mono/modules/bitview-client/index.js:909](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L909)
 
 Pool's share of total blocks for different time periods
 
@@ -34,7 +34,7 @@ Pool's share of total blocks for different time periods
 
 > **estimatedHashrate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:911](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L911)
+Defined in: [Developer/mono/modules/bitview-client/index.js:910](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L910)
 
 Estimated hashrate based on blocks mined (H/s)
 
@@ -44,7 +44,7 @@ Estimated hashrate based on blocks mined (H/s)
 
 > **pool**: [`PoolDetailInfo`](PoolDetailInfo.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:908](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L908)
+Defined in: [Developer/mono/modules/bitview-client/index.js:907](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L907)
 
 Pool information
 
@@ -54,7 +54,7 @@ Pool information
 
 > `optional` **reportedHashrate?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:912](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L912)
+Defined in: [Developer/mono/modules/bitview-client/index.js:911](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L911)
 
 Self-reported hashrate (if available, H/s)
 
@@ -64,6 +64,6 @@ Self-reported hashrate (if available, H/s)
 
 > `optional` **totalReward?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:913](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L913)
+Defined in: [Developer/mono/modules/bitview-client/index.js:912](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L912)
 
 Total reward earned by this pool (sats, all time; None for minor pools)

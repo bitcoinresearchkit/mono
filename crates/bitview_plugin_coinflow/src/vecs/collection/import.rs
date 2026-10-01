@@ -15,8 +15,8 @@ use vecdb::{Database, PcoVecValue, ReadableBoxedVec};
 
 use super::Vecs;
 use crate::{
-    AgeRangeVecs, AggregateSources, AggregateVecs, HorizonId, HorizonVecs, Mobility, MobilityId,
-    STORAGE, SpendingExposureSeries,
+    AgeRangeVecs, AggregateSources, AggregateVecs, Mobility, MobilityId, STORAGE,
+    SpendingExposureSeries,
 };
 
 impl AggregateSources {
@@ -58,13 +58,6 @@ impl AggregateSources {
                 "coinflow_supply_in_loss_share_bounded",
                 version,
             )?,
-            horizon: HorizonId::try_from_fn(|h| {
-                import_aggregate(
-                    db,
-                    &format!("coinflow_{}_supply_in_loss_share_bounded", h.name()),
-                    version,
-                )
-            })?,
             cap: import_aggregate(db, "coinflow_cap_cents", version)?,
             price: import_aggregate(db, "coinflow_price_cents", version)?,
             capitalized_price: import_aggregate(db, "coinflow_capitalized_price_cents", version)?,
@@ -111,17 +104,6 @@ impl AggregateVecs {
             aggregate.select(&sources.supply_in_loss_share),
             mappings,
         );
-        let horizon = HorizonId::from_fn(|horizon| {
-            let name = metric_name(&format!("coinflow_{}_supply_in_loss_share", horizon.name()));
-            HorizonVecs {
-                supply_in_loss_share: LazyPerBlock::from_height_source::<BoundedToF64>(
-                    &name,
-                    version,
-                    aggregate.select(horizon.select(&sources.horizon)),
-                    mappings,
-                ),
-            }
-        });
         let cap = LazyFiatPerBlock::from_cents_source(
             &metric_name("coinflow_cap"),
             version,
@@ -139,7 +121,6 @@ impl AggregateVecs {
         Self {
             supply,
             supply_in_loss_share,
-            horizon,
             cap,
             price,
             capitalized_price: LazyPriceWithRatioPerBlock::from_height_source(

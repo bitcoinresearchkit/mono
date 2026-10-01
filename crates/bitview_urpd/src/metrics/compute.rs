@@ -1,13 +1,15 @@
-use std::{iter, mem};
+use std::{array, iter, mem};
 
-use bitview_cohort::{AgeRange, UTXOAggregateId};
+use bitview_cohort::{AgeAggregateId, AgeRange};
 use bitview_compute::{collect_cohort_weights, prepare_computed};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Sats, StoredF64, Version};
-use vecdb::{ReadableVec, WritableVec};
+use vecdb::ReadableVec;
 
-use super::{Metrics, WRITE_INTERVAL_BLOCKS, metric_buckets::MetricBuckets};
+use super::{
+    Metrics, WRITE_INTERVAL_BLOCKS, density::SupplyDensity, metric_buckets::MetricBuckets,
+};
 use crate::{COMPUTE_VERSION, ReplayInputs};
 
 impl Metrics {
@@ -37,9 +39,12 @@ impl Metrics {
             self.stored_vecs_mut().collect::<Vec<_>>(),
             version,
             recompute_from.min(end),
+            exit,
         )?;
         let mut replay = mem::take(&mut self.replay);
         let mut buffer = mem::take(&mut self.buffer);
+        let cohorts: [_; AgeAggregateId::ALL.len()] =
+            array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
         replay.for_each(start..end, inputs, |height, close, source| {
             let supplies =
                 AgeRange::try_from_fn(|age| age.select(supplies).collect_one(height).ok_or(()))
@@ -48,7 +53,7 @@ impl Metrics {
                 .as_ref()
                 .and_then(|s| collect_cohort_weights(height, weights, s));
             if let Some(weights) = &weights {
-                buffer.update(source.buckets(), weights, close);
+                buffer.update(source.project(&[Some(weights)], cohorts), close);
             }
             self.push_block(weights.as_ref().map(|_| &buffer));
             if (usize::from(height) + 1).is_multiple_of(WRITE_INTERVAL_BLOCKS)
@@ -67,14 +72,12 @@ impl Metrics {
     }
 
     fn push_block(&mut self, buckets: Option<&MetricBuckets>) {
-        for &id in UTXOAggregateId::ALL {
+        for &id in AgeAggregateId::ALL {
             let stats = buckets
                 .map(|b| id.select(&b.prices).stats())
                 .unwrap_or_default();
-            id.select_mut(&mut self.cost_basis).push(&stats.cost_basis);
-            id.select_mut(&mut self.capitalized_price_stored)
-                .push(stats.capitalized_price);
+            let density = buckets.map_or(&SupplyDensity::NAN, |b| id.select(&b.density));
+            id.select_mut(&mut self.cohorts).push(&stats, density);
         }
-        self.supply_density.push(buckets.map(|b| &b.density));
     }
 }

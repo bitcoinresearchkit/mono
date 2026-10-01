@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Scripts\_Raw\_P2ms
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8087](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8087)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6777](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6777)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8087](https://github
 
 > **firstIndex**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8088](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8088)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6778](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6778)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8088](https://github
 
 > **legacySigops**: [`SeriesPattern25`](../type-aliases/SeriesPattern25.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8090](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8090)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6780](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6780)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8090](https://github
 
 > **toTxIndex**: [`SeriesPattern25`](../type-aliases/SeriesPattern25.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8089](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8089)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6779](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6779)

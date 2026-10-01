@@ -6,7 +6,7 @@
 
 # Interface: SeriesCount
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1105](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1105)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1104](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1104)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1105](https://github
 
 > **distinct**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1106](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1106)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1105](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1105)
 
 Number of unique series available (e.g., realized_price, market_cap)
 
@@ -24,7 +24,7 @@ Number of unique series available (e.g., realized_price, market_cap)
 
 > **lazy**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1108](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1108)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1107](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1107)
 
 Number of lazy (computed on-the-fly) series-index combinations
 
@@ -34,7 +34,7 @@ Number of lazy (computed on-the-fly) series-index combinations
 
 > **stored**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1109](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1109)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1108](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1108)
 
 Number of eager (stored on disk) series-index combinations
 
@@ -44,6 +44,6 @@ Number of eager (stored on disk) series-index combinations
 
 > **total**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1107](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1107)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1106](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1106)
 
 Total number of series-index combinations across all timeframes

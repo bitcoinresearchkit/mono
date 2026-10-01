@@ -108,6 +108,10 @@ mod tests {
 
     #[test]
     fn second_moment_overflow_does_not_discard_percentiles() {
+        assert_eq!(
+            price(&[(u32::MAX - 1, u64::MAX)]),
+            Cents::new(u64::from(u32::MAX - 1))
+        );
         let entries = [
             (CentsCompact::new(u32::MAX - 2), Sats::from(u64::MAX)),
             (CentsCompact::new(u32::MAX - 1), Sats::from(u64::MAX)),

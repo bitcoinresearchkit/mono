@@ -1,4 +1,7 @@
-use std::{iter, mem};
+use std::{
+    iter, mem,
+    time::{Duration, Instant},
+};
 
 use bitview_cohort::AgeRange;
 use bitview_compute::{collect_cohort_weights, prepare_computed};
@@ -6,6 +9,7 @@ use bitview_plugin::{ComputePlugin, UpdateContext};
 use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
 use brk_types::Version;
+use log::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 use super::Vecs;
@@ -39,8 +43,6 @@ impl ComputePlugin for Vecs {
             &id.select(&coinflow.age_range.spending_exposure.mobility)
                 .height
         });
-        let coinflow_spending_rate =
-            AgeRange::from_fn(|id| &id.select(&coinflow.age_range.spending_rate).height);
         let raw_loss_share = dependencies.raw_loss_share();
         let weighted_loss_shares = dependencies.weighted_loss_shares();
         let source_version = Version::combine_all(
@@ -51,8 +53,7 @@ impl ComputePlugin for Vecs {
                 .chain(weighted_loss_shares.iter().map(|vec| vec.version()))
                 .chain(age_supplies.iter().map(|vec| vec.version()))
                 .chain(cointime_wakefulness.iter().map(|vec| vec.version()))
-                .chain(coinflow_mobility.iter().map(|vec| vec.version()))
-                .chain(coinflow_spending_rate.iter().map(|vec| vec.version())),
+                .chain(coinflow_mobility.iter().map(|vec| vec.version())),
         );
         let end = iter::once(mappings.timestamp.monotonic.len())
             .chain(iter::once(raw_loss_share.len()))
@@ -60,7 +61,6 @@ impl ComputePlugin for Vecs {
             .chain(age_supplies.iter().map(|vec| vec.len()))
             .chain(cointime_wakefulness.iter().map(|vec| vec.len()))
             .chain(coinflow_mobility.iter().map(|vec| vec.len()))
-            .chain(coinflow_spending_rate.iter().map(|vec| vec.len()))
             .min()
             .unwrap_or_default();
         let from = usize::from(indexer.safe_lengths().height).min(end);
@@ -68,7 +68,16 @@ impl ComputePlugin for Vecs {
             self.model_stored_vecs_mut().collect::<Vec<_>>(),
             source_version,
             from,
+            context.exit(),
         )?;
+        if end.saturating_sub(start) >= WRITE_INTERVAL_BLOCKS {
+            info!(
+                "Computing Bedrock for {} blocks ({start}..={})...",
+                end - start,
+                end - 1
+            );
+        }
+        let mut last_progress = Instant::now();
         let mut replay = mem::take(&mut self.replay);
         let mut scratch = mem::take(&mut self.scratch);
         let mut calibration = self
@@ -92,9 +101,6 @@ impl ComputePlugin for Vecs {
                     age.select(&age_supplies).collect_one(height).ok_or(())
                 })
                 .ok();
-                let horizons = supplies
-                    .as_ref()
-                    .and_then(|s| coinflow.horizon_weights(height, s));
                 let ct_weights = supplies
                     .as_ref()
                     .and_then(|s| collect_cohort_weights(height, &cointime_wakefulness, s));
@@ -104,9 +110,6 @@ impl ComputePlugin for Vecs {
                 let weights = WeightedModes::from_fn(|mode| match mode {
                     WeightedModeId::Cointime => ct_weights.as_ref(),
                     WeightedModeId::Coinflow => cf_weights.as_ref(),
-                    _ => horizons
-                        .as_ref()
-                        .map(|h| mode.coinflow_horizon().unwrap().select(h)),
                 });
                 result.evaluate(source, &weights, &mut scratch);
             }
@@ -117,6 +120,16 @@ impl ComputePlugin for Vecs {
                     .push(result.by_mode.select(mode));
             }
             let end_block = usize::from(height) + 1;
+            if end_block.is_multiple_of(1_000) && last_progress.elapsed() >= Duration::from_secs(10)
+            {
+                info!(
+                    "Computing Bedrock: block {height}/{}, {}/{} blocks",
+                    end - 1,
+                    end_block - start,
+                    end - start
+                );
+                last_progress = Instant::now();
+            }
             if end_block.is_multiple_of(WRITE_INTERVAL_BLOCKS) || end_block == end {
                 let _lock = context.exit().lock();
                 for vec in self.model_stored_vecs_mut() {

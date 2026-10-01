@@ -1,4 +1,4 @@
-use crate::util::{atomic_write, checked, checksum, invalid};
+use crate::util::{atomic_write, invalid};
 use std::{
     fs::{self, File, OpenOptions},
     io::{BufWriter, Error, Read, Result, Seek, SeekFrom, Write},
@@ -6,8 +6,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-const MAGIC: &[u8; 8] = b"ORIGIN02";
-const INDEX_BYTES: usize = 12;
+const MAGIC: &[u8; 8] = b"ORIGIN03";
+const INDEX_BYTES: usize = 8;
 const MAX_RECORD: usize = 128 * 1024 * 1024;
 
 /// A single writer; readers borrow the published prefix. Unpublished tails are discarded on reopen.
@@ -17,7 +17,7 @@ pub(crate) struct Journal {
     read_end: u64,
     data: BufWriter<File>,
     index_file: File,
-    index: Vec<(u64, u32)>,
+    index: Vec<u64>,
     committed: usize,
     poisoned: bool,
     pub base: usize,
@@ -64,7 +64,6 @@ impl Journal {
         let manifest = path.join("commit");
         let (version, base, count, end) = if manifest.try_exists()? {
             let bytes = fs::read(&manifest)?;
-            let bytes = checked(&bytes)?;
             if bytes.len() != 40 || &bytes[..8] != MAGIC {
                 return Err(invalid("invalid origin journal manifest"));
             }
@@ -101,7 +100,7 @@ impl Journal {
                 if next < previous || next - previous > MAX_RECORD as u64 {
                     return Err(invalid("invalid journal offset"));
                 }
-                index.push((next, u32::from_le_bytes(chunk[8..].try_into().unwrap())));
+                index.push(next);
                 previous = next;
             }
             if previous != end {
@@ -133,7 +132,7 @@ impl Journal {
             version,
         };
         if !manifest.try_exists()? {
-            this.commit()?;
+            this.commit_inner(true)?;
         }
         Ok(this)
     }
@@ -160,66 +159,127 @@ impl Journal {
         if bytes.len() > MAX_RECORD || self.len() >= u32::MAX as usize {
             return Err(invalid("origin record exceeds limits"));
         }
-        let end = self.index.last().map_or(0, |v| v.0) + bytes.len() as u64;
+        let end = self.index.last().map_or(0, |&v| v) + bytes.len() as u64;
         if let Err(error) = self.data.write_all(bytes) {
             self.poisoned = true;
             return Err(error);
         }
-        self.index.push((end, crc32fast::hash(bytes)));
+        self.index.push(end);
         Ok(())
     }
-    pub fn read(&self, height: usize, bytes: &mut Vec<u8>) -> Result<()> {
+    fn bounds(&self, height: usize) -> Result<(u64, u64)> {
         self.healthy()?;
         let i = height
             .checked_sub(self.base)
             .filter(|&i| i < self.committed)
             .ok_or_else(|| invalid("height outside published origin history"))?;
-        let (start, end, crc) = if self._lock.is_some() {
-            let start = if i == 0 { 0 } else { self.index[i - 1].0 };
-            let (end, crc) = self.index[i];
-            (start, end, crc)
+        let (start, end) = if self._lock.is_some() {
+            (if i == 0 { 0 } else { self.index[i - 1] }, self.index[i])
         } else {
-            // Read only the requested offsets; readers never copy the full writer index.
             let mut offsets = [0; 2 * INDEX_BYTES];
             let first = i.saturating_sub(1);
             let n = if i == 0 { INDEX_BYTES } else { 2 * INDEX_BYTES };
             self.index_file
                 .read_exact_at(&mut offsets[..n], (first * INDEX_BYTES) as u64)?;
-            let current = &offsets[n - INDEX_BYTES..n];
-            let start = if i == 0 {
-                0
-            } else {
-                u64::from_le_bytes(offsets[..8].try_into().unwrap())
-            };
-            let end = u64::from_le_bytes(current[..8].try_into().unwrap());
-            if end < start || end > self.read_end || end - start > MAX_RECORD as u64 {
-                return Err(invalid("invalid published journal offset"));
-            }
             (
-                start,
-                end,
-                u32::from_le_bytes(current[8..].try_into().unwrap()),
+                if i == 0 {
+                    0
+                } else {
+                    u64::from_le_bytes(offsets[..8].try_into().unwrap())
+                },
+                u64::from_le_bytes(offsets[n - 8..n].try_into().unwrap()),
             )
         };
-        bytes.resize((end - start) as usize, 0);
-        self.data.get_ref().read_exact_at(bytes, start)?;
-        if crc32fast::hash(bytes) != crc {
-            return Err(invalid("origin record checksum mismatch"));
+        if end < start
+            || end - start > MAX_RECORD as u64
+            || self._lock.is_none() && end > self.read_end
+        {
+            return Err(invalid("invalid published journal offset"));
         }
+        Ok((start, end))
+    }
+    pub fn read(&self, height: usize, bytes: &mut Vec<u8>) -> Result<()> {
+        let (start, end) = self.bounds(height)?;
+        bytes.resize((end - start) as usize, 0);
+        self.data.get_ref().read_exact_at(bytes, start)
+    }
+    pub(crate) fn read_prefix(&self, height: usize, bytes: &mut [u8]) -> Result<()> {
+        let (start, end) = self.bounds(height)?;
+        if end - start < bytes.len() as u64 {
+            return Err(invalid("truncated record prefix"));
+        }
+        self.data.get_ref().read_exact_at(bytes, start)
+    }
+    pub(crate) fn read_batch(
+        &self,
+        height: usize,
+        end: usize,
+        index_bytes: &mut Vec<u8>,
+        records: &mut Vec<usize>,
+        bytes: &mut Vec<u8>,
+    ) -> Result<()> {
+        self.healthy()?;
+        let i = height
+            .checked_sub(self.base)
+            .filter(|&i| i < self.committed && height < end && end <= self.base + self.committed)
+            .ok_or_else(|| invalid("range outside published origin history"))?;
+        let n = end - height;
+        let first = i.saturating_sub(1);
+        if self._lock.is_none() {
+            index_bytes.resize((n + usize::from(i > 0)) * INDEX_BYTES, 0);
+            self.index_file
+                .read_exact_at(index_bytes, (first * INDEX_BYTES) as u64)?;
+        }
+        let offset = |entry: usize| {
+            if self._lock.is_some() {
+                self.index[entry]
+            } else {
+                let at = (entry - first) * INDEX_BYTES;
+                let v = &index_bytes[at..at + INDEX_BYTES];
+                u64::from_le_bytes(v.try_into().unwrap())
+            }
+        };
+        let start = if i == 0 { 0 } else { offset(i - 1) };
+        let published_end = if self._lock.is_some() {
+            self.index[self.committed - 1]
+        } else {
+            self.read_end
+        };
+        let mut previous = start;
+        records.clear();
+        for entry in i..i + n {
+            let next = offset(entry);
+            if next < previous || next > published_end || next - previous > MAX_RECORD as u64 {
+                return Err(invalid("invalid published journal offset"));
+            }
+            // A large single record remains readable; ordinary windows stay bounded.
+            if next - start > 1024 * 1024 && !records.is_empty() {
+                break;
+            }
+            records.push((next - start) as usize);
+            previous = next;
+        }
+        bytes.resize((previous - start) as usize, 0);
+        self.data.get_ref().read_exact_at(bytes, start)?;
         Ok(())
     }
     pub fn commit(&mut self) -> Result<()> {
+        self.commit_inner(false)
+    }
+    fn commit_inner(&mut self, force: bool) -> Result<()> {
         if self._lock.is_none() {
             return Err(invalid("read-only journal"));
         }
         self.healthy()?;
+        if !force && self.index.len() == self.committed {
+            return Ok(());
+        }
         let result = (|| {
             self.data.flush()?;
             self.data.get_ref().sync_data()?;
             let mut bytes = Vec::with_capacity((self.index.len() - self.committed) * INDEX_BYTES);
-            for &(end, crc) in &self.index[self.committed..] {
+            for &end in &self.index[self.committed..] {
                 bytes.extend_from_slice(&end.to_le_bytes());
-                bytes.extend_from_slice(&crc.to_le_bytes());
             }
             self.index_file
                 .seek(SeekFrom::Start((self.committed * INDEX_BYTES) as u64))?;
@@ -240,15 +300,10 @@ impl Journal {
             self.version,
             self.base as u64,
             count as u64,
-            if count == 0 {
-                0
-            } else {
-                self.index[count - 1].0
-            },
+            if count == 0 { 0 } else { self.index[count - 1] },
         ] {
             bytes.extend_from_slice(&n.to_le_bytes());
         }
-        checksum(&mut bytes);
         atomic_write(&self.path.join("commit"), &bytes)
     }
     pub fn truncate(&mut self, height: usize) -> Result<()> {
@@ -266,7 +321,7 @@ impl Journal {
         let result = (|| {
             self.data.flush()?;
             self.publish(n)?;
-            let end = if n == 0 { 0 } else { self.index[n - 1].0 };
+            let end = if n == 0 { 0 } else { self.index[n - 1] };
             self.data.get_mut().set_len(end)?;
             self.data.get_mut().seek(SeekFrom::Start(end))?;
             self.index_file.set_len((n * INDEX_BYTES) as u64)?;
@@ -290,7 +345,7 @@ impl Journal {
             return Err(invalid("seed requires an empty journal"));
         }
         self.base = base;
-        self.commit()
+        self.commit_inner(true)
     }
     pub fn validate_version(&mut self, version: u64) -> Result<()> {
         if self._lock.is_none() {
@@ -304,7 +359,7 @@ impl Journal {
                 self.base = 0;
             }
             self.version = version;
-            self.commit()?;
+            self.commit_inner(true)?;
         }
         Ok(())
     }

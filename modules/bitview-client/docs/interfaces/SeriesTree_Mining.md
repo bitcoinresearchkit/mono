@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mining
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8320](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8320)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7010](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7010)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8320](https://github
 
 > **hashrate**: [`SeriesTree_Mining_Hashrate`](SeriesTree_Mining_Hashrate.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8322](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8322)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7012](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7012)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8322](https://github
 
 > **rewards**: [`SeriesTree_Mining_Rewards`](SeriesTree_Mining_Rewards.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8321](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8321)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7011](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7011)

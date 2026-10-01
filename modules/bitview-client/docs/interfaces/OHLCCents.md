@@ -6,7 +6,7 @@
 
 # Interface: OHLCCents
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:773](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L773)
+Defined in: [Developer/mono/modules/bitview-client/index.js:772](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L772)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:773](https://github.
 
 > **close**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:777](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L777)
+Defined in: [Developer/mono/modules/bitview-client/index.js:776](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L776)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:777](https://github.
 
 > **high**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:775](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L775)
+Defined in: [Developer/mono/modules/bitview-client/index.js:774](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L774)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:775](https://github.
 
 > **low**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:776](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L776)
+Defined in: [Developer/mono/modules/bitview-client/index.js:775](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L775)
 
 ***
 
@@ -38,4 +38,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:776](https://github.
 
 > **open**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:774](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L774)
+Defined in: [Developer/mono/modules/bitview-client/index.js:773](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L773)

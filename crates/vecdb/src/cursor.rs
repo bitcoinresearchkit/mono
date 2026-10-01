@@ -94,6 +94,19 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         self.for_each(count, |value| out.push(value));
     }
 
+    /// Visits an absolute range directly from retained decoded pages, without a copy.
+    /// Backward reads are supported; an error leaves the cursor after that value.
+    #[inline]
+    pub fn try_for_each_range_at<E>(
+        &mut self,
+        from: usize,
+        to: usize,
+        mut each: impl FnMut(T) -> Result<(), E>,
+    ) -> Result<(), E> {
+        self.pos = from.min(self.len);
+        self.try_fold(to.saturating_sub(from), (), |(), value| each(value))
+    }
+
     /// Returns the next value and advances position, or `None` if exhausted.
     #[inline]
     #[allow(clippy::should_implement_trait)]

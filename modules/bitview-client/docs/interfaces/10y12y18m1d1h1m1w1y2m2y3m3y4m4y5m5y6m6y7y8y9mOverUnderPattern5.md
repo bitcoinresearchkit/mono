@@ -4,190 +4,196 @@
 
 [bitview-client](../globals.md) / \_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern5
 
-# Interface: \_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern5
+# Interface: \_10y12y18m1d1h1m1w1y2m2y3m3y4m4y5m5y6m6y7y8y9mOverUnderPattern5\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2616](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2616)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2820](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2820)
+
+## Type Parameters
+
+### T
+
+`T`
 
 ## Properties
 
 ### \_10yTo12y
 
-> **\_10yTo12y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_10yTo12y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2617](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2617)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2821](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2821)
 
 ***
 
 ### \_12yTo15y
 
-> **\_12yTo15y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_12yTo15y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2618](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2618)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2822](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2822)
 
 ***
 
 ### \_18mTo2y
 
-> **\_18mTo2y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_18mTo2y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2619](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2619)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2823](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2823)
 
 ***
 
 ### \_1dTo1w
 
-> **\_1dTo1w**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_1dTo1w**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2620](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2620)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2824](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2824)
 
 ***
 
 ### \_1hTo1d
 
-> **\_1hTo1d**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_1hTo1d**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2621](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2621)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2825](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2825)
 
 ***
 
 ### \_1mTo2m
 
-> **\_1mTo2m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_1mTo2m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2622](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2622)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2826](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2826)
 
 ***
 
 ### \_1wTo1m
 
-> **\_1wTo1m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_1wTo1m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2623](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2623)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2827](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2827)
 
 ***
 
 ### \_1yTo18m
 
-> **\_1yTo18m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_1yTo18m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2624](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2624)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2828](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2828)
 
 ***
 
 ### \_2mTo3m
 
-> **\_2mTo3m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_2mTo3m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2625](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2625)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2829](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2829)
 
 ***
 
 ### \_2yTo3y
 
-> **\_2yTo3y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_2yTo3y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2626](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2626)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2830](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2830)
 
 ***
 
 ### \_3mTo4m
 
-> **\_3mTo4m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_3mTo4m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2627](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2627)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2831](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2831)
 
 ***
 
 ### \_3yTo4y
 
-> **\_3yTo4y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_3yTo4y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2628](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2628)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2832](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2832)
 
 ***
 
 ### \_4mTo5m
 
-> **\_4mTo5m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_4mTo5m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2629](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2629)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2833](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2833)
 
 ***
 
 ### \_4yTo5y
 
-> **\_4yTo5y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_4yTo5y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2630](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2630)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2834](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2834)
 
 ***
 
 ### \_5mTo6m
 
-> **\_5mTo6m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_5mTo6m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2631](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2631)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2835](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2835)
 
 ***
 
 ### \_5yTo6y
 
-> **\_5yTo6y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_5yTo6y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2632](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2632)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2836](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2836)
 
 ***
 
 ### \_6mTo9m
 
-> **\_6mTo9m**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_6mTo9m**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2633](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2633)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2837](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2837)
 
 ***
 
 ### \_6yTo7y
 
-> **\_6yTo7y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_6yTo7y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2634](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2634)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2838](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2838)
 
 ***
 
 ### \_7yTo8y
 
-> **\_7yTo8y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_7yTo8y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2635](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2635)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2839](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2839)
 
 ***
 
 ### \_8yTo10y
 
-> **\_8yTo10y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_8yTo10y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2636](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2636)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2840](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2840)
 
 ***
 
 ### \_9mTo1y
 
-> **\_9mTo1y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **\_9mTo1y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2637](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2637)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2841](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2841)
 
 ***
 
 ### over15y
 
-> **over15y**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **over15y**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2638](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2638)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2842](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2842)
 
 ***
 
 ### under1h
 
-> **under1h**: [`BlockCumulativeSumPattern`](BlockCumulativeSumPattern.md)
+> **under1h**: [`SeriesPattern18`](../type-aliases/SeriesPattern18.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:2639](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L2639)
+Defined in: [Developer/mono/modules/bitview-client/index.js:2843](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L2843)

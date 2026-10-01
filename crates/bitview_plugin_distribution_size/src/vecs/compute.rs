@@ -6,7 +6,7 @@ use vecdb::{AnyVec, ReadableVec, WritableVec};
 
 use crate::{
     Dependencies,
-    compute::{ComputeContext, process_chunk},
+    compute::{ComputeContext, Workspace, process_chunk},
     live::LiveState,
     state::{AddrStates, UTXOStates},
 };
@@ -20,7 +20,11 @@ impl ComputePlugin for Vecs {
         let live = self.live.take();
         self.db.sync_bg_tasks()?;
         let version = deps.version();
-        let changed = self.validate_state(version)?;
+        let exit = context.exit();
+        let changed = {
+            let _lock = exit.lock();
+            self.validate_state(version)?
+        };
         let caps_end = self.cap_checkpoint_len();
         let end = deps
             .indexer
@@ -45,7 +49,6 @@ impl ComputePlugin for Vecs {
             input_values,
             price,
         } = deps;
-        let exit = context.exit();
         let hash = start
             .checked_sub(1)
             .and_then(|h| indexer.vecs().blocks.blockhash.collect_one(Height::from(h)));
@@ -68,7 +71,8 @@ impl ComputePlugin for Vecs {
         if !reuse && start > 0 {
             let current = usize::from(self.addr_state.max_stamped_len()).max(caps_end);
             if start < current {
-                start = self.rollback_state(start).unwrap_or(0);
+                let _lock = exit.lock();
+                start = self.rollback_state(start)?;
             }
             if start > 0
                 && (utxos.import(&self.cohorts, Height::from(start)).is_none()
@@ -81,6 +85,7 @@ impl ComputePlugin for Vecs {
             }
         }
         if start == 0 {
+            let _lock = exit.lock();
             self.addr_state.reset()?;
             self.caps.reset()?;
             self.addrs.reset_height()?;
@@ -89,6 +94,8 @@ impl ComputePlugin for Vecs {
         }
         prices.truncate(start);
         prices.extend(price.spot.cents.height.collect_range_at(prices.len(), end));
+        let output_heights = mappings.output_heights.read();
+        let mut workspace = Workspace::new(indexer, input_values, &output_heights);
         let mut from = start;
         while from < end {
             let next = (from + 10_000).min(end);
@@ -103,7 +110,7 @@ impl ComputePlugin for Vecs {
                 &mut addrs,
                 indexer,
                 mappings,
-                input_values,
+                &mut workspace,
                 &ctx,
                 next == end,
                 exit,
@@ -150,7 +157,6 @@ impl ComputePlugin for Vecs {
         )?;
 
         context.compact_database(&self.db);
-        self.db.sync_bg_tasks()?;
         self.live = Some(LiveState {
             end,
             hash: end

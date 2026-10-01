@@ -1,7 +1,7 @@
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 
-use crate::{AgeRange, ByEntry, ByEpoch, Class, CohortId};
+use crate::{AgeRange, ByEpoch, Class, CohortId};
 
 #[derive(Default, Clone)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
@@ -11,7 +11,6 @@ pub struct UTXOGroupCore<T> {
     pub age: AgeRange<T>,
     pub epoch: ByEpoch<T>,
     pub class: Class<T>,
-    pub entry: ByEntry<T>,
 }
 
 impl<T> UTXOGroupCore<T> {
@@ -21,7 +20,6 @@ impl<T> UTXOGroupCore<T> {
             age: AgeRange::try_new(&mut create)?,
             epoch: ByEpoch::try_new(&mut create)?,
             class: Class::try_new(&mut create)?,
-            entry: ByEntry::try_new(create)?,
         })
     }
 
@@ -31,7 +29,6 @@ impl<T> UTXOGroupCore<T> {
             .chain(self.age.iter())
             .chain(self.epoch.iter())
             .chain(self.class.iter())
-            .chain(self.entry.iter())
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
@@ -40,7 +37,6 @@ impl<T> UTXOGroupCore<T> {
             .chain(self.age.iter_mut())
             .chain(self.epoch.iter_mut())
             .chain(self.class.iter_mut())
-            .chain(self.entry.iter_mut())
     }
 
     pub fn new<F>(mut create: F) -> Self
@@ -52,7 +48,6 @@ impl<T> UTXOGroupCore<T> {
             age: AgeRange::new(&mut create),
             epoch: ByEpoch::new(&mut create),
             class: Class::new(&mut create),
-            entry: ByEntry::new(&mut create),
         }
     }
 
@@ -62,8 +57,9 @@ impl<T> UTXOGroupCore<T> {
             CohortId::Age(age) => Some(age.select(&self.age)),
             CohortId::Epoch(epoch) => Some(epoch.select(&self.epoch)),
             CohortId::Class(class) => Some(class.select(&self.class)),
-            CohortId::Entry(entry) => Some(self.entry.get(entry)),
-            CohortId::Term(_) | CohortId::Amount(_) | CohortId::Type(_) => None,
+            CohortId::Term(_) | CohortId::Amount(_) | CohortId::Type(_) | CohortId::Entry(_) => {
+                None
+            }
         }
     }
 
@@ -73,7 +69,6 @@ impl<T> UTXOGroupCore<T> {
             age: AgeRange::from_fn(|id| map(id.cohort(), id.select(&self.age))),
             epoch: ByEpoch::from_fn(|id| map(id.cohort(), id.select(&self.epoch))),
             class: Class::from_fn(|id| map(id.cohort(), id.select(&self.class))),
-            entry: ByEntry::from_fn(|entry| map(CohortId::Entry(entry), self.entry.get(entry))),
         }
     }
 }

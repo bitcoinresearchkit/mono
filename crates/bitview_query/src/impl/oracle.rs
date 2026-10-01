@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use bitview_plugin_indexer::Lengths;
-use bitview_plugin_price::Vecs as PricesVecs;
+use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
 use brk_error::{Error, OptionData, Result};
 use brk_oracle::{
     Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, cents_to_bin, sats_to_bin,
@@ -69,7 +69,7 @@ impl Query {
 
             let feed_start = segment.start + 1;
             if feed_start < segment.end {
-                PricesVecs::feed_blocks_with(
+                feed_blocks_with(
                     &mut oracle,
                     self.indexer(),
                     feed_start..segment.end,
@@ -154,7 +154,7 @@ impl Query {
         let start = end.saturating_sub(config.window_size);
         let mut warmed = Ok(());
         let oracle = Oracle::from_checkpoint(seed_bin, config, |o| {
-            warmed = PricesVecs::feed_blocks_for_warmup(o, self.indexer(), start..end, Some(safe));
+            warmed = feed_blocks_for_warmup(o, self.indexer(), start..end, Some(safe));
         });
         warmed?;
         Ok(oracle)

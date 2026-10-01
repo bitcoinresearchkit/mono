@@ -153,6 +153,7 @@ where
             outputs.as_flattened_mut(),
             version,
             usize::from(max_from).min(end),
+            exit,
         )?;
         if start < end {
             let warmup = start.saturating_sub(WINDOW - 1);

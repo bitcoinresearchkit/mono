@@ -31,6 +31,8 @@ where
 #[cfg(test)]
 mod test_cache;
 
+mod accounting_sources;
 mod all_chain_sources;
+pub use accounting_sources::AccountingSources;
 pub use all_chain_sources::AllChainSources;
 pub use bitview_plugin_distribution_common::metrics::RealizedTotals;

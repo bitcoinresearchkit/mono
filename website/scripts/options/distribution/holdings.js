@@ -46,7 +46,7 @@ function simpleSupplySeries(supply) {
 }
 
 /**
- * @param {readonly (UtxoCohortObject | CohortWithoutRelative)[]} list
+ * @param {readonly { name: string, color: Color, tree: { outputs: { unspentCount: { base: AnySeriesPattern, delta: DeltaPattern }, spentCount: { sum: Record<string, AnySeriesPattern>, cumulative: AnySeriesPattern } } } }[]} list
  * @param {CohortAll} all
  * @param {(name: string) => string} title
  */
@@ -71,7 +71,7 @@ function groupedOutputsFolder(list, all, title) {
 }
 
 /**
- * @param {readonly (UtxoCohortObject | AddrCohortObject | CohortWithoutRelative)[]} list
+ * @param {readonly { name: string, color: Color, tree: { outputs: { unspentCount: { base: AnySeriesPattern, delta: DeltaPattern } } } }[]} list
  * @param {CohortAll} all
  * @param {(name: string) => string} title
  */
@@ -470,7 +470,7 @@ export function createHoldingsSectionAll({ cohort, title }) {
       };
     }),
     lazyGroup("Outputs", () =>
-      unspentOutputsFolder(cohort.tree.outputs, cohort.color, title),
+      outputsFolder(cohort.tree.outputs, cohort.color, title),
     ),
     lazyGroup("Addresses", () =>
       countFolder(
@@ -550,37 +550,6 @@ export function createHoldingsSectionWithOwnSupply({ cohort, title }) {
 }
 
 /**
- * @param {{ cohort: CohortWithoutRelative, title: (name: string) => string }} args
- * @returns {PartialOptionsTree}
- */
-export function createHoldingsSectionWithProfitLoss({ cohort, title }) {
-  return [
-    lazyGroup("Supply", () => {
-      const { supply } = cohort.tree;
-      return {
-        name: "Supply",
-        tree: [
-          {
-            name: "Total",
-            title: title("Supply"),
-            bottom: simpleSupplySeries(supply),
-          },
-          dominanceChart(supply, cohort.color, title),
-          {
-            name: "Profitability",
-            tree: [profitabilityAmountChart(supply, title)],
-          },
-          ...singleAmountDeltaItems(supply.delta, title, "Supply"),
-        ],
-      };
-    }),
-    lazyGroup("Outputs", () =>
-      outputsFolder(cohort.tree.outputs, cohort.color, title),
-    ),
-  ];
-}
-
-/**
  * @param {{ cohort: CohortAddr, title: (name: string) => string }} args
  * @returns {PartialOptionsTree}
  */
@@ -597,10 +566,6 @@ export function createHoldingsSectionAddress({ cohort, title }) {
             bottom: simpleSupplySeries(supply),
           },
           dominanceChart(supply, cohort.color, title),
-          {
-            name: "Profitability",
-            tree: [profitabilityAmountChart(supply, title)],
-          },
           ...singleAmountDeltaItems(supply.delta, title, "Supply"),
         ],
       };
@@ -734,10 +699,6 @@ export function createGroupedHoldingsSectionAddress({ list, all, title }) {
       tree: [
         groupedSupplyTotal(list, all, title),
         groupedDominanceChart(list, title),
-        lazyGroup("Profitability", () => ({
-          name: "Profitability",
-          tree: groupedSupplyProfitLoss(list, all, title),
-        })),
         ...groupedAmountDeltaItems(
           list,
           all,

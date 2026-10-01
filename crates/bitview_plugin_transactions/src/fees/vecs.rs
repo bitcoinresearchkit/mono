@@ -24,6 +24,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block or the six-block window ending there; time-period indexes take the
     /// value from the period's final block.
     pub fee: PerTxDistribution<Sats, M>,
+    /// Canonical block fee total, accumulated in the monetary pass.
+    #[traversable(hidden)]
+    pub total: M::Stored<EagerVec<PcoVec<Height, Sats>>>,
     /// Raw transaction fee rate in sat/vB: fee divided by virtual size and
     /// rounded upward to the nearest 0.001 sat/vB. Coinbase and zero-fee
     /// transactions are zero.

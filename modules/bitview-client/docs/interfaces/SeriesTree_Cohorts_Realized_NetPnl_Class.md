@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_NetPnl\_Class
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12709](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12709)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10199](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10199)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12709](https://githu
 
 > **\_2009**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12710](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12710)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10200](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10200)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12710](https://githu
 
 > **\_2010**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12711](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12711)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10201](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10201)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12711](https://githu
 
 > **\_2011**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12712](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12712)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10202](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10202)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12712](https://githu
 
 > **\_2012**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12713](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12713)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10203](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10203)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12713](https://githu
 
 > **\_2013**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12714](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12714)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10204](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10204)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12714](https://githu
 
 > **\_2014**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12715](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12715)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10205](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10205)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12715](https://githu
 
 > **\_2015**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12716](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12716)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10206](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10206)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12716](https://githu
 
 > **\_2016**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12717](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12717)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10207](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10207)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12717](https://githu
 
 > **\_2017**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12718](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12718)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10208](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10208)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12718](https://githu
 
 > **\_2018**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12719](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12719)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10209](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10209)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12719](https://githu
 
 > **\_2019**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12720](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12720)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10210](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10210)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12720](https://githu
 
 > **\_2020**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12721](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12721)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10211](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10211)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12721](https://githu
 
 > **\_2021**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12722](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12722)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10212](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10212)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12722](https://githu
 
 > **\_2022**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12723](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12723)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10213](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10213)
 
 ***
 
@@ -126,7 +126,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12723](https://githu
 
 > **\_2023**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12724](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12724)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10214](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10214)
 
 ***
 
@@ -134,7 +134,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12724](https://githu
 
 > **\_2024**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12725](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12725)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10215](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10215)
 
 ***
 
@@ -142,7 +142,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12725](https://githu
 
 > **\_2025**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12726](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12726)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10216](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10216)
 
 ***
 
@@ -150,4 +150,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12726](https://githu
 
 > **\_2026**: [`BlockCumulativeDeltaSumPattern`](BlockCumulativeDeltaSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12727](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12727)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10217](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10217)

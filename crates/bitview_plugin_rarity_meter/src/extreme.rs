@@ -182,6 +182,7 @@ where
             ],
             source.version(),
             starting_height.to_usize().min(source_end),
+            exit,
         )?;
         self.write(exit)?;
 

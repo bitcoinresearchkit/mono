@@ -23,7 +23,7 @@ impl Vecs {
         let per_sec = LazyPerSecondWindows::new("inputs_per_sec", version, &count.rolling.sum);
         let by_type = ByTypeVecs::forced_import(&db, version, mappings, window_starts)?;
 
-        let origins = OriginSpends::import(&context.data_path().join("origins"))?;
+        let origins = OriginSpends::import(db.path())?;
         let this = Self {
             origins,
             db,

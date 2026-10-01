@@ -93,20 +93,6 @@ function modeChart(mode, ath) {
  */
 export function createBedrockSection() {
   const { market, cohorts, cointime, coinflow, bedrock } = bitview.series;
-  const horizonModes = /** @type {const} */ ([
-    { horizon: "_8y", name: "Coinflow 8Y" },
-    { horizon: "_4y", name: "Coinflow 4Y" },
-    { horizon: "_2y", name: "Coinflow 2Y" },
-    { horizon: "_1y", name: "Coinflow 1Y" },
-    { horizon: "_6m", name: "Coinflow 6M" },
-    { horizon: "_3m", name: "Coinflow 3M" },
-    { horizon: "_1m", name: "Coinflow 1M" },
-  ]).map((mode) => ({
-    name: mode.name,
-    tree: bedrock.coinflow.horizon[mode.horizon],
-    inLoss: coinflow.horizon[mode.horizon].supply.inLoss.share,
-  }));
-
   const modes = /** @type {readonly BedrockMode[]} */ ([
     {
       name: "Raw",
@@ -116,14 +102,13 @@ export function createBedrockSection() {
     {
       name: "Cointime",
       tree: bedrock.cointime,
-      inLoss: cointime.supply.active.inLoss.share,
+      inLoss: cointime.supply.active.inLoss.share.ratio,
     },
     {
       name: "Coinflow",
       tree: bedrock.coinflow,
       inLoss: coinflow.supply.mobile.inLoss.share,
     },
-    ...horizonModes,
   ]);
 
   return {

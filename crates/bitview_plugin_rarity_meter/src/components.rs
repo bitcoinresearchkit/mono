@@ -198,84 +198,180 @@ pub fn forced_import(
             "cointime_median_price_btc_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.all.per_coin.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .all
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         cointime_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "cointime_median_price_usd_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.all.per_dollar.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .all
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         coinflow_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.all.per_coin.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .all
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         coinflow_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.all.per_dollar.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .all
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         sth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "sth_cointime_median_price_btc_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.sth.per_coin.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .sth
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         sth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "sth_cointime_median_price_usd_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.sth.per_dollar.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .sth
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         lth_cointime_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "lth_cointime_median_price_btc_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.lth.per_coin.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .lth
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         lth_cointime_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "lth_cointime_median_price_usd_weighted",
             version,
             mappings,
-            &cointime.urpd.cost_basis.lth.per_dollar.pct50.cents.height,
+            &cointime
+                .urpd
+                .cohorts
+                .lth
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         sth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "sth_coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.sth.per_coin.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .sth
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         sth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "sth_coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.sth.per_dollar.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .sth
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         lth_coinflow_median_price_btc_weighted: MedianComponent::forced_import(
             db,
             "lth_coinflow_median_price_btc_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.lth.per_coin.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .lth
+                .cost_basis
+                .per_coin
+                .pct50
+                .cents
+                .height,
         )?,
         lth_coinflow_median_price_usd_weighted: MedianComponent::forced_import(
             db,
             "lth_coinflow_median_price_usd_weighted",
             version,
             mappings,
-            &coinflow.urpd.cost_basis.lth.per_dollar.pct50.cents.height,
+            &coinflow
+                .urpd
+                .cohorts
+                .lth
+                .cost_basis
+                .per_dollar
+                .pct50
+                .cents
+                .height,
         )?,
         sth_realized_price: import!("sth_realized_price", realized_price.term.short),
         sth_capitalized_price: import!("sth_capitalized_price", capitalized_price.sth),

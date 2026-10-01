@@ -3,6 +3,7 @@
 #[macro_use]
 mod macros;
 
+mod age_aggregate;
 mod age_range;
 mod amount_range;
 mod by_addr_type;
@@ -28,6 +29,7 @@ mod with_addr_types;
 
 pub use brk_types::{Age, Term};
 
+pub use age_aggregate::{AgeAggregate, AgeAggregateId};
 pub use age_range::*;
 pub use amount_range::*;
 pub use by_addr_type::*;

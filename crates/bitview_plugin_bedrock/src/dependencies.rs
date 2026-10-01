@@ -45,14 +45,6 @@ impl Dependencies<'_> {
                         .height
                 }
                 WeightedModeId::Coinflow => &self.coinflow.all.supply_in_loss_share.height,
-                _ => {
-                    &mode
-                        .coinflow_horizon()
-                        .unwrap()
-                        .select(&self.coinflow.all.horizon)
-                        .supply_in_loss_share
-                        .height
-                }
             }
         })
     }

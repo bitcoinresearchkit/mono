@@ -9,6 +9,9 @@ import { colors } from "../utils/colors.js";
 import { Unit } from "../utils/units.js";
 import { bitview } from "../utils/client.js";
 import { lazy } from "./lazy.js";
+import { logUnused } from "./unused.js";
+import { localhost } from "../utils/env.js";
+import { idle } from "../utils/timing.js";
 
 export function initOptions() {
   const LS_SELECTED_KEY = `selected_path`;
@@ -417,6 +420,29 @@ export function initOptions() {
     if (option) {
       selected.set(option);
     }
+  }
+
+  if (localhost) {
+    idle(() => {
+      /** @param {ProcessedNode[]} nodes */
+      function visit(nodes) {
+        for (const node of nodes) {
+          if (node.type === "group") visit(node.children());
+        }
+      }
+      visit(processedTree);
+      /** @type {Set<string>} */
+      const used = new Set();
+      for (const option of list) {
+        if (option.kind !== "chart") continue;
+        for (const pane of [option.top(), option.bottom()]) {
+          for (const blueprints of pane.values()) {
+            for (const { series } of blueprints) used.add(series.name);
+          }
+        }
+      }
+      logUnused(bitview.series, used);
+    });
   }
 
   return {

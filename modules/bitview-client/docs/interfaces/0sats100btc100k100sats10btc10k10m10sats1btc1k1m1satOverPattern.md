@@ -6,7 +6,7 @@
 
 # Interface: \_0sats100btc100k100sats10btc10k10m10sats1btc1k1m1satOverPattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3522](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3522)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3263](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3263)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3522](https://github
 
 > **\_0sats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3523](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3523)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3264](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3264)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3523](https://github
 
 > **\_100btcTo1kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3524](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3524)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3265](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3265)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3524](https://github
 
 > **\_100kSatsTo1mSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3525](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3525)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3266](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3266)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3525](https://github
 
 > **\_100satsTo1kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3526](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3526)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3267](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3267)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3526](https://github
 
 > **\_10btcTo100btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3527](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3527)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3268](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3268)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3527](https://github
 
 > **\_10kBtcTo100kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3528](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3528)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3269](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3269)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3528](https://github
 
 > **\_10kSatsTo100kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3529](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3529)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3270](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3270)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3529](https://github
 
 > **\_10mSatsTo1btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3530](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3530)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3271](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3271)
 
 ***
 
@@ -78,7 +78,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3530](https://github
 
 > **\_10satsTo100sats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3531](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3531)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3272](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3272)
 
 ***
 
@@ -86,7 +86,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3531](https://github
 
 > **\_1btcTo10btc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3532](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3532)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3273](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3273)
 
 ***
 
@@ -94,7 +94,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3532](https://github
 
 > **\_1kBtcTo10kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3533](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3533)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3274](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3274)
 
 ***
 
@@ -102,7 +102,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3533](https://github
 
 > **\_1kSatsTo10kSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3534](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3534)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3275](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3275)
 
 ***
 
@@ -110,7 +110,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3534](https://github
 
 > **\_1mSatsTo10mSats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3535](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3535)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3276](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3276)
 
 ***
 
@@ -118,7 +118,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3535](https://github
 
 > **\_1satTo10sats**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3536](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3536)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3277](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3277)
 
 ***
 
@@ -126,4 +126,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:3536](https://github
 
 > **over100kBtc**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:3537](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L3537)
+Defined in: [Developer/mono/modules/bitview-client/index.js:3278](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L3278)

@@ -1,6 +1,5 @@
 use bitview_plugin_blocks::LookbackVecs;
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use brk_error::Result;
@@ -32,7 +31,6 @@ fn unclaimed_rewards(height: Height, subsidy: Sats) -> Sats {
 pub fn compute(
     vecs: &mut Vecs,
     indexer: &Indexer,
-    mappings: &MappingsVecs,
     lookback: &LookbackVecs,
     transactions: &TransactionsVecs,
     prices: &PriceVecs,
@@ -53,13 +51,11 @@ pub fn compute(
             )
         },
         || {
-            vecs.fees.compute_from_indexes(
+            vecs.fees.compute_from(
                 starting_height,
                 &window_starts,
                 &prices.spot.cents.height,
-                &indexer.vecs().transactions.first_tx_index,
-                &mappings.height.tx_index_count,
-                &transactions.fees.fee.tx_index,
+                &transactions.fees.total,
                 exit,
             )
         },

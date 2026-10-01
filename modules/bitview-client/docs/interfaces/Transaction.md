@@ -6,7 +6,7 @@
 
 # Interface: Transaction
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1247](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1247)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1239](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1239)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1247](https://github
 
 > **fee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1257](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1257)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1249](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1249)
 
 Transaction fee in satoshis
 
@@ -24,7 +24,7 @@ Transaction fee in satoshis
 
 > `optional` **index?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1248](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1248)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1240](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1240)
 
 Internal transaction index (brk-specific, not in mempool.space)
 
@@ -34,7 +34,7 @@ Internal transaction index (brk-specific, not in mempool.space)
 
 > **locktime**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1251](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1251)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1243](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1243)
 
 Transaction lock time
 
@@ -44,7 +44,7 @@ Transaction lock time
 
 > **sigops**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1256](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1256)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1248](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1248)
 
 Number of signature operations
 
@@ -54,7 +54,7 @@ Number of signature operations
 
 > **size**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1254](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1254)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1246](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1246)
 
 Transaction size in bytes
 
@@ -64,7 +64,7 @@ Transaction size in bytes
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1258](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1258)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1250](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1250)
 
 Confirmation status (confirmed, block height/hash/time)
 
@@ -74,7 +74,7 @@ Confirmation status (confirmed, block height/hash/time)
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1249](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1249)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1241](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1241)
 
 Transaction ID
 
@@ -84,7 +84,7 @@ Transaction ID
 
 > **version**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1250](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1250)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1242](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1242)
 
 Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
 
@@ -94,7 +94,7 @@ Transaction version (raw i32 from Bitcoin protocol, may contain non-standard val
 
 > **vin**: [`TxIn`](TxIn.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1252](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1252)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1244](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1244)
 
 Transaction inputs
 
@@ -104,7 +104,7 @@ Transaction inputs
 
 > **vout**: [`TxOut`](TxOut.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1253](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1253)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1245](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1245)
 
 Transaction outputs
 
@@ -114,6 +114,6 @@ Transaction outputs
 
 > **weight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1255](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1255)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1247](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1247)
 
 Transaction weight

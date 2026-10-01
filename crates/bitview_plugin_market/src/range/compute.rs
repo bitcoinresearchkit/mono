@@ -1,3 +1,4 @@
+use bitview_compute::compute_rolling_extrema_from_starts;
 use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_price::Vecs as PriceVecs;
@@ -40,8 +41,14 @@ pub fn compute(
             blocks.lookback.start_vec(365),
         ),
     ] {
-        min_vec.compute_rolling_min_from_starts(starting_height, starts, price, exit)?;
-        max_vec.compute_rolling_max_from_starts(starting_height, starts, price, exit)?;
+        compute_rolling_extrema_from_starts(
+            min_vec,
+            max_vec,
+            starting_height,
+            starts,
+            price,
+            exit,
+        )?;
     }
 
     // 2w rolling sum of true range

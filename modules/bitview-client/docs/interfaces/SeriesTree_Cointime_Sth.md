@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cointime\_Sth
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8644](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8644)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7425](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7425)
 
 ## Properties
 
@@ -14,12 +14,12 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8644](https://github
 
 > **awake**: [`SeriesTree_Cointime_Sth_Awake`](SeriesTree_Cointime_Sth_Awake.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8645](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8645)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7426](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7426)
 
 ***
 
 ### dormant
 
-> **dormant**: [`SupplyPattern2`](SupplyPattern2.md)
+> **dormant**: [`SupplyPattern`](SupplyPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8646](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8646)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7427](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7427)

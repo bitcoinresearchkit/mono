@@ -11,6 +11,7 @@ pub struct Block {
     pub input_values: Vec<Sats>,
     pub output_values: Vec<Sats>,
     pub transfer_volume: Sats,
+    pub total_fee: Sats,
     pub fees: Vec<Sats>,
     pub fee_rates: Vec<FeeRate>,
     pub effective_fee_rates: Vec<FeeRate>,
@@ -26,6 +27,7 @@ impl Block {
         self.input_values.clear();
         self.output_values.clear();
         self.transfer_volume = Sats::ZERO;
+        self.total_fee = Sats::ZERO;
         self.fees.clear();
         self.fee_rates.clear();
         self.vsizes.clear();
@@ -52,10 +54,26 @@ impl Block {
                 self.transfer_volume += input;
                 input - output
             };
+            self.total_fee += fee;
             self.fees.push(fee);
             self.fee_rates.push(FeeRate::from((fee, vsize)));
         }
+        self.compute_cluster();
+    }
 
+    /// Repair rates/CPFP from valid fees without decoding monetary inputs again.
+    pub fn compute_from_fees(&mut self) {
+        self.fee_rates.clear();
+        self.fee_rates.extend(
+            self.fees
+                .iter()
+                .zip(&self.vsizes)
+                .map(|(&fee, &size)| FeeRate::from((fee, size))),
+        );
+        self.compute_cluster();
+    }
+
+    fn compute_cluster(&mut self) {
         self.cluster.compute(
             &self.txin_starts,
             &self.outpoints,
@@ -364,5 +382,33 @@ mod tests {
             rates,
             [FeeRate::new(15.0), FeeRate::new(15.0), FeeRate::new(0.0)]
         );
+    }
+    #[test]
+    fn rate_repair_reuses_the_same_fees_and_cpfp_results() {
+        let mut block = super::Block::default();
+        block.reset(10);
+        block.input_values = vec![Sats::MAX, Sats::new(2_000), Sats::new(3_000)];
+        block.output_values = vec![Sats::new(5_000), Sats::new(1_900), Sats::new(2_800)];
+        block.vsizes = vec![VSize::new(100); 3];
+        block.txin_starts = [0usize, 1, 2].map(TxInIndex::from).into();
+        block.outpoints = vec![
+            OutPoint::COINBASE,
+            OutPoint::COINBASE,
+            OutPoint::new(TxIndex::from(11usize), Vout::ZERO),
+        ];
+        block.compute();
+        assert_eq!(block.total_fee, Sats::new(300));
+        assert_eq!(block.transfer_volume, Sats::new(5_000));
+        let fees = block.fees.clone();
+        let rates = block.fee_rates.clone();
+        let effective = block.effective_fee_rates.clone();
+        block.input_values.clear();
+        block.output_values.clear();
+        block.fee_rates.clear();
+        block.effective_fee_rates.clear();
+        block.compute_from_fees();
+        assert_eq!(block.fees, fees);
+        assert_eq!(block.fee_rates, rates);
+        assert_eq!(block.effective_fee_rates, effective);
     }
 }

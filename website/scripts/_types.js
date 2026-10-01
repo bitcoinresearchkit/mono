@@ -47,7 +47,7 @@
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "age.under1h">} AgeRangePattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "utxoAmount._0sats">} UtxoAmountPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "addrBalance._0sats">} AddrAmountPattern
- * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "entry.discount">} BasicUtxoPattern
+ * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "epoch._0">} BasicUtxoPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "epoch._0">} EpochPattern
  * @typedef {import("./options/distribution/cohort-tree-types.js").ProjectCohortPath<Bitview.SeriesTree_Cohorts, "type.empty">} EmptyPattern
  * @typedef {Bitview.Dollars} Dollars

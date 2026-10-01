@@ -6,7 +6,7 @@
 
 # Interface: Utxo
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1441](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1441)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1434](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1434)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1441](https://github
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1444](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1444)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1437](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1437)
 
 Confirmation status
 
@@ -24,7 +24,7 @@ Confirmation status
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1442](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1442)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1435](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1435)
 
 Transaction ID of the UTXO
 
@@ -34,7 +34,7 @@ Transaction ID of the UTXO
 
 > **value**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1445](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1445)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1438](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1438)
 
 Output value in satoshis
 
@@ -44,6 +44,6 @@ Output value in satoshis
 
 > **vout**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1443](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1443)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1436](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1436)
 
 Output index

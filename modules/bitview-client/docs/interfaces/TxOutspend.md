@@ -6,7 +6,7 @@
 
 # Interface: TxOutspend
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1305](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1305)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1297](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1297)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1305](https://github
 
 > **spent**: `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1306](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1306)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1298](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1298)
 
 Whether the output has been spent
 
@@ -24,7 +24,7 @@ Whether the output has been spent
 
 > `optional` **status?**: [`TxStatus`](TxStatus.md) \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1309](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1309)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1301](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1301)
 
 Status of the spending transaction (only present if spent)
 
@@ -34,7 +34,7 @@ Status of the spending transaction (only present if spent)
 
 > `optional` **txid?**: `string` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1307](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1307)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1299)
 
 Transaction ID of the spending transaction (only present if spent)
 
@@ -44,6 +44,6 @@ Transaction ID of the spending transaction (only present if spent)
 
 > `optional` **vin?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1308](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1308)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1300](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1300)
 
 Input index in the spending transaction (only present if spent)

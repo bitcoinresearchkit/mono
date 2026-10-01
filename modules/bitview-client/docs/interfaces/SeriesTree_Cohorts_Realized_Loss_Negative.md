@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Realized\_Loss\_Negative
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12472](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12472)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10042](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10042)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12472](https://githu
 
 > **age**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Age`](SeriesTree_Cohorts_Realized_Loss_Negative_Age.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12474](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12474)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10044](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10044)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12474](https://githu
 
 > **all**: [`BaseSumPattern`](BaseSumPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12473](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12473)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10043](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10043)
 
 ***
 
@@ -30,15 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12473](https://githu
 
 > **class**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Class`](SeriesTree_Cohorts_Realized_Loss_Negative_Class.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12476](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12476)
-
-***
-
-### entry
-
-> **entry**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Entry`](SeriesTree_Cohorts_Realized_Loss_Negative_Entry.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:12477](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12477)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10046](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10046)
 
 ***
 
@@ -46,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12477](https://githu
 
 > **epoch**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Epoch`](SeriesTree_Cohorts_Realized_Loss_Negative_Epoch.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12475](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12475)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10045](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10045)
 
 ***
 
@@ -54,4 +46,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:12475](https://githu
 
 > **term**: [`SeriesTree_Cohorts_Realized_Loss_Negative_Term`](SeriesTree_Cohorts_Realized_Loss_Negative_Term.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:12478](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L12478)
+Defined in: [Developer/mono/modules/bitview-client/index.js:10047](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L10047)

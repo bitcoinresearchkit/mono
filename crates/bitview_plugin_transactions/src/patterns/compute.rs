@@ -32,16 +32,18 @@ pub fn compute(
         + features.has_inscription.version()
         + mappings.height.tx_index_count.version();
 
-    for target in vecs.flags.iter_mut() {
-        target.validate_computed_version_or_reset(version)?;
+    {
+        let _lock = exit.lock();
+        for target in vecs.flags.iter_mut() {
+            target.validate_computed_version_or_reset(version)?;
+        }
+        for target in vecs.count.iter_mut() {
+            target
+                .cumulative
+                .height
+                .validate_computed_version_or_reset(version)?;
+        }
     }
-    for target in vecs.count.iter_mut() {
-        target
-            .cumulative
-            .height
-            .validate_computed_version_or_reset(version)?;
-    }
-
     let starting_lengths = indexer.safe_lengths();
     let target_tx = mappings.tx_index.input_count.len();
     let target_height = mappings.height.tx_index_count.len();
@@ -70,17 +72,20 @@ pub fn compute(
 
     let first_tx = &indexer.vecs().transactions.first_tx_index;
     let start_tx = first_tx.collect_one_at(start_height).unwrap().to_usize();
-    for target in vecs.flags.iter_mut() {
-        target.truncate_if_needed_at(start_tx)?;
-    }
-    for target in vecs.count.iter_mut() {
-        target
-            .cumulative
-            .height
-            .truncate_if_needed_at(start_height)?;
-    }
+    {
+        let _lock = exit.lock();
+        for target in vecs.flags.iter_mut() {
+            target.truncate_if_needed_at(start_tx)?;
+        }
+        for target in vecs.count.iter_mut() {
+            target
+                .cumulative
+                .height
+                .truncate_if_needed_at(start_height)?;
+        }
 
-    // The same boundaries give us both counts and candidate detail ranges.
+        // The same boundaries give us both counts and candidate detail ranges.
+    }
     let mut txin_starts = indexer
         .vecs()
         .transactions

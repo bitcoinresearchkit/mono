@@ -1,7 +1,7 @@
-use bitview_cohort::EntryPrice;
 use bitview_plugin::{ComputePlugin, UpdateContext};
 use brk_error::{Error, Result};
-use brk_types::{Cents, Height, Lengths, Version};
+use brk_exit::Exit;
+use brk_types::{Height, Lengths, Version};
 use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp};
 
@@ -21,18 +21,22 @@ impl ComputePlugin for Vecs {
         // A version reset must invalidate the resident state even if validation fails.
         let live = self.live.take();
         self.db.sync_bg_tasks()?;
+        let exit = context.exit();
         let (spends, creations) = deps.history.versions();
         let base_version = Version::ONE
             + Version::from(spends as u32)
             + Version::from(creations as u32)
             + deps.price.spot.cents.height.version()
             + deps.mappings.timestamp.monotonic.version();
-        for v in self.coindays_created.iter_mut() {
-            v.validate_computed_version_or_reset(base_version)?;
+        {
+            let _lock = exit.lock();
+            for v in self.coindays_created.iter_mut() {
+                v.validate_computed_version_or_reset(base_version)?;
+            }
+            self.coinblocks_destroyed
+                .validate_computed_version_or_reset(base_version)?;
+            self.cohorts.validate_computed_versions(base_version)?;
         }
-        self.coinblocks_destroyed
-            .validate_computed_version_or_reset(base_version)?;
-        self.cohorts.validate_computed_versions(base_version)?;
         let end = deps
             .history
             .len()
@@ -56,7 +60,6 @@ impl ComputePlugin for Vecs {
             price: prices,
             ..
         } = deps;
-        let exit = context.exit();
         if end == 0 {
             return Ok(());
         }
@@ -79,7 +82,6 @@ impl ComputePlugin for Vecs {
         let LiveState {
             mut origins,
             mut states,
-            mut entries,
             prices: mut price_data,
             mut timestamps,
             mut max,
@@ -87,31 +89,10 @@ impl ComputePlugin for Vecs {
         } = if let Some(live) = live {
             live
         } else {
-            let anchors = self
-                .cohorts
-                .realized
-                .capitalized_price
-                .series
-                .all
-                .cents
-                .height
-                .collect_range_at(0, start);
             let price_data = prices.spot.cents.height.collect_range_at(0, start);
-            if anchors.len() != start || price_data.len() != start {
-                return Err(Error::NotFound("incomplete age entry history".into()));
-            }
-            let entries = (0..start)
-                .map(|h| {
-                    let previous = h.checked_sub(1).map_or(Cents::ZERO, |p| anchors[p]);
-                    EntryPrice::from_is_discount(
-                        previous == Cents::ZERO || price_data[h] <= previous,
-                    )
-                })
-                .collect();
             LiveState {
                 origins: history.state_at(start)?,
                 states: UTXOStates::new(),
-                entries,
                 prices: price_data,
                 timestamps: mappings.timestamp.monotonic.collect_range_at(0, start),
                 max: PriceRangeMax::default(),
@@ -134,30 +115,22 @@ impl ComputePlugin for Vecs {
             price_range_max: &max,
         };
         if !reuse {
-            states.restore_origins(origins.amounts(), &entries, &ctx)?;
+            states.restore_origins(origins.amounts(), &ctx)?;
         }
         let mut cursor = history.cursor(&mut origins)?;
-        self.par_iter_state_vecs_mut()
-            .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
-        for v in self.age_bounds.stored_vecs_mut() {
-            v.any_truncate_if_needed_at(start)?;
+        {
+            let _lock = exit.lock();
+            self.par_iter_state_vecs_mut()
+                .try_for_each(|v| v.any_truncate_if_needed_at(start))?;
+            for v in self.age_bounds.stored_vecs_mut() {
+                v.any_truncate_if_needed_at(start)?;
+            }
         }
         let mut from = start;
         while from < end {
             let next = (from + 10_000).min(end);
             ctx.starting_height = Height::from(from);
             ctx.last_height = Height::from(next - 1);
-            let anchor = self
-                .cohorts
-                .realized
-                .capitalized_price
-                .series
-                .all
-                .cents
-                .height
-                .collect_one(Height::from(from.saturating_sub(1)))
-                .filter(|_| from > 0)
-                .unwrap_or(Cents::ZERO);
             replay_origins(
                 &mut OriginTargets {
                     cohorts: &mut self.cohorts,
@@ -166,12 +139,10 @@ impl ComputePlugin for Vecs {
                 },
                 &mut states,
                 &ctx,
-                &mut entries,
-                anchor,
                 &mut cursor,
                 |height, states| self.age_bounds.push_block(height, states.bounds_entries()),
             )?;
-            self.save(cursor.state().len(), next == end)?;
+            self.save(cursor.state().len(), next == end, exit)?;
             from = next;
         }
         let lengths = Lengths {
@@ -180,13 +151,10 @@ impl ComputePlugin for Vecs {
         };
         self.cohorts.compute_rest_part1(&lengths, exit)?;
         self.cohorts.compute_rest_part2(&lengths, exit)?;
-        self.age_bounds.write()?;
         context.compact_database(&self.db);
-        self.db.sync_bg_tasks()?;
         self.live = Some(LiveState {
             origins,
             states,
-            entries,
             prices: price_data,
             timestamps,
             max,
@@ -210,7 +178,8 @@ impl Vecs {
             .chain([self.coinblocks_destroyed.stored_mut()].into_par_iter())
     }
 
-    fn save(&mut self, end: usize, final_chunk: bool) -> Result<()> {
+    fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
+        let _lock = exit.lock();
         let stamp = Stamp::from(Height::from(end - 1));
         self.par_iter_state_vecs_mut()
             .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, final_chunk))?;

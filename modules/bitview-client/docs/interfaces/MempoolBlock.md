@@ -6,7 +6,7 @@
 
 # Interface: MempoolBlock
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:717](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L717)
+Defined in: [Developer/mono/modules/bitview-client/index.js:716](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L716)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:717](https://github.
 
 > **blockSize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:718](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L718)
+Defined in: [Developer/mono/modules/bitview-client/index.js:717](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L717)
 
 Total serialized block size in bytes (witness + non-witness).
 
@@ -24,7 +24,7 @@ Total serialized block size in bytes (witness + non-witness).
 
 > **blockVSize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:719](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L719)
+Defined in: [Developer/mono/modules/bitview-client/index.js:718](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L718)
 
 Total block virtual size in vbytes
 
@@ -34,7 +34,7 @@ Total block virtual size in vbytes
 
 > **feeRange**: `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:723](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L723)
+Defined in: [Developer/mono/modules/bitview-client/index.js:722](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L722)
 
 Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
 
@@ -44,7 +44,7 @@ Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
 
 > **medianFee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:722](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L722)
+Defined in: [Developer/mono/modules/bitview-client/index.js:721](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L721)
 
 Median fee rate in sat/vB
 
@@ -54,7 +54,7 @@ Median fee rate in sat/vB
 
 > **nTx**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:720](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L720)
+Defined in: [Developer/mono/modules/bitview-client/index.js:719](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L719)
 
 Number of transactions in the projected block
 
@@ -64,6 +64,6 @@ Number of transactions in the projected block
 
 > **totalFees**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:721](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L721)
+Defined in: [Developer/mono/modules/bitview-client/index.js:720](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L720)
 
 Total fees in satoshis

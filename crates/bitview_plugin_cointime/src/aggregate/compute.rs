@@ -1,13 +1,16 @@
 use std::iter;
 
 use bitview_cohort::{AgeRange, ByTerm};
-use bitview_compute::{WeightedCohortAggregates, WeightedCohortState, prepare_computed};
-use bitview_plugin_distribution_age::Vecs as AgeVecs;
+use bitview_compute::{
+    CohortAccounting, WeightedCohortAggregates, WeightedCohortState, collect_age_range,
+    prepare_computed,
+};
+use bitview_plugin_distribution_age::{AccountingSources, Vecs as AgeVecs};
 use bitview_plugin_indexer::Indexer;
 use bitview_vecs::PerBlock;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BoundedRatio, Cents, CentsSats, CentsSquaredSats, Height, Sats, Version};
+use brk_types::{BoundedRatio, Height, Version};
 use vecdb::{AnyStoredVec, CachePolicy, EagerVec, PcoVec, ReadableVec, WritableVec};
 
 use super::{super::AgeRangeVecs, Sources, Vecs};
@@ -23,34 +26,12 @@ pub fn compute(
     exit: &Exit,
 ) -> Result<()> {
     let starting_height = indexer.safe_lengths().height;
-    let supplies = AgeRange::from_fn(|id| {
-        &id.select(&distribution_age.cohorts.supply.total.cohorts.age)
-            .sats
-            .height
-    });
-    let loss_supplies = AgeRange::from_fn(|id| {
-        &id.select(&distribution_age.cohorts.supply.in_loss.cohorts.age)
-            .sats
-            .height
-    });
-    let realized_caps = AgeRange::from_fn(|id| {
-        &id.select(&distribution_age.cohorts.realized.cap.cohorts.age)
-            .cents
-            .height
-    });
-    let cap_raw = AgeRange::from_fn(|id| id.select(&distribution_age.cohorts.realized.cap_raw.age));
-    let capitalized_cap_raw = AgeRange::from_fn(|id| {
-        id.select(&distribution_age.cohorts.realized.capitalized_cap_raw.age)
-    });
+    let accounting = distribution_age.accounting_sources();
     let weights = AgeRange::from_fn(|id| id.select(&age_range.activity_sources));
 
     vecs.sources.compute_primary(
         starting_height,
-        &supplies,
-        &loss_supplies,
-        &realized_caps,
-        &cap_raw,
-        &capitalized_cap_raw,
+        &accounting,
         &weights,
         &mut all_supply_in_loss_share.height,
         exit,
@@ -59,34 +40,27 @@ pub fn compute(
 
 impl Sources {
     #[allow(clippy::too_many_arguments)]
-    fn compute_primary<S, L, C, W>(
+    fn compute_primary<W>(
         &mut self,
         starting_height: Height,
-        supplies: &AgeRange<&S>,
-        loss_supplies: &AgeRange<&L>,
-        realized_caps: &AgeRange<&C>,
-        cap_raw: &AgeRange<&impl ReadableVec<Height, CentsSats>>,
-        capitalized_cap_raw: &AgeRange<&impl ReadableVec<Height, CentsSquaredSats>>,
+        accounting: &AccountingSources<'_>,
         weights: &AgeRange<&W>,
         all_supply_in_loss_share: &mut EagerVec<PcoVec<Height, BoundedRatio, impl CachePolicy>>,
         exit: &Exit,
     ) -> Result<()>
     where
-        S: ReadableVec<Height, Sats>,
-        L: ReadableVec<Height, Sats>,
-        C: ReadableVec<Height, Cents>,
         W: ReadableVec<Height, BoundedRatio>,
     {
         let source_version = Version::combine_all(
-            supplies
-                .iter()
-                .map(|vec| vec.version())
-                .chain(loss_supplies.iter().map(|vec| vec.version()))
-                .chain(realized_caps.iter().map(|vec| vec.version()))
-                .chain(cap_raw.iter().map(|vec| vec.version()))
-                .chain(capitalized_cap_raw.iter().map(|vec| vec.version()))
-                .chain(weights.iter().map(|vec| vec.version())),
+            iter::once(accounting.version()).chain(weights.iter().map(|vec| vec.version())),
         );
+
+        let aggregate_end = weights
+            .iter()
+            .map(|vec| vec.len())
+            .min()
+            .unwrap_or_default()
+            .min(accounting.len());
 
         let start = prepare_computed(
             self.primary_vecs_mut()
@@ -95,41 +69,17 @@ impl Sources {
                 ))
                 .collect::<Vec<_>>(),
             source_version,
-            usize::from(starting_height),
+            usize::from(starting_height).min(aggregate_end),
+            exit,
         )?;
-        let aggregate_end = supplies
-            .iter()
-            .map(|vec| vec.len())
-            .chain(loss_supplies.iter().map(|vec| vec.len()))
-            .chain(realized_caps.iter().map(|vec| vec.len()))
-            .chain(cap_raw.iter().map(|vec| vec.len()))
-            .chain(capitalized_cap_raw.iter().map(|vec| vec.len()))
-            .chain(weights.iter().map(|vec| vec.len()))
-            .min()
-            .unwrap_or_default();
 
+        let mut accounting_batch = CohortAccounting::default();
+        let mut weight_batch = AgeRange::default();
         let mut chunk_start = start;
         while chunk_start < aggregate_end {
             let chunk_end = (chunk_start + WRITE_INTERVAL).min(aggregate_end);
-            let supply_batches = AgeRange::from_fn(|id| {
-                id.select(supplies).collect_range_at(chunk_start, chunk_end)
-            });
-            let loss_batches = AgeRange::from_fn(|id| {
-                id.select(loss_supplies)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let cap_batches = AgeRange::from_fn(|id| {
-                id.select(realized_caps)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let raw_batches =
-                AgeRange::from_fn(|id| id.select(cap_raw).collect_range_at(chunk_start, chunk_end));
-            let capitalized_batches = AgeRange::from_fn(|id| {
-                id.select(capitalized_cap_raw)
-                    .collect_range_at(chunk_start, chunk_end)
-            });
-            let weight_batch =
-                AgeRange::from_fn(|id| id.select(weights).collect_range_at(chunk_start, chunk_end));
+            accounting.collect_into(chunk_start, chunk_end, &mut accounting_batch);
+            collect_age_range(weights, &mut weight_batch, chunk_start, chunk_end);
 
             for offset in 0..chunk_end - chunk_start {
                 let WeightedCohortAggregates {
@@ -139,19 +89,7 @@ impl Sources {
                     over_4m,
                     over_6m,
                 } = WeightedCohortAggregates::from_fn(|id| {
-                    let mut contribution = WeightedCohortState::default();
-                    contribution.capitalized_price.add(
-                        id.select(&raw_batches)[offset],
-                        id.select(&capitalized_batches)[offset],
-                        id.select(&weight_batch)[offset],
-                    );
-                    contribution.add(
-                        id.select(&supply_batches)[offset],
-                        id.select(&loss_batches)[offset],
-                        id.select(&cap_batches)[offset],
-                        id.select(&weight_batch)[offset],
-                    );
-                    contribution
+                    accounting_batch.weighted(id, offset, id.select(&weight_batch)[offset])
                 });
                 self.under_4m_awake_price.push(under_4m.realized_price());
                 self.under_4m_awake_capitalized_price
@@ -259,6 +197,7 @@ impl Sources {
 #[cfg(test)]
 mod tests {
     use crate::test_cache::init_cache;
+    use brk_types::{Cents, CentsSats, CentsSquaredSats, Sats};
 
     use bitview_cohort::AgeRangeId;
     use tempfile::tempdir;
@@ -286,17 +225,6 @@ mod tests {
         weight.push(BoundedRatio::ONE);
         supply.write().unwrap();
         weight.write().unwrap();
-        let caps = AgeRange::from_fn(|id| {
-            let mut value = PcoVec::<Height, Cents>::forced_import(
-                &db,
-                &format!("cap_{}", id.index()),
-                Version::ONE,
-            )
-            .unwrap();
-            value.push(Cents::new((id.index() as u64 + 1) * 100));
-            value.write().unwrap();
-            value
-        });
         let raw = AgeRange::from_fn(|id| {
             let mut value = BytesVec::<Height, CentsSats>::forced_import(
                 &db,
@@ -331,11 +259,12 @@ mod tests {
             sources
                 .compute_primary(
                     Height::from(start),
-                    &AgeRange::from_fn(|_| &supply),
-                    &AgeRange::from_fn(|_| &supply),
-                    &AgeRange::from_fn(|id| id.select(&caps)),
-                    &AgeRange::from_fn(|id| id.select(&raw)),
-                    &AgeRange::from_fn(|id| id.select(&squared)),
+                    &AccountingSources {
+                        supplies: AgeRange::from_fn(|_| &supply as _),
+                        loss_supplies: AgeRange::from_fn(|_| &supply as _),
+                        cap_raw: AgeRange::from_fn(|id| id.select(&raw) as _),
+                        capitalized_cap_raw: AgeRange::from_fn(|id| id.select(&squared) as _),
+                    },
                     &AgeRange::from_fn(|_| &weight),
                     &mut loss_share,
                     &Exit::default(),
@@ -419,7 +348,6 @@ mod tests {
         let mut supply =
             PcoVec::<Height, Sats>::forced_import(&db, "supply", Version::ONE).unwrap();
         let mut loss = PcoVec::<Height, Sats>::forced_import(&db, "loss", Version::ONE).unwrap();
-        let mut cap = PcoVec::<Height, Cents>::forced_import(&db, "cap", Version::ONE).unwrap();
         let mut raw =
             BytesVec::<Height, CentsSats>::forced_import(&db, "raw", Version::ONE).unwrap();
         let mut capitalized =
@@ -433,14 +361,12 @@ mod tests {
             weights.push(BoundedRatio::from(0.5));
             if height < length - 1 {
                 loss.push(Sats::from(20_u64));
-                cap.push(Cents::from(1_000_u64));
                 raw.push(CentsSats::new(1_000 * Sats::ONE_BTC_U128));
                 capitalized.push(CentsSquaredSats::new(3_000 * 1_000 * Sats::ONE_BTC_U128));
             }
         }
         supply.write().unwrap();
         loss.write().unwrap();
-        cap.write().unwrap();
         raw.write().unwrap();
         capitalized.write().unwrap();
         weights.write().unwrap();
@@ -469,11 +395,12 @@ mod tests {
             sources
                 .compute_primary(
                     Height::from(start),
-                    &AgeRange::from_fn(|_| &supply),
-                    &AgeRange::from_fn(|_| &loss),
-                    &AgeRange::from_fn(|_| &cap),
-                    &AgeRange::from_fn(|_| &raw),
-                    &AgeRange::from_fn(|_| &capitalized),
+                    &AccountingSources {
+                        supplies: AgeRange::from_fn(|_| &supply as _),
+                        loss_supplies: AgeRange::from_fn(|_| &loss as _),
+                        cap_raw: AgeRange::from_fn(|_| &raw as _),
+                        capitalized_cap_raw: AgeRange::from_fn(|_| &capitalized as _),
+                    },
                     &AgeRange::from_fn(|_| &weights),
                     &mut loss_share,
                     &Exit::default(),

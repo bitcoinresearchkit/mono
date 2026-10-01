@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Relative\_Unrealized\_NetPnl\_ToOwnMcap
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14035](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14035)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11060](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11060)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14035](https://githu
 
 > **long**: [`PercentPpmRatioPattern3`](PercentPpmRatioPattern3.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14037](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14037)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11062](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11062)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:14037](https://githu
 
 > **short**: [`PercentPpmRatioPattern3`](PercentPpmRatioPattern3.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:14036](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L14036)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11061](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11061)

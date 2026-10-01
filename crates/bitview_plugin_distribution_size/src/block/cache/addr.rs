@@ -1,5 +1,3 @@
-use std::ops::Range;
-
 use bitview_cohort::ByAddrType;
 use brk_error::Result;
 use brk_types::{DecodedAddrState, EmptyAddrData, FundedAddrData, OutputType, TypeIndex};
@@ -15,9 +13,9 @@ use super::lookup::AddrLookup;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
-struct BlockAddress(u64);
+struct AddressKey(u64);
 
-impl BlockAddress {
+impl AddressKey {
     const TYPE_SHIFT: u32 = u32::BITS;
 
     #[inline(always)]
@@ -38,7 +36,7 @@ impl BlockAddress {
             value if value == OutputType::P2WSH as u8 => OutputType::P2WSH,
             value if value == OutputType::P2TR as u8 => OutputType::P2TR,
             value if value == OutputType::P2A as u8 => OutputType::P2A,
-            _ => unreachable!("BlockAddress only stores address output types"),
+            _ => unreachable!("AddressKey only stores address output types"),
         }
     }
 
@@ -74,82 +72,51 @@ pub struct AddrCache {
     funded: AddrTypeToTypeIndexMap<SourcedAddrData<FundedAddrData>>,
     /// Addrs that became empty (zero balance)
     empty: AddrTypeToTypeIndexMap<SourcedAddrData<EmptyAddrData>>,
-    /// Reusable scratch space for the unique addresses touched by one block.
-    block_addresses: Vec<BlockAddress>,
-    /// Address indexes first created by one block, by address type.
-    block_new_ranges: [Range<usize>; OutputType::COUNT],
+    /// Reusable scratch space for the unique addresses touched by one batch.
+    addresses: Vec<AddressKey>,
     /// Reusable scratch space for their loaded sources.
-    block_sources: Vec<SourcedAddrData<FundedAddrData>>,
+    sources: Vec<SourcedAddrData<FundedAddrData>>,
 }
 
 impl AddrCache {
-    /// Load each address touched by the block once.
-    pub fn load_block_addresses(
+    /// Load existing addresses touched by the batch once. New addresses are
+    /// initialized when their first block assigns transaction counts.
+    pub fn load_addresses(
         &mut self,
         addresses: impl Iterator<Item = (OutputType, TypeIndex)>,
         first_addr_indexes: &ByAddrType<TypeIndex>,
         vr: &AddrReaders,
         state: &AddrStateVecs,
     ) {
-        self.block_addresses.clear();
-        for (addr_type, &first) in first_addr_indexes.iter() {
-            let first = usize::from(first);
-            self.block_new_ranges[addr_type as usize] = first..first;
-        }
+        self.addresses.clear();
         let first_addr_indexes = first_addr_indexes.output_type_refs();
+        self.addresses.extend(addresses.filter_map(|(ty, index)| {
+            first_addr_indexes[ty as usize]
+                .is_some_and(|&first| index < first)
+                .then(|| AddressKey::new(ty, index))
+        }));
+        self.addresses.sort_unstable();
+        self.addresses.dedup();
         let funded = self.funded.output_type_refs();
         let empty = self.empty.output_type_refs();
-        for (addr_type, type_index) in addresses {
-            let addr_type_index = addr_type as usize;
-            let Some(&first) = first_addr_indexes[addr_type_index] else {
-                continue;
-            };
-
-            if first <= type_index {
-                let range = &mut self.block_new_ranges[addr_type_index];
-                debug_assert!(range.start <= usize::from(type_index));
-                range.end = range.end.max(usize::from(type_index) + 1);
-                continue;
-            }
-
-            if funded[addr_type_index].unwrap().contains_key(&type_index)
-                || empty[addr_type_index].unwrap().contains_key(&type_index)
-            {
-                continue;
-            }
-            self.block_addresses
-                .push(BlockAddress::new(addr_type, type_index));
-        }
-
-        self.block_addresses.sort_unstable();
-        self.block_addresses.dedup();
+        self.addresses.retain(|address| {
+            let addr_type = address.addr_type() as usize;
+            let type_index = address.type_index();
+            !funded[addr_type].unwrap().contains_key(&type_index)
+                && !empty[addr_type].unwrap().contains_key(&type_index)
+        });
 
         // Keep cold reads concurrent without scheduling tiny tasks.
-        self.block_addresses
+        self.addresses
             .par_iter()
             .with_min_len(32)
             .copied()
             .map(|address| address.load(vr, state))
-            .collect_into_vec(&mut self.block_sources);
+            .collect_into_vec(&mut self.sources);
 
-        for (address, source) in self
-            .block_addresses
-            .iter()
-            .copied()
-            .zip(self.block_sources.drain(..))
-        {
+        for (address, source) in self.addresses.iter().copied().zip(self.sources.drain(..)) {
             self.funded
                 .insert_for_type(address.addr_type(), address.type_index(), source);
-        }
-        for addr_type in OutputType::ADDR_TYPES {
-            let range = self.block_new_ranges[addr_type as usize].clone();
-            for type_index in range.map(TypeIndex::from) {
-                self.funded.insert_for_type(
-                    addr_type,
-                    type_index,
-                    SourcedAddrData::New(FundedAddrData::default()),
-                );
-            }
         }
     }
 
@@ -185,12 +152,104 @@ impl AddrCache {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{addr::AddrReceiveStatus, test_cache};
+    use brk_types::{Cents, Sats, Version};
+    use tempfile::tempdir;
+    use vecdb::Database;
+
+    #[test]
+    fn batched_loads_preserve_mutations_empty_history_and_zero_value_outputs() -> Result<()> {
+        test_cache::init_cache();
+        let directory = tempdir()?;
+        let db = Database::open(directory.path())?;
+        let mut stored = AddrStateVecs::forced_import(&db, Version::ONE)?;
+        let ty = OutputType::P2PKH;
+        let price = Cents::new(100);
+        let mut original = FundedAddrData::default();
+        original.receive_outputs(Sats::new(100), price, 1);
+        let mut funded = AddrTypeToTypeIndexMap::default();
+        funded.insert_for_type(ty, TypeIndex::new(0), SourcedAddrData::New(original));
+        let mut empty = AddrTypeToTypeIndexMap::default();
+        for (index, tx_count) in [(1, 2), (2, 20)] {
+            empty.insert_for_type(
+                ty,
+                TypeIndex::new(index),
+                SourcedAddrData::New(EmptyAddrData {
+                    tx_count,
+                    funded_txo_count: 1,
+                    transfered: Sats::new(50),
+                }),
+            );
+        }
+        stored.apply_updates(&mut empty, &mut funded)?;
+        let readers = AddrReaders::new(&stored);
+        let first = |index| {
+            ByAddrType::from_fn(|id| {
+                if id.output_type() == ty {
+                    TypeIndex::new(index)
+                } else {
+                    TypeIndex::new(0)
+                }
+            })
+        };
+        let rows = |indexes: Vec<u32>| {
+            indexes
+                .into_iter()
+                .map(move |index| (ty, TypeIndex::new(index)))
+        };
+        let mut cache = AddrCache::default();
+        cache.load_addresses(
+            rows(vec![4, 1, 0, 3, 0, 2, 4]),
+            &first(3),
+            &readers,
+            &stored,
+        );
+        {
+            let mut lookup = cache.as_lookup();
+            let mut lookup = lookup.select(ty);
+            for index in [1, 2] {
+                let (data, status) = lookup.get_or_create_for_receive(TypeIndex::new(index));
+                assert!(matches!(status, AddrReceiveStatus::WasEmpty));
+                assert_eq!(data.funded_txo_count, 1);
+            }
+            lookup
+                .get_for_send(TypeIndex::new(0))
+                .receive_outputs(Sats::new(10), price, 1);
+            let (data, status) = lookup.get_or_create_for_receive(TypeIndex::new(3));
+            assert!(matches!(status, AddrReceiveStatus::New));
+            data.receive_outputs(Sats::new(10), price, 1);
+            data.send(Sats::new(10), price).unwrap();
+            lookup.move_to_empty(TypeIndex::new(3));
+            let (data, status) = lookup.get_or_create_for_receive(TypeIndex::new(4));
+            assert!(matches!(status, AddrReceiveStatus::New));
+            data.receive_outputs(Sats::ZERO, price, 1);
+        }
+        cache.load_addresses(rows(vec![5, 4, 3, 0, 4]), &first(5), &readers, &stored);
+        let mut lookup = cache.as_lookup();
+        let mut lookup = lookup.select(ty);
+        assert_eq!(
+            lookup.get_for_send(TypeIndex::new(0)).balance(),
+            Sats::new(110)
+        );
+        let (data, status) = lookup.get_or_create_for_receive(TypeIndex::new(3));
+        assert!(matches!(status, AddrReceiveStatus::WasEmpty));
+        assert_eq!(data.funded_txo_count, 1);
+        let (data, status) = lookup.get_or_create_for_receive(TypeIndex::new(4));
+        assert!(matches!(status, AddrReceiveStatus::Tracked));
+        assert_eq!(data.utxo_count(), 1);
+        assert_eq!(data.balance(), Sats::ZERO);
+        assert!(matches!(
+            lookup.get_or_create_for_receive(TypeIndex::new(5)).1,
+            AddrReceiveStatus::New
+        ));
+        Ok(())
+    }
 
     #[test]
     fn block_address_round_trips_every_address_type() {
         for addr_type in OutputType::ADDR_TYPES {
             for type_index in [TypeIndex::from(0_u32), TypeIndex::from(u32::MAX)] {
-                let address = BlockAddress::new(addr_type, type_index);
+                let address = AddressKey::new(addr_type, type_index);
 
                 assert_eq!(address.addr_type(), addr_type);
                 assert_eq!(address.type_index(), type_index);

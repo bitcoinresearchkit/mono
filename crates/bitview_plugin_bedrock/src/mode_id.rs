@@ -1,6 +1,6 @@
 use super::WeightedModeId;
 
-pub const MODE_COUNT: usize = 10;
+pub const MODE_COUNT: usize = 3;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
@@ -8,41 +8,16 @@ pub enum ModeId {
     Raw,
     Cointime,
     Coinflow,
-    Coinflow8Y,
-    Coinflow4Y,
-    Coinflow2Y,
-    Coinflow1Y,
-    Coinflow6M,
-    Coinflow3M,
-    Coinflow1M,
 }
 
 impl ModeId {
-    pub const ALL: [Self; MODE_COUNT] = [
-        Self::Raw,
-        Self::Cointime,
-        Self::Coinflow,
-        Self::Coinflow8Y,
-        Self::Coinflow4Y,
-        Self::Coinflow2Y,
-        Self::Coinflow1Y,
-        Self::Coinflow6M,
-        Self::Coinflow3M,
-        Self::Coinflow1M,
-    ];
+    pub const ALL: [Self; MODE_COUNT] = [Self::Raw, Self::Cointime, Self::Coinflow];
 
     pub const fn name(self) -> &'static str {
         match self {
             Self::Raw => "raw",
             Self::Cointime => "cointime",
             Self::Coinflow => "coinflow",
-            Self::Coinflow8Y => "coinflow_horizon_8y",
-            Self::Coinflow4Y => "coinflow_horizon_4y",
-            Self::Coinflow2Y => "coinflow_horizon_2y",
-            Self::Coinflow1Y => "coinflow_horizon_1y",
-            Self::Coinflow6M => "coinflow_horizon_6m",
-            Self::Coinflow3M => "coinflow_horizon_3m",
-            Self::Coinflow1M => "coinflow_horizon_1m",
         }
     }
 
@@ -51,13 +26,6 @@ impl ModeId {
             Self::Raw => None,
             Self::Cointime => Some(WeightedModeId::Cointime),
             Self::Coinflow => Some(WeightedModeId::Coinflow),
-            Self::Coinflow8Y => Some(WeightedModeId::Coinflow8Y),
-            Self::Coinflow4Y => Some(WeightedModeId::Coinflow4Y),
-            Self::Coinflow2Y => Some(WeightedModeId::Coinflow2Y),
-            Self::Coinflow1Y => Some(WeightedModeId::Coinflow1Y),
-            Self::Coinflow6M => Some(WeightedModeId::Coinflow6M),
-            Self::Coinflow3M => Some(WeightedModeId::Coinflow3M),
-            Self::Coinflow1M => Some(WeightedModeId::Coinflow1M),
         }
     }
 }
@@ -75,12 +43,6 @@ mod tests {
             WeightedModeId::ALL.map(WeightedModeId::mode).as_slice(),
             &ModeId::ALL[1..]
         );
-        assert_eq!(
-            WeightedModeId::COINFLOW_HORIZONS
-                .map(WeightedModeId::mode)
-                .as_slice(),
-            &ModeId::ALL[3..]
-        );
 
         let mut modes = Modes::try_from_fn(|id| Ok::<_, Infallible>((id, false))).unwrap();
         for id in ModeId::ALL {
@@ -91,18 +53,7 @@ mod tests {
         assert!(modes.iter().all(|(_, visited)| *visited));
         assert_eq!(
             ModeId::ALL.map(ModeId::name),
-            [
-                "raw",
-                "cointime",
-                "coinflow",
-                "coinflow_horizon_8y",
-                "coinflow_horizon_4y",
-                "coinflow_horizon_2y",
-                "coinflow_horizon_1y",
-                "coinflow_horizon_6m",
-                "coinflow_horizon_3m",
-                "coinflow_horizon_1m",
-            ]
+            ["raw", "cointime", "coinflow"]
         );
     }
 }

@@ -6,7 +6,7 @@
 
 # Interface: SeriesPattern\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1809](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1809)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1802](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1802)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1809](https://github
 
 > **by**: `Readonly`\<`Partial`\<`Record`\<[`Index`](../type-aliases/Index.md), [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\>\>\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1811)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1804](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1804)
 
 Index endpoints as lazy getters
 
@@ -30,7 +30,7 @@ Index endpoints as lazy getters
 
 > **get**: (`index`) => [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\> \| `undefined`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1813](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1813)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1806](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1806)
 
 Get an endpoint for a specific index
 
@@ -50,7 +50,7 @@ Get an endpoint for a specific index
 
 > **indexes**: () => readonly [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1812](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1812)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1805](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1805)
 
 Get the list of available indexes
 
@@ -64,6 +64,6 @@ readonly [`Index`](../type-aliases/Index.md)[]
 
 > **name**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1810](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L1810)
+Defined in: [Developer/mono/modules/bitview-client/index.js:1803](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1803)
 
 The series name

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_Addr\_P2ms
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9189](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9189)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8036](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8036)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9189](https://github
 
 > **identity**: [`SeriesPattern25`](../type-aliases/SeriesPattern25.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9190](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9190)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8037](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8037)

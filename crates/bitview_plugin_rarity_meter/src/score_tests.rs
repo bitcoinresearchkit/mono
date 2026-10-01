@@ -5,6 +5,58 @@ use super::*;
 use crate::test_common::{self as common, init_cache};
 
 #[test]
+fn same_length_source_revision_requires_recomputing_meter() {
+    init_cache();
+    let directory = tempdir().unwrap();
+    let db = Database::open(directory.path()).unwrap();
+    let indexes = common::indexes(&db);
+    let spot = common::stored(&db, "revision_spot", [Cents::new(100)]);
+    let mut floor = common::stored(&db, "revision_floor", [Cents::new(90)]);
+    let reference = common::stored(&db, "revision_reference", [Cents::new(100)]);
+    let mut component = component::forced_import(
+        &db,
+        "revision_component",
+        Version::ONE,
+        &indexes,
+        &reference,
+    )
+    .unwrap();
+    for ratio in component.ratios.iter_mut() {
+        ratio.push(PartsPerMillion32::new(1_000_000));
+        ratio.write().unwrap();
+    }
+    let mut meter = forced_import(&db, "revision_meter", Version::ONE, &indexes).unwrap();
+    let exit = Exit::new();
+    compute(
+        &mut meter,
+        &[&component],
+        &[[&floor; 5]],
+        &spot,
+        Height::ZERO,
+        &exit,
+    )
+    .unwrap();
+    assert!(!meter.needs_compute(&[&component], &[[&floor; 5]], &spot, Height::from(1usize)));
+    floor
+        .validate_computed_version_or_reset(Version::new(101))
+        .unwrap();
+    floor.push(Cents::new(150));
+    floor.write().unwrap();
+    assert!(meter.needs_compute(&[&component], &[[&floor; 5]], &spot, Height::from(1usize)));
+    compute(
+        &mut meter,
+        &[&component],
+        &[[&floor; 5]],
+        &spot,
+        Height::from(1usize),
+        &exit,
+    )
+    .unwrap();
+    assert_scores(&meter, [-5]);
+    assert_eq!(*meter.index.height.collect_one_at(0).unwrap(), -5);
+}
+
+#[test]
 fn expanded_v2_scores_cap_overflowing_totals() {
     init_cache();
     let directory = tempdir().unwrap();
@@ -78,7 +130,7 @@ fn expanded_v2_scores_cap_overflowing_totals() {
     assert_scores(&full, [-128, 120, 0]);
 }
 
-fn assert_scores(meter: &RarityMeterInner, expected: [i8; 3]) {
+fn assert_scores<const N: usize>(meter: &RarityMeterInner, expected: [i8; N]) {
     let actual: Vec<i8> = meter
         .score
         .height

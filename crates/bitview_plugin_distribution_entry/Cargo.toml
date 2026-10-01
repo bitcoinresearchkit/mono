@@ -1,0 +1,40 @@
+[package]
+name = "bitview_plugin_distribution_entry"
+description = "Optional Bitcoin cohorts classified by creation-time price"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+homepage = "https://bitview.dev"
+repository.workspace = true
+
+[dependencies]
+bitview_cohort = { workspace = true, features = ["storage"] }
+bitview_collections = { workspace = true }
+bitview_plugin = { workspace = true }
+bitview_plugin_distribution_common = { workspace = true }
+bitview_plugin_mappings = { workspace = true }
+bitview_transforms = { workspace = true }
+bitview_traversable = { workspace = true }
+bitview_vecs = { workspace = true }
+brk_error = { workspace = true, features = ["vecdb"] }
+brk_exit = { workspace = true }
+brk_types = { workspace = true, features = ["storage"] }
+statedb = { workspace = true }
+vecdb = { workspace = true }
+
+[dev-dependencies]
+bitview = { workspace = true, default-features = false }
+bitview_default = { workspace = true }
+bitview_plugin_blocks = { workspace = true }
+bitview_plugin_distribution_age = { workspace = true }
+bitview_plugin_inputs = { workspace = true }
+bitview_plugin_outputs = { workspace = true }
+bitview_plugin_price = { workspace = true }
+bitview_plugin_utxo_history = { workspace = true }
+bitview_query = { workspace = true, default-features = false }
+bitview_runtime = { workspace = true }
+bitviewd = { workspace = true, default-features = false, features = ["full-api"] }
+bitview_plugin_indexer = { workspace = true }
+brk_reader = { workspace = true }
+brk_rpc = { workspace = true }
+tempfile = { workspace = true }

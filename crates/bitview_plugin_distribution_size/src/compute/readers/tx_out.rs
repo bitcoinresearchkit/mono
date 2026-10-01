@@ -1,8 +1,7 @@
 use bitview_plugin_indexer::Indexer;
+use brk_error::{Error, Result};
 use brk_types::{OutputType, Sats, TypeIndex};
 use vecdb::ReadableVec;
-
-use super::TxOutData;
 
 /// Bulk txout reader with reusable buffers.
 pub struct TxOutReaders<'a> {
@@ -10,7 +9,6 @@ pub struct TxOutReaders<'a> {
     values_buf: Vec<Sats>,
     output_types_buf: Vec<OutputType>,
     type_indexes_buf: Vec<TypeIndex>,
-    txout_data_buf: Vec<TxOutData>,
 }
 
 impl<'a> TxOutReaders<'a> {
@@ -20,15 +18,14 @@ impl<'a> TxOutReaders<'a> {
             values_buf: Vec::new(),
             output_types_buf: Vec::new(),
             type_indexes_buf: Vec::new(),
-            txout_data_buf: Vec::new(),
         }
     }
 
-    pub fn collect_block_outputs(
+    pub fn collect_outputs(
         &mut self,
         first_txout_index: usize,
         output_count: usize,
-    ) -> &[TxOutData] {
+    ) -> Result<(&[Sats], &[OutputType], &[TypeIndex])> {
         let end = first_txout_index + output_count;
         self.indexer.vecs().outputs.value.collect_range_into_at(
             first_txout_index,
@@ -46,18 +43,16 @@ impl<'a> TxOutReaders<'a> {
             .type_index
             .collect_range_into_at(first_txout_index, end, &mut self.type_indexes_buf);
 
-        self.txout_data_buf.clear();
-        self.txout_data_buf.extend(
-            self.values_buf
-                .iter()
-                .zip(&self.output_types_buf)
-                .zip(&self.type_indexes_buf)
-                .map(|((&value, &output_type), &type_index)| TxOutData {
-                    value,
-                    output_type,
-                    type_index,
-                }),
-        );
-        &self.txout_data_buf
+        if self.values_buf.len() != output_count
+            || self.output_types_buf.len() != output_count
+            || self.type_indexes_buf.len() != output_count
+        {
+            return Err(Error::NotFound("incomplete Size output columns".into()));
+        }
+        Ok((
+            &self.values_buf,
+            &self.output_types_buf,
+            &self.type_indexes_buf,
+        ))
     }
 }

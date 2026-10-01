@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_Reused\_Events
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7973](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7973)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6663](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6663)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7973](https://github
 
 > **activeReusedAddrCount**: [`_1m1w1y24hBlockPattern`](1m1w1y24hBlockPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7979](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7979)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6669](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6669)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7979](https://github
 
 > **activeReusedAddrShare**: [`_1m1w1y24hBlockPattern2`](1m1w1y24hBlockPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7980](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7980)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6670](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6670)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7980](https://github
 
 > **inputFromReusedAddrCount**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7977](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7977)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6667](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6667)
 
 ***
 
@@ -38,7 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7977](https://github
 
 > **inputFromReusedAddrShare**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7978](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7978)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6668](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6668)
 
 ***
 
@@ -46,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7978](https://github
 
 > **outputToReusedAddrCount**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern6.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7974](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7974)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6664](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6664)
 
 ***
 
@@ -54,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7974](https://github
 
 > **outputToReusedAddrShare**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern7.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7975](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7975)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6665](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6665)
 
 ***
 
@@ -62,4 +62,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7975](https://github
 
 > **spendableOutputToReusedAddrShare**: [`_1m1w1y24hPercentPpmRatioPattern`](1m1w1y24hPercentPpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7976](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7976)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6666](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6666)

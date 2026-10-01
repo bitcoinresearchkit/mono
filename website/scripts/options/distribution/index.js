@@ -12,21 +12,13 @@
 
 import {
   formatCohortTitle,
-  amountBaseline,
   satsBtcUsd,
   satsBtcUsdFullTree,
   avgHoldingsSubtree,
   exposedSubtree,
   reusedSubtree,
 } from "../shared.js";
-import {
-  ROLLING_WINDOWS,
-  line,
-  percentRatio,
-  amountSumsTreeBaseline,
-  rollingPercentRatioTree,
-} from "../series.js";
-import { Unit } from "../../utils/units.js";
+import { ROLLING_WINDOWS, percentRatio } from "../series.js";
 import { colors } from "../../utils/colors.js";
 import { bitview } from "../../utils/client.js";
 import { lazyGroup } from "../lazy.js";
@@ -37,7 +29,6 @@ import {
   createHoldingsSectionAll,
   createHoldingsSectionAddress,
   createHoldingsSectionAddressAmount,
-  createHoldingsSectionWithProfitLoss,
   createHoldingsSectionWithRelative,
   createHoldingsSectionWithOwnSupply,
   createGroupedHoldingsSection,
@@ -69,12 +60,10 @@ import {
   createProfitabilitySectionRealized,
   createProfitabilitySectionAll,
   createProfitabilitySectionFull,
-  createProfitabilitySectionWithProfitLoss,
   createProfitabilitySectionWithInvestedCapitalPct,
   createProfitabilitySectionLongTerm,
   createGroupedProfitabilitySection,
   createGroupedProfitabilitySectionRealized,
-  createGroupedProfitabilitySectionWithProfitLoss,
   createGroupedProfitabilitySectionWithNupl,
   createGroupedProfitabilitySectionWithInvestedCapitalPct,
 } from "./profitability.js";
@@ -292,7 +281,7 @@ export function createCohortFolderAddress(cohort) {
       ),
       lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
       lazyGroup("Profitability", () =>
-        createProfitabilitySectionWithProfitLoss({ cohort, title }),
+        createProfitabilitySection({ cohort, title }),
       ),
       lazyGroup("Activity", () =>
         createActivitySectionMinimal({ cohort, title }),
@@ -320,13 +309,13 @@ export function createCohortFolderWithoutRelative(cohort) {
   return {
     name: cohort.name || "all",
     tree: [
-      ...createHoldingsSectionWithProfitLoss({ cohort, title }),
+      ...createHoldingsSection({ cohort, title }),
       lazyGroup("Capitalization", () =>
         createValuationSection({ cohort, title }),
       ),
       lazyGroup("Prices", () => createPricesSectionBasic({ cohort, title })),
       lazyGroup("Profitability", () =>
-        createProfitabilitySectionWithProfitLoss({ cohort, title }),
+        createProfitabilitySection({ cohort, title }),
       ),
       lazyGroup("Activity", () =>
         createActivitySectionMinimal({ cohort, title }),
@@ -556,11 +545,7 @@ export function createGroupedCohortFolderAddress({
         createGroupedPricesSection({ list, all, title }),
       ),
       lazyGroup("Profitability", () =>
-        createGroupedProfitabilitySectionWithProfitLoss({
-          list,
-          all,
-          title,
-        }),
+        createGroupedProfitabilitySection({ list, all, title }),
       ),
       lazyGroup("Activity", () =>
         createGroupedActivitySectionMinimal({ list, all, title }),
@@ -597,238 +582,7 @@ export function createGroupedAddressCohortFolder({
   };
 }
 
-// ============================================================================
-// UTXO Profitability Folder Builders
-// ============================================================================
-
-/**
- * @param {{ name: string, color: Color, pattern: RealizedSupplyPattern }} bucket
- * @param {string} [parentName]
- * @returns {PartialOptionsGroup}
- */
-function singleBucketFolder({ name, color, pattern }, parentName) {
-  const title = formatCohortTitle(parentName ? `${parentName} ${name}` : name);
-  return {
-    name,
-    tree: [
-      {
-        name: "Supply",
-        tree: [
-          {
-            name: "Total",
-            title: title("Supply"),
-            bottom: [
-              ...satsBtcUsd({ pattern: pattern.supply.all, name: "Total" }),
-              ...satsBtcUsd({
-                pattern: pattern.supply.sth,
-                name: "STH",
-                color: colors.term.short,
-              }),
-            ],
-          },
-          {
-            ...amountSumsTreeBaseline({
-              windows: pattern.supply.all.delta.absolute,
-              title,
-              metric: "Supply Change",
-              legend: "Change",
-            }),
-            name: "Change",
-          },
-          {
-            ...rollingPercentRatioTree({
-              windows: pattern.supply.all.delta.rate,
-              title,
-              metric: "Supply Growth Rate",
-            }),
-            name: "Growth Rate",
-          },
-        ],
-      },
-      {
-        name: "Realized Cap",
-        title: title("Realized Cap"),
-        bottom: [
-          line({
-            series: pattern.realizedCap.all.usd,
-            name: "Total",
-            unit: Unit.usd,
-          }),
-          line({
-            series: pattern.realizedCap.sth.usd,
-            name: "STH",
-            color: colors.term.short,
-            unit: Unit.usd,
-          }),
-        ],
-      },
-      {
-        name: "Unrealized PnL",
-        title: title("Unrealized PnL"),
-        bottom: [
-          line({
-            series: pattern.unrealizedPnl.all.usd,
-            name: "Total",
-            unit: Unit.usd,
-          }),
-          line({
-            series: pattern.unrealizedPnl.sth.usd,
-            name: "STH",
-            color: colors.term.short,
-            unit: Unit.usd,
-          }),
-        ],
-      },
-      {
-        name: "NUPL",
-        title: title("NUPL"),
-        bottom: [
-          line({ series: pattern.nupl.ratio, name, color, unit: Unit.ratio }),
-        ],
-      },
-    ],
-  };
-}
-
-/**
- * @param {{ name: string, color: Color, pattern: RealizedSupplyPattern }[]} list
- * @param {string} groupTitle
- * @returns {PartialOptionsTree}
- */
-function groupedBucketCharts(list, groupTitle) {
-  const title = formatCohortTitle(groupTitle);
-  return [
-    {
-      name: "Supply",
-      tree: [
-        {
-          name: "All",
-          title: title("Supply"),
-          bottom: list.flatMap(({ name, color, pattern }) =>
-            satsBtcUsd({ pattern: pattern.supply.all, name, color }),
-          ),
-        },
-        {
-          name: "STH",
-          title: title("STH Supply"),
-          bottom: list.flatMap(({ name, color, pattern }) =>
-            satsBtcUsd({ pattern: pattern.supply.sth, name, color }),
-          ),
-        },
-        {
-          name: "Change",
-          tree: ROLLING_WINDOWS.map((w) => ({
-            name: w.name,
-            title: title(`${w.title} Supply Change`),
-            bottom: list.flatMap(({ name, color, pattern }) =>
-              amountBaseline({
-                pattern: pattern.supply.all.delta.absolute[w.key],
-                name,
-                color,
-              }),
-            ),
-          })),
-        },
-        {
-          name: "Growth Rate",
-          tree: ROLLING_WINDOWS.map((w) => ({
-            name: w.name,
-            title: title(`${w.title} Supply Growth Rate`),
-            bottom: list.flatMap(({ name, color, pattern }) =>
-              percentRatio({
-                pattern: pattern.supply.all.delta.rate[w.key],
-                name,
-                color,
-              }),
-            ),
-          })),
-        },
-      ],
-    },
-    {
-      name: "Realized Cap",
-      tree: [
-        {
-          name: "All",
-          title: title("Realized Cap"),
-          bottom: list.map(({ name, color, pattern }) =>
-            line({
-              series: pattern.realizedCap.all.usd,
-              name,
-              color,
-              unit: Unit.usd,
-            }),
-          ),
-        },
-        {
-          name: "STH",
-          title: title("STH Realized Cap"),
-          bottom: list.map(({ name, color, pattern }) =>
-            line({
-              series: pattern.realizedCap.sth.usd,
-              name,
-              color,
-              unit: Unit.usd,
-            }),
-          ),
-        },
-      ],
-    },
-    {
-      name: "Unrealized PnL",
-      tree: [
-        {
-          name: "All",
-          title: title("Unrealized PnL"),
-          bottom: list.map(({ name, color, pattern }) =>
-            line({
-              series: pattern.unrealizedPnl.all.usd,
-              name,
-              color,
-              unit: Unit.usd,
-            }),
-          ),
-        },
-        {
-          name: "STH",
-          title: title("STH Unrealized PnL"),
-          bottom: list.map(({ name, color, pattern }) =>
-            line({
-              series: pattern.unrealizedPnl.sth.usd,
-              name,
-              color,
-              unit: Unit.usd,
-            }),
-          ),
-        },
-      ],
-    },
-    {
-      name: "NUPL",
-      title: title("NUPL"),
-      bottom: list.map(({ name, color, pattern }) =>
-        line({ series: pattern.nupl.ratio, name, color, unit: Unit.ratio }),
-      ),
-    },
-  ];
-}
-
-/**
- * @param {{ range: { name: string, color: Color, pattern: RealizedSupplyPattern }[] }} args
- * @returns {PartialOptionsGroup}
- */
-export function createUtxoProfitabilitySection({ range }) {
-  return {
-    name: "UTXO Profitability",
-    tree: [
-      {
-        name: "Compare",
-        tree: groupedBucketCharts(range, "Profitability Range"),
-      },
-      ...range.map((bucket) => singleBucketFolder(bucket)),
-    ],
-  };
-}
+export { createUtxoProfitabilitySection } from "./profitability-buckets.js";
 
 /**
  * Gini leaf for Distribution > Address Balance

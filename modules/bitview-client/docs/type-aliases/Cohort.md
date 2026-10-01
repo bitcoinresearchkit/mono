@@ -8,6 +8,6 @@
 
 > **Cohort** = `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:408](https://github.com/bitcoinresearchkit/brk/blob/868e1062e2a801f8d27dc382dfda2cf0464b826b/modules/bitview-client/index.js#L408)
+Defined in: [Developer/mono/modules/bitview-client/index.js:408](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L408)
 
 ## Type Parameters

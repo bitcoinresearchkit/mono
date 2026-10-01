@@ -1,14 +1,15 @@
-use crate::{Amount, BlockDiff, Creations, Spends, State, util::invalid};
+use crate::{
+    Amount, BlockDiff, Creations, Spends, State, journal_reader::JournalReader, util::invalid,
+};
 use std::io::Result;
 
-/// Sequential replay over one validated prefix, with reusable decode and rollback buffers.
+/// Sequential replay over one validated prefix, with bounded read windows and reusable rollback scratch.
 /// The caller owns the state; analytics borrow it instead of copying its amounts.
 pub struct Cursor<'a> {
     state: &'a mut State,
-    spends: &'a Spends,
-    creations: &'a Creations,
+    spends: JournalReader<'a>,
+    creations: JournalReader<'a>,
     end: usize,
-    diff: BlockDiff,
     scratch: Vec<(usize, Amount)>,
 }
 
@@ -25,16 +26,15 @@ impl<'a> Cursor<'a> {
         }
         if state.len() > start
             && (state.hash() != spends.hash(state.len() - 1)?
-                || state.hash() != creations.read(state.len() - 1)?.0)
+                || state.hash() != creations.hash(state.len() - 1)?)
         {
             return Err(invalid("replay state does not match producer chain"));
         }
         Ok(Self {
             state,
-            spends,
-            creations,
+            spends: spends.cursor(end),
+            creations: creations.cursor(end),
             end,
-            diff: BlockDiff::default(),
             scratch: Vec::new(),
         })
     }
@@ -44,18 +44,23 @@ impl<'a> Cursor<'a> {
     }
 
     /// Applies one whole block atomically and returns its changes. None marks the published end.
-    pub fn advance(&mut self) -> Result<Option<&BlockDiff>> {
+    pub fn advance(&mut self) -> Result<Option<BlockDiff<'_>>> {
         if self.state.len() == self.end {
             return Ok(None);
         }
-        self.diff
-            .read(self.state.len(), self.spends, self.creations)?;
+        let height = self.state.len();
+        let diff = BlockDiff::decode(
+            height,
+            self.spends.read(height)?,
+            self.creations.read(height)?,
+        )?;
         self.state.apply(
-            self.diff.hash,
-            self.diff.created,
-            self.diff.removed(),
+            diff.hash,
+            diff.created,
+            diff.removed(),
+            diff.removed_total,
             &mut self.scratch,
         )?;
-        Ok(Some(&self.diff))
+        Ok(Some(diff))
     }
 }

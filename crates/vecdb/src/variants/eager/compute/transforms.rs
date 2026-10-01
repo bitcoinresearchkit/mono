@@ -33,9 +33,9 @@ where
             ));
         }
 
-        self.validate_computed_version_or_reset(version)?;
         {
             let _lock = exit.lock();
+            self.validate_computed_version_or_reset(version)?;
             self.truncate_if_needed_at(max_from.to_usize().min(to))?;
             self.write()?;
         }

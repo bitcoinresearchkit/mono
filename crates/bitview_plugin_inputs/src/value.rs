@@ -2,7 +2,7 @@ use brk_error::{Error, Result};
 
 use crate::OriginSpends;
 use bitview_plugin_indexer::Indexer;
-use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_plugin_mappings::{HeightMap, Vecs as Mappings};
 use brk_exit::Exit;
 use brk_types::{Height, Sats, TxInIndex, TxOutIndex};
 use rayon::prelude::*;
@@ -10,7 +10,8 @@ use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, PcoVec, ReadableVec, VecIndex, WritableVec};
 
 const SORT_MEMORY_BUDGET: usize = 2 * 1024 * 1024 * 1024;
-const BATCH_SIZE: usize = SORT_MEMORY_BUDGET / (size_of::<Entry>() + size_of::<Sats>());
+const BATCH_SIZE: usize =
+    SORT_MEMORY_BUDGET / (size_of::<Entry>() + size_of::<Sats>() + size_of::<Height>());
 
 pub(crate) fn compute(
     value: &mut PcoVec<TxInIndex, Sats>,
@@ -32,13 +33,16 @@ pub(crate) fn compute(
             .collect_one(Height::from(h))
             .map_or(txout_indexes.len(), |i| i.to_usize())
     };
-    value.validate_computed_version_or_reset(
-        txout_indexes.version() + vecs.outputs.value.version(),
-    )?;
-    value.truncate_if_needed_at(input_at(usize::from(from)))?;
-    origins.prepare(indexer, value, from)?;
-    if value.len() < input_at(origins.len()) {
-        origins.truncate(complete_height(origins.len(), value.len(), &input_at))?;
+    {
+        let _lock = exit.lock();
+        value.validate_computed_version_or_reset(
+            txout_indexes.version() + vecs.outputs.value.version(),
+        )?;
+        value.truncate_if_needed_at(input_at(usize::from(from)))?;
+        origins.prepare(indexer, value, from)?;
+        if value.len() < input_at(origins.len()) {
+            origins.truncate(complete_height(origins.len(), value.len(), &input_at))?;
+        }
     }
     let start = origins.len();
     let end = usize::from(end);
@@ -56,14 +60,18 @@ pub(crate) fn compute(
         .partition_point(|i| i.to_usize() <= value.len())
         .saturating_sub(1);
     // An interrupted older writer may stop inside a block. Resolve that whole block again.
-    value.truncate_if_needed_at(boundaries[stored_end].to_usize())?;
-    let tx_heights = mappings.tx_heights.read();
+    {
+        let _lock = exit.lock();
+        value.truncate_if_needed_at(boundaries[stored_end].to_usize())?;
+    }
+    let output_heights = mappings.output_heights.read();
     let reader = vecs.outputs.value.reader();
     debug_assert!(reader.len() < Entry::COINBASE_TXOUT_INDEX);
     // Fixed capacities preserve the existing combined 2 GiB sorting-buffer budget.
     let target = boundaries.last().unwrap().to_usize();
     let mut entries = Vec::with_capacity((target - value.len()).min(BATCH_SIZE));
     let mut values = Vec::with_capacity((target - boundaries[0].to_usize()).min(BATCH_SIZE));
+    let mut heights = Vec::with_capacity(values.capacity());
     let mut offset = 0;
     while offset < boundaries.len() - 1 {
         let retained = offset < stored_end;
@@ -81,6 +89,18 @@ pub(crate) fn compute(
             if values.len() != to - from {
                 return Err(Error::NotFound("incomplete retained input values".into()));
             }
+            heights.clear();
+            let mut references = txout_indexes.cursor();
+            references.try_for_each_range_at(from, to, |index| {
+                heights.push(if index.is_coinbase() {
+                    Height::ZERO
+                } else {
+                    output_heights
+                        .get_shared(index)
+                        .ok_or_else(|| Error::NotFound("spent output creation height".into()))?
+                });
+                Ok::<_, Error>(())
+            })?;
         } else {
             entries.clear();
             txout_indexes.for_each_range_at(from, to, |index| {
@@ -91,7 +111,15 @@ pub(crate) fn compute(
             }
             values.clear();
             values.resize(to - from, Sats::MAX);
-            fill_values(&mut entries, &mut values, |index| reader.get(index));
+            heights.clear();
+            heights.resize(to - from, Height::ZERO);
+            fill_values(
+                &mut entries,
+                &mut values,
+                &mut heights,
+                &output_heights,
+                |index| reader.get(index),
+            )?;
             for &amount in &values {
                 value.push(amount);
             }
@@ -103,9 +131,8 @@ pub(crate) fn compute(
         origins.append_blocks(
             &boundaries[offset..=next],
             &values,
-            &vecs.inputs.outpoint,
+            &heights,
             &vecs.blocks.blockhash,
-            &tx_heights,
         )?;
         offset = next;
         if offset < boundaries.len() - 1 {
@@ -185,16 +212,23 @@ impl Entry {
 fn fill_values(
     entries: &mut [Entry],
     values: &mut [Sats],
+    heights: &mut [Height],
+    output_heights: &HeightMap<TxOutIndex>,
     mut get_value: impl FnMut(TxOutIndex) -> Sats,
-) {
+) -> Result<()> {
     entries.par_sort_unstable();
+    let mut origins = output_heights.cursor();
     for &entry in entries.iter() {
         let txout_index = entry.txout_index();
         if txout_index.is_coinbase() {
             break;
         }
         values[entry.original_index()] = get_value(txout_index);
+        heights[entry.original_index()] = origins
+            .get(txout_index)
+            .ok_or_else(|| Error::NotFound("spent output creation height".into()))?;
     }
+    Ok(())
 }
 
 #[cfg(test)]
@@ -233,12 +267,21 @@ mod tests {
             Entry::new(3, TxOutIndex::from(5_usize)),
         ];
         let mut values = vec![Sats::MAX; entries.len()];
+        let mut heights = vec![Height::ZERO; entries.len()];
+        let map = HeightMap::from([0usize, 3, 6].map(TxOutIndex::from).to_vec());
         let mut reads = Vec::new();
 
-        fill_values(&mut entries, &mut values, |txout_index| {
-            reads.push(txout_index);
-            Sats::from(txout_index.to_usize() * 10)
-        });
+        fill_values(
+            &mut entries,
+            &mut values,
+            &mut heights,
+            &map,
+            |txout_index| {
+                reads.push(txout_index);
+                Sats::from(txout_index.to_usize() * 10)
+            },
+        )
+        .unwrap();
 
         assert_eq!(
             reads,
@@ -257,5 +300,6 @@ mod tests {
                 Sats::from(50_usize)
             ]
         );
+        assert_eq!(heights, [2usize, 0, 0, 1].map(Height::from));
     }
 }

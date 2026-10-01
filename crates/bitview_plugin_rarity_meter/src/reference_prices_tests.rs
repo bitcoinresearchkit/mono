@@ -8,7 +8,7 @@ use bitview_traversable::TreeNode;
 use bitview_vecs::UTXOAgeSources;
 use brk_types::StoredF32;
 use tempfile::tempdir;
-use vecdb::{Budgeted, EagerVec, PcoVec};
+use vecdb::{AnyVec, Budgeted, EagerVec, PcoVec};
 
 use super::*;
 use crate::test_common as common;

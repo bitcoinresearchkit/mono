@@ -2,6 +2,7 @@ import { createWeightedUrpdSection } from "../urpd/index.js";
 import { bitview } from "../../utils/client.js";
 import { colors } from "../../utils/colors.js";
 import { Unit } from "../../utils/units.js";
+import { AGE_CUTOFFS } from "../age-cutoffs.js";
 import { ageRanges } from "../age-ranges.js";
 import { line, price } from "../series.js";
 import { satsBtcUsd, simplePriceRatioTree } from "../shared.js";
@@ -90,18 +91,20 @@ export function createCoinflowSection() {
     ...terms,
   ];
 
-  const horizons = /** @type {const} */ ([
-    { key: "_8y", name: "8Y" },
-    { key: "_4y", name: "4Y" },
-    { key: "_2y", name: "2Y" },
-    { key: "_1y", name: "1Y" },
-    { key: "_6m", name: "6M" },
-    { key: "_3m", name: "3M" },
-    { key: "_1m", name: "1M" },
-  ]).map((horizon, index, all) => ({
-    ...horizon,
-    color: colors.at(index, all.length),
-  }));
+  const priceCohorts = [
+    ...frameworkCohorts.map(({ name, color, tree }) => ({
+      name,
+      color,
+      price: tree.price,
+      capitalizedPrice: tree.capitalizedPrice,
+    })),
+    ...AGE_CUTOFFS.map(({ key, name }, index, all) => ({
+      name,
+      color: colors.at(index, all.length),
+      price: coinflow[`${key}Price`],
+      capitalizedPrice: coinflow[`${key}CapitalizedPrice`],
+    })),
+  ];
 
   return {
     name: "Coinflow",
@@ -111,28 +114,28 @@ export function createCoinflowSection() {
         tree: [
           {
             name: "Compare",
-            title: "Coinflow Price by Holder Term",
-            top: frameworkCohorts.map(({ name, color, tree }) =>
+            title: "Coinflow Price by Holder Age",
+            top: priceCohorts.map(({ name, color, price: cohortPrice }) =>
               price({
-                series: tree.price,
+                series: cohortPrice,
                 name,
                 color,
               }),
             ),
-            bottom: frameworkCohorts.map(({ name, color, tree }) =>
+            bottom: priceCohorts.map(({ name, color, price: cohortPrice }) =>
               line({
-                series: tree.price.ratio,
+                series: cohortPrice.ratio,
                 name: `Spot / ${name}`,
                 color,
                 unit: Unit.ratio,
               }),
             ),
           },
-          ...frameworkCohorts.map(({ name, color, tree }) => {
+          ...priceCohorts.map(({ name, color, price: cohortPrice }) => {
             const title =
               name === "All" ? "Coinflow Price" : `${name} Coinflow Price`;
             const [chart] = simplePriceRatioTree({
-              pattern: tree.price,
+              pattern: cohortPrice,
               title,
               legend: name,
               color,
@@ -146,18 +149,18 @@ export function createCoinflowSection() {
         tree: [
           {
             name: "Compare",
-            title: "Coinflow Capitalized Price by Holder Term",
-            top: frameworkCohorts.map(({ name, color, tree }) =>
-              price({ series: tree.capitalizedPrice, name, color }),
+            title: "Coinflow Capitalized Price by Holder Age",
+            top: priceCohorts.map(({ name, color, capitalizedPrice }) =>
+              price({ series: capitalizedPrice, name, color }),
             ),
           },
-          ...frameworkCohorts.map(({ name, color, tree }) => {
+          ...priceCohorts.map(({ name, color, capitalizedPrice }) => {
             const title =
               name === "All"
                 ? "Coinflow Capitalized Price"
                 : `${name} Coinflow Capitalized Price`;
             const [chart] = simplePriceRatioTree({
-              pattern: tree.capitalizedPrice,
+              pattern: capitalizedPrice,
               title,
               legend: name,
               color,
@@ -265,25 +268,7 @@ export function createCoinflowSection() {
                   }),
                 ),
               },
-              {
-                name: "By Horizon",
-                tree: cohorts.map(({ name, tree }) => ({
-                  name,
-                  title:
-                    name === "All"
-                      ? "Mobile Supply in Loss by Horizon"
-                      : `${name} Mobile Supply in Loss by Horizon`,
-                  bottom: horizons.map((horizon) =>
-                    line({
-                      series:
-                        tree.horizon[horizon.key].supply.inLoss.share,
-                      name: horizon.name,
-                      color: horizon.color,
-                      unit: Unit.ratio,
-                    }),
-                  ),
-                })),
-              },
+
             ],
           },
         ],
@@ -295,11 +280,7 @@ export function createCoinflowSection() {
             name: "By UTXO Age",
             tree: [
               ageRangeRatioChart(ranges, "mobility", "Mobility"),
-              ageRangeRatioChart(
-                ranges,
-                "spendingRate",
-                "Spending Rate",
-              ),
+              ageRangeRatioChart(ranges, "spendingRate", "Spending Rate"),
               ageRangeRatioChart(
                 ranges,
                 "spendingExposure",

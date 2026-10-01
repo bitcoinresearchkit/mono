@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Coinflow\_Supply
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8914](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8914)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7759](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7759)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8914](https://github
 
 > **immobile**: [`BtcCentsSatsUsdPattern`](BtcCentsSatsUsdPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8916](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8916)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7761](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7761)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8916](https://github
 
 > **mobile**: [`SeriesTree_Coinflow_Supply_Mobile`](SeriesTree_Coinflow_Supply_Mobile.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8915](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8915)
+Defined in: [Developer/mono/modules/bitview-client/index.js:7760](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L7760)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Size\_Weight
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7569](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7569)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6301](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6301)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7569](https://github
 
 > **\_6b**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7571](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7571)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6303](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6303)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7571](https://github
 
 > **block**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern`](MaxMedianMinPct10Pct25Pct75Pct90Pattern.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7570](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7570)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6302](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6302)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Addrs\_AvgAmount
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8063](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8063)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6753](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6753)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8063](https://github
 
 > **addr**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8065](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8065)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6755](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6755)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:8065](https://github
 
 > **utxo**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshPattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:8064](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L8064)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6754](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6754)

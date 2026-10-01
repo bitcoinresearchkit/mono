@@ -14,7 +14,6 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
-            mappings,
             blocks,
             transactions,
             price: prices,
@@ -27,7 +26,6 @@ impl ComputePlugin for Vecs {
         rewards::compute(
             &mut self.rewards,
             indexer,
-            mappings,
             &blocks.lookback,
             transactions,
             prices,

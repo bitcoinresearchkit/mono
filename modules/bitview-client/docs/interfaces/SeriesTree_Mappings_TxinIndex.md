@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Mappings\_TxinIndex
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9319](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9319)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8166](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8166)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9319](https://github
 
 > **identity**: [`SeriesPattern20`](../type-aliases/SeriesPattern20.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9320](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9320)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8167](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8167)

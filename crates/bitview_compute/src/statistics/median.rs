@@ -37,7 +37,10 @@ where
         A: VecValue + Copy,
         f64: From<A>,
     {
-        self.validate_and_truncate(window_starts.version() + values.version(), max_from)?;
+        {
+            let _lock = exit.lock();
+            self.validate_and_truncate(window_starts.version() + values.version(), max_from)?;
+        }
 
         self.repeat_until_complete(exit, |this| {
             let skip = this.len();

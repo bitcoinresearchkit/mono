@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Price
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9849](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9849)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8619](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8619)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9849](https://github
 
 > **ohlc**: [`SeriesTree_Price_Ohlc`](SeriesTree_Price_Ohlc.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9851](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9851)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8621](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8621)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9851](https://github
 
 > **split**: [`SeriesTree_Price_Split`](SeriesTree_Price_Split.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9850](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9850)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8620](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8620)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:9850](https://github
 
 > **spot**: [`SeriesTree_Price_Spot`](SeriesTree_Price_Spot.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:9852](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L9852)
+Defined in: [Developer/mono/modules/bitview-client/index.js:8622](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L8622)

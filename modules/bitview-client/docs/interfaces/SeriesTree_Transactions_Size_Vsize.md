@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Transactions\_Size\_Vsize
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7562](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7562)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6294](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6294)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7562](https://github
 
 > **\_6b**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern2`](MaxMedianMinPct10Pct25Pct75Pct90Pattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7565](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7565)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6297](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6297)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7565](https://github
 
 > **block**: [`MaxMedianMinPct10Pct25Pct75Pct90Pattern2`](MaxMedianMinPct10Pct25Pct75Pct90Pattern2.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7564](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7564)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6296](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6296)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:7564](https://github
 
 > **txIndex**: [`SeriesPattern19`](../type-aliases/SeriesPattern19.md)\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:7563](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L7563)
+Defined in: [Developer/mono/modules/bitview-client/index.js:6295](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L6295)

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Unrealized\_Nupl\_Term
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13976](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13976)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11016](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11016)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13976](https://githu
 
 > **long**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13978](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13978)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11018](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11018)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:13978](https://githu
 
 > **short**: [`PpmRatioPattern`](PpmRatioPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:13977](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L13977)
+Defined in: [Developer/mono/modules/bitview-client/index.js:11017](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L11017)

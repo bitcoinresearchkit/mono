@@ -1,8 +1,8 @@
-use bitview_compute::BlockAggregate;
+use bitview_compute::{BlockAggregate, prepare_computed};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, OutputType, StoredU64, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, WritableVec};
+use vecdb::{AnyStoredVec, ReadableVec, WritableVec};
 
 use crate::CachedSeries;
 
@@ -25,22 +25,26 @@ pub fn compute_type_counts<'a>(
     scan: impl FnOnce(usize, &mut dyn FnMut(BlockAggregate) -> Result<()>) -> Result<()>,
 ) -> Result<()> {
     let mut targets: Vec<_> = targets.into_iter().collect();
-    let mut skip = usize::from(max_from);
-    for (_, entries, txs) in &mut targets {
-        for target in [entries, txs] {
-            target.validate_computed_version_or_reset(version)?;
-            target.truncate_if_needed(max_from)?;
-            skip = skip.min(target.len());
-        }
-    }
+    let skip = prepare_computed(
+        targets
+            .iter_mut()
+            .flat_map(|(_, entries, txs)| {
+                [
+                    &mut **entries as &mut dyn AnyStoredVec,
+                    &mut **txs as &mut dyn AnyStoredVec,
+                ]
+            })
+            .collect::<Vec<_>>(),
+        version,
+        usize::from(max_from).min(end),
+        exit,
+    )?;
     if skip >= end || targets.is_empty() {
         return Ok(());
     }
     let mut entry_totals = [StoredU64::ZERO; OutputType::COUNT];
     let mut tx_totals = [StoredU64::ZERO; OutputType::COUNT];
     for (kind, entries, txs) in &mut targets {
-        entries.truncate_if_needed_at(skip)?;
-        txs.truncate_if_needed_at(skip)?;
         entry_totals[*kind as usize] = entries.collect_last().unwrap_or_default();
         tx_totals[*kind as usize] = txs.collect_last().unwrap_or_default();
     }

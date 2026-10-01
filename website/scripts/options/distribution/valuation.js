@@ -59,7 +59,7 @@ function groupedDeltaItems(list, all, title) {
 
 /**
  * Grouped: MVRV + Change + Growth Rate items (flat)
- * @param {readonly (UtxoCohortObject | CohortWithoutRelative)[]} list
+ * @param {readonly (CohortWithRealizedCap & { tree: { realized: { mvrv: AnySeriesPattern } } })[]} list
  * @param {CohortAll} all
  * @param {(name: string) => string} title
  * @returns {PartialOptionsTree}
@@ -133,6 +133,11 @@ export function createValuationSectionFull({ cohort, title }) {
         ],
       },
       { name: "MVRV", title: title("MVRV"), bottom: ratioBottomSeries(tree.realized.price) },
+      {
+        name: "% of Own Market Cap",
+        title: title("Realized Cap (% of Own Market Cap)"),
+        bottom: percentRatio({ pattern: tree.realized.cap.toOwnMcap, name: "Realized Cap", color }),
+      },
       ...singleDeltaItems(tree, title),
     ],
   };
@@ -189,7 +194,7 @@ export function createGroupedValuationSectionBase({ list, all, title }) {
 }
 
 /**
- * @param {{ list: readonly (UtxoCohortObject | CohortWithoutRelative)[], all: CohortAll, title: (name: string) => string }} args
+ * @param {{ list: readonly (CohortWithRealizedCap & { tree: { realized: { mvrv: AnySeriesPattern } } })[], all: CohortAll, title: (name: string) => string }} args
  * @returns {PartialOptionsGroup}
  */
 export function createGroupedValuationSection({ list, all, title }) {

@@ -6,7 +6,7 @@
 
 # Interface: SeriesTree\_Cohorts\_Outputs\_UnspentCount
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10750](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10750)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9167](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9167)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10750](https://githu
 
 > **addrBalance**: [`SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance`](SeriesTree_Cohorts_Outputs_UnspentCount_AddrBalance.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10759](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10759)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9175](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9175)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10759](https://githu
 
 > **age**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Age`](SeriesTree_Cohorts_Outputs_UnspentCount_Age.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10752](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10752)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9169](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9169)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10752](https://githu
 
 > **all**: [`BaseDeltaPattern`](BaseDeltaPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10751](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10751)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9168](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9168)
 
 ***
 
@@ -38,15 +38,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10751](https://githu
 
 > **class**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Class`](SeriesTree_Cohorts_Outputs_UnspentCount_Class.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10754](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10754)
-
-***
-
-### entry
-
-> **entry**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Entry`](SeriesTree_Cohorts_Outputs_UnspentCount_Entry.md)
-
-Defined in: [Developer/mono/modules/bitview-client/index.js:10755](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10755)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9171](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9171)
 
 ***
 
@@ -54,7 +46,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10755](https://githu
 
 > **epoch**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Epoch`](SeriesTree_Cohorts_Outputs_UnspentCount_Epoch.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10753](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10753)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9170](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9170)
 
 ***
 
@@ -62,7 +54,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10753](https://githu
 
 > **term**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Term`](SeriesTree_Cohorts_Outputs_UnspentCount_Term.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10757](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10757)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9172](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9172)
 
 ***
 
@@ -70,7 +62,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10757](https://githu
 
 > **type**: [`SeriesTree_Cohorts_Outputs_UnspentCount_Type`](SeriesTree_Cohorts_Outputs_UnspentCount_Type.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10758](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10758)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9174](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9174)
 
 ***
 
@@ -78,4 +70,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:10758](https://githu
 
 > **utxoAmount**: [`SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount`](SeriesTree_Cohorts_Outputs_UnspentCount_UtxoAmount.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:10756](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L10756)
+Defined in: [Developer/mono/modules/bitview-client/index.js:9173](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L9173)

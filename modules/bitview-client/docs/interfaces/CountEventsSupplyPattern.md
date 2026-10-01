@@ -6,7 +6,7 @@
 
 # Interface: CountEventsSupplyPattern
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6128](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6128)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5120](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5120)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6128](https://github
 
 > **count**: [`FundedTotalPattern`](FundedTotalPattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6129](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6129)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5121](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5121)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6129](https://github
 
 > **events**: [`ActiveInputOutputSpendablePattern`](ActiveInputOutputSpendablePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6130](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6130)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5122](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5122)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:6130](https://github
 
 > **supply**: [`AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshSharePattern`](AllP2aP2pk33P2pk65P2pkhP2shP2trP2wpkhP2wshSharePattern.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:6131](https://github.com/bitcoinresearchkit/brk/blob/0f15a1b7c568a2f7b912d2fccd42fd2565d5f337/modules/bitview-client/index.js#L6131)
+Defined in: [Developer/mono/modules/bitview-client/index.js:5123](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L5123)

@@ -26,7 +26,7 @@ impl Dependencies<'_> {
                 v.outputs.value.version(),
                 v.outputs.output_type.version(),
                 v.outputs.type_index.version(),
-                v.inputs.outpoint.version(),
+                v.inputs.txout_index.version(),
                 v.inputs.output_type.version(),
                 v.inputs.type_index.version(),
                 v.addrs.p2pk65.first_index.version(),

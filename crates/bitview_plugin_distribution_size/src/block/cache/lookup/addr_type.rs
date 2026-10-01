@@ -49,6 +49,10 @@ impl AddrTypeLookup<'_> {
             addr_data.tx_count += tx_count;
         } else if let Some(addr_data) = self.empty.get_mut(&type_index) {
             addr_data.tx_count += tx_count;
+        } else {
+            let mut data = FundedAddrData::default();
+            data.tx_count = tx_count;
+            self.funded.insert(type_index, SourcedAddrData::New(data));
         }
     }
 
@@ -109,9 +113,31 @@ mod tests {
     use brk_types::{EmptyAddrData, FundedAddrData, OutputType, Sats, TxIndex, TypeIndex};
 
     use crate::{
-        addr::{AddrTypeToTypeIndexMap, SourcedAddrData},
+        addr::{AddrReceiveStatus, AddrTypeToTypeIndexMap, SourcedAddrData},
         block::{AddrCache, Received, TxIndexes},
     };
+
+    #[test]
+    fn transaction_union_initializes_a_new_address_before_its_first_receive() {
+        let ty = OutputType::P2WPKH;
+        let index = TypeIndex::new(3);
+        let mut outputs = AddrTypeToTypeIndexMap::default();
+        let mut received = Received::new(Sats::_1, TxIndex::new(10));
+        received.add(Sats::_1, TxIndex::new(11));
+        outputs.insert_for_type(ty, index, received);
+        let mut inputs = AddrTypeToTypeIndexMap::default();
+        let mut sent = TxIndexes::new(TxIndex::new(11));
+        sent.push(TxIndex::new(12));
+        inputs.insert_for_type(ty, index, sent);
+        let mut cache = AddrCache::default();
+        cache.update_tx_counts(&outputs, inputs);
+        let mut lookup = cache.as_lookup();
+        let mut lookup = lookup.select(ty);
+        let (data, status) = lookup.get_or_create_for_receive(index);
+        assert!(matches!(status, AddrReceiveStatus::New));
+        assert_eq!(data.tx_count, 3);
+        assert_eq!(data.utxo_count(), 0);
+    }
 
     #[test]
     fn transaction_union_updates_funded_empty_and_input_only_addresses() {

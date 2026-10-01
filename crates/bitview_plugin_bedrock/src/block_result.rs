@@ -1,4 +1,4 @@
-use bitview_cohort::AgeRange;
+use bitview_cohort::{AgeAggregateId, AgeRange};
 use bitview_urpd::OriginUrpd;
 use brk_types::{BoundedRatio, Cents};
 
@@ -47,9 +47,9 @@ impl BlockResult {
         let weights = WeightedModeId::ALL.map(|id| *weights.select(id));
         scratch.clear();
         let mut totals = [0_u64; MODE_COUNT];
-        for bucket in source.project(&weights) {
-            totals[0] += u64::from(bucket.raw);
-            for (total, sats) in totals[1..].iter_mut().zip(bucket.weighted) {
+        for bucket in source.project(&weights, [AgeAggregateId::All.age_range_ids()]) {
+            totals[0] += u64::from(bucket.raw[0]);
+            for (total, sats) in totals[1..].iter_mut().zip(bucket.weighted[0]) {
                 *total += u64::from(sats);
             }
             scratch.push(CumulativeBucket {
