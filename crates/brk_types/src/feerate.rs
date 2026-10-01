@@ -37,9 +37,8 @@ pub struct FeeRate(u64);
 
 impl FeeRate {
     pub const ZERO: Self = Self(0);
-    pub const MIN: Self = Self(100);
-    pub const NAN: Self = Self(u64::MAX);
-    pub const MAX_FINITE: Self = Self(u64::MAX - 1);
+    const NAN: Self = Self(u64::MAX);
+    const MAX_FINITE: Self = Self(u64::MAX - 1);
 
     #[inline]
     pub fn new(sats_per_vbyte: f64) -> Self {
@@ -56,12 +55,7 @@ impl FeeRate {
     }
 
     #[inline]
-    pub const fn milli(self) -> Option<u64> {
-        if self.is_nan() { None } else { Some(self.0) }
-    }
-
-    #[inline]
-    pub const fn is_nan(self) -> bool {
+    const fn is_nan(self) -> bool {
         self.0 == u64::MAX
     }
 
@@ -366,7 +360,6 @@ mod tests {
             FeeRate::NAN,
             FeeRate::ZERO,
             FeeRate::from_milli(1),
-            FeeRate::MIN,
             FeeRate::from_milli((1_u64 << 63) - 1),
             FeeRate::from_milli(1_u64 << 63),
             FeeRate::from_milli((1_u64 << 63) + 1),

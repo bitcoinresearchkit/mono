@@ -665,7 +665,7 @@ impl Query {
     }
     /// Half-open window ending at the requested height (default safe tip).
     /// `height_len` is the exclusive published bound, including zero for no blocks.
-    pub fn resolve_block_range(
+    pub(crate) fn resolve_block_range(
         start_height: Option<Height>,
         count: u32,
         height_len: Height,
@@ -676,13 +676,13 @@ impl Query {
         });
         (end.saturating_sub(count as usize), end)
     }
-    pub fn block_tx_count(first: TxIndex, next: TxIndex, limit: TxIndex) -> Result<u32> {
+    pub(crate) fn block_tx_count(first: TxIndex, next: TxIndex, limit: TxIndex) -> Result<u32> {
         (*next)
             .checked_sub(*first)
             .filter(|&count| count != 0 && next <= limit)
             .ok_or(Error::Internal("Invalid block transaction range"))
     }
-    pub fn verify_header(bytes: &[u8], expected_hash: &BlockHash) -> Result<()> {
+    pub(crate) fn verify_header(bytes: &[u8], expected_hash: &BlockHash) -> Result<()> {
         if bytes.len() != HEADER_SIZE {
             return Err(Error::Internal("Invalid block header length"));
         }
@@ -692,7 +692,7 @@ impl Query {
         Ok(())
     }
     /// Validate the on-disk count before interpreting the following coinbase.
-    pub fn read_block_tx_count(reader: impl Read, expected: u32) -> Result<usize> {
+    pub(crate) fn read_block_tx_count(reader: impl Read, expected: u32) -> Result<usize> {
         let count = VarInt::consensus_decode(&mut FromStd::new(reader))
             .map_err(|_| Error::Internal("Failed to decode block transaction count"))?;
         if count.0 != u64::from(expected) {

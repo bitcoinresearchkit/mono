@@ -14,19 +14,19 @@ pub struct Pool {
 
     /// Known payout addresses for pool identification
     #[serde(skip)]
-    pub addrs: Box<[&'static str]>,
+    pub(crate) addrs: Box<[&'static str]>,
 
     /// Coinbase tags used to identify blocks mined by this pool
     #[serde(skip)]
-    pub tags: Box<[&'static str]>,
+    pub(crate) tags: Box<[&'static str]>,
 
     /// Lowercase coinbase tags for case-insensitive matching
     #[serde(skip)]
     #[schemars(skip)]
-    pub tags_lowercase: Box<[String]>,
+    pub(crate) tags_lowercase: Box<[String]>,
 
     /// Pool website URL
-    pub link: &'static str,
+    pub(crate) link: &'static str,
 }
 
 impl Pool {
@@ -41,7 +41,7 @@ impl Pool {
     }
 
     /// Pool ID matching mempool.space's `id` field (1-indexed)
-    pub fn mempool_id(&self) -> u8 {
+    pub(crate) fn mempool_id(&self) -> u8 {
         self.mempool_unique_id() + 1
     }
 }

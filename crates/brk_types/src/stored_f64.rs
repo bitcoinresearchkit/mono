@@ -245,10 +245,10 @@ impl From<Bitcoin> for StoredF64 {
 }
 
 impl StoredF64 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "f64"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["f64"]
     }
 }

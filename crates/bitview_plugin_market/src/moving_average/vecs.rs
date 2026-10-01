@@ -183,9 +183,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block it recursively applies `alpha = 2 / (span + 1)`, where `span` is
     /// the number of blocks from the trailing period's monotonic-time start
     /// through the represented block.
-    pub ema: EmaVecs<LazyPriceWithRatioPerBlock>,
+    pub(crate) ema: EmaVecs<LazyPriceWithRatioPerBlock>,
     #[traversable(hidden)]
-    pub ema_stored: EmaVecs<CachedSeries<Height, Cents, M>>,
+    pub(crate) ema_stored: EmaVecs<CachedSeries<Height, Cents, M>>,
     /// Cumulative integer-cent prices shared by all SMA windows.
     #[traversable(hidden)]
     pub sma_prefix_sum: CachedSeries<Height, StoredU64, M>,

@@ -6,16 +6,16 @@ use rayon::prelude::*;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 
-pub const P2PK65: &str = "p2pk65";
-pub const P2PK33: &str = "p2pk33";
-pub const P2PKH: &str = "p2pkh";
-pub const P2SH: &str = "p2sh";
-pub const P2WPKH: &str = "p2wpkh";
-pub const P2WSH: &str = "p2wsh";
-pub const P2TR: &str = "p2tr";
-pub const P2A: &str = "p2a";
+const ADDR_TYPE_COUNT: usize = 8;
 
-pub const ADDR_TYPE_COUNT: usize = 8;
+const P2PK65: &str = "p2pk65";
+const P2PK33: &str = "p2pk33";
+const P2PKH: &str = "p2pkh";
+const P2SH: &str = "p2sh";
+const P2WPKH: &str = "p2wpkh";
+const P2WSH: &str = "p2wsh";
+const P2TR: &str = "p2tr";
+const P2A: &str = "p2a";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
@@ -30,7 +30,7 @@ pub enum AddrTypeId {
     P2A,
 }
 
-pub const ADDR_TYPE_IDS: [AddrTypeId; ADDR_TYPE_COUNT] = [
+pub(crate) const ADDR_TYPE_IDS: [AddrTypeId; ADDR_TYPE_COUNT] = [
     AddrTypeId::P2PK65,
     AddrTypeId::P2PK33,
     AddrTypeId::P2PKH,

@@ -1,13 +1,13 @@
 use brk_types::{Age, Cents, CentsSats, CentsSquaredSats, Sats, SupplyState};
 
 pub struct SendPrecomputed {
-    pub sats: Sats,
-    pub prev_price: Cents,
-    pub age: Age,
-    pub current_ps: CentsSats,
-    pub prev_ps: CentsSats,
-    pub ath_ps: CentsSats,
-    pub prev_capitalized_cap: CentsSquaredSats,
+    pub(crate) sats: Sats,
+    pub(crate) prev_price: Cents,
+    pub(crate) age: Age,
+    pub(crate) current_ps: CentsSats,
+    pub(crate) prev_ps: CentsSats,
+    pub(crate) ath_ps: CentsSats,
+    pub(crate) prev_capitalized_cap: CentsSquaredSats,
 }
 
 impl SendPrecomputed {

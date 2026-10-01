@@ -43,10 +43,6 @@ impl<'a> BoundedVec<'a> {
         self.bounds.scope(|| self.source.len().min(self.limit))
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     fn range(&self, from: Option<usize>, to: Option<usize>) -> (usize, usize) {
         let len = self.len();
         let to = to.unwrap_or(len).min(len);

@@ -31,9 +31,4 @@ impl<C: FiatType> AggregateFiatPerBlock<C> {
         });
         Ok(Self { series, stored })
     }
-
-    pub fn push_additive(&mut self, mut values: UTXOAggregate<C>) {
-        values.all = values.sth + values.lth;
-        self.push(values);
-    }
 }

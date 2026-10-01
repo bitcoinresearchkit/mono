@@ -58,7 +58,7 @@ pub enum OpReturnKind {
     Unknown,
 }
 
-pub const OP_RETURN_KINDS: [OpReturnKind; OP_RETURN_KIND_COUNT] = [
+const OP_RETURN_KINDS: [OpReturnKind; OP_RETURN_KIND_COUNT] = [
     OpReturnKind::Runes,
     OpReturnKind::VeriBlock,
     OpReturnKind::Omni,

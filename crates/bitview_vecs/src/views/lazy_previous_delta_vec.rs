@@ -45,7 +45,7 @@ where
     S: VecValue,
     T: VecValue,
 {
-    pub fn transformed(
+    pub(crate) fn transformed(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<I, S> + ?Sized),

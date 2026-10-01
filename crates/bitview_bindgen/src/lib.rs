@@ -92,7 +92,7 @@ pub use types::*;
 
 use generate::*;
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Generate all client libraries from a series catalog and OpenAPI JSON.
 ///

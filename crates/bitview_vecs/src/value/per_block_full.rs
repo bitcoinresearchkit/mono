@@ -15,7 +15,7 @@ pub struct ValuePerBlockFull<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: ValuePerBlockCumulativeRolling<M>,
+    inner: ValuePerBlockCumulativeRolling<M>,
     #[traversable(flatten)]
     pub distribution: RollingDistributionValuePerBlock<M>,
 }

@@ -61,11 +61,6 @@ impl<T: Number> ChunkDecompressor<T> {
     })
   }
 
-  /// Returns pre-computed information about the chunk.
-  pub fn meta(&self) -> &ChunkMeta {
-    &self.inner.meta
-  }
-
   /// Reads metadata for a page and returns a `PageDecompressor` and the
   /// remaining input.
   ///

@@ -10,9 +10,7 @@ use serde::{Deserialize, Serialize};
 pub struct Vin(u16);
 
 impl Vin {
-    pub const ZERO: Self = Vin(0);
-    pub const ONE: Self = Vin(1);
-
+    const ZERO: Self = Vin(0);
     pub fn is_zero(&self) -> bool {
         *self == Self::ZERO
     }

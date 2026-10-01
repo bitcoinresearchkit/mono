@@ -17,7 +17,7 @@ impl HistogramRaw {
     }
 
     #[inline]
-    pub fn increment(&mut self, bin: usize) {
+    pub(crate) fn increment(&mut self, bin: usize) {
         self.0.increment(bin);
     }
 }

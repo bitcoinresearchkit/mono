@@ -40,12 +40,11 @@ use vecdb::{Formattable, Pco};
 pub struct PartsPerMillionSigned64(i64);
 
 impl PartsPerMillionSigned64 {
-    pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(1_000_000);
     pub const NAN: Self = Self(i64::MIN);
 
     #[inline]
-    pub const fn new(value: i64) -> Self {
+    const fn new(value: i64) -> Self {
         debug_assert!(value != i64::MIN, "i64::MIN is reserved as NaN sentinel");
         Self(value)
     }
@@ -61,12 +60,7 @@ impl PartsPerMillionSigned64 {
     }
 
     #[inline]
-    pub fn is_negative(self) -> bool {
-        self.0 < 0 && self.0 != i64::MIN
-    }
-
-    #[inline]
-    pub fn to_f32(self) -> f32 {
+    fn to_f32(self) -> f32 {
         if unlikely(self.is_nan()) {
             f32::NAN
         } else {
@@ -268,7 +262,6 @@ mod tests {
             i64::MIN + 1
         );
         assert!(PartsPerMillionSigned64::from(f64::NEG_INFINITY).is_nan());
-        assert!(!PartsPerMillionSigned64::NAN.is_negative());
 
         #[cfg(feature = "storage")]
         {

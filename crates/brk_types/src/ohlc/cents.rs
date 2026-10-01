@@ -100,12 +100,12 @@ macro_rules! impl_ohlc_deserialize {
                             .next_element::<$inner_type>()?
                             .ok_or_else(|| serde::de::Error::invalid_length(3, &self))?;
 
-                        Ok(Self::Value {
-                            open: Open::new(open),
-                            high: High::new(high),
-                            low: Low::new(low),
-                            close: Close::new(close),
-                        })
+                        Ok(Self::Value::from((
+                            Open::new(open),
+                            High::new(high),
+                            Low::new(low),
+                            Close::new(close),
+                        )))
                     }
                 }
 

@@ -18,11 +18,14 @@ impl Query {
         let bytes = AddrBytes::from_str(addr)?;
         self.resolve_addr_bytes(&bytes)
     }
-    pub fn resolve_addr_bytes(&self, bytes: &AddrBytes) -> Result<(OutputType, TypeIndex)> {
+    pub(crate) fn resolve_addr_bytes(&self, bytes: &AddrBytes) -> Result<(OutputType, TypeIndex)> {
         self.find_addr_bytes(bytes)?
             .ok_or_else(|| self.missing_addr())
     }
-    pub fn find_addr_bytes(&self, bytes: &AddrBytes) -> Result<Option<(OutputType, TypeIndex)>> {
+    pub(crate) fn find_addr_bytes(
+        &self,
+        bytes: &AddrBytes,
+    ) -> Result<Option<(OutputType, TypeIndex)>> {
         let output_type = OutputType::from(bytes);
         let hash = AddrHash::from(bytes);
         Ok(self

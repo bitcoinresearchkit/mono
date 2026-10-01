@@ -2,10 +2,10 @@
 //!
 //! This module generates a Python client with type hints for the Bitview API.
 
-pub mod api;
-pub mod client;
-pub mod tree;
-pub mod types;
+mod api;
+pub(crate) mod client;
+mod tree;
+pub(crate) mod types;
 
 use std::{fmt::Write, io, path::Path};
 

@@ -32,7 +32,7 @@ pub(crate) fn baseline_chunk_meta<L: Latent>() -> ChunkMeta {
 
 /// Returns the maximum possible byte size of a wrapped chunk for a given
 /// latent type (e.g. u32 or u64) and count of numbers.
-pub fn chunk_size<L: Latent>(n: usize) -> usize {
+pub(crate) fn chunk_size<L: Latent>(n: usize) -> usize {
   baseline_chunk_meta::<L>().max_size() + (n * L::BITS as usize).div_ceil(8)
 }
 

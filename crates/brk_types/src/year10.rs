@@ -134,10 +134,10 @@ impl From<Year1> for Year10 {
 }
 
 impl Year10 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "year10"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["10y", "decade", "year10", "decadeindex"]
     }
 }

@@ -16,7 +16,7 @@ where
 {
     pub tx_index: LazyVec<TxIndex, T, TxIndex, S>,
     #[traversable(flatten)]
-    pub distribution: LazyTxDerivedDistribution<T, DSource>,
+    distribution: LazyTxDerivedDistribution<T, DSource>,
 }
 
 impl<T, S, DSource> LazyPerTxDistributionTransformed<T, S, DSource>

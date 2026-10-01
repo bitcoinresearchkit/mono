@@ -5,8 +5,6 @@ use crate::constants::{Bitlen, OVERSHOOT_PADDING};
 use crate::data_types::{Number, NumberType};
 use crate::dyn_slices::DynNumberSliceMut;
 use crate::errors::{PcoError, PcoResult};
-use crate::metadata::format_version::FormatVersion;
-use crate::metadata::ChunkMeta;
 use crate::progress::Progress;
 use crate::standalone::constants::*;
 use crate::wrapped;
@@ -149,42 +147,12 @@ impl FileDecompressor {
     self
   }
 
-  pub fn format_version(&self) -> &FormatVersion {
-    self.inner.format_version()
-  }
-
-  pub fn uniform_type(&self) -> Option<NumberType> {
+  fn uniform_type(&self) -> Option<NumberType> {
     self.uniform_type
   }
 
-  pub fn n_hint(&self) -> usize {
+  fn n_hint(&self) -> usize {
     self.n_hint
-  }
-
-  /// Peeks at what's next in the file, returning the next chunk's number type
-  /// or None if there are no more chunks.
-  ///
-  /// If a uniform number type for the file exists, it will be used instead.
-  /// Will return an error if there is insufficient data or a number type this
-  /// version of Pco does not support.
-  pub fn peek_number_type_or_termination(&self, src: &[u8]) -> PcoResult<Option<NumberType>> {
-    if let Some(uniform_type) = self.uniform_type {
-      return Ok(Some(uniform_type));
-    }
-
-    match src.first() {
-      Some(&byte) => match NumberType::from_descriminant(byte) {
-        Some(number_type) => Ok(Some(number_type)),
-        None if byte == MAGIC_TERMINATION_BYTE => Ok(None),
-        _ => Err(PcoError::corruption(format!(
-          "peeked unknown number type byte: {}",
-          byte
-        ))),
-      },
-      None => Err(PcoError::insufficient_data(
-        "unable to peek number type from empty bytes",
-      )),
-    }
   }
 
   // returns (n_if_not_terminated, rest)
@@ -263,7 +231,7 @@ impl FileDecompressor {
   /// dtype, allowing them to know which type `<T>` to use here. There is no
   /// analagous file compressor method because the user always knows the dtype
   /// during compression.
-  pub fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
+  pub(crate) fn simple_decompress<T: Number>(&self, mut src: &[u8]) -> PcoResult<Vec<T>> {
     // `n_hint` is untrusted and unrelated to how much data is actually
     // present, so we only follow it up to a cap.
     let max_prealloc = self.max_prealloc_bytes / mem::size_of::<T>();
@@ -285,13 +253,8 @@ pub struct ChunkDecompressor<T: Number, R: BetterBufRead> {
 }
 
 impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
-  /// Returns pre-computed information about the chunk.
-  pub fn meta(&self) -> &ChunkMeta {
-    self.inner_cd.meta()
-  }
-
   /// Returns the count of numbers in the chunk.
-  pub fn n(&self) -> usize {
+  pub(crate) fn n(&self) -> usize {
     self.n
   }
 
@@ -323,7 +286,7 @@ impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
   ///
   /// `dst` must have length either a multiple of 256 or be at least the count
   /// of numbers remaining in the chunk.
-  pub fn read_uninit(&mut self, dst: &mut [MaybeUninit<T>]) -> PcoResult<Progress> {
+  pub(crate) fn read_uninit(&mut self, dst: &mut [MaybeUninit<T>]) -> PcoResult<Progress> {
     let progress = self.page_state.read(
       &mut self.inner_cd.inner,
       DynNumberSliceMut::new(dst),
@@ -340,7 +303,7 @@ impl<T: Number, R: BetterBufRead> ChunkDecompressor<T, R> {
   }
 
   // a helper for some internal things
-  pub(crate) fn decompress_remaining_extend(&mut self, dst: &mut Vec<T>) -> PcoResult<()> {
+  fn decompress_remaining_extend(&mut self, dst: &mut Vec<T>) -> PcoResult<()> {
     let initial_len = dst.len();
     let remaining = self.n - self.n_processed;
     dst.reserve(remaining);

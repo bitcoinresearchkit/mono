@@ -284,10 +284,10 @@ impl From<EmptyOutputIndex> for StoredU64 {
 }
 
 impl StoredU64 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "u64"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["u64"]
     }
 }

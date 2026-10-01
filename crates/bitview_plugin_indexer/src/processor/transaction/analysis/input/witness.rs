@@ -140,7 +140,7 @@ mod tests {
     use crate::TxFeatureFlags;
 
     #[test]
-    pub fn recognizes_only_ord_envelopes() {
+    fn recognizes_only_ord_envelopes() {
         let inscription = ScriptBuf::from_hex("0063036f726468").unwrap();
         let generic_envelope = ScriptBuf::from_hex("006303666f6f68").unwrap();
 
@@ -149,7 +149,7 @@ mod tests {
     }
 
     #[test]
-    pub fn reads_tapscript_before_control_block_and_annex() {
+    fn reads_tapscript_before_control_block_and_annex() {
         let script = ScriptBuf::from_hex("0063036f726468").unwrap();
         let control_block = [0xc0; 33];
         let annex = [TAPROOT_ANNEX_PREFIX, 0x01];
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    pub fn reads_fixed_shape_p2wpkh_once() {
+    fn reads_fixed_shape_p2wpkh_once() {
         let signature = [0x01; 71];
         let public_key = [0x02; 33];
         let witness = Witness::from_slice(&[signature.as_slice(), public_key.as_slice()]);
@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    pub fn reads_taproot_key_path_once() {
+    fn reads_taproot_key_path_once() {
         let signature = [0x00; 64];
         let witness = Witness::from_slice(&[signature]);
         let mut flags = TxFeatureFlags::default();

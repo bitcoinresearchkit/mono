@@ -2,7 +2,7 @@
 #[derive(Debug, Clone)]
 pub struct TextSchema {
     /// Schema name, e.g. "Height", "Hex".
-    pub name: String,
+    pub(crate) name: String,
     /// True when the underlying primitive is `integer`/`number` (body needs numeric parsing).
-    pub is_numeric: bool,
+    pub(crate) is_numeric: bool,
 }

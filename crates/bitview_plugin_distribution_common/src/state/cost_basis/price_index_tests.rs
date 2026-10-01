@@ -20,17 +20,14 @@ fn bulk_and_incremental_queries_match_a_sorted_reference() {
         incremental.add(price, sats, [true, sth]);
     }
     bulk.build();
+    let batches = [&bulk, &incremental].map(|index| {
+        index.percentiles::<3>(|filter, n| match filter {
+            0 => (n.sats[0], n.cap[0]),
+            1 => (n.sats[1], n.cap[1]),
+            _ => (n.sats[0] - n.sats[1], n.cap[0] - n.cap[1]),
+        })
+    });
     for filter in 0..3 {
-        let sat = |n: &PriceTotals<2>| match filter {
-            0 => n.sats[0],
-            1 => n.sats[1],
-            _ => n.sats[0] - n.sats[1],
-        };
-        let cap = |n: &PriceTotals<2>| match filter {
-            0 => n.cap[0],
-            1 => n.cap[1],
-            _ => n.cap[0] - n.cap[1],
-        };
         let included = |sth| filter == 0 || (filter == 1) == sth;
         let selected: Vec<_> = rows.iter().filter(|&&(_, _, sth)| included(sth)).collect();
         let total_sats = selected.iter().map(|&&(_, s, _)| s).sum::<i64>();
@@ -52,8 +49,8 @@ fn bulk_and_incremental_queries_match_a_sorted_reference() {
             }
             panic!("unreachable percentile target");
         };
-        for index in [&bulk, &incremental] {
-            let result = index.percentiles(sat, cap);
+        for batch in &batches {
+            let result = &batch[filter];
             assert_eq!(result.min_price, expected(0, false));
             assert_eq!(result.max_price, expected(total_sats as i128 - 1, false));
             for (i, &p) in PERCENTILES.iter().enumerate() {
@@ -100,7 +97,20 @@ fn bulk_and_incremental_queries_match_a_sorted_reference() {
     assert_eq!(bulk.totals().sats, [0; 2]);
     assert_eq!(bulk.totals().cap, [0; 2]);
     assert_eq!(
-        bulk.percentiles(|n| n.sats[0], |n| n.cap[0]).max_price,
+        bulk.percentiles::<1>(|_, n| (n.sats[0], n.cap[0]))[0].max_price,
         Cents::ZERO
     );
+}
+
+#[test]
+fn absent_and_zero_cap_queries_keep_zero_percentiles() {
+    let mut index = PriceIndex::<2>::default();
+    index.add(CentsCompact::ZERO, 23, [true, false]);
+    let [all, empty] = index.percentiles(|q, n| (n.sats[q], n.cap[q]));
+    for result in [all, empty] {
+        assert_eq!(result.min_price, Cents::ZERO);
+        assert_eq!(result.max_price, Cents::ZERO);
+        assert_eq!(result.sat_prices, [Cents::ZERO; PERCENTILES_LEN]);
+        assert_eq!(result.usd_prices, [Cents::ZERO; PERCENTILES_LEN]);
+    }
 }

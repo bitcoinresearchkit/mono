@@ -84,7 +84,7 @@ impl ResolvedBlocks {
         query.block_raw_size_at_height(height, &hash, &self.guard)
     }
 
-    pub fn range(&self) -> (usize, usize, Lengths) {
+    pub(crate) fn range(&self) -> (usize, usize, Lengths) {
         (self.begin, self.end, self.guard.lengths())
     }
 }

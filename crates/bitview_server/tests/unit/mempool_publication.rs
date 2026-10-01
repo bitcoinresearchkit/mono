@@ -14,20 +14,20 @@ use crate::{AppState, api::ApiRoutes};
 
 const PATHS: [&str; 3] = ["/api/mempool", "/api/mempool/recent", "/api/mempool/txids"];
 
-pub struct MempoolPublication {
+pub(crate) struct MempoolPublication {
     state: AppState,
     tags: Vec<String>,
 }
 
 impl MempoolPublication {
-    pub fn new(state: AppState) -> Self {
+    pub(crate) fn new(state: AppState) -> Self {
         Self {
             state,
             tags: Vec::new(),
         }
     }
 
-    pub async fn check_unavailable(&self, address: SocketAddr) {
+    pub(crate) async fn check_unavailable(&self, address: SocketAddr) {
         let mut requests = JoinSet::new();
         for (index, path) in PATHS.iter().enumerate() {
             for method in ["GET", "HEAD"] {
@@ -54,7 +54,7 @@ impl MempoolPublication {
         }
     }
 
-    pub async fn check_available(&mut self, address: SocketAddr) {
+    pub(crate) async fn check_available(&mut self, address: SocketAddr) {
         let first = self.tags.is_empty();
         self.tags.clear();
         for (index, path) in PATHS.iter().enumerate() {
@@ -89,7 +89,7 @@ impl MempoolPublication {
     }
 
     #[cfg(feature = "price")]
-    pub async fn check_live_outputs(&self, address: SocketAddr) {
+    pub(crate) async fn check_live_outputs(&self, address: SocketAddr) {
         time::timeout(Duration::from_secs(5), async {
             let mut prices = Vec::new();
             for path in LIVE_OUTPUT_PATHS {
@@ -129,7 +129,7 @@ impl MempoolPublication {
     }
 
     #[cfg(feature = "price")]
-    pub async fn check_live_outputs_unavailable(&self, address: SocketAddr) {
+    pub(crate) async fn check_live_outputs_unavailable(&self, address: SocketAddr) {
         for path in LIVE_OUTPUT_PATHS {
             for method in ["GET", "HEAD"] {
                 let response = exchange_with_etag(address, method, path, "*").await;

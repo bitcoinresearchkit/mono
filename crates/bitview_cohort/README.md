@@ -8,19 +8,16 @@ Value collections and cohort identifiers work without the storage engine.
 Enable the `storage` feature for traversal, vecdb formatting traits, and
 storage-enabled BRK types. The Rust client leaves this feature disabled.
 
-`UTXOGroupCore` supplies the common logical group fields; amount and type
-extensions retain it by composition. `UTXOCoreValues` contains the three shared
-disjoint cohort families (age, epoch, and creation year), and `UTXOValues` adds amount/type values. Public groups
-also retain the independently stored all/STH/LTH aggregates. Generic under/over
-threshold cohorts are reconstructed by their consumers when needed.
+`CreationCohorts` groups the three disjoint creation-based families: age, epoch
+and creation year. `UTXOCoreValues` supports mapping and addition over those
+families. Amount and output-type cohorts use their own
+`AmountRange` and `SpendableType` collections. Consumers compose only the
+families they need and reconstruct under/over thresholds from disjoint inputs.
 Entry-price cohorts use their own `ByEntry` collection in the optional
 `bitview_plugin_distribution_entry` plugin.
 
-`UTXOAndAddrGroups<T>` adds address-balance groups to `UTXOGroups<T>` as one
-composed shape. It keeps output-value and controlling-address-balance cohorts
-distinct, and exposes the existing UTXO paths plus `addr_balance`. Its optional
-second type parameter lets the address axis own its stored sources. Use the
-UTXO-only or reduced shapes for metrics that do not support address balances;
+Address balance cohorts use `AmountRange` with the address naming context.
+`ByAddrType` and `WithAddrTypes` compose address-type populations where needed;
 address predicates such as reused or exposed remain separate populations.
 
 ## Identity and Composition
@@ -42,8 +39,9 @@ pub enum CohortId {
 }
 ```
 
-`AgeRangeId::select` and `AmountRangeId::select` select fields directly. Composed
-UTXO groups accept `CohortId` and return `None` for unsupported families.
+`AgeRangeId::select` and `AmountRangeId::select` select fields directly.
+`CreationCohorts::get` accepts creation-based `CohortId` values and returns
+`None` for other families.
 
 `CohortId::age_ranges()` enumerates the disjoint age inputs of all/STH/LTH.
 Selection does not reconstruct a stored series from other series. Reconstruct
@@ -87,14 +85,14 @@ files for them are not deleted by this change.
 ## Example
 
 ```rust,ignore
-use bitview_cohort::{AgeRangeId, CohortContext, UTXOGroups};
+use bitview_cohort::{AgeRange, AgeRangeId, CohortContext};
 
-let id = AgeRangeId::From9MTo1Y.cohort();
-let names = UTXOGroups::new(|id| CohortContext::Utxo.metric_name(id, "supply"));
-assert_eq!(names.get(id).unwrap(), "utxos_9m_to_1y_old_supply");
+let age = AgeRangeId::From9MTo1Y;
+let names = AgeRange::from_fn(|id| CohortContext::Utxo.metric_name(id.cohort(), "supply"));
+assert_eq!(age.select(&names), "utxos_9m_to_1y_old_supply");
 
 // Naming adds utxos_/addrs_ only for age and amount cohorts, and omits all_.
-assert_eq!(CohortContext::Utxo.full_name(id), "utxos_9m_to_1y_old");
+assert_eq!(CohortContext::Utxo.full_name(age.cohort()), "utxos_9m_to_1y_old");
 ```
 
 ## Built On

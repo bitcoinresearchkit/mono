@@ -24,8 +24,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(wrap = "addrs", rename = "state")]
     pub addr_state: AddrStateVecs<M>,
     #[traversable(wrap = "addrs", rename = "by_balance")]
-    pub balances: Box<BalanceMetrics<M>>,
-    pub addrs: AddrVecs<M>,
+    pub(crate) balances: Box<BalanceMetrics<M>>,
+    pub(crate) addrs: AddrVecs<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

@@ -5,7 +5,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use super::{DescriptionSearch, SeriesId, Vecs, normalize::normalize};
 
 impl Vecs<'_> {
-    pub fn matches(&self, series: &SeriesName, limit: Limit) -> Vec<&'_ str> {
+    pub(crate) fn matches(&self, series: &SeriesName, limit: Limit) -> Vec<&'_ str> {
         matches(
             &self.series_names,
             &self.matcher,

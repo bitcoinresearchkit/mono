@@ -29,7 +29,7 @@ impl SeriesLeaf {
     }
 
     /// Merge compatible metadata for another occurrence of the same series.
-    pub fn merge(&mut self, other: &Self) -> Option<()> {
+    pub(crate) fn merge(&mut self, other: &Self) -> Option<()> {
         match (&self.description, &other.description) {
             (Some(current), Some(incoming)) if current != incoming => return None,
             (None, Some(description)) => self.description = Some(description.clone()),

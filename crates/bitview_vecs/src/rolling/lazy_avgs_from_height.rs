@@ -28,7 +28,7 @@ impl<T> LazyRollingAvgsFromHeight<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         cumulative: &impl ReadableCloneableVec<Height, T>,

@@ -233,7 +233,7 @@ mod tests {
     use crate::TxFeatureFlags;
 
     #[test]
-    pub fn tracks_executed_sigops_only_when_policy_uses_them() {
+    fn tracks_executed_sigops_only_when_policy_uses_them() {
         assert!(!tracks_executed_legacy_sigops(Height::from(
             FIRST_V30_POLICY_HEIGHT - 1
         )));
@@ -243,7 +243,7 @@ mod tests {
     }
 
     #[test]
-    pub fn accepts_only_policy_transaction_versions() {
+    fn accepts_only_policy_transaction_versions() {
         assert!(has_nonstandard_version(0, LAST_V2_POLICY_HEIGHT));
         assert!(has_nonstandard_version(-1, LAST_V2_POLICY_HEIGHT));
         assert!(!has_nonstandard_version(1, LAST_V2_POLICY_HEIGHT));
@@ -253,13 +253,13 @@ mod tests {
     }
 
     #[test]
-    pub fn p2a_spending_starts_after_the_v2_policy_snapshot() {
+    fn p2a_spending_starts_after_the_v2_policy_snapshot() {
         assert!(p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT));
         assert!(!p2a_spend_is_nonstandard(LAST_V2_POLICY_HEIGHT + 1));
     }
 
     #[test]
-    pub fn op_return_limits_switch_at_the_v30_policy_snapshot() {
+    fn op_return_limits_switch_at_the_v30_policy_snapshot() {
         assert!(!op_return_is_nonstandard(
             FIRST_V30_POLICY_HEIGHT - 1,
             1,
@@ -288,7 +288,7 @@ mod tests {
     }
 
     #[test]
-    pub fn applies_ephemeral_dust_policy_from_v29() {
+    fn applies_ephemeral_dust_policy_from_v29() {
         assert!(!has_unconditionally_nonstandard_dust(
             FIRST_V29_POLICY_HEIGHT - 1,
             0
@@ -308,7 +308,7 @@ mod tests {
     }
 
     #[test]
-    pub fn uses_exact_dust_thresholds_for_fixed_scripts() {
+    fn uses_exact_dust_thresholds_for_fixed_scripts() {
         let scripts = [
             AddrBytes::from(P2PK65Bytes::from(&[0; 65][..])).to_script_pubkey(),
             AddrBytes::from(P2PK33Bytes::from(&[0; 33][..])).to_script_pubkey(),
@@ -342,7 +342,7 @@ mod tests {
     }
 
     #[test]
-    pub fn keeps_exact_dust_calculation_for_unknown_scripts() {
+    fn keeps_exact_dust_calculation_for_unknown_scripts() {
         let script = ScriptBuf::from_bytes(vec![0x61; 1_000]);
         let threshold = script.minimal_non_dust().to_sat();
 
@@ -359,7 +359,7 @@ mod tests {
     }
 
     #[test]
-    pub fn recognizes_future_witness_programs() {
+    fn recognizes_future_witness_programs() {
         assert!(is_standard_unknown_witness(
             &ScriptBuf::from_hex(
                 "52200000000000000000000000000000000000000000000000000000000000000000"
@@ -375,13 +375,13 @@ mod tests {
     }
 
     #[test]
-    pub fn limits_standard_bare_multisig_to_three_keys() {
+    fn limits_standard_bare_multisig_to_three_keys() {
         assert!(!has_too_many_bare_multisig_keys(SigOps::new(12)));
         assert!(has_too_many_bare_multisig_keys(SigOps::new(16)));
     }
 
     #[test]
-    pub fn rejects_p2a_witness_stuffing() {
+    fn rejects_p2a_witness_stuffing() {
         let input = TxIn {
             witness: Witness::from_slice(&[b"stuffing"]),
             ..TxIn::default()
@@ -391,7 +391,7 @@ mod tests {
     }
 
     #[test]
-    pub fn enforces_witness_stack_item_limits() {
+    fn enforces_witness_stack_item_limits() {
         let oversized = [0_u8; 81];
         let input = TxIn {
             witness: Witness::from_slice(&[oversized.as_slice(), [0x51].as_slice()]),

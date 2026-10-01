@@ -7,7 +7,7 @@ use crate::{Endpoint, VERSION, generators::write_description, to_snake_case};
 use super::types::js_type_to_rust;
 
 /// Generate the main BitviewClient struct.
-pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
+pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     writeln!(
         output,
         r#"/// Main Bitview client with series tree and API methods.
@@ -111,7 +111,7 @@ impl BitviewClient {{
 }
 
 /// Generate API methods from OpenAPI endpoints.
-pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
+fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints {
         if !endpoint.should_generate() {
             continue;

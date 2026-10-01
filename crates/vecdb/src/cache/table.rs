@@ -37,7 +37,7 @@ impl<T: Clone> Table<T> {
         (index - start < value.len()).then_some((*start, value))
     }
 
-    pub(super) fn reserve(&mut self, len: usize, account: &Arc<Account>) -> bool {
+    fn reserve(&mut self, len: usize, account: &Arc<Account>) -> bool {
         if len <= self.entries.capacity() {
             return true;
         }

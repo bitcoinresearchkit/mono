@@ -7,15 +7,15 @@ use bitview_traversable::Traversable;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct WindowsFrom1w<A> {
     /// Uses a trailing 7-day window.
-    pub _1w: A,
+    _1w: A,
     /// Uses a trailing 30-day window.
-    pub _1m: A,
+    _1m: A,
     /// Uses a trailing 365-day window.
-    pub _1y: A,
+    _1y: A,
 }
 
 impl<A> WindowsFrom1w<A> {
-    pub const SUFFIXES: [&'static str; 3] = ["1w", "1m", "1y"];
+    const SUFFIXES: [&'static str; 3] = ["1w", "1m", "1y"];
 
     pub fn try_from_fn<E>(mut f: impl FnMut(&str) -> Result<A, E>) -> Result<Self, E> {
         Ok(Self {

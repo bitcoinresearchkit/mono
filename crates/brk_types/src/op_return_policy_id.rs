@@ -1,5 +1,3 @@
-pub const OP_RETURN_POLICY_COUNT: usize = OpReturnPolicyId::Multiple as usize + 1;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum OpReturnPolicyId {
@@ -9,7 +7,9 @@ pub enum OpReturnPolicyId {
     Multiple,
 }
 
-pub const OP_RETURN_POLICY_IDS: [OpReturnPolicyId; OP_RETURN_POLICY_COUNT] = [
+const OP_RETURN_POLICY_COUNT: usize = OpReturnPolicyId::Multiple as usize + 1;
+
+const OP_RETURN_POLICY_IDS: [OpReturnPolicyId; OP_RETURN_POLICY_COUNT] = [
     OpReturnPolicyId::PreV30Standard,
     OpReturnPolicyId::PreV30Nonstandard,
     OpReturnPolicyId::Oversized,
@@ -20,7 +20,7 @@ impl OpReturnPolicyId {
     pub const ALL: &'static [Self] = &OP_RETURN_POLICY_IDS;
 
     #[inline]
-    pub fn index(self) -> usize {
+    fn index(self) -> usize {
         self as usize
     }
 

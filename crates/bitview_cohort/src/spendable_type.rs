@@ -8,8 +8,6 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-pub const SPENDABLE_TYPE_COUNT: usize = 11;
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum SpendableTypeId {
@@ -26,7 +24,9 @@ pub enum SpendableTypeId {
     Empty,
 }
 
-pub const SPENDABLE_TYPE_IDS: [SpendableTypeId; SPENDABLE_TYPE_COUNT] = [
+const SPENDABLE_TYPE_COUNT: usize = 11;
+
+const SPENDABLE_TYPE_IDS: [SpendableTypeId; SPENDABLE_TYPE_COUNT] = [
     SpendableTypeId::P2PK65,
     SpendableTypeId::P2PK33,
     SpendableTypeId::P2PKH,
@@ -59,7 +59,7 @@ impl SpendableTypeId {
     }
 
     #[inline]
-    pub fn select_mut<T>(self, values: &mut SpendableType<T>) -> &mut T {
+    fn select_mut<T>(self, values: &mut SpendableType<T>) -> &mut T {
         match self {
             Self::P2PK65 => &mut values.p2pk65,
             Self::P2PK33 => &mut values.p2pk33,
@@ -75,7 +75,7 @@ impl SpendableTypeId {
         }
     }
 
-    pub const fn from_output_type(value: OutputType) -> Option<Self> {
+    const fn from_output_type(value: OutputType) -> Option<Self> {
         match value {
             OutputType::P2PK65 => Some(Self::P2PK65),
             OutputType::P2PK33 => Some(Self::P2PK33),
@@ -132,27 +132,27 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct SpendableType<T> {
     /// Uses pay-to-public-key outputs with a 65-byte key field.
-    pub p2pk65: T,
+    p2pk65: T,
     /// Uses pay-to-public-key outputs with a 33-byte key field.
-    pub p2pk33: T,
+    p2pk33: T,
     /// Uses pay-to-public-key-hash outputs.
-    pub p2pkh: T,
+    p2pkh: T,
     /// Uses bare pay-to-multisig outputs.
-    pub p2ms: T,
+    p2ms: T,
     /// Uses pay-to-script-hash outputs.
-    pub p2sh: T,
+    p2sh: T,
     /// Uses version-0 pay-to-witness-public-key-hash outputs.
-    pub p2wpkh: T,
+    p2wpkh: T,
     /// Uses version-0 pay-to-witness-script-hash outputs.
-    pub p2wsh: T,
+    p2wsh: T,
     /// Uses pay-to-Taproot outputs.
-    pub p2tr: T,
+    p2tr: T,
     /// Uses pay-to-Anchor outputs.
-    pub p2a: T,
+    p2a: T,
     /// Uses outputs that do not match another recognized locking-script type.
-    pub unknown: T,
+    unknown: T,
     /// Uses outputs with an empty locking script.
-    pub empty: T,
+    empty: T,
 }
 
 impl_cohort_collection!(SpendableTypeId for SpendableType {

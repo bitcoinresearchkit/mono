@@ -179,11 +179,6 @@ impl Database {
         self.flush_inner(&_writes).map(|(regions, _)| regions)
     }
 
-    pub(crate) fn metadata_is_dirty(&self, _writes: &RwLockWriteGuard<'_, ()>) -> bool {
-        // SAFETY: every registry/metadata mutation also holds the database barrier.
-        unsafe { (&*self.inner.regions.data_ptr()).metadata_is_dirty() }
-    }
-
     pub(crate) fn flush_inner(&self, _writes: &RwLockWriteGuard<'_, ()>) -> Result<(usize, bool)> {
         // The caller holds the mutation barrier, so dirty state stays stable.
         // Leave it intact until both files are durable; errors need no rollback.

@@ -19,9 +19,9 @@ pub struct SeriesData<T = Value> {
     #[serde(rename = "type", default)]
     pub value_type: String,
     /// Start index (inclusive) of the returned range
-    pub start: usize,
+    start: usize,
     /// End index (exclusive) of the returned range
-    pub end: usize,
+    end: usize,
     /// ISO 8601 timestamp of when the response was generated
     pub stamp: String,
     /// The series data
@@ -30,7 +30,7 @@ pub struct SeriesData<T = Value> {
 
 impl<T> SeriesData<T> {
     /// Returns an iterator over the index range.
-    pub fn indexes(&self) -> Range<usize> {
+    fn indexes(&self) -> Range<usize> {
         self.start..self.end
     }
 
@@ -41,7 +41,7 @@ impl<T> SeriesData<T> {
 
     /// Returns an iterator over dates for the index range.
     /// Returns `None` for non-date-based and sub-daily indexes (use `timestamps()` instead).
-    pub fn dates(&self) -> Option<impl Iterator<Item = Date> + '_> {
+    fn dates(&self) -> Option<impl Iterator<Item = Date> + '_> {
         // Check first index to verify date conversion works (sub-daily returns None)
         self.index.index_to_date(self.start)?;
         let index = self.index;
@@ -51,7 +51,7 @@ impl<T> SeriesData<T> {
     /// Returns an iterator over timestamps for the index range.
     /// Works for all date-based indexes including sub-daily.
     /// Returns `None` for non-date-based indexes.
-    pub fn timestamps(&self) -> Option<impl Iterator<Item = Timestamp> + '_> {
+    fn timestamps(&self) -> Option<impl Iterator<Item = Timestamp> + '_> {
         if !self.is_date_based() {
             return None;
         }
@@ -60,11 +60,6 @@ impl<T> SeriesData<T> {
             self.indexes()
                 .map(move |i| index.index_to_timestamp(i).unwrap()),
         )
-    }
-
-    /// Iterate over (index, &value) pairs.
-    pub fn iter(&self) -> impl Iterator<Item = (usize, &T)> {
-        self.indexes().zip(self.data.iter())
     }
 
     /// Iterate over (date, &value) pairs.

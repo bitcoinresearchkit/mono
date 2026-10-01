@@ -58,12 +58,6 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         self.pos
     }
 
-    /// Returns the number of elements remaining.
-    #[inline]
-    pub fn remaining(&self) -> usize {
-        self.len.saturating_sub(self.pos)
-    }
-
     /// Advances the position by `n` without reading. Cheap — no decompression.
     #[inline]
     pub fn advance(&mut self, n: usize) {

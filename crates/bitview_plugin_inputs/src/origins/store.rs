@@ -23,21 +23,11 @@ impl OriginSpends {
         self.store.validate_version(u32::from(version).into())?;
         Ok(())
     }
-    pub fn start(&self) -> usize {
+    pub(crate) fn start(&self) -> usize {
         self.store.start()
     }
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.store.len()
-    }
-    pub fn is_empty(&self) -> bool {
-        self.store.is_empty()
-    }
-    pub fn seed(&mut self, start: usize) -> Result<()> {
-        self.store.seed(start)?;
-        Ok(())
-    }
-    pub fn version(&self) -> Version {
-        Version::ONE + Version::from(self.store.version() as u32)
     }
     pub(super) fn hash(&self, height: usize) -> Result<BlockHash> {
         Ok(BlockHash::from_bytes(&self.store.hash(height)?)?)

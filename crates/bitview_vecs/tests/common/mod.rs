@@ -10,7 +10,7 @@ use vecdb::{
 mod cache;
 pub(crate) use cache::init_cache;
 
-pub fn stored<I: VecIndex, T: PcoVecValue>(
+pub(crate) fn stored<I: VecIndex, T: PcoVecValue>(
     db: &Database,
     name: &str,
     values: impl IntoIterator<Item = T>,
@@ -24,7 +24,7 @@ pub fn stored<I: VecIndex, T: PcoVecValue>(
     vec
 }
 
-pub fn first_heights<I: VecIndex>(
+pub(crate) fn first_heights<I: VecIndex>(
     name: &str,
     values: impl IntoIterator<Item = Height>,
 ) -> RangeMapVec<I, Height> {
@@ -35,7 +35,7 @@ pub fn first_heights<I: VecIndex>(
     )
 }
 
-pub fn indexes(db: &Database) -> IndexSources {
+pub(crate) fn indexes(db: &Database) -> IndexSources {
     macro_rules! empty {
         ($name:expr) => {
             stored(db, $name, std::iter::empty())

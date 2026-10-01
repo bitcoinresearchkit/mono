@@ -22,16 +22,16 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub rolling: RollingTotals<T>,
+    rolling: RollingTotals<T>,
     #[traversable(flatten)]
-    pub distribution: RollingDistribution<T, M>,
+    pub(crate) distribution: RollingDistribution<T, M>,
 }
 
 impl<T> RollingComplete<T>
 where
     T: NumericValue + JsonSchema,
 {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -49,7 +49,7 @@ where
     }
 
     /// Compute rolling distribution stats across all 4 windows.
-    pub fn compute(
+    pub(crate) fn compute(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,

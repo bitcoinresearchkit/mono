@@ -81,10 +81,10 @@ impl VecdbCheckedSub<P2MSOutputIndex> for P2MSOutputIndex {
 }
 
 impl P2MSOutputIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "p2ms_output_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["msout", "p2msout", "p2ms_output_index"]
     }
 }

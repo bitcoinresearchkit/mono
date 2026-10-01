@@ -81,7 +81,7 @@ use raw_body::RawBodyPermit;
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);

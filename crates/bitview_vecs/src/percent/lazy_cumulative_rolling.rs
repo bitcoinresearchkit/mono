@@ -16,7 +16,7 @@ pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
     #[traversable(flatten)]
     pub cumulative: LazyPercentPerBlock<B>,
     #[traversable(flatten)]
-    pub rolling: LazyPercentRollingWindows<B>,
+    rolling: LazyPercentRollingWindows<B>,
 }
 
 impl<B: FixedRatio> LazyPercentCumulativeRolling<B> {

@@ -97,7 +97,7 @@ impl<B: AsRef<[u8]>> StandardBloomFilterReader<B> {
     /// Will never have a false negative.
     #[cfg(test)]
     #[must_use]
-    pub fn contains(&self, key: &[u8]) -> bool {
+    fn contains(&self, key: &[u8]) -> bool {
         self.contains_hash(Builder::get_hash(key))
     }
 

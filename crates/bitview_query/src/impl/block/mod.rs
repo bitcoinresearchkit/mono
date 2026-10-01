@@ -28,11 +28,7 @@ impl Query {
         }
     }
 
-    pub(super) fn height_by_hash_at(
-        &self,
-        hash: &BlockHash,
-        guard: &SafeLengths,
-    ) -> Result<Height> {
+    fn height_by_hash_at(&self, hash: &BlockHash, guard: &SafeLengths) -> Result<Height> {
         let height = self
             .indexer()
             .stores()

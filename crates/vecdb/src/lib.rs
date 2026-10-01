@@ -48,8 +48,6 @@ pub use sparse_read::SparseRead;
 
 pub use stamp::Stamp;
 
-#[cfg(feature = "schemars")]
-pub use traits::AnyVecWithSchema;
 pub use traits::{
     AnyExportableVec, AnyReadableVec, AnySerializableVec, AnyStoredVec, AnyVec, AnyVecWithWriter,
     Formattable, ImportableVec, PrintableIndex, READ_CHUNK_SIZE, ReadOnlyClone, ReadableBoxedVec,
@@ -60,9 +58,9 @@ pub use traits::{
 pub use variants::{
     BytesStrategy, BytesVec, BytesVecReader, BytesVecValue, CompressedRangeCursor,
     CompressionStrategy, DeltaAvg, DeltaChange, DeltaOp, DeltaRate, DeltaSub, EagerVec,
-    EncodedChunk, Halve, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec,
-    OverflowVec, OverflowVecReader, OverflowVecReaderCursor, OverflowVecValue, RawRangeCursor,
-    RawStrategy, ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
+    EncodedChunk, Ident, IndexVec, LazyDeltaVec, LazyVec, MapOption, MutableVec, OverflowVec,
+    OverflowVecReader, OverflowVecReaderCursor, OverflowVecValue, RawRangeCursor, RawStrategy,
+    ReadOnlyCompressedVec, ReadOnlyMutableVec, ReadOnlyOverflowVec, ReadOnlyRawVec,
     ReadWriteRawVec, UnaryTransform, VecReader, VecReaderCursor,
 };
 #[cfg(feature = "lz4")]

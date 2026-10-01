@@ -10,9 +10,9 @@ use super::Sources;
 #[derive(Clone, Traversable)]
 pub struct OutputMetrics {
     /// Number of unspent outputs in this cohort.
-    pub unspent_count: LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
+    unspent_count: LazyPerBlockWithDeltas<StoredU64, StoredI64, PartsPerMillionSigned64>,
     /// Number of outputs spent from this cohort.
-    pub spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
+    pub(crate) spent_count: LazyPerBlockCumulativeRolling<StoredU64>,
 }
 
 impl OutputMetrics {

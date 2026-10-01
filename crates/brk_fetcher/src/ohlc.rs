@@ -6,7 +6,7 @@ use serde_json::Value;
 use tracing::warn;
 
 /// Parse OHLC value from a JSON array element at given index
-pub fn parse_cents(array: &[Value], index: usize) -> Cents {
+fn parse_cents(array: &[Value], index: usize) -> Cents {
     let value = array
         .get(index)
         .and_then(|v| v.as_str())
@@ -22,7 +22,7 @@ pub fn parse_cents(array: &[Value], index: usize) -> Cents {
 }
 
 /// Build OHLCCentsUnsigned from array indices 1-4 (open, high, low, close)
-pub fn ohlc_from_array(array: &[Value]) -> OHLCCents {
+pub(crate) fn ohlc_from_array(array: &[Value]) -> OHLCCents {
     OHLCCents::from((
         Open::new(parse_cents(array, 1)),
         High::new(parse_cents(array, 2)),
@@ -71,16 +71,16 @@ pub fn compute_ohlc_from_range(
 }
 
 /// Parse timestamp from milliseconds (Binance format)
-pub fn timestamp_from_ms(ms: u64) -> Timestamp {
+pub(crate) fn timestamp_from_ms(ms: u64) -> Timestamp {
     Timestamp::from((ms / 1_000) as u32)
 }
 
 /// Parse timestamp from seconds (Kraken format)
-pub fn timestamp_from_secs(secs: u64) -> Timestamp {
+pub(crate) fn timestamp_from_secs(secs: u64) -> Timestamp {
     Timestamp::from(secs as u32)
 }
 
 /// Convert timestamp to date
-pub fn date_from_timestamp(timestamp: Timestamp) -> Date {
+pub(crate) fn date_from_timestamp(timestamp: Timestamp) -> Date {
     Date::from(timestamp)
 }

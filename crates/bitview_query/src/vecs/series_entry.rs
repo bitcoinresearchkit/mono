@@ -18,7 +18,7 @@ pub enum SeriesEntryLookup<'a> {
 }
 
 impl<'a> SeriesEntry<'a> {
-    pub fn new(
+    pub(crate) fn new(
         index: Index,
         vec: &'a dyn AnyExportableVec,
         plugin: &'a dyn Plugin,
@@ -32,21 +32,21 @@ impl<'a> SeriesEntry<'a> {
         }
     }
 
-    pub fn index(self) -> Index {
+    pub(crate) fn index(self) -> Index {
         self.index
     }
 
-    pub fn vec(self) -> &'a dyn AnyExportableVec {
+    pub(crate) fn vec(self) -> &'a dyn AnyExportableVec {
         self.vec
     }
 
-    pub fn plugin(self) -> &'a dyn Plugin {
+    pub(crate) fn plugin(self) -> &'a dyn Plugin {
         self.plugin
     }
 
     /// Whether existing values may change, preventing an immutable cache prefix.
     /// Publication guards are required independently of this flag.
-    pub fn is_mutable(self) -> bool {
+    pub(crate) fn is_mutable(self) -> bool {
         self.is_mutable
     }
 }

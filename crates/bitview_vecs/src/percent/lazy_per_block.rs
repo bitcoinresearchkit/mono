@@ -42,7 +42,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         Self::from_height_source(name, version, &source, indexes)
     }
 
-    pub fn from_ratio_with_numerator<S, D, F>(
+    pub(crate) fn from_ratio_with_numerator<S, D, F>(
         name: &str,
         version: Version,
         numerator: &impl ReadableCloneableVec<Height, S>,
@@ -103,7 +103,7 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         Self::from_ppm(name, version, ppm)
     }
 
-    pub fn from_lazy_percent<F: UnaryTransform<B, B>>(
+    pub(crate) fn from_lazy_percent<F: UnaryTransform<B, B>>(
         name: &str,
         version: Version,
         source: &Self,

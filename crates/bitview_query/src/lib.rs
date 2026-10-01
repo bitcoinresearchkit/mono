@@ -79,7 +79,7 @@ pub use query_plugin_set::{
 pub use query_plugins::QueryPlugins;
 pub use representation_id::RepresentationId;
 pub use series_output::*;
-pub use vecs::{ResolvedSeriesInfo, SeriesEntry, SeriesEntryLookup, Vecs};
+pub use vecs::{ResolvedSeriesInfo, SeriesEntry, Vecs};
 
 #[cfg(feature = "indexer")]
 /// Read-only queries whose resolved chain views pin the published prefix.
@@ -144,7 +144,7 @@ impl Query {
         Self(Arc::clone(&self.0), Some(deadline))
     }
 
-    pub fn check_deadline(&self) -> Result<()> {
+    fn check_deadline(&self) -> Result<()> {
         if self.1.is_some_and(|deadline| Instant::now() >= deadline) {
             return Err(Error::ReadTimeout);
         }
@@ -361,7 +361,7 @@ impl Query {
     }
 
     #[inline]
-    pub fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
+    fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
     }
 

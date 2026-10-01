@@ -43,10 +43,6 @@ impl TxInIndex {
         Self(index)
     }
 
-    pub fn incremented(self) -> Self {
-        Self(*self + 1)
-    }
-
     pub fn is_unspent(self) -> bool {
         self == Self::UNSPENT
     }
@@ -128,10 +124,10 @@ impl From<TxInIndex> for usize {
 }
 
 impl TxInIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "txin_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["txi", "txin", "txin_index"]
     }
 }

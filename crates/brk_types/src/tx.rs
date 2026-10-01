@@ -61,7 +61,7 @@ pub struct Transaction {
 }
 
 impl Transaction {
-    pub fn fee(tx: &Transaction) -> Option<Sats> {
+    fn fee(tx: &Transaction) -> Option<Sats> {
         let in_ = tx
             .input
             .iter()
@@ -91,7 +91,7 @@ impl Transaction {
 
     /// Virtual size in vbytes (weight / 4, rounded up)
     #[inline]
-    pub fn vsize(&self) -> VSize {
+    pub(crate) fn vsize(&self) -> VSize {
         VSize::from(self.weight)
     }
 
@@ -110,7 +110,7 @@ impl Transaction {
     /// `Script::redeem_script` (push-only check + last-push extraction
     /// in one). Inputs whose `prevout` is `None` skip the P2SH and
     /// witness components - legacy script-sig sigops are still counted.
-    pub fn total_sigop_cost(&self) -> SigOps {
+    fn total_sigop_cost(&self) -> SigOps {
         let mut legacy: usize = 0;
         let mut redeem: usize = 0;
         let mut witness: usize = 0;

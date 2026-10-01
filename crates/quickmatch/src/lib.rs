@@ -46,15 +46,10 @@ impl<'a> QuickMatch<'a> {
     /// # Panics
     /// Panics if an item is not lowercase ASCII or there are more than u32::MAX items.
     pub fn new(items: &[&'a str]) -> Self {
-        Self::new_with(items, QuickMatchConfig::default())
-    }
-
-    /// Build from pre-formatted lowercase ASCII items and a custom configuration.
-    ///
-    /// # Panics
-    /// Panics if an item is not lowercase ASCII or there are more than u32::MAX items.
-    pub fn new_with(items: &[&'a str], config: QuickMatchConfig) -> Self {
-        Self::build(items.iter().copied().map(Cow::Borrowed).collect(), config)
+        Self::build(
+            items.iter().copied().map(Cow::Borrowed).collect(),
+            QuickMatchConfig::default(),
+        )
     }
 
     fn build(items: Vec<Cow<'a, str>>, config: QuickMatchConfig) -> Self {
@@ -158,25 +153,9 @@ impl<'a> QuickMatch<'a> {
     }
 
     pub fn matches(&self, query: &str) -> Vec<&str> {
-        self.matches_with(query, &self.config)
-    }
-
-    pub fn matches_with(&self, query: &str, config: &QuickMatchConfig) -> Vec<&str> {
-        self.matches_with_matched_words(query, config)
+        self.matches_with_ids_and_matched_words(query, &self.config)
             .into_iter()
-            .map(|(item, _)| item)
-            .collect()
-    }
-
-    /// Matches with the number of query words found in each result.
-    pub fn matches_with_matched_words(
-        &self,
-        query: &str,
-        config: &QuickMatchConfig,
-    ) -> Vec<(&str, usize)> {
-        self.matches_with_ids_and_matched_words(query, config)
-            .into_iter()
-            .map(|(id, matched_words)| (self.item(ItemId(id)), matched_words as usize))
+            .map(|(id, _)| self.item(ItemId(id)))
             .collect()
     }
 

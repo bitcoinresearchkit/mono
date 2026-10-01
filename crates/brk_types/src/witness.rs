@@ -1,4 +1,4 @@
-use bitcoin::{Witness as BitcoinWitness, blockdata::witness::Iter};
+use bitcoin::Witness as BitcoinWitness;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -16,28 +16,23 @@ pub struct Witness(BitcoinWitness);
 
 impl Witness {
     #[inline]
-    pub fn is_empty(&self) -> bool {
+    pub(crate) fn is_empty(&self) -> bool {
         self.0.is_empty()
     }
 
     #[inline]
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.0.len()
     }
 
     #[inline]
-    pub fn last(&self) -> Option<&[u8]> {
+    pub(crate) fn last(&self) -> Option<&[u8]> {
         self.0.last()
     }
 
     #[inline]
-    pub fn second_to_last(&self) -> Option<&[u8]> {
+    pub(crate) fn second_to_last(&self) -> Option<&[u8]> {
         self.0.second_to_last()
-    }
-
-    #[inline]
-    pub fn iter(&self) -> Iter<'_> {
-        self.0.iter()
     }
 }
 

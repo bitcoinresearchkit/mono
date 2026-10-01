@@ -76,10 +76,10 @@ impl VecdbCheckedSub<UnknownOutputIndex> for UnknownOutputIndex {
 }
 
 impl UnknownOutputIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "unknown_output_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["unknownout", "unknown_output_index"]
     }
 }

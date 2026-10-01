@@ -125,7 +125,7 @@ impl Query {
     }
 
     /// Revalidate the selected prefix under rollback protection before reading.
-    pub fn addr_txs_chain_at(&self, resolved: ResolvedAddrChainTxs) -> Result<Vec<Transaction>> {
+    fn addr_txs_chain_at(&self, resolved: ResolvedAddrChainTxs) -> Result<Vec<Transaction>> {
         let guard = self.pin_safe_lengths()?;
         self.addr_txs_chain_pinned(resolved, &guard)
     }

@@ -16,17 +16,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Inputs spending a previous-output type divided by all inputs
     /// over the same cumulative or trailing window. The denominator includes
     /// coinbase inputs.
-    pub input_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    pub(crate) input_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     /// Number of non-coinbase transactions containing at least one input that
     /// spends a previous-output type. Each transaction is counted
     /// once per type; the `all` aggregate counts every non-coinbase transaction.
-    pub tx_count: WithInputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
+    pub(crate) tx_count: WithInputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
     /// Non-coinbase transactions containing a previous-output type
     /// divided by all non-coinbase transactions over the same cumulative or
     /// trailing window.
-    pub tx_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    pub(crate) tx_share: SpendableType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     #[traversable(hidden)]
     pub input_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
     #[traversable(hidden)]
-    pub tx_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) tx_count_stored: SpendableType<CachedSeries<Height, StoredU64, M>>,
 }

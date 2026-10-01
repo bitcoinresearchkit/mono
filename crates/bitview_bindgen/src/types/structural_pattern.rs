@@ -6,23 +6,23 @@ use super::{PatternField, PatternMode};
 #[derive(Debug, Clone)]
 pub struct StructuralPattern {
     /// Pattern name
-    pub name: String,
+    pub(crate) name: String,
     /// Ordered list of child fields
-    pub fields: Vec<PatternField>,
+    pub(crate) fields: Vec<PatternField>,
     /// How fields construct series names from acc (None = not parameterizable)
-    pub mode: Option<PatternMode>,
+    pub(crate) mode: Option<PatternMode>,
     /// If true, all leaf fields use a type parameter T
-    pub is_generic: bool,
+    pub(crate) is_generic: bool,
 }
 
 impl StructuralPattern {
     /// Returns true if this pattern can be parameterized with an accumulator.
-    pub fn is_parameterizable(&self) -> bool {
+    pub(crate) fn is_parameterizable(&self) -> bool {
         self.mode.is_some()
     }
 
     /// Get the field part (relative name or prefix) for a given field.
-    pub fn get_field_part(&self, field_name: &str) -> Option<&str> {
+    pub(crate) fn get_field_part(&self, field_name: &str) -> Option<&str> {
         let fields = match &self.mode {
             Some(PatternMode::Suffix { relatives }) => relatives,
             Some(PatternMode::Prefix { prefixes }) => prefixes,
@@ -33,7 +33,7 @@ impl StructuralPattern {
     }
 
     /// Returns true if this pattern is in suffix mode.
-    pub fn is_suffix_mode(&self) -> bool {
+    pub(crate) fn is_suffix_mode(&self) -> bool {
         matches!(
             &self.mode,
             Some(PatternMode::Suffix { .. } | PatternMode::Templated { .. })
@@ -41,13 +41,13 @@ impl StructuralPattern {
     }
 
     /// Returns true if this pattern uses templated mode with a discriminator.
-    pub fn is_templated(&self) -> bool {
+    pub(crate) fn is_templated(&self) -> bool {
         matches!(&self.mode, Some(PatternMode::Templated { .. }))
     }
 
     /// Extract the discriminator value from a concrete instance's field_parts.
     /// Uses the pattern's templates to reverse-match and find the disc.
-    pub fn extract_disc_from_instance(
+    pub(crate) fn extract_disc_from_instance(
         &self,
         instance_field_parts: &BTreeMap<String, String>,
     ) -> Option<String> {
@@ -69,7 +69,10 @@ impl StructuralPattern {
     }
 
     /// Check if the given instance field parts match this pattern's field parts.
-    pub fn field_parts_match(&self, instance_field_parts: &BTreeMap<String, String>) -> bool {
+    pub(crate) fn field_parts_match(
+        &self,
+        instance_field_parts: &BTreeMap<String, String>,
+    ) -> bool {
         match &self.mode {
             Some(
                 PatternMode::Suffix { relatives: parts } | PatternMode::Prefix { prefixes: parts },

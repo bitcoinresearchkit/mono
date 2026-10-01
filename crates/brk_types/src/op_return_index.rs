@@ -81,10 +81,10 @@ impl VecdbCheckedSub<OpReturnIndex> for OpReturnIndex {
 }
 
 impl OpReturnIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "op_return_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["op", "opreturn", "op_return", "op_return_index"]
     }
 }

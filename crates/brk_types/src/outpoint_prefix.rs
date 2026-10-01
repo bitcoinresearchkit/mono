@@ -10,16 +10,6 @@ impl OutpointPrefix {
     pub fn new(txid_prefix: TxidPrefix, vout: Vout) -> Self {
         Self(txid_prefix, vout)
     }
-
-    #[inline]
-    pub fn txid_prefix(self) -> TxidPrefix {
-        self.0
-    }
-
-    #[inline]
-    pub fn vout(self) -> Vout {
-        self.1
-    }
 }
 
 impl From<(TxidPrefix, Vout)> for OutpointPrefix {

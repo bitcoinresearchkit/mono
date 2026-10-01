@@ -23,7 +23,7 @@ impl BlockSizePolicy {
         clippy::indexing_slicing,
         reason = "constructors reject empty policies; the index is clamped"
     )]
-    pub fn at_level(&self, level: usize) -> u32 {
+    pub(crate) fn at_level(&self, level: usize) -> u32 {
         self.0[level.min(self.0.len() - 1)]
     }
 

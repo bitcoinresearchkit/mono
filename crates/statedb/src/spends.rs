@@ -24,9 +24,6 @@ impl Spends {
     pub fn len(&self) -> usize {
         self.journal.len()
     }
-    pub fn is_empty(&self) -> bool {
-        self.len() == self.start()
-    }
     pub fn version(&self) -> u64 {
         self.journal.version
     }

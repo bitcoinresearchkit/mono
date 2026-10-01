@@ -21,7 +21,7 @@ pub struct FundedAddrDataCompact {
 
 impl FundedAddrDataCompact {
     #[inline(always)]
-    pub fn new(
+    pub(crate) fn new(
         received: u64,
         sent: u64,
         realized_cap_raw: u128,
@@ -48,43 +48,43 @@ impl FundedAddrDataCompact {
     }
 
     #[inline(always)]
-    pub fn received(self) -> u64 {
+    pub(crate) fn received(self) -> u64 {
         self.received
     }
 
     #[inline(always)]
-    pub fn sent(self) -> u64 {
+    pub(crate) fn sent(self) -> u64 {
         self.sent
     }
 
     #[inline(always)]
-    pub fn realized_cap_raw(self) -> u64 {
+    pub(crate) fn realized_cap_raw(self) -> u64 {
         self.realized_cap_raw
     }
 
     #[inline(always)]
-    pub fn tx_count(self) -> u32 {
+    pub(crate) fn tx_count(self) -> u32 {
         (self.counts & u64::from(COUNT_MASK)) as u32
     }
 
     #[inline(always)]
-    pub fn funded_txo_count(self) -> u32 {
+    pub(crate) fn funded_txo_count(self) -> u32 {
         ((self.counts >> COUNT_BITS) & u64::from(COUNT_MASK)) as u32
     }
 
     #[inline(always)]
-    pub fn spent_txo_count(self) -> u32 {
+    pub(crate) fn spent_txo_count(self) -> u32 {
         ((self.counts >> (COUNT_BITS * 2)) & u64::from(COUNT_MASK)) as u32
     }
 
     #[inline(always)]
-    pub fn overflow_index(self) -> Option<usize> {
+    pub(crate) fn overflow_index(self) -> Option<usize> {
         (self.counts & OVERFLOW_TAG != 0)
             .then(|| usize::try_from(self.received).expect("overflow index must fit usize"))
     }
 
     #[inline(always)]
-    pub fn from_overflow_index(index: usize) -> Self {
+    pub(crate) fn from_overflow_index(index: usize) -> Self {
         Self {
             received: u64::try_from(index).expect("overflow index must fit u64"),
             sent: 0,

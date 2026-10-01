@@ -28,7 +28,7 @@ where
     #[traversable(hidden)]
     cumulative: CachedSeries<Height, C, M>,
     #[traversable(flatten)]
-    pub average: LazyRollingAvgsFromHeight<C>,
+    average: LazyRollingAvgsFromHeight<C>,
     last_cumulative: M::WriteOnly<Option<(usize, C)>>,
 }
 

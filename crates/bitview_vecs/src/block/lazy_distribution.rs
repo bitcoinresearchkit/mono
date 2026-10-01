@@ -23,7 +23,7 @@ where
     T: ComputedVecValue + JsonSchema + 'static,
     S1T: ComputedVecValue + PartialOrd + JsonSchema,
 {
-    pub fn from_distribution<F: UnaryTransform<S1T, T>>(
+    pub(crate) fn from_distribution<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
         source: &PerBlockDistribution<S1T>,

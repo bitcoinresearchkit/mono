@@ -83,7 +83,6 @@ fn insert_additions(
 ) {
     events.reserve(added.len());
     for addition in added {
-        let kind = addition.kind();
         if let Some((tx, entry)) = resolve_addition(state, addition) {
             events.push(TxAdded {
                 txid: entry.txid,
@@ -91,7 +90,6 @@ fn insert_additions(
                 vsize: entry.vsize,
                 fee_rate: entry.fee_rate(),
                 first_seen: entry.first_seen,
-                kind,
             });
             insert_one(state, transitions, tx, entry);
         }

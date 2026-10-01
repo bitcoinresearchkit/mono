@@ -82,12 +82,6 @@ where
         self.stored_len
     }
 
-    /// Returns `true` if the reader is empty.
-    #[inline(always)]
-    pub fn is_empty(&self) -> bool {
-        self.stored_len == 0
-    }
-
     fn from_region(region: &Region, stored_len: usize) -> Self {
         let reader = region.create_reader();
         let slice = reader.read_from(HEADER_OFFSET);
@@ -100,13 +94,13 @@ where
             _marker: PhantomData,
         }
     }
-    pub fn from_read_write<C: CachePolicy>(vec: &ReadWriteRawVec<I, T, S, C>) -> Self
+    pub(crate) fn from_read_write<C: CachePolicy>(vec: &ReadWriteRawVec<I, T, S, C>) -> Self
     where
         I: VecIndex,
     {
         Self::from_region(vec.region(), vec.stored_len())
     }
-    pub fn from_read_only<C: CachePolicy>(vec: &ReadOnlyRawVec<I, T, S, C>) -> Self
+    pub(crate) fn from_read_only<C: CachePolicy>(vec: &ReadOnlyRawVec<I, T, S, C>) -> Self
     where
         I: VecIndex,
     {

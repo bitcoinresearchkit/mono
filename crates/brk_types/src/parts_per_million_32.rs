@@ -50,18 +50,13 @@ impl PartsPerMillion32 {
         Self(value)
     }
 
-    #[inline(always)]
-    pub const fn inner(self) -> u32 {
-        self.0
-    }
-
     #[inline]
     pub fn is_nan(self) -> bool {
         self.0 == u32::MAX
     }
 
     #[inline]
-    pub fn to_f32(self) -> f32 {
+    fn to_f32(self) -> f32 {
         if unlikely(self.is_nan()) {
             f32::NAN
         } else {
@@ -244,10 +239,10 @@ mod tests {
 
     #[test]
     fn conversions_and_sentinels() {
-        assert_eq!(PartsPerMillion32::from(0.123_456_6).inner(), 123_457);
+        assert_eq!(PartsPerMillion32::from(0.123_456_6).0, 123_457);
         assert_eq!(f64::from(PartsPerMillion32::ONE), 1.0);
         assert_eq!(PartsPerMillion32::from(-1.0), PartsPerMillion32::ZERO);
-        assert_eq!(PartsPerMillion32::from(f64::MAX).inner(), u32::MAX - 1);
+        assert_eq!(PartsPerMillion32::from(f64::MAX).0, u32::MAX - 1);
         assert!(PartsPerMillion32::from(f64::NAN).is_nan());
 
         #[cfg(feature = "storage")]

@@ -33,7 +33,7 @@ impl Regions {
         self.by_id.get(id)
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &Region> {
+    fn iter(&self) -> impl Iterator<Item = &Region> {
         self.by_id.values()
     }
 
@@ -138,12 +138,6 @@ impl Regions {
         self.free_indexes.push(Reverse(region.index()));
         self.by_id.remove(region.meta().id());
         self.metadata.clear(region.index());
-    }
-
-    /// # Safety
-    /// Hold the database mutation barrier exclusively.
-    pub(crate) unsafe fn metadata_is_dirty(&self) -> bool {
-        unsafe { self.metadata.is_dirty() }
     }
 
     pub(crate) fn flush(&self) -> Result<bool> {

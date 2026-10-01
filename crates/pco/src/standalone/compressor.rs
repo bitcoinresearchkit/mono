@@ -63,7 +63,7 @@ impl FileCompressor {
   ///
   /// If set correctly, this can improve performance of decompressing the
   /// entire file at once.
-  pub fn with_n_hint(mut self, n: usize) -> Self {
+  pub(crate) fn with_n_hint(mut self, n: usize) -> Self {
     self.n_hint = n;
     self
   }
@@ -179,7 +179,7 @@ impl ChunkCompressor {
   ///
   /// This can be useful when building the file as a `Vec<u8>` in memory;
   /// you can `.reserve(chunk_compressor.size_hint())` ahead of time.
-  pub fn size_hint(&self) -> usize {
+  pub(crate) fn size_hint(&self) -> usize {
     1 + BITS_TO_ENCODE_N_ENTRIES.div_ceil(8) as usize
       + self.inner.meta_size_hint()
       + self.inner.page_size_hint(0)

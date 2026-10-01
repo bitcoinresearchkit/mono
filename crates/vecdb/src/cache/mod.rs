@@ -68,7 +68,7 @@ impl<T: VecValue> Cache<T> {
     }
 
     /// Accounted bytes, including buffers still borrowed after eviction.
-    pub fn used(&self) -> usize {
+    fn used(&self) -> usize {
         self.account.used()
     }
 
@@ -86,7 +86,7 @@ impl<T: VecValue> Cache<T> {
         self.healthy.load(Relaxed) && from <= to && to <= len() && self.copy_range(from, to, out)
     }
 
-    pub(crate) fn read_scope<R>(&self, read: impl FnOnce() -> R) -> R {
+    fn read_scope<R>(&self, read: impl FnOnce() -> R) -> R {
         let _gate = self.gate.read_recursive();
         assert!(self.healthy.load(Relaxed), "unpublished source");
         self.recently_used.store(true, Relaxed);
@@ -94,7 +94,7 @@ impl<T: VecValue> Cache<T> {
     }
 
     /// A failed source write stays closed until a successful repair/update.
-    pub(crate) fn update<R>(&self, from: usize, write: impl FnOnce() -> Result<R>) -> Result<R> {
+    fn update<R>(&self, from: usize, write: impl FnOnce() -> Result<R>) -> Result<R> {
         let _gate = self.gate.write();
         self.healthy.store(false, Relaxed);
         self.invalidate_from(from);
@@ -107,7 +107,7 @@ impl<T: VecValue> Cache<T> {
 
     /// The loader returns sorted, non-overlapping source-selected ranges that
     /// cover every miss. Physical page size is deliberately not a cache concern.
-    pub(crate) fn read(
+    fn read(
         &self,
         request: Request<'_>,
         out: &mut Vec<T>,
@@ -116,11 +116,7 @@ impl<T: VecValue> Cache<T> {
         self.read_request(request, out, load, self.admissible(request));
     }
 
-    pub(crate) fn get(
-        &self,
-        index: usize,
-        load: impl FnMut(&[Range<usize>]) -> Vec<(usize, Vec<T>)>,
-    ) -> T {
+    fn get(&self, index: usize, load: impl FnMut(&[Range<usize>]) -> Vec<(usize, Vec<T>)>) -> T {
         {
             let table = self.table.read();
             if let Some((start, values)) = table.at(index)
@@ -209,7 +205,7 @@ impl<T: VecValue> Cache<T> {
         self.insert(offers);
     }
 
-    pub(crate) fn try_for_each_chunk<E>(
+    fn try_for_each_chunk<E>(
         &self,
         from: usize,
         to: usize,

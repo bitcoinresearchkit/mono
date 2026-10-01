@@ -5,17 +5,17 @@ pub struct PendingDelta(SatsSigned);
 
 impl PendingDelta {
     #[inline(always)]
-    pub fn increment(&mut self, sats: Sats) {
+    pub(crate) fn increment(&mut self, sats: Sats) {
         self.0 = SatsSigned::new(self.0.inner().wrapping_add_unsigned(sats.into()));
     }
 
     #[inline(always)]
-    pub fn decrement(&mut self, sats: Sats) {
+    pub(crate) fn decrement(&mut self, sats: Sats) {
         self.0 = SatsSigned::new(self.0.inner().wrapping_sub_unsigned(sats.into()));
     }
 
     #[inline(always)]
-    pub fn inner(self) -> i64 {
+    pub(crate) fn inner(self) -> i64 {
         self.0.inner()
     }
 }

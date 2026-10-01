@@ -58,7 +58,7 @@ impl Reader {
     /// Raises only the soft limit, clamped to the current hard limit:
     /// raising the hard limit requires `CAP_SYS_RESOURCE` and would
     /// fail on containers and unprivileged macOS processes.
-    pub fn raise_fd_limit() {
+    fn raise_fd_limit() {
         let (soft, hard) = getrlimit(Resource::NOFILE).unwrap_or((0, 0));
         let new_soft = soft.max(TARGET_NOFILE).min(hard);
         if new_soft > soft

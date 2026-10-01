@@ -33,14 +33,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct StoredI16(i16);
 
-impl StoredI16 {
-    pub const ZERO: Self = Self(0);
-
-    pub fn new(v: i16) -> Self {
-        Self(v)
-    }
-}
-
 impl From<i16> for StoredI16 {
     #[inline]
     fn from(value: i16) -> Self {
@@ -111,10 +103,10 @@ impl From<StoredI16> for usize {
 }
 
 impl StoredI16 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "i16"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["i16"]
     }
 }

@@ -257,10 +257,10 @@ impl Ord for StoredF32 {
 }
 
 impl StoredF32 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "f32"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["f32"]
     }
 }

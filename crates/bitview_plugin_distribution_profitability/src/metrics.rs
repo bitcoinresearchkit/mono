@@ -17,12 +17,12 @@ type Sources<T, M> = ProfitabilityRange<AgeAggregate<CachedSeries<Height, T, M>>
 /// The same profitability metric layout for all seven age filters.
 #[derive(Traversable)]
 pub struct Metrics<M: StorageMode = Rw> {
-    pub supply: ProfitabilityRange<AgeAggregate<LazySpotValuePerBlockWithDeltas>>,
-    pub realized_cap: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
+    pub(crate) supply: ProfitabilityRange<AgeAggregate<LazySpotValuePerBlockWithDeltas>>,
+    pub(crate) realized_cap: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
     /// Absolute profit or loss, according to the represented profitability band.
-    pub unrealized_pnl: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
+    pub(crate) unrealized_pnl: ProfitabilityRange<AgeAggregate<LazyFiatPerBlock<Cents>>>,
     /// Signed net unrealized P&L divided by the cohort's own market cap.
-    pub nupl: ProfitabilityRange<AgeAggregate<LazyRatioPerBlock<PartsPerMillionSigned32>>>,
+    pub(crate) nupl: ProfitabilityRange<AgeAggregate<LazyRatioPerBlock<PartsPerMillionSigned32>>>,
     #[traversable(hidden)]
     supply_stored: Sources<Sats, M>,
     #[traversable(hidden)]

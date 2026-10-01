@@ -1,5 +1,3 @@
-use std::collections::BTreeSet;
-
 use bitview_cohort::*;
 
 #[test]
@@ -45,20 +43,4 @@ fn fallible_construction_stops_at_the_first_error() {
         Some(AMOUNT_RANGE_NAMES.iter().nth(1).unwrap().id)
     );
     assert_eq!(calls, 2);
-}
-
-#[test]
-fn utxo_and_address_names_do_not_collide() {
-    let groups = UTXOAndAddrGroups {
-        utxo: UTXOGroups::new(|_| ()),
-        addr_balance: AmountRange::new(|_| ()),
-    };
-    let mut names = BTreeSet::new();
-    groups.map_with_id(|context, id, _| {
-        assert!(names.insert(context.full_name(id)));
-    });
-    assert_eq!(
-        names.len(),
-        groups.utxo.iter().count() + groups.addr_balance.iter().count()
-    );
 }

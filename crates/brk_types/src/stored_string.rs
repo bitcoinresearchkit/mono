@@ -45,10 +45,10 @@ impl From<&StoredString> for ByteView {
     }
 }
 impl StoredString {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "string"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["string"]
     }
 }

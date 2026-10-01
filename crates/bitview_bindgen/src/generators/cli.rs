@@ -5,7 +5,7 @@ use std::{collections::BTreeSet, fmt::Write, io, path::Path};
 use crate::{Endpoint, Parameter, generators::write_if_changed};
 
 /// Generate the OpenAPI-derived command catalog used by `bitview-cli`.
-pub fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Result<()> {
+pub(crate) fn generate_cli(endpoints: &[Endpoint], output_path: &Path) -> io::Result<()> {
     let mut commands = endpoints
         .iter()
         .filter(|endpoint| !endpoint.deprecated)

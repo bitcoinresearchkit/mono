@@ -22,7 +22,7 @@ impl BRK {
         Self::new_with_agent(new_agent(30))
     }
 
-    pub fn new_with_agent(agent: Agent) -> Self {
+    pub(crate) fn new_with_agent(agent: Agent) -> Self {
         Self {
             agent,
             height_to_ohlc: BTreeMap::new(),
@@ -161,7 +161,7 @@ impl BRK {
         )))
     }
 
-    pub fn ping(&self) -> Result<()> {
+    fn ping(&self) -> Result<()> {
         self.agent.get(API_URL).call()?;
         Ok(())
     }

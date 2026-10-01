@@ -12,7 +12,7 @@ pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: ValuePerBlockCumulative<M>,
+    inner: ValuePerBlockCumulative<M>,
     #[traversable(flatten)]
     pub rolling: RollingAmountTotals,
 }

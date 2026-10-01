@@ -117,19 +117,19 @@ pub struct PatternBaseResult {
     pub base: String,
     /// Whether an outlier child was excluded to find the pattern.
     /// If true, pattern factory should not be used.
-    pub has_outlier: bool,
+    pub(crate) has_outlier: bool,
     /// Whether this instance uses suffix mode (common prefix) or prefix mode (common suffix).
     /// Used to check compatibility with the pattern's mode.
-    pub is_suffix_mode: bool,
+    pub(crate) is_suffix_mode: bool,
     /// The field parts (suffix in suffix mode, prefix in prefix mode) for each field.
     /// Used to check if instance field parts match the pattern's field parts.
-    pub field_parts: BTreeMap<String, String>,
+    pub(crate) field_parts: BTreeMap<String, String>,
 }
 
 impl PatternBaseResult {
     /// Create a default result that forces inlining (has_outlier = true).
     /// Use when no pattern base could be computed during lookup.
-    pub fn force_inline() -> Self {
+    pub(crate) fn force_inline() -> Self {
         Self {
             base: String::new(),
             has_outlier: true,

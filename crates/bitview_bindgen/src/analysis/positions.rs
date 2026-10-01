@@ -36,7 +36,7 @@ struct InstanceAnalysis {
 ///
 /// Returns a map from tree paths to their computed PatternBaseResult.
 /// This map is used during generation to check pattern compatibility.
-pub fn analyze_pattern_modes(
+pub(crate) fn analyze_pattern_modes(
     tree: &TreeNode,
     patterns: &mut [StructuralPattern],
     pattern_lookup: &BTreeMap<Vec<PatternField>, String>,

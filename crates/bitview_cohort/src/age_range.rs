@@ -3,41 +3,38 @@ use std::ops::Range;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 use brk_types::Age;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 use super::{CohortContext, CohortId, CohortName, Term};
 
 // Age boundary constants in hours
-pub const HOURS_1H: usize = 1;
-pub const HOURS_1D: usize = 24;
-pub const HOURS_1W: usize = 24 * 7;
-pub const HOURS_1M: usize = 24 * 30;
-pub const HOURS_2M: usize = 24 * 2 * 30;
-pub const HOURS_3M: usize = 24 * 3 * 30;
+const HOURS_1H: usize = 1;
+const HOURS_1D: usize = 24;
+const HOURS_1W: usize = 24 * 7;
+const HOURS_1M: usize = 24 * 30;
+const HOURS_2M: usize = 24 * 2 * 30;
+const HOURS_3M: usize = 24 * 3 * 30;
 pub const HOURS_4M: usize = 24 * 4 * 30;
 pub const HOURS_5M: usize = Term::THRESHOLD_HOURS;
 pub const HOURS_6M: usize = 24 * 6 * 30;
-pub const HOURS_9M: usize = HOURS_6M + HOURS_3M;
-pub const HOURS_1Y: usize = 24 * 365;
+const HOURS_9M: usize = HOURS_6M + HOURS_3M;
+const HOURS_1Y: usize = 24 * 365;
 // Keep year-based ranges anchored to the existing 365-day year convention.
-pub const HOURS_18M: usize = HOURS_1Y + HOURS_6M;
-pub const HOURS_2Y: usize = 24 * 2 * 365;
-pub const HOURS_3Y: usize = 24 * 3 * 365;
-pub const HOURS_4Y: usize = 24 * 4 * 365;
-pub const HOURS_5Y: usize = 24 * 5 * 365;
-pub const HOURS_6Y: usize = 24 * 6 * 365;
-pub const HOURS_7Y: usize = 24 * 7 * 365;
-pub const HOURS_8Y: usize = 24 * 8 * 365;
-pub const HOURS_10Y: usize = 24 * 10 * 365;
-pub const HOURS_12Y: usize = 24 * 12 * 365;
-pub const HOURS_15Y: usize = 24 * 15 * 365;
+const HOURS_18M: usize = HOURS_1Y + HOURS_6M;
+const HOURS_2Y: usize = 24 * 2 * 365;
+const HOURS_3Y: usize = 24 * 3 * 365;
+const HOURS_4Y: usize = 24 * 4 * 365;
+const HOURS_5Y: usize = 24 * 5 * 365;
+const HOURS_6Y: usize = 24 * 6 * 365;
+const HOURS_7Y: usize = 24 * 7 * 365;
+const HOURS_8Y: usize = 24 * 8 * 365;
+const HOURS_10Y: usize = 24 * 10 * 365;
+const HOURS_12Y: usize = 24 * 12 * 365;
+const HOURS_15Y: usize = 24 * 15 * 365;
 
 pub const AGE_RANGE_COUNT: usize = 23;
-pub const STH_AGE_RANGE_COUNT: usize = AgeRangeId::From5MTo6M.index();
-pub const LTH_AGE_RANGE_COUNT: usize = AGE_RANGE_COUNT - STH_AGE_RANGE_COUNT;
-
+const STH_AGE_RANGE_COUNT: usize = AgeRangeId::From5MTo6M.index();
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum AgeRangeId {
@@ -237,7 +234,7 @@ pub const AGE_BOUNDARIES: [usize; AGE_RANGE_COUNT - 1] = [
 ];
 
 /// Age range bounds (end = usize::MAX means unbounded)
-pub const AGE_RANGE_BOUNDS: AgeRange<Range<usize>> = AgeRange {
+const AGE_RANGE_BOUNDS: AgeRange<Range<usize>> = AgeRange {
     under_1h: 0..HOURS_1H,
     _1h_to_1d: HOURS_1H..HOURS_1D,
     _1d_to_1w: HOURS_1D..HOURS_1W,
@@ -377,35 +374,6 @@ impl_cohort_collection!(AgeRangeId for AgeRange {
 });
 
 impl<T> AgeRange<T> {
-    pub fn par_from_fn(create: impl Fn(AgeRangeId) -> T + Send + Sync) -> Self
-    where
-        T: Send,
-    {
-        let mut values = AGE_RANGE_IDS
-            .into_par_iter()
-            .map(create)
-            .collect::<Vec<_>>()
-            .into_iter();
-        Self::from_fn(|_| values.next().expect("one value per age range"))
-    }
-
-    pub fn par_try_from_fn<E>(
-        create: impl Fn(AgeRangeId) -> Result<T, E> + Send + Sync,
-    ) -> Result<Self, E>
-    where
-        T: Send,
-        E: Send,
-    {
-        let mut values = AGE_RANGE_IDS
-            .into_par_iter()
-            .map(create)
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter();
-        Ok(Self::from_fn(|_| {
-            values.next().expect("one value per age range")
-        }))
-    }
-
     /// Get mutable reference by Age. O(1).
     #[inline]
     pub fn get_mut(&mut self, age: Age) -> &mut T {

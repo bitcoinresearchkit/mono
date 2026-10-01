@@ -48,10 +48,6 @@ impl RegionMetadata {
         self.len
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len == 0
-    }
-
     #[inline]
     pub(crate) fn set_len(&mut self, len: usize) {
         assert!(len <= self.reserved());

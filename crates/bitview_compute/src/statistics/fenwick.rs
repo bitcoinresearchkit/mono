@@ -65,8 +65,7 @@ impl<N: FenwickNode> FenwickTree<N> {
     /// Find the 0-indexed bucket containing the k-th element for each target.
     ///
     /// `field_fn` extracts the relevant count field from a node.
-    /// `sorted_targets` must be sorted ascending. Returns the 0-indexed bucket
-    /// for each target.
+    /// Sorted targets share node extraction while following the same path.
     ///
     /// Processes all targets at each tree level for better cache locality.
     #[inline]
@@ -79,21 +78,53 @@ impl<N: FenwickNode> FenwickTree<N> {
         V: Copy + PartialOrd + SubAssign,
         F: Fn(&N) -> V,
     {
+        let [out] = self.kth_many([Some(sorted_targets)], &|_, node| field_fn(node));
+        out
+    }
+
+    /// Search several fields together. Absent queries return zero buckets.
+    ///
+    /// Searches advance at the same tree level, and adjacent targets following
+    /// the same path extract their field once. No search allocates.
+    #[inline]
+    pub fn kth_many<V, F, const LEN: usize, const QUERIES: usize>(
+        &self,
+        targets: [Option<[V; LEN]>; QUERIES],
+        field_fn: &F,
+    ) -> [[usize; LEN]; QUERIES]
+    where
+        V: Copy + PartialOrd + SubAssign,
+        F: Fn(usize, &N) -> V,
+    {
         let len = self.tree.len();
         assert!(len > 1, "cannot search an empty Fenwick tree");
         let size = len - 1;
-        let mut remaining = sorted_targets;
-        let mut out = [0; LEN];
+        let mut remaining = targets;
+        let mut out = [[0; LEN]; QUERIES];
         let mut bit = 1usize << (usize::BITS - 1 - size.leading_zeros());
         while bit > 0 {
-            for (remaining, out) in remaining.iter_mut().zip(out.iter_mut()) {
-                let next = *out + bit;
-                if next < len {
-                    let val = field_fn(&self.tree[next]);
-                    if *remaining >= val {
-                        *remaining -= val;
-                        *out = next;
+            for (query, (remaining, out)) in remaining.iter_mut().zip(&mut out).enumerate() {
+                let Some(remaining) = remaining else { continue };
+                let mut start = 0;
+                while start < LEN {
+                    let prefix = out[start];
+                    let mut end = start + 1;
+                    while end < LEN && out[end] == prefix {
+                        end += 1;
                     }
+                    let next = prefix + bit;
+                    if next < len {
+                        let value = field_fn(query, &self.tree[next]);
+                        for (remaining, out) in
+                            remaining[start..end].iter_mut().zip(&mut out[start..end])
+                        {
+                            if *remaining >= value {
+                                *remaining -= value;
+                                *out = next;
+                            }
+                        }
+                    }
+                    start = end;
                 }
             }
             bit >>= 1;
@@ -125,6 +156,8 @@ impl<N: FenwickNode> FenwickTree<N> {
 
 #[cfg(test)]
 mod tests {
+    use std::cell::Cell;
+
     use super::*;
 
     #[test]
@@ -157,6 +190,40 @@ mod tests {
         assert_eq!(out[3], 1); // kth(4) → bucket 1
         assert_eq!(out[4], 3); // kth(5) → bucket 3 (bucket 2 is empty)
         assert_eq!(out[5], 4); // kth(10) → bucket 4
+    }
+
+    #[test]
+    fn batched_searches_share_repeated_targets_and_skip_absent_fields() {
+        let mut tree = FenwickTree::<u32>::new(13);
+        let frequencies = [3, 0, 2, 0, 0, 5, 1, 0, 7, 0, 0, 0, 4];
+        for (bucket, frequency) in frequencies.into_iter().enumerate() {
+            tree.add(bucket, &frequency);
+        }
+        let calls = Cell::new(0);
+        let result = tree.kth_many([Some([6; 8]), Some([40; 8]), None], &|q, n| {
+            calls.set(calls.get() + 1);
+            match q {
+                0 => *n,
+                1 => 2 * n,
+                _ => panic!("absent query was searched"),
+            }
+        });
+        assert_eq!(result, [[5; 8], [12; 8], [0; 8]]);
+        // Two active fields share one extraction per tree level across eight ranks.
+        assert!(calls.get() <= 2 * 4);
+
+        let targets = [21, 0, 5, 2, 9, 3, 17, 4];
+        let expected = targets.map(|target| {
+            let mut sum = 0;
+            frequencies
+                .iter()
+                .position(|frequency| {
+                    sum += frequency;
+                    sum > target
+                })
+                .unwrap()
+        });
+        assert_eq!(tree.kth(targets, &|n| *n), expected);
     }
 
     #[test]

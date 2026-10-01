@@ -147,7 +147,7 @@ impl LazySpotValuePerBlock {
         Self::from_sats_and_cents(name, version, sats, cents)
     }
 
-    pub fn from_sats_and_cents(
+    fn from_sats_and_cents(
         name: &str,
         version: Version,
         sats: LazyPerBlock<Sats>,

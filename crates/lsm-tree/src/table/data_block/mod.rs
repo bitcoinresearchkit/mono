@@ -338,7 +338,7 @@ impl DataBlock {
     /// Accesses the inner raw bytes
     #[cfg(test)]
     #[must_use]
-    pub fn as_slice(&self) -> &Slice {
+    fn as_slice(&self) -> &Slice {
         &self.inner.data
     }
 
@@ -385,7 +385,7 @@ impl DataBlock {
     /// The number of pointers is equal to the number of restart intervals.
     #[cfg(test)]
     #[must_use]
-    pub fn binary_index_len(&self) -> u32 {
+    fn binary_index_len(&self) -> u32 {
         let trailer = Trailer::new(&self.inner);
 
         // NOTE: Skip restart interval (u8) and binary index step size (u8)
@@ -398,12 +398,12 @@ impl DataBlock {
     /// Returns the number of items in the block.
     #[cfg(test)]
     #[must_use]
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         Trailer::new(&self.inner).item_count()
     }
 
     #[cfg(test)]
-    pub fn encode_into_vec(items: &[InternalValue], restart_interval: u8) -> Result<Vec<u8>> {
+    fn encode_into_vec(items: &[InternalValue], restart_interval: u8) -> Result<Vec<u8>> {
         let mut buf = vec![];
 
         Self::encode_into(&mut buf, items, restart_interval)?;

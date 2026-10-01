@@ -32,7 +32,7 @@ where
         })?))
     }
 
-    pub fn compute_distribution(
+    pub(crate) fn compute_distribution(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,

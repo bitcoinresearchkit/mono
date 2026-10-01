@@ -6,43 +6,43 @@ use brk_types::PercentileId;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByPercentile<T> {
     /// Uses the 5th percentile.
-    pub pct05: T,
+    pct05: T,
     /// Uses the 10th percentile.
-    pub pct10: T,
+    pct10: T,
     /// Uses the 15th percentile.
-    pub pct15: T,
+    pct15: T,
     /// Uses the 20th percentile.
-    pub pct20: T,
+    pct20: T,
     /// Uses the 25th percentile.
-    pub pct25: T,
+    pct25: T,
     /// Uses the 30th percentile.
-    pub pct30: T,
+    pct30: T,
     /// Uses the 35th percentile.
-    pub pct35: T,
+    pct35: T,
     /// Uses the 40th percentile.
-    pub pct40: T,
+    pct40: T,
     /// Uses the 45th percentile.
-    pub pct45: T,
+    pct45: T,
     /// Uses the 50th percentile.
     pub pct50: T,
     /// Uses the 55th percentile.
-    pub pct55: T,
+    pct55: T,
     /// Uses the 60th percentile.
-    pub pct60: T,
+    pct60: T,
     /// Uses the 65th percentile.
-    pub pct65: T,
+    pct65: T,
     /// Uses the 70th percentile.
-    pub pct70: T,
+    pct70: T,
     /// Uses the 75th percentile.
-    pub pct75: T,
+    pct75: T,
     /// Uses the 80th percentile.
-    pub pct80: T,
+    pct80: T,
     /// Uses the 85th percentile.
-    pub pct85: T,
+    pct85: T,
     /// Uses the 90th percentile.
-    pub pct90: T,
+    pct90: T,
     /// Uses the 95th percentile.
-    pub pct95: T,
+    pct95: T,
 }
 
 impl<T> ByPercentile<T> {

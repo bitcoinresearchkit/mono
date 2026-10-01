@@ -68,7 +68,7 @@ impl OutputScope {
     }
 }
 
-pub fn main() -> Result<()> {
+fn main() -> Result<()> {
     Budgeted::init_global(2 * 1024 * 1024 * 1024)?;
     install()?;
 

@@ -8,25 +8,25 @@ use super::FeeRate;
 pub struct FeeRatePercentiles {
     /// Minimum fee rate (sat/vB)
     #[serde(rename = "avgFee_0")]
-    pub min: FeeRate,
+    min: FeeRate,
     /// 10th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_10")]
-    pub pct10: FeeRate,
+    pct10: FeeRate,
     /// 25th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_25")]
-    pub pct25: FeeRate,
+    pct25: FeeRate,
     /// Median fee rate (sat/vB)
     #[serde(rename = "avgFee_50")]
-    pub median: FeeRate,
+    median: FeeRate,
     /// 75th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_75")]
-    pub pct75: FeeRate,
+    pct75: FeeRate,
     /// 90th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_90")]
-    pub pct90: FeeRate,
+    pct90: FeeRate,
     /// Maximum fee rate (sat/vB)
     #[serde(rename = "avgFee_100")]
-    pub max: FeeRate,
+    max: FeeRate,
 }
 
 impl FeeRatePercentiles {

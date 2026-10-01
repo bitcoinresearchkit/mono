@@ -8,7 +8,7 @@ pub struct WeightedRatio {
 
 impl WeightedRatio {
     #[inline]
-    pub fn add(&mut self, numerator: f64, denominator: f64, weight: f64) {
+    pub(crate) fn add(&mut self, numerator: f64, denominator: f64, weight: f64) {
         if weight.is_finite() && weight > 0.0 {
             self.numerator += numerator * weight;
             self.denominator += denominator * weight;
@@ -16,7 +16,7 @@ impl WeightedRatio {
     }
 
     #[inline]
-    pub fn merge(&mut self, other: Self) {
+    pub(crate) fn merge(&mut self, other: Self) {
         self.numerator += other.numerator;
         self.denominator += other.denominator;
     }

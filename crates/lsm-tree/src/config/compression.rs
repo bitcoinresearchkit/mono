@@ -25,14 +25,8 @@ impl CompressionPolicy {
         clippy::indexing_slicing,
         reason = "constructors reject empty policies; the index is clamped"
     )]
-    pub fn at_level(&self, level: usize) -> CompressionType {
+    pub(crate) fn at_level(&self, level: usize) -> CompressionType {
         self.0[level.min(self.0.len() - 1)]
-    }
-
-    /// Disables all compression.
-    #[must_use]
-    pub fn disabled() -> Self {
-        Self::all(CompressionType::None)
     }
 
     /// Uses the same compression in every level.

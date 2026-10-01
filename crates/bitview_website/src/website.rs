@@ -17,7 +17,7 @@ use tracing::{error, info};
 use crate::Error;
 
 /// Embedded website assets
-pub static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
+static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
 
 struct CachedIndex {
     html: Vec<u8>,
@@ -46,7 +46,7 @@ impl Website {
 
     /// Returns the embedded index ETag (None for filesystem sites, debug builds,
     /// disabled sites, or before the first index request).
-    pub fn index_etag(&self) -> Option<&str> {
+    fn index_etag(&self) -> Option<&str> {
         if cfg!(debug_assertions) || !matches!(self, Self::Default) {
             return None;
         }
@@ -62,7 +62,7 @@ impl Website {
     }
 
     /// Returns the filesystem path if available, None means use embedded
-    pub fn filesystem_path(&self) -> Option<PathBuf> {
+    fn filesystem_path(&self) -> Option<PathBuf> {
         match self {
             Self::Disabled => None,
             Self::Default => {
@@ -80,7 +80,7 @@ impl Website {
     /// Get file content by path (handles hash-stripping, SPA fallback, importmap)
     ///
     /// Returns an error if the website is disabled.
-    pub fn get_file(&self, path: &str) -> Result<Vec<u8>, Error> {
+    pub(crate) fn get_file(&self, path: &str) -> Result<Vec<u8>, Error> {
         if !self.is_enabled() {
             return Err(Error::not_found("Website is disabled"));
         }

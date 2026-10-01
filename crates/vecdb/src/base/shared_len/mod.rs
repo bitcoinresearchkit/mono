@@ -14,19 +14,19 @@ pub struct SharedLen(Arc<AtomicUsize>);
 
 impl SharedLen {
     /// Creates a new shared length counter.
-    pub fn new(val: usize) -> Self {
+    pub(crate) fn new(val: usize) -> Self {
         Self(Arc::new(AtomicUsize::new(val)))
     }
 
     /// Gets the current length.
     #[inline(always)]
-    pub fn get(&self) -> usize {
+    pub(crate) fn get(&self) -> usize {
         self.0.load(Ordering::Acquire)
     }
 
     /// Sets the length.
     #[inline]
-    pub fn set(&self, val: usize) {
+    pub(crate) fn set(&self, val: usize) {
         self.0.store(val, Ordering::Release);
     }
 }

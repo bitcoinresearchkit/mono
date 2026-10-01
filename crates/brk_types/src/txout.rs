@@ -59,7 +59,7 @@ impl JsonSchema for TxOut {
 }
 
 impl TxOut {
-    pub fn addr(&self) -> Option<Addr> {
+    fn addr(&self) -> Option<Addr> {
         Addr::try_from(&self.script_pubkey).ok()
     }
 
@@ -71,7 +71,7 @@ impl TxOut {
         OutputType::from(&self.script_pubkey)
     }
 
-    pub fn script_pubkey_asm(&self) -> String {
+    fn script_pubkey_asm(&self) -> String {
         self.script_pubkey.to_asm_string()
     }
 }

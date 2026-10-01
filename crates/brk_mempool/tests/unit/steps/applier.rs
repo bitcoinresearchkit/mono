@@ -2,7 +2,6 @@ use brk_types::{FeeRate, Sats, TxOut, Txid, VSize};
 
 use super::*;
 use crate::{
-    AddedKind,
     cycle::CycleDiff,
     steps::preparer::{TxAddition, TxsPulled},
     test_support::{fake_entry_info, fake_tx, p2wpkh_script},
@@ -66,7 +65,8 @@ fn revived_path_exhumes_body_from_graveyard() {
     assert!(state.txs.contains(&txid), "revived tx republished");
     assert!(state.graveyard.get(&txid).is_none(), "tomb consumed");
     assert_eq!(diff.added.len(), 1);
-    assert!(matches!(diff.added[0].kind, AddedKind::Revived));
+    assert_eq!(diff.added[0].txid, txid);
+    assert_eq!(diff.added[0].fee, Sats::new(300));
 }
 
 #[test]

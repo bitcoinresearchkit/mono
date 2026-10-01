@@ -28,16 +28,8 @@ impl_cohort_collection!(
 );
 
 impl<T> ByTerm<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|term| create(CohortId::Term(term)))
-    }
-
     pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
         Self::try_from_fn(|term| create(CohortId::Term(term)))
-    }
-
-    pub fn map_with_id<U>(&self, mut map: impl FnMut(CohortId, &T) -> U) -> ByTerm<U> {
-        ByTerm::from_fn(|term| map(CohortId::Term(term), self.get(term)))
     }
 
     pub fn get(&self, term: Term) -> &T {

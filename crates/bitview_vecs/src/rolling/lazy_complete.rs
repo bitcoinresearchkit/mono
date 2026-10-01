@@ -20,9 +20,9 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub rolling: RollingTotals<T>,
+    rolling: RollingTotals<T>,
     #[traversable(flatten)]
-    pub distribution: LazyRollingDistribution<T, S1T>,
+    distribution: LazyRollingDistribution<T, S1T>,
 }
 
 impl<T, S1T> LazyRollingComplete<T, S1T>
@@ -30,7 +30,7 @@ where
     T: NumericValue + JsonSchema + 'static,
     S1T: NumericValue + JsonSchema,
 {
-    pub fn from_rolling_complete<F: UnaryTransform<S1T, T>>(
+    pub(crate) fn from_rolling_complete<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,
         cumulative: &impl ReadableCloneableVec<Height, T>,

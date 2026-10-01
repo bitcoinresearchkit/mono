@@ -1,5 +1,3 @@
-#[cfg(feature = "bedrock")]
-use bitview_plugin_bedrock::{HasBedrock, Vecs as Bedrock};
 #[cfg(feature = "blocks")]
 use bitview_plugin_blocks::{HasBlocks, Vecs as Blocks};
 #[cfg(feature = "coinflow")]
@@ -35,38 +33,36 @@ use crate::QueryPluginSet;
 
 pub struct QueryPlugins<'a> {
     #[cfg(feature = "distribution_addresses")]
-    pub distribution_addresses: &'a DistributionAddresses<Ro>,
-    pub indexer: &'a Indexer<Ro>,
+    pub(crate) distribution_addresses: &'a DistributionAddresses<Ro>,
+    pub(crate) indexer: &'a Indexer<Ro>,
     #[cfg(feature = "distribution_age")]
-    pub distribution_age: &'a DistributionAge<Ro>,
+    pub(crate) distribution_age: &'a DistributionAge<Ro>,
     #[cfg(feature = "mappings")]
     pub mappings: &'a Mappings<Ro>,
     #[cfg(feature = "blocks")]
-    pub blocks: &'a Blocks<Ro>,
+    pub(crate) blocks: &'a Blocks<Ro>,
     #[cfg(feature = "inputs")]
-    pub inputs: &'a Inputs<Ro>,
+    pub(crate) inputs: &'a Inputs<Ro>,
     #[cfg(feature = "mining")]
-    pub mining: &'a Mining<Ro>,
+    pub(crate) mining: &'a Mining<Ro>,
     #[cfg(feature = "outputs")]
-    pub outputs: &'a Outputs<Ro>,
+    pub(crate) outputs: &'a Outputs<Ro>,
     #[cfg(feature = "utxo_history")]
     pub utxo_history: &'a UtxoHistory<Ro>,
     #[cfg(feature = "pools")]
-    pub pools: &'a Pools<Ro>,
+    pub(crate) pools: &'a Pools<Ro>,
     #[cfg(feature = "price")]
     pub price: &'a Price<Ro>,
     #[cfg(feature = "transactions")]
-    pub transactions: &'a Transactions<Ro>,
-    #[cfg(feature = "bedrock")]
-    pub bedrock: &'a Bedrock<Ro>,
+    pub(crate) transactions: &'a Transactions<Ro>,
     #[cfg(feature = "coinflow")]
-    pub coinflow: &'a Coinflow<Ro>,
+    pub(crate) coinflow: &'a Coinflow<Ro>,
     #[cfg(feature = "cointime")]
-    pub cointime: &'a Cointime<Ro>,
+    pub(crate) cointime: &'a Cointime<Ro>,
 }
 
 impl<'a> QueryPlugins<'a> {
-    pub fn new<P>(plugins: &'a P) -> Self
+    pub(crate) fn new<P>(plugins: &'a P) -> Self
     where
         P: QueryPluginSet,
     {
@@ -96,8 +92,6 @@ impl<'a> QueryPlugins<'a> {
             price: plugins.price(),
             #[cfg(feature = "transactions")]
             transactions: plugins.transactions(),
-            #[cfg(feature = "bedrock")]
-            bedrock: plugins.bedrock(),
             #[cfg(feature = "coinflow")]
             coinflow: plugins.coinflow(),
             #[cfg(feature = "cointime")]

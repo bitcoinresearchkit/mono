@@ -16,7 +16,7 @@ pub struct PerBlockDistribution<T: ComputedVecValue + PartialOrd + JsonSchema, M
 );
 
 impl<T: NumericValue + JsonSchema> PerBlockDistribution<T> {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,

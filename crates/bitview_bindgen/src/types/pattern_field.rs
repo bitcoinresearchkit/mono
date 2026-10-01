@@ -9,25 +9,25 @@ use brk_types::Index;
 #[derive(Debug, Clone, PartialOrd, Ord)]
 pub struct PatternField {
     /// Field name
-    pub name: String,
+    pub(crate) name: String,
     /// Rust type for leaves or pattern name for branches
-    pub rust_type: String,
+    pub(crate) rust_type: String,
     /// JSON type from schema
-    pub json_type: String,
+    pub(crate) json_type: String,
     /// For leaves: the set of supported indexes. Empty for branches.
-    pub indexes: BTreeSet<Index>,
+    pub(crate) indexes: BTreeSet<Index>,
     /// For branches referencing generic patterns: the concrete type parameter
-    pub type_param: Option<String>,
+    pub(crate) type_param: Option<String>,
 }
 
 impl PatternField {
     /// Returns true if this is a leaf field (has indexes).
-    pub fn is_leaf(&self) -> bool {
+    pub(crate) fn is_leaf(&self) -> bool {
         !self.indexes.is_empty()
     }
 
     /// Returns true if this is a branch field (no indexes).
-    pub fn is_branch(&self) -> bool {
+    pub(crate) fn is_branch(&self) -> bool {
         self.indexes.is_empty()
     }
 }

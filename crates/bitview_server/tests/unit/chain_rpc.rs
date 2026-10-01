@@ -3,7 +3,7 @@
 use bitcoin::{Block, consensus::serialize};
 use serde_json::{Value, json};
 
-pub fn reply(request: &Value, tip: u32, blocks: &[Block], active: usize) -> Value {
+pub(crate) fn reply(request: &Value, tip: u32, blocks: &[Block], active: usize) -> Value {
     if let Some(batch) = request.as_array() {
         return batch
             .iter()

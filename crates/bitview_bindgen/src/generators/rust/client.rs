@@ -5,7 +5,7 @@ use std::fmt::Write;
 use crate::{IndexSetPattern, index_to_field_name};
 
 /// Generate import statements.
-pub fn generate_imports(output: &mut String) {
+pub(crate) fn generate_imports(output: &mut String) {
     writeln!(
         output,
         r#"pub use bitview_catalog::*;
@@ -24,7 +24,7 @@ use std::sync::{{Arc, LazyLock, OnceLock}};
 }
 
 /// Generate the base BitviewClientBase struct and error types.
-pub fn generate_base_client(output: &mut String) {
+pub(crate) fn generate_base_client(output: &mut String) {
     writeln!(
         output,
         r#"/// Lazily initialized typed series-tree node.
@@ -242,7 +242,7 @@ impl BitviewClientBase {{
 }
 
 /// Generate the SeriesPattern trait.
-pub fn generate_series_pattern_trait(output: &mut String) {
+pub(crate) fn generate_series_pattern_trait(output: &mut String) {
     writeln!(
         output,
         r#"/// Non-generic trait for series patterns (usable in collections).
@@ -282,7 +282,7 @@ impl<T, P: SeriesPattern<T>> SeriesPattern<T> for LazyNode<P> {{
 }
 
 /// Generate the SeriesEndpoint structs with typestate pattern.
-pub fn generate_endpoint(output: &mut String) {
+pub(crate) fn generate_endpoint(output: &mut String) {
     writeln!(
         output,
         r#"/// Shared endpoint configuration.
@@ -646,7 +646,7 @@ impl<T: DeserializeOwned, D: DeserializeOwned> RangeBuilder<T, D> {{
 }
 
 /// Generate index accessor structs.
-pub fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
+pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
     if patterns.is_empty() {
         return;
     }

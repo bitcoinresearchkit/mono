@@ -69,7 +69,7 @@ impl<const N: usize> Default for PriceIndex<N> {
 }
 
 impl<const N: usize> PriceIndex<N> {
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.tree.reset();
         self.totals = PriceTotals::default();
     }
@@ -82,18 +82,18 @@ impl<const N: usize> PriceIndex<N> {
         }
     }
 
-    pub fn add_raw(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
+    pub(crate) fn add_raw(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
         let delta = Self::delta(price, sats, filters);
         self.tree.add_raw(cents_to_bucket(price.into()), &delta);
         self.totals.add_assign(&delta);
     }
 
-    pub fn build(&mut self) {
+    pub(crate) fn build(&mut self) {
         self.tree.build_in_place();
     }
 
     #[inline]
-    pub fn add(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
+    pub(crate) fn add(&mut self, price: CentsCompact, sats: i64, filters: [bool; N]) {
         if sats == 0 {
             return;
         }
@@ -129,50 +129,34 @@ impl<const N: usize> PriceIndex<N> {
         }
     }
 
-    pub fn percentiles(
+    pub fn percentiles<const QUERIES: usize>(
         &self,
-        sat_field: impl Fn(&PriceTotals<N>) -> i64,
-        usd_field: impl Fn(&PriceTotals<N>) -> i128,
-    ) -> PercentileResult {
-        let total_sats = sat_field(&self.totals);
-        let total_usd = usd_field(&self.totals);
-        let mut result = PercentileResult::default();
-
-        if total_sats <= 0 {
-            return result;
-        }
-
-        // Build sorted sat targets: [min=0, percentiles..., max=total-1]
-        let mut sat_targets = [0i64; PERCENTILES_LEN + 2];
-        sat_targets[0] = 0; // min
-        for (i, &p) in PERCENTILES.iter().enumerate() {
-            sat_targets[i + 1] = (total_sats * i64::from(p) / 100 - 1).max(0);
-        }
-        sat_targets[PERCENTILES_LEN + 1] = total_sats - 1; // max
-
-        let sat_buckets = self.tree.kth(sat_targets, &sat_field);
-
-        result.min_price = bucket_to_cents(sat_buckets[0]);
-        (0..PERCENTILES_LEN).for_each(|i| {
-            result.sat_prices[i] = bucket_to_cents(sat_buckets[i + 1]);
+        fields: impl Fn(usize, &PriceTotals<N>) -> (i64, i128),
+    ) -> [PercentileResult; QUERIES] {
+        let totals: [(i64, i128); QUERIES] = array::from_fn(|q| fields(q, &self.totals));
+        let sat_targets = totals.map(|(sats, _)| {
+            (sats > 0).then(|| {
+                // Min, each percentile, then max.
+                let mut targets = [0; PERCENTILES_LEN + 2];
+                for (i, &p) in PERCENTILES.iter().enumerate() {
+                    targets[i + 1] = (sats * i64::from(p) / 100 - 1).max(0);
+                }
+                targets[PERCENTILES_LEN + 1] = sats - 1;
+                targets
+            })
         });
-        result.max_price = bucket_to_cents(sat_buckets[PERCENTILES_LEN + 1]);
-
-        // USD-weighted percentiles (batch)
-        if total_usd > 0 {
-            let mut usd_targets = [0i128; PERCENTILES_LEN];
-            for (i, &p) in PERCENTILES.iter().enumerate() {
-                usd_targets[i] = (total_usd * i128::from(p) / 100 - 1).max(0);
-            }
-
-            let usd_buckets = self.tree.kth(usd_targets, &usd_field);
-
-            (0..PERCENTILES_LEN).for_each(|i| {
-                result.usd_prices[i] = bucket_to_cents(usd_buckets[i]);
-            });
-        }
-
-        result
+        let usd_targets = totals.map(|(sats, cap)| {
+            (sats > 0 && cap > 0)
+                .then(|| PERCENTILES.map(|p| (cap * i128::from(p) / 100 - 1).max(0)))
+        });
+        let sat_buckets = self.tree.kth_many(sat_targets, &|q, n| fields(q, n).0);
+        let usd_buckets = self.tree.kth_many(usd_targets, &|q, n| fields(q, n).1);
+        array::from_fn(|q| PercentileResult {
+            min_price: bucket_to_cents(sat_buckets[q][0]),
+            max_price: bucket_to_cents(sat_buckets[q][PERCENTILES_LEN + 1]),
+            sat_prices: array::from_fn(|i| bucket_to_cents(sat_buckets[q][i + 1])),
+            usd_prices: array::from_fn(|i| bucket_to_cents(usd_buckets[q][i])),
+        })
     }
 }
 

@@ -11,7 +11,7 @@ impl<'a> ImportContext<'a> {
         Self { data_path }
     }
 
-    pub const fn data_path(self) -> &'a Path {
+    pub(crate) const fn data_path(self) -> &'a Path {
         self.data_path
     }
 }

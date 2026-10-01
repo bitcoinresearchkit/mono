@@ -21,7 +21,7 @@ where
     S: VecValue + Into<f64>,
     B: FixedRatio + From<f64>,
 {
-    pub fn from_source(
+    pub(crate) fn from_source(
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, S>,

@@ -34,14 +34,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct StoredI64(i64);
 
-impl StoredI64 {
-    pub const ZERO: Self = Self(0);
-
-    pub fn new(v: i64) -> Self {
-        Self(v)
-    }
-}
-
 impl From<i64> for StoredI64 {
     #[inline]
     fn from(value: i64) -> Self {
@@ -130,10 +122,10 @@ impl From<StoredI64> for f64 {
 }
 
 impl StoredI64 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "i64"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["i64"]
     }
 }

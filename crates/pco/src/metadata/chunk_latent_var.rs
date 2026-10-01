@@ -85,10 +85,10 @@ pub struct ChunkLatentVarMeta {
   /// table.
   ///
   /// See <https://en.wikipedia.org/wiki/Asymmetric_numeral_systems>.
-  pub ans_size_log: Bitlen,
+  pub(crate) ans_size_log: Bitlen,
   /// How the numbers or deltas are encoded, depending on their numerical
   /// range.
-  pub bins: DynBins,
+  pub(crate) bins: DynBins,
 }
 
 impl ChunkLatentVarMeta {

@@ -47,7 +47,7 @@ impl PatternContext {
 /// Returns (patterns, concrete_to_pattern, concrete_to_type_param, node_bases).
 /// Each pattern has its `mode` set based on analysis of all instances.
 /// `node_bases` maps tree paths to their computed PatternBaseResult for use during generation.
-pub fn detect_structural_patterns(
+pub(crate) fn detect_structural_patterns(
     tree: &TreeNode,
 ) -> (
     Vec<StructuralPattern>,

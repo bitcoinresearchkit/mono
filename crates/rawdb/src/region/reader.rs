@@ -56,12 +56,8 @@ impl Reader {
         unsafe { slice::from_raw_parts(self.mmap.as_ptr().add(self.start + offset), len) }
     }
 
-    pub fn len(&self) -> usize {
+    pub(crate) fn len(&self) -> usize {
         self.len
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
     }
 
     pub fn read_all(&self) -> &[u8] {

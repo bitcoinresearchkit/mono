@@ -16,7 +16,11 @@ use crate::{
 const MAX_EAGER_LEAVES: usize = 4_096;
 
 /// Generate tree classes
-pub fn generate_tree_classes(output: &mut String, catalog: &TreeNode, metadata: &ClientMetadata) {
+pub(crate) fn generate_tree_classes(
+    output: &mut String,
+    catalog: &TreeNode,
+    metadata: &ClientMetadata,
+) {
     writeln!(output, "# Series tree classes\n").unwrap();
 
     let pattern_lookup = metadata.pattern_lookup();

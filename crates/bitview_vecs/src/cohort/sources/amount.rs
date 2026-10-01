@@ -20,7 +20,7 @@ pub struct AmountSources<T: PcoVecValue, S: Clone, M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub series: AmountRange<S>,
     #[traversable(hidden)]
-    pub stored: AmountRange<CachedSeries<Height, T, M>>,
+    pub(crate) stored: AmountRange<CachedSeries<Height, T, M>>,
     last: M::WriteOnly<CumulativeState<AmountRange<T>>>,
 }
 
@@ -81,10 +81,6 @@ impl<T: PcoVecValue + AddAssign, S: Clone> AmountSources<T, S> {
     pub fn len(&self) -> usize {
         self.stored.iter().map(AnyVec::len).min().unwrap_or(0)
     }
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn checkpoint(&self, height: Height) -> Option<AmountRange<T>> {
         AmountRange::try_from_fn(|id| id.select(&self.stored).collect_one(height).ok_or(())).ok()
     }

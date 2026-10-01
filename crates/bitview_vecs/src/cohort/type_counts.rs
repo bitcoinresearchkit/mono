@@ -16,7 +16,7 @@ pub struct TypeCounts<S> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub total: CountTotal,
+    total: CountTotal,
     #[traversable(flatten)]
     pub by_type: S,
 }

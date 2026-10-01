@@ -42,7 +42,7 @@ where
     S1T: VecValue,
 {
     /// The shared source read by this aggregation view.
-    pub fn source(&self) -> &ReadableBoxedVec<S1I, S1T> {
+    pub(crate) fn source(&self) -> &ReadableBoxedVec<S1I, S1T> {
         &self.source
     }
 

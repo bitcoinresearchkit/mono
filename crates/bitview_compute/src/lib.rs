@@ -14,7 +14,7 @@ mod weighted;
 pub use age_band::{AgeBand, MINIMUM_DURATION_DAYS};
 pub use block_walker::{BlockAggregate, CoinbasePolicy, walk_blocks};
 pub use cohort_accounting::{CohortAccounting, collect_age_range};
-pub use cohort_weight::{collect_cohort_weights, resolve_cohort_value, resolve_cohort_weight};
+pub use cohort_weight::{collect_cohort_weights, resolve_cohort_weight};
 pub use drawdown::ComputeDrawdown;
 pub use prepare::prepare_computed;
 pub use statistics::{

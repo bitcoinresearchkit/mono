@@ -43,10 +43,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
 
     pub count: CountVecs<M>,
-    pub features: FeaturesVecs<M>,
-    pub size: UtxosVecs<M>,
+    features: FeaturesVecs<M>,
+    size: UtxosVecs<M>,
     pub fees: FeesVecs<M>,
-    pub inscription: InscriptionVecs<M>,
+    inscription: InscriptionVecs<M>,
     pub patterns: PatternsVecs<M>,
     /// BRK's transaction-local approximation of default Bitcoin Core relay
     /// standardness at the represented block height. It checks version,
@@ -55,11 +55,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// floors, mempool or package topology, conflicts or replacement, or
     /// node-specific settings. Modeled rules change after height 863,500 and at
     /// heights 905,000 and 921,000; coinbase is classified nonstandard.
-    pub policy: PolicyVecs<M>,
-    pub sigops: SigopsVecs<M>,
+    policy: PolicyVecs<M>,
+    sigops: SigopsVecs<M>,
     /// Counts every transaction, including coinbase, by its signed 32-bit
     /// Bitcoin transaction version.
-    pub versions: VersionsVecs<M>,
+    versions: VersionsVecs<M>,
     pub volume: VolumeVecs<M>,
 }
 

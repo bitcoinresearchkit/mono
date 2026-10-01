@@ -31,7 +31,7 @@ impl Database {
 
     /// Opens or creates a database.
     #[doc(hidden)]
-    pub fn open(config: Config) -> Result<Self> {
+    pub(crate) fn open(config: Config) -> Result<Self> {
         fs::create_dir_all(&config.path)?;
 
         let marker_path = config.path.join(VERSION_MARKER);

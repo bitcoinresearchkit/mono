@@ -22,19 +22,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct Year(u16);
 
-impl Year {
-    pub const GENESIS: Self = Self(2009);
-
-    pub const fn new(value: u16) -> Self {
-        Self(value)
-    }
-
-    /// Returns the year as an index (0 = 2009, 1 = 2010, etc.)
-    pub fn to_index(self) -> usize {
-        (self.0 - 2009) as usize
-    }
-}
-
 impl From<u16> for Year {
     #[inline]
     fn from(value: u16) -> Self {
@@ -119,10 +106,10 @@ impl Div<usize> for Year {
 }
 
 impl Year {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "year"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["year"]
     }
 }

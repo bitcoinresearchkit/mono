@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_reader::Reader;
 use vecdb::{Ro, Rw, StorageMode};
 
-use crate::near_full_blocks::{Dependencies, HasNearFullBlocks, Vecs as NearFullBlocks};
+use crate::near_full_blocks::{Dependencies, Vecs as NearFullBlocks};
 
 #[derive(PluginSet, Traversable)]
 pub struct Plugins<M: StorageMode = Rw> {
@@ -38,12 +38,6 @@ impl Plugins {
             },
             context,
         )
-    }
-}
-
-impl<M: StorageMode> HasNearFullBlocks<M> for Plugins<M> {
-    fn near_full_blocks(&self) -> &NearFullBlocks<M> {
-        &self.near_full_blocks
     }
 }
 

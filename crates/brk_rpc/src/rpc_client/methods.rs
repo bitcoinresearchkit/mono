@@ -286,7 +286,7 @@ impl Client {
         }
     }
 
-    pub fn get_blockchain_info(&self) -> Result<GetBlockchainInfo> {
+    fn get_blockchain_info(&self) -> Result<GetBlockchainInfo> {
         self.0.call_with_retry("getblockchaininfo", &NO_ARGS)
     }
 

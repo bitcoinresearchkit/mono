@@ -8,7 +8,7 @@ use vecdb::Database;
 use super::Vecs;
 
 impl Vecs {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,

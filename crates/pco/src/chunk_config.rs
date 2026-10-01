@@ -1,7 +1,6 @@
 use crate::constants::*;
 use crate::data_types::LatentType;
 use crate::errors::{PcoError, PcoResult};
-use crate::DEFAULT_COMPRESSION_LEVEL;
 
 /// Specifies how Pco should choose a [`mode`][crate::metadata::Mode] to compress this
 /// chunk of data.
@@ -131,7 +130,7 @@ impl Default for PagingSpec {
 }
 
 impl PagingSpec {
-  pub fn n_per_page(&self, n: usize) -> PcoResult<Vec<usize>> {
+  pub(crate) fn n_per_page(&self, n: usize) -> PcoResult<Vec<usize>> {
     let n_per_page = match self {
       // You might think it would be beneficial to do either of these:
       // * greedily fill pages since compressed chunk size seems like a concave
@@ -200,27 +199,27 @@ pub struct ChunkConfig {
   ///
   /// The meaning of the compression levels is subject to change with
   /// new releases.
-  pub compression_level: usize,
+  pub(crate) compression_level: usize,
   /// Specifies how the mode should be determined.
   ///
   /// See [`Mode`](crate::metadata::Mode) to understand what modes are, and see
   /// [`ModeSpec`](ModeSpec) for how to configure it.
-  pub mode_spec: ModeSpec,
+  pub(crate) mode_spec: ModeSpec,
   /// Specifies how delta encoding should be chosen.
   ///
   /// See [`DeltaEncoding`](crate::metadata::DeltaEncoding) to understand what
   /// delta encoding is, and see [`DeltaSpec`](crate::metadata::DeltaSpec) for
   /// how to configure it.
-  pub delta_spec: DeltaSpec,
+  pub(crate) delta_spec: DeltaSpec,
   /// Specifies how the chunk should be split into pages (default: equal pages
   /// up to 2^18 numbers each).
-  pub paging_spec: PagingSpec,
+  pub(crate) paging_spec: PagingSpec,
   /// By default, Pco will fail when trying to compress u8 or i8 data.
   /// This is to prevent user error: Pco is not meant to be used with arbitrary
   /// token-based/symbolic data, e.g. UTF-8 text files.
   /// Instead, this should be enabled when the data is inherently numerical,
   /// e.g. an 8-bit color channel of an image.
-  pub enable_8_bit: bool,
+  pub(crate) enable_8_bit: bool,
 }
 
 impl Default for ChunkConfig {

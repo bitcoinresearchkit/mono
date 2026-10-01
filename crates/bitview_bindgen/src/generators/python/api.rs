@@ -12,7 +12,7 @@ use super::client::generate_class_constants;
 use super::types::js_type_to_python;
 
 /// Generate the main client class
-pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
+pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
     writeln!(output, "class BitviewClient(BitviewClientBase):").unwrap();
     writeln!(
         output,
@@ -110,7 +110,7 @@ pub fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) {
 }
 
 /// Generate API methods from OpenAPI endpoints
-pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
+fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
     for endpoint in endpoints {
         if !endpoint.should_generate() {
             continue;

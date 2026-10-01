@@ -64,7 +64,7 @@ pub enum RarityPercentileId {
     Pct99_9,
 }
 
-pub const RARITY_PERCENTILE_IDS: [RarityPercentileId; RARITY_PERCENTILES_LEN] = [
+const RARITY_PERCENTILE_IDS: [RarityPercentileId; RARITY_PERCENTILES_LEN] = [
     RarityPercentileId::Pct0_1,
     RarityPercentileId::Pct0_5,
     RarityPercentileId::Pct1,
@@ -84,28 +84,6 @@ pub const RARITY_PERCENTILE_IDS: [RarityPercentileId; RARITY_PERCENTILES_LEN] = 
     RarityPercentileId::Pct99,
     RarityPercentileId::Pct99_5,
     RarityPercentileId::Pct99_9,
-];
-
-pub const PERCENTILE_IDS: [PercentileId; PERCENTILES_LEN] = [
-    PercentileId::Pct05,
-    PercentileId::Pct10,
-    PercentileId::Pct15,
-    PercentileId::Pct20,
-    PercentileId::Pct25,
-    PercentileId::Pct30,
-    PercentileId::Pct35,
-    PercentileId::Pct40,
-    PercentileId::Pct45,
-    PercentileId::Pct50,
-    PercentileId::Pct55,
-    PercentileId::Pct60,
-    PercentileId::Pct65,
-    PercentileId::Pct70,
-    PercentileId::Pct75,
-    PercentileId::Pct80,
-    PercentileId::Pct85,
-    PercentileId::Pct90,
-    PercentileId::Pct95,
 ];
 
 impl PercentileId {
@@ -191,13 +169,7 @@ impl RarityPercentileId {
     }
 }
 
-impl PercentileId {
-    pub const ALL: &'static [Self] = &PERCENTILE_IDS;
-}
-
 impl RarityPercentileId {
-    pub const ALL: &'static [Self] = &RARITY_PERCENTILE_IDS;
-
     #[inline]
     pub fn from_fn<T, F>(f: F) -> [T; RARITY_PERCENTILES_LEN]
     where
@@ -288,15 +260,6 @@ mod weighted_tests;
 mod tests {
     #[cfg(feature = "storage")]
     use super::*;
-
-    #[cfg(feature = "storage")]
-    #[test]
-    fn percentile_ids_match_values_and_storage_order() {
-        for (index, id) in PERCENTILE_IDS.into_iter().enumerate() {
-            assert_eq!(id as usize, index);
-            assert_eq!(id.percentile(), PERCENTILES[index]);
-        }
-    }
 
     #[cfg(feature = "storage")]
     #[test]

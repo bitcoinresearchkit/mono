@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-pub mod raw;
-pub mod value;
+mod raw;
+mod value;
 
 /// Serialization strategy using zerocopy for native byte order access.
 ///

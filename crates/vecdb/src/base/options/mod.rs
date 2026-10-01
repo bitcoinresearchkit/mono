@@ -8,7 +8,7 @@ use crate::Version;
 #[derive(Clone, Copy)]
 pub struct ImportOptions<'a> {
     /// Database to store the vector in.
-    pub db: &'a Database,
+    pub(crate) db: &'a Database,
     /// Name of the vector.
     pub name: &'a str,
     /// Version for tracking data schema compatibility.

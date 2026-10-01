@@ -184,7 +184,7 @@ impl TxGraveyard {
     /// `RETENTION`. Splits `Instant::now()` arithmetic out of the test
     /// bodies and avoids real-time sleeps.
     #[cfg(test)]
-    pub(crate) fn shift_oldest_back(&mut self, count: usize) {
+    fn shift_oldest_back(&mut self, count: usize) {
         let bumped = Instant::now() - (RETENTION + Duration::from_secs(1));
         for entry in self.order.iter_mut().take(count) {
             let txid = entry.1;

@@ -1,8 +1,6 @@
-pub mod halve;
 pub mod ident;
 mod map_option;
 
-pub use halve::Halve;
 pub use ident::Ident;
 pub use map_option::MapOption;
 

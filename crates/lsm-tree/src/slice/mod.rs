@@ -21,19 +21,19 @@ pub struct Slice(ByteView);
 impl Slice {
     /// Creates an owned subslice.
     #[must_use]
-    pub fn slice(&self, range: impl RangeBounds<usize>) -> Self {
+    pub(crate) fn slice(&self, range: impl RangeBounds<usize>) -> Self {
         Self(self.0.slice(range))
     }
 
     /// Joins two byte slices into one owned slice.
     #[must_use]
-    pub fn fused(left: &[u8], right: &[u8]) -> Self {
+    pub(crate) fn fused(left: &[u8], right: &[u8]) -> Self {
         Self(ByteView::fused(left, right))
     }
 
     /// Construct a [`Slice`] from a byte slice.
     #[must_use]
-    pub fn new(bytes: &[u8]) -> Self {
+    pub(crate) fn new(bytes: &[u8]) -> Self {
         Self(bytes.into())
     }
 
@@ -45,18 +45,18 @@ impl Slice {
 
     #[doc(hidden)]
     #[must_use]
-    pub fn empty() -> Self {
+    pub(crate) fn empty() -> Self {
         Self::default()
     }
 
     #[doc(hidden)]
     #[must_use]
-    pub fn builder(len: usize) -> Builder {
+    pub(crate) fn builder(len: usize) -> Builder {
         ByteView::builder(len)
     }
 
     #[doc(hidden)]
-    pub fn from_reader<R: Read>(reader: &mut R, len: usize) -> Result<Self> {
+    pub(crate) fn from_reader<R: Read>(reader: &mut R, len: usize) -> Result<Self> {
         ByteView::from_reader(reader, len).map(Self)
     }
 }

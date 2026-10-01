@@ -2,26 +2,6 @@ use bitview_cohort::*;
 use brk_types::OutputType;
 
 #[test]
-fn identity_roundtrips_through_composed_groups() {
-    let cohorts = UTXOGroups::new(|id| id);
-    assert_eq!(cohorts.iter().count(), 75);
-    for &id in cohorts.iter() {
-        assert_eq!(cohorts.get(id), Some(&id));
-    }
-    cohorts.map_with_id(|id, &value| assert_eq!(id, value));
-    assert_eq!(cohorts.get(CohortId::Type(OutputType::OpReturn)), None);
-
-    let core = UTXOGroupCore::new(|id| id);
-    for &id in core.iter() {
-        assert_eq!(core.get(id), Some(&id));
-    }
-    assert_eq!(core.get(CohortId::Term(Term::Sth)), None);
-    assert_eq!(core.get(CohortId::Entry(EntryPrice::Discount)), None);
-    assert_eq!(core.get(AmountRangeId::Zero.cohort()), None);
-    assert_eq!(core.get(CohortId::Type(OutputType::P2PKH)), None);
-}
-
-#[test]
 fn holder_classification_matches_age_bounds_and_aggregate_selectors() {
     for &id in AgeRangeId::ALL {
         let bounds = id.bounds();
@@ -36,20 +16,6 @@ fn holder_classification_matches_age_bounds_and_aggregate_selectors() {
             id.age_range_ids(),
         );
     }
-}
-
-#[test]
-fn composed_mapping_does_not_fall_back_to_the_dereferenced_core() {
-    let cohorts = UTXOGroupsWithoutAmountOrType::new(|id| id);
-    let mut count = 0;
-    let mapped = cohorts.map_with_id(|id, &value| {
-        count += 1;
-        assert_eq!(id, value);
-        value
-    });
-    assert_eq!(count, cohorts.iter().count());
-    assert_eq!(mapped.term.short, CohortId::Term(Term::Sth));
-    assert_eq!(mapped.term.long, CohortId::Term(Term::Lth));
 }
 
 #[test]

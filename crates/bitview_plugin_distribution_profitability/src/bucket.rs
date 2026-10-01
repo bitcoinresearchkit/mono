@@ -4,12 +4,12 @@ use brk_types::{Cents, CentsSats, Sats};
 
 #[derive(Default)]
 pub(crate) struct Bucket {
-    pub supply: AgeAggregate<Sats>,
-    pub cap: AgeAggregate<Cents>,
+    pub(crate) supply: AgeAggregate<Sats>,
+    pub(crate) cap: AgeAggregate<Cents>,
 }
 
 impl Bucket {
-    pub fn between(before: PriceTotals<4>, after: PriceTotals<4>) -> Self {
+    pub(crate) fn between(before: PriceTotals<4>, after: PriceTotals<4>) -> Self {
         let values = AgeAggregate::from_fn(|id| {
             let (before_sats, before_cap) = age_index::selected(id, &before);
             let (after_sats, after_cap) = age_index::selected(id, &after);

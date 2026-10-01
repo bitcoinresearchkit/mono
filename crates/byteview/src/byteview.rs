@@ -535,15 +535,9 @@ impl ByteView {
         }
     }
 
-    /// Returns `true` if the slice is empty.
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     /// Returns the amount of bytes in the slice.
     #[must_use]
-    pub fn len(&self) -> usize {
+    fn len(&self) -> usize {
         unsafe { self.trailer.short.len as usize }
     }
 

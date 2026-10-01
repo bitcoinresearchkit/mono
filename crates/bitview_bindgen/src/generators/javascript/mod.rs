@@ -10,9 +10,9 @@ use super::write_if_changed;
 use crate::{ClientMetadata, Endpoint, TypeSchemas, VERSION};
 
 mod api;
-pub mod client;
-pub mod tree;
-pub mod types;
+pub(crate) mod client;
+mod tree;
+pub(crate) mod types;
 
 /// Generate JavaScript + JSDoc client from metadata and OpenAPI endpoints.
 ///

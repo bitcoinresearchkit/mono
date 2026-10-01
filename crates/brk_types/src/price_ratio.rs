@@ -43,7 +43,7 @@ use vecdb::{Formattable, Pco};
 pub struct PriceRatio(u32);
 
 impl PriceRatio {
-    pub const SCALE: u32 = 1_000_000;
+    const SCALE: u32 = 1_000_000;
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(Self::SCALE);
     pub const MAX: Self = Self(u32::MAX - 1);

@@ -31,46 +31,46 @@ pub use restart_interval::RestartIntervalPolicy;
 pub struct Config {
     /// Folder path
     #[doc(hidden)]
-    pub path: PathBuf,
+    pub(crate) path: PathBuf,
 
     /// Block cache to use
     #[doc(hidden)]
-    pub cache: Arc<Cache>,
+    pub(crate) cache: Arc<Cache>,
 
     /// Descriptor table to use
     #[doc(hidden)]
-    pub descriptor_table: Option<Arc<DescriptorTable>>,
+    pub(crate) descriptor_table: Option<Arc<DescriptorTable>>,
 
     /// What type of compression is used for data blocks
-    pub data_block_compression_policy: CompressionPolicy,
+    pub(crate) data_block_compression_policy: CompressionPolicy,
 
     /// What type of compression is used for index blocks
-    pub index_block_compression_policy: CompressionPolicy,
+    pub(crate) index_block_compression_policy: CompressionPolicy,
 
     /// Restart interval inside data blocks
-    pub data_block_restart_interval_policy: RestartIntervalPolicy,
+    pub(crate) data_block_restart_interval_policy: RestartIntervalPolicy,
 
     /// Block size of data blocks
-    pub data_block_size_policy: BlockSizePolicy,
+    pub(crate) data_block_size_policy: BlockSizePolicy,
 
     /// Whether to pin index blocks
-    pub index_block_pinning_policy: PinningPolicy,
+    pub(crate) index_block_pinning_policy: PinningPolicy,
 
     /// Whether to pin filter blocks
-    pub filter_block_pinning_policy: PinningPolicy,
+    pub(crate) filter_block_pinning_policy: PinningPolicy,
 
     /// Whether to partition index blocks
-    pub index_block_partitioning_policy: PartitioningPolicy,
+    pub(crate) index_block_partitioning_policy: PartitioningPolicy,
 
     /// Whether to partition filter blocks
-    pub filter_block_partitioning_policy: PartitioningPolicy,
+    pub(crate) filter_block_partitioning_policy: PartitioningPolicy,
 
     /// If `true`, the last level will not build filters, reducing the filter size of a database
     /// by ~90% typically
-    pub expect_point_read_hits: bool,
+    pub(crate) expect_point_read_hits: bool,
 
     /// Filter construction policy
-    pub filter_policy: FilterPolicy,
+    pub(crate) filter_policy: FilterPolicy,
 }
 
 impl Config {

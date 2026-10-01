@@ -86,7 +86,7 @@ impl Node {
 }
 
 /// A real RPC-driven mempool beside the populated indexer fixture.
-pub struct AddrPublication {
+pub(crate) struct AddrPublication {
     query: AsyncQuery,
     writer: Arc<Mutex<Mempool>>,
     mempool: ReadOnlyMempool,
@@ -104,7 +104,7 @@ pub struct AddrPublication {
 }
 
 impl AddrPublication {
-    pub async fn start(plugins: &DefaultPlugins, directory: &Path, first: &Block) -> Self {
+    pub(crate) async fn start(plugins: &DefaultPlugins, directory: &Path, first: &Block) -> Self {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let client = Client::new_with(
             &format!("http://{}", listener.local_addr().unwrap()),
@@ -605,7 +605,7 @@ impl AddrPublication {
         );
     }
 
-    pub async fn consume_snapshot(&mut self) {
+    pub(crate) async fn consume_snapshot(&mut self) {
         let snapshot = self.snapshot.take().unwrap();
         let transactions = self
             .query
@@ -615,7 +615,7 @@ impl AddrPublication {
         assert_eq!(to_value(transactions).unwrap(), self.snapshot_body);
     }
 
-    pub async fn after_reorg(mut self, second: &Block) {
+    pub(crate) async fn after_reorg(mut self, second: &Block) {
         let rbf = self.rbf_snapshot.take().unwrap();
         assert!(matches!(
             self.query.run(move |q| q.tx_rbf_resolved(rbf)).await,

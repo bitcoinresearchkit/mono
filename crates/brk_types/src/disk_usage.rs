@@ -5,15 +5,15 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct DiskUsage {
     /// Human-readable brk data size (e.g., "48.8 GiB")
-    pub brk: String,
+    brk: String,
     /// brk data size in bytes
-    pub brk_bytes: u64,
+    brk_bytes: u64,
     /// Human-readable Bitcoin blocks directory size
-    pub bitcoin: String,
+    bitcoin: String,
     /// Bitcoin blocks directory size in bytes
-    pub bitcoin_bytes: u64,
+    bitcoin_bytes: u64,
     /// Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
-    pub ratio: f64,
+    ratio: f64,
 }
 
 impl DiskUsage {

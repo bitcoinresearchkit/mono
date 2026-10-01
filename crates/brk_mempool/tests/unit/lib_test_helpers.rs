@@ -4,27 +4,27 @@ use brk_types::{BlockHash, FeeRate, Txid};
 use super::*;
 
 impl Mempool {
-    pub fn for_test() -> Self {
+    pub(crate) fn for_test() -> Self {
         let client = Client::new(Client::default_url(), Auth::None).unwrap();
         Self::new(&client)
     }
 
-    pub fn test_state_mut(&mut self) -> &mut State {
+    pub(crate) fn test_state_mut(&mut self) -> &mut State {
         &mut self.state
     }
-    pub fn test_state(&self) -> &State {
+    pub(crate) fn test_state(&self) -> &State {
         &self.state
     }
-    pub fn published(&self) -> Arc<ReadOnlyState> {
+    pub(crate) fn published(&self) -> Arc<ReadOnlyState> {
         self.read_only.load()
     }
 
-    pub fn test_tick(&mut self, gbt_txids: &[Txid], min_fee: FeeRate) {
+    pub(crate) fn test_tick(&mut self, gbt_txids: &[Txid], min_fee: FeeRate) {
         self.rebuilder.tick(&self.state, gbt_txids, min_fee);
         self.publish_observation(BlockHash::default(), true);
     }
 
-    pub fn test_publish(&mut self, tip: BlockHash) {
+    pub(crate) fn test_publish(&mut self, tip: BlockHash) {
         let ids: Vec<_> = self.state.txs.txids().copied().collect();
         self.rebuilder.tick(&self.state, &ids, FeeRate::new(1.0));
         self.publish_observation(tip, true);

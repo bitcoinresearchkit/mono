@@ -114,7 +114,7 @@ mod tests {
     use super::record_explicit_rbf_signal;
 
     #[test]
-    pub fn explicit_rbf_uses_the_exact_sequence_boundary() {
+    fn explicit_rbf_uses_the_exact_sequence_boundary() {
         for (raw, expected) in [
             (0xffff_fffd, true),
             (0xffff_fffe, false),
@@ -127,7 +127,7 @@ mod tests {
     }
 
     #[test]
-    pub fn any_signaling_input_marks_the_transaction_once() {
+    fn any_signaling_input_marks_the_transaction_once() {
         let mut explicitly_rbf = false;
         for raw in [0xffff_ffff, 0xffff_fffd, 0, 0xffff_fffe] {
             record_explicit_rbf_signal(&mut explicitly_rbf, Sequence::from_consensus(raw));

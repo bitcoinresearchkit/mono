@@ -12,7 +12,7 @@ where
     T: ComputedVecValue + JsonSchema,
     S1T: ComputedVecValue,
 {
-    pub block: LazyDistribution<Height, T, S1T>,
+    block: LazyDistribution<Height, T, S1T>,
     /// Uses the six-block window ending at the represented block.
     pub _6b: LazyDistribution<Height, T, S1T>,
 }

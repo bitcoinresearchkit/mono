@@ -228,7 +228,7 @@ impl Query {
     /// Use this raw form only for "is this mined?" probes that don't deref
     /// derived data (mempool merge, cpfp fee-rate fall-through).
     #[inline]
-    pub fn resolve_tx_index(&self, txid: &Txid) -> Result<TxIndex> {
+    pub(crate) fn resolve_tx_index(&self, txid: &Txid) -> Result<TxIndex> {
         self.indexer()
             .stores()
             .tx_index(&TxidPrefix::from(txid))?
@@ -239,7 +239,7 @@ impl Query {
     /// has not yet covered. Use this from any path that will subsequently
     /// dereference indexer/plugins vecs by `tx_index`.
     #[inline]
-    pub fn resolve_tx_index_bounded(&self, txid: &Txid) -> Result<TxIndex> {
+    pub(crate) fn resolve_tx_index_bounded(&self, txid: &Txid) -> Result<TxIndex> {
         let tx_index = self.resolve_tx_index(txid)?;
         if tx_index >= self.safe_lengths().tx_index
             || self

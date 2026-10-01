@@ -13,7 +13,7 @@ pub struct UnrealizedState {
 }
 
 impl UnrealizedState {
-    pub const ZERO: Self = Self {
+    pub(crate) const ZERO: Self = Self {
         supply_in_profit: Sats::ZERO,
         supply_in_loss: Sats::ZERO,
         unrealized_profit: Cents::ZERO,

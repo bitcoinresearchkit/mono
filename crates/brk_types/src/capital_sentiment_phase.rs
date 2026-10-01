@@ -48,8 +48,8 @@ pub enum CapitalSentimentPhase {
 }
 
 impl CapitalSentimentPhase {
-    pub const MIN_CODE: u8 = Self::RagingBull as u8;
-    pub const MAX_CODE: u8 = Self::EarlyBear as u8;
+    const MIN_CODE: u8 = Self::RagingBull as u8;
+    const MAX_CODE: u8 = Self::EarlyBear as u8;
 
     /// Compact persisted representation. Code `0` is reserved for no phase.
     #[inline]

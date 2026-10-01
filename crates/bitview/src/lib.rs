@@ -25,15 +25,6 @@ pub use bitview_runtime::{
     BootstrapAction, ComputePluginSet, ImportContext, PluginSet, UpdateContext, bootstrap, update,
 };
 
-/// The Bitview project website.
-pub const HOMEPAGE: &str = "https://bitview.dev";
-
-/// The official hosted Bitview instance.
-pub const INSTANCE: &str = "https://bitview.space";
-
-/// The toolkit Bitview is built on.
-pub const TOOLKIT: &str = "https://bitcoinresearchkit.org";
-
 /// Fully resolved settings for one Bitview runner.
 pub struct Config {
     /// Bitcoin Core RPC client.

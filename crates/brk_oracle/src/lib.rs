@@ -35,8 +35,10 @@ pub use filter::PaymentFilter;
 pub use histogram_ema::HistogramEma;
 pub use histogram_ema_compact::HistogramEmaCompact;
 pub use histogram_raw::HistogramRaw;
-pub use scale::{BINS_PER_DECADE, NUM_BINS, bin_to_cents, cents_to_bin, sats_to_bin};
-pub use seed::{pre_oracle_price_cents, pre_oracle_prices_from, seed_bin, seed_price_cents};
+use scale::NUM_BINS;
+pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
+pub use seed::pre_oracle_prices_from;
+use seed::seed_bin;
 
 use stencil::Stencil;
 use window::EmaWindow;
@@ -113,10 +115,6 @@ impl Oracle {
         });
     }
 
-    pub fn ref_bin(&self) -> f64 {
-        self.ref_bin
-    }
-
     /// The current weighted EMA over the window, one value per log-scale bin.
     /// `ema()[i]` is bin `i` (see `sats_to_bin`).
     pub fn ema(&self) -> &HistogramEma {
@@ -137,20 +135,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn oracle_basic() {
-        let oracle = Oracle::new(1600.0, Config::default());
-        assert_eq!(oracle.ref_bin(), 1600.0);
-        assert_eq!(oracle.price_cents(), bin_to_cents(1600.0).into());
-    }
-
-    #[test]
     fn from_seed_matches_manual_seed() {
         let mut seeded = Oracle::from_seed();
         let mut manual = Oracle::new(seed_bin(), Config::slow());
         let mut hist = HistogramRaw::zeros();
         hist.increment(1200);
 
-        assert_eq!(seeded.ref_bin(), manual.ref_bin());
+        assert_eq!(seeded.ref_bin, manual.ref_bin);
         assert_eq!(
             seeded.process_histogram(&hist),
             manual.process_histogram(&hist)
@@ -180,7 +171,7 @@ mod tests {
         switched.reconfigure(fast);
 
         let keep = fast.window_size;
-        let fresh = Oracle::from_checkpoint(switched.ref_bin(), fast, |o| {
+        let fresh = Oracle::from_checkpoint(switched.ref_bin, fast, |o| {
             hists[hists.len() - keep..].iter().for_each(|h| {
                 o.process_histogram(h);
             });

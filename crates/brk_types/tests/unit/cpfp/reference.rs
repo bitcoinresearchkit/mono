@@ -8,7 +8,7 @@ use crate::{ChunkInput, CpfpClusterChunk, CpfpClusterTxIndex, FeeRate, Sats, VSi
 /// (parents before children); `parents` indices must point earlier in
 /// the slice. Returns chunks sorted by descending feerate, with each
 /// chunk's `txs` listed in the input topological order.
-pub fn linearize(items: &[ChunkInput<'_>]) -> Vec<CpfpClusterChunk> {
+pub(crate) fn linearize(items: &[ChunkInput<'_>]) -> Vec<CpfpClusterChunk> {
     let n = items.len();
     if n == 0 {
         return Vec::new();

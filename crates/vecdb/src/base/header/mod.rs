@@ -25,7 +25,11 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn create_and_write(region: &Region, vec_version: Version, format: Format) -> Result<Self> {
+    pub(crate) fn create_and_write(
+        region: &Region,
+        vec_version: Version,
+        format: Format,
+    ) -> Result<Self> {
         let inner = HeaderInner::create_and_write(region, vec_version, format)?;
         Ok(Self {
             inner: Arc::new(RwLock::new(inner)),
@@ -34,7 +38,7 @@ impl Header {
         })
     }
 
-    pub fn import_and_verify(
+    pub(crate) fn import_and_verify(
         region: &Region,
         vec_version: Version,
         format: Format,
@@ -56,7 +60,7 @@ impl Header {
         }
     }
 
-    pub fn update_computed_version(&mut self, computed_version: Version) {
+    pub(crate) fn update_computed_version(&mut self, computed_version: Version) {
         self.assert_writable();
         let mut inner = self.inner.write();
         if inner.computed_version != computed_version {
@@ -66,7 +70,7 @@ impl Header {
     }
 
     #[inline(always)]
-    pub fn modified(&self) -> bool {
+    pub(crate) fn modified(&self) -> bool {
         self.modified
     }
 
@@ -96,7 +100,7 @@ impl Header {
         self.inner.read().stamp
     }
 
-    pub fn write(&mut self, region: &Region) -> Result<()> {
+    pub(crate) fn write(&mut self, region: &Region) -> Result<()> {
         let guard = self.begin_write()?;
         self.inner.read().write(region)?;
         self.modified = false;

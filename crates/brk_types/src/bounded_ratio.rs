@@ -39,7 +39,6 @@ impl BoundedRatio {
     pub const SCALE: u32 = u32::MAX - 1;
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(Self::SCALE);
-    pub const MAX: Self = Self::ONE;
     pub const NAN: Self = Self(u32::MAX);
 
     /// Derive the complement without a float round-trip or a second stored source.

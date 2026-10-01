@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Generate JSDoc type definitions from OpenAPI schemas.
-pub fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
+pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
     if schemas.is_empty() {
         return;
     }
@@ -117,7 +117,7 @@ fn json_type_to_js(ty: &str, schema: &Value, current_type: Option<&str>) -> Stri
 
 /// JSDoc has no `integer` keyword, only `number`. Map `integer` (and `integer[]`,
 /// `Foo<integer>`, etc.) to `number` before emitting type strings to JS.
-pub fn jsdoc_normalize(ty: &str) -> String {
+pub(crate) fn jsdoc_normalize(ty: &str) -> String {
     if ty == "integer" {
         return "number".to_string();
     }
@@ -134,7 +134,7 @@ pub fn jsdoc_normalize(ty: &str) -> String {
 }
 
 /// Convert a JSON schema to a JavaScript type string.
-pub fn schema_to_js_type(schema: &Value, current_type: Option<&str>) -> String {
+fn schema_to_js_type(schema: &Value, current_type: Option<&str>) -> String {
     if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array()) {
         for item in all_of {
             let resolved = schema_to_js_type(item, current_type);

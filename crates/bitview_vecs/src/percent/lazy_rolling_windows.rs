@@ -19,7 +19,7 @@ use crate::{IndexSources, LazyPercentPerBlock, LazyRollingRatioVec};
 pub struct LazyPercentRollingWindows<B: FixedRatio>(pub Windows<LazyPercentPerBlock<B>>);
 
 impl<B: FixedRatio> LazyPercentRollingWindows<B> {
-    pub fn from_cumulative_ratio<S, D, F>(
+    pub(crate) fn from_cumulative_ratio<S, D, F>(
         name: &str,
         version: Version,
         numerator: &impl ReadableCloneableVec<Height, S>,
@@ -118,7 +118,7 @@ impl<B: FixedRatio> LazyPercentRollingWindows<B> {
         }))
     }
 
-    pub fn from_lazy_rolling<F: UnaryTransform<B, B>>(
+    pub(crate) fn from_lazy_rolling<F: UnaryTransform<B, B>>(
         name: &str,
         version: Version,
         source: &Self,

@@ -57,9 +57,8 @@ pub fn parse_canonical_body(
         let tx_start = cursor.position() as u32;
         tx_offsets.push(tx_start);
         let tx = Transaction::consensus_decode_from_finite_reader(&mut cursor)?;
-        let tx_len = cursor.position() as u32 - tx_start;
         txdata.push(tx);
-        tx_metadata.push(BlkMetadata::new(metadata.position() + tx_start, tx_len));
+        tx_metadata.push(BlkMetadata::new(metadata.position() + tx_start));
     }
 
     let raw_bytes = cursor.into_inner();

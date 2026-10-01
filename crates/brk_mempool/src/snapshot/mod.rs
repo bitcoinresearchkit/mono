@@ -31,7 +31,7 @@ pub struct Snapshot {
     /// (Bitcoin Core's actual selection). The rest are greedy-packed
     /// by descending chunk rate, with a final overflow block.
     pub blocks: Vec<Vec<TxIndex>>,
-    pub block_stats: Vec<BlockStats>,
+    pub(crate) block_stats: Vec<BlockStats>,
     pub fees: RecommendedFees,
     min_fee: FeeRate,
     /// Content identity of the published template statistics and complete bodies.
@@ -86,11 +86,11 @@ impl Snapshot {
         self.template_missing = missing;
     }
 
-    pub fn tx(&self, idx: TxIndex) -> Option<&SnapTx> {
+    fn tx(&self, idx: TxIndex) -> Option<&SnapTx> {
         self.txs.get(idx.as_usize())
     }
 
-    pub fn idx_of(&self, prefix: &TxidPrefix) -> Option<TxIndex> {
+    fn idx_of(&self, prefix: &TxidPrefix) -> Option<TxIndex> {
         self.prefix_to_idx.get(prefix).copied()
     }
 
@@ -112,22 +112,22 @@ impl Snapshot {
     /// Linearized chunk rate for a live tx. Recomputed each
     /// snapshot, package-aware (CPFP lifts apply), equals `fee/vsize`
     /// for singletons.
-    pub fn chunk_rate_for(&self, txid: &Txid) -> Option<FeeRate> {
+    pub(crate) fn chunk_rate_for(&self, txid: &Txid) -> Option<FeeRate> {
         let idx = self.idx_of_txid(txid)?;
         Some(self.txs[idx.as_usize()].chunk_rate)
     }
 
-    pub fn template_transactions(&self) -> &Arc<[Arc<Transaction>]> {
+    pub(crate) fn template_transactions(&self) -> &Arc<[Arc<Transaction>]> {
         &self.template_transactions
     }
 
-    pub fn content_revision(&self) -> u64 {
+    pub(crate) fn content_revision(&self) -> u64 {
         self.content_revision
     }
 
     /// A default snapshot is not an observed empty mempool. A real publication
     /// always contains block zero, even when Core selected no transactions.
-    pub fn ensure_projection(&self) -> Result<()> {
+    pub(crate) fn ensure_projection(&self) -> Result<()> {
         if self.blocks.is_empty() || self.template_missing {
             return Err(QueryError::StateUpdating);
         }

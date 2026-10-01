@@ -24,7 +24,7 @@ where
     T: NumericValue + JsonSchema,
     Op: DeltaOp<S, T>,
 {
-    pub fn new(
+    fn new(
         name: &str,
         version: Version,
         height: LazyDeltaVec<Height, S, T, Op>,
@@ -38,7 +38,7 @@ where
         }
     }
 
-    pub fn from_source(
+    pub(crate) fn from_source(
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, S>,

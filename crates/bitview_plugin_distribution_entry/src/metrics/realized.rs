@@ -18,26 +18,26 @@ use super::Sources;
 #[derive(Traversable)]
 pub struct RealizedMetrics<M: StorageMode = Rw> {
     /// Creation-date value of this cohort's unspent outputs.
-    pub cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
+    pub(crate) cap: LazyFiatPerBlockWithDeltas<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// Satoshi-weighted creation price of this cohort's unspent outputs.
-    pub price: LazyPriceWithRatioPerBlock,
+    pub(crate) price: LazyPriceWithRatioPerBlock,
     /// Profit realized by outputs spent from this cohort.
-    pub profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub(crate) profit: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Loss realized by outputs spent from this cohort.
-    pub loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
+    pub(crate) loss: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Realized profit minus realized loss.
-    pub net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
+    net_pnl: LazyFiatPerBlockCumulativeWithSumsAndDeltas<
         CentsSigned,
         CentsSigned,
         PartsPerMillionSigned64,
     >,
     /// Spending value divided by creation-date value over the trailing 24 hours.
-    pub sopr: PerBlock<StoredF32, M>,
+    pub(crate) sopr: PerBlock<StoredF32, M>,
     #[traversable(wrap = "sopr")]
     /// Creation-date value of outputs spent from this cohort.
-    pub value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
+    pub(crate) value_destroyed: LazyFiatPerBlockCumulativeRolling<Cents>,
     /// Spot price divided by this cohort's realized price.
-    pub mvrv: LazyPerBlock<StoredF32>,
+    mvrv: LazyPerBlock<StoredF32>,
 }
 
 impl RealizedMetrics {

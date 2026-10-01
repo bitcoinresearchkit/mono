@@ -26,12 +26,6 @@ impl Age {
         self.hours
     }
 
-    /// Days old as float (for satdays_destroyed - established terminology)
-    #[inline]
-    pub fn days(&self) -> f64 {
-        self.days
-    }
-
     /// Calculate satdays destroyed for given supply
     #[inline]
     pub fn satdays_destroyed(&self, supply: Sats) -> Sats {

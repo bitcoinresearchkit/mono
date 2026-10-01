@@ -101,12 +101,6 @@ impl MetadataFile {
         *dirty = true;
     }
 
-    /// # Safety
-    /// Hold the database mutation barrier exclusively.
-    pub(crate) unsafe fn is_dirty(&self) -> bool {
-        unsafe { *self.dirty.data_ptr() }
-    }
-
     pub(crate) fn flush(&self) -> Result<bool> {
         let mut dirty = self.dirty.lock();
         if !*dirty {

@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// Generate type definitions from schemas.
-pub fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
+pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchemas) {
     if schemas.is_empty() {
         return;
     }
@@ -217,7 +217,7 @@ fn json_type_to_python(ty: &str, schema: &Value, current_type: Option<&str>) -> 
 ///
 /// - `current_type`: Used to detect and quote self-references for recursive types
 /// - `quote_types`: Optional set of additional type names that should be quoted
-pub fn schema_to_python_type(
+fn schema_to_python_type(
     schema: &Value,
     current_type: Option<&str>,
     quote_types: Option<&BTreeSet<String>>,
@@ -323,7 +323,7 @@ pub fn schema_to_python_type(
 }
 
 /// Convert JS-style type to Python type (e.g., `Txid[]` -> `List[Txid]`, `integer` -> `int`).
-pub fn js_type_to_python(js_type: &str) -> String {
+pub(crate) fn js_type_to_python(js_type: &str) -> String {
     if let Some(inner) = js_type.strip_suffix("[]") {
         format!("List[{}]", js_type_to_python(inner))
     } else {

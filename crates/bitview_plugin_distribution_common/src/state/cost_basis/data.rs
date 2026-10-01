@@ -23,20 +23,16 @@ pub struct CostBasisData<S: Accumulate> {
 }
 
 impl<S: Accumulate> CostBasisData<S> {
-    pub fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
+    pub(crate) fn map(&self) -> &BTreeMap<CentsCompact, Sats> {
         debug_assert!(self.pending.is_empty());
         &self.map
     }
 
-    pub fn is_empty(&self) -> bool {
+    fn is_empty(&self) -> bool {
         self.pending.is_empty() && self.map.is_empty()
     }
 
-    pub fn for_each_pending(&self, mut f: impl FnMut(&CentsCompact, &PendingDelta)) {
-        self.pending.iter().for_each(|(k, v)| f(k, v));
-    }
-
-    pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
+    pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         if self.is_empty() {
             return UnrealizedState::ZERO;
         }
@@ -54,7 +50,7 @@ impl<S: Accumulate> CostBasisData<S> {
     }
 
     /// Bulk-build a compact, sorted price map from restored origin balances.
-    pub fn finish_restore(&mut self) {
+    pub(crate) fn finish_restore(&mut self) {
         let map = &mut self.map;
         assert!(map.is_empty(), "bulk restore requires an empty price map");
         // Restore sees the entire history; its oversized table must not become

@@ -60,7 +60,7 @@ impl Keyspace {
 
     /// Returns the keyspace name.
     #[must_use]
-    pub fn name(&self) -> &str {
+    pub(crate) fn name(&self) -> &str {
         &self.inner.name
     }
 
@@ -126,32 +126,8 @@ impl Keyspace {
 
     /// Iterates over all latest key-value pairs.
     #[must_use]
-    pub fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
+    fn iter(&self) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
         self.inner.tree.iter().map(|item| item.map_err(Into::into))
-    }
-
-    /// Iterates over the latest key-value pairs in `range`.
-    #[must_use]
-    pub fn range<K: AsRef<[u8]>, R: RangeBounds<K>>(
-        &self,
-        range: R,
-    ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
-        self.inner
-            .tree
-            .range(range)
-            .map(|item| item.map_err(Into::into))
-    }
-
-    /// Iterates over the latest key-value pairs matching `prefix`.
-    #[must_use]
-    pub fn prefix<K: AsRef<[u8]>>(
-        &self,
-        prefix: K,
-    ) -> impl DoubleEndedIterator<Item = Result<(Slice, Slice)>> + Send + 'static {
-        self.inner
-            .tree
-            .prefix(prefix)
-            .map(|item| item.map_err(Into::into))
     }
 
     /// Returns whether the keyspace has no visible values.
@@ -172,7 +148,7 @@ impl Keyspace {
 
     /// Queues this keyspace for background compaction.
     #[doc(hidden)]
-    pub(super) fn request_compaction(&self) {
+    fn request_compaction(&self) {
         let _ = self
             .inner
             .worker

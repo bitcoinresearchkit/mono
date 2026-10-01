@@ -13,11 +13,11 @@ use crate::{LazyValue, LazyValueDerivedResolutions, SpotValueSource};
 #[traversable(merge)]
 pub struct LazyValuePerBlock {
     #[traversable(flatten)]
-    pub height: LazyValue<Height>,
+    height: LazyValue<Height>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub resolutions: Box<LazyValueDerivedResolutions>,
+    resolutions: Box<LazyValueDerivedResolutions>,
 }
 
 impl LazyValuePerBlock {
@@ -25,12 +25,7 @@ impl LazyValuePerBlock {
         Self::from_spot_block_source::<Ident, SatsToBitcoin, Ident, Ident>(name, source, version)
     }
 
-    pub fn from_spot_block_source<
-        SatsTransform,
-        BitcoinTransform,
-        CentsTransform,
-        DollarsTransform,
-    >(
+    fn from_spot_block_source<SatsTransform, BitcoinTransform, CentsTransform, DollarsTransform>(
         name: &str,
         source: &impl SpotValueSource,
         version: Version,

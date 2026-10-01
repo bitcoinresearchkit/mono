@@ -1,10 +1,8 @@
 mod compute;
 mod dependencies;
-mod has;
 mod import;
 
 pub use dependencies::Dependencies;
-pub use has::HasNearFullBlocks;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;

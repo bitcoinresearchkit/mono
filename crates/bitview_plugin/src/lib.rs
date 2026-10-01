@@ -19,4 +19,4 @@ pub use storage::PluginStorage;
 pub use update_context::UpdateContext;
 
 /// Directory containing one directory per active plugin below the Bitview data root.
-pub const PLUGIN_DATA_DIR: &str = "plugins";
+pub(crate) const PLUGIN_DATA_DIR: &str = "plugins";

@@ -13,7 +13,11 @@ pub type LazyValueBlock = Value<
 >;
 
 impl LazyValueBlock {
-    pub fn from_cumulative(name: &str, version: Version, cumulative: &ValuePerBlock) -> Self {
+    pub(crate) fn from_cumulative(
+        name: &str,
+        version: Version,
+        cumulative: &ValuePerBlock,
+    ) -> Self {
         Self::from_cumulative_sources(
             name,
             version,
@@ -22,7 +26,7 @@ impl LazyValueBlock {
         )
     }
 
-    pub fn from_cumulative_sources(
+    pub(crate) fn from_cumulative_sources(
         name: &str,
         version: Version,
         cumulative_sats: &impl ReadableCloneableVec<Height, Sats>,

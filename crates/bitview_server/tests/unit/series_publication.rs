@@ -8,7 +8,7 @@ use vecdb::ReadableVec;
 use super::server_routes::exchange_with_etag;
 use crate::AppState;
 
-pub async fn check(state: &AppState, address: SocketAddr, monotonic_time: u32) {
+pub(crate) async fn check(state: &AppState, address: SocketAddr, monotonic_time: u32) {
     let raw_tip = state
         .sync(|q| q.indexer().vecs().blocks.timestamp.collect_one(q.height()))
         .unwrap();

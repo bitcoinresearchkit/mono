@@ -11,7 +11,7 @@ mod headers;
 mod router;
 mod website;
 
-pub use error::Error;
-pub use headers::HeaderMapExtended;
+pub(crate) use error::Error;
+pub(crate) use headers::HeaderMapExtended;
 pub use router::router;
-pub use website::{EMBEDDED_WEBSITE, Website};
+pub use website::Website;

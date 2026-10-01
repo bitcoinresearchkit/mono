@@ -73,10 +73,10 @@ impl VecdbCheckedSub<EmptyOutputIndex> for EmptyOutputIndex {
 }
 
 impl EmptyOutputIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "empty_output_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["emptyout", "empty_output_index"]
     }
 }

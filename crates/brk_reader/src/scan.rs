@@ -73,10 +73,7 @@ pub fn scan_bytes(
         if i + len > buf.len() {
             break;
         }
-        let metadata = BlkMetadata::new(
-            BlkPosition::new(blk_index, (file_offset + i) as u32),
-            len as u32,
-        );
+        let metadata = BlkMetadata::new(BlkPosition::new(blk_index, (file_offset + i) as u32));
         if on_block(metadata, &mut buf[i..i + len], xor_i).is_break() {
             break;
         }

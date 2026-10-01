@@ -38,28 +38,28 @@ pub struct PoolDetail {
 pub struct PoolDetailInfo {
     /// Pool identifier
     #[schemars(example = 111)]
-    pub id: u8,
+    id: u8,
 
     /// Pool name
     #[schemars(example = &"Foundry USA")]
-    pub name: Cow<'static, str>,
+    name: Cow<'static, str>,
 
     /// Pool website URL
     #[schemars(example = &"https://foundrydigital.com/")]
-    pub link: Cow<'static, str>,
+    link: Cow<'static, str>,
 
     /// Known payout addresses
-    pub addresses: Vec<Cow<'static, str>>,
+    addresses: Vec<Cow<'static, str>>,
 
     /// Coinbase tag patterns (regexes)
-    pub regexes: Vec<Cow<'static, str>>,
+    regexes: Vec<Cow<'static, str>>,
 
     /// URL-friendly pool identifier
-    pub slug: PoolSlug,
+    slug: PoolSlug,
 
     /// Unique pool identifier
     #[schemars(example = 44)]
-    pub unique_id: u8,
+    unique_id: u8,
 }
 
 impl From<&'static Pool> for PoolDetailInfo {

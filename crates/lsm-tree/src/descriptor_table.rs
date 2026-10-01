@@ -36,13 +36,13 @@ impl DescriptorTable {
     /// # Errors
     ///
     /// Returns an error if the table file cannot be opened.
-    pub fn access_or_open(&self, id: GlobalTableId, path: &Path) -> Result<Arc<File>> {
+    pub(crate) fn access_or_open(&self, id: GlobalTableId, path: &Path) -> Result<Arc<File>> {
         self.inner
             .get_or_insert_with(&id, || File::open(path).map(Arc::new))
     }
 
     /// Removes a table's descriptor from the cache.
-    pub fn remove_for_table(&self, id: GlobalTableId) {
+    pub(crate) fn remove_for_table(&self, id: GlobalTableId) {
         self.inner.remove(&id);
     }
 }

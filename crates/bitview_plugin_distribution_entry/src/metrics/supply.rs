@@ -12,11 +12,11 @@ use super::Sources;
 #[derive(Clone, Traversable)]
 pub struct SupplyMetrics {
     #[traversable(flatten)]
-    pub base: SupplyBase,
+    pub(crate) base: SupplyBase,
     /// Unspent supply whose creation price is at or below current spot price.
-    pub in_profit: LazySpotValuePerBlock,
+    in_profit: LazySpotValuePerBlock,
     /// Unspent supply whose creation price is above current spot price.
-    pub in_loss: LazySpotValuePerBlock,
+    in_loss: LazySpotValuePerBlock,
 }
 
 impl SupplyMetrics {

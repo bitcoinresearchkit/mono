@@ -5,15 +5,14 @@ mod ohlc;
 mod ratio;
 
 pub use arithmetic::{
-    BlockCountTarget, BlocksToDaysF32, DaysToYears, DifficultyToHashF64, HalveDollars,
-    HalveSatsToBitcoin, MaskSats, OneMinusPpm, PerSecond, ReturnF32Tenths, ReturnI8, ReturnU16,
-    StoredU16ToStoredU64, StoredU64ToStoredU32, ThsToPhsF32, TimesSqrt, VBytesToWeight,
-    WeightToVSize,
+    BlockCountTarget, BlocksToDaysF32, DaysToYears, DifficultyToHashF64, MaskSats, OneMinusPpm,
+    PerSecond, ReturnF32Tenths, ReturnI8, ReturnU16, StoredU64ToStoredU32, ThsToPhsF32, TimesSqrt,
+    VBytesToWeight, WeightToVSize,
 };
 pub use currency::{
     AvgCentsToUsd, AvgSatsToBtc, CentsSignedToDollars, CentsTimesTenths, CentsUnsignedToDollars,
-    CentsUnsignedToSats, DollarsToSatsFract, NegCentsUnsignedToDollars, SatsSignedToBitcoin,
-    SatsToBitcoin, SatsToCents, StoredU64ToCents, StoredU64ToSats,
+    CentsUnsignedToSats, DollarsToSatsFract, SatsSignedToBitcoin, SatsToBitcoin, SatsToCents,
+    StoredU64ToCents, StoredU64ToSats,
 };
 pub use ohlc::{
     OhlcCentsToDollars, OhlcCentsToHighCents, OhlcCentsToLowCents, OhlcCentsToOpenCents,

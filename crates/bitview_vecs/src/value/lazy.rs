@@ -14,7 +14,7 @@ pub type LazyValue<I> = Value<
 >;
 
 impl LazyValue<Height> {
-    pub fn from_spot_block_source<
+    pub(crate) fn from_spot_block_source<
         SatsTransform,
         BitcoinTransform,
         CentsTransform,

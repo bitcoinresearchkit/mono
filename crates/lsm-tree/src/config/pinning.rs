@@ -23,7 +23,7 @@ impl PinningPolicy {
         clippy::indexing_slicing,
         reason = "constructors reject empty policies; the index is clamped"
     )]
-    pub fn at_level(&self, level: usize) -> bool {
+    pub(crate) fn at_level(&self, level: usize) -> bool {
         self.0[level.min(self.0.len() - 1)]
     }
 
@@ -31,12 +31,6 @@ impl PinningPolicy {
     #[must_use]
     pub fn all(c: bool) -> Self {
         Self(vec![c])
-    }
-
-    /// Fully disables pinning.
-    #[must_use]
-    pub fn disabled() -> Self {
-        Self::all(false)
     }
 
     /// Constructs a custom policy.

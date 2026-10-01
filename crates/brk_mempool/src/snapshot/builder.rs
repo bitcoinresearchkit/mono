@@ -15,7 +15,7 @@ use crate::{state::TxEntry, stores::TxStore};
 pub struct PrefixIndex(FxHashMap<TxidPrefix, TxIndex>);
 
 impl Snapshot {
-    pub fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, PrefixIndex) {
+    pub(crate) fn build_txs(txs: &TxStore) -> (Vec<SnapTx>, PrefixIndex) {
         let n = txs.len();
         let mut prefix_to_idx = PrefixIndex(FxHashMap::with_capacity_and_hasher(n, FxBuildHasher));
         for (i, (prefix, _)) in txs.records().enumerate() {

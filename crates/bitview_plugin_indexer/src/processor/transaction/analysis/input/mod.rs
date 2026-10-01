@@ -55,7 +55,7 @@ mod tests {
     use crate::TxFeatureFlags;
 
     #[test]
-    pub fn empty_script_sig_has_empty_facts() {
+    fn empty_script_sig_has_empty_facts() {
         let input = TxIn::default();
         let facts = analyze(&input, OutputType::Unknown, &mut TxFeatureFlags::default());
 

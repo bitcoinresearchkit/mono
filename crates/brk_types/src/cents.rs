@@ -43,8 +43,6 @@ impl Cents {
     pub const ZERO: Self = Self(0);
     pub const MAX_FINITE: Self = Self(u64::MAX - 1);
     pub const NAN: Self = Self(u64::MAX);
-    pub const MAX: Self = Self::NAN;
-
     #[inline]
     pub const fn new(value: u64) -> Self {
         assert!(value != u64::MAX, "u64::MAX is reserved as Cents::NAN");
@@ -92,7 +90,7 @@ impl Cents {
     }
 
     #[inline]
-    pub fn checked_sub(self, rhs: Self) -> Option<Self> {
+    fn checked_sub(self, rhs: Self) -> Option<Self> {
         if unlikely(self.is_nan() || rhs.is_nan()) {
             Some(Self::NAN)
         } else {
@@ -110,7 +108,7 @@ impl Cents {
     }
 
     #[inline]
-    pub fn checked_add(self, rhs: Self) -> Option<Self> {
+    fn checked_add(self, rhs: Self) -> Option<Self> {
         if unlikely(self.is_nan() || rhs.is_nan()) {
             Some(Self::NAN)
         } else {
@@ -407,7 +405,6 @@ mod tests {
 
     #[test]
     fn conversions_and_sentinel() {
-        assert_eq!(Cents::MAX, Cents::NAN);
         assert_eq!(Cents::MAX_FINITE.inner(), u64::MAX - 1);
         assert!(Cents::NAN.is_nan());
         assert_eq!(Cents::NAN.finite_inner(), None);
@@ -434,6 +431,15 @@ mod tests {
         assert_eq!(Cents::NAN / finite, Cents::NAN);
         assert_eq!(Cents::NAN.checked_add(finite), Some(Cents::NAN));
         assert_eq!(Cents::NAN.checked_sub(finite), Some(Cents::NAN));
+    }
+
+    #[test]
+    fn integer_division_preserves_rounding_and_missing_values() {
+        for value in [0u64, 1, 3, 2_100_000_000_000_001] {
+            assert_eq!(Sats::from(value) / 2usize, Sats::from(value / 2));
+            assert_eq!(Cents::from(value) / 2usize, Cents::from(value / 2));
+        }
+        assert!((Cents::NAN / 2usize).is_nan());
     }
 
     #[test]

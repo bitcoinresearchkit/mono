@@ -8,7 +8,7 @@ use crate::{
 };
 
 /// Generate class-level constants for the BitviewClient class.
-pub fn generate_class_constants(output: &mut String) {
+pub(crate) fn generate_class_constants(output: &mut String) {
     let constants = ClientConstants::collect();
 
     // VERSION
@@ -43,7 +43,7 @@ fn write_class_const(output: &mut String, name: &str, json: &str) {
 }
 
 /// Generate the base BitviewClient class with HTTP functionality
-pub fn generate_base_client(output: &mut String) {
+pub(crate) fn generate_base_client(output: &mut String) {
     writeln!(
         output,
         r#"class BitviewError(Exception):
@@ -267,7 +267,7 @@ def address_payload_hash_prefix(payload: Union[bytes, bytearray, memoryview], ni
 }
 
 /// Generate the SeriesData and SeriesEndpoint classes
-pub fn generate_endpoint_class(output: &mut String) {
+pub(crate) fn generate_endpoint_class(output: &mut String) {
     writeln!(
         output,
         r#"# Date conversion constants
@@ -739,7 +739,7 @@ class SeriesPattern(Protocol[T]):
 }
 
 /// Generate index accessor classes
-pub fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
+pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
     if patterns.is_empty() {
         return;
     }
@@ -832,7 +832,7 @@ def _dep(c: BitviewClient, n: str, i: Index) -> DateSeriesEndpoint[Any]:
 }
 
 /// Generate structural pattern classes
-pub fn generate_structural_patterns(
+pub(crate) fn generate_structural_patterns(
     output: &mut String,
     patterns: &[StructuralPattern],
     metadata: &ClientMetadata,

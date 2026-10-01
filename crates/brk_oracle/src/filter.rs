@@ -39,16 +39,16 @@ impl PaymentFilter {
     /// Pre-modern transaction-output fan-out cap. Above this, the transaction is
     /// a batch payout (exchange sweep, mixer fan-out), not a round-dollar
     /// payment.
-    pub const PRE_MODERN_TX_OUTPUT_FANOUT_CAP: usize = 100;
+    const PRE_MODERN_TX_OUTPUT_FANOUT_CAP: usize = 100;
 
     /// Modern-chain transaction-output fan-out cap. Dense post-630k blocks can
     /// carry more genuine payment outputs, but very large fan-outs can still
     /// dominate one EMA slot and create a false round-dollar ladder.
-    pub const MODERN_TX_OUTPUT_FANOUT_CAP: usize = 250;
+    const MODERN_TX_OUTPUT_FANOUT_CAP: usize = 250;
 
     /// Height where [`Self::PRE_MODERN_TX_OUTPUT_FANOUT_CAP`] relaxes to
     /// [`Self::MODERN_TX_OUTPUT_FANOUT_CAP`].
-    pub const MODERN_TX_OUTPUT_FANOUT_CAP_START_HEIGHT: usize = 630_000;
+    const MODERN_TX_OUTPUT_FANOUT_CAP_START_HEIGHT: usize = 630_000;
 
     /// Filter for live or otherwise guaranteed-modern transaction streams.
     pub const MODERN: Self = Self::with_fanout_cap(Self::MODERN_TX_OUTPUT_FANOUT_CAP);
@@ -103,7 +103,7 @@ impl PaymentFilter {
     /// (P2TR), dust, a round-BTC value, or an out-of-range bin. The per-output
     /// half of the round-dollar payment filter.
     #[inline(always)]
-    pub fn eligible_bin(sats: Sats, output_type: OutputType) -> Option<u16> {
+    fn eligible_bin(sats: Sats, output_type: OutputType) -> Option<u16> {
         if EXCLUDED_MASK & (1u16 << output_type as u8) != 0 {
             return None;
         }

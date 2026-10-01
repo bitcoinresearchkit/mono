@@ -6,7 +6,7 @@ use crate::{
     CatalogTree, CatalogType, CatalogValue, IndexSetPattern, escape_rust_keyword, to_snake_case,
 };
 
-pub fn generate_tree(output: &mut String, tree: &CatalogTree, indexes: &[IndexSetPattern]) {
+pub(crate) fn generate_tree(output: &mut String, tree: &CatalogTree, indexes: &[IndexSetPattern]) {
     output.push_str(
         r#"
 enum CatalogBinding {

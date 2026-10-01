@@ -42,15 +42,15 @@ pub struct ByLookbackPeriod<T> {
     /// Uses a trailing 24-hour monotonic-time window.
     pub _24h: T,
     /// Uses a trailing 7-day monotonic-time window.
-    pub _1w: T,
+    _1w: T,
     /// Uses a trailing 30-day monotonic-time window.
-    pub _1m: T,
+    _1m: T,
     /// Uses a trailing 90-day monotonic-time window.
-    pub _3m: T,
+    _3m: T,
     /// Uses a trailing 180-day monotonic-time window.
-    pub _6m: T,
+    _6m: T,
     /// Uses a trailing 365-day monotonic-time window.
-    pub _1y: T,
+    _1y: T,
     /// Uses a trailing 730-day monotonic-time window.
     pub _2y: T,
     /// Uses a trailing 1,095-day monotonic-time window.

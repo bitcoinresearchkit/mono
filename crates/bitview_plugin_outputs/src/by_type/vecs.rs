@@ -16,17 +16,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub spendable_output_count: SpendableOutputCount,
     /// Outputs of a BRK locking-script type divided by all outputs
     /// over the same cumulative or trailing window, including coinbase outputs.
-    pub output_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    pub(crate) output_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     /// Number of transactions containing at least one output of a
     /// BRK locking-script type. Each transaction is counted once per type; the
     /// `all` aggregate counts every transaction, including coinbase.
-    pub tx_count: WithOutputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
+    pub(crate) tx_count: WithOutputTypes<LazyPerBlockCumulativeRolling<StoredU64>>,
     /// Transactions containing an output type divided by all
     /// transactions over the same cumulative or trailing window, including
     /// coinbase transactions.
-    pub tx_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
+    pub(crate) tx_share: ByType<LazyPercentCumulativeRolling<PartsPerMillion32>>,
     #[traversable(hidden)]
     pub output_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
     #[traversable(hidden)]
-    pub tx_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
+    pub(crate) tx_count_stored: ByType<CachedSeries<Height, StoredU64, M>>,
 }

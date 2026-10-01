@@ -85,7 +85,7 @@ async fn reply(socket: &mut BufReader<TcpStream>, value: Value) {
         .unwrap();
 }
 
-pub async fn check(query: &AsyncQuery) {
+pub(crate) async fn check(query: &AsyncQuery) {
     timeout(Duration::from_secs(20), async {
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let node = Client::new(

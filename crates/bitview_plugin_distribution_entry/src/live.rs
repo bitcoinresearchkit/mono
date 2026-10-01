@@ -9,10 +9,10 @@ pub(crate) type CohortState = MappedUTXOCohortState<CoreRealizedState, WithoutCa
 
 /// Retained only after all entry metrics have completed successfully.
 pub(crate) struct LiveState {
-    pub origins: State,
-    pub cohorts: ByEntry<CohortState>,
-    pub entries: Vec<EntryPrice>,
-    pub prices: Vec<Cents>,
-    pub timestamps: Vec<Timestamp>,
-    pub version: (Version, Version, Version, (u64, u64)),
+    pub(crate) origins: State,
+    pub(crate) cohorts: ByEntry<CohortState>,
+    pub(crate) entries: Vec<EntryPrice>,
+    pub(crate) prices: Vec<Cents>,
+    pub(crate) timestamps: Vec<Timestamp>,
+    pub(crate) version: (Version, Version, Version, (u64, u64)),
 }

@@ -64,9 +64,6 @@ pub struct Cache {
     // NOTE: rustc_hash performed best: https://fjall-rs.github.io/post/fjall-2-1
     data: BlockCache,
     metadata: BlockCache,
-
-    /// Capacity in bytes
-    capacity: u64,
 }
 
 impl Cache {
@@ -77,7 +74,6 @@ impl Cache {
         Self {
             data: Self::create_cache(data_bytes),
             metadata: Self::create_cache(bytes - data_bytes),
-            capacity: bytes,
         }
     }
 
@@ -96,18 +92,6 @@ impl Cache {
             FxBuildHasher,
             DefaultLifecycle::default(),
         )
-    }
-
-    /// Returns the amount of cached bytes.
-    #[must_use]
-    pub fn size(&self) -> u64 {
-        self.data.weight() + self.metadata.weight()
-    }
-
-    /// Returns the cache capacity in bytes.
-    #[must_use]
-    pub fn capacity(&self) -> u64 {
-        self.capacity
     }
 
     #[must_use]

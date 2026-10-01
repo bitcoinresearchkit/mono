@@ -9,27 +9,27 @@ use crate::{FeeRate, Sats, VSize};
 pub struct MempoolBlock {
     /// Total serialized block size in bytes (witness + non-witness).
     #[schemars(example = 1604417)]
-    pub block_size: u64,
+    block_size: u64,
 
     /// Total block virtual size in vbytes
     #[schemars(example = 998368.0)]
-    pub block_v_size: f64,
+    block_v_size: f64,
 
     /// Number of transactions in the projected block
     #[schemars(example = 863)]
-    pub n_tx: u32,
+    n_tx: u32,
 
     /// Total fees in satoshis
     #[schemars(example = 8875608)]
-    pub total_fees: Sats,
+    total_fees: Sats,
 
     /// Median fee rate in sat/vB
     #[schemars(example = 10.5)]
-    pub median_fee: FeeRate,
+    median_fee: FeeRate,
 
     /// Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
     #[schemars(example = example_fee_range())]
-    pub fee_range: [FeeRate; 7],
+    fee_range: [FeeRate; 7],
 }
 
 fn example_fee_range() -> [FeeRate; 7] {

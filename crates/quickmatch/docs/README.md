@@ -38,12 +38,17 @@ qm.matches("file name");  // ["file_name", "file_size"]
 qm.matches("filename");   // ["file_name", "file_size"]  (compound match)
 qm.matches("filenme");    // ["file_name", "file_size"]  (trigram fuzzy)
 
-// Custom config
+// Custom query config; results contain (item index, matched word count).
 let config = QuickMatchConfig::new()
     .with_limit(5)
-    .with_trigram_budget(10)
-    .with_separators(&['_', '-', ' ']);
-let qm = QuickMatch::new_with(&items, config);
+    .with_trigram_budget(10);
+let results = qm.matches_with_ids_and_matched_words("file name", &config);
+
+// Owned items with custom corpus separators.
+let qm = QuickMatch::new_owned_with(
+    items.iter().map(|item| (*item).to_owned()).collect(),
+    config.with_separators(&['_', '-', ' ']),
+);
 ```
 
 **JavaScript**

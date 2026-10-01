@@ -68,7 +68,7 @@ use vecdb::ReadableVec;
 use crate::{AppState, Server, ServerConfig};
 
 #[cfg(feature = "chain")]
-pub async fn check_recent_blocks(state: &AppState, address: SocketAddr) {
+pub(crate) async fn check_recent_blocks(state: &AppState, address: SocketAddr) {
     check_height_block_lists(state, address).await;
     let timestamp_path = "/api/v1/mining/blocks/timestamp/4294967295";
     let timestamp_response = exchange_with_etag(address, "GET", timestamp_path, "\"old\"").await;
@@ -711,7 +711,7 @@ async fn exchange(address: SocketAddr, method: &str, path: &str) -> String {
 }
 
 #[cfg(feature = "chain")]
-pub async fn check_tip_cached_routes(address: SocketAddr) {
+pub(crate) async fn check_tip_cached_routes(address: SocketAddr) {
     for route in [
         "/api/blocks",
         "/api/v1/blocks",
@@ -751,7 +751,7 @@ fn series_name_paths(encoded: &str) -> Vec<String> {
     paths
 }
 
-pub async fn exchange_with_etag(
+pub(crate) async fn exchange_with_etag(
     address: SocketAddr,
     method: &str,
     path: &str,
@@ -770,7 +770,7 @@ async fn exchange_with_limit(
     String::from_utf8(exchange_bytes(address, method, path, etag, limit).await).unwrap()
 }
 
-pub async fn exchange_bytes(
+pub(crate) async fn exchange_bytes(
     address: SocketAddr,
     method: &str,
     path: &str,
@@ -787,7 +787,7 @@ pub async fn exchange_bytes(
     .await
 }
 
-pub async fn exchange_headers_bytes(
+pub(crate) async fn exchange_headers_bytes(
     address: SocketAddr,
     method: &str,
     path: &str,

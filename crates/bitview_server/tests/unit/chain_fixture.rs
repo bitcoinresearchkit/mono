@@ -39,17 +39,17 @@ use super::chain_rpc::reply;
 use crate::{AppState, Server, ServerConfig};
 
 /// Setup and lifetime only; route and reorg assertions live in named scenarios.
-pub struct ChainFixture {
-    pub chain: Arc<[Block; 7]>,
-    pub tip: Arc<AtomicU32>,
-    pub active: Arc<AtomicUsize>,
-    pub plugins: DefaultPlugins,
-    pub query: AsyncQuery,
-    pub state: AppState,
-    pub address: SocketAddr,
+pub(crate) struct ChainFixture {
+    pub(crate) chain: Arc<[Block; 7]>,
+    pub(crate) tip: Arc<AtomicU32>,
+    pub(crate) active: Arc<AtomicUsize>,
+    pub(crate) plugins: DefaultPlugins,
+    pub(crate) query: AsyncQuery,
+    pub(crate) state: AppState,
+    pub(crate) address: SocketAddr,
     serving: JoinHandle<Result<()>>,
     mock: JoinHandle<()>,
-    pub directory: TempDir,
+    pub(crate) directory: TempDir,
 }
 
 impl Drop for ChainFixture {
@@ -172,14 +172,14 @@ impl ChainFixture {
         }
     }
 
-    pub fn publish(&mut self, branch: usize, height: u32) {
+    pub(crate) fn publish(&mut self, branch: usize, height: u32) {
         self.active.store(branch, Ordering::SeqCst);
         self.tip.store(height, Ordering::SeqCst);
         update(&mut self.plugins, UpdateContext::new(&Exit::default())).unwrap();
     }
 }
 
-pub fn fork(genesis: &Block, branch: u8) -> Block {
+fn fork(genesis: &Block, branch: u8) -> Block {
     let mut block = genesis.clone();
     block.txdata.truncate(1);
     block.header.prev_blockhash = genesis.block_hash();
@@ -189,14 +189,14 @@ pub fn fork(genesis: &Block, branch: u8) -> Block {
     block
 }
 
-pub fn default_first() -> Block {
+pub(crate) fn default_first() -> Block {
     let mut first = fork(&genesis_block(Network::Bitcoin), 1);
     // Close the genesis four-hour bucket; a replacement fork can reopen it.
     first.header.time += HOUR4_INTERVAL;
     first
 }
 
-pub fn raw_fixture_block() -> Block {
+pub(crate) fn raw_fixture_block() -> Block {
     let mut first = fork(&genesis_block(Network::Bitcoin), 1);
     first.txdata[0].output.push(TxOut {
         value: Amount::ZERO,
@@ -233,13 +233,13 @@ pub fn raw_fixture_block() -> Block {
     first
 }
 
-pub fn run<F: Future<Output = ()>>(
+pub(crate) fn run<F: Future<Output = ()>>(
     inspect: impl FnOnce(AppState, SocketAddr) -> F + Send + 'static,
 ) {
     run_populated(default_first(), inspect);
 }
 
-pub fn run_populated<F: Future<Output = ()>>(
+pub(crate) fn run_populated<F: Future<Output = ()>>(
     first: Block,
     inspect: impl FnOnce(AppState, SocketAddr) -> F + Send + 'static,
 ) {
@@ -249,7 +249,7 @@ pub fn run_populated<F: Future<Output = ()>>(
     });
 }
 
-pub fn run_genesis<F: Future<Output = ()>>(
+pub(crate) fn run_genesis<F: Future<Output = ()>>(
     first: Block,
     inspect: impl FnOnce(ChainFixture) -> F + Send + 'static,
 ) {

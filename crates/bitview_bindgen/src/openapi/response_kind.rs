@@ -14,7 +14,7 @@ pub enum ResponseKind {
 
 impl ResponseKind {
     /// Schema name, if the body is named (Json or typed Text).
-    pub fn schema_name(&self) -> Option<&str> {
+    pub(crate) fn schema_name(&self) -> Option<&str> {
         match self {
             Self::Json(s) => Some(s.as_str()),
             Self::Text(Some(t)) => Some(t.name.as_str()),
@@ -23,7 +23,7 @@ impl ResponseKind {
     }
 
     /// True when a typed text body needs numeric parsing (`int(...)` etc.).
-    pub fn text_is_numeric(&self) -> bool {
+    pub(crate) fn text_is_numeric(&self) -> bool {
         matches!(self, Self::Text(Some(t)) if t.is_numeric)
     }
 }

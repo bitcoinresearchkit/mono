@@ -37,10 +37,6 @@ impl<T: BytesVecValue + Copy> DisjointAgeSources<T> {
         self.age.iter().map(AnyVec::len).min().unwrap_or_default()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.age
             .iter_mut()

@@ -6,7 +6,7 @@ use serde_json::{Value, from_str, to_value};
 use std::net::SocketAddr;
 
 /// Exercise history reconstruction through both native and HTTP queries.
-pub async fn check(state: &AppState, address: SocketAddr) {
+pub(crate) async fn check(state: &AppState, address: SocketAddr) {
     let date = Date::new(2009, 1, 3);
     for name in [
         "all",

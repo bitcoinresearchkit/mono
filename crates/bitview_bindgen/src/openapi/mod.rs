@@ -52,7 +52,7 @@ pub fn parse_openapi_json(json: &str) -> io::Result<Spec> {
 }
 
 /// Extract type schemas from OpenAPI JSON
-pub fn extract_schemas(json: &str) -> TypeSchemas {
+pub(crate) fn extract_schemas(json: &str) -> TypeSchemas {
     let Ok(mut value) = from_str::<Value>(json) else {
         return TypeSchemas::default();
     };

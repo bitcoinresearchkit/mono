@@ -102,10 +102,10 @@ impl VecdbCheckedSub<P2PKHAddrIndex> for P2PKHAddrIndex {
 }
 
 impl P2PKHAddrIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "p2pkh_addr_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["pkhaddr", "p2pkhaddr", "p2pkh_addr_index"]
     }
 }

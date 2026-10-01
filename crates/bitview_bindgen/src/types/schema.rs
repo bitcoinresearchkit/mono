@@ -2,7 +2,7 @@ use serde_json::Value;
 
 /// Unwrap allOf with a single element, returning the inner schema.
 /// Schemars uses allOf for composition, but often with just one $ref.
-pub fn unwrap_allof(schema: &Value) -> &Value {
+pub(crate) fn unwrap_allof(schema: &Value) -> &Value {
     if let Some(all_of) = schema.get("allOf").and_then(|v| v.as_array())
         && all_of.len() == 1
     {
@@ -35,12 +35,12 @@ pub(crate) fn inner_type(type_str: &str) -> &str {
 
 /// Extract type name from a JSON Schema $ref path.
 /// E.g., "#/definitions/MyType" -> "MyType", "#/$defs/Foo" -> "Foo"
-pub fn ref_to_type_name(ref_path: &str) -> Option<&str> {
+pub(crate) fn ref_to_type_name(ref_path: &str) -> Option<&str> {
     ref_path.rsplit('/').next()
 }
 
 /// Extract the element type from a Rust fixed-array name such as `[Cents; 19]`.
-pub fn rust_array_element_type(type_name: &str) -> Option<&str> {
+pub(crate) fn rust_array_element_type(type_name: &str) -> Option<&str> {
     let inner = type_name.strip_prefix('[')?.strip_suffix(']')?;
     let (element, length) = inner.rsplit_once(';')?;
     length.trim().parse::<usize>().ok()?;
@@ -50,12 +50,12 @@ pub fn rust_array_element_type(type_name: &str) -> Option<&str> {
 }
 
 /// Whether a schema name is a concrete Rust generic such as `Range<Dollars>`.
-pub fn is_rust_concrete_generic(type_name: &str) -> bool {
+pub(crate) fn is_rust_concrete_generic(type_name: &str) -> bool {
     type_name.contains('<') && type_name.ends_with('>')
 }
 
 /// Get union variants from anyOf or oneOf schema.
-pub fn get_union_variants(schema: &Value) -> Option<&Vec<Value>> {
+pub(crate) fn get_union_variants(schema: &Value) -> Option<&Vec<Value>> {
     schema
         .get("anyOf")
         .or_else(|| schema.get("oneOf"))

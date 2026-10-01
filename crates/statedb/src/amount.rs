@@ -9,7 +9,7 @@ pub struct Amount {
     pub count: u64,
 }
 impl Amount {
-    pub fn checked_add(self, rhs: Self) -> Result<Self> {
+    pub(crate) fn checked_add(self, rhs: Self) -> Result<Self> {
         Ok(Self {
             sats: self
                 .sats
@@ -21,7 +21,7 @@ impl Amount {
                 .ok_or_else(|| invalid("count overflow"))?,
         })
     }
-    pub fn checked_sub(self, rhs: Self) -> Result<Self> {
+    pub(crate) fn checked_sub(self, rhs: Self) -> Result<Self> {
         Ok(Self {
             sats: self
                 .sats

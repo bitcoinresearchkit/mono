@@ -114,7 +114,7 @@ impl ExactOrderStats {
 
     /// Extract a percentile (0.0-1.0) using linear interpolation.
     #[inline]
-    pub fn percentile(&self, p: f64) -> f64 {
+    pub(crate) fn percentile(&self, p: f64) -> f64 {
         let len = self.len();
         if len == 0 {
             return 0.0;
@@ -183,7 +183,7 @@ impl ExactOrderStats {
     }
 
     /// Resolve sorted ranks in one pass through the underlying blocks.
-    pub fn values_at(&self, ranks: &[usize], out: &mut [f64]) {
+    fn values_at(&self, ranks: &[usize], out: &mut [f64]) {
         debug_assert_eq!(ranks.len(), out.len());
         debug_assert!(ranks.windows(2).all(|pair| pair[0] <= pair[1]));
         debug_assert!(ranks.last().is_none_or(|&rank| rank < self.len));
@@ -235,11 +235,11 @@ impl ExactOrderStats {
         count
     }
 
-    pub fn first(&self) -> f64 {
+    pub(crate) fn first(&self) -> f64 {
         self.blocks.first().unwrap().first().copied().unwrap()
     }
 
-    pub fn last(&self) -> f64 {
+    pub(crate) fn last(&self) -> f64 {
         self.blocks.last().unwrap().last().copied().unwrap()
     }
 }

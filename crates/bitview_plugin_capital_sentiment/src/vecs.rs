@@ -24,11 +24,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `deep_bear`, `bear`, or `early_bear`; otherwise it keeps the prior block's
     /// position. It starts short, and a missing phase does not itself cause an
     /// exit.
-    pub is_long: PerBlock<StoredBool, M>,
+    is_long: PerBlock<StoredBool, M>,
     /// Whether the stateful Capital Sentiment strategy holds its short position
     /// rather than bitcoin on the indexed block; exactly the complement of the
     /// long flag.
-    pub is_short: LazyPerBlock<StoredBool, StoredBool>,
+    is_short: LazyPerBlock<StoredBool, StoredBool>,
     /// Per-block Capital Sentiment phase describing whether spot is above or below
     /// the value-weighted mean acquisition prices of all, short-term-holder
     /// (STH), and long-term-holder (LTH) unspent supply. Being above more of
@@ -58,14 +58,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `early_bull`, `weak_bull`, `limbo`, `deep_bear`, `bear`, or
     /// `early_bear`. Missing when spot or any capitalized-price input is absent,
     /// nonpositive, or non-finite; the moving average itself may be unavailable.
-    pub phase: LazyPerBlock<Option<CapitalSentimentPhase>, StoredU8>,
+    phase: LazyPerBlock<Option<CapitalSentimentPhase>, StoredU8>,
     /// Coarse Capital Sentiment direction, where positive values are bullish and
     /// negative values bearish. It is derived from the per-block phase:
     /// `raging_bull`, `bull`, and `early_bull` map to 2; `cautious_bull`,
     /// `hopeful_bull`, and `weak_bull` map to 1; `limbo` maps to -1; and
     /// `deep_bear`, `bear`, and `early_bear` map to -2. Missing when the phase
     /// is missing.
-    pub score: LazyPerBlock<Option<StoredI8>, Option<CapitalSentimentPhase>>,
+    score: LazyPerBlock<Option<StoredI8>, Option<CapitalSentimentPhase>>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

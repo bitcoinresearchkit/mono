@@ -165,7 +165,7 @@ impl FundedAddrData {
     }
 
     #[inline]
-    pub fn has_0_utxos(&self) -> bool {
+    fn has_0_utxos(&self) -> bool {
         self.funded_txo_count == self.spent_txo_count
     }
 
@@ -206,7 +206,7 @@ impl FundedAddrData {
     /// Whether this address currently holds funds AND its pubkey is exposed.
     /// True iff the address contributes to the "funds at quantum risk" set.
     #[inline]
-    pub fn is_funded_with_exposed_pubkey(&self, output_type: OutputType) -> bool {
+    fn is_funded_with_exposed_pubkey(&self, output_type: OutputType) -> bool {
         self.is_funded() && self.is_pubkey_exposed(output_type)
     }
 

@@ -3,15 +3,17 @@ use std::{path::Path, time::Duration};
 
 use bitview::update;
 use bitview_custom_plugin_example::near_full_blocks::{Dependencies, ID, Vecs as NearFullBlocks};
-use bitview_plugin::{ComputePlugin, ImportContext, Publication, UpdateContext};
-use bitview_query::{SeriesEntryLookup, Vecs as QueryVecs};
+use bitview_plugin::{ComputePlugin, ImportContext, Plugin, Publication, UpdateContext};
+use bitview_query::Vecs as QueryVecs;
 use bitview_runtime::{ComputePluginSet, PluginSet};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_exit::Exit;
-use brk_types::{Height, Index, Version, Weight};
+use brk_types::{Height, Version, Weight};
 use tempfile::tempdir;
-use vecdb::{AnyStoredVec, Database, ImportableVec, PAGE_SIZE, PcoVec, WritableVec};
+use vecdb::{
+    AnySerializableVec, AnyStoredVec, Database, ImportableVec, PAGE_SIZE, PcoVec, WritableVec,
+};
 
 #[derive(PluginSet, Traversable)]
 struct TestPlugins {
@@ -60,21 +62,18 @@ impl TestPlugins {
         Ok(())
     }
 
-    fn queried_streak(&self) -> Result<Vec<u8>> {
+    fn published_streak(&self) -> Result<Vec<u8>> {
         let query = QueryVecs::build(self);
-        let SeriesEntryLookup::Found(entry) =
-            query.lookup_entry(&"near_full_block_streak".into(), Index::Height)
-        else {
-            panic!("custom series should be queryable at height");
-        };
-
-        assert_eq!(entry.plugin().id(), ID);
+        assert!(query.series_names().contains(&"near_full_block_streak"));
+        assert_eq!(self.near_full_blocks.id(), ID);
         let _read = self
             .publication()
             .read_for(Duration::from_secs(1))
             .ok_or(Error::StateUpdating)?;
         let mut json = Vec::new();
-        entry.vec().write_json(None, None, &mut json)?;
+        self.near_full_blocks
+            .streak
+            .write_json(None, None, &mut json)?;
         Ok(json)
     }
 }
@@ -97,7 +96,7 @@ impl ComputePluginSet for TestPlugins {
 }
 
 #[test]
-fn plugin_survives_import_publish_query_and_same_length_reorg() -> Result<()> {
+fn plugin_survives_import_publish_catalog_and_same_length_reorg() -> Result<()> {
     let directory = tempdir()?;
     let exit = Exit::new();
     let update_context = UpdateContext::new(&exit);
@@ -111,21 +110,20 @@ fn plugin_survives_import_publish_query_and_same_length_reorg() -> Result<()> {
 
     assert!(plugins.computed_while_closed);
     assert!(plugins.publication().try_read().is_some());
-    assert_eq!(plugins.queried_streak()?, b"[1,2,0,1,2]");
+    assert_eq!(plugins.published_streak()?, b"[1,2,0,1,2]");
 
     drop(plugins);
     let mut plugins = TestPlugins::import(directory.path())?;
-    assert_eq!(plugins.queried_streak()?, b"[1,2,0,1,2]");
+    assert_eq!(plugins.published_streak()?, b"[1,2,0,1,2]");
 
     plugins.replace_tail(Height::new(3), &[3_600_000, 3_599_999])?;
     update(&mut plugins, update_context)?;
 
     assert!(plugins.computed_while_closed);
     assert!(plugins.publication().try_read().is_some());
-    assert_eq!(plugins.queried_streak()?, b"[1,2,0,1,0]");
+    assert_eq!(plugins.published_streak()?, b"[1,2,0,1,0]");
     Ok(())
 }
 
-#[allow(dead_code)]
 #[path = "common/cache.rs"]
 mod test_cache;

@@ -32,18 +32,8 @@ use vecdb::{Formattable, Pco};
 pub struct SatsFract(f64);
 
 impl SatsFract {
-    pub const ZERO: Self = Self(0.0);
-    pub const NAN: Self = Self(f64::NAN);
+    const NAN: Self = Self(f64::NAN);
     pub const ONE_BTC: Self = Self(100_000_000.0);
-    pub const SATS_PER_BTC: f64 = 100_000_000.0;
-
-    pub const fn new(sats: f64) -> Self {
-        Self(sats)
-    }
-
-    pub fn is_nan(&self) -> bool {
-        self.0.is_nan()
-    }
 }
 
 impl From<f64> for SatsFract {

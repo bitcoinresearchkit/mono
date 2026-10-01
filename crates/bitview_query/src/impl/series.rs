@@ -212,7 +212,7 @@ impl Query {
     }
 
     /// Calculate total weight of the vecs for the given range.
-    pub fn weight(read: &SeriesRead, from: Option<i64>, to: Option<i64>) -> usize {
+    fn weight(read: &SeriesRead, from: Option<i64>, to: Option<i64>) -> usize {
         read.columns()
             .map(|v| v.range_weight(from, to))
             .fold(0, usize::saturating_add)
@@ -286,7 +286,7 @@ impl Query {
     ///   whose vecs are shorter than the entity-type's own count never marks
     ///   its live tail as stable.
     /// - Mutable (Funded/Empty addr): `None`. No immutable region exists.
-    pub fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> Option<usize> {
+    fn stable_count(&self, index: Index, total: usize, tip_height: Height) -> Option<usize> {
         match index.cache_class() {
             CacheClass::Bucket { margin } => Some(total.saturating_sub(margin)),
             CacheClass::Entity => {
@@ -535,9 +535,9 @@ fn reserialize_json(mut bytes: Vec<u8>) -> Result<Vec<u8>> {
 pub struct ResolvedQuery {
     read: SeriesRead,
     pub format: Format,
-    pub index: Index,
+    index: Index,
     pub version: Version,
-    pub total: usize,
+    total: usize,
     pub start: usize,
     pub end: usize,
     pub hash_prefix: BlockHashPrefix,

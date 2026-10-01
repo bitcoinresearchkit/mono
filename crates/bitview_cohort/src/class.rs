@@ -32,41 +32,41 @@ pub const CLASS_NAMES: Class<CohortName> = Class {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct Class<T> {
     /// Uses UTXOs created in calendar year 2009.
-    pub _2009: T,
+    _2009: T,
     /// Uses UTXOs created in calendar year 2010.
-    pub _2010: T,
+    _2010: T,
     /// Uses UTXOs created in calendar year 2011.
-    pub _2011: T,
+    _2011: T,
     /// Uses UTXOs created in calendar year 2012.
-    pub _2012: T,
+    _2012: T,
     /// Uses UTXOs created in calendar year 2013.
-    pub _2013: T,
+    _2013: T,
     /// Uses UTXOs created in calendar year 2014.
-    pub _2014: T,
+    _2014: T,
     /// Uses UTXOs created in calendar year 2015.
-    pub _2015: T,
+    _2015: T,
     /// Uses UTXOs created in calendar year 2016.
-    pub _2016: T,
+    _2016: T,
     /// Uses UTXOs created in calendar year 2017.
-    pub _2017: T,
+    _2017: T,
     /// Uses UTXOs created in calendar year 2018.
-    pub _2018: T,
+    _2018: T,
     /// Uses UTXOs created in calendar year 2019.
-    pub _2019: T,
+    _2019: T,
     /// Uses UTXOs created in calendar year 2020.
-    pub _2020: T,
+    _2020: T,
     /// Uses UTXOs created in calendar year 2021.
-    pub _2021: T,
+    _2021: T,
     /// Uses UTXOs created in calendar year 2022.
-    pub _2022: T,
+    _2022: T,
     /// Uses UTXOs created in calendar year 2023.
-    pub _2023: T,
+    _2023: T,
     /// Uses UTXOs created in calendar year 2024.
-    pub _2024: T,
+    _2024: T,
     /// Uses UTXOs created in calendar year 2025.
-    pub _2025: T,
+    _2025: T,
     /// Uses UTXOs created in calendar year 2026.
-    pub _2026: T,
+    _2026: T,
 }
 
 define_cohort_id!(
@@ -97,7 +97,7 @@ impl<T> Class<T> {
         Self::from_fn(|id| create(id.cohort()))
     }
 
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
+    pub(crate) fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
         Self::try_from_fn(|id| create(id.cohort()))
     }
 
@@ -106,7 +106,7 @@ impl<T> Class<T> {
         self.get_mut(year)
     }
 
-    pub fn get_mut(&mut self, year: Year) -> Option<&mut T> {
+    fn get_mut(&mut self, year: Year) -> Option<&mut T> {
         match u16::from(year) {
             2009 => Some(&mut self._2009),
             2010 => Some(&mut self._2010),

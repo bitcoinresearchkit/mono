@@ -245,7 +245,7 @@ impl Indexer {
         self.index_inner(exit, true)
     }
 
-    pub fn begin_update(&self) {
+    fn begin_update(&self) {
         self.state.publication.begin_update();
     }
 

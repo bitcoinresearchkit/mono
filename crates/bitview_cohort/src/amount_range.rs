@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use super::{CohortId, CohortName};
 
 /// Amount range bounds
-pub const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
+const AMOUNT_RANGE_BOUNDS: AmountRange<Range<Sats>> = AmountRange {
     _0sats: Sats::ZERO..Sats::_1,
     _1sat_to_10sats: Sats::_1..Sats::_10,
     _10sats_to_100sats: Sats::_10..Sats::_100,
@@ -54,35 +54,35 @@ pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct AmountRange<T> {
     /// Uses zero-satoshi values.
-    pub _0sats: T,
+    _0sats: T,
     /// Uses values of at least 1 and less than 10 satoshis.
-    pub _1sat_to_10sats: T,
+    _1sat_to_10sats: T,
     /// Uses values of at least 10 and less than 100 satoshis.
-    pub _10sats_to_100sats: T,
+    _10sats_to_100sats: T,
     /// Uses values of at least 100 and less than 1,000 satoshis.
-    pub _100sats_to_1k_sats: T,
+    _100sats_to_1k_sats: T,
     /// Uses values of at least 1,000 and less than 10,000 satoshis.
-    pub _1k_sats_to_10k_sats: T,
+    _1k_sats_to_10k_sats: T,
     /// Uses values of at least 10,000 and less than 100,000 satoshis.
-    pub _10k_sats_to_100k_sats: T,
+    _10k_sats_to_100k_sats: T,
     /// Uses values of at least 100,000 and less than 1,000,000 satoshis.
-    pub _100k_sats_to_1m_sats: T,
+    _100k_sats_to_1m_sats: T,
     /// Uses values of at least 1,000,000 and less than 10,000,000 satoshis.
-    pub _1m_sats_to_10m_sats: T,
+    _1m_sats_to_10m_sats: T,
     /// Uses values of at least 10,000,000 satoshis and less than 1 BTC.
-    pub _10m_sats_to_1btc: T,
+    _10m_sats_to_1btc: T,
     /// Uses values of at least 1 and less than 10 BTC.
-    pub _1btc_to_10btc: T,
+    _1btc_to_10btc: T,
     /// Uses values of at least 10 and less than 100 BTC.
-    pub _10btc_to_100btc: T,
+    _10btc_to_100btc: T,
     /// Uses values of at least 100 and less than 1,000 BTC.
-    pub _100btc_to_1k_btc: T,
+    _100btc_to_1k_btc: T,
     /// Uses values of at least 1,000 and less than 10,000 BTC.
-    pub _1k_btc_to_10k_btc: T,
+    _1k_btc_to_10k_btc: T,
     /// Uses values of at least 10,000 and less than 100,000 BTC.
-    pub _10k_btc_to_100k_btc: T,
+    _10k_btc_to_100k_btc: T,
     /// Uses values of at least 100,000 BTC.
-    pub over_100k_btc: T,
+    over_100k_btc: T,
 }
 
 define_cohort_id!(

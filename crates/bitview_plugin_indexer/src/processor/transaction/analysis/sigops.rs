@@ -145,7 +145,7 @@ mod tests {
     use crate::TxFeatureFlags;
 
     #[test]
-    pub fn push_only_script_sig_keeps_prevout_executed_sigops() {
+    fn push_only_script_sig_keeps_prevout_executed_sigops() {
         let input = TxIn {
             script_sig: ScriptBuf::from_hex("00").unwrap(),
             ..TxIn::default()
@@ -159,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    pub fn counts_coinbase_legacy_script_sigops() {
+    fn counts_coinbase_legacy_script_sigops() {
         let input = TxIn {
             script_sig: ScriptBuf::from_hex("ac").unwrap(),
             ..TxIn::default()
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    pub fn counts_legacy_script_sigops_for_known_prevout_types() {
+    fn counts_legacy_script_sigops_for_known_prevout_types() {
         let input = TxIn {
             script_sig: ScriptBuf::from_hex("ac").unwrap(),
             ..TxIn::default()
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    pub fn scales_accurately_counted_p2sh_redeem_sigops_by_four() {
+    fn scales_accurately_counted_p2sh_redeem_sigops_by_four() {
         let input = TxIn {
             // Push `OP_2 OP_3 OP_CHECKMULTISIG`; accurate counting uses the
             // preceding OP_3 and therefore counts three sigops.
@@ -202,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    pub fn counts_segwit_v0_sigops_without_legacy_scaling() {
+    fn counts_segwit_v0_sigops_without_legacy_scaling() {
         let p2wpkh = TxIn {
             witness: Witness::from_slice(&[[0_u8; 71].as_slice(), [0_u8; 33].as_slice()]),
             ..TxIn::default()
@@ -224,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    pub fn excludes_tapscript_from_bip141_sigop_cost() {
+    fn excludes_tapscript_from_bip141_sigop_cost() {
         let tapscript = [0xac];
         let control_block = [0xc0; 33];
         let input = TxIn {

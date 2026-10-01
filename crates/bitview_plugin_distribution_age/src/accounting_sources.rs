@@ -58,10 +58,6 @@ impl AccountingSources<'_> {
             .unwrap_or_default()
     }
 
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn collect_into(&self, start: usize, end: usize, target: &mut CohortAccounting) {
         let CohortAccounting {
             supplies,

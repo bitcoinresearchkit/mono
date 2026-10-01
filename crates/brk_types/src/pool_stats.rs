@@ -11,41 +11,41 @@ pub struct PoolStats {
     /// Unique pool identifier
     #[serde(rename = "poolId")]
     #[schemars(example = 111)]
-    pub pool_id: u8,
+    pool_id: u8,
 
     /// Pool name
     #[schemars(example = &"Foundry USA")]
-    pub name: Cow<'static, str>,
+    name: Cow<'static, str>,
 
     /// Pool website URL
     #[schemars(example = &"https://foundrydigital.com/")]
-    pub link: Cow<'static, str>,
+    link: Cow<'static, str>,
 
     /// Number of blocks mined in the time period
     #[serde(rename = "blockCount")]
     #[schemars(example = 42)]
-    pub block_count: u64,
+    block_count: u64,
 
     /// Pool ranking by block count (1 = most blocks)
     #[schemars(example = 1)]
-    pub rank: u32,
+    rank: u32,
 
     /// Number of empty blocks mined
     #[serde(rename = "emptyBlocks")]
     #[schemars(example = 0)]
-    pub empty_blocks: u64,
+    empty_blocks: u64,
 
     /// URL-friendly pool identifier
-    pub slug: PoolSlug,
+    slug: PoolSlug,
 
     /// Pool's share of total blocks (0.0 - 1.0)
     #[schemars(example = 0.30)]
-    pub share: f64,
+    share: f64,
 
     /// Unique pool identifier
     #[serde(rename = "poolUniqueId")]
     #[schemars(example = 44)]
-    pub pool_unique_id: u8,
+    pool_unique_id: u8,
 }
 
 impl PoolStats {

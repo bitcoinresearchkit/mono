@@ -16,7 +16,7 @@ pub struct LazyValuePerBlockCumulativeRolling {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub rolling: RollingAmountTotals,
+    rolling: RollingAmountTotals,
 }
 
 impl LazyValuePerBlockCumulativeRolling {

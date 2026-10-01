@@ -20,7 +20,7 @@ pub struct TxStatus {
 
     /// Block timestamp (only present if confirmed)
     #[schemars(example = Some(1759000868))]
-    pub block_time: Option<Timestamp>,
+    block_time: Option<Timestamp>,
 }
 
 impl TxStatus {

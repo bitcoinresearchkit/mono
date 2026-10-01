@@ -34,7 +34,7 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub per_dollar_sources: AgeAggregate<PercentilesVecs<M>>,
     #[traversable(hidden)]
-    pub(crate) supply_density_source: DensitySources<M>,
+    supply_density_source: DensitySources<M>,
 }
 
 impl CostBasisVecs {

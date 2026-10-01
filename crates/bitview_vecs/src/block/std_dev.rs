@@ -11,7 +11,7 @@ pub struct StdDevPerBlock<M: StorageMode = Rw> {
     #[traversable(skip)]
     days: usize,
     /// Arithmetic mean of the source values in a trailing window.
-    pub sma: PerBlock<StoredF32, M>,
+    sma: PerBlock<StoredF32, M>,
     /// Population standard deviation of the source values in a trailing window.
     pub sd: PerBlock<StoredF32, M>,
 }

@@ -14,9 +14,9 @@ use std::io::Write;
 pub struct DeltaLookbackConfig {
   /// The log2 of the number of latents explicitly stored in page metadata
   /// to prepopulate the lookback window.
-  pub state_n_log: Bitlen,
+  pub(crate) state_n_log: Bitlen,
   /// The log2 of the maximum possible lookback.
-  pub window_n_log: Bitlen,
+  pub(crate) window_n_log: Bitlen,
 }
 
 impl DeltaLookbackConfig {
@@ -32,7 +32,7 @@ impl DeltaLookbackConfig {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct DeltaConv1Config {
-  pub quantization: Bitlen,
+  pub(crate) quantization: Bitlen,
   // Avoiding exposing bias and weights because I think it's possible we'll
   // change their representation in the future; for now users will have to
   // satisfy themselves with the Debug string if they are curious

@@ -59,7 +59,7 @@ where
         )
     }
 
-    pub fn with_operand_transform(
+    fn with_operand_transform(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<Height, S> + ?Sized),

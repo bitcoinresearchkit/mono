@@ -51,8 +51,6 @@ pub struct Height(u32);
 
 impl Height {
     pub const ZERO: Self = Self(0);
-    pub const MAX: Self = Self(u32::MAX);
-
     pub const fn new(height: u32) -> Self {
         Self(height)
     }

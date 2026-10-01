@@ -10,7 +10,7 @@ use super::{CohortId, SpendableType, UnspendableType};
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 
-pub const OP_RETURN: &str = "op_return";
+pub(crate) const OP_RETURN: &str = "op_return";
 #[derive(Default, Clone, Debug)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByType<T> {

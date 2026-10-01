@@ -20,13 +20,14 @@ pub use brk::*;
 pub use kraken::*;
 pub use ohlc::compute_ohlc_from_range;
 
-pub use source::{PriceSource, TrackedSource};
+pub(crate) use source::PriceSource;
+pub use source::TrackedSource;
 
 const MAX_RETRIES: usize = 12 * 60; // 12 hours of retrying
 
 /// Create a shared HTTP agent with connection pooling and default timeout.
 /// Status codes are not treated as errors — callers use `checked_get` for status handling.
-pub fn new_agent(timeout_secs: u64) -> Agent {
+pub(crate) fn new_agent(timeout_secs: u64) -> Agent {
     Agent::config_builder()
         .timeout_global(Some(Duration::from_secs(timeout_secs)))
         .http_status_as_error(false)
@@ -35,7 +36,7 @@ pub fn new_agent(timeout_secs: u64) -> Agent {
 }
 
 /// Perform a GET request and check the response status.
-pub fn checked_get(agent: &Agent, url: &str) -> Result<Vec<u8>> {
+pub(crate) fn checked_get(agent: &Agent, url: &str) -> Result<Vec<u8>> {
     let mut response = agent.get(url).call()?;
     let status = response.status().as_u16();
     if status >= 400 {
@@ -51,10 +52,9 @@ pub fn checked_get(agent: &Agent, url: &str) -> Result<Vec<u8>> {
 
 #[derive(Clone)]
 pub struct Fetcher {
-    pub agent: Agent,
-    pub binance: TrackedSource<Binance>,
-    pub kraken: TrackedSource<Kraken>,
-    pub brk: TrackedSource<BRK>,
+    binance: TrackedSource<Binance>,
+    kraken: TrackedSource<Kraken>,
+    brk: TrackedSource<BRK>,
 }
 
 impl Fetcher {
@@ -63,8 +63,7 @@ impl Fetcher {
         Ok(Self {
             binance: TrackedSource::new(Binance::new_with_agent(hars_path, agent.clone())),
             kraken: TrackedSource::new(Kraken::new_with_agent(agent.clone())),
-            brk: TrackedSource::new(BRK::new_with_agent(agent.clone())),
-            agent,
+            brk: TrackedSource::new(BRK::new_with_agent(agent)),
         })
     }
 
@@ -161,19 +160,10 @@ How to fix this:
     }
 
     /// Clear caches and reset health state for all sources
-    pub fn clear(&mut self) {
+    fn clear(&mut self) {
         for source in self.sources_mut() {
             source.clear();
         }
-    }
-
-    /// Ping all sources and return results for each
-    pub fn ping(&self) -> Vec<(&'static str, Result<()>)> {
-        vec![
-            (self.binance.name(), self.binance.ping()),
-            (self.kraken.name(), self.kraken.ping()),
-            (self.brk.name(), self.brk.ping()),
-        ]
     }
 }
 

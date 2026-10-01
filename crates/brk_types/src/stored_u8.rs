@@ -118,10 +118,10 @@ impl From<StoredU8> for usize {
 }
 
 impl StoredU8 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "u8"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["u8"]
     }
 }

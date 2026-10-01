@@ -124,7 +124,7 @@ where
         self.fold(n, (), |(), value| f(value));
     }
 
-    pub fn new(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {
+    pub(crate) fn new(region: &'a Region, stored_len: usize, from: usize, to: usize) -> Self {
         let from = from.min(stored_len);
         let to = to.min(stored_len).max(from);
         let bytes = (to - from) * Self::SIZE_OF_T;

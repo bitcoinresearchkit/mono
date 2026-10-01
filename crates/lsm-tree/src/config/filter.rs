@@ -37,7 +37,7 @@ impl FilterPolicy {
         clippy::indexing_slicing,
         reason = "constructors reject empty policies; the index is clamped"
     )]
-    pub fn at_level(&self, level: usize) -> FilterPolicyEntry {
+    pub(crate) fn at_level(&self, level: usize) -> FilterPolicyEntry {
         self.0[level.min(self.0.len() - 1)]
     }
 
@@ -51,7 +51,7 @@ impl FilterPolicy {
 
     /// Uses the same block size in every level.
     #[must_use]
-    pub fn all(c: FilterPolicyEntry) -> Self {
+    pub(crate) fn all(c: FilterPolicyEntry) -> Self {
         Self(vec![c])
     }
 

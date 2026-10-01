@@ -75,10 +75,10 @@ impl VecdbCheckedSub<FundedAddrIndex> for FundedAddrIndex {
     }
 }
 impl FundedAddrIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "funded_addr_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["fundedaddr", "funded_addr_index"]
     }
 }

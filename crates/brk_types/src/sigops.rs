@@ -38,7 +38,7 @@ impl SigOps {
 
     /// Vbytes per sigop under BIP-141 policy. Core's `nSigOpCost`
     /// adjustment factor: `adjusted_vsize = max(vsize, sigops * 5)`.
-    pub const VBYTES_PER_SIGOP: u64 = 5;
+    const VBYTES_PER_SIGOP: u64 = 5;
 
     #[inline]
     pub const fn new(value: u32) -> Self {
@@ -47,7 +47,7 @@ impl SigOps {
 
     /// BIP-141 vbyte equivalent of this sigop count.
     #[inline]
-    pub fn vsize_cost(self) -> VSize {
+    fn vsize_cost(self) -> VSize {
         VSize::new(u64::from(self.0) * Self::VBYTES_PER_SIGOP)
     }
 

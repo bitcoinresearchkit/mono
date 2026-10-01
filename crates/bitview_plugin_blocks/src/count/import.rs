@@ -13,7 +13,7 @@ fn cumulative_block_count(height: Height) -> StoredU64 {
 }
 
 impl Vecs {
-    pub fn new(
+    pub(crate) fn new(
         version: Version,
         indexer: &Indexer,
         mappings: &MappingsVecs,

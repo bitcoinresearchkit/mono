@@ -36,8 +36,8 @@ impl JsonSchema for Date {
 }
 
 impl Date {
-    pub const INDEX_ZERO: Self = Self(20090101);
-    pub const INDEX_ZERO_: Date_ = Date_::constant(2009, 1, 1);
+    pub(crate) const INDEX_ZERO: Self = Self(20090101);
+    pub(crate) const INDEX_ZERO_: Date_ = Date_::constant(2009, 1, 1);
 
     pub fn new(year: u16, month: u8, day: u8) -> Self {
         Self(year as u32 * 1_00_00 + month as u32 * 1_00 + day as u32)
@@ -55,7 +55,7 @@ impl Date {
         (self.0 % 1_00) as u8
     }
 
-    pub fn into_jiff(self) -> Date_ {
+    pub(crate) fn into_jiff(self) -> Date_ {
         self.into()
     }
 

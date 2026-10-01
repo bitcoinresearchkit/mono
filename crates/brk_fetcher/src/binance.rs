@@ -30,7 +30,7 @@ impl Binance {
         Self::new_with_agent(path, new_agent(30))
     }
 
-    pub fn new_with_agent(path: Option<&Path>, agent: Agent) -> Self {
+    pub(crate) fn new_with_agent(path: Option<&Path>, agent: Agent) -> Self {
         Self {
             agent,
             path: path.map(|p| p.to_owned()),
@@ -40,7 +40,7 @@ impl Binance {
         }
     }
 
-    pub fn get_from_1mn(
+    fn get_from_1mn(
         &mut self,
         timestamp: Timestamp,
         previous_timestamp: Option<Timestamp>,
@@ -90,7 +90,7 @@ impl Binance {
         })
     }
 
-    pub fn get_from_1d(&mut self, date: &Date) -> Result<OHLCCents> {
+    fn get_from_1d(&mut self, date: &Date) -> Result<OHLCCents> {
         if self
             ._1d
             .as_ref()
@@ -222,7 +222,7 @@ impl Binance {
         format!("https://api.binance.com/api/v3/uiKlines?symbol=BTCUSDT&{query}")
     }
 
-    pub fn ping(&self) -> Result<()> {
+    fn ping(&self) -> Result<()> {
         self.agent
             .get("https://api.binance.com/api/v3/ping")
             .call()?;

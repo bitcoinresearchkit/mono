@@ -17,13 +17,12 @@ fn next_streak(weight: Weight, previous: StoredU64) -> StoredU64 {
 
 impl ComputePlugin for Vecs {
     type Dependencies<'a> = Dependencies<'a>;
-    type Output = ();
 
     fn compute(
         &mut self,
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
-    ) -> Result<Self::Output> {
+    ) -> Result<()> {
         let exit = context.exit();
         self.db.sync_bg_tasks()?;
 

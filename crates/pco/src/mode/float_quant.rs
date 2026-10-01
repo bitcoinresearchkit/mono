@@ -132,7 +132,7 @@ fn estimate_best_k_and_bits_saved_from_hist(
   (best_k, best_bits_saved)
 }
 
-pub(crate) fn estimate_best_k_and_bits_saved<F: Float>(sample: &[F]) -> (Bitlen, f64) {
+fn estimate_best_k_and_bits_saved<F: Float>(sample: &[F]) -> (Bitlen, f64) {
   let mut hist = vec![0; (F::PRECISION_BITS + 1) as usize];
   for x in sample {
     // Using the fact that significand bits come last in

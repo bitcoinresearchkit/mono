@@ -9,11 +9,11 @@ pub struct MempoolRecentTx {
     /// Transaction ID
     pub txid: Txid,
     /// Transaction fee (sats)
-    pub fee: Sats,
+    fee: Sats,
     /// Virtual size (vbytes)
-    pub vsize: VSize,
+    vsize: VSize,
     /// Total output value (sats)
-    pub value: Sats,
+    value: Sats,
 }
 
 impl From<(&Txid, &Transaction)> for MempoolRecentTx {

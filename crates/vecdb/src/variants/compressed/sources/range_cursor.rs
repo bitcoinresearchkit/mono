@@ -330,7 +330,7 @@ where
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         region: &'a Region,
         pages: &'a Arc<RwLock<Pages>>,
         stored_len: usize,

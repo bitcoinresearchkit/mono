@@ -15,22 +15,6 @@ pub enum UrpdWeight {
     Coinflow,
 }
 
-impl UrpdWeight {
-    pub const WEIGHTED: [Self; 2] = [Self::Cointime, Self::Coinflow];
-
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Raw => "raw",
-            Self::Cointime => "cointime",
-            Self::Coinflow => "coinflow",
-        }
-    }
-
-    pub const fn is_weighted(self) -> bool {
-        !matches!(self, Self::Raw)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use schemars::schema_for;
@@ -40,12 +24,13 @@ mod tests {
 
     #[test]
     fn names_and_schema_match() {
-        for weight in [UrpdWeight::Raw, UrpdWeight::Cointime, UrpdWeight::Coinflow] {
-            assert_eq!(weight.to_string(), weight.as_str());
-            assert_eq!(
-                to_string(&weight).unwrap(),
-                format!("\"{}\"", weight.as_str())
-            );
+        for (weight, name) in [
+            (UrpdWeight::Raw, "raw"),
+            (UrpdWeight::Cointime, "cointime"),
+            (UrpdWeight::Coinflow, "coinflow"),
+        ] {
+            assert_eq!(weight.to_string(), name);
+            assert_eq!(to_string(&weight).unwrap(), format!("\"{name}\""));
         }
 
         let schema = to_string(&schema_for!(UrpdWeight)).unwrap();

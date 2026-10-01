@@ -152,7 +152,7 @@ mod tests {
     use super::{ScriptSigFacts, analyze};
     use crate::TxFeatureFlags;
 
-    pub fn analyze_script(script: &ScriptBuf) -> ScriptSigFacts<'_> {
+    fn analyze_script(script: &ScriptBuf) -> ScriptSigFacts<'_> {
         analyze(
             script,
             OutputType::Unknown,
@@ -162,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    pub fn analyzes_last_push_and_push_only_together() {
+    fn analyzes_last_push_and_push_only_together() {
         let pushed = ScriptBuf::from_hex("03616263").unwrap();
         let facts = analyze_script(&pushed);
         assert_eq!(facts.last_push, Some(b"abc".as_slice()));
@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    pub fn counts_legacy_and_accurate_sigops_together() {
+    fn counts_legacy_and_accurate_sigops_together() {
         let script = ScriptBuf::from_hex("52aeac").unwrap();
         let facts = analyze_script(&script);
 
@@ -189,7 +189,7 @@ mod tests {
     }
 
     #[test]
-    pub fn records_validated_p2pkh_and_p2pk_sighashes() {
+    fn records_validated_p2pkh_and_p2pk_sighashes() {
         let signature = [0x30, 0x06, 0x02, 0x01, 0x01, 0x02, 0x01, 0x01, 0x01];
         let compressed_key = [0x02; 33];
         let uncompressed_key = [0x04; 65];
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    pub fn falls_back_for_noncanonical_p2pkh_shape() {
+    fn falls_back_for_noncanonical_p2pkh_shape() {
         let script = ScriptBuf::from_hex(
             "000930060201010201010121020000000000000000000000000000000000000000000000000000000000000000",
         )

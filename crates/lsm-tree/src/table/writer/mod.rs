@@ -176,7 +176,7 @@ impl<K: RecordBytes, V: RecordBytes> Writer<K, V> {
 
     #[must_use]
     #[cfg(test)]
-    pub fn use_meta_partition_size(mut self, size: u32) -> Self {
+    pub(crate) fn use_meta_partition_size(mut self, size: u32) -> Self {
         assert!(
             size <= 4 * 1_024 * 1_024,
             "data block size must be <= 4 MiB",

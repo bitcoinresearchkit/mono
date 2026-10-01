@@ -25,8 +25,6 @@ use vecdb::{Formattable, Pco};
 pub struct CentsSigned(i64);
 
 impl CentsSigned {
-    pub const ZERO: Self = Self(0);
-
     #[inline]
     pub const fn new(value: i64) -> Self {
         Self(value)
@@ -38,21 +36,11 @@ impl CentsSigned {
     }
 
     #[inline]
-    pub fn is_negative(self) -> bool {
-        self.0 < 0
-    }
-
-    #[inline]
-    pub fn checked_sub(self, rhs: Self) -> Option<Self> {
+    pub(crate) fn checked_sub(self, rhs: Self) -> Option<Self> {
         self.0.checked_sub(rhs.0).map(Self)
     }
 
-    #[inline]
-    pub fn checked_add(self, rhs: Self) -> Option<Self> {
-        self.0.checked_add(rhs.0).map(Self)
-    }
-
-    pub fn to_dollars(self) -> Dollars {
+    fn to_dollars(self) -> Dollars {
         Dollars::from(self.0 as f64 / 100.0)
     }
 }

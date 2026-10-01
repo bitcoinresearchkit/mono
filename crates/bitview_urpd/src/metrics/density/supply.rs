@@ -41,7 +41,7 @@ impl SupplyDensity<PartsPerMillion32> {
     };
 
     #[cfg(test)]
-    pub fn from_entries(
+    pub(crate) fn from_entries(
         entries: impl IntoIterator<Item = (CentsCompact, Sats)>,
         spot: Cents,
     ) -> Self {

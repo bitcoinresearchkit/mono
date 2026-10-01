@@ -20,7 +20,7 @@ pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw>(
 );
 
 impl RollingDistributionValuePerBlock {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -38,7 +38,7 @@ impl RollingDistributionValuePerBlock {
         })?))
     }
 
-    pub fn compute(
+    pub(crate) fn compute(
         &mut self,
         max_from: Height,
         windows: &WindowStarts<'_>,

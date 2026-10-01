@@ -68,10 +68,10 @@ impl VecdbCheckedSub for Hour4 {
 }
 
 impl Hour4 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "hour4"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["4h", "hour4"]
     }
 }

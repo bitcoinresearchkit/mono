@@ -131,10 +131,10 @@ impl VecdbCheckedSub for Month1 {
 }
 
 impl Month1 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "month1"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["month", "m", "monthly", "month1", "monthindex", "1m", "1mo"]
     }
 }

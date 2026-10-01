@@ -43,13 +43,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// exists. Duration suffixes are fixed: `h` is 3,600 seconds, `d` is 24
     /// hours, `w` is 7 days, `m` is 30 days, and `y` is 365 days.
     pub lookback: LookbackVecs,
-    pub interval: IntervalVecs<M>,
+    interval: IntervalVecs<M>,
     #[traversable(flatten)]
     pub size: UtxosVecs<M>,
     #[traversable(flatten)]
-    pub weight: WeightVecs,
+    weight: WeightVecs,
     pub difficulty: DifficultyVecs,
-    pub halving: HalvingVecs,
+    halving: HalvingVecs,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

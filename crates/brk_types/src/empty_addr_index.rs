@@ -79,10 +79,10 @@ impl VecdbCheckedSub<EmptyAddrIndex> for EmptyAddrIndex {
 }
 
 impl EmptyAddrIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "empty_addr_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["emptyaddr", "empty_addr_index"]
     }
 }

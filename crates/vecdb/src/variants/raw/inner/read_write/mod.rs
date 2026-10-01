@@ -42,7 +42,7 @@ where
     T: VecValue,
     S: RawStrategy<T>,
 {
-    pub const SIZE_OF_T: usize = size_of::<T>();
+    const SIZE_OF_T: usize = size_of::<T>();
 
     pub fn read_only_clone(&self) -> ReadOnlyRawVec<I, T, S, C> {
         ReadOnlyRawVec {
@@ -55,7 +55,7 @@ where
     /// # Warning
     ///
     /// This will DELETE all existing data on format/version errors. Use with caution.
-    pub fn forced_import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
+    pub(crate) fn forced_import_with(options: ImportOptions, format: Format) -> CrateResult<Self> {
         let res = Self::import_with(options, format);
         match res {
             Err(Error::WrongEndian)
@@ -72,7 +72,7 @@ where
         }
     }
 
-    pub fn import_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
+    pub(crate) fn import_with(mut options: ImportOptions, format: Format) -> CrateResult<Self> {
         options.version = options.version + VERSION;
 
         let name = options.name;
@@ -104,17 +104,17 @@ where
         Ok(this)
     }
 
-    pub fn remove(self) -> CrateResult<()> {
+    pub(crate) fn remove(self) -> CrateResult<()> {
         self.base.remove()
     }
 
     #[inline(always)]
-    pub fn mut_pushed(&mut self) -> &mut Vec<T> {
+    pub(crate) fn mut_pushed(&mut self) -> &mut Vec<T> {
         self.base.mut_pushed()
     }
 
     #[inline]
-    pub fn reserve_pushed(&mut self, additional: usize) {
+    pub(crate) fn reserve_pushed(&mut self, additional: usize) {
         self.base.reserve_pushed(additional);
     }
 
@@ -124,7 +124,7 @@ where
     }
 
     #[inline]
-    pub fn reader(&self) -> VecReader<I, T, S> {
+    pub(crate) fn reader(&self) -> VecReader<I, T, S> {
         VecReader::from_read_write(self)
     }
 
@@ -157,7 +157,7 @@ where
     }
 
     #[inline]
-    pub fn index_to_name(&self) -> String {
+    fn index_to_name(&self) -> String {
         self.base.index_to_name()
     }
 
@@ -175,7 +175,7 @@ where
 
     /// Raw-index form of [`Self::get_append_only`].
     #[inline(always)]
-    pub fn get_append_only_at(&self, index: usize, reader: &VecReader<I, T, S>) -> Option<T> {
+    fn get_append_only_at(&self, index: usize, reader: &VecReader<I, T, S>) -> Option<T> {
         // The reader snapshots the persisted boundary when it is created.
         // Using that boundary avoids reloading SharedLen for every lookup and
         // lets the inlined reader.get_at() reuse the same bounds check.
@@ -219,10 +219,10 @@ where
         RawMmapSource::new(self, from, to).fold(init, f)
     }
 
-    pub fn base(&self) -> &ReadWriteBaseVec<I, T> {
+    pub(crate) fn base(&self) -> &ReadWriteBaseVec<I, T> {
         &self.base
     }
-    pub fn base_mut(&mut self) -> &mut ReadWriteBaseVec<I, T> {
+    pub(crate) fn base_mut(&mut self) -> &mut ReadWriteBaseVec<I, T> {
         &mut self.base
     }
     fn collect_stored_range(&self, from: usize, to: usize) -> CrateResult<Vec<T>> {

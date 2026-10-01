@@ -13,7 +13,7 @@ pub struct RollingAmountTotals {
 }
 
 impl RollingAmountTotals {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         sats: &impl ReadableCloneableVec<Height, Sats>,

@@ -37,7 +37,7 @@ impl Vout {
         *self == Self::ZERO
     }
 
-    pub fn to_be_bytes(&self) -> [u8; 2] {
+    pub(crate) fn to_be_bytes(&self) -> [u8; 2] {
         self.0.to_be_bytes()
     }
 }

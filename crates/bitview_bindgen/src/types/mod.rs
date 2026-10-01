@@ -19,9 +19,9 @@ pub use structural_pattern::*;
 /// Language-specific syntax for generic type annotations.
 #[derive(Clone, Copy)]
 pub struct GenericSyntax {
-    pub open: char,
-    pub close: char,
-    pub default_type: &'static str,
+    open: char,
+    close: char,
+    default_type: &'static str,
 }
 
 impl GenericSyntax {
@@ -36,7 +36,7 @@ impl GenericSyntax {
         default_type: "unknown",
     };
 
-    pub fn wrap(&self, name: &str, type_param: &str) -> String {
+    fn wrap(&self, name: &str, type_param: &str) -> String {
         // Convert the type_param from Rust syntax to target syntax
         let converted = self.convert(type_param);
         format!("{}{}{}{}", name, self.open, converted, self.close)

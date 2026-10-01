@@ -1,8 +1,30 @@
+use std::fs;
+
 use tempfile::TempDir;
 
 use crate::{Database, PAGE_SIZE, Result};
 
 use super::{allocated_bytes, setup_test_db};
+
+#[test]
+fn repeated_compaction_preserves_the_partial_page() -> Result<()> {
+    let (db, _temp) = setup_test_db()?;
+    let region = db.create_region_if_needed("partial_page")?;
+    region.write(&vec![1; 2 * PAGE_SIZE])?;
+    db.flush()?;
+
+    for _ in 0..2 {
+        region.truncate(10)?;
+        db.compact()?;
+        assert_eq!(region.meta().reserved(), 2 * PAGE_SIZE);
+        assert_eq!(
+            fs::read(db.path().join("data"))?[PAGE_SIZE - 1..=PAGE_SIZE],
+            [1, 0]
+        );
+        db.flush()?;
+    }
+    Ok(())
+}
 
 #[test]
 fn test_punch_holes() -> Result<()> {

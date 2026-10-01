@@ -9,27 +9,27 @@ use super::CumulativeSource;
 
 #[derive(Traversable)]
 pub(crate) struct Sources<M: StorageMode = Rw> {
-    pub supply: CachedSeries<Height, Sats, M>,
-    pub supply_in_profit: CachedSeries<Height, Sats, M>,
-    pub supply_in_loss: CachedSeries<Height, Sats, M>,
-    pub unspent_count: CachedSeries<Height, StoredU64, M>,
-    pub realized_cap: CachedSeries<Height, Cents, M>,
-    pub realized_price: CachedSeries<Height, Cents, M>,
-    pub unrealized_profit: CachedSeries<Height, Cents, M>,
-    pub unrealized_loss: CachedSeries<Height, Cents, M>,
-    pub unrealized_net_pnl: CachedSeries<Height, CentsSigned, M>,
-    pub spent_count: CumulativeSource<StoredU64, M>,
-    pub transfer_sats: CumulativeSource<Sats, M>,
-    pub transfer_cents: CumulativeSource<Cents, M>,
-    pub profit_sats: CumulativeSource<Sats, M>,
-    pub profit_cents: CumulativeSource<Cents, M>,
-    pub loss_sats: CumulativeSource<Sats, M>,
-    pub loss_cents: CumulativeSource<Cents, M>,
-    pub coindays: CumulativeSource<StoredF64, M>,
-    pub realized_profit: CumulativeSource<Cents, M>,
-    pub realized_loss: CumulativeSource<Cents, M>,
-    pub realized_net_pnl: CumulativeSource<CentsSigned, M>,
-    pub value_destroyed: CumulativeSource<Cents, M>,
+    pub(crate) supply: CachedSeries<Height, Sats, M>,
+    pub(crate) supply_in_profit: CachedSeries<Height, Sats, M>,
+    pub(crate) supply_in_loss: CachedSeries<Height, Sats, M>,
+    pub(crate) unspent_count: CachedSeries<Height, StoredU64, M>,
+    pub(crate) realized_cap: CachedSeries<Height, Cents, M>,
+    pub(crate) realized_price: CachedSeries<Height, Cents, M>,
+    pub(crate) unrealized_profit: CachedSeries<Height, Cents, M>,
+    pub(crate) unrealized_loss: CachedSeries<Height, Cents, M>,
+    pub(crate) unrealized_net_pnl: CachedSeries<Height, CentsSigned, M>,
+    pub(crate) spent_count: CumulativeSource<StoredU64, M>,
+    pub(crate) transfer_sats: CumulativeSource<Sats, M>,
+    pub(crate) transfer_cents: CumulativeSource<Cents, M>,
+    pub(crate) profit_sats: CumulativeSource<Sats, M>,
+    pub(crate) profit_cents: CumulativeSource<Cents, M>,
+    pub(crate) loss_sats: CumulativeSource<Sats, M>,
+    pub(crate) loss_cents: CumulativeSource<Cents, M>,
+    pub(crate) coindays: CumulativeSource<StoredF64, M>,
+    pub(crate) realized_profit: CumulativeSource<Cents, M>,
+    pub(crate) realized_loss: CumulativeSource<Cents, M>,
+    pub(crate) realized_net_pnl: CumulativeSource<CentsSigned, M>,
+    pub(crate) value_destroyed: CumulativeSource<Cents, M>,
 }
 
 impl Sources {
@@ -108,14 +108,14 @@ impl Sources {
         })
     }
 
-    pub fn min_len(&self) -> usize {
+    pub(crate) fn min_len(&self) -> usize {
         self.iter_any_exportable()
             .map(|vec| vec.len())
             .min()
             .unwrap_or_default()
     }
 
-    pub fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
+    pub(crate) fn stored_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         vec![
             &mut self.supply,
             &mut self.supply_in_profit,

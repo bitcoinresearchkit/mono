@@ -53,7 +53,7 @@ fn flush_ranges_cover_dirty_pages_without_bridging_clean_pages() -> Result<()> {
             start + 5 * PAGE_SIZE..start + 8 * PAGE_SIZE,
         ]
     );
-    assert!(region.flush()?);
+    assert_eq!(db.flush()?, 1);
     assert_eq!(db.flush()?, 0);
     drop(region);
     drop(neighbor);
@@ -86,7 +86,7 @@ fn merged_region_pages_keep_independent_dirty_state() -> Result<()> {
     db.flush()?;
     first.write_at(&[1], 0)?;
     third.write_at(&[3], 0)?;
-    assert!(!second.flush()?);
+    assert!(flush_ranges(&db, &[&second]).is_empty());
     assert_eq!(
         flush_ranges(&db, &[&first, &second, &third]),
         [0..PAGE_SIZE, 2 * PAGE_SIZE..3 * PAGE_SIZE]
@@ -96,14 +96,8 @@ fn merged_region_pages_keep_independent_dirty_state() -> Result<()> {
     assert_eq!(ranges.len(), 1);
     assert_eq!(ranges[0], 0..3 * PAGE_SIZE);
 
-    assert!(first.flush()?);
-    assert!(flush_ranges(&db, &[&first]).is_empty());
-    assert!(!first.flush()?);
-    assert_eq!(
-        db.flush()?,
-        2,
-        "flushing one region must not clear its neighbors"
-    );
+    assert_eq!(db.flush()?, 3);
+    assert!(flush_ranges(&db, &[&first, &second, &third]).is_empty());
     assert_eq!(db.flush()?, 0);
     drop(first);
     drop(second);

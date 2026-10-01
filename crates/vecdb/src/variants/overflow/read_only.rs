@@ -26,7 +26,7 @@ where
     T: OverflowVecValue,
 {
     #[doc(hidden)]
-    pub fn new(
+    pub(crate) fn new(
         compact: ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
         overflow: ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
         visible_len: SharedLen,

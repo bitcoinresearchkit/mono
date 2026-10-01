@@ -19,7 +19,7 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: LazyFiatPerBlockCumulativeWithSums<C>,
+    inner: LazyFiatPerBlockCumulativeWithSums<C>,
     pub delta: LazyRollingDeltasFiatFromHeight<C, CS, B>,
 }
 

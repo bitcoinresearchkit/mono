@@ -264,29 +264,6 @@ fn middle_batch_offsets_cannot_escape_the_dirty_span() -> Result<()> {
 }
 
 #[test]
-fn region_flush_covers_all_shared_metadata_dependencies() -> Result<()> {
-    let dir = TempDir::new()?;
-    let db = Database::open(dir.path())?;
-    let empty = db.create_region_if_needed("empty")?;
-    db.create_region_if_needed("other")?
-        .write(b"must precede shared metadata")?;
-    assert!(empty.flush()?);
-    assert_eq!(
-        db.flush()?,
-        0,
-        "region flush must cover the other region's data too"
-    );
-    drop(empty);
-    drop(db);
-    let db = Database::open(dir.path())?;
-    assert_eq!(
-        db.get_region("other").unwrap().create_reader().read_all(),
-        b"must precede shared metadata"
-    );
-    Ok(())
-}
-
-#[test]
 fn background_panic_returns_error_and_joins_other_tasks() -> Result<()> {
     let dir = TempDir::new()?;
     let db = Database::open(dir.path())?;

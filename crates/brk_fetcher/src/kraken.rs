@@ -24,7 +24,7 @@ impl Kraken {
         Self::new_with_agent(new_agent(30))
     }
 
-    pub fn new_with_agent(agent: Agent) -> Self {
+    pub(crate) fn new_with_agent(agent: Agent) -> Self {
         Self {
             agent,
             _1mn: None,
@@ -123,7 +123,7 @@ impl Kraken {
         format!("https://api.kraken.com/0/public/OHLC?pair=XBTUSD&interval={interval}")
     }
 
-    pub fn ping(&self) -> Result<()> {
+    fn ping(&self) -> Result<()> {
         self.agent
             .get("https://api.kraken.com/0/public/Time")
             .call()?;

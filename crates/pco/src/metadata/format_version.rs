@@ -26,8 +26,8 @@ use crate::{
 #[non_exhaustive]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct FormatVersion {
-  pub major: u8,
-  pub minor: u8,
+  major: u8,
+  minor: u8,
 }
 
 /// The default FormatVersion is used when compressing files.
@@ -48,14 +48,14 @@ impl FormatVersion {
 
   /// Returns the max format version that can definitely be decompressed by the
   /// current library version.
-  pub fn max_supported() -> Self {
+  pub(crate) fn max_supported() -> Self {
     Self { major: 4, minor: 1 }
   }
 
   /// Returns whether this format version can definitely be read by the current
   /// library version, or None if it can maybe be decompressed without a
   /// guarantee.
-  pub fn can_be_decompressed(&self) -> Option<bool> {
+  fn can_be_decompressed(&self) -> Option<bool> {
     let max_supported = FormatVersion::max_supported();
     if max_supported >= *self {
       Some(true)

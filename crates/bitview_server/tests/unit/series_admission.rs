@@ -11,7 +11,7 @@ use tower::ServiceExt;
 
 use crate::{AppState, api::ApiRoutes, request_deadline};
 
-pub async fn check(state: &AppState) {
+pub(crate) async fn check(state: &AppState) {
     check_format_shapes(state);
     let router = ApiRouter::new().add_api_routes().with_state(state.clone());
     let request = |method, path: &str, tag: &str| {

@@ -13,7 +13,6 @@ use bitcoin::{Transaction as BitcoinTransaction, TxIn as BitcoinTxIn};
 use brk_types::{MempoolEntryInfo, SigOps, Transaction, TxIn, TxOut, TxStatus, Txid, Vout};
 
 use crate::{
-    cycle::AddedKind,
     state::TxEntry,
     stores::{TxStore, TxTombstone},
 };
@@ -24,13 +23,6 @@ pub enum TxAddition {
 }
 
 impl TxAddition {
-    pub fn kind(&self) -> AddedKind {
-        match self {
-            Self::Fresh { .. } => AddedKind::Fresh,
-            Self::Revived { .. } => AddedKind::Revived,
-        }
-    }
-
     /// Resolves prevouts against the live mempool only. Confirmed
     /// parents land with `prevout: None` and are filled by the
     /// resolver supplied to `Mempool::tick_with` in the same cycle.

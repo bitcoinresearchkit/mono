@@ -78,11 +78,11 @@ impl Client {
         }
     }
 
-    pub fn default_linux_bitcoin_path() -> PathBuf {
+    fn default_linux_bitcoin_path() -> PathBuf {
         Path::new(&env::var("HOME").unwrap()).join(".bitcoin")
     }
 
-    pub fn default_mac_bitcoin_path() -> PathBuf {
+    fn default_mac_bitcoin_path() -> PathBuf {
         Path::new(&env::var("HOME").unwrap())
             .join("Library")
             .join("Application Support")

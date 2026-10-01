@@ -588,7 +588,7 @@ impl ChunkCompressor {
   ///
   /// This can be useful when building the file as a `Vec<u8>` in memory;
   /// you can `.reserve()` ahead of time.
-  pub fn meta_size_hint(&self) -> usize {
+  pub(crate) fn meta_size_hint(&self) -> usize {
     self.meta.max_size()
   }
 
@@ -630,7 +630,7 @@ impl ChunkCompressor {
   ///
   /// This can be useful when building the file as a `Vec<u8>` in memory;
   /// you can `.reserve(chunk_compressor.size_hint())` ahead of time.
-  pub fn page_size_hint(&self, page_idx: usize) -> usize {
+  pub(crate) fn page_size_hint(&self, page_idx: usize) -> usize {
     self.page_size_hint_inner(page_idx, PAGE_SIZE_OVERESTIMATION)
   }
 

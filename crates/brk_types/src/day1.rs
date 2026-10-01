@@ -25,8 +25,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 pub struct Day1(u16);
 
 impl Day1 {
-    pub const BYTES: usize = size_of::<Self>();
-
     pub fn to_timestamp(&self) -> Timestamp {
         Timestamp::from(Date::from(*self))
     }
@@ -196,10 +194,10 @@ impl FromCoarserIndex<Year10> for Day1 {
 }
 
 impl Day1 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "day1"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["1d", "d", "day", "date", "daily", "day1", "dateindex"]
     }
 }

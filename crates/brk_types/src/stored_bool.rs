@@ -55,10 +55,10 @@ impl From<StoredBool> for usize {
 }
 
 impl StoredBool {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "bool"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["bool"]
     }
 }

@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{CohortId, CohortName};
+use super::CohortName;
 
 impl EntryPrice {
     #[inline]
@@ -43,18 +43,6 @@ define_cohort_id!(
 );
 
 impl<T> ByEntry<T> {
-    pub fn new(mut create: impl FnMut(CohortId) -> T) -> Self {
-        Self::from_fn(|entry| create(CohortId::Entry(entry)))
-    }
-
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
-        Self::try_from_fn(|entry| create(CohortId::Entry(entry)))
-    }
-
-    pub fn get(&self, entry: EntryPrice) -> &T {
-        entry.select(self)
-    }
-
     pub fn get_mut(&mut self, entry: EntryPrice) -> &mut T {
         entry.select_mut(self)
     }

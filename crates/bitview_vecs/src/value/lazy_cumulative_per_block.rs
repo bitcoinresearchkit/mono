@@ -12,7 +12,7 @@ pub type LazyCumulativeValuePerBlock = Value<
 >;
 
 impl LazyCumulativeValuePerBlock {
-    pub fn from_sources(
+    pub(crate) fn from_sources(
         name: &str,
         version: Version,
         cumulative_sats: &(impl ReadableCloneableVec<Height, Sats> + ?Sized),

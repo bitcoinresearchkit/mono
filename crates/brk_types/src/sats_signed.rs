@@ -39,7 +39,7 @@ use vecdb::{Formattable, Pco};
 pub struct SatsSigned(i64);
 
 impl SatsSigned {
-    pub const ZERO: Self = Self(0);
+    const ZERO: Self = Self(0);
 
     #[inline]
     pub const fn new(value: i64) -> Self {
@@ -49,26 +49,6 @@ impl SatsSigned {
     #[inline]
     pub const fn inner(self) -> i64 {
         self.0
-    }
-
-    #[inline]
-    pub fn is_zero(&self) -> bool {
-        self.0 == 0
-    }
-
-    #[inline]
-    pub fn is_negative(&self) -> bool {
-        self.0 < 0
-    }
-
-    #[inline]
-    pub fn is_positive(&self) -> bool {
-        self.0 > 0
-    }
-
-    #[inline]
-    pub fn abs(self) -> Self {
-        Self(self.0.abs())
     }
 }
 

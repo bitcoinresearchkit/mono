@@ -34,8 +34,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 pub struct StoredI8(i8);
 
 impl StoredI8 {
-    pub const ZERO: Self = Self(0);
-
     pub fn new(v: i8) -> Self {
         Self(v)
     }
@@ -111,10 +109,10 @@ impl From<StoredI8> for usize {
 }
 
 impl StoredI8 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "i8"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["i8"]
     }
 }

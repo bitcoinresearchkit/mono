@@ -27,30 +27,30 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub all: AggregateVecs,
     /// Short-term-holder Coinflow aggregates use UTXO age ranges younger than
     /// 150 days and weight them by estimated future spending probability.
-    pub sth: AggregateVecs,
+    sth: AggregateVecs,
     /// Long-term-holder Coinflow aggregates use UTXO age ranges at least 150
     /// days old and weight them by estimated future spending probability.
-    pub lth: AggregateVecs,
+    lth: AggregateVecs,
     /// Coinflow-weighted realized price below 4 months.
-    pub under_4m_price: LazyPriceWithRatioPerBlock,
+    under_4m_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted capitalized price below 4 months.
-    pub under_4m_capitalized_price: LazyPriceWithRatioPerBlock,
+    under_4m_capitalized_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted realized price below 6 months.
-    pub under_6m_price: LazyPriceWithRatioPerBlock,
+    under_6m_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted capitalized price below 6 months.
-    pub under_6m_capitalized_price: LazyPriceWithRatioPerBlock,
+    under_6m_capitalized_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted realized price of UTXOs at least 120 days old.
-    pub over_4m_price: LazyPriceWithRatioPerBlock,
+    over_4m_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted capitalized price of UTXOs at least 120 days old.
-    pub over_4m_capitalized_price: LazyPriceWithRatioPerBlock,
+    over_4m_capitalized_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted realized price of UTXOs at least 180 days old.
-    pub over_6m_price: LazyPriceWithRatioPerBlock,
+    over_6m_price: LazyPriceWithRatioPerBlock,
     /// Coinflow-weighted capitalized price of UTXOs at least 180 days old.
-    pub over_6m_capitalized_price: LazyPriceWithRatioPerBlock,
+    over_6m_capitalized_price: LazyPriceWithRatioPerBlock,
     /// Height-indexed source stored for all, short-term-holder, and
     /// long-term-holder Coinflow aggregates.
     #[traversable(hidden)]
-    pub aggregate_sources: AggregateSources<M>,
+    aggregate_sources: AggregateSources<M>,
 }
 
 impl<M: StorageMode> Plugin for Vecs<M>

@@ -121,7 +121,7 @@ mod tests {
     use super::is_ecdsa_signature_candidate;
 
     #[test]
-    pub fn rejects_impossible_ecdsa_signature_encodings() {
+    fn rejects_impossible_ecdsa_signature_encodings() {
         assert!(!is_ecdsa_signature_candidate(&[0x30; 8]));
         assert!(is_ecdsa_signature_candidate(&[0x30; 9]));
         assert!(is_ecdsa_signature_candidate(&[0x30; 73]));

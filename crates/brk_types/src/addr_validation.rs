@@ -9,46 +9,46 @@ use crate::{AddrBytes, OutputType};
 pub struct AddrValidation {
     /// Whether the address is valid
     #[schemars(example = true)]
-    pub isvalid: bool,
+    isvalid: bool,
 
     /// The validated address
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "address")]
-    pub addr: Option<String>,
+    addr: Option<String>,
 
     /// The scriptPubKey in hex
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "scriptPubKey")]
-    pub script_pub_key: Option<String>,
+    script_pub_key: Option<String>,
 
     /// Whether this is a script address (P2SH)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub isscript: Option<bool>,
+    isscript: Option<bool>,
 
     /// Whether this is a witness address
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub iswitness: Option<bool>,
+    iswitness: Option<bool>,
 
     /// Witness version (0 for P2WPKH/P2WSH, 1 for P2TR)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub witness_version: Option<u8>,
+    witness_version: Option<u8>,
 
     /// Witness program in hex
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub witness_program: Option<String>,
+    witness_program: Option<String>,
 
     /// Error locations (empty array for most errors)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error_locations: Option<Vec<usize>>,
+    error_locations: Option<Vec<usize>>,
 
     /// Error message for invalid addresses
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
+    error: Option<String>,
 }
 
 impl AddrValidation {
     /// Returns an invalid validation result with error detail
-    pub fn invalid(error: String) -> Self {
+    fn invalid(error: String) -> Self {
         Self {
             isvalid: false,
             addr: None,

@@ -31,10 +31,7 @@ pub struct CentsCompact(u32);
 
 impl CentsCompact {
     pub const ZERO: Self = Self(0);
-    pub const MAX_FINITE: Self = Self(u32::MAX - 1);
     pub const NAN: Self = Self(u32::MAX);
-    pub const MAX: Self = Self::NAN;
-
     #[inline]
     pub const fn new(value: u32) -> Self {
         assert!(
@@ -73,24 +70,6 @@ impl CentsCompact {
             Dollars::NAN
         } else {
             Dollars::from(self.0 as f64 / 100.0)
-        }
-    }
-
-    #[inline]
-    pub fn checked_sub(self, rhs: Self) -> Option<Self> {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Some(Self::NAN)
-        } else {
-            self.0.checked_sub(rhs.0).map(Self)
-        }
-    }
-
-    #[inline]
-    pub fn saturating_sub(self, rhs: Self) -> Self {
-        if unlikely(self.is_nan() || rhs.is_nan()) {
-            Self::NAN
-        } else {
-            Self(self.0.saturating_sub(rhs.0))
         }
     }
 
@@ -236,11 +215,6 @@ mod tests {
     fn nan_propagates_through_arithmetic() {
         let finite = CentsCompact::new(100);
         assert_eq!(CentsCompact::NAN - finite, CentsCompact::NAN);
-        assert_eq!(
-            CentsCompact::NAN.checked_sub(finite),
-            Some(CentsCompact::NAN)
-        );
-        assert_eq!(CentsCompact::NAN.saturating_sub(finite), CentsCompact::NAN);
         assert_eq!(CentsCompact::NAN.round_to_dollar(3), CentsCompact::NAN);
     }
 

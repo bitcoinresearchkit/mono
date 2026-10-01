@@ -100,7 +100,7 @@ where
     S1T: VecValue,
 {
     /// Create a lazy vec with a generic transform.
-    /// Usage: `LazyVec::transformed::<Halve>(name, v, source)`
+    /// Usage: `LazyVec::transformed::<Ident>(name, v, source)`
     pub fn transformed<F: UnaryTransform<S1T, T>>(
         name: &str,
         version: Version,

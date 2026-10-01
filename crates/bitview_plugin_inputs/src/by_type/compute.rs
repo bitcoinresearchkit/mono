@@ -10,7 +10,7 @@ use vecdb::{AnyVec, ReadableVec, VecIndex};
 use super::Vecs;
 
 impl Vecs {
-    pub fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+    pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let dep_version = indexer.vecs().inputs.output_type.version()
             + indexer.vecs().transactions.first_tx_index.version()
             + indexer.vecs().transactions.first_txin_index.version()

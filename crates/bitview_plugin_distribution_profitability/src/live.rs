@@ -7,16 +7,16 @@ use crate::bucket::Bucket;
 
 /// Writer-owned derived state, retained only after the complete update succeeds.
 pub(crate) struct LiveState {
-    pub origins: State,
-    pub index: PriceIndex<4>,
-    pub prices: Vec<CentsCompact>,
-    pub timestamps: Vec<Timestamp>,
-    pub crossings: [usize; 3],
-    pub version: (Version, Version, (u64, u64)),
+    pub(crate) origins: State,
+    pub(crate) index: PriceIndex<4>,
+    pub(crate) prices: Vec<CentsCompact>,
+    pub(crate) timestamps: Vec<Timestamp>,
+    pub(crate) crossings: [usize; 3],
+    pub(crate) version: (Version, Version, (u64, u64)),
 }
 
 impl LiveState {
-    pub fn restore(&mut self) {
+    pub(crate) fn restore(&mut self) {
         age_index::restore(
             &mut self.index,
             &self.origins,

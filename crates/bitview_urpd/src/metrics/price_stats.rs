@@ -23,7 +23,7 @@ impl Default for PriceStats {
 
 impl PriceStats {
     #[cfg(test)]
-    pub fn from_entries(entries: impl Iterator<Item = (CentsCompact, Sats)>) -> Self {
+    pub(crate) fn from_entries(entries: impl Iterator<Item = (CentsCompact, Sats)>) -> Self {
         let mut distribution = PriceDistribution::default();
         for (price, sats) in entries {
             distribution.push(price, sats);

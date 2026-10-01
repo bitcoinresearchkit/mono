@@ -48,8 +48,6 @@ where
     I: VecIndex,
     T: ZeroCopyVecValue,
 {
-    /// The size of T in bytes.
-    pub const SIZE_OF_T: usize = size_of::<T>();
 }
 
 impl_vec_wrapper!(

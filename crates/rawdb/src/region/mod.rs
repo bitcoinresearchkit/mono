@@ -18,7 +18,7 @@ use std::{
 
 use parking_lot::RwLockReadGuard;
 
-use crate::{Database, Error, PAGE_SIZE, Result, dirty_ranges::DirtyRanges};
+use crate::{Database, Error, PAGE_SIZE, Result};
 
 use self::{
     dirty_write::DirtyWrite,
@@ -435,28 +435,6 @@ impl Region {
         layout.remove_region(&self);
         regions.remove(&self);
         Ok(())
-    }
-
-    /// Flushes this region's dirty data and any pending metadata.
-    /// When metadata changed, all database data must precede its synchronization.
-    /// Returns whether data or metadata was flushed.
-    pub fn flush(&self) -> Result<bool> {
-        let db = self.db();
-        let writes = db.inner.writes.write();
-        if db.metadata_is_dirty(&writes) {
-            return db
-                .flush_inner(&writes)
-                .map(|(regions, metadata)| regions > 0 || metadata);
-        }
-        let mut ranges = DirtyRanges::default();
-        // SAFETY: the exclusive barrier stabilizes dirty ranges and their bounds.
-        if !unsafe { self.0.append_dirty_ranges(&mut ranges) } {
-            return Ok(false);
-        }
-        // SAFETY: no writer or remapper can run until the barrier is released.
-        unsafe { db.inner.data.flush(&ranges) }?;
-        unsafe { self.0.clear_dirty_ranges() };
-        Ok(true)
     }
 
     pub(crate) fn ptr_eq(&self, other: &Region) -> bool {

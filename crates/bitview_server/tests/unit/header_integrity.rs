@@ -13,7 +13,7 @@ use serde_json::{Value, from_str, to_value};
 use vecdb::ReadableVec;
 
 use super::server_routes::{exchange_bytes, exchange_with_etag};
-pub async fn check_header_integrity(
+pub(crate) async fn check_header_integrity(
     query: &AsyncQuery,
     address: SocketAddr,
     path: &Path,
@@ -145,7 +145,7 @@ pub async fn check_header_integrity(
     assert_eq!(response[headers_end..], original);
 }
 
-pub async fn check_prevouts(
+pub(crate) async fn check_prevouts(
     query: &AsyncQuery,
     address: SocketAddr,
     block: &Block,

@@ -10,7 +10,7 @@ pub struct PriceWithRatio<P> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub price: P,
+    pub(crate) price: P,
     #[traversable(flatten)]
     pub relative: LazyRatioPerBlock<PriceRatio>,
 }

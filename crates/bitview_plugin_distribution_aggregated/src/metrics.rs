@@ -17,10 +17,10 @@ use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct Metrics<M: StorageMode = Rw> {
     pub supply: Supply,
-    pub outputs: Outputs,
+    pub(crate) outputs: Outputs,
     pub activity: Activity,
     pub realized: Realized,
-    pub unrealized: Unrealized,
+    pub(crate) unrealized: Unrealized,
     pub cost_basis: CostBasis,
     pub ratios: Ratios<M>,
     pub relative: Relative<M>,

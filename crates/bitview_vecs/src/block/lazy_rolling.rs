@@ -18,9 +18,9 @@ where
 {
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
-    pub cumulative: LazyPerBlock<T, S1T>,
+    cumulative: LazyPerBlock<T, S1T>,
     #[traversable(flatten)]
-    pub rolling: LazyRollingComplete<T, S1T>,
+    rolling: LazyRollingComplete<T, S1T>,
 }
 
 impl<T, S1T> LazyPerBlockRolling<T, S1T>

@@ -10,7 +10,7 @@ pub struct XORBytes([u8; XOR_LEN]);
 impl XORBytes {
     /// All-zero mask: nodes without `xor.dat` need no decode.
     #[inline]
-    pub fn is_identity(self) -> bool {
+    pub(crate) fn is_identity(self) -> bool {
         self.0 == [0u8; XOR_LEN]
     }
 }

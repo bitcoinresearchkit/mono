@@ -46,10 +46,6 @@ impl StoredU32 {
     pub fn new(counter: u32) -> Self {
         Self(counter)
     }
-
-    pub fn is_zero(&self) -> bool {
-        self.0 == 0
-    }
 }
 
 impl From<u32> for StoredU32 {
@@ -264,10 +260,10 @@ impl From<EmptyOutputIndex> for StoredU32 {
 }
 
 impl StoredU32 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "u32"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["u32"]
     }
 }

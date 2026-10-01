@@ -17,9 +17,9 @@ use vecdb::{Bytes, Formattable};
 #[repr(C)]
 pub struct OHLCDollars {
     pub open: Open<Dollars>,
-    pub high: High<Dollars>,
-    pub low: Low<Dollars>,
-    pub close: Close<Dollars>,
+    high: High<Dollars>,
+    low: Low<Dollars>,
+    close: Close<Dollars>,
 }
 
 impl Serialize for OHLCDollars {

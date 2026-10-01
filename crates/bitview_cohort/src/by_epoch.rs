@@ -19,15 +19,15 @@ pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByEpoch<T> {
     /// Uses UTXOs created during subsidy-halving epoch 0.
-    pub _0: T,
+    _0: T,
     /// Uses UTXOs created during subsidy-halving epoch 1.
-    pub _1: T,
+    _1: T,
     /// Uses UTXOs created during subsidy-halving epoch 2.
-    pub _2: T,
+    _2: T,
     /// Uses UTXOs created during subsidy-halving epoch 3.
-    pub _3: T,
+    _3: T,
     /// Uses UTXOs created during subsidy-halving epoch 4.
-    pub _4: T,
+    _4: T,
 }
 
 define_cohort_id!(
@@ -45,7 +45,7 @@ impl<T> ByEpoch<T> {
         Self::from_fn(|id| create(id.cohort()))
     }
 
-    pub fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
+    pub(crate) fn try_new<E>(mut create: impl FnMut(CohortId) -> Result<T, E>) -> Result<Self, E> {
         Self::try_from_fn(|id| create(id.cohort()))
     }
 

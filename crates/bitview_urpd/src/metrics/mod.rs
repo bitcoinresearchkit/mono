@@ -30,7 +30,7 @@ pub struct Metrics<M: StorageMode = Rw> {
 }
 
 impl Metrics {
-    pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+    fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.cohorts
             .iter_mut()
             .flat_map(CohortMetrics::stored_vecs_mut)

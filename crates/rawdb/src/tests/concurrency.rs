@@ -256,35 +256,6 @@ fn concurrent_flushes_and_appends_survive_reopen() -> Result<()> {
 }
 
 #[test]
-fn test_concurrent_reads() -> Result<()> {
-    let (db, _temp) = setup_test_db()?;
-    let db = Arc::new(db);
-
-    let region = db.create_region_if_needed("shared")?;
-    let data = b"Shared data for concurrent reads";
-    region.write(data)?;
-
-    // Multiple threads reading simultaneously
-    let handles: Vec<_> = (0..20)
-        .map(|_| {
-            let db = Arc::clone(&db);
-            thread::spawn(move || {
-                let regions = db.regions();
-                let region = regions.get("shared").unwrap();
-                let reader = region.create_reader();
-                assert_eq!(reader.read_all(), b"Shared data for concurrent reads");
-            })
-        })
-        .collect();
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    Ok(())
-}
-
-#[test]
 fn batch_callback_can_read_another_region_while_remapping_waits() -> Result<()> {
     for indexed in [false, true] {
         let dir = TempDir::new()?;

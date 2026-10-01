@@ -12,10 +12,6 @@ use crate::StoreValue;
 pub struct AddrIndexTxIndex(u64);
 
 impl AddrIndexTxIndex {
-    pub fn addr_index(&self) -> u32 {
-        (self.0 >> 32) as u32
-    }
-
     pub fn tx_index(&self) -> TxIndex {
         TxIndex::from(self.0 as u32)
     }

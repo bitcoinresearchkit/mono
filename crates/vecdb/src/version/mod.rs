@@ -30,7 +30,7 @@ impl Version {
     }
 
     /// Combines ordered version components without component cancellation from addition.
-    pub const fn combine(self, other: Self) -> Self {
+    pub(crate) const fn combine(self, other: Self) -> Self {
         Self(
             self.0
                 ^ other

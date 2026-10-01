@@ -13,8 +13,8 @@ pub struct LazyFiatPerBlockCumulativeRolling<C: FiatType> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: LazyFiatPerBlockCumulativeWithSums<C>,
-    pub average: Windows<LazyRollingAvgFiatFromHeight<C>>,
+    inner: LazyFiatPerBlockCumulativeWithSums<C>,
+    average: Windows<LazyRollingAvgFiatFromHeight<C>>,
 }
 
 impl<C: FiatType> LazyFiatPerBlockCumulativeRolling<C> {

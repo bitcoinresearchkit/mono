@@ -21,23 +21,23 @@ impl MinimalRealizedState {
     }
 
     #[inline]
-    pub fn increment_cap(&mut self, cap: CentsSats) {
+    pub(crate) fn increment_cap(&mut self, cap: CentsSats) {
         self.cap_raw += cap.as_u128();
     }
 
     #[inline]
-    pub fn decrement_cap(&mut self, cap: CentsSats) {
+    pub(crate) fn decrement_cap(&mut self, cap: CentsSats) {
         self.cap_raw -= cap.as_u128();
     }
 
-    pub fn apply_spends(&mut self, previous: CentsSats, profit: CentsSats, loss: CentsSats) {
+    pub(crate) fn apply_spends(&mut self, previous: CentsSats, profit: CentsSats, loss: CentsSats) {
         self.decrement_cap(previous);
         self.profit_raw += profit.as_u128();
         self.loss_raw += loss.as_u128();
     }
 
     #[inline]
-    pub fn realize_spend(&mut self, current: CentsSats, previous: CentsSats) {
+    pub(crate) fn realize_spend(&mut self, current: CentsSats, previous: CentsSats) {
         match current.cmp(&previous) {
             Ordering::Greater => self.profit_raw += (current - previous).as_u128(),
             Ordering::Less => self.loss_raw += (previous - current).as_u128(),

@@ -20,7 +20,7 @@ pub enum CohortId {
 }
 
 impl CohortId {
-    pub fn is_all(self) -> bool {
+    pub(crate) fn is_all(self) -> bool {
         matches!(self, Self::All)
     }
 

@@ -27,7 +27,7 @@ pub fn to_snake_case(s: &str) -> String {
 }
 
 /// Escape Rust reserved keywords with `_` suffix (consistent with Python).
-pub fn escape_rust_keyword(name: &str) -> String {
+pub(crate) fn escape_rust_keyword(name: &str) -> String {
     match name {
         "type" | "const" | "static" | "match" | "if" | "else" | "loop" | "while" | "for"
         | "break" | "continue" | "return" | "fn" | "let" | "mut" | "ref" | "self" | "super"
@@ -59,12 +59,12 @@ pub fn to_camel_case(s: &str) -> String {
 }
 
 /// Convert an Index to a snake_case field name (e.g., Day1 -> day1).
-pub fn index_to_field_name(index: &Index) -> String {
+pub(crate) fn index_to_field_name(index: &Index) -> String {
     to_snake_case(index.name())
 }
 
 /// Generate a child type/struct/class name (e.g., ParentName + child_name -> ParentName_ChildName).
-pub fn child_type_name(parent: &str, child: &str) -> String {
+pub(crate) fn child_type_name(parent: &str, child: &str) -> String {
     format!("{}_{}", parent, to_pascal_case(child))
 }
 

@@ -30,7 +30,7 @@ pub type ValuePerBlock<M = Rw> = Value<
 >;
 
 impl ValuePerBlock {
-    pub fn forced_import(
+    pub(crate) fn forced_import(
         db: &Database,
         name: &str,
         version: Version,
@@ -59,7 +59,7 @@ impl ValuePerBlock {
 
 impl ValuePerBlock {
     #[allow(clippy::too_many_arguments)]
-    pub fn compute_sats_from_indexes<A, B>(
+    pub(crate) fn compute_sats_from_indexes<A, B>(
         &mut self,
         max_from: Height,
         first_indexes: &impl ReadableVec<Height, A>,

@@ -10,7 +10,7 @@ pub enum CohortContext {
 }
 
 impl CohortContext {
-    pub fn prefix(&self) -> &'static str {
+    pub(crate) fn prefix(&self) -> &'static str {
         match self {
             CohortContext::Utxo => "utxos",
             CohortContext::Addr => "addrs",

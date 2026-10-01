@@ -12,7 +12,7 @@ pub struct Builder {
 impl Builder {
     /// Creates a builder rooted at `path`.
     #[must_use]
-    pub fn new(path: &Path) -> Self {
+    pub(crate) fn new(path: &Path) -> Self {
         Self {
             inner: Config::new(path),
         }

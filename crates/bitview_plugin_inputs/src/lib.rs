@@ -41,7 +41,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub value: M::Stored<PcoVec<TxInIndex, Sats>>,
     pub count: CountVecs<M>,
     /// Transaction-input rate, including one coinbase input per block.
-    pub per_sec: LazyPerSecondWindows,
+    per_sec: LazyPerSecondWindows,
     pub by_type: ByTypeVecs<M>,
 }
 

@@ -17,11 +17,17 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::Halve;
+    struct AddOne;
+
+    impl UnaryTransform<usize> for AddOne {
+        fn apply(value: usize) -> usize {
+            value + 1
+        }
+    }
 
     #[test]
     fn maps_present_values_and_preserves_absence() {
-        assert_eq!(MapOption::<Halve>::apply(Some(5usize)), Some(2));
-        assert_eq!(MapOption::<Halve>::apply(None::<usize>), None);
+        assert_eq!(MapOption::<AddOne>::apply(Some(5usize)), Some(6));
+        assert_eq!(MapOption::<AddOne>::apply(None::<usize>), None);
     }
 }

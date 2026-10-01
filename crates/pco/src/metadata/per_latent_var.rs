@@ -22,9 +22,9 @@ pub enum LatentVarKey {
 /// A generic container holding a value for each applicable latent variable.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct PerLatentVar<T> {
-  pub delta: Option<T>,
-  pub primary: T,
-  pub secondary: Option<T>,
+  pub(crate) delta: Option<T>,
+  pub(crate) primary: T,
+  pub(crate) secondary: Option<T>,
 }
 
 #[derive(Clone, Debug)]
@@ -94,7 +94,7 @@ impl<T> PerLatentVar<T> {
 
   /// Returns a new `PerLatentVar` where each entry has been wrapped in a
   /// reference.
-  pub fn as_ref(&self) -> PerLatentVar<&T> {
+  pub(crate) fn as_ref(&self) -> PerLatentVar<&T> {
     PerLatentVar {
       delta: self.delta.as_ref(),
       primary: &self.primary,
@@ -121,7 +121,7 @@ impl<T> PerLatentVar<T> {
   /// Zips each element of this `PerLatentVar` with each element of the other.
   ///
   /// Will panic if either one has a latent variable that the other does not.
-  pub fn zip_exact<S>(self, other: PerLatentVar<S>) -> PerLatentVar<(T, S)> {
+  pub(crate) fn zip_exact<S>(self, other: PerLatentVar<S>) -> PerLatentVar<(T, S)> {
     let zip_option = |a: Option<T>, b: Option<S>| match (a, b) {
       (Some(a), Some(b)) => Some((a, b)),
       (None, None) => None,
@@ -137,7 +137,7 @@ impl<T> PerLatentVar<T> {
 
   /// Returns a vector of the defined `LatentVarKey`s and values, in order
   /// of appearance in the file.
-  pub fn enumerated(self) -> Vec<(LatentVarKey, T)> {
+  pub(crate) fn enumerated(self) -> Vec<(LatentVarKey, T)> {
     let mut res = Vec::with_capacity(3);
     if let Some(value) = self.delta {
       res.push((LatentVarKey::Delta, value));

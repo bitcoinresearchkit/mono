@@ -15,14 +15,14 @@ pub struct Vecs {
     /// represented-block difficulty divided by lookback difficulty, minus one.
     /// Positive values mean difficulty increased and negative values mean it
     /// decreased. Unavailable for the first 2,016 blocks.
-    pub adjustment: LazyPercentPerBlock<PartsPerMillionSigned32>,
+    pub(crate) adjustment: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Zero-based difficulty epoch number, equal to block height divided by
     /// 2,016 and rounded down.
-    pub epoch: LazyPerBlock<Epoch>,
+    pub(crate) epoch: LazyPerBlock<Epoch>,
     /// Number of blocks from the represented height to the first block of the
     /// next difficulty epoch: 2,016 minus height modulo 2,016.
-    pub blocks_to_retarget: LazyPerBlock<StoredU32>,
+    pub(crate) blocks_to_retarget: LazyPerBlock<StoredU32>,
     /// Nominal days to the next difficulty epoch, calculated as
     /// `blocks_to_retarget / 144`; this does not use observed mining pace.
-    pub days_to_retarget: LazyPerBlock<StoredF32, StoredU32>,
+    pub(crate) days_to_retarget: LazyPerBlock<StoredF32, StoredU32>,
 }

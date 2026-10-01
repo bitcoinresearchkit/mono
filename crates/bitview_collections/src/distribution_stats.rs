@@ -24,7 +24,7 @@ pub struct DistributionStats<A> {
 }
 
 impl<A> DistributionStats<A> {
-    pub const SUFFIXES: [&'static str; 7] =
+    const SUFFIXES: [&'static str; 7] =
         ["min", "max", "pct10", "pct25", "median", "pct75", "pct90"];
 
     /// Project each statistic using its canonical catalog suffix.

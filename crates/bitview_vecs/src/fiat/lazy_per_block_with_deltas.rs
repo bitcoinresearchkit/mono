@@ -20,8 +20,8 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: LazyFiatPerBlock<C>,
-    pub delta: LazyRollingDeltasFiatFromHeight<C, CS, B>,
+    inner: LazyFiatPerBlock<C>,
+    delta: LazyRollingDeltasFiatFromHeight<C, CS, B>,
 }
 
 impl<C, CS, B> LazyFiatPerBlockWithDeltas<C, CS, B>

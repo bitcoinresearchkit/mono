@@ -41,19 +41,19 @@ fn owned_and_borrowed_matchers_are_equivalent() {
         "missing",
     ] {
         assert_eq!(
-            borrowed.matches_with_matched_words(query, &config),
-            owned.matches_with_matched_words(query, &config),
+            borrowed.matches_with_ids_and_matched_words(query, &config),
+            owned.matches_with_ids_and_matched_words(query, &config),
             "owned matcher changed results for {query}"
         );
 
         let indexed = borrowed.matches_with_ids_and_matched_words(query, &config);
         let resolved = indexed
             .iter()
-            .map(|&(id, matched)| (ITEMS[id as usize], matched as usize))
+            .map(|&(id, _)| ITEMS[id as usize])
             .collect::<Vec<_>>();
         assert_eq!(
             resolved,
-            borrowed.matches_with_matched_words(query, &config),
+            borrowed.matches(query),
             "indexed API changed results for {query}"
         );
     }
@@ -73,10 +73,15 @@ fn union_fallback_remains_configurable() {
         .with_limit(2)
         .with_union_fallback(false);
 
-    assert_eq!(matcher.matches_with("alpha beta", &union).len(), 2);
+    assert_eq!(
+        matcher
+            .matches_with_ids_and_matched_words("alpha beta", &union)
+            .len(),
+        2
+    );
     assert!(
         matcher
-            .matches_with("alpha beta", &intersection_only)
+            .matches_with_ids_and_matched_words("alpha beta", &intersection_only)
             .is_empty()
     );
 }
@@ -207,11 +212,9 @@ fn unordered_terms_joined_words_and_swapped_letters_rank_the_base_metric_first()
     ] {
         assert_eq!(matcher.matches(query)[0], expected, "{query}");
     }
-    assert_eq!(
-        matcher.matches_with(
-            "realized prcie sth",
-            &QuickMatchConfig::new().with_trigram_budget(0)
-        )[0],
-        "sth_realized_cap"
+    let results = matcher.matches_with_ids_and_matched_words(
+        "realized prcie sth",
+        &QuickMatchConfig::new().with_trigram_budget(0),
     );
+    assert_eq!(items[results[0].0 as usize], "sth_realized_cap");
 }

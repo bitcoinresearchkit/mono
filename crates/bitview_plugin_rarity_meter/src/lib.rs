@@ -51,37 +51,35 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Model-specific realized and capitalized prices reconstructed from the
-    /// distribution_aggregated's disjoint raw capitalization and supply histories.
-
+    /// Completed reference prices are supplied by Aggregated, Cointime and Coinflow.
     /// Reference-price components used by the Rarity Meter. A UTXO's creation
     /// price is Bitcoin's spot price when that output was created. Realized
     /// price is `sum(creation price x unspent sats) / sum(unspent sats)`;
     /// capitalized price instead weights by creation-date value and is
     /// `sum(creation price squared x unspent sats) / sum(creation price x
     /// unspent sats)`.
-    pub components: Components<M>,
-    pub extremes: Extremes<M>,
+    components: Components<M>,
+    extremes: Extremes<M>,
     /// Full Rarity Meter combining local and cycle views to show how unusual
     /// spot price is across both young-coin and long-cycle reference models.
-    pub full: RarityMeterInner<M>,
+    full: RarityMeterInner<M>,
     /// Full V2 combines 24 reference-price components, excluding LTH realized,
     /// capitalized, and median prices, with the three lower-only Bedrock models.
-    pub full_v2: RarityMeterInner<M>,
+    full_v2: RarityMeterInner<M>,
     /// Local Rarity Meter focused on young-coin positioning. It combines
     /// under-four-month and under-six-month realized price with short-term-holder
     /// realized and capitalized price.
-    pub local: RarityMeterInner<M>,
+    local: RarityMeterInner<M>,
     /// Local V2 adds under-four-month and under-six-month capitalized prices
     /// and BTC- and USD-weighted STH median prices to Local's four reference models.
-    pub local_v2: RarityMeterInner<M>,
+    local_v2: RarityMeterInner<M>,
     /// Cycle Rarity Meter focused on long-cycle valuation. It combines six
     /// old-coin and all-chain reference-price models with rare lower-price
     /// boundaries from the raw, cointime, and coinflow Bedrock models.
-    pub cycle: RarityMeterInner<M>,
+    cycle: RarityMeterInner<M>,
     /// Cycle V2 combines 16 all-chain, older-coin, cointime, and coinflow
     /// reference prices with three Bedrock floors, excluding LTH-specific prices.
-    pub cycle_v2: RarityMeterInner<M>,
+    cycle_v2: RarityMeterInner<M>,
 }
 
 const COMPUTE_BATCH_SIZE: usize = 100_000;

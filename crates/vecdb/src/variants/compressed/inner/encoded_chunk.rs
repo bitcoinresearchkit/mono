@@ -9,7 +9,7 @@ pub struct EncodedChunk {
 }
 
 impl EncodedChunk {
-    pub fn new(bytes: Vec<u8>, header_len: usize, page_ends: Vec<u32>) -> Result<Self> {
+    pub(crate) fn new(bytes: Vec<u8>, header_len: usize, page_ends: Vec<u32>) -> Result<Self> {
         let header_len = u32::try_from(header_len).map_err(|_| Error::Overflow)?;
         let bytes_len = u32::try_from(bytes.len()).map_err(|_| Error::Overflow)?;
         if page_ends.is_empty()
@@ -28,19 +28,20 @@ impl EncodedChunk {
         })
     }
 
+    #[cfg(any(feature = "lz4", feature = "zstd"))]
     #[inline]
-    pub fn single_page(bytes: Vec<u8>) -> Result<Self> {
+    pub(crate) fn single_page(bytes: Vec<u8>) -> Result<Self> {
         let end = u32::try_from(bytes.len()).map_err(|_| Error::Overflow)?;
         Self::new(bytes, 0, vec![end])
     }
 
     #[inline]
-    pub fn page_count(&self) -> usize {
+    pub(crate) fn page_count(&self) -> usize {
         self.page_ends.len()
     }
 
     #[inline]
-    pub fn into_parts(self) -> (Vec<u8>, u32, Vec<u32>) {
+    pub(crate) fn into_parts(self) -> (Vec<u8>, u32, Vec<u32>) {
         (self.bytes, self.header_len, self.page_ends)
     }
 }

@@ -43,22 +43,6 @@ impl Dollars {
     pub const ZERO: Self = Self(0.0);
     pub const NAN: Self = Self(f64::NAN);
 
-    pub const fn mint(dollars: f64) -> Self {
-        Self(dollars)
-    }
-
-    pub fn is_negative(&self) -> bool {
-        self.0 < 0.0
-    }
-
-    pub fn is_zero(&self) -> bool {
-        self.0 == 0.0
-    }
-
-    pub fn halved(self) -> Self {
-        Self(self.0 / 2.0)
-    }
-
     pub fn to_cents(self) -> Cents {
         Cents::from(self)
     }

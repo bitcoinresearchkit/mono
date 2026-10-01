@@ -17,8 +17,8 @@ where
 {
     #[deref]
     #[deref_mut]
-    pub base: LazyPerBlock<S>,
-    pub delta: LazyRollingDeltasFromHeight<S, C, B>,
+    base: LazyPerBlock<S>,
+    delta: LazyRollingDeltasFromHeight<S, C, B>,
 }
 
 impl<S, C, B> LazyPerBlockWithDeltas<S, C, B>

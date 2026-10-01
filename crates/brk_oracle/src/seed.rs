@@ -7,7 +7,7 @@ const PRICES: &str = include_str!("prices.txt");
 
 /// Baked pre-oracle price at `height`, or `None` once on-chain oracle prices
 /// start.
-pub fn pre_oracle_price_cents(height: usize) -> Option<Cents> {
+fn pre_oracle_price_cents(height: usize) -> Option<Cents> {
     if height >= START_HEIGHT_SLOW {
         return None;
     }
@@ -25,13 +25,13 @@ pub fn pre_oracle_prices_from(start_height: usize) -> impl Iterator<Item = Cents
 
 /// Baked exchange price for the block immediately before on-chain oracle prices
 /// start.
-pub fn seed_price_cents() -> Cents {
+fn seed_price_cents() -> Cents {
     pre_oracle_price_cents(START_HEIGHT_SLOW - 1)
         .expect("prices.txt must cover height START_HEIGHT_SLOW - 1")
 }
 
 /// Initial reference bin for processing height START_HEIGHT_SLOW.
-pub fn seed_bin() -> f64 {
+pub(super) fn seed_bin() -> f64 {
     cents_to_bin(seed_price_cents().inner() as f64)
 }
 

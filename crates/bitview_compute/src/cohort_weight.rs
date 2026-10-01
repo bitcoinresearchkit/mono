@@ -3,7 +3,7 @@ use brk_types::{Height, Sats, StoredF64};
 use vecdb::ReadableVec;
 
 /// Empty cohorts may have no observation; populated cohorts require a finite one.
-pub fn resolve_cohort_value<T>(value: Option<T>, supply: Sats) -> Option<f64>
+fn resolve_cohort_value<T>(value: Option<T>, supply: Sats) -> Option<f64>
 where
     f64: From<T>,
 {

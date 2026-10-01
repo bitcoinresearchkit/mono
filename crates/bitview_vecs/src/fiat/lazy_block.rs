@@ -8,7 +8,7 @@ pub type LazyFiatBlock<C> =
     Fiat<LazyPreviousDeltaVec<Height, C>, LazyVec<Height, Dollars, Height, C>>;
 
 impl<C: FiatType> LazyFiatBlock<C> {
-    pub fn from_cumulative_source(
+    pub(crate) fn from_cumulative_source(
         name: &str,
         version: Version,
         cumulative: &LazyPerBlock<C>,

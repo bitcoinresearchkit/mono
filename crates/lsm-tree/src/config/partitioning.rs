@@ -5,7 +5,7 @@ pub struct PartitioningPolicy(Vec<bool>);
 impl PartitioningPolicy {
     /// Returns whether the selected level should be partitioned.
     #[must_use]
-    pub fn get(&self, level: usize) -> bool {
+    pub(crate) fn get(&self, level: usize) -> bool {
         self.0
             .get(level)
             .copied()
@@ -16,12 +16,6 @@ impl PartitioningPolicy {
     #[must_use]
     pub fn all(partition: bool) -> Self {
         Self(vec![partition])
-    }
-
-    /// Fully disables partitioning.
-    #[must_use]
-    pub fn disabled() -> Self {
-        Self::all(false)
     }
 
     /// Constructs a custom policy.

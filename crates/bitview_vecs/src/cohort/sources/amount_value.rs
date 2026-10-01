@@ -14,9 +14,9 @@ pub struct AmountValueSources<S: Clone, M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub series: AmountRange<S>,
+    series: AmountRange<S>,
     #[traversable(hidden)]
-    pub stored: SatsCents<AmountSources<StoredU64, (), M>>,
+    stored: SatsCents<AmountSources<StoredU64, (), M>>,
 }
 
 impl<S: Clone> AmountValueSources<S> {
@@ -85,10 +85,6 @@ impl<S: Clone> AmountValueSources<S> {
     pub fn len(&self) -> usize {
         self.stored.sats.len().min(self.stored.cents.len())
     }
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
     pub fn stored_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.stored
             .sats

@@ -19,10 +19,7 @@ impl Creations {
     pub fn len(&self) -> usize {
         self.journal.len()
     }
-    pub fn is_empty(&self) -> bool {
-        self.len() == self.start()
-    }
-    pub fn start(&self) -> usize {
+    pub(crate) fn start(&self) -> usize {
         self.journal.base
     }
     pub fn version(&self) -> u64 {

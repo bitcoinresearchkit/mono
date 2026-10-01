@@ -40,8 +40,7 @@ use vecdb::{Formattable, Pco};
 pub struct PartsPerMillion64(u64);
 
 impl PartsPerMillion64 {
-    pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(1_000_000);
+    const ZERO: Self = Self(0);
     pub const NAN: Self = Self(u64::MAX);
 
     #[inline]
@@ -51,12 +50,12 @@ impl PartsPerMillion64 {
     }
 
     #[inline(always)]
-    pub const fn inner(self) -> u64 {
+    pub(crate) const fn inner(self) -> u64 {
         self.0
     }
 
     #[inline]
-    pub fn is_nan(self) -> bool {
+    pub(crate) fn is_nan(self) -> bool {
         self.0 == u64::MAX
     }
 
@@ -249,7 +248,7 @@ mod tests {
     #[test]
     fn conversions_and_sentinels() {
         assert_eq!(PartsPerMillion64::from(0.123_456_6).inner(), 123_457);
-        assert_eq!(f64::from(PartsPerMillion64::ONE), 1.0);
+        assert_eq!(f64::from(PartsPerMillion64::from(1.0)), 1.0);
         assert_eq!(PartsPerMillion64::from(-1.0), PartsPerMillion64::ZERO);
         assert_eq!(PartsPerMillion64::from(f64::MAX).inner(), u64::MAX - 1);
         assert!(PartsPerMillion64::from(f64::INFINITY).is_nan());

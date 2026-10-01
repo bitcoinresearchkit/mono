@@ -2,9 +2,9 @@
 //!
 //! This module generates a Rust client with full type safety for the Bitview API.
 
-pub mod api;
-pub mod client;
-pub mod tree;
+pub(crate) mod api;
+mod client;
+mod tree;
 mod types;
 
 use std::{

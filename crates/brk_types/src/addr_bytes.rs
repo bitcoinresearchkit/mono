@@ -45,7 +45,7 @@ impl AddrBytes {
         }
     }
 
-    pub fn hash(&self) -> u64 {
+    pub(crate) fn hash(&self) -> u64 {
         v3::rapidhash_v3(self.as_slice())
     }
 
@@ -195,7 +195,7 @@ impl From<P2ABytes> for AddrBytes {
 
 impl AddrBytes {
     /// Parse an address string to a ScriptBuf
-    pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
+    pub(crate) fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
         if let Ok(addr) = Address::from_str(addr) {
             if !addr.is_valid_for_network(Network::Bitcoin) {
                 return Err(Error::InvalidNetwork);

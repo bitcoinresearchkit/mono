@@ -3,7 +3,7 @@ use std::{thread::sleep, time::Duration};
 use brk_error::Result;
 use tracing::warn;
 
-pub fn default_retry<T>(function: impl Fn(usize) -> Result<T>) -> Result<T> {
+pub(crate) fn default_retry<T>(function: impl Fn(usize) -> Result<T>) -> Result<T> {
     retry(function, 5, 6)
 }
 

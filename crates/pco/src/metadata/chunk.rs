@@ -19,18 +19,18 @@ use crate::metadata::{DynBins, Mode};
 #[derive(Clone, Debug)]
 pub struct ChunkMeta {
   /// The formula `pco` used to compress each number at a low level.
-  pub mode: Mode,
+  pub(crate) mode: Mode,
   /// How delta encoding was applied.
-  pub delta_encoding: DeltaEncoding,
+  pub(crate) delta_encoding: DeltaEncoding,
   /// Metadata about the interleaved streams needed by `pco` to
   /// compress/decompress the inputs
   /// according to the formula used by `mode`.
-  pub per_latent_var: PerLatentVar<ChunkLatentVarMeta>,
+  pub(crate) per_latent_var: PerLatentVar<ChunkLatentVarMeta>,
   _private: (),
 }
 
 impl ChunkMeta {
-  pub fn new(
+  pub(crate) fn new(
     mode: Mode,
     delta_encoding: DeltaEncoding,
     per_latent_var: PerLatentVar<ChunkLatentVarMeta>,

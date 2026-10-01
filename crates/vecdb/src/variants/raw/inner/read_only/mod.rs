@@ -4,8 +4,7 @@ use rawdb::Region;
 
 use super::{RawStrategy, ReadOnlyRawVec};
 use crate::{
-    HEADER_OFFSET, RawIoSource, RawMmapSource, RawRangeCursor, VecIndex, VecReader, VecValue,
-    cache::CachePolicy,
+    HEADER_OFFSET, RawIoSource, RawMmapSource, VecIndex, VecReader, VecValue, cache::CachePolicy,
 };
 
 pub mod any_vec;
@@ -22,16 +21,10 @@ where
         VecReader::from_read_only(self)
     }
 
-    /// Creates a forward cursor over a bounded persisted range.
-    #[inline]
-    pub fn range_cursor_at(&self, from: usize, to: usize) -> RawRangeCursor<'_, I, T, S> {
-        RawRangeCursor::new(self.region(), self.stored_len(), from, to)
-    }
-
-    pub fn region(&self) -> &Region {
+    pub(crate) fn region(&self) -> &Region {
         self.base.region()
     }
-    pub fn stored_len(&self) -> usize {
+    pub(crate) fn stored_len(&self) -> usize {
         self.base.stored_len()
     }
     #[inline(always)]

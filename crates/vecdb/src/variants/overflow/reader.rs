@@ -21,7 +21,7 @@ where
     T: OverflowVecValue,
 {
     #[doc(hidden)]
-    pub fn new(
+    pub(crate) fn new(
         compact: &MutableVec<BytesVec<I, T::Compact>>,
         overflow: &MutableVec<BytesVec<usize, T>>,
     ) -> Self {
@@ -32,7 +32,7 @@ where
     }
 
     #[doc(hidden)]
-    pub fn from_read_only(
+    pub(crate) fn from_read_only(
         compact: &ReadOnlyMutableVec<ReadOnlyRawVec<I, T::Compact, BytesStrategy<T::Compact>>>,
         overflow: &ReadOnlyMutableVec<ReadOnlyRawVec<usize, T, BytesStrategy<T>>>,
     ) -> Self {
@@ -73,7 +73,7 @@ where
 
     /// Returns the persisted value at raw `index`, or `None` if out of bounds.
     #[inline(always)]
-    pub fn try_get_at(&self, index: usize) -> Option<T> {
+    pub(crate) fn try_get_at(&self, index: usize) -> Option<T> {
         self.compact
             .try_get_at(index)
             .map(|compact| self.decode(compact))
@@ -85,15 +85,9 @@ where
         self.compact.len()
     }
 
-    /// Returns whether there are no persisted values.
-    #[inline(always)]
-    pub fn is_empty(&self) -> bool {
-        self.compact.is_empty()
-    }
-
     #[inline(always)]
     #[doc(hidden)]
-    pub fn compact(
+    pub(crate) fn compact(
         &self,
         vec: &MutableVec<BytesVec<I, T::Compact>>,
         index: I,
@@ -103,7 +97,7 @@ where
 
     #[inline(always)]
     #[doc(hidden)]
-    pub fn overflow(&self, vec: &MutableVec<BytesVec<usize, T>>, index: usize) -> Option<T> {
+    pub(crate) fn overflow(&self, vec: &MutableVec<BytesVec<usize, T>>, index: usize) -> Option<T> {
         vec.get_with_reader_at(index, &self.overflow)
     }
 }

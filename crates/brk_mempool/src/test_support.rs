@@ -15,7 +15,7 @@ use brk_types::{
 /// Deterministic `Txid` from a single seed byte. The first byte of the
 /// hash is `seed`, the rest is zero, so tests can identify txs by eye
 /// in debug output.
-pub fn fake_txid(seed: u8) -> Txid {
+pub(crate) fn fake_txid(seed: u8) -> Txid {
     let mut bytes = [0u8; 32];
     bytes[0] = seed;
     Txid::from(BitcoinTxid::from_byte_array(bytes))
@@ -23,7 +23,7 @@ pub fn fake_txid(seed: u8) -> Txid {
 
 /// Minimal P2WPKH `script_pubkey` keyed off `seed` so distinct inputs
 /// or outputs in the same test don't collide on `addr_bytes()`.
-pub fn p2wpkh_script(seed: u8) -> ScriptBuf {
+pub(crate) fn p2wpkh_script(seed: u8) -> ScriptBuf {
     let mut bytes = [0u8; 20];
     bytes[0] = seed;
     ScriptBuf::new_p2wpkh(&WPubkeyHash::from_byte_array(bytes))
@@ -33,7 +33,11 @@ pub fn p2wpkh_script(seed: u8) -> ScriptBuf {
 /// either resolved or `None`) and one output per `(script, value)`
 /// pair. Counterparty txids on the inputs are derived from the seed so
 /// `addr_bytes` extraction sees distinct prev txids per input.
-pub fn fake_tx(seed: u8, prevouts: &[Option<TxOut>], outputs: &[(ScriptBuf, u64)]) -> Transaction {
+pub(crate) fn fake_tx(
+    seed: u8,
+    prevouts: &[Option<TxOut>],
+    outputs: &[(ScriptBuf, u64)],
+) -> Transaction {
     let input = prevouts
         .iter()
         .enumerate()
@@ -76,7 +80,7 @@ pub fn fake_tx(seed: u8, prevouts: &[Option<TxOut>], outputs: &[(ScriptBuf, u64)
 /// Plain `MempoolEntryInfo` keyed off `txid`. Test bodies usually
 /// already have the txid from `fake_tx`, so this just fills in the
 /// non-essential fields with deterministic placeholders.
-pub fn fake_entry_info(txid: Txid, fee: u64, vsize: u64) -> MempoolEntryInfo {
+pub(crate) fn fake_entry_info(txid: Txid, fee: u64, vsize: u64) -> MempoolEntryInfo {
     MempoolEntryInfo {
         txid,
         vsize: VSize::from(vsize),
@@ -90,7 +94,10 @@ pub fn fake_entry_info(txid: Txid, fee: u64, vsize: u64) -> MempoolEntryInfo {
 /// Bitcoin-protocol `Transaction` matching `fake_tx`. Round-trippable
 /// against a brk `Transaction`, lets the Preparer's `Fresh` path decode
 /// it without a real RPC payload.
-pub fn fake_bitcoin_tx(prev_txid_seed: u8, outputs: &[(ScriptBuf, u64)]) -> BitcoinTransaction {
+pub(crate) fn fake_bitcoin_tx(
+    prev_txid_seed: u8,
+    outputs: &[(ScriptBuf, u64)],
+) -> BitcoinTransaction {
     let input = vec![BitcoinTxIn {
         previous_output: BitcoinOutPoint {
             txid: BitcoinTxid::from_byte_array({

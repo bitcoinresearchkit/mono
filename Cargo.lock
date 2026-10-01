@@ -396,6 +396,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitview-custom-plugin-example"
+version = "0.12.2"
+dependencies = [
+ "bitview",
+ "bitview_default",
+ "bitview_plugin",
+ "bitview_plugin_indexer",
+ "bitview_query",
+ "bitview_runtime",
+ "bitview_traversable",
+ "bitviewd",
+ "brk_error",
+ "brk_exit",
+ "brk_reader",
+ "brk_types",
+ "tempfile",
+ "vecdb",
+]
+
+[[package]]
 name = "bitview_bindgen"
 version = "0.12.2"
 dependencies = [

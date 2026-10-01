@@ -35,15 +35,6 @@ use vecdb::{Formattable, Pco};
 #[cfg_attr(feature = "storage", derive(Pco))]
 pub struct Weight64(u64);
 
-impl Weight64 {
-    pub const ZERO: Self = Self(0);
-
-    #[inline]
-    pub const fn new(value: u64) -> Self {
-        Self(value)
-    }
-}
-
 impl From<Weight> for Weight64 {
     #[inline]
     fn from(value: Weight) -> Self {
@@ -180,7 +171,7 @@ mod tests {
 
     #[test]
     fn holds_weight_totals_above_u32() {
-        let total = Weight64::new(u64::from(u32::MAX) + 1);
+        let total = Weight64::from(u64::from(u32::MAX) + 1);
         assert_eq!(u64::from(total), u64::from(u32::MAX) + 1);
     }
 }

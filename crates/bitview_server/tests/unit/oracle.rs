@@ -9,7 +9,7 @@ use tokio::{spawn, time::timeout};
 use super::server_routes::exchange_with_etag;
 use crate::AppState;
 
-pub async fn check(state: &AppState, address: SocketAddr) {
+pub(crate) async fn check(state: &AppState, address: SocketAddr) {
     state.sync(|q| {
         let safe = q.indexer().safe_lengths();
         let run = |range, cap| {

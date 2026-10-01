@@ -9,8 +9,8 @@ Iterate over Bitcoin blocks with a simple API that automatically chooses between
 ## Key Features
 
 - **Smart source selection**: RPC for ≤10 blocks, Reader for larger ranges
-- **Flexible ranges**: By height span, from start, to end, last N blocks, or after hash
-- **Reorg-safe**: Iteration may end early if chain reorganizes
+- **Inclusive height ranges**: Empty reversed ranges require no source access
+- **Continuity checks**: Iteration returns an error if a reorg breaks the chain
 - **Thread-safe**: Clone and share freely
 
 ## Core API
@@ -18,40 +18,12 @@ Iterate over Bitcoin blocks with a simple API that automatically chooses between
 ```rust,ignore
 let blocks = Blocks::new(&rpc_client, &reader);
 
-// Various range specifications
 for block in blocks.range(Height::new(800_000), Height::new(800_100))? { ... }
-for block in blocks.start(Height::new(840_000))? { ... }
-for block in blocks.last(10)? { ... }
-for block in blocks.after(Some(last_known_hash))? { ... }
 ```
 
-## Source Modes
-
-```rust,ignore
-// Auto-select (default)
-let blocks = Blocks::new(&client, &reader);
-
-// Force RPC only
-let blocks = Blocks::new_rpc(&client);
-
-// Force Reader only
-let blocks = Blocks::new_reader(&reader);
-```
-
-## Range Types
-
-| Method | Description |
-|--------|-------------|
-| `range(start, end)` | Inclusive height range |
-| `start(height)` | From height to chain tip |
-| `end(height)` | From genesis to height |
-| `last(n)` | Last n blocks from tip |
-| `after(hash)` | All blocks after given hash |
-
-Ranges are inclusive. Reversed ranges and `last(0)` return an empty iterator
-without contacting either source. A start above the current tip also produces
-an empty iterator after resolving the tip. Counts support the full `u32` height
-domain without overflow.
+Ranges are inclusive. Up to ten blocks use RPC; larger ranges use the block
+reader. Reversed ranges return an empty iterator without contacting either
+source. Counts support the full `u32` height domain without overflow.
 
 ## Built On
 

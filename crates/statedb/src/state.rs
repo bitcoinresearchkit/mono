@@ -3,9 +3,9 @@ use std::io::Result;
 
 #[derive(Clone, Debug, Default)]
 pub struct State {
-    pub(crate) amounts: Vec<Amount>,
-    pub(crate) hash: [u8; 32],
-    pub(crate) total: Amount,
+    amounts: Vec<Amount>,
+    hash: [u8; 32],
+    total: Amount,
 }
 impl State {
     pub fn new(amounts: Vec<Amount>, hash: [u8; 32]) -> Result<Self> {

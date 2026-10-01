@@ -26,7 +26,7 @@ fn difficulty_adjustment(
 }
 
 impl Vecs {
-    pub fn new(version: Version, indexer: &Indexer, mappings: &MappingsVecs) -> Self {
+    pub(crate) fn new(version: Version, indexer: &Indexer, mappings: &MappingsVecs) -> Self {
         let v2 = Version::TWO;
 
         let difficulty_source = indexer.vecs().blocks.difficulty.read_only_clone();

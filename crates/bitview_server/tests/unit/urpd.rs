@@ -97,7 +97,7 @@ fn read_only_state(query: &AsyncQuery) -> (usize, (u64, u64)) {
         (end, (total.sats, total.count))
     })
 }
-pub async fn check_reconstruction(state: &AppState, address: SocketAddr) {
+async fn check_reconstruction(state: &AppState, address: SocketAddr) {
     check_cancelled_admission(state).await;
     urpd_sources::check(state, address).await;
     let route = "/api/urpd/all";

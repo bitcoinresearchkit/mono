@@ -13,7 +13,7 @@ use crate::{
 mod tests;
 
 /// Generate the base BitviewClient class with HTTP functionality.
-pub fn generate_base_client(output: &mut String) {
+pub(crate) fn generate_base_client(output: &mut String) {
     writeln!(
         output,
         r#"/**
@@ -893,7 +893,7 @@ function addressPayloadHashPrefix(payload, nibbles) {
 }
 
 /// Generate static constants for the BitviewClient class.
-pub fn generate_static_constants(output: &mut String) {
+pub(crate) fn generate_static_constants(output: &mut String) {
     let constants = ClientConstants::collect();
 
     // VERSION, INDEXES, POOL_ID_TO_POOL_NAME
@@ -963,7 +963,7 @@ fn write_static_const(output: &mut String, name: &str, json: &str) {
 }
 
 /// Generate index accessor factory functions.
-pub fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
+pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSetPattern]) {
     if patterns.is_empty() {
         return;
     }
@@ -1059,7 +1059,7 @@ function _mp(client, name, indexes) {{
 }
 
 /// Generate structural pattern factory functions.
-pub fn generate_structural_patterns(
+pub(crate) fn generate_structural_patterns(
     output: &mut String,
     patterns: &[StructuralPattern],
     metadata: &ClientMetadata,

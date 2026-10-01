@@ -41,7 +41,7 @@ pub struct TrackedSource<T> {
 }
 
 impl<T: PriceSource> TrackedSource<T> {
-    pub fn new(source: T) -> Self {
+    pub(crate) fn new(source: T) -> Self {
         Self {
             source,
             unhealthy_since: None,
@@ -49,7 +49,7 @@ impl<T: PriceSource> TrackedSource<T> {
         }
     }
 
-    pub fn name(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         self.source.name()
     }
 
@@ -105,7 +105,7 @@ impl<T: PriceSource> TrackedSource<T> {
         }
     }
 
-    pub fn reset_health(&mut self) {
+    fn reset_health(&mut self) {
         self.unhealthy_since = None;
     }
 }

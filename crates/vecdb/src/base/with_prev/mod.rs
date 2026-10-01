@@ -10,7 +10,7 @@ pub struct WithPrev<T> {
 }
 
 impl<T> WithPrev<T> {
-    pub fn new(value: T) -> Self
+    pub(crate) fn new(value: T) -> Self
     where
         T: Clone,
     {
@@ -21,28 +21,28 @@ impl<T> WithPrev<T> {
     }
 
     #[inline(always)]
-    pub fn current(&self) -> &T {
+    pub(crate) fn current(&self) -> &T {
         &self.current
     }
 
     #[inline]
-    pub fn current_mut(&mut self) -> &mut T {
+    pub(crate) fn current_mut(&mut self) -> &mut T {
         &mut self.current
     }
 
     #[inline(always)]
-    pub fn previous(&self) -> &T {
+    pub(crate) fn previous(&self) -> &T {
         &self.previous
     }
 
     #[inline]
-    pub fn previous_mut(&mut self) -> &mut T {
+    pub(crate) fn previous_mut(&mut self) -> &mut T {
         &mut self.previous
     }
 
     /// Copies current into previous.
     #[inline]
-    pub fn save(&mut self)
+    pub(crate) fn save(&mut self)
     where
         T: Clone,
     {
@@ -50,7 +50,7 @@ impl<T> WithPrev<T> {
     }
 
     #[inline]
-    pub fn take_current(&mut self) -> T
+    pub(crate) fn take_current(&mut self) -> T
     where
         T: Default,
     {
@@ -58,7 +58,7 @@ impl<T> WithPrev<T> {
     }
 
     #[inline]
-    pub fn clear(&mut self)
+    pub(crate) fn clear(&mut self)
     where
         T: Default,
     {
@@ -67,7 +67,7 @@ impl<T> WithPrev<T> {
     }
 
     #[inline]
-    pub fn clear_previous(&mut self)
+    pub(crate) fn clear_previous(&mut self)
     where
         T: Default,
     {

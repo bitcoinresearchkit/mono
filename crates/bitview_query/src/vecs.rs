@@ -164,7 +164,7 @@ impl<'a> Vecs<'a> {
         &self.series_names
     }
 
-    pub fn series_page(&'static self, pagination: Pagination) -> PaginatedSeries {
+    pub(crate) fn series_page(&'static self, pagination: Pagination) -> PaginatedSeries {
         let len = self.series_names.len();
         let per_page = pagination.per_page();
         let start = pagination.start(len);
@@ -184,18 +184,18 @@ impl<'a> Vecs<'a> {
         }
     }
 
-    pub fn series_count(&self) -> DetailedSeriesCount {
+    pub(crate) fn series_count(&self) -> DetailedSeriesCount {
         DetailedSeriesCount {
             total: self.counts.clone(),
             by_db: self.counts_by_db.clone(),
         }
     }
 
-    pub fn indexes(&self) -> &[IndexInfo] {
+    pub(crate) fn indexes(&self) -> &[IndexInfo] {
         &self.indexes
     }
 
-    pub fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
+    pub(crate) fn series_info(&self, series: &SeriesName) -> Option<SeriesInfo> {
         self.resolve_series_info(series)
             .map(ResolvedSeriesInfo::into_info)
     }
@@ -215,7 +215,7 @@ impl<'a> Vecs<'a> {
             .ok()
     }
 
-    pub fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
+    pub(crate) fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
         let Some(index_to_vec) = self.by_series.get(series.normalize().as_ref()) else {
             return SeriesEntryLookup::Missing;
         };

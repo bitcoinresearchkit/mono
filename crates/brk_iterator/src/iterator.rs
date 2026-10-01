@@ -6,7 +6,7 @@ use crate::State;
 pub struct BlockIterator(State);
 
 impl BlockIterator {
-    pub fn new(state: State) -> Self {
+    pub(crate) fn new(state: State) -> Self {
         Self(state)
     }
 }

@@ -7,7 +7,7 @@ use vecdb::ReadableVec;
 use super::server_routes::exchange_with_etag;
 use crate::AppState;
 
-pub const STAT_ROUTES: &[&str] = &[
+const STAT_ROUTES: &[&str] = &[
     "/api/v1/mining/pools/24h",
     "/api/v1/mining/pool/unknown",
     "/api/v1/mining/hashrate/pools",
@@ -27,7 +27,7 @@ pub const STAT_ROUTES: &[&str] = &[
     "/api/v1/mining/blocks/sizes-weights/24h",
 ];
 
-pub async fn check_statistics(address: SocketAddr) -> Vec<(&'static str, String)> {
+pub(crate) async fn check_statistics(address: SocketAddr) -> Vec<(&'static str, String)> {
     let mut validators = Vec::new();
     for &path in STAT_ROUTES {
         let response = exchange_with_etag(address, "GET", path, "\"old\"").await;
@@ -58,7 +58,7 @@ pub async fn check_statistics(address: SocketAddr) -> Vec<(&'static str, String)
     validators
 }
 
-pub async fn check_pool_blocks(state: &AppState, address: SocketAddr) {
+pub(crate) async fn check_pool_blocks(state: &AppState, address: SocketAddr) {
     state.sync(|q| {
         let detail = q.pool_detail(PoolSlug::Unknown).unwrap();
         assert_eq!(detail.block_count.all, 2);

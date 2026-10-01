@@ -23,7 +23,7 @@ impl WeightedCapitalizedPrice {
         self.denominator.add(cap.inner(), weight);
     }
 
-    pub fn merge(&mut self, other: Self) {
+    pub(crate) fn merge(&mut self, other: Self) {
         self.numerator.merge(other.numerator);
         self.denominator.merge(other.denominator);
         self.undefined |= other.undefined;

@@ -8,9 +8,9 @@ use bitview_traversable::Traversable;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct UTXOAllAndSth<T> {
     /// Uses all UTXOs.
-    pub all: T,
+    all: T,
     /// Uses short-term-holder UTXOs younger than 150 days.
-    pub sth: T,
+    sth: T,
 }
 
 define_cohort_id!(

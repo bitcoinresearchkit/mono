@@ -15,7 +15,7 @@ pub struct SeriesLeafWithSchema {
     pub leaf: SeriesLeaf,
     /// JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
     #[serde(rename = "type")]
-    pub openapi_type: String,
+    pub(crate) openapi_type: String,
     /// JSON Schema for the value type.
     #[serde(skip)]
     pub schema: Value,
@@ -47,12 +47,12 @@ impl SeriesLeafWithSchema {
     }
 
     /// Check if this leaf refers to the same series as another.
-    pub fn is_same_series(&self, other: &Self) -> bool {
+    pub(crate) fn is_same_series(&self, other: &Self) -> bool {
         self.leaf.name == other.leaf.name
     }
 
     /// Merge compatible metadata for another occurrence of the same series.
-    pub fn merge(&mut self, other: &Self) -> Option<()> {
+    pub(crate) fn merge(&mut self, other: &Self) -> Option<()> {
         self.leaf.merge(&other.leaf)
     }
 }

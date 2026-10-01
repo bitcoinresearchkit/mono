@@ -3,7 +3,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Height, PERCENTILES_LEN, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{AnyStoredVec, AnyVec, Database, Rw, StorageMode, WritableVec};
+use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use crate::{CachedSeries, IndexSources, LazyPerBlock, Price, import_cached};
 
@@ -14,7 +14,7 @@ pub struct PercentilesVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub prices: ByPercentile<Price<LazyPerBlock<Cents>>>,
     #[traversable(hidden)]
-    pub stored: ByPercentile<CachedSeries<Height, Cents, M>>,
+    stored: ByPercentile<CachedSeries<Height, Cents, M>>,
 }
 
 impl PercentilesVecs {
@@ -49,16 +49,6 @@ impl PercentilesVecs {
         }
     }
 
-    pub fn validate_computed_version_or_reset(&mut self, version: Version) -> Result<()> {
-        for target in self.stored.iter_mut() {
-            target.validate_computed_version_or_reset(version)?;
-        }
-        Ok(())
-    }
-
-    pub fn min_len(&self) -> usize {
-        self.stored.iter().map(AnyVec::len).min().unwrap_or(0)
-    }
     pub fn collect_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.stored
             .iter_mut()

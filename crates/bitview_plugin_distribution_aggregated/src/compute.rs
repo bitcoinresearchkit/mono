@@ -114,6 +114,12 @@ impl ComputePlugin for Vecs {
                 self.cost_basis.push_prices(&unrealized);
                 let total = live.index.totals();
                 let density = live.index.density_range(spot);
+                let mut percentiles = live
+                    .index
+                    .percentiles::<{ AgeAggregateId::ALL.len() }>(|q, n| {
+                        age_index::selected(AgeAggregateId::ALL[q], n)
+                    })
+                    .into_iter();
                 self.cost_basis.push(AgeAggregate::from_fn(|id| {
                     let sats = age_index::selected(id, &total).0;
                     let density = if sats > 0 {
@@ -124,10 +130,7 @@ impl ComputePlugin for Vecs {
                         PartsPerMillion32::ZERO
                     };
                     CostBasisBlockData::from_percentiles(
-                        live.index.percentiles(
-                            |n| age_index::selected(id, n).0,
-                            |n| age_index::selected(id, n).1,
-                        ),
+                        percentiles.next().expect("one result per age filter"),
                         density,
                     )
                 }));

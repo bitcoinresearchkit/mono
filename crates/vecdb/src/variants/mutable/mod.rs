@@ -175,7 +175,7 @@ where
     }
 
     /// Fills the lowest available indexes, then appends the remaining values.
-    pub fn fill_holes_or_push_many(
+    pub(crate) fn fill_holes_or_push_many(
         &mut self,
         mut values: impl ExactSizeIterator<Item = V::T>,
     ) -> Vec<V::I> {

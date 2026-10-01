@@ -10,13 +10,13 @@ use super::Sources;
 #[derive(Clone, Traversable)]
 pub struct UnrealizedMetrics {
     /// Current market value above creation-date value for profitable outputs.
-    pub profit: LazyFiatPerBlock<Cents>,
+    profit: LazyFiatPerBlock<Cents>,
     /// Creation-date value above current market value for losing outputs.
-    pub loss: LazyFiatPerBlock<Cents>,
+    loss: LazyFiatPerBlock<Cents>,
     /// Unrealized profit minus unrealized loss.
-    pub net_pnl: LazyFiatPerBlock<CentsSigned>,
+    net_pnl: LazyFiatPerBlock<CentsSigned>,
     /// Net unrealized profit/loss as a share of this cohort's own market cap.
-    pub nupl: LazyRatioPerBlock<PartsPerMillionSigned32, PriceRatio>,
+    nupl: LazyRatioPerBlock<PartsPerMillionSigned32, PriceRatio>,
 }
 
 impl UnrealizedMetrics {

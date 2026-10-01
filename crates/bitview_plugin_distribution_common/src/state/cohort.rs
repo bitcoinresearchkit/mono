@@ -10,8 +10,8 @@ pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
     pub realized: R,
     pub sent: Sats,
     pub spent_utxo_count: u64,
-    pub satdays_destroyed: Sats,
-    pub cost_basis: C,
+    pub(crate) satdays_destroyed: Sats,
+    pub(crate) cost_basis: C,
 }
 
 impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {

@@ -12,7 +12,7 @@ pub struct AggregatePerBlock<V: Clone, T: PcoVecValue, M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub series: UTXOAggregate<V>,
+    pub(crate) series: UTXOAggregate<V>,
     #[traversable(hidden)]
     pub stored: UTXOAggregate<CachedSeries<Height, T, M>>,
 }

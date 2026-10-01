@@ -39,9 +39,6 @@ use vecdb::{Formattable, Pco, PrintableIndex};
 pub struct StoredU16(u16);
 
 impl StoredU16 {
-    pub const ZERO: Self = Self(0);
-    pub const ONE: Self = Self(1);
-
     pub fn new(v: u16) -> Self {
         Self(v)
     }
@@ -202,10 +199,10 @@ impl From<EmptyOutputIndex> for StoredU16 {
 }
 
 impl StoredU16 {
-    pub fn index_name() -> &'static str {
+    fn index_name() -> &'static str {
         "u16"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    fn index_aliases() -> &'static [&'static str] {
         &["u16"]
     }
 }

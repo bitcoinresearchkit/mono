@@ -14,7 +14,7 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex};
 
-pub const DAY3_INTERVAL: u32 = 259200;
+const DAY3_INTERVAL: u32 = 259200;
 
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
@@ -79,10 +79,10 @@ impl VecdbCheckedSub for Day3 {
 }
 
 impl Day3 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "day3"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["3d", "day3"]
     }
 }

@@ -13,7 +13,7 @@ where
     T: BytesVecValue,
 {
     #[doc(hidden)]
-    pub fn new(reader: VecReader<I, T, BytesStrategy<T>>) -> Self {
+    pub(crate) fn new(reader: VecReader<I, T, BytesStrategy<T>>) -> Self {
         Self(reader)
     }
 

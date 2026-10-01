@@ -30,7 +30,7 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub rolling: RollingTotals<T>,
+    rolling: RollingTotals<T>,
     last_cumulative: M::WriteOnly<Option<(usize, T)>>,
 }
 

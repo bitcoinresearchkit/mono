@@ -17,9 +17,9 @@ where
 {
     /// Value for the represented block. At time-period indexes, the value is
     /// taken from the period's final block.
-    pub block: LazyPreviousDeltaVec<Height, C, T, F>,
+    block: LazyPreviousDeltaVec<Height, C, T, F>,
     #[traversable(flatten)]
-    pub average: LazyRollingAvgsFromHeight<C>,
+    average: LazyRollingAvgsFromHeight<C>,
 }
 
 impl<T, C, F> Clone for LazyPerBlockCumulativeAverage<T, C, F>

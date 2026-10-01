@@ -6,7 +6,7 @@ use brk_types::Index;
 #[derive(Debug, Clone)]
 pub struct IndexSetPattern {
     /// Pattern name (e.g., "DateHeightIndexes")
-    pub name: String,
+    pub(crate) name: String,
     /// The set of indexes
-    pub indexes: BTreeSet<Index>,
+    pub(crate) indexes: BTreeSet<Index>,
 }

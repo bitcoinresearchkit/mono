@@ -18,7 +18,7 @@ mod manifest;
 const BASE_URL: &str = "https://bitview.space";
 const MCP_URL: &str = "https://mcp.bitview.space/";
 
-pub fn generate_llm_clients(
+pub(crate) fn generate_llm_clients(
     catalog: &TreeNode,
     spec: &Spec,
     endpoints: &[Endpoint],

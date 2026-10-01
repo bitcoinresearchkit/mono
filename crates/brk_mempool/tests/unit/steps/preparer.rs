@@ -3,8 +3,9 @@ use brk_types::{FeeRate, Sats, TxOut, VSize};
 
 use super::*;
 use crate::{
-    AddedKind, TxRemoval,
+    TxRemoval,
     state::TxEntry,
+    steps::preparer::TxAddition,
     test_support::{fake_bitcoin_tx, fake_entry_info, fake_tx, fake_txid, p2wpkh_script},
 };
 
@@ -64,7 +65,7 @@ fn classify_addition_emits_revived_for_graveyard_hit() {
     let pulled = prepare(&[txid], vec![info], FxHashMap::default(), &state);
 
     assert_eq!(pulled.added.len(), 1);
-    assert!(matches!(pulled.added[0].kind(), AddedKind::Revived));
+    assert!(matches!(pulled.added[0], TxAddition::Revived { .. }));
 }
 
 #[test]
@@ -81,7 +82,7 @@ fn classify_addition_emits_fresh_with_raw_payload() {
 
     let pulled = prepare(&[txid], vec![info], new_txs, &state);
     assert_eq!(pulled.added.len(), 1);
-    assert!(matches!(pulled.added[0].kind(), AddedKind::Fresh));
+    assert!(matches!(pulled.added[0], TxAddition::Fresh { .. }));
 }
 
 #[test]

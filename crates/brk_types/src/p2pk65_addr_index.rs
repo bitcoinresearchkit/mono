@@ -102,10 +102,10 @@ impl VecdbCheckedSub<P2PK65AddrIndex> for P2PK65AddrIndex {
 }
 
 impl P2PK65AddrIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "p2pk65_addr_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["pk65addr", "p2pk65addr", "p2pk65_addr_index"]
     }
 }

@@ -15,7 +15,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) db: Database,
     pub(crate) live: M::WriteOnly<Option<LiveState>>,
     #[traversable(wrap = "cohorts", rename = "profitability")]
-    pub metrics: Box<Metrics<M>>,
+    pub(crate) metrics: Box<Metrics<M>>,
 }
 
 impl Vecs {

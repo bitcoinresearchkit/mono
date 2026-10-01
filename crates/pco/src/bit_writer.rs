@@ -159,7 +159,7 @@ impl<W: Write> BitWriter<W> {
   }
 
   #[cfg(test)]
-  pub fn bit_idx(&self) -> usize {
+  pub(crate) fn bit_idx(&self) -> usize {
     self.stale_byte_idx * 8 + self.bits_past_byte as usize
   }
 }

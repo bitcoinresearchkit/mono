@@ -90,9 +90,4 @@ where
 
         Ok(())
     }
-
-    /// Removes this vector and all its associated regions from the database
-    pub fn remove(self) -> Result<()> {
-        self.0.remove()
-    }
 }

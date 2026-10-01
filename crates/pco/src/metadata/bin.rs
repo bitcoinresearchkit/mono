@@ -9,11 +9,11 @@ use crate::data_types::Latent;
 pub struct Bin<L: Latent> {
   /// The number of occurrences of this bin in the asymmetric numeral system
   /// table.
-  pub weight: Weight,
+  pub(crate) weight: Weight,
   /// The lower bound for this bin's numerical range.
-  pub lower: L,
+  pub(crate) lower: L,
   /// The log of the size of this bin's (inclusive) numerical range.
-  pub offset_bits: Bitlen,
+  pub(crate) offset_bits: Bitlen,
 }
 
 impl<L: Latent> Bin<L> {

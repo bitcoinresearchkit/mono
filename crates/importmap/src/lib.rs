@@ -27,10 +27,10 @@ impl Deref for ImportMap {
 }
 
 impl ImportMap {
-    pub const EXTENSIONS: &[&str] = &["js", "mjs", "css"];
-    pub const HASH_LEN: usize = 8;
-    pub const MARKER_OPEN: &str = "<!-- IMPORTMAP -->";
-    pub const MARKER_CLOSE: &str = "<!-- /IMPORTMAP -->";
+    const EXTENSIONS: &[&str] = &["js", "mjs", "css"];
+    const HASH_LEN: usize = 8;
+    const MARKER_OPEN: &str = "<!-- IMPORTMAP -->";
+    const MARKER_CLOSE: &str = "<!-- /IMPORTMAP -->";
 
     /// Create an empty import map (useful for dev mode).
     pub fn empty() -> Self {

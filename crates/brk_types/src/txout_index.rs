@@ -44,10 +44,6 @@ impl TxOutIndex {
         Self(index)
     }
 
-    pub fn incremented(self) -> Self {
-        Self(*self + 1)
-    }
-
     pub fn is_coinbase(self) -> bool {
         self == Self::COINBASE
     }
@@ -129,10 +125,10 @@ impl From<TxOutIndex> for usize {
 }
 
 impl TxOutIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "txout_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["txo", "txout", "txout_index"]
     }
 }

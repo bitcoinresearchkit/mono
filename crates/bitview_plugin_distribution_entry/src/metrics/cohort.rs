@@ -18,11 +18,11 @@ use crate::live::CohortState;
 
 #[derive(Traversable)]
 pub struct CohortMetrics<M: StorageMode = Rw> {
-    pub supply: SupplyMetrics,
-    pub outputs: OutputMetrics,
-    pub activity: ActivityMetrics,
-    pub realized: RealizedMetrics<M>,
-    pub unrealized: UnrealizedMetrics,
+    pub(crate) supply: SupplyMetrics,
+    pub(crate) outputs: OutputMetrics,
+    activity: ActivityMetrics,
+    pub(crate) realized: RealizedMetrics<M>,
+    unrealized: UnrealizedMetrics,
     #[traversable(hidden)]
     sources: Sources<M>,
 }

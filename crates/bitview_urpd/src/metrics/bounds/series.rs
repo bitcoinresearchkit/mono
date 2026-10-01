@@ -12,7 +12,7 @@ pub struct AgeBoundsMetrics<M: StorageMode = Rw> {
     /// Per-block bounds of occupied, unweighted URPD price buckets. Empty cohorts
     /// are undefined. Each value is computed directly from live age cohorts.
     #[traversable(flatten)]
-    pub series: AgeAggregate<PriceBounds<Price<LazyPerBlock<Cents>>>>,
+    series: AgeAggregate<PriceBounds<Price<LazyPerBlock<Cents>>>>,
     #[traversable(hidden)]
     pub stored: AgeAggregate<PriceBounds<CachedSeries<Height, Cents, M>>>,
 }

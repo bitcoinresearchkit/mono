@@ -14,18 +14,18 @@ pub const START_HEIGHT_FAST: usize = 508_000;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Config {
     /// EMA decay: 2/(N+1) where N is span in blocks. 2/7 = 6-block span.
-    pub alpha: f64,
+    pub(crate) alpha: f64,
     /// Ring buffer depth. 12 blocks for deterministic convergence at any start height.
     pub window_size: usize,
     /// Search window bins below/above previous estimate. Asymmetric for log-scale.
-    pub search_below: usize,
-    pub search_above: usize,
+    pub(crate) search_below: usize,
+    pub(crate) search_above: usize,
     /// Weight of the adaptive shape-anchoring restoring force added to the
     /// stencil score. `0.0` disables it (mature regime, where the fast EMA
     /// tracks real moves the shape term would resist). The slow cold-start uses
     /// a positive weight to resist round-USD octave aliasing in the thin early
     /// output mix.
-    pub shape_weight: f64,
+    pub(crate) shape_weight: f64,
 }
 
 impl Default for Config {
@@ -46,7 +46,7 @@ impl Config {
     /// octave-locks onto in the thin pre-2018 output mix. Window grows to 40 to
     /// hold the decay, and a shape-anchoring restoring force (`shape_weight`)
     /// pulls the pick toward the octave whose arm-shape looks like real payments.
-    pub fn slow() -> Self {
+    pub(crate) fn slow() -> Self {
         Self {
             alpha: 0.10,
             window_size: 40,

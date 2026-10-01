@@ -83,23 +83,23 @@ impl QuickMatchConfig {
         self
     }
 
-    pub fn limit(&self) -> usize {
+    pub(crate) fn limit(&self) -> usize {
         self.limit
     }
 
-    pub fn trigram_budget(&self) -> usize {
+    pub(crate) fn trigram_budget(&self) -> usize {
         self.trigram_budget
     }
 
-    pub fn union_fallback(&self) -> bool {
+    pub(crate) fn union_fallback(&self) -> bool {
         self.union_fallback
     }
 
-    pub fn separators(&self) -> &[char] {
+    pub(crate) fn separators(&self) -> &[char] {
         self.separators
     }
 
-    pub fn min_score(&self) -> usize {
+    pub(crate) fn min_score(&self) -> usize {
         self.min_score
     }
 }

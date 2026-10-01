@@ -83,13 +83,13 @@ mod tests {
 
     use super::{Facts, Kind};
 
-    pub fn classify(hex: &str) -> Facts {
+    fn classify(hex: &str) -> Facts {
         let script = ScriptBuf::from_hex(hex).unwrap();
         Facts::analyze(Some(script.as_bytes()), OutputType::P2SH)
     }
 
     #[test]
-    pub fn classifies_redeem_scripts_once() {
+    fn classifies_redeem_scripts_once() {
         assert_eq!(
             classify("00140000000000000000000000000000000000000000").kind,
             Kind::P2WPKH

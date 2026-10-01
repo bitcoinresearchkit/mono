@@ -21,7 +21,7 @@ pub struct MempoolInfo {
         deserialize_with = "deserialize_fee_histogram"
     )]
     #[schemars(with = "Vec<[f64; 2]>")]
-    pub fee_histogram: BTreeMap<FeeRate, VSize>,
+    fee_histogram: BTreeMap<FeeRate, VSize>,
 }
 
 impl MempoolInfo {

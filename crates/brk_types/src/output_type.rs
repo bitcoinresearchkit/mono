@@ -105,7 +105,7 @@ impl OutputType {
         value <= Self::Unknown as u8
     }
 
-    pub fn is_spendable(&self) -> bool {
+    fn is_spendable(&self) -> bool {
         match self {
             Self::P2PK65 => true,
             Self::P2PK33 => true,
@@ -147,7 +147,7 @@ impl OutputType {
         !self.is_spendable()
     }
 
-    pub const fn normalized(self) -> OutputTypeNormalized {
+    pub(crate) const fn normalized(self) -> OutputTypeNormalized {
         match self {
             Self::P2PK65 | Self::P2PK33 => OutputTypeNormalized::P2PK,
             Self::P2PKH => OutputTypeNormalized::P2PKH,

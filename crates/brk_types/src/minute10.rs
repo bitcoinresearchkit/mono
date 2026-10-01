@@ -16,7 +16,7 @@ use vecdb::CheckedSub as VecdbCheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex};
 
-pub const MINUTE10_INTERVAL: u32 = 600;
+pub(crate) const MINUTE10_INTERVAL: u32 = 600;
 
 #[derive(
     Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, JsonSchema,
@@ -68,10 +68,10 @@ impl VecdbCheckedSub for Minute10 {
 }
 
 impl Minute10 {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "minute10"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["10mn", "minute10"]
     }
 }

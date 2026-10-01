@@ -45,7 +45,7 @@ impl PartsPerMillionSigned32 {
     pub const NAN: Self = Self(i32::MIN);
 
     #[inline]
-    pub const fn new(value: i32) -> Self {
+    const fn new(value: i32) -> Self {
         debug_assert!(value != i32::MIN, "i32::MIN is reserved as NaN sentinel");
         Self(value)
     }
@@ -61,12 +61,7 @@ impl PartsPerMillionSigned32 {
     }
 
     #[inline]
-    pub fn is_negative(self) -> bool {
-        self.0 < 0 && self.0 != i32::MIN
-    }
-
-    #[inline]
-    pub fn to_f32(self) -> f32 {
+    fn to_f32(self) -> f32 {
         if unlikely(self.is_nan()) {
             f32::NAN
         } else {
@@ -264,7 +259,6 @@ mod tests {
             i32::MIN + 1
         );
         assert!(PartsPerMillionSigned32::from(f64::NAN).is_nan());
-        assert!(!PartsPerMillionSigned32::NAN.is_negative());
 
         #[cfg(feature = "storage")]
         {

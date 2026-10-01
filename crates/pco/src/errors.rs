@@ -26,12 +26,12 @@ pub enum ErrorKind {
 /// The error type used in results for all `pco` functionality.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PcoError {
-  pub kind: ErrorKind,
-  pub message: String,
+  pub(crate) kind: ErrorKind,
+  message: String,
 }
 
 impl PcoError {
-  pub(crate) fn new<S: AsRef<str>>(kind: ErrorKind, message: S) -> Self {
+  fn new<S: AsRef<str>>(kind: ErrorKind, message: S) -> Self {
     PcoError {
       kind,
       message: message.as_ref().to_string(),

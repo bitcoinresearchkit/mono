@@ -11,7 +11,7 @@ pub struct History {
     live: Option<(State, (u64, u64))>,
 }
 impl History {
-    pub const DEFAULT_INTERVAL: usize = 5000;
+    const DEFAULT_INTERVAL: usize = 5000;
     pub fn open(path: &Path) -> Result<Self> {
         fs::create_dir_all(path)?;
         Ok(Self {

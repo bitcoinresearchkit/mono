@@ -8,7 +8,7 @@ use crate::test_support::fake_tx;
 impl Snapshot {
     /// Test-only: stitch a snapshot from `(prefix, chunk_rate)` pairs
     /// without running the full builder.
-    pub fn for_test_with_chunk_rates(entries: &[(TxidPrefix, FeeRate, Txid)]) -> Self {
+    pub(crate) fn for_test_with_chunk_rates(entries: &[(TxidPrefix, FeeRate, Txid)]) -> Self {
         let mut prefix_to_idx = PrefixIndex::default();
         let mut txs = Vec::with_capacity(entries.len());
         for (i, (prefix, rate, txid)) in entries.iter().enumerate() {

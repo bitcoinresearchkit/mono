@@ -316,9 +316,9 @@ pub fn truncate_series_name(mut series: String) -> String {
 
 #[derive(Debug)]
 pub struct SeriesNotFound {
-    pub series: String,
-    pub suggestions: Vec<&'static str>,
-    pub total_matches: usize,
+    series: String,
+    suggestions: Vec<&'static str>,
+    total_matches: usize,
 }
 
 impl SeriesNotFound {

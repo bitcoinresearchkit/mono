@@ -14,7 +14,11 @@ use crate::{
 };
 
 /// Generate JSDoc typedefs for the series tree.
-pub fn generate_tree_typedefs(output: &mut String, catalog: &TreeNode, metadata: &ClientMetadata) {
+pub(crate) fn generate_tree_typedefs(
+    output: &mut String,
+    catalog: &TreeNode,
+    metadata: &ClientMetadata,
+) {
     writeln!(output, "// Catalog tree typedefs\n").unwrap();
 
     let pattern_lookup = metadata.pattern_lookup();
@@ -82,7 +86,7 @@ fn generate_tree_typedef(
 }
 
 /// Generate the main BitviewClient class.
-pub fn generate_main_client(
+pub(crate) fn generate_main_client(
     output: &mut String,
     catalog: &TreeNode,
     metadata: &ClientMetadata,

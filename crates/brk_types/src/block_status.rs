@@ -8,14 +8,14 @@ use crate::{BlockHash, Height};
 pub struct BlockStatus {
     /// Whether this block is in the best chain
     #[schemars(example = true)]
-    pub in_best_chain: bool,
+    in_best_chain: bool,
 
     /// Block height (only if in best chain)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub height: Option<Height>,
+    height: Option<Height>,
 
     /// Hash of the next block in the best chain (null if tip)
-    pub next_best: Option<BlockHash>,
+    next_best: Option<BlockHash>,
 }
 
 impl BlockStatus {

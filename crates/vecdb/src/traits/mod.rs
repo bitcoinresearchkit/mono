@@ -3,8 +3,6 @@ pub mod any_exportable;
 pub mod any_readable;
 pub mod any_serializable;
 pub mod any_stored;
-#[cfg(feature = "schemars")]
-pub mod any_with_schema;
 pub mod any_with_writer;
 pub(crate) mod chunk_folds;
 pub mod formattable;
@@ -30,8 +28,6 @@ pub use any_exportable::*;
 pub use any_readable::*;
 pub use any_serializable::*;
 pub use any_stored::*;
-#[cfg(feature = "schemars")]
-pub use any_with_schema::*;
 pub use any_with_writer::*;
 pub use formattable::*;
 pub use importable::*;

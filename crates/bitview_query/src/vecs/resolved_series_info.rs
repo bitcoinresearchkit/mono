@@ -11,7 +11,10 @@ pub struct ResolvedSeriesInfo<'a> {
 }
 
 impl Vecs<'_> {
-    pub fn resolve_series_info(&self, series: &SeriesName) -> Option<ResolvedSeriesInfo<'_>> {
+    pub(crate) fn resolve_series_info(
+        &self,
+        series: &SeriesName,
+    ) -> Option<ResolvedSeriesInfo<'_>> {
         let normalized = series.normalize();
         let (&name, index_to_vec) = self.by_series.get_key_value(normalized.as_ref())?;
         let value_type = index_to_vec.first()?.vec().value_type_to_string();

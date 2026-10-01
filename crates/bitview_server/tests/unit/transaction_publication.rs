@@ -159,13 +159,13 @@ fn confirmed_handoffs_pin_the_prefix_and_revalidate_replaced_blocks() {
     });
 }
 
-pub struct TransactionPublication {
+pub(crate) struct TransactionPublication {
     txid: Txid,
     tags: Vec<String>,
 }
 
 impl TransactionPublication {
-    pub fn new(txid: Txid) -> Self {
+    pub(crate) fn new(txid: Txid) -> Self {
         Self {
             txid,
             tags: Vec::new(),
@@ -184,7 +184,7 @@ impl TransactionPublication {
         }
     }
 
-    pub async fn check_unavailable(&self, address: SocketAddr) {
+    pub(crate) async fn check_unavailable(&self, address: SocketAddr) {
         let mut requests = JoinSet::new();
         for (index, suffix) in SUFFIXES.iter().enumerate() {
             let path = self.path(suffix);
@@ -212,7 +212,7 @@ impl TransactionPublication {
         }
     }
 
-    pub async fn check_available(&mut self, query: &AsyncQuery, address: SocketAddr) {
+    pub(crate) async fn check_available(&mut self, query: &AsyncQuery, address: SocketAddr) {
         query.sync(|q| {
             for (index, outspend) in q.outspends(&self.txid).unwrap().iter().enumerate() {
                 assert_eq!(

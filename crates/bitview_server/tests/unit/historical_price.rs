@@ -17,13 +17,13 @@ use tower::ServiceExt;
 use super::server_routes::exchange_with_etag;
 use crate::{AppState, api::ApiRoutes};
 
-pub struct HistoricalPriceChecks {
+pub(crate) struct HistoricalPriceChecks {
     cases: Vec<(Option<Timestamp>, String, String, Value)>,
     pending: Vec<JoinHandle<String>>,
 }
 
 impl HistoricalPriceChecks {
-    pub async fn before(state: &AppState, address: SocketAddr, first_time: u32) -> Self {
+    pub(crate) async fn before(state: &AppState, address: SocketAddr, first_time: u32) -> Self {
         let all = state.sync(|q| q.historical_price(None)).unwrap();
         let first_close =
             INDEX_EPOCH + ((1231006505 - INDEX_EPOCH) / HOUR4_INTERVAL + 1) * HOUR4_INTERVAL;
@@ -151,7 +151,7 @@ impl HistoricalPriceChecks {
         }
     }
 
-    pub async fn during_reorg(&mut self, address: SocketAddr) {
+    pub(crate) async fn during_reorg(&mut self, address: SocketAddr) {
         for (_, path, etag, _) in &self.cases {
             let path = path.clone();
             let etag = etag.clone();
@@ -167,7 +167,7 @@ impl HistoricalPriceChecks {
         assert!(self.pending.iter().all(|task| !task.is_finished()));
     }
 
-    pub async fn after(self, state: &AppState, address: SocketAddr) {
+    pub(crate) async fn after(self, state: &AppState, address: SocketAddr) {
         for ((timestamp, path, etag, before), task) in self.cases.into_iter().zip(self.pending) {
             let current = to_value(state.sync(|q| q.historical_price(timestamp)).unwrap()).unwrap();
             let mut response = timeout(Duration::from_secs(5), task)

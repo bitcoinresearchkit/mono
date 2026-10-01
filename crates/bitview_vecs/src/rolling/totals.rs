@@ -15,7 +15,7 @@ pub struct RollingTotals<T: NumericValue + JsonSchema> {
 }
 
 impl<T: NumericValue + JsonSchema> RollingTotals<T> {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: &impl ReadableCloneableVec<Height, T>,

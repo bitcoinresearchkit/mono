@@ -44,10 +44,6 @@ impl TypeIndex {
         self.0 += 1;
     }
 
-    pub fn incremented(self) -> Self {
-        Self(self.0 + 1)
-    }
-
     pub fn copy_then_increment(&mut self) -> Self {
         let i = *self;
         self.increment();

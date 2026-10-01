@@ -3,142 +3,42 @@ use std::sync::Arc;
 use brk_error::Result;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use brk_types::{BlockHash, Height};
+use brk_types::Height;
 
 mod iterator;
-mod range;
 mod source;
 mod state;
 
-use iterator::*;
-use range::*;
-use source::*;
-use state::*;
+use iterator::BlockIterator;
+use source::Source;
+use state::State;
 
-///
-/// Block iterator factory
-///
-/// Creates iterators over Bitcoin blocks from various sources (RPC/Reader).
-/// Iterators may end earlier than expected if a chain reorganization occurs.
-///
-/// Thread-safe and free to clone.
-///
+/// Selects RPC for small ranges and the block reader for larger ones.
+/// Iteration can fail when a chain reorganization breaks continuity.
 #[derive(Clone)]
 pub struct Blocks(Arc<Source>);
 
 impl Blocks {
-    /// Create with smart mode (auto-select source based on range size)
     pub fn new(client: &Client, reader: &Reader) -> Self {
-        Self::new_inner(Source::Smart {
+        Self(Arc::new(Source {
             client: client.clone(),
             reader: reader.clone(),
-        })
+        }))
     }
 
-    /// Create with RPC-only mode
-    pub fn new_rpc(client: &Client) -> Self {
-        Self::new_inner(Source::Rpc {
-            client: client.clone(),
-        })
-    }
-
-    /// Create with Reader-only mode
-    pub fn new_reader(reader: &Reader) -> Self {
-        Self::new_inner(Source::Reader {
-            reader: reader.clone(),
-        })
-    }
-
-    fn new_inner(source: Source) -> Self {
-        Self(Arc::new(source))
-    }
-
-    /// Iterate over a specific range (start..=end). Reversed ranges are empty.
+    /// Iterate over an inclusive range. Reversed ranges are empty without I/O.
     pub fn range(&self, start: Height, end: Height) -> Result<BlockIterator> {
-        self.iter(BlockRange::Span { start, end })
-    }
-
-    /// Iterate from start (inclusive) to chain tip
-    pub fn start(&self, start: Height) -> Result<BlockIterator> {
-        self.iter(BlockRange::Start { start })
-    }
-
-    /// Iterate from genesis to end (inclusive)
-    pub fn end(&self, end: Height) -> Result<BlockIterator> {
-        self.iter(BlockRange::End { end })
-    }
-
-    /// Iterate over last n blocks. Zero returns an empty iterator without I/O.
-    pub fn last(&self, n: u32) -> Result<BlockIterator> {
-        self.iter(BlockRange::Last { n })
-    }
-
-    /// Iterate after hash
-    pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockIterator> {
-        self.iter(BlockRange::After { hash })
-    }
-
-    fn iter(&self, range: BlockRange) -> Result<BlockIterator> {
-        let Some((start, end, hash_opt)) = self.resolve_range(range)? else {
+        if start > end {
             return Ok(BlockIterator::new(State::Empty));
-        };
+        }
 
         // An inclusive range can contain 2^32 heights.
         let count = u64::from(*end) - u64::from(*start) + 1;
-
-        let state = match &*self.0 {
-            Source::Smart { client, reader } => {
-                if count <= 10 {
-                    State::new_rpc(client.clone(), start, end, hash_opt)
-                } else {
-                    State::new_reader(reader.clone(), start, end, hash_opt)?
-                }
-            }
-            Source::Rpc { client } => State::new_rpc(client.clone(), start, end, hash_opt),
-            Source::Reader { reader, .. } => {
-                State::new_reader(reader.clone(), start, end, hash_opt)?
-            }
+        let state = if count <= 10 {
+            State::new_rpc(self.0.client.clone(), start, end)
+        } else {
+            State::new_reader(self.0.reader.clone(), start, end)?
         };
-
         Ok(BlockIterator::new(state))
-    }
-
-    fn resolve_range(
-        &self,
-        range: BlockRange,
-    ) -> Result<Option<(Height, Height, Option<BlockHash>)>> {
-        let client = self.0.client();
-
-        let resolved = match range {
-            BlockRange::Span { start, end } => (start, end, None),
-            BlockRange::Start { start } => {
-                let end = client.get_last_height()?;
-                (start, end, None)
-            }
-            BlockRange::End { end } => (Height::ZERO, end, None),
-            BlockRange::Last { n: 0 } => return Ok(None),
-            BlockRange::Last { n } => {
-                let end = client.get_last_height()?;
-                let start = Height::new((*end).saturating_sub(n - 1));
-                (start, end, None)
-            }
-            BlockRange::After { hash } => {
-                let start = if let Some(hash) = hash.as_ref() {
-                    let block_info = client.get_block_header_info(hash)?;
-                    let Some(next) = u32::try_from(block_info.height)
-                        .ok()
-                        .and_then(|height| height.checked_add(1))
-                    else {
-                        return Ok(None);
-                    };
-                    Height::new(next)
-                } else {
-                    Height::ZERO
-                };
-                let end = client.get_last_height()?;
-                (start, end, hash)
-            }
-        };
-        Ok((resolved.0 <= resolved.1).then_some(resolved))
     }
 }

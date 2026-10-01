@@ -11,8 +11,8 @@ pub struct LazySpotValuePerBlockWithDeltas {
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub inner: LazySpotValuePerBlock,
-    pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
+    inner: LazySpotValuePerBlock,
+    delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }
 
 impl LazySpotValuePerBlockWithDeltas {

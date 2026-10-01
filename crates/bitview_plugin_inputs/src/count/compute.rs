@@ -6,7 +6,12 @@ use brk_exit::Exit;
 use super::Vecs;
 
 impl Vecs {
-    pub fn compute(&mut self, indexer: &Indexer, blocks: &BlocksVecs, exit: &Exit) -> Result<()> {
+    pub(crate) fn compute(
+        &mut self,
+        indexer: &Indexer,
+        blocks: &BlocksVecs,
+        exit: &Exit,
+    ) -> Result<()> {
         let starting_height = indexer.safe_lengths().height;
         let window_starts = blocks.lookback.window_starts();
 

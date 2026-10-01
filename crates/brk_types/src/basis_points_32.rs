@@ -40,7 +40,7 @@ use vecdb::{Formattable, Pco};
 pub struct BasisPoints32(u32);
 
 impl BasisPoints32 {
-    pub const SCALE: u32 = 10_000;
+    const SCALE: u32 = 10_000;
     pub const ZERO: Self = Self(0);
     pub const ONE: Self = Self(Self::SCALE);
     pub const MAX: Self = Self(u32::MAX - 1);

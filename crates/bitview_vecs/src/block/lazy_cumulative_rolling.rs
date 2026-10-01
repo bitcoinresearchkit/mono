@@ -25,7 +25,7 @@ where
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
-    pub rolling: RollingTotals<T>,
+    rolling: RollingTotals<T>,
 }
 
 impl<T> LazyPerBlockCumulativeRolling<T>

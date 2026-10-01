@@ -9,7 +9,7 @@ use axum::{
 pub struct Error(StatusCode, String);
 
 impl Error {
-    pub fn not_found(msg: impl Into<String>) -> Self {
+    pub(crate) fn not_found(msg: impl Into<String>) -> Self {
         Self(StatusCode::NOT_FOUND, msg.into())
     }
 }

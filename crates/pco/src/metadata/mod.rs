@@ -7,7 +7,8 @@ pub use dyn_latent::DynLatent;
 pub use dyn_latents::DynLatents;
 pub use format_version::FormatVersion;
 pub use mode::Mode;
-pub use per_latent_var::{LatentVarKey, PerLatentVar};
+pub(crate) use per_latent_var::LatentVarKey;
+pub use per_latent_var::PerLatentVar;
 
 pub(crate) mod bin;
 pub(crate) mod bins;

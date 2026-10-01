@@ -12,7 +12,6 @@ use serde::Deserialize;
 pub struct Limit(usize);
 
 impl Limit {
-    pub const MIN: Self = Self(1);
     pub const DEFAULT: Self = Self(100);
 
     pub fn is_zero(&self) -> bool {

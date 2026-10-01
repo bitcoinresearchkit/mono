@@ -36,7 +36,7 @@ mod stores;
 mod test_support;
 
 pub use api::{BlockTemplateSource, RbfForTx, RbfNode, ResolvedBlockTemplateDiff};
-pub use cycle::{AddedKind, Cycle, TxAdded, TxRemoved};
+pub use cycle::{Cycle, TxAdded, TxRemoved};
 pub use diagnostics::MempoolStats;
 pub use read_only::ReadOnlyMempool;
 pub use snapshot::Snapshot;
@@ -78,7 +78,7 @@ impl Mempool {
     }
 
     /// Working-cycle counters, for the update owner and CLI.
-    pub fn stats(&self) -> MempoolStats {
+    fn stats(&self) -> MempoolStats {
         MempoolStats::from(self)
     }
 }

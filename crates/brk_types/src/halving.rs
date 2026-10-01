@@ -100,10 +100,10 @@ impl Div<usize> for Halving {
 }
 
 impl Halving {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "halving"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["halving", "halvingepoch", "halv"]
     }
 }

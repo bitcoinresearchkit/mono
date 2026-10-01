@@ -102,10 +102,10 @@ impl VecdbCheckedSub<P2WSHAddrIndex> for P2WSHAddrIndex {
 }
 
 impl P2WSHAddrIndex {
-    pub fn index_name() -> &'static str {
+    pub(crate) fn index_name() -> &'static str {
         "p2wsh_addr_index"
     }
-    pub fn index_aliases() -> &'static [&'static str] {
+    pub(crate) fn index_aliases() -> &'static [&'static str] {
         &["wshaddr", "p2wshaddr", "p2wsh_addr_index"]
     }
 }

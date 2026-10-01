@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::state::{Accumulate, CostBasisData, PendingDelta, RealizedOps, UnrealizedState};
+use crate::state::{Accumulate, CostBasisData, RealizedOps, UnrealizedState};
 use brk_types::{Cents, CentsCompact, Sats};
 use derive_more::{Deref, DerefMut};
 
@@ -21,10 +21,6 @@ impl<R: RealizedOps, S: Accumulate> MappedUTXOCohortState<R, S> {
 
     pub fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
         self.cost_basis.compute_unrealized_state(height_price)
-    }
-
-    pub fn for_each_cost_basis_pending(&self, f: impl FnMut(&CentsCompact, &PendingDelta)) {
-        self.cost_basis.for_each_pending(f);
     }
 
     pub fn cost_basis_map(&self) -> &BTreeMap<CentsCompact, Sats> {
