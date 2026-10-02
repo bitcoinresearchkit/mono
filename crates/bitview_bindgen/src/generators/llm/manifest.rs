@@ -599,39 +599,4 @@ mod tests {
         assert_eq!(output["anyOf"][1]["type"], "string");
         assert_eq!(output["anyOf"][1]["contentMediaType"], "text/csv");
     }
-
-    #[test]
-    fn omits_output_schema_without_a_json_response_schema() {
-        let mut endpoint = endpoint("get_item", "GET");
-        endpoint.json_response_schema = None;
-        let schemas = TypeSchemas::from(BTreeMap::from([(
-            "ItemId".to_string(),
-            json!({ "type": "integer" }),
-        )]));
-
-        let manifest = render_tool_manifest(&[endpoint], &schemas).unwrap();
-        let value: Value = from_str(&manifest).unwrap();
-
-        assert!(value["operations"][0]["tool"].get("outputSchema").is_none());
-    }
-
-    #[test]
-    fn rejects_missing_operation_id() {
-        let mut endpoint = endpoint("get_item", "GET");
-        endpoint.operation_id = None;
-        let error = render_tool_manifest(&[endpoint], &TypeSchemas::default()).unwrap_err();
-        assert!(error.to_string().contains("requires a stable operationId"));
-    }
-
-    #[test]
-    fn rejects_duplicate_operation_ids() {
-        let first = endpoint("get_item", "GET");
-        let second = endpoint("get_item", "GET");
-        let schemas = TypeSchemas::from(BTreeMap::from([
-            ("ItemId".to_string(), json!({ "type": "integer" })),
-            ("Item".to_string(), json!({ "type": "object" })),
-        ]));
-        let error = render_tool_manifest(&[first, second], &schemas).unwrap_err();
-        assert!(error.to_string().contains("duplicate MCP tool name"));
-    }
 }

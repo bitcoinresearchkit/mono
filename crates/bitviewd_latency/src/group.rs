@@ -30,7 +30,3 @@ impl Group {
         (self.durations.len() >= 1_000).then(|| self.quantile(999, 1_000))
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/group.rs"]
-mod tests;

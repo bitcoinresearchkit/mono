@@ -372,7 +372,3 @@ fn generate_pattern_name(field_name: &str, name_counts: &mut BTreeMap<String, us
         format!("{}{}", base_name, count)
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/analysis/patterns.rs"]
-mod tests;

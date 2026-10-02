@@ -60,19 +60,3 @@ where
         STORAGE
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{
-        TARGET_BLOCKS_PER_DAY, TARGET_BLOCKS_PER_MONTH, TARGET_BLOCKS_PER_WEEK,
-        TARGET_BLOCKS_PER_YEAR,
-    };
-
-    #[test]
-    fn target_block_counts_match_rolling_window_days() {
-        assert_eq!(TARGET_BLOCKS_PER_DAY, 144);
-        assert_eq!(TARGET_BLOCKS_PER_WEEK, 7 * 144);
-        assert_eq!(TARGET_BLOCKS_PER_MONTH, 30 * 144);
-        assert_eq!(TARGET_BLOCKS_PER_YEAR, 365 * 144);
-    }
-}

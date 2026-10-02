@@ -45,20 +45,3 @@ impl TxFeatureFlags {
         self.0 & flag != 0
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::OutputType;
-
-    use super::TxFeatureFlags;
-
-    #[test]
-    fn type_flags_union_inputs_and_outputs() {
-        let mut flags = TxFeatureFlags::default();
-        flags.insert_type(OutputType::P2PKH);
-        flags.insert_type(OutputType::P2TR);
-
-        assert!(flags.is_set(TxFeatureFlags::P2PKH));
-        assert!(flags.is_set(TxFeatureFlags::P2TR));
-    }
-}

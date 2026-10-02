@@ -37,7 +37,7 @@ pub struct QuickMatch<'a> {
     max_word_len: usize,
     max_query_len: usize,
     word_index: FxHashMap<String, Vec<ItemId>>,
-    trigram_index: FxHashMap<[char; 3], Vec<ItemId>>,
+    trigram_index: FxHashMap<[u8; 3], Vec<ItemId>>,
 }
 
 impl<'a> QuickMatch<'a> {
@@ -62,7 +62,7 @@ impl<'a> QuickMatch<'a> {
         );
 
         let mut word_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
-        let mut trigram_index: FxHashMap<[char; 3], Vec<ItemId>> = FxHashMap::default();
+        let mut trigram_index: FxHashMap<[u8; 3], Vec<ItemId>> = FxHashMap::default();
         let mut max_word_len = 0;
         let mut max_query_len = 0;
         let mut max_words = 0;
@@ -82,9 +82,9 @@ impl<'a> QuickMatch<'a> {
                     Self::insert_word(&mut word_index, &word[..len], id);
                 }
 
-                let mut chars = word.chars();
-                if let (Some(mut a), Some(mut b)) = (chars.next(), chars.next()) {
-                    for c in chars {
+                let mut bytes = word.bytes();
+                if let (Some(mut a), Some(mut b)) = (bytes.next(), bytes.next()) {
+                    for c in bytes {
                         let items = trigram_index.entry([a, b, c]).or_default();
                         if items.last() != Some(&id) {
                             items.push(id);
@@ -245,22 +245,17 @@ impl<'a> QuickMatch<'a> {
             } else {
                 Self::intersect_lists(&known_lists).unwrap_or_default()
             };
-            return self
-                .rank::<BEST_ONLY, true>(
-                    candidates
-                        .into_iter()
-                        .filter(|id| {
-                            let matched = word_match(self.item(*id), &query_words, &sep, true).0;
-                            matched > 0 && (config.union_fallback() || matched == query_words.len())
-                        })
-                        .map(|id| (id, 0)),
-                    &query_words,
-                    &sep,
-                    limit,
-                )
-                .into_iter()
-                .map(|(id, matched)| (id.0, matched))
-                .collect();
+            return self.rank::<BEST_ONLY, true>(
+                candidates.into_iter().map(|id| (id, 0)),
+                &query_words,
+                &sep,
+                limit,
+                if config.union_fallback() {
+                    1
+                } else {
+                    query_words.len()
+                },
+            );
         }
 
         let pool = Self::intersect_lists(&known_lists);
@@ -309,16 +304,13 @@ impl<'a> QuickMatch<'a> {
                 let mut lists = known_lists.clone();
                 lists.extend(corrections.iter().map(Vec::as_slice));
                 if let Some(candidates) = Self::intersect_lists(&lists) {
-                    return self
-                        .rank::<BEST_ONLY, false>(
-                            candidates.into_iter().map(|id| (id, 0)),
-                            &query_words,
-                            &sep,
-                            limit,
-                        )
-                        .into_iter()
-                        .map(|(id, matched)| (id.0, matched))
-                        .collect();
+                    return self.rank::<BEST_ONLY, false>(
+                        candidates.into_iter().map(|id| (id, 0)),
+                        &query_words,
+                        &sep,
+                        limit,
+                        0,
+                    );
                 }
             }
         }
@@ -334,13 +326,11 @@ impl<'a> QuickMatch<'a> {
                 &query_words,
                 &sep,
                 limit,
+                0,
             );
 
             if !results.is_empty() {
-                return results
-                    .into_iter()
-                    .map(|(id, matched)| (id.0, matched))
-                    .collect();
+                return results;
             }
         }
 
@@ -357,10 +347,8 @@ impl<'a> QuickMatch<'a> {
             &query_words,
             &sep,
             limit,
+            0,
         )
-        .into_iter()
-        .map(|(id, matched)| (id.0, matched))
-        .collect()
     }
 
     /// Intersection of all posting lists, or `None` when there are no lists or
@@ -402,16 +390,19 @@ impl<'a> QuickMatch<'a> {
         query_words: &[&str],
         sep: &[bool; 256],
         limit: usize,
-    ) -> Vec<(ItemId, u32)> {
+        min_matched: usize,
+    ) -> Vec<(u32, u32)> {
+        let candidates = candidates.into_iter().filter_map(|(item, fuzzy)| {
+            let (matched, position) = word_match(self.item(item), query_words, sep, EXACT_WORDS);
+            (matched >= min_matched).then_some((item, fuzzy, matched, position))
+        });
         if BEST_ONLY {
-            return self.rank_best::<EXACT_WORDS>(candidates, query_words, sep, limit);
+            return self.rank_best(candidates, limit);
         }
 
         let mut buckets: Vec<Vec<RankedItem>> = vec![vec![]; query_words.len() + 1];
 
-        for (item, fuzzy) in candidates {
-            let s = self.item(item);
-            let (matched, position) = word_match(s, query_words, sep, EXACT_WORDS);
+        for (item, fuzzy, matched, position) in candidates {
             buckets[matched].push((item, fuzzy, position, self.item_rank[item.0 as usize]));
         }
 
@@ -422,7 +413,11 @@ impl<'a> QuickMatch<'a> {
             }
             let take = (limit - results.len()).min(bucket.len());
             select_and_sort(bucket, take);
-            results.extend(bucket[..take].iter().map(|&(id, ..)| (id, matched as u32)));
+            results.extend(
+                bucket[..take]
+                    .iter()
+                    .map(|&(id, ..)| (id.0, matched as u32)),
+            );
             if results.len() >= limit {
                 break;
             }
@@ -431,20 +426,15 @@ impl<'a> QuickMatch<'a> {
         results
     }
 
-    fn rank_best<const EXACT_WORDS: bool>(
+    fn rank_best(
         &self,
-        candidates: impl IntoIterator<Item = (ItemId, usize)>,
-        query_words: &[&str],
-        sep: &[bool; 256],
+        candidates: impl Iterator<Item = (ItemId, usize, usize, usize)>,
         limit: usize,
-    ) -> Vec<(ItemId, u32)> {
-        let candidates = candidates.into_iter();
+    ) -> Vec<(u32, u32)> {
         let mut best_matched = 0;
         let mut bucket = Vec::with_capacity(candidates.size_hint().1.unwrap_or(0).min(limit));
 
-        for (item, fuzzy) in candidates {
-            let s = self.item(item);
-            let (matched, position) = word_match(s, query_words, sep, EXACT_WORDS);
+        for (item, fuzzy, matched, position) in candidates {
             if matched < best_matched {
                 continue;
             }
@@ -460,7 +450,7 @@ impl<'a> QuickMatch<'a> {
         bucket
             .into_iter()
             .take(take)
-            .map(|(id, ..)| (id, best_matched as u32))
+            .map(|(id, ..)| (id.0, best_matched as u32))
             .collect()
     }
 
@@ -490,7 +480,7 @@ impl<'a> QuickMatch<'a> {
 
         let mut budget = trigram_budget;
         let mut hit_count = 0;
-        let mut visited: FxHashSet<[char; 3]> = FxHashSet::default();
+        let mut visited: FxHashSet<[u8; 3]> = FxHashSet::default();
 
         'outer: for round in 0..trigram_budget {
             for word in unknown_words {
@@ -502,11 +492,7 @@ impl<'a> QuickMatch<'a> {
                 let Some(pos) = trigram_position(bytes.len(), round) else {
                     continue;
                 };
-                let trigram = [
-                    bytes[pos] as char,
-                    bytes[pos + 1] as char,
-                    bytes[pos + 2] as char,
-                ];
+                let trigram = [bytes[pos], bytes[pos + 1], bytes[pos + 2]];
 
                 if !visited.insert(trigram) {
                     continue;
@@ -583,10 +569,9 @@ fn words<'s>(text: &'s str, sep: &'s [bool; 256]) -> impl Iterator<Item = &'s st
     })
 }
 
-/// Aligns the query words against the item's words, in order:
-/// - `matched`: query words matched as an in-order subsequence of item words
-/// - `position`: index of the item word where that run starts (or the item's
-///   word count when nothing matched)
+/// Matches query words in any order against item words or adjacent joined pairs.
+/// Returns the matched count and earliest item position, or the item's word
+/// count when nothing matches.
 fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) -> (usize, usize) {
     let mut matched = 0;
     let mut first_position = words(item, sep).count();

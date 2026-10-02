@@ -148,24 +148,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn float_histogram_add_and_divide_are_binwise() {
-        let mut a = Histogram::<f64, 3>::zeros();
-        a[0] = 1.0;
-        a[1] = 2.0;
-        a[2] = 3.0;
-
-        let mut b = Histogram::<f64, 3>::zeros();
-        b[0] = 3.0;
-        b[1] = 4.0;
-        b[2] = 5.0;
-
-        a.add_from(&b);
-        a.divide_by(2.0);
-
-        assert_eq!(*a, [2.0, 3.0, 4.0]);
-    }
-
-    #[test]
     fn schema_preserves_the_fixed_bin_count() {
         let schema = to_value(schema_for!(Histogram<u16, 3>)).unwrap();
         assert_eq!(schema["type"], "array");

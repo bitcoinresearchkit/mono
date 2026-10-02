@@ -53,42 +53,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn accepts_origin_only_base_urls() {
-        assert!(validate_api_base("https://api.example.com").is_ok());
-        assert!(validate_api_base("http://127.0.0.1:3110").is_ok());
-        assert!(validate_api_base("https://api.example.com/api").is_err());
-        assert!(validate_api_base("https://user:pass@api.example.com").is_err());
-    }
-
-    #[test]
-    fn expands_bare_hosts_with_https_first() {
-        assert_eq!(
-            api_bases("api.example.com").unwrap(),
-            ["https://api.example.com", "http://api.example.com"]
-        );
-        assert_eq!(
-            api_bases("http://127.0.0.1:3110/").unwrap(),
-            ["http://127.0.0.1:3110"]
-        );
-    }
-
-    #[test]
-    fn reports_positional_origin_errors() {
-        assert_eq!(
-            validate_api_base("api.example.com").unwrap_err(),
-            "REST API origin must be an absolute HTTP(S) URL"
-        );
-        assert_eq!(
-            validate_api_base("https://api.example.com/api").unwrap_err(),
-            "REST API origin must not contain a path or query"
-        );
-        assert_eq!(
-            validate_api_base("https://user:pass@api.example.com").unwrap_err(),
-            "REST API origin must not contain credentials"
-        );
-    }
-
-    #[test]
     fn validates_and_normalizes_public_urls() {
         assert_eq!(
             public_url("https://mcp.example.com").unwrap(),

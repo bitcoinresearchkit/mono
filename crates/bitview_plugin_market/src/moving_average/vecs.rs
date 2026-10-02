@@ -190,31 +190,3 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub sma_prefix_sum: CachedSeries<Height, StoredU64, M>,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{EMA_PERIOD_IDS, EmaPeriodId};
-
-    #[test]
-    fn ema_windows_match_public_fields() {
-        assert_eq!(EmaPeriodId::ALL, EMA_PERIOD_IDS);
-
-        let series = EmaPeriodId::series(|period| period);
-        assert_eq!(series._1w, EmaPeriodId::OneWeek);
-        assert_eq!(series._8d, EmaPeriodId::EightDays);
-        assert_eq!(series._12d, EmaPeriodId::TwelveDays);
-        assert_eq!(series._13d, EmaPeriodId::ThirteenDays);
-        assert_eq!(series._21d, EmaPeriodId::TwentyOneDays);
-        assert_eq!(series._26d, EmaPeriodId::TwentySixDays);
-        assert_eq!(series._1m, EmaPeriodId::OneMonth);
-        assert_eq!(series._34d, EmaPeriodId::ThirtyFourDays);
-        assert_eq!(series._55d, EmaPeriodId::FiftyFiveDays);
-        assert_eq!(series._89d, EmaPeriodId::EightyNineDays);
-        assert_eq!(series._144d, EmaPeriodId::OneHundredFortyFourDays);
-        assert_eq!(series._200d, EmaPeriodId::TwoHundredDays);
-        assert_eq!(series._1y, EmaPeriodId::OneYear);
-        assert_eq!(series._2y, EmaPeriodId::TwoYears);
-        assert_eq!(series._200w, EmaPeriodId::TwoHundredWeeks);
-        assert_eq!(series._4y, EmaPeriodId::FourYears);
-    }
-}

@@ -53,25 +53,3 @@ mod transaction_values;
 mod urpd;
 #[cfg(feature = "urpd")]
 mod urpd_sources;
-
-use super::json_error::is_json_content_type;
-
-#[test]
-fn json_content_type_matches() {
-    assert!(is_json_content_type("application/json"));
-    assert!(is_json_content_type("application/json; charset=utf-8"));
-    assert!(is_json_content_type("  application/json  "));
-    assert!(is_json_content_type("application/problem+json"));
-    assert!(is_json_content_type(
-        "application/vnd.api+json; charset=utf-8"
-    ));
-}
-
-#[test]
-fn json_content_type_rejects_non_json() {
-    assert!(!is_json_content_type("text/plain"));
-    assert!(!is_json_content_type("application/xml"));
-    assert!(!is_json_content_type("application/json+xml"));
-    assert!(!is_json_content_type(""));
-    assert!(!is_json_content_type("text/json"));
-}

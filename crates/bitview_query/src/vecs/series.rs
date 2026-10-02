@@ -1,14 +1,17 @@
+use std::sync::Arc;
+
 use brk_types::Index;
 
 use super::SeriesEntry;
 
 #[derive(Default)]
-pub struct IndexToVec<'a> {
+pub(super) struct Series<'a> {
     entries: Vec<SeriesEntry<'a>>,
+    pub(super) description: Option<Arc<str>>,
 }
 
-impl<'a> IndexToVec<'a> {
-    pub fn insert(&mut self, entry: SeriesEntry<'a>) -> Option<SeriesEntry<'a>> {
+impl<'a> Series<'a> {
+    pub(super) fn insert(&mut self, entry: SeriesEntry<'a>) -> Option<SeriesEntry<'a>> {
         match self
             .entries
             .binary_search_by_key(&entry.index(), |entry| entry.index())
@@ -25,18 +28,18 @@ impl<'a> IndexToVec<'a> {
         }
     }
 
-    pub fn get(&self, index: Index) -> Option<&SeriesEntry<'a>> {
+    pub(super) fn get(&self, index: Index) -> Option<&SeriesEntry<'a>> {
         self.entries
             .binary_search_by_key(&index, |entry| entry.index())
             .ok()
             .map(|position| &self.entries[position])
     }
 
-    pub fn indexes(&self) -> impl Iterator<Item = Index> + '_ {
+    pub(super) fn indexes(&self) -> impl Iterator<Item = Index> + '_ {
         self.entries.iter().map(|entry| entry.index())
     }
 
-    pub fn first(&self) -> Option<&SeriesEntry<'a>> {
+    pub(super) fn first(&self) -> Option<&SeriesEntry<'a>> {
         self.entries.first()
     }
 }

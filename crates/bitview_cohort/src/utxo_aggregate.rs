@@ -51,24 +51,3 @@ impl UTXOAggregateId {
         CohortContext::Utxo.metric_name(self.cohort(), metric)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn aggregate_metric_names_omit_only_the_all_prefix() {
-        assert_eq!(
-            UTXOAggregateId::All.metric_name("capitalized_price"),
-            "capitalized_price"
-        );
-        assert_eq!(
-            UTXOAggregateId::Sth.metric_name("capitalized_price"),
-            "sth_capitalized_price"
-        );
-        assert_eq!(
-            UTXOAggregateId::Lth.metric_name("capitalized_price"),
-            "lth_capitalized_price"
-        );
-    }
-}

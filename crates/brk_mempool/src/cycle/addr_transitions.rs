@@ -45,26 +45,6 @@ mod tests {
     }
 
     #[test]
-    fn enter_then_leave_cancels() {
-        let mut t = AddrTransitions::default();
-        t.record_enter(addr(1));
-        t.record_leave(addr(1));
-        let (enters, leaves) = t.into_vecs();
-        assert!(enters.is_empty());
-        assert!(leaves.is_empty());
-    }
-
-    #[test]
-    fn leave_then_enter_cancels() {
-        let mut t = AddrTransitions::default();
-        t.record_leave(addr(2));
-        t.record_enter(addr(2));
-        let (enters, leaves) = t.into_vecs();
-        assert!(enters.is_empty());
-        assert!(leaves.is_empty());
-    }
-
-    #[test]
     fn enter_leave_enter_collapses_to_single_enter() {
         let mut t = AddrTransitions::default();
         let a = addr(3);

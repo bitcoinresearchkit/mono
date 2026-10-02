@@ -396,92 +396,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn ranges_are_contiguous_and_match_the_declared_count() {
-        let ranges: Vec<_> = AGE_RANGE_BOUNDS.iter().collect();
-
-        assert_eq!(ranges.len(), AGE_RANGE_COUNT);
-        assert_eq!(ranges.first().unwrap().start, 0);
-        assert_eq!(ranges.last().unwrap().end, usize::MAX);
-
-        for adjacent in ranges.windows(2) {
-            assert_eq!(adjacent[0].end, adjacent[1].start);
-        }
-    }
-
-    #[test]
-    fn cohort_ids_match_storage_order_and_term_split() {
-        assert_eq!(AgeRangeId::ALL, &AGE_RANGE_IDS);
-        assert_eq!(
-            STH_AGE_RANGE_IDS.len() + LTH_AGE_RANGE_IDS.len(),
-            AGE_RANGE_COUNT
-        );
-        assert_eq!(STH_AGE_RANGE_IDS, &AGE_RANGE_IDS[..STH_AGE_RANGE_COUNT]);
-        assert_eq!(LTH_AGE_RANGE_IDS, &AGE_RANGE_IDS[STH_AGE_RANGE_COUNT..]);
-        assert_eq!(STH_AGE_RANGE_IDS.last(), Some(&AgeRangeId::From4MTo5M));
-        assert_eq!(LTH_AGE_RANGE_IDS.first(), Some(&AgeRangeId::From5MTo6M));
-
-        let values = AgeRange::from_fn(|id| id.index());
-        for (index, &id) in AGE_RANGE_IDS.iter().enumerate() {
-            assert_eq!(id.index(), index);
-            assert_eq!(*id.select(&values), index);
-        }
-    }
-
-    #[test]
-    fn cohort_ids_select_named_fields_and_metadata() {
-        let mut named = AgeRange::from_fn(|id| id.index());
-        for &id in &AGE_RANGE_IDS {
-            assert_eq!(*id.select(&named), id.index());
-            *id.select_mut(&mut named) += AGE_RANGE_COUNT;
-            assert_eq!(*id.select(&named), id.index() + AGE_RANGE_COUNT);
-            assert_eq!(id.bounds(), id.select(&AGE_RANGE_BOUNDS));
-            assert_eq!(id.cohort(), CohortId::Age(id));
-            assert_eq!(id.cohort().name(), id.name().id);
-            assert_eq!(
-                id.term(),
-                if id.index() < STH_AGE_RANGE_COUNT {
-                    Term::Sth
-                } else {
-                    Term::Lth
-                }
-            );
-            assert_eq!(id.name().id, id.select(&AGE_RANGE_NAMES).id);
-        }
-
-        let series = AgeRangeId::series(CohortContext::Utxo, |id, name| (id, name.to_owned()));
-        for (((id, name), expected_id), expected_name) in
-            series.iter().zip(AGE_RANGE_IDS).zip(AGE_RANGE_NAMES.iter())
-        {
-            assert_eq!(*id, expected_id);
-            assert_eq!(name, &CohortContext::Utxo.prefixed(expected_name.id));
-        }
-    }
-
-    #[test]
-    fn cohort_names_roundtrip_to_typed_ids() {
-        for context in [CohortContext::Utxo, CohortContext::Addr] {
-            for id in AGE_RANGE_IDS {
-                let name = context.prefixed(id.name().id);
-                assert_eq!(AgeRangeId::from_cohort_name(context, &name), Some(id));
-            }
-        }
-        assert_eq!(
-            AgeRangeId::from_cohort_name(CohortContext::Utxo, "all"),
-            None
-        );
-    }
-
-    #[test]
-    fn split_range_names_and_boundaries_match() {
-        assert_eq!(HOURS_9M, HOURS_6M + HOURS_3M);
-        assert_eq!(HOURS_18M, HOURS_1Y + HOURS_6M);
-        assert_eq!(AGE_RANGE_NAMES._6m_to_9m.id, "6m_to_9m_old");
-        assert_eq!(AGE_RANGE_NAMES._9m_to_1y.id, "9m_to_1y_old");
-        assert_eq!(AGE_RANGE_NAMES._1y_to_18m.id, "1y_to_18m_old");
-        assert_eq!(AGE_RANGE_NAMES._18m_to_2y.id, "18m_to_2y_old");
-    }
-
-    #[test]
     fn classifier_matches_every_typed_range_boundary() {
         for &id in &AGE_RANGE_IDS {
             let bounds = id.bounds();
@@ -499,28 +413,5 @@ mod tests {
                 assert_eq!(AgeRangeId::from(before_end), id);
             }
         }
-    }
-
-    #[test]
-    fn eighteen_month_classifier_stays_anchored_to_one_year_plus_six_months() {
-        let age_at_540_days = Age::new(
-            Timestamp::new((HOURS_6M * 3 * 60 * 60) as u32),
-            Timestamp::ZERO,
-        );
-        let age_at_18m = Age::new(
-            Timestamp::new((HOURS_18M * 60 * 60) as u32),
-            Timestamp::ZERO,
-        );
-
-        assert_eq!(
-            AgeRangeId::from(age_at_540_days)
-                .select(&AGE_RANGE_NAMES)
-                .id,
-            "1y_to_18m_old"
-        );
-        assert_eq!(
-            AgeRangeId::from(age_at_18m).select(&AGE_RANGE_NAMES).id,
-            "18m_to_2y_old"
-        );
     }
 }

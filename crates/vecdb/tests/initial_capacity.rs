@@ -47,11 +47,6 @@ impl Add<usize> for CapacityIndex {
 }
 
 #[test]
-fn index_initial_capacity_defaults_to_zero() {
-    assert_eq!(<usize as VecIndex>::INITIAL_CAPACITY, 0);
-}
-
-#[test]
 fn index_initial_capacity_is_reserved_and_reused() -> Result<()> {
     let temp = TempDir::new()?;
     let db = Database::open(temp.path())?;

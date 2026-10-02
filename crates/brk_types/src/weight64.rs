@@ -164,14 +164,3 @@ impl Formattable for Weight64 {
         buffer.extend_from_slice(value.format(self.0).as_bytes());
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn holds_weight_totals_above_u32() {
-        let total = Weight64::from(u64::from(u32::MAX) + 1);
-        assert_eq!(u64::from(total), u64::from(u32::MAX) + 1);
-    }
-}

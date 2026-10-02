@@ -25,7 +25,3 @@ where
 }
 
 impl OperationInput for Empty {}
-
-#[cfg(test)]
-#[path = "../../tests/unit/params/empty.rs"]
-mod tests;

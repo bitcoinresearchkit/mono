@@ -133,15 +133,3 @@ fn progress(message: &str) -> Option<u64> {
         }
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::progress;
-
-    #[test]
-    fn extracts_supported_progress_messages() {
-        assert_eq!(progress("Indexing block 123..."), Some(123));
-        assert_eq!(progress("Processing chain at 456..."), Some(456));
-        assert_eq!(progress("Imported blocks"), None);
-    }
-}

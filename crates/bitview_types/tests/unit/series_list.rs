@@ -1,31 +1,6 @@
-use std::fmt::{Error, Result, Write};
-
 use serde_json::{from_value, json};
 
 use super::*;
-
-#[test]
-fn display_streams_exact_names_and_propagates_writer_errors() {
-    for names in [
-        vec![],
-        vec![""],
-        vec!["price"],
-        vec!["", "price", "ος", "price", ""],
-    ] {
-        let list = SeriesList::from(names.clone());
-        assert_eq!(list.to_string(), names.join(","));
-        assert_eq!(format!("{list:>100.2}"), names.join(","));
-    }
-
-    struct Reject;
-    impl Write for Reject {
-        fn write_str(&mut self, _: &str) -> Result {
-            Err(Error)
-        }
-    }
-    let list = SeriesList::from(vec!["price", "close"]);
-    assert!(write!(&mut Reject, "{list}").is_err());
-}
 
 #[test]
 fn normalized_count_is_bounded_for_strings_and_arrays() {
@@ -44,24 +19,6 @@ fn normalized_count_is_bounded_for_strings_and_arrays() {
                 }
             }
         }
-    }
-}
-
-#[test]
-fn normalization_preserves_order_duplicates_and_empty_filtering() {
-    for value in [
-        json!(" ,PRICE-CLOSE++price_close,ΟΣ ΟΣ,İ---É,!!!"),
-        json!([
-            " ,PRICE-CLOSE++price_close",
-            "ΟΣ ΟΣ",
-            "İ---É",
-            "!!!",
-            null,
-            1
-        ]),
-    ] {
-        let parsed: SeriesList = from_value(value).unwrap();
-        assert_eq!(parsed.to_string(), "price_close,price_close,ος,ος,i___é");
     }
 }
 

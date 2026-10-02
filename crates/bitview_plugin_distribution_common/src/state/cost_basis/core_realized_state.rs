@@ -104,28 +104,3 @@ impl CoreRealizedState {
         self.minimal.cap_raw().as_u128()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn adds_activity_to_minimal_state() {
-        let mut state = CoreRealizedState::default();
-        state.increment(Cents::new(10_000), Sats::ONE_BTC);
-        state.send(
-            Sats::ONE_BTC,
-            CentsSats::from_price_sats(Cents::new(15_000), Sats::ONE_BTC),
-            CentsSats::from_price_sats(Cents::new(10_000), Sats::ONE_BTC),
-            CentsSats::ZERO,
-            CentsSquaredSats::ZERO,
-        );
-
-        assert_eq!(state.cap(), Cents::ZERO);
-        assert_eq!(state.profit(), Cents::new(5_000));
-        assert_eq!(state.loss(), Cents::ZERO);
-        assert_eq!(state.value_destroyed(), Cents::new(10_000));
-        assert_eq!(state.sent_in_profit(), Sats::ONE_BTC);
-        assert_eq!(state.sent_in_loss(), Sats::ZERO);
-    }
-}

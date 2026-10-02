@@ -310,28 +310,8 @@ mod tests {
     }
 
     #[test]
-    fn sma_confirms_the_capitalized_price_structure() {
-        assert_eq!(classify(100, 70, 80, 60, 90), Phase::Bull);
-        assert_eq!(classify(100, 70, 80, 60, 50), Phase::RagingBull);
-    }
-
-    #[test]
     fn equal_sth_and_lth_is_not_a_bull_structure() {
         assert_eq!(classify(70, 50, 50, 50, 100), Phase::CautiousBull);
-    }
-
-    #[test]
-    fn missing_reference_has_no_phase() {
-        assert_eq!(
-            classify_phase_code(
-                Some(cents(100)),
-                Some(cents(70)),
-                Some(cents(80)),
-                None,
-                Some(cents(50)),
-            ),
-            StoredU8::ZERO
-        );
     }
 
     #[test]

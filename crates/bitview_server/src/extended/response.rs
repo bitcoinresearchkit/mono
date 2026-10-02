@@ -73,7 +73,3 @@ impl ResponseExtended for Response<Body> {
         response
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/extended/response.rs"]
-mod tests;

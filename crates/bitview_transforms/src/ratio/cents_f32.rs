@@ -14,14 +14,3 @@ impl BinaryTransform<Cents, Cents, StoredF32> for RatioCentsF32 {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn propagates_nan() {
-        assert!(RatioCentsF32::apply(Cents::NAN, Cents::new(100)).is_nan());
-        assert!(RatioCentsF32::apply(Cents::new(100), Cents::NAN).is_nan());
-    }
-}

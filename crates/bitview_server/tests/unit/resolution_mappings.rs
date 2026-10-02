@@ -187,13 +187,13 @@ fn resident_resolution_mappings_preserve_last_values_through_append_and_reorg() 
                 "cointime_urpd_all_capitalized_price_cents",
                 "utxos_urpd_under_4m_cost_basis_min_cents",
                 "utxos_urpd_under_4m_cost_basis_max_cents",
-                "utxos_urpd_under_5m_cost_basis_min_cents",
-                "utxos_urpd_under_5m_cost_basis_max_cents",
+                "utxos_urpd_sth_cost_basis_min_cents",
+                "utxos_urpd_sth_cost_basis_max_cents",
                 "utxos_urpd_under_6m_cost_basis_min_cents",
                 "utxos_urpd_under_6m_cost_basis_max_cents",
             ] {
                 let daily = data(fixture.address, metric, "day1").await;
-                if metric.starts_with("utxos_urpd_under_") {
+                if metric.starts_with("utxos_urpd_") {
                     // This pre-market fixture has occupied zero-price buckets,
                     // including on the current partial day after each reorg.
                     assert_eq!(daily.last(), Some(&json!(0)), "{metric} branch={branch}");

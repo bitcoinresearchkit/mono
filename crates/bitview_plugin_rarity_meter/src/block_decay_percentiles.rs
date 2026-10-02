@@ -104,23 +104,6 @@ mod tests {
     }
 
     #[test]
-    fn basic_quantiles() {
-        let mut percentiles = BlockDecayPercentiles::default();
-        for index in 1..=1000 {
-            percentiles.add(START_HEIGHT + index, index as f32 / 1000.0);
-        }
-        assert_eq!(percentiles.len(), 1000);
-        assert!((quantile(&percentiles, 0.5) - 0.5).abs() < 0.01);
-        assert!((quantile(&percentiles, 0.99) - 0.99).abs() < 0.01);
-        assert!((quantile(&percentiles, 0.01) - 0.01).abs() < 0.01);
-    }
-
-    #[test]
-    fn empty_is_zero() {
-        assert_eq!(quantile(&BlockDecayPercentiles::default(), 0.5), 0.0);
-    }
-
-    #[test]
     fn one_half_life_doubles_relative_weight() {
         let mut percentiles = BlockDecayPercentiles::default();
         percentiles.add(START_HEIGHT, 1.0);

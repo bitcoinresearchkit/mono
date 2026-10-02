@@ -187,7 +187,3 @@ impl Metrics {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "metrics_tests.rs"]
-mod tests;

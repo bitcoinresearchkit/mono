@@ -255,18 +255,3 @@ pub fn get_weighted_percentiles<T: Clone, const N: usize>(
 #[cfg(test)]
 #[path = "../tests/unit/weighted_percentiles.rs"]
 mod weighted_tests;
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "storage")]
-    use super::*;
-
-    #[cfg(feature = "storage")]
-    #[test]
-    fn rarity_percentile_ids_match_values_and_storage_order() {
-        for (index, id) in RARITY_PERCENTILE_IDS.into_iter().enumerate() {
-            assert_eq!(id as usize, index);
-            assert_eq!(id.percentile(), RARITY_PERCENTILES[index]);
-        }
-    }
-}

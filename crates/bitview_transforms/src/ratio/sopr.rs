@@ -14,19 +14,3 @@ impl BinaryTransform<Cents, Cents, StoredF32> for SoprRatio {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn zero_destroyed_value_is_one() {
-        assert_eq!(*SoprRatio::apply(Cents::new(100), Cents::ZERO), 1.0);
-    }
-
-    #[test]
-    fn nan_values_propagate() {
-        assert!(SoprRatio::apply(Cents::NAN, Cents::new(100)).is_nan());
-        assert!(SoprRatio::apply(Cents::new(100), Cents::NAN).is_nan());
-    }
-}

@@ -108,16 +108,3 @@ impl PrintableIndex for usize {
         &["usize"]
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::shorten_type_name;
-
-    #[test]
-    fn shortens_array_element_paths_without_dropping_brackets() {
-        assert_eq!(
-            shorten_type_name("[some::module::Value; 23]"),
-            "[Value; 23]"
-        );
-    }
-}

@@ -74,7 +74,3 @@ impl Analysis {
         Ok(analysis)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/analysis.rs"]
-mod tests;

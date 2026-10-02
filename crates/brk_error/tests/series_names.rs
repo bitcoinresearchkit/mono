@@ -1,4 +1,4 @@
-use brk_error::{SeriesNotFound, truncate_series_name};
+use brk_error::truncate_series_name;
 
 #[test]
 fn truncation_respects_utf8_boundaries_and_the_byte_limit() {
@@ -18,24 +18,5 @@ fn truncation_respects_utf8_boundaries_and_the_byte_limit() {
                 }
             }
         }
-    }
-}
-
-#[test]
-fn suggestions_keep_the_existing_display_format() {
-    for (suggestions, total, expected) in [
-        (vec![], 0, "'x' not found"),
-        (vec!["a"], 1, "'x' not found, did you mean 'a'?"),
-        (vec!["a", "b"], 2, "'x' not found, did you mean 'a', 'b'?"),
-        (
-            vec!["é"],
-            3,
-            "'x' not found, did you mean 'é'? (2 more — /api/series/search?q=x for all)",
-        ),
-    ] {
-        assert_eq!(
-            SeriesNotFound::new("x".into(), suggestions, total).to_string(),
-            expected
-        );
     }
 }

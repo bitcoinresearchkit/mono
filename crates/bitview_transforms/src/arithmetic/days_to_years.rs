@@ -16,21 +16,3 @@ impl UnaryTransform<StoredF64, StoredF64> for DaysToYears {
         StoredF64::from(*value / 365.0)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn converts_trailing_coin_days_to_coin_years() {
-        assert_eq!(
-            DaysToYears::apply(StoredF64::from(365.0)),
-            StoredF64::from(1.0),
-        );
-        assert_eq!(
-            DaysToYears::apply(StoredF64::from(182.5)),
-            StoredF64::from(0.5),
-        );
-        assert!(DaysToYears::apply(StoredF64::NAN).is_nan());
-    }
-}

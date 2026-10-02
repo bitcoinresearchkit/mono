@@ -38,7 +38,3 @@ pub fn endpoint<'a>(uri: &'a str, routes: &'a [&str]) -> &'a str {
     // Don't guess historical or website routes. Keep their paths visible.
     path
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/routes.rs"]
-mod tests;

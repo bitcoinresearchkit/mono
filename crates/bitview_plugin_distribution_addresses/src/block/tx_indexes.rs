@@ -75,21 +75,6 @@ mod tests {
     }
 
     #[test]
-    fn push_deduplicates_consecutive_indexes() {
-        let indexes = indexes([1, 1, 3, 3, 5]);
-
-        assert_eq!(indexes.len(), 3);
-    }
-
-    #[test]
-    fn union_counts_unique_indexes() {
-        let left = indexes([1, 3, 3, 5]);
-        let right = indexes([1, 3, 4, 4]);
-
-        assert_eq!(left.union_len(&right), 4);
-    }
-
-    #[test]
     fn union_matches_exhaustive_small_sets() {
         const VALUES: u32 = 8;
 

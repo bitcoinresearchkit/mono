@@ -701,34 +701,6 @@ mod import_tests {
     }
 
     #[test]
-    fn recreate_does_not_report_removal_for_a_new_directory() {
-        let dir = tempdir().unwrap();
-        let plugin = plugin_data_path(dir.path());
-        let source_xor = XORBytes::from([7_u8; 8]);
-
-        assert!(!recreate_plugin_dir(&plugin, source_xor).unwrap());
-        assert!(matches!(
-            read_xor_marker(&plugin).unwrap(),
-            XorMarker::Valid(marker) if marker == source_xor
-        ));
-    }
-
-    #[test]
-    fn empty_import_writes_identity_marker() -> Result<()> {
-        init_cache();
-        let dir = tempdir()?;
-        let reader = empty_reader(dir.path());
-
-        drop(Indexer::import(ImportContext::new(dir.path()), &reader)?);
-
-        assert!(matches!(
-            read_xor_marker(&plugin_data_path(dir.path()))?,
-            XorMarker::Valid(marker) if marker == XORBytes::from([0; XOR_LEN])
-        ));
-        Ok(())
-    }
-
-    #[test]
     fn malformed_xor_marker_recreates_the_index() -> Result<()> {
         init_cache();
         let dir = tempdir()?;

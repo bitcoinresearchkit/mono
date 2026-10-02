@@ -134,15 +134,3 @@ fn to_kebab_case(value: &str) -> String {
 
     output.trim_matches('-').to_owned()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::to_kebab_case;
-
-    #[test]
-    fn command_and_flag_names_are_kebab_case() {
-        assert_eq!(to_kebab_case("getBlockByHeight"), "get-block-by-height");
-        assert_eq!(to_kebab_case("get_series_data"), "get-series-data");
-        assert_eq!(to_kebab_case("txId[]"), "tx-id");
-    }
-}

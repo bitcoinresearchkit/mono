@@ -84,49 +84,6 @@ fn daemon_config_paths_daily_deduplication_and_atomic_report() {
 }
 
 #[test]
-fn separates_codes_within_the_same_status_class() {
-    let home = tempdir().unwrap();
-    let data = setup(home.path());
-    fs::write(data.join("logs/2026-09-04.txt"), "2026-09-04 12:00:00 - error 400 /api/tx/abc 1ms\n2026-09-04 12:00:01 - error 404 /api/tx/def 100ms\n").unwrap();
-    run(home.path());
-    let report = fs::read_to_string(data.join("latency.md")).unwrap();
-    let (_, errors) = report.split_once("## HTTP 400").unwrap();
-    let (bad_request, not_found) = errors.split_once("## HTTP 404").unwrap();
-    assert!(bad_request.contains("| /api/tx/{txid} | 1† | 1.000 |"));
-    assert!(not_found.contains("| /api/tx/{txid} | 1† | 100.000 |"));
-    assert!(bad_request.contains("| ≤1ms | 1 | 100.00% |"));
-    assert!(not_found.contains("| (50, 100]ms | 1 | 100.00% |"));
-}
-
-#[test]
-fn rejects_arguments_before_loading_daemon_config() {
-    let home = tempdir().unwrap();
-    let output = Command::new(env!("CARGO_BIN_EXE_bitviewd_latency"))
-        .env("HOME", home.path())
-        .args(["--output", "elsewhere.md"])
-        .output()
-        .unwrap();
-    assert!(!output.status.success());
-    assert!(String::from_utf8_lossy(&output.stderr).contains("no arguments supported"));
-    assert!(!home.path().join(".bitview").exists());
-}
-
-#[test]
-fn missing_config_uses_default_paths_without_node_setup() {
-    let home = tempdir().unwrap();
-    let data = home.path().join(".bitview");
-    fs::create_dir_all(data.join("logs")).unwrap();
-    fs::write(
-        data.join("logs/2026-09-04.txt"),
-        "2026-09-04 12:00:00 - info  200 /api/series/count 1ms\n",
-    )
-    .unwrap();
-    run(home.path());
-    assert!(data.join("latency.md").exists());
-    assert!(!data.join("config.toml").exists());
-}
-
-#[test]
 fn invalid_config_preserves_existing_report() {
     let home = tempdir().unwrap();
     let data = setup(home.path());

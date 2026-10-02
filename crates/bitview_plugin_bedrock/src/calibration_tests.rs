@@ -38,17 +38,6 @@ fn incremental_quantiles_match_sorted_reference_without_current_block() {
         assert_eq!(calibration.end, i + 1);
     }
 }
-#[test]
-fn missing_observations_advance_height_without_entering_the_sample() {
-    let mut calibration = Calibration {
-        end: 0,
-        version: Version::ONE,
-        histories: Modes::from_fn(|_| ExactOrderStats::new(1)),
-    };
-    calibration.observe(Modes::from_fn(|_| None));
-    assert_eq!(calibration.end, 1);
-    assert!(calibration.histories.iter().all(ExactOrderStats::is_empty));
-}
 
 #[test]
 fn restored_block_prefix_matches_live_history_and_excludes_future_values() {

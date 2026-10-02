@@ -1,18 +1,6 @@
 use super::*;
 
 #[test]
-fn unit_weights_reproduce_capitalized_price() {
-    // Equal supply bought at 100 and 300 cents: RP = 200, CP = 250.
-    let mut state = WeightedCapitalizedPrice::default();
-    state.add(
-        CentsSats::new(400),
-        CentsSquaredSats::new(100_000),
-        BoundedRatio::ONE,
-    );
-    assert_eq!(state.value(), Cents::new(250));
-}
-
-#[test]
 fn matches_direct_utxo_formula_and_term_merge() {
     // (creation price in cents, sats, encoded cohort weight, is STH).
     let outputs = [

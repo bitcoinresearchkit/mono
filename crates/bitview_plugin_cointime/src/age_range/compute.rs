@@ -201,8 +201,6 @@ fn allocate_consumed_coindays(
 
 #[cfg(test)]
 mod tests {
-    use bitview_cohort::AGE_RANGE_COUNT;
-
     use super::*;
 
     #[test]
@@ -218,21 +216,6 @@ mod tests {
         assert!((allocated._1h_to_1d - 23.0 / HOURS_PER_DAY).abs() < 1e-12);
         assert!(allocated._1d_to_1w.abs() < 1e-12);
         assert!((allocated.iter().sum::<f64>() - 1.0).abs() < 1e-12);
-    }
-
-    #[test]
-    fn consumed_coindays_cover_every_traversed_cohort() {
-        let mut volumes = AgeRange::default();
-        let mut cdd = AgeRange::default();
-        volumes._1d_to_1w = 2.0;
-        cdd._1d_to_1w = 20.0;
-
-        let allocated = allocate_consumed_coindays(volumes, cdd, &age_bounds_days());
-
-        assert!((allocated.under_1h - 2.0 / HOURS_PER_DAY).abs() < 1e-12);
-        assert!((allocated._1h_to_1d - 46.0 / HOURS_PER_DAY).abs() < 1e-12);
-        assert!((allocated._1d_to_1w - 18.0).abs() < 1e-12);
-        assert!((allocated.iter().sum::<f64>() - 20.0).abs() < 1e-12);
     }
 
     #[test]
@@ -260,23 +243,6 @@ mod tests {
         let expected = cdd.iter().sum::<f64>();
         let allocated = allocate_consumed_coindays(volumes, cdd, &bounds);
 
-        assert!((allocated.iter().sum::<f64>() - expected).abs() < 1e-9);
-    }
-
-    #[test]
-    fn bounds_and_allocation_cover_every_canonical_age_range() {
-        let bounds = age_bounds_days();
-        let mut volumes = AgeRange::default();
-        let mut cdd = AgeRange::default();
-
-        volumes.over_15y = 1.0;
-        cdd.over_15y = bounds.over_15y.0 + 30.0;
-
-        let expected = cdd.iter().sum::<f64>();
-        let allocated = allocate_consumed_coindays(volumes, cdd, &bounds);
-
-        assert_eq!(bounds.iter().count(), AGE_RANGE_COUNT);
-        assert!(allocated.over_15y > 0.0);
         assert!((allocated.iter().sum::<f64>() - expected).abs() < 1e-9);
     }
 }

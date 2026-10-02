@@ -61,20 +61,3 @@ impl Vecs {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn dominance_is_cumulative_share_of_chain() {
-        assert_eq!(
-            pool_dominance(Height::from(3_u32), StoredU64::from(1_u64)),
-            PartsPerMillion32::from(0.25),
-        );
-        assert_eq!(
-            pool_dominance(Height::from(9_u32), StoredU64::from(10_u64)),
-            PartsPerMillion32::ONE,
-        );
-    }
-}

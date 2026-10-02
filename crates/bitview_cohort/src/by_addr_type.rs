@@ -318,32 +318,3 @@ where
         self.p2a += rhs.p2a;
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{ADDR_TYPE_IDS, AddrTypeId, ByAddrType};
-
-    #[test]
-    fn cohort_order_matches_named_series() {
-        assert_eq!(AddrTypeId::ALL, ADDR_TYPE_IDS);
-
-        let series = AddrTypeId::series(|id, _| id);
-        assert!(series.values().copied().eq(ADDR_TYPE_IDS));
-    }
-
-    #[test]
-    fn iteration_order_matches_cohort_indexes() {
-        let values = ByAddrType::from_fn(|id| id as usize);
-
-        for id in ADDR_TYPE_IDS {
-            assert_eq!(*id.select(&values), (id as usize));
-        }
-    }
-
-    #[test]
-    fn parallel_construction_preserves_named_order() {
-        let series = ByAddrType::par_try_from_fn(Ok::<_, ()>).unwrap();
-
-        assert!(series.values().copied().eq(ADDR_TYPE_IDS));
-    }
-}

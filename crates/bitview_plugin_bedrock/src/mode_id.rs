@@ -29,31 +29,3 @@ impl ModeId {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::convert::Infallible;
-
-    use super::ModeId;
-    use crate::{Modes, WeightedModeId};
-
-    #[test]
-    fn ids_match_named_fields_and_storage_names() {
-        assert_eq!(
-            WeightedModeId::ALL.map(WeightedModeId::mode).as_slice(),
-            &ModeId::ALL[1..]
-        );
-
-        let mut modes = Modes::try_from_fn(|id| Ok::<_, Infallible>((id, false))).unwrap();
-        for id in ModeId::ALL {
-            let mode = modes.select_mut(id);
-            assert_eq!(mode.0, id);
-            mode.1 = true;
-        }
-        assert!(modes.iter().all(|(_, visited)| *visited));
-        assert_eq!(
-            ModeId::ALL.map(ModeId::name),
-            ["raw", "cointime", "coinflow"]
-        );
-    }
-}

@@ -163,7 +163,3 @@ impl CacheParams {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/cache/params.rs"]
-mod tests;

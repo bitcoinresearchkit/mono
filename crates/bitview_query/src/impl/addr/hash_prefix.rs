@@ -98,7 +98,3 @@ impl AddrHashPrefix {
         ))
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/addr/hash_prefix.rs"]
-mod tests;

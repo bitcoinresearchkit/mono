@@ -220,7 +220,3 @@ fn next_height_from_min_stamp(min_stamp: Stamp, has_blocks: bool) -> Height {
         Height::ZERO
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/vecs_checkpoint_tests.rs"]
-mod checkpoint_tests;

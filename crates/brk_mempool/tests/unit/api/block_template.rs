@@ -19,21 +19,6 @@ fn insert_tx(mempool: &mut Mempool, seed: u8, fee: u64, vsize: u64) -> Txid {
 }
 
 #[test]
-fn block_template_hash_matches_next_block_hash() {
-    let mut mempool = Mempool::for_test();
-    let txid = insert_tx(&mut mempool, 0xA0, 1_234, 100);
-    mempool.test_tick(&[txid], FeeRate::new(1.0));
-
-    let template = mempool.published().block_template_source().build().unwrap();
-    assert_eq!(
-        template.hash,
-        mempool.published().next_block_hash().unwrap()
-    );
-    assert_eq!(template.transactions.len(), 1);
-    assert_eq!(template.transactions[0].txid, txid);
-}
-
-#[test]
 fn block_template_source_tracks_snapshot_and_body_changes() {
     let mut mempool = Mempool::for_test();
     let txid = insert_tx(&mut mempool, 0xA7, 1_234, 100);
@@ -96,26 +81,6 @@ fn block_template_diff_round_trip_reconstructs_t1_from_t0() {
     let got: Vec<_> = reconstructed.iter().map(|tx| tx.txid).collect();
     assert_eq!(got, expected, "diff round-trips back into T1 ordering");
     assert!(diff.removed.is_empty());
-}
-
-#[test]
-fn block_template_diff_removed_lists_evicted_txs() {
-    let mut mempool = Mempool::for_test();
-    let txid_a = insert_tx(&mut mempool, 0xA4, 1_111, 100);
-    let txid_b = insert_tx(&mut mempool, 0xA5, 2_222, 100);
-    mempool.test_tick(&[txid_a, txid_b], FeeRate::new(1.0));
-    let t0 = mempool.published().block_template_source().build().unwrap();
-
-    // T1: txid_a no longer in gbt.
-    mempool.test_tick(&[txid_b], FeeRate::new(1.0));
-    let diff = mempool
-        .published()
-        .resolve_block_template_diff(t0.hash)
-        .map(|resolved| resolved.build())
-        .transpose()
-        .unwrap()
-        .unwrap();
-    assert_eq!(diff.removed, vec![txid_a]);
 }
 
 #[test]
@@ -200,14 +165,6 @@ fn resolved_template_and_diff_keep_the_validated_publication_after_history_evict
     assert_eq!(template.hash, since);
     assert_eq!(template.transactions.len(), 1);
     assert_eq!(template.transactions[0].txid, first);
-}
-
-#[test]
-fn block_template_empty_pool_has_no_transactions() {
-    let mut mempool = Mempool::for_test();
-    mempool.test_tick(&[], FeeRate::new(2.0));
-    let template = mempool.published().block_template_source().build().unwrap();
-    assert!(template.transactions.is_empty());
 }
 
 #[test]

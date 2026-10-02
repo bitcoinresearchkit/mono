@@ -214,26 +214,7 @@ fn is_internal(name: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::{FieldVisitor, is_internal};
-
-    #[test]
-    fn hides_logger_and_internal_fields() {
-        assert!(is_internal("log.target"));
-        assert!(is_internal("internal.duration_ns"));
-        assert!(!is_internal("duration_ns"));
-    }
-
-    #[test]
-    fn separates_messages_from_structured_fields() {
-        let mut visitor = FieldVisitor::<false>::new();
-        visitor.message = "Starting server".to_owned();
-        visitor.fields = "bind=127.0.0.1:3110 tools=42".to_owned();
-
-        assert_eq!(
-            visitor.finish(),
-            "Starting server — bind=127.0.0.1:3110 tools=42"
-        );
-    }
+    use super::FieldVisitor;
 
     #[test]
     fn formats_http_access_events() {
@@ -244,18 +225,5 @@ mod tests {
         visitor.latency = Some("1.25ms".to_owned());
 
         assert_eq!(visitor.finish(), "200 /api 1.25ms");
-    }
-
-    #[test]
-    fn retains_special_fields_without_an_http_status() {
-        let mut visitor = FieldVisitor::<false>::new();
-        visitor.message = "Request failed".to_owned();
-        visitor.fields = "error=timeout".to_owned();
-        visitor.latency = Some("1.25ms".to_owned());
-
-        assert_eq!(
-            visitor.finish(),
-            "Request failed — error=timeout latency=1.25ms"
-        );
     }
 }

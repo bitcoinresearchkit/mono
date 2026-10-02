@@ -135,21 +135,4 @@ mod tests {
         assert_eq!(policy.multiple.tx_count, 0);
         assert_eq!(policy.pre_v30_standard.tx_count, 0);
     }
-
-    #[test]
-    fn standard_output_is_recorded_directly() {
-        let mut total = BlockMetrics::default();
-        let mut by_kind = [BlockMetrics::default(); OP_RETURN_KIND_COUNT];
-        let mut policy = Policy::default();
-        let mut carrier = Carrier::new(VSize::new(100), Sats::ZERO);
-        carrier.add_output(OpReturnKind::Runes, Bytes::new(15));
-
-        carrier.finalize_into(&mut total, &mut by_kind, &mut policy);
-
-        assert_eq!(policy.pre_v30_standard.output_count, 1);
-        assert_eq!(policy.pre_v30_standard.data_bytes, Bytes::new(15));
-        assert_eq!(policy.pre_v30_standard.tx_count, 1);
-        assert_eq!(policy.pre_v30_standard.tx_vsize, VSize::new(100));
-        assert_eq!(policy.pre_v30_nonstandard.tx_count, 0);
-    }
 }

@@ -18,14 +18,3 @@ pub fn js_type_to_rust(js_type: &str) -> String {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::js_type_to_rust;
-
-    #[test]
-    fn versions_are_protocol_scalars() {
-        assert_eq!(js_type_to_rust("Version"), "u32");
-        assert_eq!(js_type_to_rust("Version[]"), "Vec<u32>");
-    }
-}

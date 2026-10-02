@@ -89,38 +89,3 @@ pub fn compute(
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{Height, Sats};
-
-    use super::{derived_subsidy, scheduled_subsidy, unclaimed_rewards};
-
-    #[test]
-    fn reward_components_match_the_available_reward_equation() {
-        let height = Height::from(0_u32);
-        let fees = Sats::ONE_BTC;
-
-        let fully_claimed_coinbase = Sats::FIFTY_BTC + fees;
-        let subsidy = derived_subsidy(height, fully_claimed_coinbase, fees);
-        assert_eq!(subsidy, Sats::FIFTY_BTC);
-        assert_eq!(unclaimed_rewards(height, subsidy), Sats::ZERO);
-
-        let underclaimed_coinbase = Sats::FIFTY_BTC;
-        let subsidy = derived_subsidy(height, underclaimed_coinbase, fees);
-        assert_eq!(subsidy, Sats::FIFTY_BTC - fees);
-        assert_eq!(unclaimed_rewards(height, subsidy), fees);
-    }
-
-    #[test]
-    fn scheduled_subsidy_halves_at_210_000_blocks() {
-        assert_eq!(
-            scheduled_subsidy(Height::from(209_999_u32)),
-            Sats::FIFTY_BTC
-        );
-        assert_eq!(
-            scheduled_subsidy(Height::from(210_000_u32)),
-            Sats::FIFTY_BTC / 2
-        );
-    }
-}

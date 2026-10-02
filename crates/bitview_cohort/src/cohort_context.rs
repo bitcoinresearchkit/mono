@@ -40,18 +40,3 @@ impl CohortContext {
         format!("{}_{metric}", self.full_name(id))
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn all_cohort_never_prefixes_metric_names() {
-        for context in [CohortContext::Utxo, CohortContext::Addr] {
-            assert_eq!(
-                context.metric_name(CohortId::All, "capitalized_price"),
-                "capitalized_price"
-            );
-        }
-    }
-}

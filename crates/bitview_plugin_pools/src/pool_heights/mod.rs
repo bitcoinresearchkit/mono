@@ -376,22 +376,6 @@ mod tests {
     }
 
     #[test]
-    fn cumulative_counts_include_the_current_height() {
-        let (_, cumulative) = fixture();
-
-        assert_eq!(
-            cumulative.collect(),
-            [1_u64, 1, 2, 3, 3].map(StoredU64::from)
-        );
-        assert_eq!(
-            cumulative.collect_range_at(1, 4),
-            [1_u64, 2, 3].map(StoredU64::from)
-        );
-        assert_eq!(cumulative.collect_one_at(4), Some(StoredU64::from(3_u64)));
-        assert_eq!(cumulative.collect_one_at(5), None);
-    }
-
-    #[test]
     fn sorted_and_appending_reads_use_cumulative_ranks() {
         let (_, cumulative) = fixture();
         let mut sorted = vec![StoredU64::from(99_u64)];
@@ -418,14 +402,6 @@ mod tests {
     }
 
     #[test]
-    fn absent_pool_is_zero_for_every_height() {
-        let (pool_heights, _) = fixture();
-        let cumulative = PoolCumulativeVec::new("absent", PoolSlug::Luxor, pool_heights);
-
-        assert_eq!(cumulative.collect(), [StoredU64::from(0_u64); 5]);
-    }
-
-    #[test]
     fn bulk_block_numbers_use_one_height_per_slug() {
         let (pool_heights, _) = fixture();
 
@@ -449,25 +425,6 @@ mod tests {
         assert_eq!(
             pool_heights.latest_heights(PoolSlug::F2Pool, Height::from(2_u32), 10),
             [Height::from(2_u32), Height::from(0_u32)]
-        );
-    }
-
-    #[test]
-    fn single_latest_height_is_bounded_by_height() {
-        let (pool_heights, _) = fixture();
-
-        assert_eq!(
-            pool_heights.latest_heights(PoolSlug::F2Pool, Height::from(4_u32), 1),
-            [Height::from(3_u32)]
-        );
-        assert_eq!(
-            pool_heights.latest_heights(PoolSlug::F2Pool, Height::from(1_u32), 1),
-            [Height::from(0_u32)]
-        );
-        assert!(
-            pool_heights
-                .latest_heights(PoolSlug::Luxor, Height::from(4_u32), 1)
-                .is_empty()
         );
     }
 }

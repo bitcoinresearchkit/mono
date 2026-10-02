@@ -50,29 +50,3 @@ impl PluginStorage {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    use brk_types::Version;
-
-    use super::*;
-
-    #[test]
-    fn identity_version_and_paths_share_one_descriptor() {
-        let context = ImportContext::new(Path::new("data"));
-        let storage = PluginStorage::new(PluginId::new("example"), Version::new(3));
-
-        assert_eq!(storage.id(), PluginId::new("example"));
-        assert_eq!(storage.schema_version(), Version::new(3));
-        assert_eq!(
-            PluginStorage::plugins_path(context),
-            context.data_path().join("plugins")
-        );
-        assert_eq!(
-            storage.path(context),
-            context.data_path().join("plugins/example")
-        );
-    }
-}

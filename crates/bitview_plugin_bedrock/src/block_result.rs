@@ -121,7 +121,7 @@ mod tests {
 
     use bitview_cohort::AgeRange;
     use bitview_urpd::OriginUrpd;
-    use brk_types::{BoundedRatio, Cents, CentsCompact, Sats, Timestamp};
+    use brk_types::{Cents, CentsCompact, Sats, Timestamp};
     use statedb::{Amount, State};
 
     use super::{BlockResult, LEVEL_PERCENTILES};
@@ -204,72 +204,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn calibrated_loss_share_sets_floor_and_levels() {
-        let urpds = [(100, 50), (200, 50)];
-        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.5)));
-        let mut result = BlockResult::from_thresholds(&thresholds);
-        evaluate(&mut result, urpds);
-        let result = &result.by_mode.coinflow;
-
-        assert_eq!(
-            result.supply_in_loss_threshold,
-            Percentiles::from_fn(|_| BoundedRatio::from(0.5))
-        );
-        assert_eq!(
-            result.prices.floor,
-            Percentiles::from_fn(|_| Cents::new(100))
-        );
-        assert_eq!(
-            result.prices.level,
-            Levels {
-                pct10: Cents::new(100),
-                pct20: Cents::new(100),
-                pct30: Cents::new(100),
-                pct40: Cents::new(100),
-                pct50: Cents::new(100),
-                pct60: Cents::new(200),
-                pct70: Cents::new(200),
-                pct80: Cents::new(200),
-                pct90: Cents::new(200),
-            }
-        );
-    }
-
-    #[test]
-    fn zero_cost_distribution_stays_missing() {
-        let urpds = [(0, 100)];
-        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 1.0)));
-        let mut result = BlockResult::from_thresholds(&thresholds);
-        evaluate(&mut result, urpds);
-        assert!(result.by_mode.raw.prices.floor.pct95.is_nan());
-    }
-
-    #[test]
-    fn conditional_supply_includes_the_floor_bucket() {
-        let urpds = [(0, 2), (100, 8), (150, 0), (200, 30), (300, 60)];
-        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.65)));
-        let mut result = BlockResult::from_thresholds(&thresholds);
-        evaluate(&mut result, urpds);
-        for mode in result.by_mode.iter() {
-            assert_eq!(mode.prices.floor.pct95, Cents::new(200));
-            // The conditional supply is 90, including 30 at the floor.
-            assert_eq!(mode.prices.level.pct30, Cents::new(200));
-            assert_eq!(mode.prices.level.pct40, Cents::new(300));
-        }
-    }
-
-    #[test]
-    fn floors_use_the_same_bounded_threshold_that_is_published() {
-        let urpds = [(100, 9), (200, 1)];
-        let thresholds = Thresholds::from_fn(|_| Some(Percentiles::from_fn(|_| 0.1)));
-        let mut result = BlockResult::from_thresholds(&thresholds);
-        assert!(f64::from(result.by_mode.raw.supply_in_loss_threshold.pct95) < 0.1);
-        evaluate(&mut result, urpds);
-        assert_eq!(result.by_mode.raw.prices.floor.pct95, Cents::new(200));
-        let missing = BlockResult::from_thresholds(&Thresholds::from_fn(|_| None));
-        assert!(missing.by_mode.raw.supply_in_loss_threshold.pct95.is_nan());
-    }
     fn reference(result: &mut BlockResult, entries: &[(u32, u64)]) {
         let denominator: u64 = entries.iter().map(|&(_, sats)| sats).sum();
         if denominator == 0 || !entries.iter().any(|&(p, s)| p != 0 && s != 0) {

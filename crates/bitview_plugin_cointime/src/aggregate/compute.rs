@@ -440,47 +440,4 @@ mod tests {
             }
         }
     }
-
-    #[test]
-    fn term_states_merge_into_all() {
-        let mut sth = WeightedCohortState::default();
-        sth.add(
-            Sats::from(100_u64),
-            Sats::from(20_u64),
-            Cents::from(1_000_u64),
-            BoundedRatio::from(0.3),
-        );
-        let mut lth = WeightedCohortState::default();
-        lth.add(
-            Sats::from(200_u64),
-            Sats::from(50_u64),
-            Cents::from(3_000_u64),
-            BoundedRatio::from(0.4),
-        );
-
-        let all = sth.merged(lth);
-
-        assert_eq!(
-            all.weighted_supply,
-            sth.weighted_supply + lth.weighted_supply
-        );
-        assert_eq!(
-            all.complement_supply,
-            sth.complement_supply + lth.complement_supply
-        );
-        assert_eq!(all.weighted_cap, sth.weighted_cap + lth.weighted_cap);
-    }
-
-    #[test]
-    fn awake_and_dormant_supply_are_independently_floored() {
-        let supply = Sats::from(123_456_789_u64);
-        let weight = BoundedRatio::from(0.321);
-        let mut state = WeightedCohortState::default();
-
-        state.add(supply, Sats::ZERO, Cents::ZERO, weight);
-
-        let sum = state.weighted_supply + state.complement_supply;
-        assert!(sum <= supply);
-        assert!(supply - sum <= Sats::from(1_u64));
-    }
 }

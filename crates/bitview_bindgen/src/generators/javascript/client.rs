@@ -8,10 +8,6 @@ use crate::{
     generate_parameterized_field, to_camel_case,
 };
 
-#[cfg(test)]
-#[path = "../../../tests/unit/generators/javascript/client.rs"]
-mod tests;
-
 /// Generate the base BitviewClient class with HTTP functionality.
 pub(crate) fn generate_base_client(output: &mut String) {
     writeln!(

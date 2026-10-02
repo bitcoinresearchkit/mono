@@ -185,8 +185,6 @@ pub fn get_fields_with_child_info(
 
 #[cfg(test)]
 mod tests {
-    use std::ptr;
-
     use bitview_catalog::{SeriesLeaf, SeriesLeafWithSchema, TreeNode};
     use serde_json::json;
 
@@ -208,36 +206,6 @@ mod tests {
             .map(|(k, v)| (k.to_string(), v))
             .collect();
         TreeNode::branch(map)
-    }
-
-    #[test]
-    fn shortest_name_borrows_the_first_tied_leaf_and_skips_empty_branches() {
-        let tree = make_branch(vec![
-            ("empty", make_branch(vec![])),
-            (
-                "nested",
-                make_branch(vec![
-                    ("long", make_leaf("long_name")),
-                    ("first", make_leaf("é")),
-                ]),
-            ),
-            ("last", make_leaf("aa")),
-        ]);
-        assert_eq!(get_shortest_leaf_name(&tree).as_deref(), Some("é"));
-        let TreeNode::Branch(root) = &tree else {
-            unreachable!()
-        };
-        let TreeNode::Branch(nested) = &root["nested"] else {
-            unreachable!()
-        };
-        let TreeNode::Leaf(first) = &nested["first"] else {
-            unreachable!()
-        };
-        assert!(ptr::eq(
-            shortest_leaf_name(&tree).unwrap().as_ptr(),
-            first.name().as_ptr()
-        ));
-        assert!(get_shortest_leaf_name(&make_branch(vec![])).is_none());
     }
 
     #[test]

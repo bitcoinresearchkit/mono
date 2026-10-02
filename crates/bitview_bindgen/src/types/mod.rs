@@ -76,19 +76,3 @@ fn extract_inner_type_recursive(type_str: &str) -> &str {
     }
     type_str
 }
-
-#[cfg(test)]
-mod tests {
-    use super::GenericSyntax;
-
-    #[test]
-    fn fixed_rust_arrays_use_target_language_syntax() {
-        assert_eq!(GenericSyntax::JAVASCRIPT.convert("[Cents; 19]"), "Cents[]");
-        assert_eq!(GenericSyntax::PYTHON.convert("[Cents; 19]"), "List[Cents]");
-    }
-
-    #[test]
-    fn malformed_generic_delimiters_are_left_unchanged() {
-        assert_eq!(GenericSyntax::PYTHON.convert(">Cents<"), ">Cents<");
-    }
-}

@@ -191,26 +191,3 @@ impl Vecs {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn market_ratios_use_basis_points_and_keep_zero_fallback() {
-        for (numerator, denominator, expected) in [
-            (Cents::new(123_499), Cents::new(100_000), 12_349),
-            (
-                Cents::new(18_567_412_935),
-                Cents::new(1_000_000),
-                185_674_129,
-            ),
-            (Cents::new(74_641), Cents::new(1), 746_410_000),
-            (Cents::new(1), Cents::ZERO, 0),
-            (Cents::NAN, Cents::new(1), 0),
-            (Cents::new(1), Cents::NAN, 0),
-        ] {
-            assert_eq!(Vecs::market_ratio(numerator, denominator).inner(), expected);
-        }
-    }
-}

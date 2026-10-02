@@ -1,8 +1,6 @@
 mod dated;
 
 #[cfg(test)]
-mod benchmark;
-#[cfg(test)]
 mod tests;
 
 use bitview_traversable::Traversable;

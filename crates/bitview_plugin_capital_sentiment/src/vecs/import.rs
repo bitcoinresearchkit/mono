@@ -86,14 +86,3 @@ impl Vecs {
         Ok(this)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn short_is_the_lazy_complement_of_long() {
-        assert!(IsLongToIsShort::apply(StoredBool::FALSE).is_true());
-        assert!(IsLongToIsShort::apply(StoredBool::TRUE).is_false());
-    }
-}

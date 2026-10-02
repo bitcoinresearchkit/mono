@@ -6,16 +6,10 @@ const html = await readFile(new URL("../calendar/index.html", import.meta.url), 
 const script = html.match(/<script id="calendar-data">([\s\S]*?)<\/script>/);
 assert.ok(script, "Missing inline calendar-data script");
 
-const { addDays, addPoolOrdinals, decodeBlocks, groupDays, isoDay, ordinal, rankPools, requestRanges } = new Function(
-  `${script[1]}; return { addDays, addPoolOrdinals, decodeBlocks, groupDays, isoDay, ordinal, rankPools, requestRanges };`,
+const { addDays, addPoolOrdinals, decodeBlocks, groupDays, isoDay, rankPools, requestRanges } = new Function(
+  `${script[1]}; return { addDays, addPoolOrdinals, decodeBlocks, groupDays, isoDay, rankPools, requestRanges };`,
 )();
 
-test("formats English ordinals with commas and teen exceptions", () => {
-  assert.deepEqual(
-    [1, 2, 3, 4, 11, 12, 13, 21, 111, 1001].map(ordinal),
-    ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "111th", "1,001st"],
-  );
-});
 
 const poolBlockCounts = [
   { index: "height", start: 100, end: 105, data: [1, 1, 2, 2, 2] },

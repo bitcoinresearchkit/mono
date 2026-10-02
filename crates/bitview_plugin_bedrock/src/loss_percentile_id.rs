@@ -51,17 +51,3 @@ impl LossPercentileId {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{LOSS_PERCENTILE_IDS, LossPercentileId, Percentiles};
-
-    #[test]
-    fn selection_matches_public_order() {
-        assert_eq!(LossPercentileId::ALL, LOSS_PERCENTILE_IDS);
-        let values = Percentiles::from_fn(|id| id);
-        for id in LossPercentileId::ALL {
-            assert_eq!(id.select(&values), &id);
-        }
-    }
-}

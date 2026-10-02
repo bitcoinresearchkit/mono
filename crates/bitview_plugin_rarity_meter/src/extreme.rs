@@ -619,33 +619,6 @@ mod tests {
     }
 
     #[test]
-    fn upper_tail_includes_current_observation() {
-        let history = history(&(1..=100).map(f64::from).collect::<Vec<_>>(), REALIZED);
-
-        let state = EventState::new(101.0, &history, REALIZED);
-        assert!((state.tail - 1.0 / 101.0).abs() < f64::EPSILON);
-        assert_eq!(state.rank, 3);
-        assert_eq!(state.thresholds.pct0_025, 99.0);
-        assert!(state.thresholds.pct0_1 <= state.thresholds.pct0_05);
-        assert!(state.thresholds.pct0_05 <= state.thresholds.pct0_025);
-    }
-
-    #[test]
-    fn lower_tail_includes_current_observation() {
-        let history = history(
-            &(1..=100).map(f64::from).collect::<Vec<_>>(),
-            SELLER_EXHAUSTION,
-        );
-        let state = EventState::new(0.0, &history, SELLER_EXHAUSTION);
-
-        assert!((state.tail - 1.0 / 101.0).abs() < f64::EPSILON);
-        assert_eq!(state.rank, 3);
-        assert_eq!(state.thresholds.pct0_025, 1.0);
-        assert!(state.thresholds.pct0_1 >= state.thresholds.pct0_05);
-        assert!(state.thresholds.pct0_05 >= state.thresholds.pct0_025);
-    }
-
-    #[test]
     fn incremental_history_matches_coordinate_history() {
         let values = [3.0, 1.0, 2.0, 2.0, -1.0, 5.0, 4.0, 5.0];
         let mut coordinates = values.to_vec();

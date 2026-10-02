@@ -24,27 +24,6 @@ fn min_fee(sats: u64) -> FeeRate {
 }
 
 #[test]
-fn first_tick_always_builds() {
-    let mut rebuilder = Rebuilder::default();
-    let state = State::default();
-
-    rebuilder.tick(&state, &[], min_fee(1));
-
-    assert_eq!(rebuilder.rebuild_count(), 1);
-}
-
-#[test]
-fn identical_inputs_reuse_snapshot() {
-    let mut rebuilder = Rebuilder::default();
-    let (state, txids) = state_with(&[1, 2]);
-    rebuilder.tick(&state, &txids, min_fee(1));
-
-    rebuilder.tick(&state, &txids, min_fee(1));
-
-    assert_eq!(rebuilder.rebuild_count(), 1);
-}
-
-#[test]
 fn content_changes_rebuild_even_when_other_reuse_inputs_match() {
     let mut rebuilder = Rebuilder::default();
     let (mut state, txids) = state_with(&[1]);

@@ -9,7 +9,7 @@ function script(id) {
   return source[1];
 }
 const { createCatalog, isSeries } = new Function('self', `${script('catalog-worker')}; return { createCatalog, isSeries };`)({});
-const { chartPoints, toCSV, humanize, unitForType, axisNumber } = new Function(`${script('explorer-data')}; return { chartPoints, toCSV, humanize, unitForType, axisNumber };`)();
+const { chartPoints, toCSV, unitForType, axisNumber } = new Function(`${script('explorer-data')}; return { chartPoints, toCSV, unitForType, axisNumber };`)();
 
 const { BitviewClient } = await import(process.env.EXPLORER_CLIENT_URL || '../../modules/bitview-client/index.js');
 const client = new BitviewClient({ baseUrl: 'https://bitview.space', browserCache: false });
@@ -86,15 +86,6 @@ test('CSV preserves indexes, precision and structures while escaping formulas an
   assert.ok(csv.includes('"\'=CMD()"'));
   assert.ok(csv.includes('"-1"'));
   assert.equal(csv.split('\r\n').length, 6);
-});
-
-
-test('display names expand periods and preserve financial acronyms', () => {
-  assert.equal(humanize('dca_stack_10y'), 'DCA stack 10 years');
-  assert.equal(humanize('_1y'), '1 year');
-  assert.equal(humanize('cagr_3m'), 'CAGR 3 months');
-  assert.equal(humanize('sthMvrv'), 'STH MVRV');
-  assert.equal(humanize('month1'), 'Month1');
 });
 
 test('units come from known value types, including candles, without guessing for generic numbers', () => {

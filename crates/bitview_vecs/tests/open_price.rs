@@ -1,13 +1,8 @@
-use std::{hint::black_box, time::Instant};
-
-use bitview_transforms::{CentsUnsignedToDollars, CentsUnsignedToSats, OhlcCentsToOpenCents};
+use bitview_transforms::{CentsUnsignedToDollars, CentsUnsignedToSats};
 use bitview_vecs::{OhlcPrice, SplitPrice, SpotPrice};
 use brk_types::{Cents, Height, Version};
 use tempfile::tempdir;
-use vecdb::{
-    AnyStoredVec, AnyVec, Database, LazyVec, ReadBounds, ReadableCloneableVec, ReadableVec,
-    UnaryTransform, WritableVec,
-};
+use vecdb::{AnyStoredVec, AnyVec, Database, ReadBounds, ReadableVec, UnaryTransform, WritableVec};
 
 #[cfg(feature = "diagnostics")]
 use vecdb::diagnostics;
@@ -174,69 +169,5 @@ fn open_prices_match_candles_through_empty_periods_publication_and_rewrites() {
             Cents::new(100)
         );
         assert!(diagnostics::take() > 1, "full candles read the price span");
-    }
-}
-
-#[test]
-#[ignore = "synthetic before/after read-path benchmark"]
-fn benchmark_open_price_reads() {
-    let budget = init_cache();
-    let directory = tempdir().unwrap();
-    let db = Database::open(directory.path()).unwrap();
-    let mut indexes = common::indexes(&db);
-    const BLOCKS: usize = 966_505;
-    const DAYS: usize = 6463;
-    indexes.first_height.day1 = common::first_heights(
-        "days",
-        (0..DAYS).map(|day| Height::from(day * BLOCKS / DAYS)),
-    );
-    let mut spot = SpotPrice::forced_import(&db, "price", Version::ONE, &indexes).unwrap();
-    for i in 0..BLOCKS {
-        spot.cents
-            .height
-            .push(Cents::new(10_000 + (i as u64 * 37) % 1_000_000));
-    }
-    spot.cents.height.write().unwrap();
-    let candles = OhlcPrice::from_spot("ohlc", Version::ONE, &indexes, &spot);
-    let split = SplitPrice::new("price", Version::ONE, &indexes, &spot, &candles);
-    let old = LazyVec::transformed::<OhlcCentsToOpenCents>(
-        "old_open",
-        Version::ONE,
-        candles.cents.day1.read_only_boxed_clone(),
-    );
-    let new = &split.open.cents.day1;
-    assert_eq!(old.collect(), new.collect());
-    let selected: Vec<_> = (0..DAYS).step_by(7).collect();
-    for (case, indices) in [
-        ("range", Vec::new()),
-        ("full", (0..DAYS).collect::<Vec<_>>()),
-        ("weekly", selected),
-        ("latest", vec![DAYS - 1]),
-    ] {
-        for cold in [false, true] {
-            for (name, source) in [
-                ("ohlc", &old as &dyn ReadableVec<_, _>),
-                ("open", new as &dyn ReadableVec<_, _>),
-            ] {
-                let mut times = Vec::new();
-                for _ in 0..21 {
-                    if cold {
-                        budget.clear();
-                    }
-                    let start = Instant::now();
-                    black_box(if case == "range" {
-                        source.collect_range_dyn(0, DAYS)
-                    } else {
-                        source.read_sorted_at(&indices)
-                    });
-                    times.push(start.elapsed());
-                }
-                times.sort_unstable();
-                eprintln!(
-                    "{case} {name} retention_cold={cold}: {:?}",
-                    times[times.len() / 2]
-                );
-            }
-        }
     }
 }

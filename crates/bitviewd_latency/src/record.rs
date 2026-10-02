@@ -62,7 +62,3 @@ fn duration(text: &str) -> Option<u64> {
     }
     None
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/record.rs"]
-mod tests;

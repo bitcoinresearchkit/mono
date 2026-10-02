@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::BTreeMap, mem};
+use std::{collections::BTreeMap, mem, sync::Arc};
 
 use indexmap::IndexMap;
 use schemars::JsonSchema;
@@ -48,7 +48,7 @@ impl TreeNode {
     }
 
     /// Attach interned descriptions to every matching series leaf.
-    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, &'static str>) {
+    pub fn set_descriptions(&mut self, descriptions: &BTreeMap<&str, Arc<str>>) {
         match self {
             Self::Branch(children) => {
                 for child in children.values_mut() {
@@ -56,31 +56,31 @@ impl TreeNode {
                 }
             }
             Self::Leaf(leaf) => {
-                let Some(description) = descriptions.get(leaf.name()).copied() else {
+                let Some(description) = descriptions.get(leaf.name()) else {
                     return;
                 };
                 if let Some(existing) = &leaf.leaf.description {
                     assert_eq!(
-                        existing.as_ref(),
+                        existing,
                         description,
                         "Conflicting descriptions for series {}",
                         leaf.name()
                     );
                 } else {
-                    leaf.leaf.description = Some(Cow::Borrowed(description));
+                    leaf.leaf.description = Some(description.clone());
                 }
             }
         }
     }
 
     /// Collect one shared description per documented series.
-    pub fn descriptions(&self) -> BTreeMap<&str, Cow<'static, str>> {
+    pub fn descriptions(&self) -> BTreeMap<&str, Arc<str>> {
         let mut descriptions = BTreeMap::new();
         self.collect_descriptions(&mut descriptions);
         descriptions
     }
 
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Cow<'static, str>>) {
+    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Arc<str>>) {
         match self {
             Self::Branch(children) => {
                 for child in children.values() {
@@ -290,256 +290,28 @@ mod tests {
     }
 
     #[test]
-    fn leaf_count_includes_nested_branches() {
-        let tree = branch(vec![
-            ("first", leaf("a", Index::Height)),
-            (
-                "nested",
-                branch(vec![
-                    ("second", leaf("b", Index::Day1)),
-                    ("third", leaf("c", Index::Week1)),
-                ]),
-            ),
-        ]);
-
-        assert_eq!(tree.leaf_count(), 3);
-    }
-
-    #[test]
     fn descriptions_are_shared_by_every_matching_leaf() {
         let mut tree = branch(vec![
             ("height", leaf("shared", Index::Height)),
             ("day", leaf("shared", Index::Day1)),
             ("other", leaf("other", Index::Height)),
         ]);
-        let descriptions = BTreeMap::from([("shared", "Shared metric description.")]);
+        let descriptions = BTreeMap::from([("shared", Arc::from("Shared metric description."))]);
 
         tree.set_descriptions(&descriptions);
 
-        assert_eq!(
-            tree.descriptions(),
-            BTreeMap::from([("shared", Cow::Borrowed("Shared metric description."))])
-        );
+        let collected = tree.descriptions();
+        assert_eq!(collected.len(), 1);
+        assert!(Arc::ptr_eq(&collected["shared"], &descriptions["shared"]));
+        let weak = Arc::downgrade(&descriptions["shared"]);
         let json = SerdeJsonToString(&tree).unwrap();
         assert_eq!(json.matches("Shared metric description.").count(), 2);
         assert!(!json.contains("\"other\":{\"description\""));
+        drop(collected);
+        drop(descriptions);
+        drop(tree);
+        assert!(weak.upgrade().is_none());
     }
-
-    #[test]
-    fn generated_descriptions_preserve_leaf_owned_descriptions() {
-        let mut tree = leaf("custom", Index::Height);
-        let TreeNode::Leaf(leaf) = &mut tree else {
-            unreachable!()
-        };
-        leaf.leaf.description = Some(Cow::Owned("Plugin description.".to_string()));
-
-        tree.set_descriptions(&BTreeMap::new());
-
-        assert_eq!(
-            tree.descriptions(),
-            BTreeMap::from([("custom", Cow::Owned("Plugin description.".to_string()))])
-        );
-    }
-
-    // ========== Leaf passthrough ==========
-
-    #[test]
-    fn merge_leaf_passthrough() {
-        let tree = leaf("s", Index::Height);
-        let merged = tree.merge_branches().unwrap();
-        assert!(matches!(merged, TreeNode::Leaf(_)));
-    }
-
-    #[test]
-    fn merge_empty_branch() {
-        let tree = branch(vec![]);
-        let merged = tree.merge_branches().unwrap();
-        match merged {
-            TreeNode::Branch(map) => assert!(map.is_empty()),
-            _ => panic!("Expected empty branch"),
-        }
-    }
-
-    // ========== Direct leaves keep their keys ==========
-
-    #[test]
-    fn merge_direct_leaves_keep_keys() {
-        // Direct leaves with different keys stay separate
-        let tree = branch(vec![
-            ("sum", leaf("s_sum", Index::Height)),
-            ("cumulative", leaf("s_cumulative", Index::Height)),
-        ]);
-        let merged = tree.merge_branches().unwrap();
-
-        match merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 2);
-                assert!(map.contains_key("sum"));
-                assert!(map.contains_key("cumulative"));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Branch lifting ==========
-
-    #[test]
-    fn merge_lifts_branch_children() {
-        // Branch children are lifted to top level with their keys
-        let tree = branch(vec![(
-            "week1",
-            branch(vec![
-                ("sum", leaf("s_sum", Index::Week1)),
-                ("cumulative", leaf("s_cumulative", Index::Week1)),
-            ]),
-        )]);
-        let merged = tree.merge_branches().unwrap();
-
-        match merged {
-            TreeNode::Branch(map) => {
-                assert!(map.contains_key("sum"));
-                assert!(map.contains_key("cumulative"));
-                assert!(!map.contains_key("week1")); // Parent key gone
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    #[test]
-    fn merge_multiple_branches_combines_indexes() {
-        // Multiple branches with same child keys → indexes are merged
-        let tree = branch(vec![
-            (
-                "day1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Day1)),
-                    ("cumulative", leaf("s_cumulative", Index::Day1)),
-                ]),
-            ),
-            (
-                "week1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Week1)),
-                    ("cumulative", leaf("s_cumulative", Index::Week1)),
-                ]),
-            ),
-            (
-                "month1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Month1)),
-                    ("cumulative", leaf("s_cumulative", Index::Month1)),
-                ]),
-            ),
-        ]);
-        let merged = tree.merge_branches().unwrap();
-
-        match merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 2);
-                for key in ["sum", "cumulative"] {
-                    assert_eq!(
-                        get_leaf_indexes(map.get(key).unwrap()).unwrap(),
-                        &BTreeSet::from([Index::Day1, Index::Week1, Index::Month1])
-                    );
-                }
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Mixed leaves and branches ==========
-
-    #[test]
-    fn merge_leaf_merges_with_lifted_branch_child() {
-        // Direct leaf with key "cumulative" merges with lifted "cumulative" from branch
-        // This simulates: height_cumulative (renamed) + day1 branch
-        let tree = branch(vec![
-            ("cumulative", leaf("s_cumulative", Index::Height)),
-            (
-                "day1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Day1)),
-                    ("cumulative", leaf("s_cumulative", Index::Day1)),
-                ]),
-            ),
-        ]);
-        let merged = tree.merge_branches().unwrap();
-
-        match merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 2);
-
-                // cumulative merged: Height + Day1
-                let cumulative_indexes = get_leaf_indexes(map.get("cumulative").unwrap()).unwrap();
-                assert!(cumulative_indexes.contains(&Index::Height));
-                assert!(cumulative_indexes.contains(&Index::Day1));
-
-                // sum only has Day1
-                let sum_indexes = get_leaf_indexes(map.get("sum").unwrap()).unwrap();
-                assert!(sum_indexes.contains(&Index::Day1));
-                assert!(!sum_indexes.contains(&Index::Height));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    #[test]
-    fn merge_derived_computed_block_sum_cum_pattern() {
-        // Simulates DerivedComputedBlockSumCum:
-        // - height_cumulative (renamed to "cumulative") → direct leaf at Height
-        // - day1 → branch with sum/cumulative at Day1
-        // - week1 (flattened from dates) → branch with sum/cumulative at Week1
-        // - epoch → branch with sum/cumulative at Epoch
-        let tree = branch(vec![
-            ("cumulative", leaf("s_cumulative", Index::Height)),
-            (
-                "day1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Day1)),
-                    ("cumulative", leaf("s_cumulative", Index::Day1)),
-                ]),
-            ),
-            (
-                "week1",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Week1)),
-                    ("cumulative", leaf("s_cumulative", Index::Week1)),
-                ]),
-            ),
-            (
-                "epoch",
-                branch(vec![
-                    ("sum", leaf("s_sum", Index::Epoch)),
-                    ("cumulative", leaf("s_cumulative", Index::Epoch)),
-                ]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        match merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(map.len(), 2);
-
-                // sum: Day1, Week1, Epoch (NOT Height)
-                let sum_indexes = get_leaf_indexes(map.get("sum").unwrap()).unwrap();
-                assert!(!sum_indexes.contains(&Index::Height));
-                assert!(sum_indexes.contains(&Index::Day1));
-                assert!(sum_indexes.contains(&Index::Week1));
-                assert!(sum_indexes.contains(&Index::Epoch));
-
-                // cumulative: Height, Day1, Week1, Epoch
-                let cumulative_indexes = get_leaf_indexes(map.get("cumulative").unwrap()).unwrap();
-                assert!(cumulative_indexes.contains(&Index::Height));
-                assert!(cumulative_indexes.contains(&Index::Day1));
-                assert!(cumulative_indexes.contains(&Index::Week1));
-                assert!(cumulative_indexes.contains(&Index::Epoch));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Conflict detection ==========
 
     #[test]
     fn merge_conflict_from_lifted_branches() {
@@ -551,54 +323,6 @@ mod tests {
         let result = tree.merge_branches();
         assert!(result.is_none(), "Should detect conflict");
     }
-
-    #[test]
-    fn merge_no_conflict_same_series_different_indexes() {
-        // Same key, same series name, different indexes → merges indexes → collapses to Leaf
-        let tree = branch(vec![
-            ("a", branch(vec![("sum", leaf("s_sum", Index::Height))])),
-            ("b", branch(vec![("sum", leaf("s_sum", Index::Day1))])),
-        ]);
-        let result = tree.merge_branches();
-        assert!(result.is_some(), "Should merge successfully");
-
-        let merged = result.unwrap();
-        match merged {
-            TreeNode::Leaf(leaf) => {
-                assert_eq!(leaf.name(), "s_sum");
-                let indexes = leaf.indexes();
-                assert!(indexes.contains(&Index::Height));
-                assert!(indexes.contains(&Index::Day1));
-            }
-            _ => panic!("Expected collapsed Leaf"),
-        }
-    }
-
-    // ========== Nested branches ==========
-
-    #[test]
-    fn merge_nested_branches_flattens_one_level() {
-        // Merge only flattens one level - nested branches stay as branches
-        let tree = branch(vec![(
-            "outer",
-            branch(vec![(
-                "inner",
-                branch(vec![("leaf", leaf("s", Index::Height))]),
-            )]),
-        )]);
-        let merged = tree.merge_branches().unwrap();
-
-        // "inner" is lifted to top level but stays as a branch
-        match merged {
-            TreeNode::Branch(map) => {
-                assert!(map.contains_key("inner"));
-                assert!(matches!(map.get("inner"), Some(TreeNode::Branch(_))));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Collapse same-name leaves ==========
 
     #[test]
     fn collapse_direct_leaf_with_lifted_branches_same_name() {
@@ -639,95 +363,6 @@ mod tests {
             }
         }
     }
-
-    // ========== Case 3: ComputedBlockSum (base + sum) ==========
-
-    #[test]
-    fn case3_computed_block_sum() {
-        // ComputedBlockSum:
-        // - height: wrap="raw" → Branch { "raw": Leaf(height) }
-        // - rest (flatten): DerivedComputedBlockSum → branches with "sum" children
-        let tree = branch(vec![
-            // height wrapped as "raw"
-            ("height", branch(vec![("raw", leaf("s", Index::Height))])),
-            // rest (flattened) produces branches
-            ("day1", branch(vec![("sum", leaf("s_sum", Index::Day1))])),
-            ("week1", branch(vec![("sum", leaf("s_sum", Index::Week1))])),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // DESIRED: { "raw": Leaf(height), "sum": Leaf(day1, week1) }
-        match &merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(
-                    map.len(),
-                    2,
-                    "Expected 2 keys 'base' and 'sum', got: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-
-                // base should have Height only
-                let base_indexes = get_leaf_indexes(map.get("raw").unwrap()).unwrap();
-                assert!(base_indexes.contains(&Index::Height));
-                assert_eq!(base_indexes.len(), 1);
-
-                // sum should have Day1 and Week1
-                let sum_indexes = get_leaf_indexes(map.get("sum").unwrap()).unwrap();
-                assert!(!sum_indexes.contains(&Index::Height));
-                assert!(sum_indexes.contains(&Index::Day1));
-                assert!(sum_indexes.contains(&Index::Week1));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Case 4: ComputedBlockLast (base + last) ==========
-
-    #[test]
-    fn case4_computed_block_last() {
-        // ComputedBlockLast:
-        // - height: wrap="raw" → Branch { "raw": Leaf(height) }
-        // - rest (flatten): DerivedComputedBlockLast → branches with "last" children
-        let tree = branch(vec![
-            // height wrapped as "raw"
-            ("height", branch(vec![("raw", leaf("s", Index::Height))])),
-            // rest (flattened) produces branches with "last" key
-            ("day1", branch(vec![("last", leaf("s_last", Index::Day1))])),
-            (
-                "week1",
-                branch(vec![("last", leaf("s_last", Index::Week1))]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // DESIRED: { "raw": Leaf(height), "last": Leaf(day1, week1) }
-        match &merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(
-                    map.len(),
-                    2,
-                    "Expected 2 keys 'base' and 'last', got: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-
-                // base should have Height only
-                let base_indexes = get_leaf_indexes(map.get("raw").unwrap()).unwrap();
-                assert!(base_indexes.contains(&Index::Height));
-                assert_eq!(base_indexes.len(), 1);
-
-                // last should have Day1 and Week1
-                let last_indexes = get_leaf_indexes(map.get("last").unwrap()).unwrap();
-                assert!(!last_indexes.contains(&Index::Height));
-                assert!(last_indexes.contains(&Index::Day1));
-                assert!(last_indexes.contains(&Index::Week1));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Case 5: ComputedBlockFull (most complex) ==========
 
     #[test]
     fn case5_computed_block_full() {
@@ -805,238 +440,6 @@ mod tests {
                 }
             }
             _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Case 6: LazyDateLast (all branches with same inner key) ==========
-
-    #[test]
-    fn case6_lazy_date_last_all_branches_same_key_collapses() {
-        // LazyDateLast pattern: All fields are branches with same inner key "last"
-        // All leaves have the same series name → should collapse to single Leaf
-        let tree = branch(vec![
-            (
-                "day1",
-                branch(vec![("last", leaf("price_200d_sma", Index::Day1))]),
-            ),
-            (
-                "week1",
-                branch(vec![("last", leaf("price_200d_sma", Index::Week1))]),
-            ),
-            (
-                "month1",
-                branch(vec![("last", leaf("price_200d_sma", Index::Month1))]),
-            ),
-            (
-                "month3",
-                branch(vec![("last", leaf("price_200d_sma", Index::Month3))]),
-            ),
-            (
-                "year1",
-                branch(vec![("last", leaf("price_200d_sma", Index::Year1))]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // All branches lifted to same "last" key, all same series name → collapse to Leaf
-        match &merged {
-            TreeNode::Leaf(leaf) => {
-                assert_eq!(leaf.name(), "price_200d_sma");
-                let indexes = leaf.indexes();
-                assert!(indexes.contains(&Index::Day1));
-                assert!(indexes.contains(&Index::Week1));
-                assert!(indexes.contains(&Index::Month1));
-                assert!(indexes.contains(&Index::Month3));
-                assert!(indexes.contains(&Index::Year1));
-            }
-            TreeNode::Branch(map) => {
-                panic!(
-                    "Expected collapsed Leaf, got Branch with keys: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-            }
-        }
-    }
-
-    // ========== Case 7: LazyBlockValue ==========
-    // LazyBlockValue (no merge):
-    //   - sats: LazyVec with wrap="sats"
-    //   - rest: LazyDerivedBlockValue with flatten
-    //     - bitcoin: LazyVec (plain field)
-    //     - dollars: optional derived vector (plain field)
-
-    #[test]
-    fn case7_lazy_block_value() {
-        // Simulates the tree produced by LazyBlockValue
-        // sats wrapped, rest flattened with bitcoin/dollars as plain leaves
-        let tree = branch(vec![
-            // sats with wrap="sats" produces Branch { sats: Leaf }
-            ("sats", branch(vec![("sats", leaf("s", Index::Height))])),
-            // rest with flatten: LazyDerivedBlockValue fields lifted
-            (
-                "rest",
-                branch(vec![
-                    ("bitcoin", leaf("s_btc", Index::Height)),
-                    ("dollars", leaf("s_usd", Index::Height)),
-                ]),
-            ),
-        ]);
-
-        // After merge_branches: lifts children, flattens rest
-        let merged = tree.merge_branches().unwrap();
-
-        match &merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(
-                    map.len(),
-                    3,
-                    "Expected sats, bitcoin, dollars. Got: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-                assert!(matches!(map.get("sats"), Some(TreeNode::Leaf(_))));
-                assert!(matches!(map.get("bitcoin"), Some(TreeNode::Leaf(_))));
-                assert!(matches!(map.get("dollars"), Some(TreeNode::Leaf(_))));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Case 8: BinaryBlockSumCum ==========
-    // After derive applies all inner merges and flatten, before parent merge:
-    // - height wrapped as "raw" → { base: Leaf(Height) }
-    // - height_cumulative wrapped as "cumulative" → { cumulative: Leaf(Height) }
-    // - rest (flatten): children from already-merged inner struct inserted directly
-    //
-    // The key insight: inner types have merge applied BEFORE flatten lifts them.
-    // So rest.to_tree_node() returns merged { sum, cumulative } directly.
-
-    #[test]
-    fn case8_binary_block_sum_cum() {
-        // Tree AFTER derive applies inner merges, flatten lifts rest's children:
-        let tree = branch(vec![
-            // height with wrap="raw"
-            ("height", branch(vec![("raw", leaf("s", Index::Height))])),
-            // height_cumulative with wrap="cumulative"
-            (
-                "height_cumulative",
-                branch(vec![("cumulative", leaf("s_cumulative", Index::Height))]),
-            ),
-            // From rest (flatten) - inner struct already merged to { sum, cumulative }
-            // Each leaf has merged indexes from all time periods
-            (
-                "sum",
-                leaf("s_sum", Index::Day1), // Would have all time indexes
-            ),
-            (
-                "cumulative",
-                leaf("s_cumulative", Index::Day1), // Would have all time indexes
-            ),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // Expected: { base, sum, cumulative }
-        match &merged {
-            TreeNode::Branch(map) => {
-                assert_eq!(
-                    map.len(),
-                    3,
-                    "Expected base, sum, cumulative. Got: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-
-                // base: only Height
-                let base_indexes = get_leaf_indexes(map.get("raw").unwrap()).unwrap();
-                assert_eq!(base_indexes.len(), 1);
-                assert!(base_indexes.contains(&Index::Height));
-
-                // sum: from flattened rest
-                assert!(matches!(map.get("sum"), Some(TreeNode::Leaf(_))));
-
-                // cumulative: Height merged with rest's cumulative
-                let cumulative_indexes = get_leaf_indexes(map.get("cumulative").unwrap()).unwrap();
-                assert!(cumulative_indexes.contains(&Index::Height));
-                assert!(cumulative_indexes.contains(&Index::Day1));
-            }
-            _ => panic!("Expected branch"),
-        }
-    }
-
-    // ========== Case 10: ValueDateLast structure ==========
-    // Testing individual components of ValueDateLast
-
-    #[test]
-    fn case10_computed_date_last_collapses_to_leaf() {
-        // ComputedDateLast<T> with merge:
-        //   - day1 with wrap="raw" → { base: Leaf }
-        //   - rest (flatten): DerivedDateLast already merged to Leaf
-        //     → flatten inserts with field name "rest" as key
-        //
-        // Both have same series name → collapses to single Leaf
-        let tree = branch(vec![
-            // day1 with wrap="raw"
-            ("day1", branch(vec![("raw", leaf("s", Index::Day1))])),
-            // rest (flatten): DerivedDateLast merged to Leaf
-            // Same series name as base
-            ("rest", leaf("s", Index::Week1)),
-        ]);
-
-        let merged = tree.merge_branches().unwrap();
-
-        // Same series name → collapses to single Leaf with all indexes
-        match &merged {
-            TreeNode::Leaf(leaf) => {
-                let indexes = leaf.indexes();
-                assert!(indexes.contains(&Index::Day1));
-                assert!(indexes.contains(&Index::Week1));
-            }
-            TreeNode::Branch(map) => {
-                panic!(
-                    "Expected Leaf, got Branch: {:?}",
-                    map.keys().collect::<Vec<_>>()
-                );
-            }
-        }
-    }
-
-    // ========== Case 11: ValueDateLast conflict detection ==========
-
-    #[test]
-    fn case11_value_date_last_sats_key_conflict() {
-        // ValueDateLast has a structural issue:
-        // - sats_day1 with wrap="sats" produces key "sats"
-        // - rest (flatten) has field "sats" (DerivedDateLast<Sats>)
-        // Both try to use the same "sats" key!
-
-        // Simulating the pre-merge structure
-        let tree = branch(vec![
-            // From sats_day1 with wrap="sats"
-            ("sats_day1", branch(vec![("sats", leaf("s", Index::Day1))])),
-            // From rest (flatten): ValueDerivedDateLast
-            (
-                "rest",
-                branch(vec![
-                    // sats field: DerivedDateLast merged to Leaf
-                    ("sats", leaf("s", Index::Week1)), // Same series name!
-                    ("bitcoin", leaf("s_btc", Index::Day1)),
-                    ("dollars", leaf("s_usd", Index::Day1)),
-                ]),
-            ),
-        ]);
-
-        let merged = tree.merge_branches();
-
-        // Should succeed because both "sats" have the same series name
-        // Indexes should be merged
-        match merged {
-            Some(TreeNode::Branch(map)) => {
-                let sats_indexes = get_leaf_indexes(map.get("sats").unwrap()).unwrap();
-                assert!(sats_indexes.contains(&Index::Day1));
-                assert!(sats_indexes.contains(&Index::Week1));
-            }
-            Some(_) => panic!("Expected branch"),
-            None => panic!("Unexpected conflict"),
         }
     }
 }

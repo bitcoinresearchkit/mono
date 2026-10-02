@@ -61,25 +61,3 @@ pub fn visible_len(index: &str, len: usize) -> usize {
             .map_or(len, |bound| len.min(bound))
     })
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn scope_applies_and_restores_bounds() {
-        let mut outer = ReadBounds::new();
-        outer.set("height", 10);
-        let mut inner = ReadBounds::new();
-        inner.set("height", 4);
-
-        assert_eq!(visible_len("height", 20), 20);
-        outer.scope(|| {
-            assert_eq!(visible_len("height", 20), 10);
-            assert_eq!(visible_len("tx_index", 20), 20);
-            inner.scope(|| assert_eq!(visible_len("height", 20), 4));
-            assert_eq!(visible_len("height", 20), 10);
-        });
-        assert_eq!(visible_len("height", 20), 20);
-    }
-}

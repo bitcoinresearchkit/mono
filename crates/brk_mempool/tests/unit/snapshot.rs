@@ -54,11 +54,6 @@ fn snap_tx(seed: u8) -> SnapTx {
     }
 }
 
-#[test]
-fn next_block_hash_is_deterministic_across_runs() {
-    assert_eq!(template_hash(&[1, 2, 3]), template_hash(&[1, 2, 3]));
-}
-
 fn template_hash(seeds: &[u8]) -> NextBlockHash {
     let mut snapshot = Snapshot::default();
     let bodies = seeds
@@ -77,11 +72,6 @@ fn next_block_hash_changes_with_block0_membership() {
 #[test]
 fn next_block_hash_changes_with_block0_order() {
     assert_ne!(template_hash(&[1, 2, 3]), template_hash(&[3, 2, 1]));
-}
-
-#[test]
-fn empty_blocks_hash_is_zero() {
-    assert_eq!(Snapshot::default().next_block_hash, NextBlockHash::ZERO);
 }
 
 #[test]

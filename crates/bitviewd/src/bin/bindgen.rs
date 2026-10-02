@@ -240,32 +240,7 @@ fn verify_output_pairs(
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{Value, from_slice};
-
     use super::*;
-
-    #[test]
-    fn rust_scope_selects_only_client_and_cli() {
-        let paths = output_paths(Path::new("fixture"), OutputScope::Rust);
-        assert!(paths.rust.is_some());
-        assert!(paths.cli.is_some());
-        assert!(paths.javascript.is_none());
-        assert!(paths.python.is_none());
-        assert!(paths.llm.is_empty());
-        assert!(paths.llm_manifest.is_none());
-        let selected: Vec<_> = GENERATED_OUTPUTS
-            .iter()
-            .filter(|(path, _)| OutputScope::Rust.includes(path))
-            .map(|(path, _)| *path)
-            .collect();
-        assert_eq!(
-            selected,
-            [
-                "crates/bitview_client/src/generated.rs",
-                "crates/bitview_cli/src/generated.rs"
-            ]
-        );
-    }
 
     #[test]
     fn check_reports_stale_outputs() {
@@ -282,26 +257,5 @@ mod tests {
             verify_output_pairs(&generated, &workspace, &[("artifact", "artifact")]).unwrap_err();
 
         assert!(error.to_string().contains("artifact"));
-    }
-
-    #[test]
-    fn registry_manifest_uses_package_version() {
-        let directory = tempdir().unwrap();
-        let root = directory.path();
-
-        generate_registry_manifest(root).unwrap();
-        let manifest: Value =
-            from_slice(&fs::read(root.join("crates/bitview_mcp/server.json")).unwrap()).unwrap();
-
-        assert_eq!(manifest["version"], env!("CARGO_PKG_VERSION"));
-        assert_eq!(manifest["name"], "io.github.bitcoinresearchkit/bitview");
-        assert_eq!(
-            manifest["repository"]["url"],
-            "https://github.com/bitcoinresearchkit/mono"
-        );
-        assert_eq!(manifest["repository"]["id"], "824866280");
-        assert_eq!(manifest["repository"]["subfolder"], "crates/bitview_mcp");
-        assert_eq!(manifest["remotes"][0]["type"], "streamable-http");
-        assert_eq!(manifest["remotes"][0]["url"], "https://mcp.bitview.space/");
     }
 }

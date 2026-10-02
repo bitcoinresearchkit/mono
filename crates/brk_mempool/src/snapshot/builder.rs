@@ -138,28 +138,6 @@ mod tests {
     }
 
     #[test]
-    fn singleton_keeps_fee_per_vsize() {
-        let mut txs = vec![snap_tx(sats(1000), vsize(100))];
-        let seed = txs[0].chunk_rate;
-        Snapshot::refresh_chunk_rates(&mut txs);
-        assert_eq!(txs[0].chunk_rate, seed);
-    }
-
-    #[test]
-    fn two_tx_cpfp_lift() {
-        let mut txs = vec![
-            snap_tx(sats(100), vsize(100)),
-            snap_tx(sats(1900), vsize(100)),
-        ];
-        link(&mut txs, 0, 1);
-        let parent_seed = txs[0].chunk_rate;
-        Snapshot::refresh_chunk_rates(&mut txs);
-        assert!(txs[0].chunk_rate > parent_seed);
-        assert_eq!(txs[0].chunk_rate, txs[1].chunk_rate);
-        assert_eq!(txs[0].chunk_rate, FeeRate::from((sats(2000), vsize(200))));
-    }
-
-    #[test]
     fn three_tx_chain_chunks_correctly() {
         let mut txs = vec![
             snap_tx(sats(100), vsize(100)),

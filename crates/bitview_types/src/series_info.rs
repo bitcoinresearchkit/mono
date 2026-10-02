@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ use brk_types::Index;
 pub struct SeriesInfo {
     /// Human-readable metric definition, when documented
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<Cow<'static, str>>,
+    pub description: Option<Arc<str>>,
     /// Available indexes
     pub indexes: Vec<Index>,
     /// Value type (e.g. "f32", "u64", "Sats")

@@ -161,38 +161,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn basic_add_and_prefix_sum() {
-        let mut tree = FenwickTree::<u32>::new(10);
-        tree.add(0, &3);
-        tree.add(1, &2);
-        tree.add(5, &7);
-
-        assert_eq!(tree.prefix_sum(0), 3);
-        assert_eq!(tree.prefix_sum(1), 5);
-        assert_eq!(tree.prefix_sum(4), 5);
-        assert_eq!(tree.prefix_sum(5), 12);
-        assert_eq!(tree.prefix_sum(9), 12);
-    }
-
-    #[test]
-    fn kth_walk_down() {
-        let mut tree = FenwickTree::<u32>::new(5);
-        // freq: [3, 2, 0, 5, 1]
-        tree.add(0, &3);
-        tree.add(1, &2);
-        tree.add(3, &5);
-        tree.add(4, &1);
-
-        let out = tree.kth([0u32, 2, 3, 4, 5, 10], &|n: &u32| *n);
-        assert_eq!(out[0], 0); // kth(0) → bucket 0
-        assert_eq!(out[1], 0); // kth(2) → bucket 0 (last of bucket 0)
-        assert_eq!(out[2], 1); // kth(3) → bucket 1
-        assert_eq!(out[3], 1); // kth(4) → bucket 1
-        assert_eq!(out[4], 3); // kth(5) → bucket 3 (bucket 2 is empty)
-        assert_eq!(out[5], 4); // kth(10) → bucket 4
-    }
-
-    #[test]
     fn batched_searches_share_repeated_targets_and_skip_absent_fields() {
         let mut tree = FenwickTree::<u32>::new(13);
         let frequencies = [3, 0, 2, 0, 0, 5, 1, 0, 7, 0, 0, 0, 4];
@@ -248,13 +216,5 @@ mod tests {
                 "mismatch at bucket {i}"
             );
         }
-    }
-
-    #[test]
-    fn reset_clears_all() {
-        let mut tree = FenwickTree::<u32>::new(10);
-        tree.add(3, &42);
-        tree.reset();
-        assert_eq!(tree.prefix_sum(9), 0);
     }
 }

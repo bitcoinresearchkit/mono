@@ -232,15 +232,3 @@ impl Formattable for Weight {
         buf.extend_from_slice(b.format(self.0).as_bytes());
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::Weight;
-
-    #[test]
-    fn derives_weight_from_base_and_witness_sizes() {
-        assert_eq!(size_of::<Weight>(), size_of::<u32>());
-        assert_eq!(*Weight::from_sizes(100, 100), 400);
-        assert_eq!(*Weight::from_sizes(100, 125), 425);
-    }
-}

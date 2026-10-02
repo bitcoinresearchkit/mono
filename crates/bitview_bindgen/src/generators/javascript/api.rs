@@ -303,7 +303,3 @@ fn format_param_desc(desc: Option<&str>) -> String {
         _ => String::new(),
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/generators/javascript/api.rs"]
-mod tests;

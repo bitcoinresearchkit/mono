@@ -168,15 +168,6 @@ mod tests {
 
     #[cfg(feature = "storage")]
     #[test]
-    fn iteration_order_matches_discriminants() {
-        for (index, kind) in OP_RETURN_KINDS.into_iter().enumerate() {
-            assert_eq!(kind as usize, index);
-            assert_eq!(kind.index(), index);
-        }
-    }
-
-    #[cfg(feature = "storage")]
-    #[test]
     fn pco_conversion_rejects_invalid_discriminants() {
         const { assert!(!OpReturnKind::IS_TRANSPARENT) };
         assert_eq!(

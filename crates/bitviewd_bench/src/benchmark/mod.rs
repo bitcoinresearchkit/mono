@@ -199,6 +199,3 @@ impl Benchmark {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests;

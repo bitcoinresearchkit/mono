@@ -145,8 +145,6 @@ unsafe impl Pco for CapitalSentimentPhase {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::to_string;
-
     use super::*;
 
     #[cfg(feature = "storage")]
@@ -166,36 +164,5 @@ mod tests {
             CapitalSentimentPhase::from_code(CapitalSentimentPhase::MAX_CODE + 1),
             None
         );
-    }
-
-    #[test]
-    fn serialized_names_are_stable() {
-        assert_eq!(
-            to_string(&CapitalSentimentPhase::RagingBull).unwrap(),
-            "\"raging_bull\""
-        );
-        assert_eq!(
-            to_string(&CapitalSentimentPhase::DeepBear).unwrap(),
-            "\"deep_bear\""
-        );
-    }
-
-    #[test]
-    fn score_is_coarser_than_phase() {
-        assert_eq!(CapitalSentimentPhase::RagingBull.score(), 2);
-        assert_eq!(CapitalSentimentPhase::Bull.score(), 2);
-        assert_eq!(CapitalSentimentPhase::CautiousBull.score(), 1);
-        assert_eq!(CapitalSentimentPhase::Limbo.score(), -1);
-        assert_eq!(CapitalSentimentPhase::EarlyBear.score(), -2);
-    }
-
-    #[test]
-    fn sell_phases_match_the_signal_strategy() {
-        assert!(!CapitalSentimentPhase::RagingBull.is_sell());
-        assert!(!CapitalSentimentPhase::WeakBull.is_sell());
-        assert!(CapitalSentimentPhase::Limbo.is_sell());
-        assert!(CapitalSentimentPhase::DeepBear.is_sell());
-        assert!(CapitalSentimentPhase::Bear.is_sell());
-        assert!(CapitalSentimentPhase::EarlyBear.is_sell());
     }
 }

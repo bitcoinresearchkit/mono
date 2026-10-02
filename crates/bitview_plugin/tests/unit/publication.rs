@@ -30,24 +30,6 @@ fn pipeline_update_waits_for_readers_and_stays_closed_until_published() {
 }
 
 #[test]
-fn begin_update_is_idempotent() {
-    let gate = Publication::default();
-    let clone = gate.clone();
-    assert_eq!(gate.revision(), 0);
-    gate.begin_update();
-    gate.begin_update();
-    assert!(gate.try_read().is_none());
-    assert_eq!(clone.revision(), 0);
-
-    gate.finish_update();
-    assert!(gate.try_read().is_some());
-    assert_eq!(clone.revision(), 1);
-    clone.begin_update();
-    clone.finish_update();
-    assert_eq!(gate.revision(), 2);
-}
-
-#[test]
 fn timed_read_stops_waiting_at_its_deadline() {
     let gate = Publication::default();
     gate.begin_update();

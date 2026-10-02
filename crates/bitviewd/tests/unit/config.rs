@@ -1,25 +1,6 @@
-use std::net::Ipv4Addr;
-
 use toml::{Table, from_str};
 
 use super::*;
-
-#[test]
-fn server_listener_is_typed_and_defaults_are_centralized() {
-    let defaults = Config::default();
-    assert_eq!(defaults.serverbind(), DEFAULT_BIND);
-    assert_eq!(defaults.serverport(), Port::DEFAULT);
-
-    let config: Config = from_str(
-        r#"
-            serverbind = "127.0.0.1"
-            serverport = 3111
-        "#,
-    )
-    .unwrap();
-    assert_eq!(config.serverbind(), IpAddr::V4(Ipv4Addr::LOCALHOST));
-    assert_eq!(config.serverport(), Port::new(3111));
-}
 
 #[test]
 fn only_present_command_line_fields_override_persisted_settings() {

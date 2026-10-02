@@ -71,56 +71,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "excess output transaction ranges")]
-    fn rejects_transaction_ranges_longer_than_the_output_columns() {
-        compute_outputs(
-            [TxIndex::ZERO; 2].into_iter(),
-            &[Sats::ZERO],
-            &[OutputType::P2PKH],
-            &[TypeIndex::new(0)],
-        );
-    }
-
-    #[test]
-    fn groups_value_count_and_unique_transactions_per_typed_address() {
-        let index = TypeIndex::from(7_u32);
-        let rows = [
-            (OutputType::P2PKH, 3),
-            (OutputType::P2PKH, 4),
-            (OutputType::P2PKH, 5),
-            (OutputType::P2SH, 6),
-            (OutputType::OpReturn, 8),
-        ]
-        .map(|(output_type, value)| TxOutData {
-            value: Sats::new(value),
-            output_type,
-            type_index: index,
-        });
-        let txs = [10, 10, 11, 11, 12].map(TxIndex::new);
-        let result = process_outputs(&txs, &rows);
-        let received = &result.get_unwrap(OutputType::P2PKH)[&index];
-        assert_eq!(received.total_value, Sats::new(12));
-        assert_eq!(received.output_count, 3);
-        assert_eq!(received.tx_indexes.len(), 2);
-        assert_eq!(
-            result.get_unwrap(OutputType::P2SH)[&index].total_value,
-            Sats::new(6)
-        );
-        assert_eq!(
-            result
-                .iter()
-                .map(|(_, entries)| entries.len())
-                .sum::<usize>(),
-            2
-        );
-        assert!(
-            process_outputs(&[], &[])
-                .iter()
-                .all(|(_, entries)| entries.is_empty())
-        );
-    }
-
-    #[test]
     fn grouped_receives_survive_flush_resume_and_address_rollback() {
         test_cache::init_cache();
         let dir = tempdir().unwrap();

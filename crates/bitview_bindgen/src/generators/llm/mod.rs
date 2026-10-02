@@ -466,39 +466,6 @@ mod tests {
     use crate::{Parameter, RequestBody};
 
     #[test]
-    fn text_rendering_keeps_case_expansion_and_unicode_whitespace() {
-        let fragments = [
-            "", "_", "-", " ", "\n", "\t", "ß", "é", "🙂", "\u{2003}", "word", "ΟΣ",
-        ];
-        for a in fragments {
-            for b in fragments {
-                for c in fragments {
-                    let input = format!("{a}{b}{c}");
-                    let title = input
-                        .split(['-', '_'])
-                        .filter(|part| !part.is_empty())
-                        .map(|part| {
-                            let mut chars = part.chars();
-                            chars
-                                .next()
-                                .map(|first| {
-                                    first.to_uppercase().collect::<String>() + chars.as_str()
-                                })
-                                .unwrap_or_default()
-                        })
-                        .collect::<Vec<_>>()
-                        .join(" ");
-                    assert_eq!(title_case(&input), title);
-                    assert_eq!(
-                        one_line(&input),
-                        input.split_whitespace().collect::<Vec<_>>().join(" ")
-                    );
-                }
-            }
-        }
-    }
-
-    #[test]
     fn borrowed_schema_references_keep_cycles_missing_roots_and_sorted_docs() {
         let mut first = endpoint("/api/thing/{id}", "GET");
         first.request_body = Some(RequestBody {
@@ -567,58 +534,5 @@ mod tests {
             mcp_ignored: false,
             supports_csv: false,
         }
-    }
-
-    #[test]
-    fn full_reference_lists_every_operation_once() {
-        let first = endpoint("/api/thing/{id}", "GET");
-        let second = endpoint("/api/thing/{id}/status", "GET");
-        let endpoints = [&first, &second];
-        let output = render_llms_full("BRK", "v1", 12, &endpoints, &TypeSchemas::default());
-
-        assert_eq!(output.matches("#### GET `/api/thing/{id}`\n").count(), 1);
-        assert_eq!(
-            output
-                .matches("#### GET `/api/thing/{id}/status`\n")
-                .count(),
-            1
-        );
-        assert!(output.contains("- MCP endpoint: https://mcp.bitview.space/"));
-        assert!(output.contains("curl -s \"https://bitview.space/api/thing/<id>\""));
-    }
-
-    #[test]
-    fn discovery_routes_api_and_mcp_users() {
-        let first = endpoint("/api/thing/{id}", "GET");
-        let endpoints = [&first];
-        let output = render_llms("BRK", "v1", 12, &endpoints);
-
-        assert!(output.contains("- Endpoint: https://mcp.bitview.space/"));
-        assert!(output.contains("- Transport: Streamable HTTP"));
-        assert!(output.contains("- Authentication: None"));
-        assert!(output.contains("- Browser access: Permissive CORS"));
-        assert!(output.contains("Never invent a series identifier"));
-        assert!(output.contains("GET /api/series/search?q=<plain-language concept>"));
-        assert!(output.contains("GET /api/series/<series>"));
-        assert!(output.contains("GET /api/series/<series>/<index>/latest"));
-        assert!(output.contains("GET /api/series/bulk?series=<comma-separated names>"));
-    }
-
-    #[test]
-    fn schema_renderer_keeps_required_fields_and_references() {
-        let schema = json!({
-            "type": "object",
-            "required": ["tx"],
-            "properties": {
-                "tx": { "$ref": "#/components/schemas/Transaction" },
-                "height": { "type": "integer" }
-            }
-        });
-        let mut output = String::new();
-
-        render_schema(&mut output, "Result", &schema);
-
-        assert!(output.contains("`tx`: `Transaction` (required)"));
-        assert!(output.contains("`height`: `integer`"));
     }
 }

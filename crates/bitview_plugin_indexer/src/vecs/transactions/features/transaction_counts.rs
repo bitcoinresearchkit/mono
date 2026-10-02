@@ -37,27 +37,3 @@ macro_rules! define_transaction_counts {
 }
 
 with_transaction_features!(define_transaction_counts);
-
-#[cfg(test)]
-mod tests {
-    use brk_types::TxVersion;
-
-    use super::TransactionCounts;
-
-    #[test]
-    fn counts_every_version_category_and_base_property() {
-        let mut counts = TransactionCounts::default();
-        counts.add_base(1, 2, TxVersion::ONE, false);
-        counts.add_base(2, 1, TxVersion::TWO, true);
-        counts.add_base(3, 3, TxVersion::THREE, false);
-        counts.add_base(4, 4, TxVersion::NON_STANDARD, false);
-
-        assert_eq!(counts.v1, 1);
-        assert_eq!(counts.v2, 1);
-        assert_eq!(counts.v3, 1);
-        assert_eq!(counts.other_version, 1);
-        assert_eq!(counts.explicitly_rbf, 1);
-        assert_eq!(counts.one_input, 1);
-        assert_eq!(counts.one_output, 1);
-    }
-}

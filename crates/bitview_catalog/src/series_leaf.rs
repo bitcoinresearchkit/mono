@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::BTreeSet};
+use std::{collections::BTreeSet, sync::Arc};
 
 use brk_types::Index;
 use schemars::JsonSchema;
@@ -15,7 +15,7 @@ pub struct SeriesLeaf {
     pub indexes: BTreeSet<Index>,
     /// Human-readable metric definition, when documented.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<Cow<'static, str>>,
+    pub description: Option<Arc<str>>,
 }
 
 impl SeriesLeaf {

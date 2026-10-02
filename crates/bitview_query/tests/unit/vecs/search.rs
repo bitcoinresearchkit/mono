@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::BTreeMap};
+use std::{collections::BTreeMap, sync::Arc};
 
 use super::*;
 
@@ -13,7 +13,7 @@ impl<'a> Fixture<'a> {
         let names: Vec<_> = items.iter().map(|(name, _)| *name).collect();
         let descriptions = items
             .iter()
-            .map(|(name, description)| (*name, Cow::Owned((*description).to_owned())))
+            .map(|(name, description)| (*name, Arc::from(*description)))
             .collect::<BTreeMap<_, _>>();
         Self {
             matcher: QuickMatch::new(&names),

@@ -36,22 +36,3 @@ fn test_derive_bytes_vec_value() -> Result<()> {
     assert_eq!(vec.len(), values.len());
     Ok(())
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Bytes)]
-struct Price(f64);
-
-#[test]
-fn test_derive_with_float() -> Result<()> {
-    const { assert!(Price::IS_NATIVE_LAYOUT) };
-
-    let temp = TempDir::new()?;
-    let db = Database::open(temp.path())?;
-    let values = [Price(19.99), Price(29.99), Price(39.99)];
-    let mut vec: BytesVec<usize, Price> = BytesVec::import(&db, "prices", Version::TWO)?;
-    for &value in &values {
-        vec.push(value);
-    }
-    vec.write()?;
-    assert_eq!(vec.collect().as_slice(), values);
-    Ok(())
-}

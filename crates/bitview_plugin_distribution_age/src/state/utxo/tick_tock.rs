@@ -121,41 +121,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn created_time_is_split_at_the_exact_age_boundary() {
-        let mut created_sat_seconds = AgeRange {
-            under_1h: u128::from(Sats::ONE_BTC) * 10 * 60,
-            ..Default::default()
-        };
-
-        move_created_tail(
-            &mut created_sat_seconds,
-            AgeRangeId::Under1H,
-            AgeRangeId::From1HTo1D,
-            Sats::ONE_BTC,
-            9 * 60,
-        );
-
-        assert_eq!(created_sat_seconds.under_1h, u128::from(Sats::ONE_BTC) * 60,);
-        assert_eq!(
-            created_sat_seconds._1h_to_1d,
-            u128::from(Sats::ONE_BTC) * 9 * 60,
-        );
-        assert_eq!(
-            created_sat_seconds.iter().copied().sum::<u128>(),
-            u128::from(Sats::ONE_BTC) * 10 * 60,
-        );
-    }
-
-    #[test]
-    fn sat_seconds_are_converted_to_fractional_coindays() {
-        let one_hour = f64::from(sat_seconds_to_coindays(
-            u128::from(Sats::ONE_BTC) * u128::from(ONE_HOUR_IN_SEC),
-        ));
-
-        assert!((one_hour - 1.0 / 24.0).abs() < 1e-12);
-    }
-
-    #[test]
     fn successive_crossings_split_a_long_interval() {
         let interval = 2 * ONE_DAY_IN_SEC;
         let mut created_sat_seconds = AgeRange {

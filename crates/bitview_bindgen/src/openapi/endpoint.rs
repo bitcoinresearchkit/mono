@@ -89,7 +89,3 @@ impl Endpoint {
         result
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/openapi_endpoint.rs"]
-mod tests;

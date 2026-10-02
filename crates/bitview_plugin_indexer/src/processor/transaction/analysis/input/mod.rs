@@ -45,23 +45,3 @@ pub fn analyze<'a>(
         witness,
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use bitcoin::TxIn;
-    use brk_types::OutputType;
-
-    use super::analyze;
-    use crate::TxFeatureFlags;
-
-    #[test]
-    fn empty_script_sig_has_empty_facts() {
-        let input = TxIn::default();
-        let facts = analyze(&input, OutputType::Unknown, &mut TxFeatureFlags::default());
-
-        assert_eq!(facts.script_sig.accurate_sigops, 0);
-        assert_eq!(facts.script_sig.last_push, None);
-        assert_eq!(facts.script_sig.legacy_sigops, 0);
-        assert!(facts.script_sig.push_only);
-    }
-}

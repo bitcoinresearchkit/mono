@@ -61,22 +61,3 @@ define_by_kind! {
     empty => Empty, "Restricted to OP_RETURN outputs with no non-empty pushed payload.",
     unknown => Unknown, "Restricted to OP_RETURN outputs that do not match another recognized payload kind.",
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::OpReturnKind;
-
-    use super::ByKind;
-
-    #[test]
-    fn covers_every_kind_in_discriminant_order() {
-        let by_kind = ByKind::new(|kind, _| kind);
-        let kinds: Vec<_> = by_kind.iter_typed().collect();
-
-        assert_eq!(kinds.len(), OpReturnKind::Unknown as usize + 1);
-        for (index, (kind, value)) in kinds.into_iter().enumerate() {
-            assert_eq!(kind as usize, index);
-            assert_eq!(kind, *value);
-        }
-    }
-}

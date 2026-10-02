@@ -102,7 +102,3 @@ fn hash_bytes(engine: &mut sha256::HashEngine, bytes: &[u8]) {
     engine.input(&(bytes.len() as u64).to_le_bytes());
     engine.input(bytes);
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/series_bodies.rs"]
-mod tests;

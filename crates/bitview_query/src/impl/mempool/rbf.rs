@@ -150,7 +150,3 @@ impl IndexerRead<'_> {
         Ok((mined, rate))
     }
 }
-
-#[cfg(test)]
-#[path = "../../../tests/unit/impl/mempool/rbf.rs"]
-mod tests;

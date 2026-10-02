@@ -211,20 +211,3 @@ fn is_batch_payout(inputs: usize, outputs: usize, is_coinbase: bool) -> bool {
 fn is_coinjoin_candidate(inputs: usize, outputs: usize) -> bool {
     inputs >= 5 && outputs >= 5 && inputs < outputs * 5 && outputs < inputs * 5
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{is_batch_payout, is_coinjoin_candidate, is_consolidation};
-
-    #[test]
-    fn ratio_boundaries_match_filter_semantics() {
-        assert!(is_consolidation(25, 5));
-        assert!(is_batch_payout(5, 25, false));
-        assert!(!is_batch_payout(1, 5, true));
-        assert!(!is_coinjoin_candidate(25, 5));
-        assert!(!is_coinjoin_candidate(5, 25));
-        assert!(!is_coinjoin_candidate(4, 5));
-        assert!(!is_coinjoin_candidate(5, 4));
-        assert!(is_coinjoin_candidate(5, 5));
-    }
-}

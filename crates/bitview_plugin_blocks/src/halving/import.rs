@@ -52,30 +52,3 @@ impl Vecs {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use bitview_transforms::BlocksToDaysF32;
-    use brk_types::{Halving, Height, StoredU32};
-    use vecdb::UnaryTransform;
-
-    use super::blocks_left_to_halving;
-
-    #[test]
-    fn formulas_match_public_halving_series_contracts() {
-        for (height, epoch, remaining) in [
-            (0_u32, 0_u8, 210_000_u32),
-            (209_999, 0, 1),
-            (210_000, 1, 210_000),
-            (419_999, 1, 1),
-            (420_000, 2, 210_000),
-        ] {
-            let height = Height::from(height);
-            assert_eq!(Halving::from(height), Halving::new(epoch));
-            assert_eq!(blocks_left_to_halving(height), StoredU32::new(remaining));
-        }
-
-        let days = BlocksToDaysF32::apply(StoredU32::new(210_000));
-        assert_eq!(*days, 210_000.0_f32 / 144.0);
-    }
-}

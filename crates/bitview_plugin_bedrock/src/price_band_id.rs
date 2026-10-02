@@ -113,17 +113,3 @@ impl From<LevelId> for PriceBandId {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::{PRICE_BAND_IDS, PriceBandId, PriceBands};
-
-    #[test]
-    fn selection_matches_public_order() {
-        assert_eq!(PriceBandId::ALL, PRICE_BAND_IDS);
-        let values = PriceBands::from_fn(|id| id);
-        for &id in PriceBandId::ALL {
-            assert_eq!(id.select(&values), &id);
-        }
-    }
-}

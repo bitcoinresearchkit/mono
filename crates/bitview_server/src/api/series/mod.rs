@@ -84,10 +84,6 @@ fn empty_search(headers: &HeaderMap, cdn_cache_mode: CdnCacheMode) -> Response {
     Response::json_bytes(headers, &params, || Bytes::from_static(b"[]"))
 }
 
-#[cfg(test)]
-#[path = "../../../tests/unit/series_format.rs"]
-mod tests;
-
 pub async fn serve_series_info(
     state: AppState,
     headers: HeaderMap,

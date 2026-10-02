@@ -109,6 +109,7 @@ mod tests {
     #[test]
     fn bounded_weights_use_the_encoded_complement() {
         let total = Sats::from(123_456_789_u64);
+        let total_cap = Cents::from(987_654_321_u64);
         for value in [0.0, 1.0 / 3.0, 0.321, 1.0] {
             let weight = BoundedRatio::from(value);
             let split = WeightedCohortState::split_supply(total, weight);
@@ -120,9 +121,10 @@ mod tests {
             assert!(split.0 + split.1 <= total);
             assert!(total - split.0 - split.1 <= Sats::from(1_u64));
             let mut state = WeightedCohortState::default();
-            let contribution = state.add(total, Sats::ZERO, Cents::from(100_u64), weight);
+            let contribution = state.add(total, Sats::ZERO, total_cap, weight);
             assert_eq!(contribution.weighted_supply, split.0);
             assert_eq!(contribution.complement_supply, split.1);
+            assert!(state.weighted_cap <= total_cap);
         }
     }
 }

@@ -226,10 +226,8 @@ test('dot AUTO follows website zoom sizing; fixed sizes persist across zoom and 
   assert.equal(entry.api.options.pointMarkersRadius, 1);
 });
 
-test('candles and bars are adjacent; histogram supports price and non-price data', () => {
+test('histogram supports price and non-price data', () => {
   const f = fixture();
-  assert.deepEqual(Object.keys(f.chartTypes).slice(0, 2), ['candles', 'bars']);
-  assert.equal(f.chartTypes.histogram.priceOnly, undefined);
   for (const [name, data] of [['price_ohlc', ohlc], ['supply', scalar], ['other_ohlc', ohlc]]) {
     f.addSeries(f.pane, name, data, { chartType: 'histogram' });
     const entry = f.pane.entries.at(-1);

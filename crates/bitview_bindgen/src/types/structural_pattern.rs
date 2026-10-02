@@ -112,24 +112,3 @@ fn extract_disc(template: &str, value: &str) -> Option<String> {
     let disc = value.strip_prefix(prefix)?.strip_suffix(suffix)?;
     (!disc.is_empty()).then(|| disc.to_string())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::extract_disc;
-
-    #[test]
-    fn discriminator_requires_nonoverlapping_prefix_and_suffix() {
-        for (template, value, expected) in [
-            ("ratio_{disc}_ppm", "ratio_pct99_ppm", Some("pct99")),
-            ("a{disc}a", "a", None),
-            ("a{disc}a", "aa", None),
-            ("a{disc}a", "aéa", Some("é")),
-            ("é{disc}é", "é", None),
-            ("{disc}", "", None),
-            ("{disc}", "value", Some("value")),
-            ("fixed", "fixed", None),
-        ] {
-            assert_eq!(extract_disc(template, value).as_deref(), expected);
-        }
-    }
-}

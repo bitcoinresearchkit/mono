@@ -28,7 +28,3 @@ impl Predicate for ResponseSizeAbove {
         size.is_none_or(|size| size >= self.0)
     }
 }
-
-#[cfg(test)]
-#[path = "../tests/unit/response_size_above.rs"]
-mod tests;

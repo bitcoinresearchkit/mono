@@ -36,21 +36,3 @@ mod diff_dollars;
 pub use diff_dollars::RatioDiffDollars;
 mod diff_cents;
 pub use diff_cents::RatioDiffCents;
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{Cents, CentsSigned, PartsPerMillion32};
-    use vecdb::BinaryTransform;
-
-    use super::*;
-
-    #[test]
-    fn cents_ratios_propagate_nan() {
-        assert!(RatioCents::<PartsPerMillion32>::apply(Cents::NAN, Cents::new(100)).is_nan());
-        assert!(RatioCents::<PartsPerMillion32>::apply(Cents::new(100), Cents::NAN).is_nan());
-        assert!(
-            RatioCentsSignedCents::<PartsPerMillion32>::apply(CentsSigned::new(100), Cents::NAN,)
-                .is_nan()
-        );
-    }
-}

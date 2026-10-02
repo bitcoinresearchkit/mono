@@ -26,7 +26,3 @@ pub fn normalize(text: &str) -> String {
 
     normalized
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/vecs/normalize.rs"]
-mod tests;

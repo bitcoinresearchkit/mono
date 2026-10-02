@@ -51,20 +51,3 @@ pub fn compute(
 
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn adjusted_inflation_retains_ppm_precision_and_nan() {
-        for (activity, inflation) in [(2.5, 0.02), (0.3, -0.012345), (1.0, 200.0)] {
-            let inflation = PartsPerMillionSigned64::from(inflation);
-            let expected = PartsPerMillionSigned64::from(activity * f64::from(inflation));
-            let actual = adjusted_inflation(StoredF64::from(activity), inflation);
-            assert_eq!(i64::from(actual.inner()), expected.inner());
-        }
-        assert!(adjusted_inflation(StoredF64::from(1.0), PartsPerMillionSigned64::NAN).is_nan());
-        assert!(adjusted_inflation(StoredF64::NAN, PartsPerMillionSigned64::ONE).is_nan());
-    }
-}

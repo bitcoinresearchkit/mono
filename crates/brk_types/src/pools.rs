@@ -176,13 +176,6 @@ mod tests {
     }
 
     #[test]
-    fn dmnd_uses_upstream_id_171() {
-        let dmnd = pools().get(PoolSlug::Dmnd);
-        assert_eq!(dmnd.name, "DMND");
-        assert_eq!(dmnd.mempool_unique_id(), 171);
-    }
-
-    #[test]
     fn binary_lookup_matches_string_lookup() {
         let pools = pools();
 

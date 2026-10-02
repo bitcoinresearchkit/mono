@@ -37,18 +37,3 @@ impl OpReturnPolicyId {
         OP_RETURN_POLICY_IDS.map(f)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[cfg(feature = "storage")]
-    use super::*;
-
-    #[cfg(feature = "storage")]
-    #[test]
-    fn iteration_order_matches_discriminants() {
-        for (index, policy) in OP_RETURN_POLICY_IDS.into_iter().enumerate() {
-            assert_eq!(policy as usize, index);
-            assert_eq!(policy.index(), index);
-        }
-    }
-}

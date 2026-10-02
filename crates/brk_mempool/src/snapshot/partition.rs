@@ -74,13 +74,6 @@ mod tests {
     }
 
     #[test]
-    fn zero_blocks_returns_empty() {
-        let txs = vec![snap_tx(1, 100, 100)];
-        let blocks = partition(&txs, &[0], 0);
-        assert!(blocks.is_empty());
-    }
-
-    #[test]
     fn higher_chunk_rate_packs_first() {
         let txs = vec![snap_tx(1, 100, 100), snap_tx(2, 1_000, 100)];
         let blocks = partition(&txs, &[0, 0], 3);

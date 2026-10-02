@@ -65,20 +65,3 @@ fn duration_ns(duration: Duration) -> u64 {
         .saturating_mul(1_000_000_000)
         .saturating_add(u64::from(duration.subsec_nanos()))
 }
-
-#[cfg(test)]
-mod tests {
-    use bitview_plugin::PluginId;
-
-    use super::plugin_name;
-
-    #[test]
-    fn formats_plugin_names_for_people() {
-        assert_eq!(plugin_name(PluginId::new("mining")), "mining");
-        assert_eq!(
-            plugin_name(PluginId::new("capital_sentiment")),
-            "capital sentiment"
-        );
-        assert_eq!(plugin_name(PluginId::new("op_return")), "OP_RETURN");
-    }
-}

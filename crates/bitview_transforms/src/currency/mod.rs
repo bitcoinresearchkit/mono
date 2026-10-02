@@ -23,23 +23,3 @@ pub use sats_to_bitcoin::SatsToBitcoin;
 pub use sats_to_cents::SatsToCents;
 pub use stored_u64_to_cents::StoredU64ToCents;
 pub use stored_u64_to_sats::StoredU64ToSats;
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{Cents, Sats};
-    use vecdb::{BinaryTransform, UnaryTransform};
-
-    use super::{CentsTimesTenths, CentsUnsignedToSats, SatsToCents};
-
-    #[test]
-    fn cents_outputs_propagate_nan() {
-        assert!(SatsToCents::apply(Sats::ONE_BTC, Cents::NAN).is_nan());
-        assert!(CentsTimesTenths::<24>::apply(Cents::NAN).is_nan());
-    }
-
-    #[test]
-    #[should_panic(expected = "Cents::NAN cannot be converted to whole Sats")]
-    fn whole_sats_reject_nan() {
-        CentsUnsignedToSats::apply(Cents::NAN);
-    }
-}

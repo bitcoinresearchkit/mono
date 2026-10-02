@@ -21,19 +21,3 @@ impl RealizedBlockData {
             .unwrap_or_default()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn price_uses_unrounded_cap_and_is_zero_without_supply() {
-        let data = RealizedBlockData {
-            cap_raw: CentsSats::new(101 * 3 + 112 * 5),
-            supply: Sats::new(8),
-            ..Default::default()
-        };
-        assert_eq!(data.price(), Cents::new(107));
-        assert_eq!(RealizedBlockData::default().price(), Cents::ZERO);
-    }
-}

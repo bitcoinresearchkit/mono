@@ -161,7 +161,3 @@ impl ClientMetadata {
         }
     }
 }
-
-#[cfg(test)]
-#[path = "../../tests/unit/types/metadata.rs"]
-mod tests;

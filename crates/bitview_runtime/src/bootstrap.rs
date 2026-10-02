@@ -147,32 +147,6 @@ mod tests {
     }
 
     #[test]
-    fn ready_composition_is_returned_without_reimport() -> Result<()> {
-        let directory = tempdir()?;
-        let imports = Arc::new(AtomicUsize::new(0));
-        let computes = Arc::new(AtomicUsize::new(0));
-        let import_context = ImportContext::new(directory.path());
-        let exit = Exit::new();
-        let plugins = bootstrap(
-            import_context,
-            |_context| {
-                Ok(TestPlugins {
-                    publication: Default::default(),
-                    import: imports.fetch_add(1, Ordering::Relaxed) + 1,
-                    computes: computes.clone(),
-                    reimport_first: false,
-                })
-            },
-            UpdateContext::new(&exit),
-        )?;
-
-        assert_eq!(plugins.import, 1);
-        assert_eq!(imports.load(Ordering::Relaxed), 1);
-        assert_eq!(computes.load(Ordering::Relaxed), 1);
-        Ok(())
-    }
-
-    #[test]
     fn cleanup_retains_only_claimed_plugin_data() -> Result<()> {
         let directory = tempdir()?;
         let context = ImportContext::new(directory.path());

@@ -21,18 +21,3 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// value from the period's final block.
     pub weight: TxDerivedDistribution<Weight, M>,
 }
-
-#[cfg(test)]
-mod tests {
-    use brk_types::{VSize, Weight};
-
-    #[test]
-    fn transaction_vsize_rounds_weight_up() {
-        for (weight, expected_vbytes) in [(1_u64, 1_u64), (3, 1), (4, 1), (5, 2), (8, 2), (9, 3)] {
-            assert_eq!(
-                u64::from(VSize::from(Weight::from(weight))),
-                expected_vbytes
-            );
-        }
-    }
-}

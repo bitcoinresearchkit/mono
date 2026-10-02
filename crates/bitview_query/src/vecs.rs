@@ -1,6 +1,7 @@
 use std::{
     borrow::Cow,
-    collections::{BTreeMap, BTreeSet, btree_map::Entry},
+    collections::{BTreeMap, BTreeSet},
+    sync::Arc,
 };
 
 use bitview_catalog::TreeNode;
@@ -16,20 +17,20 @@ use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::AnyExportableVec;
 
-pub mod index_to_vec;
 pub mod normalize;
 pub mod resolved_series_info;
 pub mod search;
+mod series;
 pub mod series_entry;
 
-use index_to_vec::IndexToVec;
+use series::Series;
 
 pub use resolved_series_info::ResolvedSeriesInfo;
 pub use series_entry::SeriesEntry;
 pub use series_entry::SeriesEntryLookup;
 
 pub struct Vecs<'a> {
-    by_series: FxHashMap<&'a str, IndexToVec<'a>>,
+    by_series: FxHashMap<&'a str, Series<'a>>,
     series_names: Vec<&'a str>,
     indexes: Vec<IndexInfo>,
     counts: SeriesCount,
@@ -42,7 +43,6 @@ pub struct Vecs<'a> {
 struct DescriptionSearch {
     matcher: QuickMatch<'static>,
     series_by_description: Vec<Box<[SeriesId]>>,
-    descriptions_by_series: Box<[Option<Cow<'static, str>>]>,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -82,28 +82,23 @@ impl<'a> Vecs<'a> {
         mut catalog: TreeNode,
         series_to_description: BTreeMap<&'a str, Vec<&'static str>>,
     ) -> Self {
-        let mut interned_descriptions = BTreeMap::new();
+        let mut interned_descriptions = BTreeMap::<_, Arc<str>>::new();
         let mut descriptions = BTreeMap::new();
         for (series, fragments) in series_to_description {
             assert!(
                 builder.by_series.contains_key(series),
                 "Description references unknown series: {series}"
             );
-            let description = match interned_descriptions.entry(fragments) {
-                Entry::Vacant(entry) => {
-                    let description: &'static str =
-                        Box::leak(entry.key().join(" ").into_boxed_str());
-                    entry.insert(description);
-                    description
-                }
-                Entry::Occupied(entry) => *entry.get(),
-            };
+            let description = interned_descriptions
+                .entry(fragments)
+                .or_insert_with_key(|fragments| Arc::from(fragments.join(" ")))
+                .clone();
             descriptions.insert(series, description);
         }
         catalog.set_descriptions(&descriptions);
         builder.counts.distinct = builder.by_series.len();
         let Builder {
-            by_series,
+            mut by_series,
             counts,
             counts_by_db,
             ..
@@ -118,8 +113,8 @@ impl<'a> Vecs<'a> {
         let catalog_descriptions = catalog.descriptions();
         for (series, description) in descriptions {
             assert_eq!(
-                catalog_descriptions.get(series).map(Cow::as_ref),
-                Some(description),
+                catalog_descriptions.get(series).map(Arc::as_ref),
+                Some(description.as_ref()),
                 "Catalog description mismatch for series {series}"
             );
         }
@@ -129,11 +124,14 @@ impl<'a> Vecs<'a> {
                 "Catalog description references unknown series: {series}"
             );
         }
+        for (name, series) in &mut by_series {
+            series.description = catalog_descriptions.get(*name).cloned();
+        }
         let description_search = DescriptionSearch::new(&series_names, &catalog_descriptions);
 
         let indexes = by_series
             .values()
-            .flat_map(IndexToVec::indexes)
+            .flat_map(Series::indexes)
             .collect::<BTreeSet<_>>()
             .into_iter()
             .map(|index| IndexInfo {
@@ -204,38 +202,25 @@ impl<'a> Vecs<'a> {
         &self.catalog
     }
 
-    fn series_position(&self, name: &str) -> Option<usize> {
-        self.series_names
-            .binary_search_by(|candidate| {
-                candidate
-                    .len()
-                    .cmp(&name.len())
-                    .then_with(|| (*candidate).cmp(name))
-            })
-            .ok()
-    }
-
     pub(crate) fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
-        let Some(index_to_vec) = self.by_series.get(series.normalize().as_ref()) else {
+        let Some(series) = self.by_series.get(series.normalize().as_ref()) else {
             return SeriesEntryLookup::Missing;
         };
 
-        match index_to_vec.get(index).copied() {
+        match series.get(index).copied() {
             Some(entry) => SeriesEntryLookup::Found(entry),
-            None => SeriesEntryLookup::Unsupported(index_to_vec.indexes().collect()),
+            None => SeriesEntryLookup::Unsupported(series.indexes().collect()),
         }
     }
 }
 
 impl DescriptionSearch {
-    fn new(series: &[&str], descriptions_by_name: &BTreeMap<&str, Cow<'static, str>>) -> Self {
+    fn new(series: &[&str], descriptions_by_name: &BTreeMap<&str, Arc<str>>) -> Self {
         assert!(u32::try_from(series.len()).is_ok(), "Too many series");
         let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
-        let mut descriptions_by_series = Vec::with_capacity(series.len());
 
         for (id, name) in series.iter().copied().enumerate() {
             let description = descriptions_by_name.get(name);
-            descriptions_by_series.push(description.cloned());
             let Some(description) = description else {
                 continue;
             };
@@ -259,18 +244,13 @@ impl DescriptionSearch {
         Self {
             matcher: QuickMatch::new_owned(descriptions),
             series_by_description,
-            descriptions_by_series: descriptions_by_series.into_boxed_slice(),
         }
-    }
-
-    fn description(&self, series: usize) -> Option<Cow<'static, str>> {
-        self.descriptions_by_series.get(series)?.clone()
     }
 }
 
 #[derive(Default)]
 struct Builder<'a> {
-    by_series: FxHashMap<&'a str, IndexToVec<'a>>,
+    by_series: FxHashMap<&'a str, Series<'a>>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
     seen_by_db: FxHashMap<&'a str, FxHashSet<&'a str>>,

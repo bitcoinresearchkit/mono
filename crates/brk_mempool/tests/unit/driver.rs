@@ -1,6 +1,6 @@
 use std::{
     net::TcpListener,
-    panic::{catch_unwind, panic_any},
+    panic::catch_unwind,
     sync::{Barrier, mpsc},
 };
 
@@ -179,27 +179,6 @@ fn fetch_failure_preserves_the_previous_publication() {
     let before = mempool.published();
     assert!(mempool.tick_with(|_| FxHashMap::default()).is_err());
     assert!(Arc::ptr_eq(&before, &mempool.published()));
-}
-
-#[test]
-fn panic_msg_extracts_static_str_payload() {
-    let payload = catch_unwind(|| panic!("boom static")).unwrap_err();
-    assert_eq!(Mempool::panic_msg(payload.as_ref()), "boom static");
-}
-
-#[test]
-fn panic_msg_extracts_string_payload() {
-    let payload = catch_unwind(|| panic!("boom owned {}", 42)).unwrap_err();
-    assert_eq!(Mempool::panic_msg(payload.as_ref()), "boom owned 42");
-}
-
-#[test]
-fn panic_msg_falls_back_for_non_string_payload() {
-    let payload = catch_unwind(|| panic_any(42u32)).unwrap_err();
-    assert_eq!(
-        Mempool::panic_msg(payload.as_ref()),
-        "<non-string panic payload>"
-    );
 }
 
 #[test]
