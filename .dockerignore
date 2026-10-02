@@ -1,0 +1,12 @@
+# Build context for docker/Dockerfile: only what the image build reads.
+*
+!Cargo.toml
+!Cargo.lock
+!rust-toolchain.toml
+!crates
+!examples
+!website
+!modules
+**/target
+**/node_modules
+**/.DS_Store
